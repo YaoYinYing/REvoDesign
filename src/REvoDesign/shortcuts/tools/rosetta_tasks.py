@@ -7,8 +7,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from pymol import cmd
-from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
-                       RosettaScriptsVariableGroup)
+from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
 from RosettaPy.app.abc import RosettaAppBase
 from RosettaPy.app.fastrelax import FastRelax as FastRelax_Original
 from RosettaPy.app.pross import PROSS as PROSS_Original
@@ -18,10 +17,8 @@ from RosettaPy.node import NodeHintT
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.sidechain.mutate_runner.RosettaMutateRelax import \
-    MutateRelax_worker
-from REvoDesign.tools.rosetta_utils import (copy_rosetta_citation,
-                                            read_rosetta_node_config)
+from REvoDesign.sidechain.mutate_runner.RosettaMutateRelax import MutateRelax_worker
+from REvoDesign.tools.rosetta_utils import copy_rosetta_citation, read_rosetta_node_config
 from REvoDesign.tools.utils import get_cited, timing
 
 logging = ROOT_LOGGER.getChild(__name__)

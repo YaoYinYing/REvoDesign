@@ -14,8 +14,7 @@ from immutabledict import immutabledict
 from REvoDesign import issues
 from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.basic.extensions import resolve_extension
-from REvoDesign.tools.customized_widgets import (AskedValue, AskedValueDynamic,
-                                                 dialog_wrapper)
+from REvoDesign.tools.customized_widgets import AskedValue, AskedValueDynamic, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import resolve_dotted_function, timing
 

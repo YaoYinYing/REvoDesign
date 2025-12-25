@@ -6,44 +6,47 @@ from RosettaPy.node import node_picker
 
 from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
 from REvoDesign.shortcuts.tools.rosetta_tasks import (
-    shortcut_fast_relax, shortcut_relax_w_ca_constraints,
-    shortcut_rosettaligand)
+    shortcut_fast_relax,
+    shortcut_relax_w_ca_constraints,
+    shortcut_rosettaligand,
+)
 
 
 class TestRosettaTasks:
     @pytest.mark.parametrize(
         "job_id,start_from,cst",
         [
-            ['no_start_no_cst', None, None],
+            ["no_start_no_cst", None, None],
             # ['has_start_no_cst', (-13.218, 6.939, 6.592), None],
             # ['no_start_has_cst', None, '../tests/data/cst/6zcy_lig_disance.cst']
         ],
     )
     def test_rosetta_ligand(self, job_id, start_from, cst, test_node_hint, mock_rosetta_node_config):
 
-        save_dir = f'rosetta_tests/outputs/rosetta_ligand/{job_id}/{test_node_hint}'
+        save_dir = f"rosetta_tests/outputs/rosetta_ligand/{job_id}/{test_node_hint}"
 
         shortcut_rosettaligand(
-            pdb='../tests/data/6zcy_lig.pdb',
-            ligands=['../tests/data/lig/lig.fa.params'],
+            pdb="../tests/data/6zcy_lig.pdb",
+            ligands=["../tests/data/lig/lig.fa.params"],
             nstruct=1,
             save_dir=save_dir,
-            job_id=f'rosettaligand_{job_id}',
+            job_id=f"rosettaligand_{job_id}",
             cst=cst,
             box_size=30,
             move_distance=0.5,
             gridwidth=45,
-            chain_id_for_dock='B',
+            chain_id_for_dock="B",
             start_from_xyz=start_from,
         )
-        run_dir = os.path.join(save_dir, f'rosettaligand_{job_id}', f'docking/6zcy_lig_rosettaligand_{job_id}')
-        assert os.path.isdir(os.path.join(run_dir, 'pdb')), f"{run_dir}/pdb does not exist"
-        assert os.listdir(os.path.join(run_dir, 'pdb')), f'{run_dir}/pdb should contain pdb files'
-        assert [x for x in os.listdir(os.path.join(run_dir, 'scorefile')) if x.endswith(
-            '.sc')], f'{run_dir}/scorefile should contain score files ends with .sc'
+        run_dir = os.path.join(save_dir, f"rosettaligand_{job_id}", f"docking/6zcy_lig_rosettaligand_{job_id}")
+        assert os.path.isdir(os.path.join(run_dir, "pdb")), f"{run_dir}/pdb does not exist"
+        assert os.listdir(os.path.join(run_dir, "pdb")), f"{run_dir}/pdb should contain pdb files"
+        assert [
+            x for x in os.listdir(os.path.join(run_dir, "scorefile")) if x.endswith(".sc")
+        ], f"{run_dir}/scorefile should contain score files ends with .sc"
 
-        analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'scorefile'))
-        assert not analyser.df.empty, 'Scorefile should be loaded and analysed'
+        analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, "scorefile"))
+        assert not analyser.df.empty, "Scorefile should be loaded and analysed"
 
     # # a time expensive test
     # def test_pross(self, test_node_hint):
@@ -108,17 +111,17 @@ class TestRosettaTasks:
         [
             # ['mono', '../tests/data/3fap_hf3_A_short.pdb', False, ''],
             # ['mono_dualspace', '../tests/data/3fap_hf3_A_short.pdb', True, ''],
-            ['w_ligand', '../tests/data/pdb/3fap_hf3_A_short_lig.pdb', False, '../tests/data/lig/lig.fa.params'],
+            ["w_ligand", "../tests/data/pdb/3fap_hf3_A_short_lig.pdb", False, "../tests/data/lig/lig.fa.params"],
         ],
     )
     def test_fast_relax(self, job_id, pdb, dualspace, ligand, test_node_hint, mock_rosetta_node_config):
 
-        save_dir = f'rosetta_tests/outputs/fastrelax/{job_id}/{test_node_hint}'
-        relax_script = 'MonomerRelax2019'
+        save_dir = f"rosetta_tests/outputs/fastrelax/{job_id}/{test_node_hint}"
+        relax_script = "MonomerRelax2019"
 
         relax_opts = []
         if ligand:
-            relax_opts.extend(['--extra_res_fa', os.path.abspath(ligand)])
+            relax_opts.extend(["--extra_res_fa", os.path.abspath(ligand)])
 
         shortcut_fast_relax(
             pdb=os.path.abspath(pdb),
@@ -132,33 +135,35 @@ class TestRosettaTasks:
         )
         pdb_bn = os.path.basename(pdb)[:-4]
 
-        run_dir = os.path.join(save_dir, f'{job_id}/fastrelax_{pdb_bn}_{relax_script}')
-        assert os.path.isdir(os.path.join(run_dir, 'all')), f"{run_dir}/all does not exist"
-        assert [x for x in os.listdir(os.path.join(run_dir, 'all')) if x.endswith('.pdb')
-                ], f'{run_dir}/all should contain pdb files'
-        assert [x for x in os.listdir(os.path.join(run_dir, 'all')) if x.endswith(
-            '.sc')], f'{run_dir}/all should contain score files ends with .sc'
+        run_dir = os.path.join(save_dir, f"{job_id}/fastrelax_{pdb_bn}_{relax_script}")
+        assert os.path.isdir(os.path.join(run_dir, "all")), f"{run_dir}/all does not exist"
+        assert [
+            x for x in os.listdir(os.path.join(run_dir, "all")) if x.endswith(".pdb")
+        ], f"{run_dir}/all should contain pdb files"
+        assert [
+            x for x in os.listdir(os.path.join(run_dir, "all")) if x.endswith(".sc")
+        ], f"{run_dir}/all should contain score files ends with .sc"
 
-        analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'all'))
-        assert not analyser.df.empty, 'Scorefile should be loaded and analysed'
+        analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, "all"))
+        assert not analyser.df.empty, "Scorefile should be loaded and analysed"
 
     # a variant test from RosettaPy's short app tests
 
     @pytest.mark.parametrize(
         "job_id,pdb,ligand",
         [
-            ['mono', '../tests/data/3fap_hf3_A_short.pdb', ''],
+            ["mono", "../tests/data/3fap_hf3_A_short.pdb", ""],
             # ['mono_dualspace', '../tests/data/3fap_hf3_A_short.pdb', ''],
-            ['w_ligand', '../tests/data/pdb/3fap_hf3_A_short_lig.pdb', '../tests/data/lig/lig.fa.params'],
+            ["w_ligand", "../tests/data/pdb/3fap_hf3_A_short_lig.pdb", "../tests/data/lig/lig.fa.params"],
         ],
     )
     def test_shortcut_relax_w_ca_constraints(self, job_id, pdb, ligand, test_node_hint, mock_rosetta_node_config):
 
-        save_dir = f'rosetta_tests/outputs/relax_w_ca_constraints/{job_id}/{test_node_hint}'
+        save_dir = f"rosetta_tests/outputs/relax_w_ca_constraints/{job_id}/{test_node_hint}"
 
         relax_opts = []
         if ligand:
-            relax_opts.extend(['--extra_res_fa', os.path.abspath(ligand)])
+            relax_opts.extend(["--extra_res_fa", os.path.abspath(ligand)])
 
         shortcut_relax_w_ca_constraints(
             pdb=os.path.abspath(pdb),
@@ -170,14 +175,14 @@ class TestRosettaTasks:
         )
         pdb_bn = os.path.basename(pdb)[:-4]
         for i in range(2):
-            run_dir = os.path.join(save_dir, f'{job_id}/{job_id}_round_{i}')
-            assert os.path.isdir(os.path.join(run_dir, 'all')), f"{run_dir}/all does not exist"
-            all_pdbs = [x for x in os.listdir(os.path.join(run_dir, 'all')) if x.endswith('.pdb')]
-            assert all_pdbs, f'{run_dir}/all should contain pdb files'
-            assert len(all_pdbs) == 1, f'{run_dir}/all should contain exact 1 pdb files'
+            run_dir = os.path.join(save_dir, f"{job_id}/{job_id}_round_{i}")
+            assert os.path.isdir(os.path.join(run_dir, "all")), f"{run_dir}/all does not exist"
+            all_pdbs = [x for x in os.listdir(os.path.join(run_dir, "all")) if x.endswith(".pdb")]
+            assert all_pdbs, f"{run_dir}/all should contain pdb files"
+            assert len(all_pdbs) == 1, f"{run_dir}/all should contain exact 1 pdb files"
             for j in range(1):
-                relaxed_pdb_name = f'{pdb_bn}_R{i}_0000{j + 1}.pdb'
-                assert relaxed_pdb_name in all_pdbs, f'{run_dir}/all should contain {relaxed_pdb_name}'
-            analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'all'))
+                relaxed_pdb_name = f"{pdb_bn}_R{i}_0000{j + 1}.pdb"
+                assert relaxed_pdb_name in all_pdbs, f"{run_dir}/all should contain {relaxed_pdb_name}"
+            analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, "all"))
             # bn move to the next round
-            pdb_bn = analyser.best_decoy['decoy']
+            pdb_bn = analyser.best_decoy["decoy"]

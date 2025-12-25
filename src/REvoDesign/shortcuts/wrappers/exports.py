@@ -2,8 +2,7 @@
 Shortcut wrappers of results exporting
 """
 
-from REvoDesign.shortcuts.tools.exports import (
-    shortcut_dump_fasta_from_struct, shortcut_dump_sidechains)
+from REvoDesign.shortcuts.tools.exports import shortcut_dump_fasta_from_struct, shortcut_dump_sidechains
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 
 from ...logger import ROOT_LOGGER

@@ -696,8 +696,7 @@ def pick_design_from_profile(
     from ..common.mutant_visualise import MutantVisualizer
     from ..phylogenetics.revo_designer import REvoDesigner
     from ..sidechain.sidechain_solver import SidechainSolver
-    from ..tools.utils import (cmap_reverser, get_color,
-                               run_worker_thread_with_progress)
+    from ..tools.utils import cmap_reverser, get_color, run_worker_thread_with_progress
 
     bus = ConfigBus()
     molecule = bus.get_value("ui.header_panel.input.molecule", str, reject_none=True)

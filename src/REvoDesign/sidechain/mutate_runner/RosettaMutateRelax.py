@@ -16,11 +16,13 @@ from REvoDesign import ConfigBus
 from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import ROOT_LOGGER
-from REvoDesign.tools.rosetta_utils import (IS_ROSETTA_RUNNABLE,
-                                            copy_rosetta_citation,
-                                            is_run_node_available,
-                                            read_rosetta_config,
-                                            read_rosetta_node_config)
+from REvoDesign.tools.rosetta_utils import (
+    IS_ROSETTA_RUNNABLE,
+    copy_rosetta_citation,
+    is_run_node_available,
+    read_rosetta_config,
+    read_rosetta_node_config,
+)
 from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)

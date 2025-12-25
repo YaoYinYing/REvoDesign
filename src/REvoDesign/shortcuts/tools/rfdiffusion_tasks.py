@@ -16,13 +16,11 @@ from omegaconf import DictConfig, OmegaConf
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
-from REvoDesign.bootstrap.set_config import (is_package_installed,
-                                             reload_config_file)
+from REvoDesign.bootstrap.set_config import is_package_installed, reload_config_file
 from REvoDesign.tools.download_registry import FileDownloadRegistry
 from REvoDesign.tools.package_manager import run_command
 from REvoDesign.tools.rfdiffusion_tools import SubstratePotentialVisualizer
-from REvoDesign.tools.utils import (device_picker, get_cited,
-                                    require_installed, timing)
+from REvoDesign.tools.utils import device_picker, get_cited, require_installed, timing
 
 logging = ROOT_LOGGER.getChild(__name__)
 

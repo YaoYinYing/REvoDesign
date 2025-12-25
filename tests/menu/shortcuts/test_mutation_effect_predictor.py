@@ -1,7 +1,6 @@
 import pytest
 
-from REvoDesign.shortcuts.tools.mutation_effect_predictors import (
-    ThermoMpnnPredictor, shortcut_thermompnn)
+from REvoDesign.shortcuts.tools.mutation_effect_predictors import ThermoMpnnPredictor, shortcut_thermompnn
 from tests.conftest import TestWorker
 
 
@@ -10,7 +9,7 @@ from tests.conftest import TestWorker
 @pytest.mark.parametrize(
     "job_id,mode,threshold,long_dist,ss_penalty",
     [
-        ['ssm_single', 'single', None, None, False],
+        ["ssm_single", "single", None, None, False],
         # ['ssm_single_ss_penalty', 'single', None, None, True],
         # ['ssm_single_higher_threshold', 'single', 10, None, False],
         # ['ssm_additive', 'additive', None, None, False],
@@ -18,15 +17,13 @@ from tests.conftest import TestWorker
         # ['ssm_epistatic_longdist', 'epistatic', None, None,False]
     ],
 )
-@pytest.mark.skipif(
-    not ThermoMpnnPredictor.installed, reason="ThermoMpnnPredictor not installed"
-)
+@pytest.mark.skipif(not ThermoMpnnPredictor.installed, reason="ThermoMpnnPredictor not installed")
 def test_shortcut_thermompnn(job_id, mode, threshold, long_dist, ss_penalty, test_worker: TestWorker):
-    pdb = '../tests/data/6zcy_lig.pdb'
+    pdb = "../tests/data/6zcy_lig.pdb"
     test_worker.test_id = test_worker.method_name()
     test_worker.load_session_and_check(customized_session=pdb)
 
-    save_dir = 'predictors/thermompnn'
+    save_dir = "predictors/thermompnn"
 
     shortcut_thermompnn(
         pdb=pdb,
@@ -36,12 +33,12 @@ def test_shortcut_thermompnn(job_id, mode, threshold, long_dist, ss_penalty, tes
         threshold=threshold or -0.5,
         distance=long_dist or 5.0,
         ss_penalty=ss_penalty,
-        device='cpu',
+        device="cpu",
         load_to_preview=True,
-        top_ranked=100
+        top_ranked=100,
     )
 
-    test_worker.save_new_experiment(experiment_name=f'{test_worker.test_id}_{job_id}')
+    test_worker.save_new_experiment(experiment_name=f"{test_worker.test_id}_{job_id}")
 
     test_worker.check_existed_mutant_tree()
-    test_worker.save_pymol_png(basename=f'{test_worker.test_id}_{job_id}', focus=False)
+    test_worker.save_pymol_png(basename=f"{test_worker.test_id}_{job_id}", focus=False)

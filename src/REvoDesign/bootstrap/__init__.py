@@ -7,9 +7,13 @@ import os
 import hydra
 
 from .. import Qt
-from .set_config import (experiment_config, reload_config_file,
-                         save_configuration, set_cache_dir,
-                         set_REvoDesign_config_file)
+from .set_config import (
+    experiment_config,
+    reload_config_file,
+    save_configuration,
+    set_cache_dir,
+    set_REvoDesign_config_file,
+)
 
 # 1. initialize config file
 REVODESIGN_CONFIG_FILE = set_REvoDesign_config_file()

@@ -24,9 +24,7 @@ class TestREvoDesignPlugin_TabMutate:
 
         pssm_file = KeyDataDuringTests.pssm_file
 
-        test_worker.do_typing(
-            test_worker.plugin.ui.lineEdit_input_csv, pssm_file
-        )
+        test_worker.do_typing(test_worker.plugin.ui.lineEdit_input_csv, pssm_file)
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_input_customized_indices,
             KeyDataDuringTests.surface_file,
@@ -63,9 +61,7 @@ class TestREvoDesignPlugin_TabMutate:
             os.remove(test_worker.test_data.entro_design_pse)
 
         test_worker.save_new_experiment()
-        test_worker.click(
-            widget=test_worker.plugin.ui.pushButton_run_PSSM_to_pse
-        )
+        test_worker.click(widget=test_worker.plugin.ui.pushButton_run_PSSM_to_pse)
 
         test_worker.save_screenshot(
             widget=test_worker.plugin.window,
@@ -74,11 +70,9 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.save_pymol_png(basename=test_worker.test_id)
 
         test_worker.check_existed_mutant_tree()
-        test_worker.pse_snapshot('fin')
+        test_worker.pse_snapshot("fin")
 
-    @pytest.mark.skipif(
-        not ColabDesigner_MPNN.installed, reason="ColabDesign not installed"
-    )
+    @pytest.mark.skipif(not ColabDesigner_MPNN.installed, reason="ColabDesign not installed")
     def test_mpnn_surf(self, test_worker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
@@ -145,9 +139,7 @@ class TestREvoDesignPlugin_TabMutate:
             os.remove(test_worker.test_data.mpnn_design_pse)
 
         test_worker.save_new_experiment()
-        test_worker.click(
-            widget=test_worker.plugin.ui.pushButton_run_PSSM_to_pse
-        )
+        test_worker.click(widget=test_worker.plugin.ui.pushButton_run_PSSM_to_pse)
 
         test_worker.save_screenshot(
             widget=test_worker.plugin.window,
@@ -172,9 +164,7 @@ class TestREvoDesignPlugin_TabMutate:
             test_worker.plugin.ui.comboBox_profile_type,
             test_worker.test_data.ddg_profile_type_local,
         )
-        test_worker.do_typing(
-            test_worker.plugin.ui.lineEdit_input_csv, KeyDataDuringTests.ddg_file
-        )
+        test_worker.do_typing(test_worker.plugin.ui.lineEdit_input_csv, KeyDataDuringTests.ddg_file)
 
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_input_customized_indices,
@@ -218,9 +208,7 @@ class TestREvoDesignPlugin_TabMutate:
 
         test_worker.save_new_experiment()
 
-        test_worker.click(
-            widget=test_worker.plugin.ui.pushButton_run_PSSM_to_pse
-        )
+        test_worker.click(widget=test_worker.plugin.ui.pushButton_run_PSSM_to_pse)
 
         test_worker.save_screenshot(
             widget=test_worker.plugin.window,
@@ -230,7 +218,7 @@ class TestREvoDesignPlugin_TabMutate:
 
         test_worker.check_existed_mutant_tree()
 
-        test_worker.pse_snapshot('fin')
+        test_worker.pse_snapshot("fin")
 
     # def test_ddg_surf_biolib_calling(
     #     self, test_worker
@@ -311,9 +299,7 @@ class TestREvoDesignPlugin_TabMutate:
 
         pssm_file = KeyDataDuringTests.pssm_file
 
-        test_worker.do_typing(
-            test_worker.plugin.ui.lineEdit_input_csv, pssm_file
-        )
+        test_worker.do_typing(test_worker.plugin.ui.lineEdit_input_csv, pssm_file)
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_input_customized_indices,
             test_worker.test_data.pocket_pssm_residues,
@@ -351,9 +337,7 @@ class TestREvoDesignPlugin_TabMutate:
             os.remove(test_worker.test_data.pocket_design_pse)
 
         test_worker.save_new_experiment()
-        test_worker.click(
-            widget=test_worker.plugin.ui.pushButton_run_PSSM_to_pse
-        )
+        test_worker.click(widget=test_worker.plugin.ui.pushButton_run_PSSM_to_pse)
         test_worker.check_existed_mutant_tree()
 
         test_worker.save_screenshot(
@@ -361,4 +345,4 @@ class TestREvoDesignPlugin_TabMutate:
             basename=test_worker.test_id,
         )
         test_worker.save_pymol_png(basename=test_worker.test_id)
-        test_worker.pse_snapshot('fin')
+        test_worker.pse_snapshot("fin")

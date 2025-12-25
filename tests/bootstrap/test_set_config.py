@@ -3,18 +3,23 @@ from unittest.mock import MagicMock, patch
 import pytest
 from omegaconf import DictConfig, OmegaConf
 
-from REvoDesign.bootstrap.set_config import (ConfigConverter,
-                                             experiment_config,
-                                             is_package_installed,
-                                             reload_config_file,
-                                             save_configuration, set_cache_dir,
-                                             set_REvoDesign_config_file)
+from REvoDesign.bootstrap.set_config import (
+    ConfigConverter,
+    experiment_config,
+    is_package_installed,
+    reload_config_file,
+    save_configuration,
+    set_cache_dir,
+    set_REvoDesign_config_file,
+)
 
 
 def test_set_REvoDesign_config_file():
-    with patch("REvoDesign.bootstrap.set_config.os.path.exists", return_value=False), \
-            patch("REvoDesign.bootstrap.set_config.glob.glob", return_value=[]), \
-            patch("REvoDesign.bootstrap.set_config.shutil.copytree") as mock_copytree:
+    with (
+        patch("REvoDesign.bootstrap.set_config.os.path.exists", return_value=False),
+        patch("REvoDesign.bootstrap.set_config.glob.glob", return_value=[]),
+        patch("REvoDesign.bootstrap.set_config.shutil.copytree") as mock_copytree,
+    ):
 
         main_config = set_REvoDesign_config_file()
         mock_copytree.assert_called_once()
@@ -22,15 +27,19 @@ def test_set_REvoDesign_config_file():
 
 
 def test_reload_config_file():
-    with patch("REvoDesign.bootstrap.set_config.hydra.compose", return_value=DictConfig({"key": "value"})) as mock_compose:
+    with patch(
+        "REvoDesign.bootstrap.set_config.hydra.compose", return_value=DictConfig({"key": "value"})
+    ) as mock_compose:
         config = reload_config_file()
         mock_compose.assert_called_once_with(config_name="global_config", overrides=None, return_hydra_config=False)
         assert config["key"] == "value"
 
 
 def test_save_configuration():
-    with patch("REvoDesign.bootstrap.set_config.OmegaConf.save") as mock_save, \
-            patch("REvoDesign.bootstrap.set_config.os.path.dirname", return_value="/mock/path"):
+    with (
+        patch("REvoDesign.bootstrap.set_config.OmegaConf.save") as mock_save,
+        patch("REvoDesign.bootstrap.set_config.os.path.dirname", return_value="/mock/path"),
+    ):
 
         config = OmegaConf.create({"key": "value"})
         save_configuration(config)
@@ -38,8 +47,10 @@ def test_save_configuration():
 
 
 def test_experiment_config():
-    with patch("REvoDesign.bootstrap.set_config.os.makedirs") as mock_makedirs, \
-            patch("REvoDesign.bootstrap.set_config.os.path.dirname", return_value="/mock/path"):
+    with (
+        patch("REvoDesign.bootstrap.set_config.os.makedirs") as mock_makedirs,
+        patch("REvoDesign.bootstrap.set_config.os.path.dirname", return_value="/mock/path"),
+    ):
 
         exp_dir = experiment_config()
         mock_makedirs.assert_called_once_with("/mock/path/experiments", exist_ok=True)
@@ -51,8 +62,10 @@ def test_set_cache_dir():
     mock_bus.cfg.cache_dir.under_home_dir = True
     mock_bus.cfg.cache_dir.customized = ""
 
-    with patch("REvoDesign.ConfigBus", return_value=mock_bus), \
-            patch("REvoDesign.bootstrap.set_config.user_cache_dir", return_value="/mock/cache/dir") as mock_user_cache_dir:
+    with (
+        patch("REvoDesign.ConfigBus", return_value=mock_bus),
+        patch("REvoDesign.bootstrap.set_config.user_cache_dir", return_value="/mock/cache/dir") as mock_user_cache_dir,
+    ):
 
         cache_dir = set_cache_dir()
         mock_user_cache_dir.assert_called_once_with(appname="REvoDesign", ensure_exists=True)

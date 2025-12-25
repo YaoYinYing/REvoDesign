@@ -11,8 +11,7 @@ from pymol.Qt.utils import getSaveFileNameWithExt
 from ..basic import FileExtensionCollection, SingletonAbstract
 from ..common import file_extensions
 from ..logger import ROOT_LOGGER
-from ..tools.customized_widgets import (decide, getMultipleFiles,
-                                        getOpenFileNameWithExt)
+from ..tools.customized_widgets import decide, getMultipleFiles, getOpenFileNameWithExt
 from ..tools.utils import extract_archive
 from .ui_driver import ConfigBus
 

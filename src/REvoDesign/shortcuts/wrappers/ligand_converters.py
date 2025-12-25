@@ -3,8 +3,10 @@ Shortcut wrappers of ligand converters
 """
 
 from REvoDesign.shortcuts.tools.ligand_converters import (
-    shortcut_sdf2rosetta_params, shortcut_smiles_conformer_batch,
-    shortcut_smiles_conformer_single)
+    shortcut_sdf2rosetta_params,
+    shortcut_smiles_conformer_batch,
+    shortcut_smiles_conformer_single,
+)
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 
 # Initialize the registry for the 'ligand' category

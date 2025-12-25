@@ -63,14 +63,9 @@ class TestREvoDesignPlugin_TabCluster:
             test_worker.test_data.cluster_min,
             test_worker.test_data.cluster_max + 1,
         ):
-            dir = f'{bn}{mut_num}'
+            dir = f"{bn}{mut_num}"
             assert os.path.exists(dir)
             assert all(
-                [
-                    os.path.exists(os.path.join(dir, f"c.{c}.fasta"))
-                    for c in range(test_worker.test_data.cluster_num)
-                ]
+                [os.path.exists(os.path.join(dir, f"c.{c}.fasta")) for c in range(test_worker.test_data.cluster_num)]
             )
-            assert os.path.exists(
-                os.path.join(dir, "cluster_centers_stochastic.fasta")
-            )
+            assert os.path.exists(os.path.join(dir, "cluster_centers_stochastic.fasta"))

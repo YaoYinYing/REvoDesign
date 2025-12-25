@@ -59,9 +59,7 @@ class TestREvoDesignPlugin_TabPrepare:
         pocket_files = glob.glob(os.path.join(pocket_file_dir, "*.txt"))
         assert len(pocket_files) == 4
 
-        pocket_file_design_shell = [
-            fn for fn in pocket_files if "design_shell" in fn
-        ][0]
+        pocket_file_design_shell = [fn for fn in pocket_files if "design_shell" in fn][0]
 
         assert pocket_file_design_shell is not None
 
@@ -69,31 +67,21 @@ class TestREvoDesignPlugin_TabPrepare:
             design_shell_residue_ids = ds_fr.read().strip()
             assert design_shell_residue_ids
 
-        test_worker.save_pymol_png(
-            basename=test_worker.test_id, spells="orient hetatm"
-        )
+        test_worker.save_pymol_png(basename=test_worker.test_id, spells="orient hetatm")
         test_worker.save_new_experiment()
-        test_worker.pse_snapshot('fin')
+        test_worker.pse_snapshot("fin")
 
     def test_surface(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="prepare")
 
-        test_worker.click(
-            widget=test_worker.plugin.ui.pushButton_run_surface_refresh
-        )
+        test_worker.click(widget=test_worker.plugin.ui.pushButton_run_surface_refresh)
 
-        hetatm_residues = [
-            sel
-            for sel in cmd.get_names(type="selections")
-            if "pkt_hetatm_" in sel
-        ][0]
+        hetatm_residues = [sel for sel in cmd.get_names(type="selections") if "pkt_hetatm_" in sel][0]
         assert hetatm_residues
 
-        test_worker.do_typing(
-            test_worker.plugin.ui.comboBox_surface_exclusion, hetatm_residues
-        )
+        test_worker.do_typing(test_worker.plugin.ui.comboBox_surface_exclusion, hetatm_residues)
 
         set_widget_value(
             test_worker.plugin.ui.doubleSpinBox_surface_cutoff,
@@ -122,9 +110,7 @@ class TestREvoDesignPlugin_TabPrepare:
         )
         assert len(surface_files) == 1
 
-        surface_file_design_shell = [
-            fn for fn in surface_files if "residues_cutoff" in fn
-        ][0]
+        surface_file_design_shell = [fn for fn in surface_files if "residues_cutoff" in fn][0]
 
         assert surface_file_design_shell is not None
 
@@ -136,8 +122,6 @@ class TestREvoDesignPlugin_TabPrepare:
             widget=test_worker.plugin.window,
             basename=test_worker.test_id,
         )
-        test_worker.save_pymol_png(
-            basename=test_worker.test_id, spells="center"
-        )
+        test_worker.save_pymol_png(basename=test_worker.test_id, spells="center")
         test_worker.save_new_experiment()
-        test_worker.pse_snapshot('fin')
+        test_worker.pse_snapshot("fin")

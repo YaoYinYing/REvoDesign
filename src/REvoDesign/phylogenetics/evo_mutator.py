@@ -34,16 +34,19 @@ from REvoDesign.magician import IMPLEMENTED_DESIGNERS, Magician
 from REvoDesign.phylogenetics.gremlin_tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.revo_designer import REvoDesigner
 from REvoDesign.sidechain import SidechainSolver
-from REvoDesign.tools.customized_widgets import (QButtonMatrixGremlin,
-                                                 hold_trigger_button,
-                                                 refresh_window,
-                                                 set_widget_value)
+from REvoDesign.tools.customized_widgets import (
+    QButtonMatrixGremlin,
+    hold_trigger_button,
+    refresh_window,
+    set_widget_value,
+)
 from REvoDesign.tools.mutant_tools import save_mutant_choices
-from REvoDesign.tools.pymol_utils import (any_posision_has_been_selected,
-                                          is_a_REvoDesign_session,
-                                          make_temperal_input_pdb)
-from REvoDesign.tools.utils import (cmap_reverser, get_color, rescale_number,
-                                    run_worker_thread_with_progress, timing)
+from REvoDesign.tools.pymol_utils import (
+    any_posision_has_been_selected,
+    is_a_REvoDesign_session,
+    make_temperal_input_pdb,
+)
+from REvoDesign.tools.utils import cmap_reverser, get_color, rescale_number, run_worker_thread_with_progress, timing
 
 matplotlib.use("Agg")
 

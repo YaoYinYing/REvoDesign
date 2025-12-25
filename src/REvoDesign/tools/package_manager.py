@@ -868,7 +868,8 @@ class REvoDesignPackageManager:
 
         # Prompt the user to confirm the upgrade
         accept_upgraded = decide(
-            title="Upgrade", description="Do you REALLY want to apply the upgrade?<p><p>"
+            title="Upgrade",
+            description="Do you REALLY want to apply the upgrade?<p><p>"
             '<a style="background-color:yellow;color:blue;">:::::Upgrade Summary:::::</a><p>'
             "<table>"
             "<tr><th><b>Event</b></th><th>-</th><th><b>Affected Lines<b></th></tr>"
@@ -877,7 +878,10 @@ class REvoDesignPackageManager:
             f'<tr><td><a style="background-color:red;  color:white">Deleted</a></td><td>:</td><td><a style="background-color:white;color:red  ;">{num_deled_lines}</a></td></tr>'
             "</table>"
             "You must check out these changes carefully.<p>"
-            f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.", rich=True, details="\n".join(diffs), )
+            f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.",
+            rich=True,
+            details="\n".join(diffs),
+        )
 
         # Clean up the diff file
         if os.path.isfile(diff_file):

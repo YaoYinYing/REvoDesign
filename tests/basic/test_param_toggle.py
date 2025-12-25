@@ -2,8 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from REvoDesign.basic.param_toggle import (ParamChangeRegister,
-                                           ParamChangeRegistryItem)
+from REvoDesign.basic.param_toggle import ParamChangeRegister, ParamChangeRegistryItem
 
 
 def test_param_change_registry_item_signal():
@@ -21,7 +20,7 @@ def test_param_change_registry_item_signal():
         widget_signal_name="some_signal",
         source_cfg_item="source_item",
         target_cfg_item="target_item",
-        param_mapping={"key1": ("value1",)}
+        param_mapping={"key1": ("value1",)},
     )
 
     # Retrieve the signal
@@ -49,7 +48,7 @@ def test_param_change_registry_item_register():
         widget_signal_name="some_signal",
         source_cfg_item="source_item",
         target_cfg_item="target_item",
-        param_mapping={"key1": ("value1",)}
+        param_mapping={"key1": ("value1",)},
     )
 
     # Register the item
@@ -90,7 +89,7 @@ def test_param_change_register_register_all():
         widget_signal_name="signal1",
         source_cfg_item="source1",
         target_cfg_item="target1",
-        param_mapping={"keyA": ("valueA",)}
+        param_mapping={"keyA": ("valueA",)},
     )
 
     registry_item2 = ParamChangeRegistryItem(
@@ -98,14 +97,11 @@ def test_param_change_register_register_all():
         widget_signal_name="signal2",
         source_cfg_item="source2",
         target_cfg_item="target2",
-        param_mapping={"keyB": ("valueB",)}
+        param_mapping={"keyB": ("valueB",)},
     )
 
     # Create the ParamChangeRegister instance
-    param_register = ParamChangeRegister(
-        register_func=mock_register_func,
-        registry=(registry_item1, registry_item2)
-    )
+    param_register = ParamChangeRegister(register_func=mock_register_func, registry=(registry_item1, registry_item2))
 
     # Register all items
     param_register.register_all(mock_ui)

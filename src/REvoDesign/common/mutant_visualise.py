@@ -18,8 +18,7 @@ from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.common.profile_parsers import ProfileManager
 from REvoDesign.magician import Magician
 from REvoDesign.sidechain import MutateRunnerAbstract
-from REvoDesign.tools.mutant_tools import (extract_mutant_from_sequences,
-                                           extract_mutants_from_mutant_id)
+from REvoDesign.tools.mutant_tools import extract_mutant_from_sequences, extract_mutants_from_mutant_id
 from REvoDesign.tools.utils import get_color, require_not_none, run_command
 
 matplotlib.use("Agg")

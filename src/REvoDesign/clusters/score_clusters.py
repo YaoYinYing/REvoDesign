@@ -11,8 +11,7 @@ from RosettaPy.node import NodeHintT
 
 from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
-from REvoDesign.tools.rosetta_utils import (IS_ROSETTA_RUNNABLE,
-                                            read_rosetta_node_config)
+from REvoDesign.tools.rosetta_utils import IS_ROSETTA_RUNNABLE, read_rosetta_node_config
 
 logging = ROOT_LOGGER.getChild(__name__)
 

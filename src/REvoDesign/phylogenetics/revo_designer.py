@@ -25,13 +25,14 @@ from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.common.mutant_visualise import MutantVisualizer
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.magician import IMPLEMENTED_DESIGNERS, Magician
-from REvoDesign.tools.mutant_tools import (expand_range,
-                                           extract_mutant_from_sequences,
-                                           read_customized_indice,
-                                           read_profile_design_mutations,
-                                           shorter_range)
-from REvoDesign.tools.pymol_utils import (
-    find_all_protein_chain_ids_in_protein, get_molecule_sequence)
+from REvoDesign.tools.mutant_tools import (
+    expand_range,
+    extract_mutant_from_sequences,
+    read_customized_indice,
+    read_profile_design_mutations,
+    shorter_range,
+)
+from REvoDesign.tools.pymol_utils import find_all_protein_chain_ids_in_protein, get_molecule_sequence
 from REvoDesign.tools.utils import random_deduplicate, require_not_none
 
 matplotlib.use("Agg")

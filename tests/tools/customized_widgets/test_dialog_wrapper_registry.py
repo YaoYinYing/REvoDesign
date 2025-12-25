@@ -2,8 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from REvoDesign.shortcuts.utils import (DialogWrapperRegistry,
-                                        run_wrapped_func_in_thread)
+from REvoDesign.shortcuts.utils import DialogWrapperRegistry, run_wrapped_func_in_thread
 from REvoDesign.tools.customized_widgets import AskedValue
 
 
@@ -13,13 +12,7 @@ def mock_yaml_content():
         "test_func": {
             "title": "Test Function",
             "banner": "Run a test function",
-            "options": [
-                {
-                    "name": "input_file",
-                    "type": "str",
-                    "default": "example.txt"
-                }
-            ]
+            "options": [{"name": "input_file", "type": "str", "default": "example.txt"}],
         }
     }
 
@@ -61,6 +54,7 @@ def test_dialog_wrapper_registry_register_without_thread(mock_load_yaml, mock_ex
 
     def dummy_function(**kwargs):
         return kwargs
+
     registry = DialogWrapperRegistry("test_category")
     registry.funcs = {}  # reset
 
@@ -83,8 +77,8 @@ def test_dialog_wrapper_registry_window_wrapper_dynamic_values(mock_load_yaml, m
             val="(all)",
             typing=str,
             reason="mock dynamic value.",
-            choices=['(all)', 'polymer.protein'],
-            multiple_choices=True
+            choices=["(all)", "polymer.protein"],
+            multiple_choices=True,
         ),
         "index": 0,
     }
@@ -96,7 +90,7 @@ def test_dialog_wrapper_registry_window_wrapper_dynamic_values(mock_load_yaml, m
     assert registry.funcs == {"test_func": dummy_function}
 
     assert wrapper.__doc__ is not None
-    assert 'given dynamic values' in wrapper.__doc__
+    assert "given dynamic values" in wrapper.__doc__
 
 
 @patch("REvoDesign.shortcuts.utils.Path.exists", return_value=True)
@@ -112,7 +106,7 @@ def test_dialog_wrapper_registry_window_wrapper_no_dynamic_values(mock_load_yaml
     wrapper = registry.register("test_func", dummy_function, use_progressbar=False, has_dynamic_values=False)
 
     assert wrapper.__doc__ is not None
-    assert 'no dynamic values' in wrapper.__doc__
+    assert "no dynamic values" in wrapper.__doc__
 
 
 @patch("REvoDesign.shortcuts.utils.Path.exists", return_value=True)
@@ -122,6 +116,7 @@ def test_dialog_wrapper_registry_unregister(mock_load_yaml, mock_exists, mock_ya
 
     def dummy_function():
         return
+
     registry = DialogWrapperRegistry("test_category")
     registry.register("test_func", dummy_function, use_progressbar=False)
 

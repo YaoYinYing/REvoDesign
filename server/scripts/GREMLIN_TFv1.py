@@ -19,7 +19,7 @@ from scipy import stats
 from scipy.spatial.distance import pdist, squareform
 from tensorflow.python.framework import ops
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 
 MSA_pth = pathlib.Path(sys.argv[1]).resolve()
@@ -31,14 +31,15 @@ gremlin_iter = int(sys.argv[3])
 # for HPC multi-processors in single node
 # edited by Yinying Yao
 
-cpu_num = int(os.environ.get('GREMLIN_CALC_CPU_NUM', 1))
+cpu_num = int(os.environ.get("GREMLIN_CALC_CPU_NUM", 1))
 
 config = tf.ConfigProto(
     device_count={"CPU": cpu_num},
     inter_op_parallelism_threads=cpu_num,
     intra_op_parallelism_threads=cpu_num,
     # log_device_placement=True,
-    allow_soft_placement=True)
+    allow_soft_placement=True,
+)
 
 
 # ## libraries
@@ -59,12 +60,13 @@ for a, n in zip(alphabet, range(states)):
 
 ################
 
+
 def aa2num(aa):
-    '''convert aa into num'''
+    """convert aa into num"""
     if aa in a2n:
         return a2n[aa]
     else:
-        return a2n['-']
+        return a2n["-"]
 
 
 # ## Functions for prepping the MSA (Multiple sequence alignment)
@@ -72,7 +74,7 @@ def aa2num(aa):
 
 # from fasta
 def parse_fasta(filename, limit=-1):
-    '''function to parse fasta'''
+    """function to parse fasta"""
     header = []
     sequence = []
     lines = open(filename)
@@ -86,12 +88,12 @@ def parse_fasta(filename, limit=-1):
         else:
             sequence[-1].append(line)
     lines.close()
-    sequence = [''.join(seq) for seq in sequence]
+    sequence = ["".join(seq) for seq in sequence]
     return np.array(header), np.array(sequence)
 
 
 def filt_gaps(msa, gap_cutoff=0.5):
-    '''filters alignment to remove gappy positions'''
+    """filters alignment to remove gappy positions"""
     tmp = np.zeros_like(msa)
     tmp[np.where(msa == 20)] = 1
     non_gaps = np.where(np.sum(tmp.T, -1).T / msa.shape[0] < gap_cutoff)[0]
@@ -99,7 +101,7 @@ def filt_gaps(msa, gap_cutoff=0.5):
 
 
 def get_eff(msa, eff_cutoff=0.8):
-    '''compute effective weight for each sequence'''
+    """compute effective weight for each sequence"""
     msa.shape[1]
 
     # pairwise identity
@@ -114,7 +116,7 @@ def get_eff(msa, eff_cutoff=0.8):
 
 
 def mk_msa(seqs):
-    '''converts list of sequences to msa'''
+    """converts list of sequences to msa"""
 
     msa_ori = []
     for seq in seqs:
@@ -131,23 +133,26 @@ def mk_msa(seqs):
     ncol = msa.shape[1]  # length of sequence
     w_idx = v_idx[np.stack(np.triu_indices(ncol, 1), -1)]
 
-    return {"msa_ori": msa_ori,
-            "msa": msa,
-            "weights": msa_weights,
-            "neff": np.sum(msa_weights),
-            "v_idx": v_idx,
-            "w_idx": w_idx,
-            "nrow": msa.shape[0],
-            "ncol": ncol,
-            "ncol_ori": msa_ori.shape[1]}
+    return {
+        "msa_ori": msa_ori,
+        "msa": msa,
+        "weights": msa_weights,
+        "neff": np.sum(msa_weights),
+        "v_idx": v_idx,
+        "w_idx": w_idx,
+        "nrow": msa.shape[0],
+        "ncol": ncol,
+        "ncol_ori": msa_ori.shape[1],
+    }
 
 
 # ## GREMLIN
 
 # external functions
 
+
 def sym_w(w):
-    '''symmetrize input matrix of shape (x,y,x,y)'''
+    """symmetrize input matrix of shape (x,y,x,y)"""
     x = w.shape[0]
     w = w * np.reshape(1 - np.eye(x), (x, 1, x, 1))
     w = w + tf.transpose(w, [2, 3, 0, 1])
@@ -185,7 +190,7 @@ def opt_adam(loss, name, var_list=None, lr=1.0, b1=0.9, b2=0.999, b_fix=False):
 
     if b_fix:
         t.assign_add(1.0)
-    return (tf.group(opt))
+    return tf.group(opt)
 
 
 def GREMLIN(msa, opt_type="adam", opt_iter=100, opt_rate=1.0, batch_size=None):
@@ -209,14 +214,10 @@ def GREMLIN(msa, opt_type="adam", opt_iter=100, opt_rate=1.0, batch_size=None):
     MSA_weights = tf.placeholder(tf.float32, shape=(None,), name="msa_weights")
 
     # 1-body-term of the MRF
-    V = tf.get_variable(name="V",
-                        shape=[ncol, states],
-                        initializer=tf.zeros_initializer)
+    V = tf.get_variable(name="V", shape=[ncol, states], initializer=tf.zeros_initializer)
 
     # 2-body-term of the MRF
-    W = tf.get_variable(name="W",
-                        shape=[ncol, states, ncol, states],
-                        initializer=tf.zeros_initializer)
+    W = tf.get_variable(name="W", shape=[ncol, states, ncol, states], initializer=tf.zeros_initializer)
 
     # symmetrize W
     W = sym_w(W)
@@ -275,11 +276,12 @@ def GREMLIN(msa, opt_type="adam", opt_iter=100, opt_rate=1.0, batch_size=None):
         # compute loss across all data
         def get_loss():
             return round(sess.run(loss, feed(feed_all=True)) * msa["neff"], 2)
+
         print("starting", get_loss())
 
         if opt_type == "lbfgs":
             lbfgs = tf.contrib.opt.ScipyOptimizerInterface
-            opt = lbfgs(loss, method="L-BFGS-B", options={'maxiter': opt_iter})
+            opt = lbfgs(loss, method="L-BFGS-B", options={"maxiter": opt_iter})
             opt.minimize(sess, feed(feed_all=True))
 
         if opt_type == "adam":
@@ -296,10 +298,7 @@ def GREMLIN(msa, opt_type="adam", opt_iter=100, opt_rate=1.0, batch_size=None):
     tri = np.triu_indices(ncol, 1)
     W_ = W_[tri[0], :, tri[1], :]
 
-    mrf = {"v": V_,
-           "w": W_,
-           "v_idx": msa["v_idx"],
-           "w_idx": msa["w_idx"]}
+    mrf = {"v": V_, "w": W_, "v_idx": msa["v_idx"], "w_idx": msa["w_idx"]}
 
     return mrf
 
@@ -333,11 +332,11 @@ def normalize(x):
     x = stats.boxcox(x - np.amin(x) + 1.0)[0]
     x_mean = np.mean(x)
     x_std = np.std(x)
-    return ((x - x_mean) / x_std)
+    return (x - x_mean) / x_std
 
 
 def get_mtx(mrf):
-    '''get mtx given mrf'''
+    """get mtx given mrf"""
 
     # l2norm of 20x20 matrices (note: we ignore gaps)
     raw = np.sqrt(np.sum(np.square(mrf["w"][:, :-1, :-1]), (1, 2)))
@@ -347,25 +346,21 @@ def get_mtx(mrf):
     ap_sq = np.sum(raw_sq, 0, keepdims=True) * np.sum(raw_sq, 1, keepdims=True) / np.sum(raw_sq)
     apc = squareform(raw_sq - ap_sq, checks=False)
 
-    mtx = {"i": mrf["w_idx"][:, 0],
-           "j": mrf["w_idx"][:, 1],
-           "raw": raw,
-           "apc": apc,
-           "zscore": normalize(apc)}
+    mtx = {"i": mrf["w_idx"][:, 0], "j": mrf["w_idx"][:, 1], "raw": raw, "apc": apc, "zscore": normalize(apc)}
     return mtx
 
 
 def plot_mtx(mtx, key="zscore", vmin=1, vmax=3):
-    '''plot the mtx'''
+    """plot the mtx"""
     plt.figure(figsize=(5, 5))
-    plt.imshow(squareform(mtx[key]), cmap='Blues', interpolation='none', vmin=vmin, vmax=vmax)
+    plt.imshow(squareform(mtx[key]), cmap="Blues", interpolation="none", vmin=vmin, vmax=vmax)
     plt.grid(False)
     plt.show()
     plt.savefig(f"{pth}/{instance}_GREMLIN_mtx.png")
 
 
 # save mtx file
-pickle.dump(mrf, open(f'{pth}/{instance}.GREMLIN.mrf.pkl', 'wb'))
+pickle.dump(mrf, open(f"{pth}/{instance}.GREMLIN.mrf.pkl", "wb"))
 
 mtx = get_mtx(mrf)
 plot_mtx(mtx)
@@ -382,8 +377,8 @@ plot_mtx(mtx)
 #   for this index use i_aa and j_aa!
 
 # adding amino acid to index
-mtx["i_aa"] = np.array([alphabet[msa['msa_ori'][0][i]] + "_" + str(i + 1) for i in mtx["i"]])
-mtx["j_aa"] = np.array([alphabet[msa['msa_ori'][0][j]] + "_" + str(j + 1) for j in mtx["j"]])
+mtx["i_aa"] = np.array([alphabet[msa["msa_ori"][0][i]] + "_" + str(i + 1) for i in mtx["i"]])
+mtx["j_aa"] = np.array([alphabet[msa["msa_ori"][0][j]] + "_" + str(j + 1) for j in mtx["j"]])
 
 
 # load mtx into pandas dataframe
@@ -391,18 +386,19 @@ pd_mtx = pd.DataFrame(mtx, columns=["i", "j", "apc", "zscore", "i_aa", "j_aa"])
 
 # get contacts with sequence seperation > 5
 # sort by zscore, show top 10
-top = pd_mtx.loc[pd_mtx['j'] - pd_mtx['i'] > 5].sort_values("zscore", ascending=False)
+top = pd_mtx.loc[pd_mtx["j"] - pd_mtx["i"] > 5].sort_values("zscore", ascending=False)
 top.head(5)
 
 
 # ## Explore the MRF
+
 
 def plot_v(mrf):
     al_a = list(alphabet)
     v = mrf["v"].T
     mx = np.max((v.max(), np.abs(v.min())))
     plt.figure(figsize=(v.shape[1] / 4, states / 4))
-    plt.imshow(-v, cmap='bwr', vmin=-mx, vmax=mx)
+    plt.imshow(-v, cmap="bwr", vmin=-mx, vmax=mx)
     plt.xticks(np.arange(v.shape[1]))
     plt.yticks(np.arange(0, 21))
     plt.grid(False)
@@ -418,7 +414,7 @@ def plot_w(mrf, i, j, i_aa, j_aa):
     n = int(np.where((mrf["w_idx"][:, 0] == i) & (mrf["w_idx"][:, 1] == j))[0])
     w = mrf["w"][n]
 
-    with open(f"{pth}/W_for_positions_{str(i_aa)}_{str(j_aa)}.csv", 'w') as f:
+    with open(f"{pth}/W_for_positions_{str(i_aa)}_{str(j_aa)}.csv", "w") as f:
         f.write(",")
         for k in alphabet:
             f.write(k + ",")
@@ -432,7 +428,7 @@ def plot_w(mrf, i, j, i_aa, j_aa):
             dummy += 1
     mx = np.max((w.max(), np.abs(w.min())))
     plt.figure(figsize=(states / 4, states / 4))
-    plt.imshow(-w, cmap='bwr', vmin=-mx, vmax=mx)
+    plt.imshow(-w, cmap="bwr", vmin=-mx, vmax=mx)
     plt.xticks(np.arange(0, states))
     plt.yticks(np.arange(0, states))
     plt.grid(False)

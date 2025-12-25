@@ -9,6 +9,7 @@ import shutil
 import tempfile
 import traceback
 import warnings
+
 # using partial module to reduce duplicate code.
 from functools import partial
 from typing import Any
@@ -18,21 +19,28 @@ from pymol import cmd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 import REvoDesign
-from REvoDesign import (ConfigBus, file_extensions, issues, reload_config_file,
-                        save_configuration, set_REvoDesign_config_file)
+from REvoDesign import (
+    ConfigBus,
+    file_extensions,
+    issues,
+    reload_config_file,
+    save_configuration,
+    set_REvoDesign_config_file,
+)
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
 from REvoDesign.application.menu import TOOLS_MENU_LINKS
 from REvoDesign.basic import MenuActionServerMonitor, MenuCollection, MenuItem
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR, REVODESIGN_CONFIG_FILE
-from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
-                                                  REvoDesignWebSocketServer)
+from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketClient, REvoDesignWebSocketServer
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.multi_mutant_designer import MultiMutantDesigner
-from REvoDesign.driver.environ_register import (add_new_environment_variables,
-                                                drop_environment_variables,
-                                                register_environment_variables)
+from REvoDesign.driver.environ_register import (
+    add_new_environment_variables,
+    drop_environment_variables,
+    register_environment_variables,
+)
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.driver.param_toggle_register import ParamChangeCollections
 from REvoDesign.driver.ui_driver import StoresWidget
@@ -40,26 +48,34 @@ from REvoDesign.editor import menu_edit_file
 from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
-from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
-                                      VisualizingWorker)
+from REvoDesign.phylogenetics import GremlinAnalyser, MutateWorker, VisualizingWorker
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 from REvoDesign.shortcuts.tools.openmm_utils import OpenmmSetupServerControl
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
-from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
-                                                 getExistingDirectory,
-                                                 hold_trigger_button,
-                                                 notify_box, set_widget_value)
-from REvoDesign.tools.mutant_tools import (determine_profile_type,
-                                           existed_mutant_tree,
-                                           get_mutant_table_columns,
-                                           save_mutant_choices)
+from REvoDesign.tools.customized_widgets import (
+    WorkerThread,
+    decide,
+    getExistingDirectory,
+    hold_trigger_button,
+    notify_box,
+    set_widget_value,
+)
+from REvoDesign.tools.mutant_tools import (
+    determine_profile_type,
+    existed_mutant_tree,
+    get_mutant_table_columns,
+    save_mutant_choices,
+)
 from REvoDesign.tools.pymol_utils import (
-    fetch_exclusion_expressions, find_all_protein_chain_ids_in_protein,
-    find_design_molecules, find_small_molecules_in_protein,
-    get_molecule_sequence, is_empty_session)
+    fetch_exclusion_expressions,
+    find_all_protein_chain_ids_in_protein,
+    find_design_molecules,
+    find_small_molecules_in_protein,
+    get_molecule_sequence,
+    is_empty_session,
+)
 from REvoDesign.tools.system_tools import check_mac_rosetta2
-from REvoDesign.tools.utils import (generate_strong_password, require_not_none,
-                                    run_worker_thread_with_progress, timing)
+from REvoDesign.tools.utils import generate_strong_password, require_not_none, run_worker_thread_with_progress, timing
 from REvoDesign.UI import Ui_REvoDesignPyMOL_UI as REvoDesignMainUI
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"

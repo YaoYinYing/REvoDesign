@@ -8,17 +8,14 @@ from typing import Any
 
 from Bio.Data import IUPACData
 from RosettaPy.app.cart_ddg import CartesianDDG
-from RosettaPy.common.mutation import (Mutation, RosettaPyProteinSequence,
-                                       mutants2mutfile)
+from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence, mutants2mutfile
 from RosettaPy.node import NodeHintT
 
 from REvoDesign import ConfigBus
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-from REvoDesign.tools.rosetta_utils import (IS_ROSETTA_RUNNABLE,
-                                            copy_rosetta_citation,
-                                            read_rosetta_node_config)
+from REvoDesign.tools.rosetta_utils import IS_ROSETTA_RUNNABLE, copy_rosetta_citation, read_rosetta_node_config
 
 
 def get_ddg_mut_id(mutations: list[Mutation]) -> str:

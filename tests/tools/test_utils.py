@@ -13,16 +13,26 @@ import pytest
 from REvoDesign import issues
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.citations import CitableModuleAbstract, CitationManager
-from REvoDesign.tools.utils import (cmap_reverser, convert_residue_ranges,
-                                    count_and_sort_characters, extract_archive,
-                                    generate_strong_password, get_cited,
-                                    get_color, get_owner_class_from_static,
-                                    inspect_method_types, minibatches,
-                                    minibatches_generator, pairwise_loop,
-                                    random_deduplicate, require_installed,
-                                    rescale_number, timing)
+from REvoDesign.tools.utils import (
+    cmap_reverser,
+    convert_residue_ranges,
+    count_and_sort_characters,
+    extract_archive,
+    generate_strong_password,
+    get_cited,
+    get_color,
+    get_owner_class_from_static,
+    inspect_method_types,
+    minibatches,
+    minibatches_generator,
+    pairwise_loop,
+    random_deduplicate,
+    require_installed,
+    rescale_number,
+    timing,
+)
 
-matplotlib.use('Agg')  # Use the Agg backend to avoid GUI requirements for testing
+matplotlib.use("Agg")  # Use the Agg backend to avoid GUI requirements for testing
 
 
 def test_minibatches_correctly_splits_data():
@@ -137,18 +147,18 @@ def create_test_archive(archive_type: str, files: list, temp_dir: str) -> str:
     Returns:
         str: Path to the created archive file.
     """
-    archive_path = os.path.join(temp_dir, f'test.{archive_type}')
+    archive_path = os.path.join(temp_dir, f"test.{archive_type}")
 
-    if archive_type == 'zip':
-        with zipfile.ZipFile(archive_path, 'w') as zipf:
+    if archive_type == "zip":
+        with zipfile.ZipFile(archive_path, "w") as zipf:
             for file_name, content in files:
                 zipf.writestr(file_name, content)
-    elif archive_type in ['tar.gz', 'tar.bz2', 'tar.xz']:
-        mode = 'w:gz' if archive_type == 'tar.gz' else 'w:bz2' if archive_type == 'tar.bz2' else 'w:xz'
+    elif archive_type in ["tar.gz", "tar.bz2", "tar.xz"]:
+        mode = "w:gz" if archive_type == "tar.gz" else "w:bz2" if archive_type == "tar.bz2" else "w:xz"
         with tarfile.open(archive_path, mode) as tar:
             for file_name, content in files:
                 file_path = os.path.join(temp_dir, file_name)
-                with open(file_path, 'w') as f:
+                with open(file_path, "w") as f:
                     f.write(content)
                 tar.add(file_path, arcname=file_name)
                 os.remove(file_path)
@@ -159,8 +169,8 @@ def create_test_archive(archive_type: str, files: list, temp_dir: str) -> str:
 
 
 def test_extract_zip(temp_extract_dir):
-    files = [('file1.txt', 'content1'), ('file2.txt', 'content2')]
-    archive_path = create_test_archive('zip', files, temp_extract_dir)
+    files = [("file1.txt", "content1"), ("file2.txt", "content2")]
+    archive_path = create_test_archive("zip", files, temp_extract_dir)
     extract_archive(archive_path, temp_extract_dir)
 
     for file_name, _ in files:
@@ -168,8 +178,8 @@ def test_extract_zip(temp_extract_dir):
 
 
 def test_extract_tar_gz(temp_extract_dir):
-    files = [('file1.txt', 'content1'), ('file2.txt', 'content2')]
-    archive_path = create_test_archive('tar.gz', files, temp_extract_dir)
+    files = [("file1.txt", "content1"), ("file2.txt", "content2")]
+    archive_path = create_test_archive("tar.gz", files, temp_extract_dir)
     extract_archive(archive_path, temp_extract_dir)
 
     for file_name, _ in files:
@@ -177,8 +187,8 @@ def test_extract_tar_gz(temp_extract_dir):
 
 
 def test_extract_tar_bz2(temp_extract_dir):
-    files = [('file1.txt', 'content1'), ('file2.txt', 'content2')]
-    archive_path = create_test_archive('tar.bz2', files, temp_extract_dir)
+    files = [("file1.txt", "content1"), ("file2.txt", "content2")]
+    archive_path = create_test_archive("tar.bz2", files, temp_extract_dir)
     extract_archive(archive_path, temp_extract_dir)
 
     for file_name, _ in files:
@@ -186,8 +196,8 @@ def test_extract_tar_bz2(temp_extract_dir):
 
 
 def test_extract_tar_xz(temp_extract_dir):
-    files = [('file1.txt', 'content1'), ('file2.txt', 'content2')]
-    archive_path = create_test_archive('tar.xz', files, temp_extract_dir)
+    files = [("file1.txt", "content1"), ("file2.txt", "content2")]
+    archive_path = create_test_archive("tar.xz", files, temp_extract_dir)
     extract_archive(archive_path, temp_extract_dir)
 
     for file_name, _ in files:
@@ -195,42 +205,42 @@ def test_extract_tar_xz(temp_extract_dir):
 
 
 def test_unsupported_archive(temp_extract_dir):
-    unsupported_archive_path = os.path.join(temp_extract_dir, 'test.unknown')
-    with open(unsupported_archive_path, 'w') as f:
-        f.write('dummy content')
+    unsupported_archive_path = os.path.join(temp_extract_dir, "test.unknown")
+    with open(unsupported_archive_path, "w") as f:
+        f.write("dummy content")
 
-    with pytest.raises(ValueError, match='Unsupported archive format'):
+    with pytest.raises(ValueError, match="Unsupported archive format"):
         extract_archive(unsupported_archive_path, temp_extract_dir)
 
 
 def test_get_color_uniform_range():
     # Test when min_value equals max_value
-    color = get_color('viridis', 0.5, 0.5, 0.5)
+    color = get_color("viridis", 0.5, 0.5, 0.5)
     assert color == (0.5, 0.5, 0.5)
 
 
 def test_get_color_clipped_below_range():
     # Test when data is below the range
-    color = get_color('viridis', -1, 0, 1)
+    color = get_color("viridis", -1, 0, 1)
     assert all(0 <= c <= 1 for c in color)
 
 
 def test_get_color_clipped_above_range():
     # Test when data is above the range
-    color = get_color('viridis', 2, 0, 1)
+    color = get_color("viridis", 2, 0, 1)
     assert all(0 <= c <= 1 for c in color)
 
 
 def test_get_color_within_range():
     # Test when data is within the range
-    color = get_color('viridis', 0.5, 0, 1)
+    color = get_color("viridis", 0.5, 0, 1)
     assert all(0 <= c <= 1 for c in color)
 
 
 def test_get_color_edge_cases():
     # Test edge cases where data is exactly at the min or max
-    color_min = get_color('viridis', 0, 0, 1)
-    color_max = get_color('viridis', 1, 0, 1)
+    color_min = get_color("viridis", 0, 0, 1)
+    color_max = get_color("viridis", 1, 0, 1)
     assert all(0 <= c <= 1 for c in color_min)
     assert all(0 <= c <= 1 for c in color_max)
 
@@ -301,7 +311,7 @@ def test_rescale_number_negative_values():
 
 
 def test_empty_string():
-    result = count_and_sort_characters("", ['a', 'e', 'i', 'o', 'u'])
+    result = count_and_sort_characters("", ["a", "e", "i", "o", "u"])
     assert result == {}
 
 
@@ -311,36 +321,36 @@ def test_no_characters():
 
 
 def test_case_insensitivity():
-    result = count_and_sort_characters("Hello World", ['h', 'e', 'l', 'o'])
-    expected = {'l': 3, 'o': 2, 'e': 1, 'h': 1}
+    result = count_and_sort_characters("Hello World", ["h", "e", "l", "o"])
+    expected = {"l": 3, "o": 2, "e": 1, "h": 1}
     assert result == expected
 
 
 def test_count_and_sort():
-    result = count_and_sort_characters("Hello World", ['l', 'o', 'w', 'r', 'd'])
-    expected = {'l': 3, 'o': 2, 'w': 1, 'r': 1, 'd': 1}
+    result = count_and_sort_characters("Hello World", ["l", "o", "w", "r", "d"])
+    expected = {"l": 3, "o": 2, "w": 1, "r": 1, "d": 1}
     assert result == expected
 
 
 def test_zero_counts():
-    result = count_and_sort_characters("Hello World", ['x', 'y', 'z'])
+    result = count_and_sort_characters("Hello World", ["x", "y", "z"])
     assert result == {}
 
 
 def test_mixed_case_input():
-    result = count_and_sort_characters("HeLlO WoRlD", ['l', 'o', 'w', 'r', 'd'])
-    expected = {'l': 3, 'o': 2, 'w': 1, 'r': 1, 'd': 1}
+    result = count_and_sort_characters("HeLlO WoRlD", ["l", "o", "w", "r", "d"])
+    expected = {"l": 3, "o": 2, "w": 1, "r": 1, "d": 1}
     assert result == expected
 
 
 def test_all_characters_present():
-    result = count_and_sort_characters("abcdefg", ['a', 'b', 'c', 'd', 'e', 'f', 'g'])
-    expected = {'a': 1, 'b': 1, 'c': 1, 'd': 1, 'e': 1, 'f': 1, 'g': 1}
+    result = count_and_sort_characters("abcdefg", ["a", "b", "c", "d", "e", "f", "g"])
+    expected = {"a": 1, "b": 1, "c": 1, "d": 1, "e": 1, "f": 1, "g": 1}
     assert result == expected
 
 
 def test_no_matching_characters():
-    result = count_and_sort_characters("abcdefg", ['h', 'i', 'j'])
+    result = count_and_sort_characters("abcdefg", ["h", "i", "j"])
     assert result == {}
 
 
@@ -376,7 +386,7 @@ def test_random_deduplicate_randomness():
     seq = np.array([1, 2, 2, 3, 3, 3])
     score = np.array([10, 20, 30, 40, 50, 60])
     # ensure that the random choice is called at least once
-    with patch('numpy.random.choice') as mock_choice:
+    with patch("numpy.random.choice") as mock_choice:
         unique_seq1, unique_score1 = random_deduplicate(seq, score)
         mock_choice.assert_called()
 
@@ -390,7 +400,7 @@ def test_generate_strong_password_length():
 
 def test_generate_strong_password_character_set():
     """Test that the password contains only allowed characters."""
-    allowed_characters = set(string.ascii_letters + string.digits + '!#$%&*+-./:?@^_~')
+    allowed_characters = set(string.ascii_letters + string.digits + "!#$%&*+-./:?@^_~")
     for length in range(16, 65):
         password = generate_strong_password(length)
         assert set(password).issubset(allowed_characters)
@@ -411,11 +421,11 @@ def test_generate_strong_password_value_error():
         ("sec", "seconds"),
         ("min", "minutes"),
         ("hr", "hours"),
-    ]
+    ],
 )
 def test_timing(caplog, unit, expected_unit):
     # Mock the perf_counter to return specific times
-    with patch('time.perf_counter', side_effect=[1.0, 2.0]):
+    with patch("time.perf_counter", side_effect=[1.0, 2.0]):
         # Define a dummy function to be decorated
         @timing("test message", unit=unit)
         def dummy_function():
@@ -432,11 +442,11 @@ def test_timing(caplog, unit, expected_unit):
 
 
 @pytest.mark.parametrize(
-    'package_name, expected_raise',
+    "package_name, expected_raise",
     [
-        ('REvoDesign', False),
-        ('TARDIS', True),
-    ]
+        ("REvoDesign", False),
+        ("TARDIS", True),
+    ],
 )
 def test_require_installed(package_name, expected_raise):
 
@@ -453,17 +463,17 @@ def test_require_installed(package_name, expected_raise):
 
 
 class CitableClass(CitableModuleAbstract):
-    def __init__(self):
-        ...
+    def __init__(self): ...
 
     def config(self):
-        print('Awesome module is under configuration!')
+        print("Awesome module is under configuration!")
 
     @get_cited
     def run(self):
-        print('Awesome module got run and the paper will be cited!')
+        print("Awesome module got run and the paper will be cited!")
 
-    __bibtex__ = {'AwesomePaper': """@article {goodpaper2025.01.01.awesomej1009,
+    __bibtex__ = {
+        "AwesomePaper": """@article {goodpaper2025.01.01.awesomej1009,
 author = {You and Me},
 title = {Good Title is All You Need},
 elocation-id = {2025.01.01.awesomej1009},
@@ -473,7 +483,8 @@ publisher = {Unlimited Sci-Hub Publishing Hard-Drive},
 URL = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009},
 eprint = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009.full.pdf},
 journal = {Awesome Journal}
-}"""}
+}"""
+    }
 
 
 def test_get_cited():
@@ -496,13 +507,16 @@ def test_get_cited():
     cm.reset_instance()
 
 
-@pytest.mark.parametrize("input_data, expected_output", [
-    ([1, 2, 3], [(1, 2), (2, 3), (3, 1)]),
-    (['a', 'b', 'c'], [('a', 'b'), ('b', 'c'), ('c', 'a')]),
-    ([], []),
-    ([42], [(42, 42)]),
-    ((1, 2), [(1, 2), (2, 1)])
-])
+@pytest.mark.parametrize(
+    "input_data, expected_output",
+    [
+        ([1, 2, 3], [(1, 2), (2, 3), (3, 1)]),
+        (["a", "b", "c"], [("a", "b"), ("b", "c"), ("c", "a")]),
+        ([], []),
+        ([42], [(42, 42)]),
+        ((1, 2), [(1, 2), (2, 1)]),
+    ],
+)
 def test_pairwise_loop(input_data, expected_output):
     assert list(pairwise_loop(input_data)) == expected_output
 
@@ -583,6 +597,7 @@ def test_get_owner_class_nested_class_static():
 
 def test_get_owner_class_raises_for_plain_function():
     """Non-method functions should raise a TypeError."""
+
     def plain_function():
         return 42
 
@@ -592,6 +607,7 @@ def test_get_owner_class_raises_for_plain_function():
 
 def test_get_owner_class_raises_when_no_class_in_qualname():
     """A function with a flat qualname should not be resolved as a class method."""
+
     # Create a function and manually tweak its __qualname__ to simulate odd cases.
     def f():
         return "x"
@@ -768,25 +784,24 @@ def test_inspect_raises_for_non_callable():
 @pytest.mark.parametrize(
     "residue_ranges, res_prefix, resr_prefix ,res_suffix, resr_suffix, connector, expected",
     [
-        ['1-5+7-9+10-12+13', '', '', '', '', ' | ', '1-5 | 7-9 | 10-12 | 13'],
-        ['1-5+7-9+10-12+13', 'r ', 'ri ', '', '', ' | ', 'ri 1-5 | ri 7-9 | ri 10-12 | r 13'],
-        ['1-5+7-9+10-12+13', '', '', '+', '', ' | ', '1-5 | 7-9 | 10-12 | 13+'],
-        ['1-5+7-9+10-12+13', 'r ', 'ri ', '+', '', ' | ', 'ri 1-5 | ri 7-9 | ri 10-12 | r 13+'],
-        ['1-5+7-9+10-12+13', '', '', '', '', '; ', '1-5; 7-9; 10-12; 13'],
-        ['1-5+7-9+10-12+13', 'r ', 'ri ', '', '', '; ', 'ri 1-5; ri 7-9; ri 10-12; r 13'],
-        ['1-5+7-9+10-12+13', '', '', '', '', '; ', '1-5; 7-9; 10-12; 13'],
-        ['1-5+7-9+10-12+13', 'r ', 'ri ', '', '', '; ', 'ri 1-5; ri 7-9; ri 10-12; r 13'],
-        ['1', '', '', '', '', ' | ', '1'],
-        ['1', 'r ', 'ri ', '', '', ' | ', 'r 1'],
-        ['1', '', '', '+', '', ' | ', '1+'],
-        ['1', 'r ', 'ri ', '+', '', ' | ', 'r 1+'],
-    ]
+        ["1-5+7-9+10-12+13", "", "", "", "", " | ", "1-5 | 7-9 | 10-12 | 13"],
+        ["1-5+7-9+10-12+13", "r ", "ri ", "", "", " | ", "ri 1-5 | ri 7-9 | ri 10-12 | r 13"],
+        ["1-5+7-9+10-12+13", "", "", "+", "", " | ", "1-5 | 7-9 | 10-12 | 13+"],
+        ["1-5+7-9+10-12+13", "r ", "ri ", "+", "", " | ", "ri 1-5 | ri 7-9 | ri 10-12 | r 13+"],
+        ["1-5+7-9+10-12+13", "", "", "", "", "; ", "1-5; 7-9; 10-12; 13"],
+        ["1-5+7-9+10-12+13", "r ", "ri ", "", "", "; ", "ri 1-5; ri 7-9; ri 10-12; r 13"],
+        ["1-5+7-9+10-12+13", "", "", "", "", "; ", "1-5; 7-9; 10-12; 13"],
+        ["1-5+7-9+10-12+13", "r ", "ri ", "", "", "; ", "ri 1-5; ri 7-9; ri 10-12; r 13"],
+        ["1", "", "", "", "", " | ", "1"],
+        ["1", "r ", "ri ", "", "", " | ", "r 1"],
+        ["1", "", "", "+", "", " | ", "1+"],
+        ["1", "r ", "ri ", "+", "", " | ", "r 1+"],
+    ],
 )
 def test_convert_residue_ranges(residue_ranges, res_prefix, resr_prefix, res_suffix, resr_suffix, connector, expected):
-    assert convert_residue_ranges(
-        residue_ranges,
-        res_prefix or '',
-        resr_prefix or '',
-        res_suffix or '',
-        resr_suffix or '',
-        connector or ' | ') == expected
+    assert (
+        convert_residue_ranges(
+            residue_ranges, res_prefix or "", resr_prefix or "", res_suffix or "", resr_suffix or "", connector or " | "
+        )
+        == expected
+    )

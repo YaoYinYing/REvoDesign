@@ -8,12 +8,12 @@ from pathlib import Path
 import numpy as np
 
 TABLE = str.maketrans(dict.fromkeys(string.ascii_lowercase))
-ALPHABET = np.array(list("ARNDCQEGHILKMFPSTWYV-"), dtype='|S1').view(np.uint8)
+ALPHABET = np.array(list("ARNDCQEGHILKMFPSTWYV-"), dtype="|S1").view(np.uint8)
 
 
 def seq2number(seq):
     seq_no_ins = seq.translate(TABLE)
-    seq_no_ins = np.array(list(seq_no_ins), dtype='|S1').view(np.uint8)
+    seq_no_ins = np.array(list(seq_no_ins), dtype="|S1").view(np.uint8)
     for i in range(ALPHABET.shape[0]):
         seq_no_ins[seq_no_ins == ALPHABET[i]] = i
     seq_no_ins[seq_no_ins > 20] = 20
@@ -32,8 +32,8 @@ def read_a3m(fn):
     is_first = True
     is_ignore = False
     tmp = {}
-    if fn.split('.')[-1] == "gz":
-        fp = gzip.open(fn, 'rt')
+    if fn.split(".")[-1] == "gz":
+        fp = gzip.open(fn, "rt")
     else:
         fp = open(fn)
 
@@ -49,7 +49,7 @@ def read_a3m(fn):
             except BaseException:
                 is_ignore = True
                 continue
-            TaxID = line[idx:].split()[0].split('=')[-1]
+            TaxID = line[idx:].split()[0].split("=")[-1]
             if TaxID not in tmp:
                 tmp[TaxID] = list()
         else:
@@ -90,7 +90,7 @@ tags = []
 query = {}
 a3m = {}
 for i, fn in enumerate(sys.argv[1:]):
-    tag = Path(fn).stem + '_' + str(i)
+    tag = Path(fn).stem + "_" + str(i)
     tags.append(tag)
     # print ('Read',fn,'into',tag)
     query[tag], a3m[tag] = read_a3m(fn)
@@ -98,43 +98,43 @@ for i, fn in enumerate(sys.argv[1:]):
 # wrt = '> query\n'
 # wrt += '/'.join([query[i] for i in tags])+'\n'
 paired_data = []
-paired_data.append((9999, 'query', '/'.join([query[i] for i in tags])))
+paired_data.append((9999, "query", "/".join([query[i] for i in tags])))
 
 
 marked = {}
 for i in range(len(tags)):
     fn1 = tags[i]
 
-    preseq = ''
+    preseq = ""
     for pre in range(i):
-        if (pre > 0):
-            preseq += '/'
-        preseq += '-' * len(query[tags[pre]])
+        if pre > 0:
+            preseq += "/"
+        preseq += "-" * len(query[tags[pre]])
 
     for tax in a3m[fn1]:
         name = a3m[fn1][tax][0]
-        if (i > 0):
-            seq = preseq + '/' + a3m[fn1][tax][1]
+        if i > 0:
+            seq = preseq + "/" + a3m[fn1][tax][1]
         else:
             seq = a3m[fn1][tax][1]
         ct = 1
 
-        if (fn1 + '.' + tax in marked):
+        if fn1 + "." + tax in marked:
             continue
 
         for j in range(i + 1, len(tags)):
             fn2 = tags[j]
             if tax in a3m[fn2]:
-                name += ' ' + a3m[fn2][tax][0]
-                seq += '/'
+                name += " " + a3m[fn2][tax][0]
+                seq += "/"
                 seq += a3m[fn2][tax][1]
-                marked[fn2 + '.' + tax] = 1
+                marked[fn2 + "." + tax] = 1
                 ct += 1
             else:
-                seq += '/'
-                seq += '-' * len(query[fn2])
+                seq += "/"
+                seq += "-" * len(query[fn2])
 
-        marked[fn1 + '.' + tax] = 1
+        marked[fn1 + "." + tax] = 1
         paired_data.append((ct, name, seq))
 
         # wrt += '>'+name+'\n'
@@ -142,5 +142,5 @@ for i in range(len(tags)):
 
 paired_data = sorted(paired_data, key=lambda x: x[0], reverse=True)
 for p in paired_data:
-    print('>', p[1])
+    print(">", p[1])
     print(p[2])

@@ -11,10 +11,9 @@ from RosettaPy.utils.escape import print_diff
 from REvoDesign import ConfigBus, SingletonAbstract, issues
 from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.logger import ROOT_LOGGER
+
 # 1. implement the mutate runner and import then here
-from REvoDesign.sidechain.mutate_runner import (DLPacker_worker,
-                                                MutateRelax_worker,
-                                                PIPPack_worker, PyMOL_mutate)
+from REvoDesign.sidechain.mutate_runner import DLPacker_worker, MutateRelax_worker, PIPPack_worker, PyMOL_mutate
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 from REvoDesign.tools.utils import timing
 

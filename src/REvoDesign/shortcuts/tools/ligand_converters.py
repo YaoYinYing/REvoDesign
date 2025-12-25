@@ -11,9 +11,7 @@ from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
 from RosettaPy.utils.task import RosettaCmdTask, execute
 
 from REvoDesign import ROOT_LOGGER, issues
-from REvoDesign.shortcuts.function_utils import (smiles_conformer_batch,
-                                                 smiles_conformer_single,
-                                                 visualize_conformer_sdf)
+from REvoDesign.shortcuts.function_utils import smiles_conformer_batch, smiles_conformer_single, visualize_conformer_sdf
 from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)

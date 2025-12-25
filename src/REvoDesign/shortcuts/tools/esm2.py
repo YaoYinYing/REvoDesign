@@ -308,7 +308,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
             raise ValueError("The listed wildtype does not match the provided sequence")
 
         # modify the sequence
-        sequence = sequence[:idx] + mt + sequence[(idx + 1):]
+        sequence = sequence[:idx] + mt + sequence[(idx + 1) :]
 
         # encode the sequence
         data = [

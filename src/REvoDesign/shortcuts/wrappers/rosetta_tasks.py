@@ -8,9 +8,12 @@ from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 from REvoDesign.tools.rosetta_utils import extra_res_to_opts
 
 from ...logger import ROOT_LOGGER
-from ..tools.rosetta_tasks import (shortcut_fast_relax, shortcut_pross,
-                                   shortcut_relax_w_ca_constraints,
-                                   shortcut_rosettaligand)
+from ..tools.rosetta_tasks import (
+    shortcut_fast_relax,
+    shortcut_pross,
+    shortcut_relax_w_ca_constraints,
+    shortcut_rosettaligand,
+)
 
 logging = ROOT_LOGGER.getChild(__name__)
 

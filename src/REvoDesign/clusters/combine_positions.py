@@ -54,7 +54,7 @@ class GenerateVariantsinFastafile:
                 # print self.fastaseq[position:]
                 # print("WT,POS,AA: ",self.fastaseq[aa],aa,native,self.fastaseq[aa] == native)
                 assert aa == native
-                newfasta = newfasta[0: position - 1] + newmutation + newfasta[position:]
+                newfasta = newfasta[0 : position - 1] + newmutation + newfasta[position:]
 
         return newfasta
 
@@ -71,7 +71,7 @@ class GenerateVariantsinFastafile:
             if aa_idx == position - 1:
                 # print("Native,Pos,Design",native,position,fastasequence[aa],fastasequence[aa] == native)
                 assert aa == native
-                newfasta = newfasta[0: position - 1] + newmutation + newfasta[position:]
+                newfasta = newfasta[0 : position - 1] + newmutation + newfasta[position:]
 
         return newfasta
 

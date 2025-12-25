@@ -85,15 +85,11 @@ class TestData:
 
     @property
     def ddg_design_pse(self):
-        return (
-            f"{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.biolib.pze"
-        )
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.biolib.pze"
 
     @property
     def ddg_design_non_biolib_pse(self):
-        return (
-            f"{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.local.pze"
-        )
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.local.pze"
 
     # pocket design
     # use dumbrack rotamer lib
@@ -200,9 +196,7 @@ class TestData:
 
     @property
     def multi_mut_txt(self):
-        return (
-            f"{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mut.txt"
-        )
+        return f"{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mut.txt"
 
     multi_design_steps = [2, 3, 5, 3, 4]
 
@@ -292,29 +286,27 @@ class TestData:
 
     @property
     def used_molecules(self):
-        return tuple([self.molecule, self.gremlin_homomer_molecule, '9gbw'])
+        return tuple([self.molecule, self.gremlin_homomer_molecule, "9gbw"])
 
 
 @dataclass
 class KeyData:
-    hetatm_pocket_sele: str = 'pkt_hetatm_8.0_01'
-    design_shell_file: str = '../tests/data/pockets/1SUO_design_shell_CPZ_8.0_01_residues.txt'
-    surface_file: str = '../tests/data/surface_residue_records/1SUO_residues_cutoff_30.0.txt'
+    hetatm_pocket_sele: str = "pkt_hetatm_8.0_01"
+    design_shell_file: str = "../tests/data/pockets/1SUO_design_shell_CPZ_8.0_01_residues.txt"
+    surface_file: str = "../tests/data/surface_residue_records/1SUO_residues_cutoff_30.0.txt"
     pssm_file: str = None  # type: ignore
     gremlin_pkl_fp: str | None = None
-    mutant_file: str = '../tests/data/mutagenese/evaluate_pssm_ent_surf.besthits.mut.txt'
-    minimum_mutant_file: str = '../tests/data/mutagenese/evaluate_pssm_ent_surf.mannual.mut.txt'
-    ddg_file: str = '../tests/data/pytia_ddg/1SUO_pred_mask.csv'
-    visualize_csv: str = '../tests/data/csv/experimetal_data_mock.csv'
-    visualize_csv_grouped: str = '../tests/data/csv/experimetal_data_mock_label.csv'
-    visualize_excel: str = '../tests/data/csv/1SUO.cluster.2.xlsx'
+    mutant_file: str = "../tests/data/mutagenese/evaluate_pssm_ent_surf.besthits.mut.txt"
+    minimum_mutant_file: str = "../tests/data/mutagenese/evaluate_pssm_ent_surf.mannual.mut.txt"
+    ddg_file: str = "../tests/data/pytia_ddg/1SUO_pred_mask.csv"
+    visualize_csv: str = "../tests/data/csv/experimetal_data_mock.csv"
+    visualize_csv_grouped: str = "../tests/data/csv/experimetal_data_mock_label.csv"
+    visualize_excel: str = "../tests/data/csv/1SUO.cluster.2.xlsx"
     evaluate_pse_path: str = None  # type: ignore
     gremlin_pkl_fp_homomer: str = None  # type: ignore
 
     DOWNLOAD_DIR = os.path.abspath("../tests/downloaded")
-    EXPANDED_DIR = os.path.abspath(
-        "../tests/expanded_compressed_files"
-    )
+    EXPANDED_DIR = os.path.abspath("../tests/expanded_compressed_files")
 
     def ensure_evaluate_pse_path(self):
         pse_path = self.download_file(
@@ -330,9 +322,7 @@ class KeyData:
             md5=TestData.PSSM_GREMLIN_DATA_MD5,
         )
 
-        dist_dir, expanded_files = self.expand_zip(
-            compressed_file=expected_downloaded_file
-        )
+        dist_dir, expanded_files = self.expand_zip(compressed_file=expected_downloaded_file)
 
         assert expanded_files
         pssm_file = os.path.join(
@@ -360,9 +350,7 @@ class KeyData:
             md5=TestData.gremlin_homomer_profile_md5,
         )
 
-        dist_dir, extracted_files = self.expand_zip(
-            compressed_file=zipped
-        )
+        dist_dir, extracted_files = self.expand_zip(compressed_file=zipped)
 
         gremlin_pkl_fp = os.path.join(
             dist_dir,
@@ -379,9 +367,7 @@ class KeyData:
         self.ensure_evaluate_pse_path()
 
     def download_file(self, url: str, md5: str):
-        expected_downloaded_file = os.path.join(
-            self.DOWNLOAD_DIR, os.path.basename(url)
-        )
+        expected_downloaded_file = os.path.join(self.DOWNLOAD_DIR, os.path.basename(url))
         import pooch
 
         if not os.path.exists(expected_downloaded_file):
@@ -414,9 +400,7 @@ class KeyData:
 
 @dataclass()
 class TestDataOnLocalMac(TestData):
-    test_data_repo: str = (
-        "/Users/yyy/Documents/protein_design/REvoDesign-test-data/"
-    )
+    test_data_repo: str = "/Users/yyy/Documents/protein_design/REvoDesign-test-data/"
 
 
 if __name__ == "__main__":

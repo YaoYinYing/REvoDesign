@@ -13,8 +13,7 @@ from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.common.mutant_tree import MutantTree
-from REvoDesign.tools.mutant_tools import (extract_mutants_from_mutant_id,
-                                           quick_mutagenesis)
+from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id, quick_mutagenesis
 from REvoDesign.tools.utils import get_cited, require_installed, timing
 
 logging = ROOT_LOGGER.getChild(__name__)

@@ -7,8 +7,10 @@ import shutil
 
 from REvoDesign.common import file_extensions as Fext
 from REvoDesign.shortcuts.tools.rfdiffusion_tasks import (
-    RFDIFFUSION_CONFIG_DIR, run_general_rfdiffusion_task,
-    visualize_substrate_potentials)
+    RFDIFFUSION_CONFIG_DIR,
+    run_general_rfdiffusion_task,
+    visualize_substrate_potentials,
+)
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 
 from ...logger import ROOT_LOGGER

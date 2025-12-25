@@ -81,8 +81,8 @@ def plot_in_segment(df, sequence, n, label, save_dir, score_max_abs):
         i_ = int(i)
         if i % n == 0:
             plot_w(
-                df_1.iloc[:, i_: i_ + n],
-                sequence[i_: i_ + n],
+                df_1.iloc[:, i_ : i_ + n],
+                sequence[i_ : i_ + n],
                 annotate=True,
                 base=i_,
                 png_name=f"{save_dir}/{label}_{i_}-{i_ + n}.png",

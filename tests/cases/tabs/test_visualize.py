@@ -13,17 +13,13 @@ os.environ["PYTEST_QT_API"] = "pyqt5"
 
 @pytest.mark.serial
 class TestREvoDesignPlugin_TabVisualize:
-    @pytest.mark.skipif(
-        not PIPPack_worker.installed, reason="PIPPack not installed"
-    )
+    @pytest.mark.skipif(not PIPPack_worker.installed, reason="PIPPack not installed")
     def test_visualize_pssm_ddg(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="config")
 
-        set_widget_value(
-            test_worker.plugin.ui.comboBox_sidechain_solver, "PIPPack"
-        )
+        set_widget_value(test_worker.plugin.ui.comboBox_sidechain_solver, "PIPPack")
         set_widget_value(
             test_worker.plugin.ui.comboBox_sidechain_solver_model,
             "pippack_model_1",
@@ -77,9 +73,7 @@ class TestREvoDesignPlugin_TabVisualize:
         assert os.path.exists(test_worker.test_data.visualize_1_pse)
         test_worker.check_existed_mutant_tree()
 
-    @pytest.mark.skipif(
-        not ColabDesigner_MPNN.installed, reason="ColabDesign not installed"
-    )
+    @pytest.mark.skipif(not ColabDesigner_MPNN.installed, reason="ColabDesign not installed")
     def test_visualize_pssm_mpnn(self, test_worker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
@@ -255,7 +249,7 @@ class TestREvoDesignPlugin_TabVisualize:
         assert os.path.exists(test_worker.test_data.visualize_4_pse)
         mt = test_worker.check_existed_mutant_tree()
         assert len(mt.all_mutant_branch_ids) == 3
-        for _id in ['low', 'medium', 'high']:
+        for _id in ["low", "medium", "high"]:
             assert _id in mt.all_mutant_branch_ids
 
     def test_visualize_from_excel_grouped(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
@@ -322,5 +316,5 @@ class TestREvoDesignPlugin_TabVisualize:
         assert os.path.exists(test_worker.test_data.visualize_5_pse)
         mt = test_worker.check_existed_mutant_tree()
         assert len(mt.all_mutant_branch_ids) == 10
-        for _id in [f'c.{i}' for i in range(0, 10)]:
+        for _id in [f"c.{i}" for i in range(0, 10)]:
             assert _id in mt.all_mutant_branch_ids

@@ -16,9 +16,7 @@ from REvoDesign.basic import MenuActionServerMonitor
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtWidgets
-from REvoDesign.tools.customized_widgets import (get_widget_value, notify_box,
-                                                 set_widget_value,
-                                                 widget_signal_tape)
+from REvoDesign.tools.customized_widgets import get_widget_value, notify_box, set_widget_value, widget_signal_tape
 from REvoDesign.tools.utils import CLASS_ARGSLICE
 
 from .group_register import GroupRegistryCollection

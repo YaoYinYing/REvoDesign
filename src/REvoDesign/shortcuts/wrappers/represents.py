@@ -3,10 +3,12 @@ Shortcut wrappers of structure representation
 """
 
 from REvoDesign import issues
-from REvoDesign.shortcuts.tools.represents import (load_b_factors,
-                                                   shortcut_color_by_mutation,
-                                                   shortcut_color_by_plddt,
-                                                   shortcut_real_sc)
+from REvoDesign.shortcuts.tools.represents import (
+    load_b_factors,
+    shortcut_color_by_mutation,
+    shortcut_color_by_plddt,
+    shortcut_real_sc,
+)
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 from REvoDesign.tools.package_manager import notify_box
 

@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+
 # PyQt or PySide (adapt this import to whichever you use):
 from PyQt5 import QtWidgets
 
@@ -50,6 +51,7 @@ class MockServerControl(ServerControlAbstract):
 # 2. PyTest Fixtures for Qt
 # -----------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def qapp():
     """
@@ -67,6 +69,7 @@ def qapp():
 # -----------------------------------------------------------------------------
 # 3. Basic Tests for the ServerControlAbstract Implementation
 # -----------------------------------------------------------------------------
+
 
 def test_server_control_start_stop():
     """
@@ -98,6 +101,7 @@ def test_server_control_start_stop():
 # 4. Tests for MenuActionServerMonitor
 # -----------------------------------------------------------------------------
 
+
 def test_menu_action_server_monitor(test_worker):
     """
     Test that triggering the on/off actions calls MockServerControl
@@ -106,7 +110,7 @@ def test_menu_action_server_monitor(test_worker):
 
     from REvoDesign.driver.ui_driver import StoresWidget
 
-    menu_monitor = StoresWidget().server_switches['Editor_Backend']
+    menu_monitor = StoresWidget().server_switches["Editor_Backend"]
 
     # Create QActions that simulate start/stop menu items
     action_start = menu_monitor.action_on

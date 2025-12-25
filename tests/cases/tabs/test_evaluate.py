@@ -1,7 +1,6 @@
 import os
 
-from REvoDesign.tools.customized_widgets import (get_widget_value,
-                                                 set_widget_value)
+from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
 from tests.conftest import TestWorker
 from tests.data.test_data import KeyData
 
@@ -15,9 +14,7 @@ class TestREvoDesignPlugin_TabEvaluate:
 
         test_worker.load_session_and_check(customized_session=KeyDataDuringTests.evaluate_pse_path)
 
-        test_worker.do_typing(
-            test_worker.plugin.ui.lineEdit_output_mut_table, KeyDataDuringTests.mutant_file
-        )
+        test_worker.do_typing(test_worker.plugin.ui.lineEdit_output_mut_table, KeyDataDuringTests.mutant_file)
         set_widget_value(test_worker.plugin.ui.checkBox_show_wt, True)
 
         set_widget_value(
@@ -25,12 +22,8 @@ class TestREvoDesignPlugin_TabEvaluate:
             test_worker.test_data.entropy_score_reversed,
         )
 
-        test_worker.click(
-            widget=test_worker.plugin.ui.pushButton_reinitialize_mutant_choosing
-        )
-        test_worker.click(
-            widget=test_worker.plugin.ui.pushButton_choose_lucky_mutant
-        )
+        test_worker.click(widget=test_worker.plugin.ui.pushButton_reinitialize_mutant_choosing)
+        test_worker.click(widget=test_worker.plugin.ui.pushButton_choose_lucky_mutant)
 
         test_worker.save_screenshot(
             widget=test_worker.plugin.window,
@@ -45,9 +38,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         picked_mutants = test_worker.non_emtpy_list(picked_mutants)
 
         assert picked_mutants
-        assert len(picked_mutants) == len(
-            test_worker.plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
-        )
+        assert len(picked_mutants) == len(test_worker.plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects)
         test_worker.save_new_experiment()
 
     def test_evaluate_pssm_ent_surf_mannual_pick(self, test_worker, KeyDataDuringTests: KeyData):
@@ -57,9 +48,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         test_worker.go_to_tab(tab_name="evaluate")
 
         mutant_file = KeyDataDuringTests.minimum_mutant_file
-        test_worker.do_typing(
-            test_worker.plugin.ui.lineEdit_output_mut_table, mutant_file
-        )
+        test_worker.do_typing(test_worker.plugin.ui.lineEdit_output_mut_table, mutant_file)
         set_widget_value(test_worker.plugin.ui.checkBox_show_wt, True)
 
         set_widget_value(
@@ -81,14 +70,7 @@ class TestREvoDesignPlugin_TabEvaluate:
 
         test_worker.click(_next, 5).click(_bsh).click(_acp)
 
-        assert (
-            int(
-                get_widget_value(
-                    test_worker.plugin.ui.lcdNumber_selected_mutant
-                )
-            )
-            == 4
-        )
+        assert int(get_widget_value(test_worker.plugin.ui.lcdNumber_selected_mutant)) == 4
 
         test_worker.click(_next, 2)
 
@@ -105,7 +87,5 @@ class TestREvoDesignPlugin_TabEvaluate:
         picked_mutants = test_worker.non_emtpy_list(picked_mutants)
 
         assert picked_mutants
-        assert len(picked_mutants) == len(
-            test_worker.plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
-        )
+        assert len(picked_mutants) == len(test_worker.plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects)
         test_worker.save_new_experiment()

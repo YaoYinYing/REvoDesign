@@ -4,8 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from REvoDesign.editor.monaco.monaco import (MonacoEditorManager,
-                                             edit_file_with_monaco)
+from REvoDesign.editor.monaco.monaco import MonacoEditorManager, edit_file_with_monaco
 
 
 @pytest.fixture

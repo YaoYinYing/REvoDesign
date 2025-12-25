@@ -9,8 +9,7 @@ import uvicorn
 from REvoDesign.basic import ServerControlAbstract, ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.tools.package_manager import (WorkerThread,
-                                              run_worker_thread_with_progress)
+from REvoDesign.tools.package_manager import WorkerThread, run_worker_thread_with_progress
 from REvoDesign.tools.utils import require_installed
 
 
@@ -69,6 +68,7 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         # a modified main function from openmmsetup
         # Import WsgiToAsgi to convert the Flask app to ASGI
         from asgiref.wsgi import WsgiToAsgi  # Add this line
+
         # Import the Flask app from openmmsetup
         from openmmsetup.openmmsetup import app
 
