@@ -15,8 +15,9 @@ from .set_config import (
     set_REvoDesign_config_file,
 )
 
-# 1. initialize config file
+# 1. initialize config file at user space
 REVODESIGN_CONFIG_FILE = set_REvoDesign_config_file()
+REVODESIGN_CONFIG_DIR = os.path.dirname(REVODESIGN_CONFIG_FILE)
 
 # 2. initialize hydra with config dir
 hydra.initialize_config_dir(version_base=None, config_dir=os.path.dirname(REVODESIGN_CONFIG_FILE))
@@ -32,5 +33,6 @@ __all__ = [
     "set_cache_dir",
     "save_configuration",
     "REVODESIGN_CONFIG_FILE",
+    'REVODESIGN_CONFIG_DIR',
     "EXPERIMENTS_CONFIG_DIR",
 ]

@@ -1383,10 +1383,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             expected_experiment_config = f"{experiment}.yaml"
 
             if os.path.exists(os.path.join(EXPERIMENTS_CONFIG_DIR, expected_experiment_config)):
-                self.bus.cfg = reload_config_file(config_name=f"experiments/{experiment}")["experiments"]
+                self.bus.main_cfg = reload_config_file(config_name=f"experiments/{experiment}")["experiments"]
         else:
             # simply reload from default config, discard unsaved.
-            self.bus.cfg = reload_config_file()
+            self.bus.main_cfg = reload_config_file()
 
         self.refresh_ui_from_new_configuration()
 
@@ -1399,7 +1399,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             config_item,
         ) in self.bus.w2c.widget_id2config_dict.items():
             widget = self.bus.get_widget_from_id(widget_id=widget_id)
-            set_widget_value(widget, OmegaConf.select(self.bus.cfg, config_item))
+            set_widget_value(widget, OmegaConf.select(self.bus.main_cfg, config_item))
 
     def save_configuration_from_ui(self, experiment: str = "global_config"):
         """Saves a configuration from the user interface with an optional
@@ -1411,7 +1411,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             it can be None if not provided. Defaults to None.
         """
         logging.warning(f"Saving configuration as {experiment}")
-        save_configuration(new_cfg=self.bus.cfg, config_name=experiment)
+        save_configuration(new_cfg=self.bus.main_cfg, config_name=experiment)
 
     def load_and_save_experiment(self, mode: IO_MODE = "r"):
         """Loads and saves experiment configurations, copying files

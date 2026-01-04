@@ -53,6 +53,7 @@ CONE,      x1, y1, z1,
 
 # TODO: move as a standalone package, maybe `pymol-cgo-utils`?
 # i dont want to maintain such code w/i this package
+import datetime
 import itertools
 import math
 import string
@@ -2490,14 +2491,24 @@ class GraphicObjectCollection(GraphicObject):
 
 # also a quick demo to construct complicated cgo object
 def __easter_egg():
+    if any(not n.startswith("_") for n in cmd.get_names()):
+        # silently do nothing if the session is currently in use
+        return
+
+    # if the date is December 24-25th, show a Christmas tree
+    today = datetime.date.today()
+    # print(f'Today is {today}')
+    if today.month == 12 and today.day in (24, 25, 26, 27, 28):
+        return _dec25tree()
+    return _aptx4869()
+
+def _aptx4869():
     """
     There is always only one truth!
 
     真しん実じつはいつもひとつ!
     """
-    if any(not n.startswith("_") for n in cmd.get_names()):
-        # silently do nothing if the session is currently in use
-        return
+    
 
     poision = GraphicObjectCollection(
         [
@@ -2567,6 +2578,61 @@ def __easter_egg():
     cmd.set("movie_fps", 90)
 
     print(__easter_egg.__doc__)
+    cmd.mplay()
+
+
+def _dec25tree():
+    """
+    A Christmas tree to celebrate the holiday season!
+    """
+    def make_bulb(x, y, color):
+        # calculate z coordinate on the cone surface
+        z = 5 - (5 / 2) * math.sqrt(x**2 + y**2)
+        return Sphere(center=Point(x, y, z), radius=.2, color=color)
+        
+    tree = GraphicObjectCollection(
+        [
+            # tree leaves
+            Cone(
+                tip=Point(0, 0, 5),
+                base_center=Point(0, 0, 0),
+                radius_tip=0,
+                radius_base=2,
+                color_base="forest_green",
+                color_tip="forest_green",
+                caps=(1, 0),
+            ),
+            # tree trunk
+            Cylinder(
+                Point(0, 0, -1),
+                Point(0, 0, 0),
+                radius=0.3,
+                color1="brown",
+                color2="brown",
+            ),
+            # bulbs on the tree
+            Sphere(center=Point(1.3, 1.2, 1), radius=.2, color="red"),
+            Sphere(center=Point(-0.6, 0.95, 2), radius=.2, color="yellow"),
+            Sphere(center=Point(0.3, -0.6, 3), radius=.2, color="blue"),
+            Sphere(center=Point(-0.4, -0.7  , 3), radius=.2, color="green"),
+            Sphere(center=Point(0.7, -0.9, 2), radius=.2, color="orange"),
+            Sphere(center=Point(-1.3, -1.2, 1), radius=.2, color="purple"),
+            Sphere(center=Point(0.8, -0.9, 1.5), radius=.2, color="pink"),
+            # star on the top
+            Cone(
+                tip=Point(0, 0, 6),
+                base_center=Point(0, 0, 5),
+                radius_tip=0,
+                radius_base=0.5,
+                color_base="gold",
+                color_tip="gold",
+                caps=(1, 0),
+            ),
+        ]
+    )
+    tree.load_as("revodesign_christmas_tree")
+    cmd.zoom("revodesign_christmas_tree", 2)
+    print(_dec25tree.__doc__)
     cmd.mplay()
 
 

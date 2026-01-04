@@ -33,13 +33,13 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     else:
         print(f"Config file is already located at `{config_dir}`, do nothing.")
 
-    main_config_file = os.path.join(config_dir, "global_config.yaml")
+    main_config_file = os.path.join(config_dir, "main.yaml")
     print(f"Main config: {main_config_file}")
     return main_config_file
 
 
 def reload_config_file(
-    config_name: str = "global_config", overrides: list[str] | None = None, return_hydra_config: bool = False
+    config_name: str = "main", overrides: list[str] | None = None, return_hydra_config: bool = False
 ) -> DictConfig:
     return hydra.compose(
         config_name=config_name,
@@ -48,7 +48,7 @@ def reload_config_file(
     )
 
 
-def save_configuration(new_cfg: DictConfig, config_name: str = "global_config"):
+def save_configuration(new_cfg: DictConfig, config_name: str = "main"):
     from . import REVODESIGN_CONFIG_FILE
 
     cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
@@ -70,7 +70,7 @@ def set_cache_dir() -> str:
     from REvoDesign.driver.ui_driver import ConfigBus
 
     bus: ConfigBus = ConfigBus()
-    cfg: DictConfig = bus.cfg
+    cfg: DictConfig = bus.main_cfg
     if not cfg.cache_dir.under_home_dir and not cfg.cache_dir.customized:
         raise ValueError("You must specify a custom cache directory!")
 
@@ -133,3 +133,19 @@ def is_package_installed(package):
     """
     package_loader = importlib.util.find_spec(package)
     return package_loader is not None
+
+def list_all_config_files(config_dir: str) -> list[str]:
+    """
+    Function: list_all_config_files
+    Usage: config_files = list_all_config_files(config_dir)
+
+    This function lists all YAML configuration files in the specified directory.
+
+    Args:
+    - config_dir (str): Path to the configuration directory
+
+    Returns:
+    - list[str]: List of paths to YAML configuration files
+    """
+    yaml_files = glob.glob(os.path.join(config_dir, "*.yaml"))
+    return yaml_files

@@ -1,7 +1,9 @@
 """
 The heart of REvoDesign. A UI-Configuration Bus
 """
+from __future__ import annotations
 
+from dataclasses import dataclass
 import os
 from collections.abc import Callable
 from functools import partial, wraps
@@ -12,9 +14,11 @@ from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
+from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR, REVODESIGN_CONFIG_FILE
+from REvoDesign.bootstrap.set_config import list_all_config_files, save_configuration
 from REvoDesign.basic import MenuActionServerMonitor
 from REvoDesign.citations import CitableModuleAbstract
-from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.logger import ROOT_LOGGER, LOGGER_CONFIG
 from REvoDesign.Qt import QtWidgets
 from REvoDesign.tools.customized_widgets import get_widget_value, notify_box, set_widget_value, widget_signal_tape
 from REvoDesign.tools.utils import CLASS_ARGSLICE
@@ -81,6 +85,49 @@ class HeadlessProtocol(Protocol):
 
 ConfigBusT = TypeVar("ConfigBusT", bound=HeadlessProtocol)
 
+@dataclass
+class Config:
+    name: str
+    path: str
+    cfg: DictConfig
+
+    @classmethod
+    def from_name(cls, name: str) -> Config:
+        path = os.path.join(REVODESIGN_CONFIG_DIR, f"{name}.yaml")
+        cfg = reload_config_file(config_name=name)
+        return cls(name=name, path=path, cfg=cfg)
+    
+    @classmethod
+    def from_names(cls, names: list[str]) -> dict[str, Config]:
+        configs = {}
+        for name in names:
+            try:
+                config = cls.from_name(name)
+                configs[config.name] = config
+            except Exception as e:
+                logging.error(f"Failed to load config {name}: {e}")
+                
+        return configs
+
+    @classmethod
+    def from_file(cls, path: str) -> Config:
+        basename = os.path.basename(path)
+        name = basename.removesuffix(".yaml")
+        path=os.path.abspath(path)
+        cfg = reload_config_file(config_name=name)
+        return cls(name=name, path=path, cfg=cfg)
+    
+    @classmethod
+    def from_files(cls, paths: list[str]) -> dict[str, Config]:
+        configs = {}
+        for path in paths:
+            config = cls.from_file(path)
+            configs[config.name] = config
+        return configs
+    
+
+    def save(self):
+        save_configuration(self.cfg, self.name)
 
 def require_non_headless(method):
     """
@@ -151,7 +198,13 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     headless: bool = True
 
     def singleton_init(self, ui=None):
-        self.cfg: DictConfig = reload_config_file()
+        self.main_cfg: DictConfig = reload_config_file()
+        # logger must be excluded from the  config group, as logger starts before the config bus
+        self.cfg_group = Config.from_files([cf for cf in list_all_config_files(REVODESIGN_CONFIG_DIR) if not cf.startswith(('main', 'logger'))])
+        
+        # attacth loggger config to the config group
+        self.cfg_group['logger']=Config('logger', os.path.join(REVODESIGN_CONFIG_DIR, 'logger.yaml'), LOGGER_CONFIG)
+
         if ui:
             self.headless = False
             self.ui = ui
@@ -215,7 +268,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         if not cfg_item:
             return
         value = get_widget_value(widget=widget)
-        OmegaConf.update(self.cfg, cfg_item, value)
+        OmegaConf.update(self.main_cfg, cfg_item, value)
 
     def _widget_link(self, widget_id: str):
         return partial(self.update_cfg_item_from_widget, widget_id)
@@ -303,6 +356,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         converter: Callable[[Any], ValueFromConfigT] | None = None,
         reject_none: bool = False,
         default_value: ValueFromConfigT | None = None,
+        cfg:DictConfig|str|None=None,
     ) -> ValueFromConfigT | None:
         """
         Retrieves the value of a configuration item with optional type casting.
@@ -320,7 +374,9 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             ValueError: If `reject_none` is True and the resolved value is None.
         """
         # Retrieve the value of a configuration item
-        value = OmegaConf.select(self.cfg, cfg_item)
+        if isinstance(cfg, str):
+            cfg=self.cfg_group[cfg].cfg
+        value = OmegaConf.select(cfg or self.main_cfg, cfg_item)
 
         # Handle None values
         if value is None:
@@ -354,11 +410,13 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         return value
 
-    def set_value(self, cfg_item: str, value: Any, force_add: bool = False) -> None:
+    def set_value(self,cfg_item: str, value: Any, cfg:DictConfig|str|None=None, force_add: bool = False) -> None:
         # Sets the value of a configuration item.
+        if isinstance(cfg, str):
+            cfg=self.cfg_group[cfg].cfg
         if value is not None:
             try:
-                OmegaConf.update(self.cfg, cfg_item, value, force_add=force_add)
+                OmegaConf.update(cfg or self.main_cfg, cfg_item, value, force_add=force_add)
             except omegaconf.errors.ConfigKeyError as e:
                 raise issues.ConfigureOutofDateError(
                     "This configure file might be out of date. Please remove it and restart PyMOL to fix this."

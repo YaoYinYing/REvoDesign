@@ -39,8 +39,8 @@ def get_file_whitelist():
     from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
 
     bus = ConfigBus()
-    logfile = bus.cfg.log.handlers.file.filename
-    notebookfile = bus.cfg.log.handlers.notebook.filename
+    logfile = bus.main_cfg.log.handlers.file.filename
+    notebookfile = bus.main_cfg.log.handlers.notebook.filename
 
     if logfile == "AUTO":
         logfile_dir = user_log_path("REvoDesign", ensure_exists=True)

@@ -7,6 +7,7 @@ import datetime as dt
 import json
 import logging as python_logging
 import logging.handlers as python_logging_handlers
+from logging import config as python_logging_config
 import os
 import queue
 from typing import Literal
@@ -164,19 +165,21 @@ def setup_logging_from_dictconfig(
     return python_logging.getLogger()
 
 
-def setup_logging() -> python_logging.Logger:
-    cfg: DictConfig = reload_config_file()
+LOGGER_CONFIG=reload_config_file('logger')
 
-    logfile = cfg.log.handlers.file.filename
-    notebookfile = cfg.log.handlers.notebook.filename
+def setup_logging() -> python_logging.Logger:
+    cfg=LOGGER_CONFIG
+
+    logfile = cfg.handlers.file.filename
+    notebookfile = cfg.handlers.notebook.filename
 
     if logfile == "AUTO":
         logfile = user_log_path("REvoDesign", ensure_exists=True)
-        cfg.log.handlers.file.filename = os.path.join(logfile, "REvoDesign.runtime.log")
+        cfg.handlers.file.filename = os.path.join(logfile, "REvoDesign.runtime.log")
 
     if notebookfile == "AUTO":
         notebookfile = user_log_path("REvoDesign", ensure_exists=True)
-        cfg.log.handlers.notebook.filename = os.path.join(notebookfile, "REvoDesign.notebook.log")
+        cfg.handlers.notebook.filename = os.path.join(notebookfile, "REvoDesign.notebook.log")
 
     if logfile is not None:
         logging_dir = os.path.dirname(os.path.abspath(logfile))
@@ -186,12 +189,14 @@ def setup_logging() -> python_logging.Logger:
         notebook_dir = os.path.dirname(os.path.abspath(notebookfile))
 
         os.makedirs(notebook_dir, exist_ok=True)
-    logger = setup_logging_from_dictconfig(log_config=cfg.log)
+    logger = setup_logging_from_dictconfig(log_config=cfg)
     return logger
 
 
 # 3. initialize logging config and root logger, depending on config
 ROOT_LOGGER = setup_logging()
+
+logging=ROOT_LOGGER.getChild(__name__)
 
 LoggerT = python_logging.Logger
 
@@ -207,11 +212,10 @@ def logger_level_setter(
         level (int): The level to set the logger to.
     """
     from REvoDesign.driver.ui_driver import ConfigBus
-    from REvoDesign.logger import ROOT_LOGGER
-
+    global ROOT_LOGGER
     if channel:
         # apply to the config
-        ConfigBus().set_value(f"log.handlers.{channel}.level", level.upper())
+        ConfigBus().set_value(f"handlers.{channel}.level", level.upper(), cfg='logger')
         # apply to the runtime
         for handler in ROOT_LOGGER.handlers:
             if handler.name == channel:
@@ -219,6 +223,43 @@ def logger_level_setter(
                 break
     if apply_to_root_logger:
         # apply to the config
-        ConfigBus().set_value("log.loggers.root.level", level.upper())
+        ConfigBus().set_value("loggers.root.level", level.upper(), cfg='logger')
         # apply to the runtime
         ROOT_LOGGER.setLevel(level=level)
+
+def reload_logging_config():
+    # Optional: Shut down existing logging gracefully
+    python_logging.shutdown()
+    
+    # Reload the configuration from a file (e.g., logging.conf)
+    # Note: Use logging.config.fileConfig for .conf files
+    # or logging.config.dictConfig for dictionary/JSON/YAML configs
+    python_logging_config.fileConfig('logger.yaml', disable_existing_loggers=False)
+
+
+
+def logger_level_setter_ng(settings: dict[str,str]):
+    from REvoDesign.driver.ui_driver import ConfigBus
+
+    global ROOT_LOGGER
+    logging.info(f"Setting logger level")
+
+
+    root_setting= settings.pop('root', None)
+
+
+    if root_setting:
+        # apply to the config
+        ConfigBus().set_value("loggers.root.level", root_setting.upper(), cfg='logger')
+        # apply to the runtime
+        ROOT_LOGGER.setLevel(level=root_setting.upper())
+        
+    for channel, level in settings.items():
+        # apply to the config
+        ConfigBus().set_value(f"handlers.{channel}.level", level.upper(), cfg='logger')
+        # apply to the runtime
+        for handler in ROOT_LOGGER.handlers:
+            if handler.name == channel:
+                handler.setLevel(level)
+                break
+    
