@@ -268,7 +268,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 ),
                 MenuItem("actionEdit_Configuration", menu_edit_file, kwargs={"file_path": REVODESIGN_CONFIG_FILE}),
                 MenuItem(
-                    "actionSave_Configurations", self.save_configuration_from_ui, kwargs={"experiment": "global_config"}
+                    "actionSave_Configurations", self.save_configuration_from_ui, kwargs={"experiment": "main"}
                 ),
                 MenuItem(
                     "action_LoadExperiment",
@@ -689,7 +689,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.bus.set_widget_value("ui.header_panel.input.chain_id", chain_ids)
             self.bus.set_widget_value("ui.header_panel.input.chain_id", chain_ids[0])
 
-            self.bus.set_value("designable_sequences", self.designable_sequences.as_dict, force_add=True)
+            self.bus.set_value("designable_sequences", self.designable_sequences.as_dict, force_add=True, cfg='runtime')
 
     def find_session_path(self) -> str | None:
         """Find and validate if current session is saved as a session file.
@@ -1401,7 +1401,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             widget = self.bus.get_widget_from_id(widget_id=widget_id)
             set_widget_value(widget, OmegaConf.select(self.bus.main_cfg, config_item))
 
-    def save_configuration_from_ui(self, experiment: str = "global_config"):
+    def save_configuration_from_ui(self, experiment: str = "main"):
         """Saves a configuration from the user interface with an optional
         experiment name.
 

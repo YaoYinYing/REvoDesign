@@ -332,11 +332,22 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
     @overload
     def get_value(
-        self, cfg_item: str, converter: Callable[[Any], ValueFromConfigT], reject_none: bool, default_value: None = ...
+        self, 
+        cfg_item: str, 
+        converter: Callable[[Any], ValueFromConfigT], 
+        reject_none: bool,
+        default_value: None = ...,
+        cfg:DictConfig|str|None=None,
     ) -> ValueFromConfigT: ...
 
     @overload
-    def get_value(self, cfg_item: str, converter: type[bool], reject_none: bool, default_value: bool = ...) -> bool: ...
+    def get_value(
+        self, 
+        cfg_item: str, 
+        converter: type[bool], 
+        reject_none: bool, 
+        default_value: bool = ...,
+        cfg:DictConfig|str|None=None,) -> bool: ...
 
     @overload
     def get_value(
@@ -345,6 +356,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         converter: Callable[[Any], ValueFromConfigT],
         reject_none: bool = True,
         default_value: ValueFromConfigT | None = ...,
+        cfg:DictConfig|str|None=None,
     ) -> ValueFromConfigT: ...
 
     @overload

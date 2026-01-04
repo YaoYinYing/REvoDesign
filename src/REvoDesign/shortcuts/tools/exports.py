@@ -116,7 +116,7 @@ def shortcut_dump_fasta_from_struct(
     if not chain_ids:
         logging.warning("No chain selected. Dumping the chain picked on UI.")
         chain_ids = [bus.get_value("ui.header_panel.input.chain_id", str, reject_none=True)]
-    designable_sequences: Mapping | None = bus.get_value("designable_sequences", dict, reject_none=True)
+    designable_sequences: Mapping | None = bus.get_value("designable_sequences", dict, cfg='runtime', reject_none=True)
 
     os.makedirs(output_dir, exist_ok=True)
     if suffix:

@@ -234,7 +234,9 @@ def reload_logging_config():
     # Reload the configuration from a file (e.g., logging.conf)
     # Note: Use logging.config.fileConfig for .conf files
     # or logging.config.dictConfig for dictionary/JSON/YAML configs
-    python_logging_config.fileConfig('logger.yaml', disable_existing_loggers=False)
+    from ..bootstrap.set_config import ConfigConverter
+    
+    python_logging_config.dictConfig(ConfigConverter.convert(LOGGER_CONFIG))
 
 
 
@@ -263,3 +265,31 @@ def logger_level_setter_ng(settings: dict[str,str]):
                 handler.setLevel(level)
                 break
     
+    # save the logger config
+    logger_config=ConfigBus().cfg_group['logger']
+
+    # update the global variable out of the closure
+    global LOGGER_CONFIG
+    LOGGER_CONFIG=logger_config.cfg
+
+    # save it to file
+    logger_config.save()
+
+    # reload the logger
+    # reload_logging_config()
+
+def get_current_logger_level(channel: str = "root"):
+    from REvoDesign.driver.ui_driver import ConfigBus
+
+    if channel == 'root':
+        key='loggers.root.level'
+    else:
+        key=f'loggers.{channel}.level'
+    return ConfigBus().get_value(key,str,reject_none=True, cfg='logger')
+
+list_all_logger_levels = lambda: ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+list_all_logger_channels = lambda: ['stdout', 'stderr', 'file', 'notebook', 'root']
+list_all_logger_formatters_non_json = lambda: ['simple', 'complex', 'detailed']
+
+get_current_channel_level = lambda channel: get_current_logger_level(channel)
+

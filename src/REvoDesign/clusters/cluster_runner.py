@@ -22,7 +22,7 @@ class ClusterRunner:
         self.PWD: str = PWD
         self.design_molecule: str = bus.get_value("ui.header_panel.input.molecule")
         self.design_chain_id: str = bus.get_value("ui.header_panel.input.chain_id")
-        self.designable_sequences: dict = bus.get_value("designable_sequences")
+        self.designable_sequences: dict = bus.get_value("designable_sequences", dict, cfg='runtime')
         self.design_sequence: str = self.designable_sequences.get(self.design_chain_id)
 
         self.input_mutant_table = bus.get_value("ui.cluster.input.from_mutant_txt")

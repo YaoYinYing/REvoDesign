@@ -707,7 +707,7 @@ def pick_design_from_profile(
         reverse=prefer_lower_score,
     )
 
-    if sequences := bus.get_value("designable_sequences", ConfigConverter.convert, reject_none=True):
+    if sequences := bus.get_value("designable_sequences", ConfigConverter.convert, reject_none=True, cfg='runtime'):
         designable_sequences = RosettaPyProteinSequence.from_dict(sequences)
     else:
         raise issues.NoInputError("Failed to get sequence from Config, Session or PDB file!")
