@@ -491,7 +491,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         converter: Callable[[Any], ValueFromConfigT] | None = None,
         reject_none: bool = False,
         default_value: ValueFromConfigT | None = None,
-        cfg:DictConfig|str|None='main',
+        cfg:Config|str='main',
     ) -> ValueFromConfigT | None:
         """
         Retrieves the value of a configuration item with optional type casting.
@@ -509,9 +509,11 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             ValueError: If `reject_none` is True and the resolved value is None.
         """
         # Retrieve the value of a configuration item
+        
         if isinstance(cfg, str):
-            cfg=self.cfg_group[cfg].cfg
-        value = OmegaConf.select(cfg or self.cfg_group['main'].cfg, cfg_item)
+            cfg = self.cfg_group[cfg]
+        
+        value = OmegaConf.select(cfg.cfg, cfg_item)
 
         # Handle None values
         if value is None:
@@ -530,6 +532,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                     "This configure file might be out of date. "
                     "Please reinitialize REvoDesign (menu->Edit->Reinitialize) and restart PyMOL to fix this.",
                     issues.ConfigureOutofDateError,
+                    details=f'Key: {cfg_item}\n-=-=-=-=-=-\n{cfg}',
                 )
             else:
                 return None  # Return None if reject_none is False and no default is provided
@@ -545,13 +548,14 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         return value
 
-    def set_value(self,cfg_item: str, value: Any, cfg:DictConfig|str|None='main', force_add: bool = False) -> None:
+    def set_value(self,cfg_item: str, value: Any, cfg:Config|str='main', force_add: bool = False) -> None:
         # Sets the value of a configuration item.
         if isinstance(cfg, str):
-            cfg=self.cfg_group[cfg].cfg
+            cfg=self.cfg_group[cfg]
+        
         if value is not None:
             try:
-                OmegaConf.update(cfg or self.cfg_group['main'].cfg, cfg_item, value, force_add=force_add)
+                OmegaConf.update(cfg.cfg, cfg_item, value, force_add=force_add)
             except omegaconf.errors.ConfigKeyError as e:
                 raise issues.ConfigureOutofDateError(
                     "This configure file might be out of date. Please remove it and restart PyMOL to fix this."
