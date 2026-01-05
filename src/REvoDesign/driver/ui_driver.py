@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import os
 from collections.abc import Callable
 from functools import partial, wraps
+import shutil
 from typing import Any, Protocol, TypeVar, overload
 
 import omegaconf.errors
@@ -128,6 +129,22 @@ class Config:
 
     def save(self):
         save_configuration(self.cfg, self.name)
+    
+    def reload(self):
+        self.cfg = reload_config_file(self.name)
+
+    def save_as(self, file_path: str):
+        basename = os.path.basename(file_path)
+        name = basename.removesuffix(".yaml")
+
+        save_configuration(self.cfg, name)
+        saved_path= os.path.join(REVODESIGN_CONFIG_DIR, basename)
+        if not os.path.isfile(saved_path):
+            raise issues.InternalError(f"Failed to save config file to {saved_path}")
+        
+        # copy to the target path
+        shutil.copy(saved_path, file_path)
+        logging.info(f"Config file {self.name} saved to {file_path}, backup saved to {saved_path}")
 
 def require_non_headless(method):
     """
@@ -198,9 +215,8 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     headless: bool = True
 
     def singleton_init(self, ui=None):
-        self.main_cfg: DictConfig = reload_config_file()
         # logger must be excluded from the  config group, as logger starts before the config bus
-        self.cfg_group = Config.from_files([cf for cf in list_all_config_files(REVODESIGN_CONFIG_DIR) if not cf.startswith(('main', 'logger'))])
+        self.cfg_group = Config.from_files([cf for cf in list_all_config_files(REVODESIGN_CONFIG_DIR) if not cf.startswith(('logger'))])
         
         # attacth loggger config to the config group
         self.cfg_group['logger']=Config('logger', os.path.join(REVODESIGN_CONFIG_DIR, 'logger.yaml'), LOGGER_CONFIG)
@@ -268,7 +284,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         if not cfg_item:
             return
         value = get_widget_value(widget=widget)
-        OmegaConf.update(self.main_cfg, cfg_item, value)
+        OmegaConf.update(self.cfg_group['main'].cfg, cfg_item, value)
 
     def _widget_link(self, widget_id: str):
         return partial(self.update_cfg_item_from_widget, widget_id)
@@ -368,7 +384,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         converter: Callable[[Any], ValueFromConfigT] | None = None,
         reject_none: bool = False,
         default_value: ValueFromConfigT | None = None,
-        cfg:DictConfig|str|None=None,
+        cfg:DictConfig|str|None='main',
     ) -> ValueFromConfigT | None:
         """
         Retrieves the value of a configuration item with optional type casting.
@@ -388,7 +404,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         # Retrieve the value of a configuration item
         if isinstance(cfg, str):
             cfg=self.cfg_group[cfg].cfg
-        value = OmegaConf.select(cfg or self.main_cfg, cfg_item)
+        value = OmegaConf.select(cfg or self.cfg_group['main'].cfg, cfg_item)
 
         # Handle None values
         if value is None:
@@ -422,13 +438,13 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         return value
 
-    def set_value(self,cfg_item: str, value: Any, cfg:DictConfig|str|None=None, force_add: bool = False) -> None:
+    def set_value(self,cfg_item: str, value: Any, cfg:DictConfig|str|None='main', force_add: bool = False) -> None:
         # Sets the value of a configuration item.
         if isinstance(cfg, str):
             cfg=self.cfg_group[cfg].cfg
         if value is not None:
             try:
-                OmegaConf.update(cfg or self.main_cfg, cfg_item, value, force_add=force_add)
+                OmegaConf.update(cfg or self.cfg_group['main'].cfg, cfg_item, value, force_add=force_add)
             except omegaconf.errors.ConfigKeyError as e:
                 raise issues.ConfigureOutofDateError(
                     "This configure file might be out of date. Please remove it and restart PyMOL to fix this."

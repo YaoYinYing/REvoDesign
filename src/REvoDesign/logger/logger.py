@@ -201,31 +201,16 @@ logging=ROOT_LOGGER.getChild(__name__)
 LoggerT = python_logging.Logger
 
 
+
 def logger_level_setter(
-    level: str = "info",
-    channel: Literal["stdout", "stderr", "file", "notebook"] | None = None,
-    apply_to_root_logger: bool = False,
+    **kwargs
 ) -> None:
     """Set the logger level to the given value.
 
     Args:
         level (int): The level to set the logger to.
     """
-    from REvoDesign.driver.ui_driver import ConfigBus
-    global ROOT_LOGGER
-    if channel:
-        # apply to the config
-        ConfigBus().set_value(f"handlers.{channel}.level", level.upper(), cfg='logger')
-        # apply to the runtime
-        for handler in ROOT_LOGGER.handlers:
-            if handler.name == channel:
-                handler.setLevel(level)
-                break
-    if apply_to_root_logger:
-        # apply to the config
-        ConfigBus().set_value("loggers.root.level", level.upper(), cfg='logger')
-        # apply to the runtime
-        ROOT_LOGGER.setLevel(level=level)
+    logger_level_setter_ng(kwargs)
 
 def reload_logging_config():
     # Optional: Shut down existing logging gracefully
@@ -246,6 +231,9 @@ def logger_level_setter_ng(settings: dict[str,str]):
     global ROOT_LOGGER
     logging.info(f"Setting logger level")
 
+    all_logger_channels=list_all_logger_channels()
+    
+
 
     root_setting= settings.pop('root', None)
 
@@ -257,6 +245,9 @@ def logger_level_setter_ng(settings: dict[str,str]):
         ROOT_LOGGER.setLevel(level=root_setting.upper())
         
     for channel, level in settings.items():
+        if channel not in all_logger_channels:
+            logging.warning(f"Logger channel {channel} does not exist")
+            continue
         # apply to the config
         ConfigBus().set_value(f"handlers.{channel}.level", level.upper(), cfg='logger')
         # apply to the runtime

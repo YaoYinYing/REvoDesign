@@ -49,19 +49,18 @@ def reload_config_file(
 
 
 def save_configuration(new_cfg: DictConfig, config_name: str = "main"):
-    from . import REVODESIGN_CONFIG_FILE
+    from . import REVODESIGN_CONFIG_DIR
 
-    cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
-    cfg_save_fp = os.path.join(cfg_save_dir, f"{config_name}.yaml")
+    cfg_save_fp = os.path.join(REVODESIGN_CONFIG_DIR, f"{config_name}.yaml")
     OmegaConf.save(new_cfg, cfg_save_fp)
     print(f"Saved configuration: {cfg_save_fp}")
     return
 
 
 def experiment_config():
-    from . import REVODESIGN_CONFIG_FILE
+    from . import REVODESIGN_CONFIG_DIR
 
-    experiments_dir = os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE), "experiments")
+    experiments_dir = os.path.join(REVODESIGN_CONFIG_DIR, "experiments")
     os.makedirs(experiments_dir, exist_ok=True)
     return experiments_dir
 
@@ -70,7 +69,7 @@ def set_cache_dir() -> str:
     from REvoDesign.driver.ui_driver import ConfigBus
 
     bus: ConfigBus = ConfigBus()
-    cfg: DictConfig = bus.main_cfg
+    cfg: DictConfig = bus.cfg_group['main'].cfg
     if not cfg.cache_dir.under_home_dir and not cfg.cache_dir.customized:
         raise ValueError("You must specify a custom cache directory!")
 

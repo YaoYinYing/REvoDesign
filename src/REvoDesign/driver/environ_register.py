@@ -16,7 +16,7 @@ def register_environment_variables():
 
     bus = ConfigBus()
 
-    EnvironBindItemCollection: Mapping[str, Any] | None = bus.get_value("variables",dict, reject_none=True,cfg='environ')
+    EnvironBindItemCollection: Mapping[str, Any] | None = bus.get_value("variables",dict,cfg='environ')
     if EnvironBindItemCollection is None:
         return
 

@@ -38,7 +38,7 @@ asked_value_typing_dict: immutabledict[str, type] = immutabledict(
 REGISTRY_DIR = Path(__file__).parent / "registry"
 
 
-def resolve_choice_from(range_str: str):
+def resolve_choice_from(choice_from_str: str):
     """
     Interprets an input string and dynamically returns a corresponding value based on its prefix.
 
@@ -71,31 +71,79 @@ def resolve_choice_from(range_str: str):
         issues.InvalidInputError: If the input format for 'range:' or 'CFG:' is invalid.
         issues.ConfigurationError: If the input doesn't match any known pattern or expected type.
     """
-    if range_str.startswith(("range:", "FloatRange:")):  # range:1,10 or range:1,10,2 or FloatRange:1,10
+    if choice_from_str.startswith(("range:", "FloatRange:")):  # range:1,10 or range:1,10,2 or FloatRange:1,10
         try:
-            range_type, range_str = range_str.split(":", 1)
+            range_type, choice_from_str = choice_from_str.split(":", 1)
             if range_type == "range":
-                return range(*map(int, range_str.split(",")))
+                return range(*map(int, choice_from_str.split(",")))
             else:
-                return FloatRange.from_str(range_str)
+                return FloatRange.from_str(choice_from_str)
         except TypeError as e:
             raise issues.InvalidInputError(
-                "range input expect an input string in pattern range:[<start>,]<end>[,<step>]", f"not `{range_str}`"
+                "range input expect an input string in pattern range:[<start>,]<end>[,<step>]", f"not `{choice_from_str}`"
             ) from e
-    elif range_str.startswith("REvoDesign."):
-        resolved_callable = resolve_dotted_function(range_str)
+    elif choice_from_str.startswith("REvoDesign."):
+        resolved_callable = resolve_dotted_function(choice_from_str)
         if not isinstance(resolved_callable, Callable):
-            raise issues.ConfigurationError(f"Expected as a callable: {range_str}: {resolved_callable}")
+            raise issues.ConfigurationError(f"Expected as a callable: {choice_from_str}: {resolved_callable}")
         return resolved_callable()  # Get callable dynamically
-    elif range_str.startswith("CFG:"):
-        from REvoDesign.driver.ui_driver import ConfigBus
+    elif choice_from_str.startswith("CFG:"):
+        return resolve_dotted_config_item(choice_from_str)
+    elif choice_from_str.startswith("LAMBDA:"):
+        return resolve_lambda_expression(choice_from_str)
 
-        if "." not in range_str:
-            raise issues.InvalidInputError(f"Expected as a config item: {range_str}")
-        return ConfigBus().get_value(range_str.removeprefix("CFG:"))
+    raise issues.ConfigurationError(f"Unable to parse {choice_from_str}")
 
-    raise issues.ConfigurationError(f"Unable to parse {range_str}")
+def resolve_default_from(default_from_str: str) -> Any:
+    """
+    Resolves a dotted configuration string to retrieve the corresponding default value.
 
+    Args:
+        default_from_str (str): The dotted configuration string to resolve.
+
+    Returns:
+        Any: The default value retrieved from the specified configuration.
+    """
+    if default_from_str.startswith('REvoDesign.'):
+        resolved_callable = resolve_dotted_function(default_from_str)
+        if not isinstance(resolved_callable, Callable):
+            raise issues.ConfigurationError(f"Expected as a callable: {default_from_str}: {resolved_callable}")
+        return resolved_callable()  # Get callable dynamically
+    if default_from_str.startswith('CFG:'):
+        return resolve_dotted_config_item(default_from_str)
+    if default_from_str.startswith('LAMBDA:'):
+        return resolve_lambda_expression(default_from_str)
+    raise issues.UnsupportedDataTypeError(f"Unable to parse {default_from_str}")
+
+def resolve_dotted_config_item(config_string: str) -> Any:
+    """
+    Resolves a dotted configuration string to retrieve the corresponding configuration value.
+
+    The input string can be in one of the following formats:
+    1. `"CFG:<config_section>:<config_item>"` - Specifies both the configuration section and item.
+    2. `"CFG:<config_item>"` - Specifies only the configuration item, with no section.
+
+    Args:
+        config_string (str): The dotted configuration string to resolve.
+    Returns:
+        Any: The configuration value retrieved from the specified section and item.
+    Raises:
+        issues.InvalidInputError: If the input string does not conform to the expected format.
+    """
+
+    from REvoDesign.driver.ui_driver import ConfigBus
+
+    config_string = config_string.removeprefix("CFG:")
+    if ':' in config_string:
+        # pattern: config_section:config_item
+        cfg, config_item = config_string.split(":", 1)
+        if cfg == "main":
+            cfg = None
+    else:
+        # pattern: config_item
+        cfg, config_item = None, config_string
+
+    return ConfigBus().get_value(config_item, cfg=cfg) # type: ignore
 
 def resolve_default_value(typing: type) -> Any:
     if typing == bool:
@@ -107,6 +155,55 @@ def resolve_default_value(typing: type) -> Any:
     if typing == str:
         return ""
 
+def resolve_lambda_expression(expression: str) -> Any:
+    '''
+    Resolve a lambda expression to a callable.
+    Args:
+        expression (str): The lambda expression in the format 'LAMBDA:dotted_function,arg1,arg2,...'
+    Returns:
+        Any: The result of the lambda function call.
+    Raises:
+        issues.InvalidInputError: If the expression does not start with 'LAMBDA:'.
+
+    Example:
+        >>> resolve_lambda_expression("LAMBDA:math.sqrt,4")
+        2.0
+    '''
+    if not expression.startswith("LAMBDA:"):
+        raise issues.InvalidInputError("Lambda expression must start with 'LAMBDA:'", f"not `{expression}`")
+    lambda_str = expression.removeprefix("LAMBDA:")
+    parts = lambda_str.split(",")
+    func_str = parts[0]
+    func=resolve_dotted_function(func_str)
+    if not isinstance(func, Callable):
+        raise issues.InvalidInputError(f"Expected as a callable: {func_str}: {func}, the expression is `{expression}`")
+    args = parts[1:]
+    # recover typing of args buy guessing
+    typed_args = []
+    typed_kwargs = {}
+    for arg in args:
+        if '=' in arg:
+            key, val = arg.split('=', 1)
+            typed_kwargs[key] = resolve_typed_arg(val)
+        else:
+            typed_args.append(resolve_typed_arg(arg))
+
+    return func(*typed_args, **typed_kwargs)
+
+def resolve_typed_arg(arg: str) -> Any:
+    if arg.lower() == "true":
+        return True
+    elif arg.lower() == "false":
+        return False
+    # integer
+    elif arg.isdigit():
+        return int(arg)
+    # float
+    elif arg.replace('.', '', 1).isdigit():
+        return float(arg)
+    # string fallback
+    else:
+        return arg
 
 def _build_asked_value(entry: dict) -> AskedValue:
     """
@@ -144,9 +241,8 @@ def _build_asked_value(entry: dict) -> AskedValue:
     # Handle default value from a callable (e.g., using a function name from dotted string)
     val = entry.get("default")
     if "default_from" in entry:
-        val = resolve_dotted_function(entry["default_from"])
-        if isinstance(val, Callable):
-            val = val()
+        val = resolve_default_from(entry["default_from"])
+
 
     # Handle choices dynamically
     choices: Any = entry.get("choices")
