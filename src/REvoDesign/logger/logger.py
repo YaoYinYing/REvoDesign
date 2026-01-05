@@ -253,6 +253,7 @@ def logger_level_setter_ng(settings: dict[str,str]):
         # apply to the runtime
         for handler in ROOT_LOGGER.handlers:
             if handler.name == channel:
+                logging.debug(f"Setting logger level for {channel} to {level}")
                 handler.setLevel(level)
                 break
     
@@ -275,8 +276,14 @@ def get_current_logger_level(channel: str = "root"):
     if channel == 'root':
         key='loggers.root.level'
     else:
-        key=f'loggers.{channel}.level'
-    return ConfigBus().get_value(key,str,reject_none=True, cfg='logger')
+        key=f'handlers.{channel}.level'
+    try:
+        return ConfigBus().get_value(key,str,reject_none=True, cfg='logger')
+    except Exception as e:
+        logging.error(f"Logger channel {channel} does not exist")
+        logging.error(f"Available channels: {list_all_logger_channels()}")
+        logging.error(f'All config: {ConfigBus().cfg_group["logger"]}')
+        raise e
 
 list_all_logger_levels = lambda: ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
 list_all_logger_channels = lambda: ['stdout', 'stderr', 'file', 'notebook', 'root']

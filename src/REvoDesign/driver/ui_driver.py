@@ -116,6 +116,15 @@ class Config:
     path: str
     cfg: DictConfig
 
+    def __repr__(self):
+        return f"""Config: 
+ - name: {self.name}
+ - path: {self.path}
+ - cfg: 
+ -=-=-=-=-=-=-=-=-
+ {OmegaConf.to_yaml(self.cfg)}
+ -=-=-=-=-=-=-=-=-"""
+
     @classmethod
     def from_name(cls, name: str) -> Config:
         '''
