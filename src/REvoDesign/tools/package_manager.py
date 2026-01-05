@@ -1650,11 +1650,11 @@ class REvoDesignPackageManager:
             # Check if the new cache directory is valid
             if new_cache_dir and os.path.isdir(new_cache_dir):
                 # Update the cache directory settings
-                bus.main_cfg.cache_dir.under_home_dir = False
-                bus.main_cfg.cache_dir.customized = new_cache_dir
+                bus.cfg_group['main'].cfg.cache_dir.under_home_dir = False
+                bus.cfg_group['main'].cfg.cache_dir.customized = new_cache_dir
 
                 # Save the updated configuration
-                save_configuration(new_cfg=bus.main_cfg)
+                save_configuration(new_cfg=bus.cfg_group['main'].cfg)
 
                 # Notify the user that the cache directory has been updated
                 notify_box(f"The customized cache directory has been updated: \n{new_cache_dir}")
@@ -2290,10 +2290,10 @@ def issue_collection(
         issue_dict.update({"REvoDesign::Version": REvoDesign.__version__})
         issue_dict.update({"REvoDesign::Config": REvoDesign.REVODESIGN_CONFIG_FILE})
         issue_dict.update(
-            {"REvoDesign::UI::Language": ConfigBus().main_cfg.language if ConfigBus._instance is not None else "N/A"}
+            {"REvoDesign::UI::Language": ConfigBus().cfg_group['main'].cfg.language if ConfigBus._instance is not None else "N/A"}
         )
 
-        logfile_in_cfg = ConfigBus().main_cfg.log.handlers.file.filename if ConfigBus._instance is not None else "N/A"
+        logfile_in_cfg = ConfigBus().cfg_group['main'].cfg.log.handlers.file.filename if ConfigBus._instance is not None else "N/A"
         if logfile_in_cfg == "AUTO":
             from platformdirs import user_log_path
 
@@ -2340,7 +2340,7 @@ def issue_collection(
             issue_dict.update(
                 {
                     "Dummy::REvoDesign::Configurations": (
-                        ConfigConverter().convert(ConfigBus().main_cfg) if ConfigBus._instance is not None else "N/A"
+                        ConfigConverter().convert(ConfigBus().cfg_group['main'].cfg) if ConfigBus._instance is not None else "N/A"
                     )
                 }
             )

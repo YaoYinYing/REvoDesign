@@ -534,7 +534,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
     with timing("Quick Mutageneses"):
         input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
         visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
-        cfg = bus.main_cfg
+        cfg = bus.cfg_group['main'].cfg
 
         visualizer.designable_sequences = designable_sequences
 
