@@ -25,6 +25,10 @@ hydra.initialize_config_dir(version_base=None, config_dir=os.path.dirname(REVODE
 # 3. initialize experiments directory, depending on config
 EXPERIMENTS_CONFIG_DIR = experiment_config()
 
+# 4. initialize cache directory for intermediate yaml files
+CACHE_CONFIG_DIR = experiment_config("cache")
+
+
 __all__ = [
     "Qt",
     "experiment_config",

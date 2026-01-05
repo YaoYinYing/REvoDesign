@@ -15,7 +15,7 @@ from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
-from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR, REVODESIGN_CONFIG_FILE
+from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR, CACHE_CONFIG_DIR
 from REvoDesign.bootstrap.set_config import list_all_config_files, save_configuration
 from REvoDesign.basic import MenuActionServerMonitor
 from REvoDesign.citations import CitableModuleAbstract
@@ -88,18 +88,63 @@ ConfigBusT = TypeVar("ConfigBusT", bound=HeadlessProtocol)
 
 @dataclass
 class Config:
+    '''
+    A dataclass to represent a configuration file. It contains the name, path, and configuration data of a configuration file.
+    
+    Attributes:
+    name: str -- The name of the configuration file.
+    path: str -- The path to the configuration file.
+    cfg: DictConfig -- The configuration data of the configuration file.
+    
+    Methods:
+    from_name(name: str) -> Config
+        A class method to create a Config object from a configuration name.
+    from_names(names: list[str]) -> dict[str, Config]
+        A class method to create a dictionary of Config objects from a list of configuration names.
+    from_file(path: str) -> Config
+        A class method to create a Config object from a configuration file path.
+    from_files(paths: list[str]) -> dict[str, Config]
+        A class method to create a dictionary of Config objects from a list of configuration file paths.
+    save()
+        Saves the configuration data to the configuration file.
+    reload()
+        Reloads the configuration data from the configuration file.
+    save_as(file_path: str)
+        Saves the configuration data to a specified file path.
+    '''
     name: str
     path: str
     cfg: DictConfig
 
     @classmethod
     def from_name(cls, name: str) -> Config:
+        '''
+        Create a Config object from a configuration name.
+        Args:
+            name (str): The name of the configuration file.
+        Returns:
+            Config: A Config object created from the configuration file.
+        Raises:
+            issues.ConfigureError: If the configuration file does not exist.
+            issues.FileFormatError: If the configuration file is not a valid YAML file.
+        '''
         path = os.path.join(REVODESIGN_CONFIG_DIR, f"{name}.yaml")
         cfg = reload_config_file(config_name=name)
         return cls(name=name, path=path, cfg=cfg)
     
     @classmethod
     def from_names(cls, names: list[str]) -> dict[str, Config]:
+        '''
+        Create a dictionary of Config objects from a list of configuration names.
+        Args:
+            names (list[str]): A list of configuration file names.
+        Returns:
+            dict[str, Config]: A dictionary of Config objects created from the configuration files.
+        
+        Raises:
+            issues.ConfigureError: If any of the configuration files do not exist.
+            issues.FileFormatError: If any of the configuration files are not valid YAML files.
+        '''
         configs = {}
         for name in names:
             try:
@@ -112,6 +157,17 @@ class Config:
 
     @classmethod
     def from_file(cls, path: str) -> Config:
+        '''
+        Create a Config object from a configuration file path.
+        Args:
+            path (str): The path to the configuration file.
+        Returns:
+            Config: A Config object created from the configuration file.
+        
+        Raises:
+            issues.ConfigureError: If the configuration file does not exist.
+            issues.FileFormatError: If the configuration file is not a valid YAML file.
+        '''
         basename = os.path.basename(path)
         name = basename.removesuffix(".yaml")
         path=os.path.abspath(path)
@@ -120,6 +176,17 @@ class Config:
     
     @classmethod
     def from_files(cls, paths: list[str]) -> dict[str, Config]:
+        '''
+        Create a dictionary of Config objects from a list of configuration file paths.
+        Args:
+            paths (list[str]): A list of paths to configuration files.
+        Returns:
+            dict[str, Config]: A dictionary of Config objects created from the configuration files.
+        
+        Raises:
+            issues.ConfigureError: If any of the configuration files do not exist.
+            issues.FileFormatError: If any of the configuration files are not valid YAML files.
+        '''
         configs = {}
         for path in paths:
             config = cls.from_file(path)
@@ -128,23 +195,54 @@ class Config:
     
 
     def save(self):
+        '''
+        Saves the configuration data to the configuration file.
+        '''
         save_configuration(self.cfg, self.name)
     
     def reload(self):
+        '''
+        Reloads the configuration data from the configuration file.
+        '''
         self.cfg = reload_config_file(self.name)
 
-    def save_as(self, file_path: str):
-        basename = os.path.basename(file_path)
-        name = basename.removesuffix(".yaml")
+    def reload_from(self, path: str):
+        '''
+        Reloads the configuration data from a specified file path.
+        Args:
+        path (str): The path to the configuration file.
+        Raises:
+            issues.ConfigureError: If the configuration file does not exist.
+            issues.FileFormatError: If the configuration file is not a valid YAML file.
+        '''
+        if not os.path.exists(path):
+            raise issues.ConfigureError(f"{path} does not exist")
+        if not path.endswith(".yaml"):
+            raise issues.FileFormatError(f"{path} is not a valid config file")
+        
+        expected_cached_yaml= os.path.join(CACHE_CONFIG_DIR, f"{self.name}_cached_{os.path.basename(path)}")
+        new_cfg_base_name: str = os.path.basename(expected_cached_yaml)
+        new_cfg_prefix = os.path.basename(new_cfg_base_name)[:-5]
 
-        save_configuration(self.cfg, name)
-        saved_path= os.path.join(REVODESIGN_CONFIG_DIR, basename)
-        if not os.path.isfile(saved_path):
-            raise issues.InternalError(f"Failed to save config file to {saved_path}")
+        shutil.copy(path, expected_cached_yaml)
+        self.cfg = reload_config_file(config_name=f"cache/{new_cfg_prefix}")["cache"]
+
+    def save_as(self, file_path: str):
+        '''
+        Saves the configuration data to a specified file path.
+        
+        Args:
+            file_path (str): The path to save the configuration file.
+        
+        '''
+
+        # save to disk first
+        self.save()
         
         # copy to the target path
-        shutil.copy(saved_path, file_path)
-        logging.info(f"Config file {self.name} saved to {file_path}, backup saved to {saved_path}")
+        shutil.copy(self.path, file_path)
+        logging.info(f"Config file {self.name} saved to {file_path}")
+
 
 def require_non_headless(method):
     """

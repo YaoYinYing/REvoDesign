@@ -24,7 +24,6 @@ from REvoDesign import (
     file_extensions,
     issues,
     reload_config_file,
-    save_configuration,
     set_REvoDesign_config_file,
 )
 from REvoDesign.application.font import FontSetter
@@ -268,7 +267,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 ),
                 MenuItem("actionEdit_Configuration", menu_edit_file, kwargs={"file_path": REVODESIGN_CONFIG_FILE}),
                 MenuItem(
-                    "actionSave_Configurations", self.save_configuration_from_ui, kwargs={"experiment": "main"}
+                    "actionSave_Configurations", self.bus.cfg_group['main'].save
                 ),
                 MenuItem(
                     "action_LoadExperiment",
@@ -1344,7 +1343,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
         self.ws_client.close_connection()
 
-    def reload_configurations(self, experiment: str | None = None):
+    def reload_configurations(self):
         """Reloading configurations based on different scenarios such as
         reconfiguring with changes, initializing configurations, loading
         specific experiment configurations, or reloading from default
@@ -1378,12 +1377,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             # register widget change events to update cfg items
             self.bus.register_widget_changes_to_cfg()
 
-        elif experiment:
-            # while loading experiment
-            expected_experiment_config = f"{experiment}.yaml"
-
-            if os.path.exists(os.path.join(EXPERIMENTS_CONFIG_DIR, expected_experiment_config)):
-                self.bus.cfg_group['main'].cfg = reload_config_file(config_name=f"experiments/{experiment}")["experiments"]
         else:
             # simply reload from default config, discard unsaved.
             self.bus.cfg_group['main'].cfg = reload_config_file()
@@ -1401,19 +1394,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             widget = self.bus.get_widget_from_id(widget_id=widget_id)
             set_widget_value(widget, OmegaConf.select(self.bus.cfg_group['main'].cfg, config_item))
 
-    def save_configuration_from_ui(self, experiment: str = "main"):
-        """Saves a configuration from the user interface with an optional
-        experiment name.
-
-        Args:
-            experiment (str, optional): the name of the configuration or
-            experiment being saved. It is an optional parameter, meaning
-            it can be None if not provided. Defaults to None.
-        """
-        logging.warning(f"Saving configuration as {experiment}")
-        self.bus.cfg_group['main'].save_as(experiment)
-
-
     def load_and_save_experiment(self, mode: IO_MODE = "r"):
         """Loads and saves experiment configurations, copying files
         between directories based on the specified mode.
@@ -1428,17 +1408,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             exts=(file_extensions.YAML, file_extensions.Any),
         )
         if not new_cfg_file:
+            logging.debug("No file selected. Aborting operation on experiment loading/saving.")
             return
-        new_cfg_base_name: str = os.path.basename(new_cfg_file)
-        new_cfg_prefix = new_cfg_base_name[:-5]
-        experiment_file = os.path.join(EXPERIMENTS_CONFIG_DIR, new_cfg_base_name)
+        
         if mode == "r":
-            # copy cfg to experiment dir so that hydra can access it
-            shutil.copy(new_cfg_file, experiment_file)
-            self.reload_configurations(experiment=new_cfg_prefix)
-            logging.warning(f"Load config from {new_cfg_file}, backup at {experiment_file}")
+            self.bus.cfg_group['main'].reload_from(path=new_cfg_file)
+            self.refresh_ui_from_new_configuration()
         else:
-            self.save_configuration_from_ui(experiment=f"experiments/{new_cfg_prefix}")
-            # hydra has already saved config into EXPERIMENTS_CONFIG_DIR, copy to user defined config file path
-            shutil.copy(experiment_file, new_cfg_file)
-            logging.warning(f"saved config at {new_cfg_file}, backup at {experiment_file}")
+            self.bus.cfg_group['main'].save_as(file_path=new_cfg_file)
+            

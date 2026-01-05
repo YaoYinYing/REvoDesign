@@ -519,7 +519,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
     molecule = bus.get_value("ui.header_panel.input.molecule")
     chain_id = bus.get_value("ui.header_panel.input.chain_id")
-    designable_sequences: RosettaPyProteinSequence = bus.get_value(
+    designable_sequences = bus.get_value(
         "designable_sequences", RosettaPyProteinSequence.from_dict
     )
 

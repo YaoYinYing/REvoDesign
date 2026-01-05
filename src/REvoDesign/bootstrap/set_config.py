@@ -57,13 +57,12 @@ def save_configuration(new_cfg: DictConfig, config_name: str = "main"):
     return
 
 
-def experiment_config():
+def experiment_config(name: str = "experiments") -> str:
     from . import REVODESIGN_CONFIG_DIR
 
-    experiments_dir = os.path.join(REVODESIGN_CONFIG_DIR, "experiments")
+    experiments_dir = os.path.join(REVODESIGN_CONFIG_DIR, name)
     os.makedirs(experiments_dir, exist_ok=True)
     return experiments_dir
-
 
 def set_cache_dir() -> str:
     from REvoDesign.driver.ui_driver import ConfigBus
