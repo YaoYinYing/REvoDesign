@@ -37,6 +37,6 @@ __all__ = [
     "set_cache_dir",
     "save_configuration",
     "REVODESIGN_CONFIG_FILE",
-    'REVODESIGN_CONFIG_DIR',
+    "REVODESIGN_CONFIG_DIR",
     "EXPERIMENTS_CONFIG_DIR",
 ]

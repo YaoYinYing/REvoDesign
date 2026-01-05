@@ -80,7 +80,8 @@ def resolve_choice_from(choice_from_str: str):
                 return FloatRange.from_str(choice_from_str)
         except TypeError as e:
             raise issues.InvalidInputError(
-                "range input expect an input string in pattern range:[<start>,]<end>[,<step>]", f"not `{choice_from_str}`"
+                "range input expect an input string in pattern range:[<start>,]<end>[,<step>]",
+                f"not `{choice_from_str}`",
             ) from e
     elif choice_from_str.startswith("REvoDesign."):
         resolved_callable = resolve_dotted_function(choice_from_str)
@@ -94,6 +95,7 @@ def resolve_choice_from(choice_from_str: str):
 
     raise issues.ConfigurationError(f"Unable to parse {choice_from_str}")
 
+
 def resolve_default_from(default_from_str: str) -> Any:
     """
     Resolves a dotted configuration string to retrieve the corresponding default value.
@@ -104,16 +106,17 @@ def resolve_default_from(default_from_str: str) -> Any:
     Returns:
         Any: The default value retrieved from the specified configuration.
     """
-    if default_from_str.startswith('REvoDesign.'):
+    if default_from_str.startswith("REvoDesign."):
         resolved_callable = resolve_dotted_function(default_from_str)
         if not isinstance(resolved_callable, Callable):
             raise issues.ConfigurationError(f"Expected as a callable: {default_from_str}: {resolved_callable}")
         return resolved_callable()  # Get callable dynamically
-    if default_from_str.startswith('CFG:'):
+    if default_from_str.startswith("CFG:"):
         return resolve_dotted_config_item(default_from_str)
-    if default_from_str.startswith('LAMBDA:'):
+    if default_from_str.startswith("LAMBDA:"):
         return resolve_lambda_expression(default_from_str)
     raise issues.UnsupportedDataTypeError(f"Unable to parse {default_from_str}")
+
 
 def resolve_dotted_config_item(config_string: str) -> Any:
     """
@@ -134,7 +137,7 @@ def resolve_dotted_config_item(config_string: str) -> Any:
     from REvoDesign.driver.ui_driver import ConfigBus
 
     config_string = config_string.removeprefix("CFG:")
-    if ':' in config_string:
+    if ":" in config_string:
         # pattern: config_section:config_item
         cfg, config_item = config_string.split(":", 1)
         if cfg == "main":
@@ -143,7 +146,8 @@ def resolve_dotted_config_item(config_string: str) -> Any:
         # pattern: config_item
         cfg, config_item = None, config_string
 
-    return ConfigBus().get_value(config_item, cfg=cfg) # type: ignore
+    return ConfigBus().get_value(config_item, cfg=cfg)  # type: ignore
+
 
 def resolve_default_value(typing: type) -> Any:
     if typing == bool:
@@ -155,8 +159,9 @@ def resolve_default_value(typing: type) -> Any:
     if typing == str:
         return ""
 
+
 def resolve_lambda_expression(expression: str) -> Any:
-    '''
+    """
     Resolve a lambda expression to a callable.
     Args:
         expression (str): The lambda expression in the format 'LAMBDA:dotted_function,arg1,arg2,...'
@@ -168,13 +173,13 @@ def resolve_lambda_expression(expression: str) -> Any:
     Example:
         >>> resolve_lambda_expression("LAMBDA:math.sqrt,4")
         2.0
-    '''
+    """
     if not expression.startswith("LAMBDA:"):
         raise issues.InvalidInputError("Lambda expression must start with 'LAMBDA:'", f"not `{expression}`")
     lambda_str = expression.removeprefix("LAMBDA:")
     parts = lambda_str.split(",")
     func_str = parts[0]
-    func=resolve_dotted_function(func_str)
+    func = resolve_dotted_function(func_str)
     if not isinstance(func, Callable):
         raise issues.InvalidInputError(f"Expected as a callable: {func_str}: {func}, the expression is `{expression}`")
     args = parts[1:]
@@ -182,13 +187,14 @@ def resolve_lambda_expression(expression: str) -> Any:
     typed_args = []
     typed_kwargs = {}
     for arg in args:
-        if '=' in arg:
-            key, val = arg.split('=', 1)
+        if "=" in arg:
+            key, val = arg.split("=", 1)
             typed_kwargs[key] = resolve_typed_arg(val)
         else:
             typed_args.append(resolve_typed_arg(arg))
 
     return func(*typed_args, **typed_kwargs)
+
 
 def resolve_typed_arg(arg: str) -> Any:
     if arg.lower() == "true":
@@ -199,11 +205,12 @@ def resolve_typed_arg(arg: str) -> Any:
     elif arg.isdigit():
         return int(arg)
     # float
-    elif arg.replace('.', '', 1).isdigit():
+    elif arg.replace(".", "", 1).isdigit():
         return float(arg)
     # string fallback
     else:
         return arg
+
 
 def _build_asked_value(entry: dict) -> AskedValue:
     """
@@ -242,7 +249,6 @@ def _build_asked_value(entry: dict) -> AskedValue:
     val = entry.get("default")
     if "default_from" in entry:
         val = resolve_default_from(entry["default_from"])
-
 
     # Handle choices dynamically
     choices: Any = entry.get("choices")

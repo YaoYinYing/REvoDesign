@@ -2502,13 +2502,13 @@ def __easter_egg():
         return _dec25tree()
     return _aptx4869()
 
+
 def _aptx4869():
     """
     There is always only one truth!
 
     真しん実じつはいつもひとつ!
     """
-    
 
     poision = GraphicObjectCollection(
         [
@@ -2585,11 +2585,12 @@ def _dec25tree():
     """
     A Christmas tree to celebrate the holiday season!
     """
+
     def make_bulb(x, y, color):
         # calculate z coordinate on the cone surface
         z = 5 - (5 / 2) * math.sqrt(x**2 + y**2)
-        return Sphere(center=Point(x, y, z), radius=.2, color=color)
-        
+        return Sphere(center=Point(x, y, z), radius=0.2, color=color)
+
     tree = GraphicObjectCollection(
         [
             # tree leaves
@@ -2611,13 +2612,13 @@ def _dec25tree():
                 color2="brown",
             ),
             # bulbs on the tree
-            Sphere(center=Point(1.3, 1.2, 1), radius=.2, color="red"),
-            Sphere(center=Point(-0.6, 0.95, 2), radius=.2, color="yellow"),
-            Sphere(center=Point(0.3, -0.6, 3), radius=.2, color="blue"),
-            Sphere(center=Point(-0.4, -0.7  , 3), radius=.2, color="green"),
-            Sphere(center=Point(0.7, -0.9, 2), radius=.2, color="orange"),
-            Sphere(center=Point(-1.3, -1.2, 1), radius=.2, color="purple"),
-            Sphere(center=Point(0.8, -0.9, 1.5), radius=.2, color="pink"),
+            Sphere(center=Point(1.3, 1.2, 1), radius=0.2, color="red"),
+            Sphere(center=Point(-0.6, 0.95, 2), radius=0.2, color="yellow"),
+            Sphere(center=Point(0.3, -0.6, 3), radius=0.2, color="blue"),
+            Sphere(center=Point(-0.4, -0.7, 3), radius=0.2, color="green"),
+            Sphere(center=Point(0.7, -0.9, 2), radius=0.2, color="orange"),
+            Sphere(center=Point(-1.3, -1.2, 1), radius=0.2, color="purple"),
+            Sphere(center=Point(0.8, -0.9, 1.5), radius=0.2, color="pink"),
             # star on the top
             Cone(
                 tip=Point(0, 0, 6),

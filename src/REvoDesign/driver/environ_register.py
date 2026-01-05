@@ -16,7 +16,7 @@ def register_environment_variables():
 
     bus = ConfigBus()
 
-    EnvironBindItemCollection: Mapping[str, Any] | None = bus.get_value("variables",dict,cfg='environ')
+    EnvironBindItemCollection: Mapping[str, Any] | None = bus.get_value("variables", dict, cfg="environ")
     if EnvironBindItemCollection is None:
         return
 
@@ -30,13 +30,13 @@ def add_new_environment_variables():
     """
     Adds new environment variables to the system.
     """
-    
+
     if ConfigBus._instance is None:
         raise issues.UnexpectedWorkflowError("ConfigBus must be initialized.")
 
     bus = ConfigBus()
 
-    EnvironBindItemCollection: DictConfig  = bus.get_value("variables",DictConfig,cfg='environ')
+    EnvironBindItemCollection: DictConfig = bus.get_value("variables", DictConfig, cfg="environ")
     if EnvironBindItemCollection is None:
         EnvironBindItemCollection = DictConfig({})
 
@@ -45,12 +45,11 @@ def add_new_environment_variables():
         return
 
     EnvironBindItemCollection.update(AskedEnvironBindItemCollection.asdict)
-    bus.set_value("variables", EnvironBindItemCollection,cfg='environ')
+    bus.set_value("variables", EnvironBindItemCollection, cfg="environ")
     register_environment_variables()
     print(f"Environment variables are updated to configuration.\n {AskedEnvironBindItemCollection.asdict}")
     print("To apply these changes, a restart of the application may be required.")
-    bus.cfg_group['environ'].save()
-
+    bus.cfg_group["environ"].save()
 
 
 def drop_environment_variables():
@@ -64,7 +63,7 @@ def drop_environment_variables():
 
     AskedEnvironBindItemCollection = ask_for_appendable_values()
 
-    ev_in_cfg: DictConfig | None = bus.get_value("variables",DictConfig,cfg='environ')
+    ev_in_cfg: DictConfig | None = bus.get_value("variables", DictConfig, cfg="environ")
     if not ev_in_cfg:
         print("No environment variables are currently bound to the configuration.")
         ev_in_cfg = DictConfig({})
@@ -76,7 +75,7 @@ def drop_environment_variables():
             if key in os.environ:
                 del os.environ[key]
         # update the config
-        bus.set_value("variables", ev_in_cfg,cfg='environ')
+        bus.set_value("variables", ev_in_cfg, cfg="environ")
 
         print("The environment variables are unbound against the configuration.")
-        bus.cfg_group['environ'].save()
+        bus.cfg_group["environ"].save()

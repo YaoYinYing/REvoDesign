@@ -5,7 +5,6 @@ Main Module for REvoDesign
 import asyncio
 import gc
 import os
-import shutil
 import tempfile
 import traceback
 import warnings
@@ -19,13 +18,7 @@ from pymol import cmd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 import REvoDesign
-from REvoDesign import (
-    ConfigBus,
-    file_extensions,
-    issues,
-    reload_config_file,
-    set_REvoDesign_config_file,
-)
+from REvoDesign import ConfigBus, file_extensions, issues, reload_config_file, set_REvoDesign_config_file
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
@@ -266,9 +259,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     self.reload_configurations,
                 ),
                 MenuItem("actionEdit_Configuration", menu_edit_file, kwargs={"file_path": REVODESIGN_CONFIG_FILE}),
-                MenuItem(
-                    "actionSave_Configurations", self.bus.cfg_group['main'].save
-                ),
+                MenuItem("actionSave_Configurations", self.bus.cfg_group["main"].save),
                 MenuItem(
                     "action_LoadExperiment",
                     self.load_and_save_experiment,
@@ -688,7 +679,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.bus.set_widget_value("ui.header_panel.input.chain_id", chain_ids)
             self.bus.set_widget_value("ui.header_panel.input.chain_id", chain_ids[0])
 
-            self.bus.set_value("designable_sequences", self.designable_sequences.as_dict, force_add=True, cfg='runtime')
+            self.bus.set_value("designable_sequences", self.designable_sequences.as_dict, force_add=True, cfg="runtime")
 
     def find_session_path(self) -> str | None:
         """Find and validate if current session is saved as a session file.
@@ -1379,7 +1370,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         else:
             # simply reload from default config, discard unsaved.
-            self.bus.cfg_group['main'].cfg = reload_config_file()
+            self.bus.cfg_group["main"].cfg = reload_config_file()
 
         self.refresh_ui_from_new_configuration()
 
@@ -1392,7 +1383,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             config_item,
         ) in self.bus.w2c.widget_id2config_dict.items():
             widget = self.bus.get_widget_from_id(widget_id=widget_id)
-            set_widget_value(widget, OmegaConf.select(self.bus.cfg_group['main'].cfg, config_item))
+            set_widget_value(widget, OmegaConf.select(self.bus.cfg_group["main"].cfg, config_item))
 
     def load_and_save_experiment(self, mode: IO_MODE = "r"):
         """Loads and saves experiment configurations, copying files
@@ -1410,10 +1401,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if not new_cfg_file:
             logging.debug("No file selected. Aborting operation on experiment loading/saving.")
             return
-        
+
         if mode == "r":
-            self.bus.cfg_group['main'].reload_from(path=new_cfg_file)
+            self.bus.cfg_group["main"].reload_from(path=new_cfg_file)
             self.refresh_ui_from_new_configuration()
         else:
-            self.bus.cfg_group['main'].save_as(file_path=new_cfg_file)
-            
+            self.bus.cfg_group["main"].save_as(file_path=new_cfg_file)

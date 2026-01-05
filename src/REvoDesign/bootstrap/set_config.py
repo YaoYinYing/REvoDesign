@@ -64,11 +64,12 @@ def experiment_config(name: str = "experiments") -> str:
     os.makedirs(experiments_dir, exist_ok=True)
     return experiments_dir
 
+
 def set_cache_dir() -> str:
     from REvoDesign.driver.ui_driver import ConfigBus
 
     bus: ConfigBus = ConfigBus()
-    cfg: DictConfig = bus.cfg_group['main'].cfg
+    cfg: DictConfig = bus.cfg_group["main"].cfg
     if not cfg.cache_dir.under_home_dir and not cfg.cache_dir.customized:
         raise ValueError("You must specify a custom cache directory!")
 
@@ -131,6 +132,7 @@ def is_package_installed(package):
     """
     package_loader = importlib.util.find_spec(package)
     return package_loader is not None
+
 
 def list_all_config_files(config_dir: str) -> list[str]:
     """

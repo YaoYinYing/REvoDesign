@@ -1,13 +1,14 @@
 """
 The heart of REvoDesign. A UI-Configuration Bus
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
-from collections.abc import Callable
-from functools import partial, wraps
 import shutil
+from collections.abc import Callable
+from dataclasses import dataclass
+from functools import partial, wraps
 from typing import Any, Protocol, TypeVar, overload
 
 import omegaconf.errors
@@ -15,11 +16,11 @@ from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
-from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR, CACHE_CONFIG_DIR
-from REvoDesign.bootstrap.set_config import list_all_config_files, save_configuration
 from REvoDesign.basic import MenuActionServerMonitor
+from REvoDesign.bootstrap import CACHE_CONFIG_DIR, REVODESIGN_CONFIG_DIR
+from REvoDesign.bootstrap.set_config import list_all_config_files, save_configuration
 from REvoDesign.citations import CitableModuleAbstract
-from REvoDesign.logger import ROOT_LOGGER, LOGGER_CONFIG
+from REvoDesign.logger import LOGGER_CONFIG, ROOT_LOGGER
 from REvoDesign.Qt import QtWidgets
 from REvoDesign.tools.customized_widgets import get_widget_value, notify_box, set_widget_value, widget_signal_tape
 from REvoDesign.tools.utils import CLASS_ARGSLICE
@@ -86,16 +87,17 @@ class HeadlessProtocol(Protocol):
 
 ConfigBusT = TypeVar("ConfigBusT", bound=HeadlessProtocol)
 
+
 @dataclass
 class Config:
-    '''
+    """
     A dataclass to represent a configuration file. It contains the name, path, and configuration data of a configuration file.
-    
+
     Attributes:
     name: str -- The name of the configuration file.
     path: str -- The path to the configuration file.
     cfg: DictConfig -- The configuration data of the configuration file.
-    
+
     Methods:
     from_name(name: str) -> Config
         A class method to create a Config object from a configuration name.
@@ -111,23 +113,24 @@ class Config:
         Reloads the configuration data from the configuration file.
     save_as(file_path: str)
         Saves the configuration data to a specified file path.
-    '''
+    """
+
     name: str
     path: str
     cfg: DictConfig
 
     def __repr__(self):
-        return f"""Config: 
+        return f"""Config:
  - name: {self.name}
  - path: {self.path}
- - cfg: 
+ - cfg:
  -=-=-=-=-=-=-=-=-
  {OmegaConf.to_yaml(self.cfg)}
  -=-=-=-=-=-=-=-=-"""
 
     @classmethod
     def from_name(cls, name: str) -> Config:
-        '''
+        """
         Create a Config object from a configuration name.
         Args:
             name (str): The name of the configuration file.
@@ -136,24 +139,24 @@ class Config:
         Raises:
             issues.ConfigureError: If the configuration file does not exist.
             issues.FileFormatError: If the configuration file is not a valid YAML file.
-        '''
+        """
         path = os.path.join(REVODESIGN_CONFIG_DIR, f"{name}.yaml")
         cfg = reload_config_file(config_name=name)
         return cls(name=name, path=path, cfg=cfg)
-    
+
     @classmethod
     def from_names(cls, names: list[str]) -> dict[str, Config]:
-        '''
+        """
         Create a dictionary of Config objects from a list of configuration names.
         Args:
             names (list[str]): A list of configuration file names.
         Returns:
             dict[str, Config]: A dictionary of Config objects created from the configuration files.
-        
+
         Raises:
             issues.ConfigureError: If any of the configuration files do not exist.
             issues.FileFormatError: If any of the configuration files are not valid YAML files.
-        '''
+        """
         configs = {}
         for name in names:
             try:
@@ -161,75 +164,74 @@ class Config:
                 configs[config.name] = config
             except Exception as e:
                 logging.error(f"Failed to load config {name}: {e}")
-                
+
         return configs
 
     @classmethod
     def from_file(cls, path: str) -> Config:
-        '''
+        """
         Create a Config object from a configuration file path.
         Args:
             path (str): The path to the configuration file.
         Returns:
             Config: A Config object created from the configuration file.
-        
+
         Raises:
             issues.ConfigureError: If the configuration file does not exist.
             issues.FileFormatError: If the configuration file is not a valid YAML file.
-        '''
+        """
         basename = os.path.basename(path)
         name = basename.removesuffix(".yaml")
-        path=os.path.abspath(path)
+        path = os.path.abspath(path)
         cfg = reload_config_file(config_name=name)
         return cls(name=name, path=path, cfg=cfg)
-    
+
     @classmethod
     def from_files(cls, paths: list[str]) -> dict[str, Config]:
-        '''
+        """
         Create a dictionary of Config objects from a list of configuration file paths.
         Args:
             paths (list[str]): A list of paths to configuration files.
         Returns:
             dict[str, Config]: A dictionary of Config objects created from the configuration files.
-        
+
         Raises:
             issues.ConfigureError: If any of the configuration files do not exist.
             issues.FileFormatError: If any of the configuration files are not valid YAML files.
-        '''
+        """
         configs = {}
         for path in paths:
             config = cls.from_file(path)
             configs[config.name] = config
         return configs
-    
 
     def save(self):
-        '''
+        """
         Saves the configuration data to the configuration file.
-        '''
+        """
         save_configuration(self.cfg, self.name)
-    
+
     def reload(self):
-        '''
+        """
         Reloads the configuration data from the configuration file.
-        '''
+        """
         self.cfg = reload_config_file(self.name)
 
     def reload_from(self, path: str):
-        '''
+        """
         Reloads the configuration data from a specified file path.
         Args:
         path (str): The path to the configuration file.
         Raises:
             issues.ConfigureError: If the configuration file does not exist.
             issues.FileFormatError: If the configuration file is not a valid YAML file.
-        '''
+        """
         if not os.path.exists(path):
             raise issues.ConfigureError(f"{path} does not exist")
         if not path.endswith(".yaml"):
             raise issues.FileFormatError(f"{path} is not a valid config file")
-        
-        expected_cached_yaml= os.path.join(CACHE_CONFIG_DIR, f"{self.name}_cached_{os.path.basename(path)}")
+
+        expected_cached_yaml = os.path.join(CACHE_CONFIG_DIR, f"{self.name}_cached_{os.path.basename(path)}")
         new_cfg_base_name: str = os.path.basename(expected_cached_yaml)
         new_cfg_prefix = os.path.basename(new_cfg_base_name)[:-5]
 
@@ -237,17 +239,17 @@ class Config:
         self.cfg = reload_config_file(config_name=f"cache/{new_cfg_prefix}")["cache"]
 
     def save_as(self, file_path: str):
-        '''
+        """
         Saves the configuration data to a specified file path.
-        
+
         Args:
             file_path (str): The path to save the configuration file.
-        
-        '''
+
+        """
 
         # save to disk first
         self.save()
-        
+
         # copy to the target path
         shutil.copy(self.path, file_path)
         logging.info(f"Config file {self.name} saved to {file_path}")
@@ -323,10 +325,12 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
     def singleton_init(self, ui=None):
         # logger must be excluded from the  config group, as logger starts before the config bus
-        self.cfg_group = Config.from_files([cf for cf in list_all_config_files(REVODESIGN_CONFIG_DIR) if not cf.startswith(('logger'))])
-        
+        self.cfg_group = Config.from_files(
+            [cf for cf in list_all_config_files(REVODESIGN_CONFIG_DIR) if not cf.startswith("logger")]
+        )
+
         # attacth loggger config to the config group
-        self.cfg_group['logger']=Config('logger', os.path.join(REVODESIGN_CONFIG_DIR, 'logger.yaml'), LOGGER_CONFIG)
+        self.cfg_group["logger"] = Config("logger", os.path.join(REVODESIGN_CONFIG_DIR, "logger.yaml"), LOGGER_CONFIG)
 
         if ui:
             self.headless = False
@@ -391,7 +395,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         if not cfg_item:
             return
         value = get_widget_value(widget=widget)
-        OmegaConf.update(self.cfg_group['main'].cfg, cfg_item, value)
+        OmegaConf.update(self.cfg_group["main"].cfg, cfg_item, value)
 
     def _widget_link(self, widget_id: str):
         return partial(self.update_cfg_item_from_widget, widget_id)
@@ -455,22 +459,23 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
     @overload
     def get_value(
-        self, 
-        cfg_item: str, 
-        converter: Callable[[Any], ValueFromConfigT], 
+        self,
+        cfg_item: str,
+        converter: Callable[[Any], ValueFromConfigT],
         reject_none: bool,
         default_value: None = ...,
-        cfg:DictConfig|str|None=None,
+        cfg: DictConfig | str | None = None,
     ) -> ValueFromConfigT: ...
 
     @overload
     def get_value(
-        self, 
-        cfg_item: str, 
-        converter: type[bool], 
-        reject_none: bool, 
+        self,
+        cfg_item: str,
+        converter: type[bool],
+        reject_none: bool,
         default_value: bool = ...,
-        cfg:DictConfig|str|None=None,) -> bool: ...
+        cfg: DictConfig | str | None = None,
+    ) -> bool: ...
 
     @overload
     def get_value(
@@ -479,7 +484,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         converter: Callable[[Any], ValueFromConfigT],
         reject_none: bool = True,
         default_value: ValueFromConfigT | None = ...,
-        cfg:DictConfig|str|None=None,
+        cfg: DictConfig | str | None = None,
     ) -> ValueFromConfigT: ...
 
     @overload
@@ -491,7 +496,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         converter: Callable[[Any], ValueFromConfigT] | None = None,
         reject_none: bool = False,
         default_value: ValueFromConfigT | None = None,
-        cfg:Config|str='main',
+        cfg: Config | str = "main",
     ) -> ValueFromConfigT | None:
         """
         Retrieves the value of a configuration item with optional type casting.
@@ -509,10 +514,10 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             ValueError: If `reject_none` is True and the resolved value is None.
         """
         # Retrieve the value of a configuration item
-        
+
         if isinstance(cfg, str):
             cfg = self.cfg_group[cfg]
-        
+
         value = OmegaConf.select(cfg.cfg, cfg_item)
 
         # Handle None values
@@ -532,7 +537,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                     "This configure file might be out of date. "
                     "Please reinitialize REvoDesign (menu->Edit->Reinitialize) and restart PyMOL to fix this.",
                     issues.ConfigureOutofDateError,
-                    details=f'Key: {cfg_item}\n-=-=-=-=-=-\n{cfg}',
+                    details=f"Key: {cfg_item}\n-=-=-=-=-=-\n{cfg}",
                 )
             else:
                 return None  # Return None if reject_none is False and no default is provided
@@ -548,11 +553,11 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         return value
 
-    def set_value(self,cfg_item: str, value: Any, cfg:Config|str='main', force_add: bool = False) -> None:
+    def set_value(self, cfg_item: str, value: Any, cfg: Config | str = "main", force_add: bool = False) -> None:
         # Sets the value of a configuration item.
         if isinstance(cfg, str):
-            cfg=self.cfg_group[cfg]
-        
+            cfg = self.cfg_group[cfg]
+
         if value is not None:
             try:
                 OmegaConf.update(cfg.cfg, cfg_item, value, force_add=force_add)

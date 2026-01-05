@@ -55,8 +55,8 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         bus = ConfigBus()
 
         # Get server host and port configuration
-        host = bus.get_value("host", str, cfg='openmm')
-        port = bus.get_value("port", int, cfg='openmm')
+        host = bus.get_value("host", str, cfg="openmm")
+        port = bus.get_value("port", int, cfg="openmm")
 
         # Construct the server access URL
         url = f"http://{host}:{port}"

@@ -25,7 +25,9 @@ class Evalutator:
 
         self.design_molecule: str = self.bus.get_value("ui.header_panel.input.molecule")
         self.design_chain_id: str = self.bus.get_value("ui.header_panel.input.chain_id")
-        self.designable_sequences = self.bus.get_value("designable_sequences", RosettaPyProteinSequence.from_dict, cfg='runtime')
+        self.designable_sequences = self.bus.get_value(
+            "designable_sequences", RosettaPyProteinSequence.from_dict, cfg="runtime"
+        )
         self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(self.design_chain_id)
 
     def activate_focused(self):

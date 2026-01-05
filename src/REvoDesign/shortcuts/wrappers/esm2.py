@@ -36,9 +36,7 @@ def esm1v(**kwargs):
 
     # Retrieve chain ID and designable sequences from the ConfigBus
     chain_id = bus.get_value("ui.header_panel.input.chain_id")
-    designable_sequences = bus.get_value(
-        "designable_sequences", RosettaPyProteinSequence.from_dict
-    , cfg='runtime')
+    designable_sequences = bus.get_value("designable_sequences", RosettaPyProteinSequence.from_dict, cfg="runtime")
     sequence: str = designable_sequences.get_sequence_by_chain(chain_id)
 
     # Add the retrieved sequence to kwargs

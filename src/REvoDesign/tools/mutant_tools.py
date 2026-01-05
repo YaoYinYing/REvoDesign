@@ -519,9 +519,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
     molecule = bus.get_value("ui.header_panel.input.molecule")
     chain_id = bus.get_value("ui.header_panel.input.chain_id")
-    designable_sequences = bus.get_value(
-        "designable_sequences", RosettaPyProteinSequence.from_dict
-    )
+    designable_sequences = bus.get_value("designable_sequences", RosettaPyProteinSequence.from_dict)
 
     nproc = bus.get_value("ui.header_panel.nproc")
 
@@ -534,7 +532,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
     with timing("Quick Mutageneses"):
         input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
         visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
-        cfg = bus.cfg_group['main'].cfg
+        cfg = bus.cfg_group["main"].cfg
 
         visualizer.designable_sequences = designable_sequences
 
@@ -707,7 +705,7 @@ def pick_design_from_profile(
         reverse=prefer_lower_score,
     )
 
-    if sequences := bus.get_value("designable_sequences", ConfigConverter.convert, reject_none=True, cfg='runtime'):
+    if sequences := bus.get_value("designable_sequences", ConfigConverter.convert, reject_none=True, cfg="runtime"):
         designable_sequences = RosettaPyProteinSequence.from_dict(sequences)
     else:
         raise issues.NoInputError("Failed to get sequence from Config, Session or PDB file!")
