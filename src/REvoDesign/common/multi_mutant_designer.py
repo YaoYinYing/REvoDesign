@@ -41,20 +41,20 @@ class MultiMutantDesigner:
 
     def refresh_options(self):
         # bootstrap options
-        self.molecule = str(self.bus.get_value("ui.header_panel.input.molecule"))
-        self.chain_id = str(self.bus.get_value("ui.header_panel.input.chain_id"))
+        self.molecule = str(self.bus.get_value("ui.header_panel.input.molecule", str))
+        self.chain_id = str(self.bus.get_value("ui.header_panel.input.chain_id", str))
         self.designable_sequences = self.bus.get_value(
             "designable_sequences", RosettaPyProteinSequence.from_dict, cfg="runtime"
         )
         self.sequence: str = self.designable_sequences.get_sequence_by_chain(self.chain_id)
 
-        self.cmap = self.bus.get_value("ui.header_panel.cmap.default")
-        self.external_scorer_reversed_score: bool = bool(self.bus.get_value("ui.header_panel.cmap.reverse_score"))
+        self.cmap = self.bus.get_value("ui.header_panel.cmap.default", str)
+        self.external_scorer_reversed_score: bool = bool(self.bus.get_value("ui.header_panel.cmap.reverse_score", bool))
         self.color_style = cmap_reverser(cmap=self.cmap, reverse=self.external_scorer_reversed_score)
 
-        self.total_design_cases = self.bus.get_value("ui.visualize.multi_design.num_variant_max")
+        self.total_design_cases = self.bus.get_value("ui.visualize.multi_design.num_variant_max", int)
 
-        self.use_external_scorer = self.bus.get_value("ui.visualize.multi_design.use_external_scorer")
+        self.use_external_scorer = self.bus.get_value("ui.visualize.multi_design.use_external_scorer", bool)
 
         self.color_by_scores = self.bus.get_value("ui.visualize.multi_design.color_by_scores")
         self.minimal_distance = self.bus.get_value("ui.visualize.multi_design.spatial_dist")

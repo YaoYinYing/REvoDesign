@@ -8,6 +8,7 @@ from pymol import cmd
 # simply import the wrappers you want to test
 from REvoDesign.shortcuts.wrappers.designs import wrapped_profile_pick_design, wrapped_pssm2csv
 from REvoDesign.shortcuts.wrappers.esm2 import wrapped_esm1v
+from REvoDesign.shortcuts.wrappers.evolution import wrapped_gremlin
 from REvoDesign.shortcuts.wrappers.exports import wrapped_dump_fasta_from_struct, wrapped_menu_dump_sidechains
 from REvoDesign.shortcuts.wrappers.ligand_converters import (
     wrapped_smiles_conformer_batch,

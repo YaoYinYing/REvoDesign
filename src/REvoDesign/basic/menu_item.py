@@ -22,12 +22,14 @@ class MenuItem:
     The frozen parameter ensures that instances of the class are immutable, enhancing thread safety and consistency.
 
     Attributes:
-        action (str): The action attr name associated with the menu item.
-        func (Callable): The function associated with the menu item, which is executed when the item is selected.
+        action (str): The action attr name associated with the menu item. Set to '---' for a separator to a menu section.
+        func (Callable|str): The function associated with the menu item, which is executed when the item is selected.
         args (Optional[Tuple]): Optional arguments passed to the associated function when it is executed. Defaults to None.
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
         action_text (Optional[str]): The text to display in the menu item if we need to build the action from scratch. Defaults to None.
         menu_section (Optional[str]): The menu section to which the menu item belongs if we need to build the action from scratch. Defaults to None.
+
+
     """
 
     action: str
@@ -36,6 +38,13 @@ class MenuItem:
     kwargs: Mapping | None = None
     action_text: str | None = None
     menu_section: str | QtWidgets.QMenu | None = None
+
+    @cached_property
+    def is_separator(self) -> bool:
+        """
+        Returns True if the menu item is a separator, False otherwise.
+        """
+        return self.action == "---"
 
     @cached_property
     def func_to_call(self) -> Callable:
@@ -109,6 +118,11 @@ class MenuCollection:
                         f"Menu section must be a QMenu object, instead of {type(menu_section_obj)}"
                     )
                 try:
+                    if m.is_separator:
+                        # add a separator to the menu
+                        menu_section_obj.addSeparator()
+                        # print(f"Successfully added separator to menu section {m.menu_section} ({menu_section_obj}).")
+                        continue
 
                     # build a new action and add it to the menu
                     action = QtWidgets.QAction(m.action_text or m.action, parent=menu_section_obj)
@@ -117,9 +131,9 @@ class MenuCollection:
                     action.triggered.connect(m.trigger)
                     menu_section_obj.addAction(action)
 
-                    print(
-                        f"Successfully bound menu item {m} ({action}) to menu section {m.menu_section} ({menu_section_obj})."
-                    )
+                    # print(
+                    #     f"Successfully bound menu item {m} ({action}) to menu section {m.menu_section} ({menu_section_obj})."
+                    # )
                 except Exception as e:
                     print(f"Skipping binding menu item due to error: {m}: {e}")
                     continue

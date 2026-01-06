@@ -12,8 +12,8 @@ all_main_config_files = {
 # sort by config name
 all_main_config_files = {k: v for k, v in sorted(all_main_config_files.items())}
 
-main_config = all_main_config_files.pop("main")
 # insert main config at first
+main_config = all_main_config_files.pop("main")
 all_main_config_files = {"main": main_config, **all_main_config_files}
 
 all_secondary_config_files = {
@@ -63,16 +63,39 @@ def _clean_config_name(config_name: str):
     return config_name.translate({ord(x): None for x in invalid_chars if len(x) == 1})
 
 
-CONFIG_EDIT_LINKS = [
-    MenuItem(
-        f"actionEditConf_{_clean_config_name(config_name)}",
-        f"REvoDesign.editor.monaco.monaco:menu_edit_file",
-        kwargs={"file_path": config_file},
-        action_text=f"Edit {config_name}",
-        menu_section="menuEdit_Configuration",
+CONFIG_EDIT_LINKS = []
+
+for config_name, config_file in all_main_config_files.items():
+    CONFIG_EDIT_LINKS.append(
+        MenuItem(
+            f"actionEditConf_{_clean_config_name(config_name)}",
+            f"REvoDesign.editor.monaco.monaco:menu_edit_file",
+            kwargs={"file_path": config_file},
+            action_text=f"Edit {config_name}",
+            menu_section="menuEdit_Configuration",
+        )
     )
-    for config_name, config_file in all_config_files.items()
-]
+
+
+last_section = ""
+for config_name, config_file in all_secondary_config_files.items():
+    # exclude cache files
+    if config_name.startswith("cache"):
+        continue
+    current_section = config_name.split("/")[0]
+    if current_section != last_section:
+        CONFIG_EDIT_LINKS.append(MenuItem("---", "---", menu_section="menuEdit_Configuration"))
+        last_section = current_section
+
+    CONFIG_EDIT_LINKS.append(
+        MenuItem(
+            f"actionEditConf_{_clean_config_name(config_name)}",
+            f"REvoDesign.editor.monaco.monaco:menu_edit_file",
+            kwargs={"file_path": config_file},
+            action_text=f"Edit {config_name}",
+            menu_section="menuEdit_Configuration",
+        )
+    )
 
 
 TOOLS_MENU_LINKS = (
@@ -127,6 +150,7 @@ TOOLS_MENU_LINKS = (
     MenuItem("actionRMSF_to_b_factor", "REvoDesign.shortcuts.wrappers.represents:wrapped_load_b_factors"),
     MenuItem("actionMake_Residue_Range", "REvoDesign.shortcuts.wrappers.utils:wrapped_convert_residue_ranges"),
     MenuItem("actionShorten_Range", "REvoDesign.shortcuts.wrappers.utils:wrapped_short_range"),
+    MenuItem("actionRun_GREMLIN", "REvoDesign.shortcuts.wrappers.evolution:wrapped_gremlin"),
 )
 
 OTHER_MENU_LINKS = (
@@ -136,4 +160,5 @@ OTHER_MENU_LINKS = (
 MENU_LINKS = (
     *TOOLS_MENU_LINKS,
     *CONFIG_EDIT_LINKS,
+    *OTHER_MENU_LINKS,
 )

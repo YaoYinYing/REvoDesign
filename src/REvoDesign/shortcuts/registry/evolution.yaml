@@ -1,0 +1,21 @@
+run_gremlin:
+    title: Run GREMLIN to generate co-evolutionary couplings
+    banner: Generate co-evolutionary couplings using GREMLIN model.
+    options:
+      - name: "fasta_file"
+        type: str
+        required: true
+        reason: "FASTA file containing the sequences to be analyzed."
+        source: "File"
+        ext: "MSA"
+      - name: "mrf_file_save"
+        type: str
+        required: true
+        reason: "Path to save the MRF file."
+        source: FileO
+        ext: "PickledObject"
+      - name: "gremlin_iter"
+        type: int
+        default: 100
+        reason: "Number of iterations for GREMLIN optimization."
+        choices_from: range:10,1000

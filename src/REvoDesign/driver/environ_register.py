@@ -10,21 +10,28 @@ from .ui_driver import ConfigBus
 def register_environment_variables():
     from REvoDesign import ROOT_LOGGER
 
-    logging = ROOT_LOGGER.getChild("environ_register")
+    logging = ROOT_LOGGER.getChild(__name__)
 
     if ConfigBus._instance is None:
         raise issues.UnexpectedWorkflowError("ConfigBus must be initialized before creating EnvironBindItemCollection")
 
     bus = ConfigBus()
 
+    # force to reload from the yaml file
+    bus.cfg_group["environ"].reload()
+
+    # retrieve the environment variables from config object
     EnvironBindItemCollection: Mapping[str, Any] | None = bus.get_value("variables", dict, cfg="environ")
-    if EnvironBindItemCollection is None:
+    if not EnvironBindItemCollection:
+        logging.debug("No environment variables to register")
         return
 
+    # register environment variables
     logging.debug("Registering environment variables")
     if isinstance(EnvironBindItemCollection, Mapping):
         for k, v in EnvironBindItemCollection.items():
-            if v is not None:
-                logging.debug(f"Adding {k}: {v}")
-                os.environ[k] = v
+            if v is None:
+                continue
+            logging.debug(f"Adding {k}: {v}")
+            os.environ[k] = v
     logging.debug("Environment variables registered")

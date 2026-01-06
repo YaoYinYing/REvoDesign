@@ -1,3 +1,5 @@
+# Logger configuration file for REvoDesign
+
 version: 1
 disable_existing_loggers: true
 formatters:

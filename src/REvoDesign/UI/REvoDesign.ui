@@ -4768,6 +4768,12 @@
      </widget>
      <addaction name="menuFormatters"/>
     </widget>
+    <widget class="QMenu" name="menuEvolution">
+     <property name="title">
+      <string>Evolution</string>
+     </property>
+     <addaction name="actionRun_GRENLIN"/>
+    </widget>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
     <addaction name="menuStructure_Tools"/>
@@ -4781,6 +4787,7 @@
     <addaction name="menuEditor_Backend"/>
     <addaction name="separator"/>
     <addaction name="menuUtils"/>
+    <addaction name="menuEvolution"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -5200,6 +5207,11 @@
   <action name="actionShorten_Range">
    <property name="text">
     <string>Shorten Range</string>
+   </property>
+  </action>
+  <action name="actionRun_GRENLIN">
+   <property name="text">
+    <string>Run GRENLIN</string>
    </property>
   </action>
  </widget>
