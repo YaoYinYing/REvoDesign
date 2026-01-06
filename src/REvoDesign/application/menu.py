@@ -1,4 +1,78 @@
+import os
+
 from REvoDesign.basic.menu_item import MenuItem
+from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
+from REvoDesign.bootstrap.set_config import list_all_config_files
+
+all_main_config_files = {
+    x.removeprefix(REVODESIGN_CONFIG_DIR + os.sep).removesuffix(".yaml"): x
+    for x in list_all_config_files(REVODESIGN_CONFIG_DIR)
+}
+
+# sort by config name
+all_main_config_files = {k: v for k, v in sorted(all_main_config_files.items())}
+
+main_config = all_main_config_files.pop("main")
+# insert main config at first
+all_main_config_files = {"main": main_config, **all_main_config_files}
+
+all_secondary_config_files = {
+    x.removeprefix(REVODESIGN_CONFIG_DIR + os.sep).removesuffix(".yaml"): x
+    for x in list_all_config_files(REVODESIGN_CONFIG_DIR, tree=True)
+}
+
+# join all configs
+all_config_files = {**all_main_config_files, **all_secondary_config_files}
+
+
+def _clean_config_name(config_name: str):
+    invalid_chars = [
+        "/",
+        "\\",
+        ".",
+        " ",
+        "-",
+        "(",
+        ")",
+        "[",
+        "]",
+        "{",
+        "}",
+        "|",
+        ":",
+        ";",
+        "'",
+        '"',
+        ",<",
+        ">",
+        ",",
+        "?",
+        "!",
+        "@",
+        "#",
+        "$",
+        "%",
+        "^",
+        "&",
+        "*",
+        "+",
+        "=",
+        "~",
+        "`",
+    ]
+    return config_name.translate({ord(x): None for x in invalid_chars if len(x) == 1})
+
+
+CONFIG_EDIT_LINKS = [
+    MenuItem(
+        f"actionEditConf_{_clean_config_name(config_name)}",
+        f"REvoDesign.editor.monaco.monaco:menu_edit_file",
+        kwargs={"file_path": config_file},
+        action_text=f"Edit {config_name}",
+        menu_section="menuEdit_Configuration",
+    )
+    for config_name, config_file in all_config_files.items()
+]
 
 TOOLS_MENU_LINKS = (
     MenuItem(
@@ -52,4 +126,8 @@ TOOLS_MENU_LINKS = (
     MenuItem("actionRMSF_to_b_factor", "REvoDesign.shortcuts.wrappers.represents:wrapped_load_b_factors"),
     MenuItem("actionMake_Residue_Range", "REvoDesign.shortcuts.wrappers.utils:wrapped_convert_residue_ranges"),
     MenuItem("actionShorten_Range", "REvoDesign.shortcuts.wrappers.utils:wrapped_short_range"),
+)
+MENU_LINKS = (
+    *TOOLS_MENU_LINKS,
+    *CONFIG_EDIT_LINKS,
 )

@@ -15,9 +15,9 @@ import tarfile
 import time
 import zipfile
 from collections.abc import Callable, Iterable
-from functools import wraps
+from functools import partial, wraps
 from itertools import pairwise
-from typing import Any, Literal, ParamSpec, TypeVar, cast
+from typing import Any, Literal, ParamSpec, TypeVar, cast, overload
 
 import matplotlib
 import numpy as np
@@ -72,11 +72,22 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     return getattr(_class, _func_name)
 
 
-def resolve_lambda_expression(expression: str) -> Any:
+@overload
+def resolve_lambda_expression(expression: str, as_partial: Literal[True]) -> Callable:
+    """Resolve a lambda expression to a partial function."""
+
+
+@overload
+def resolve_lambda_expression(expression: str, as_partial: Literal[False] | None) -> Any:
+    """Resolve a lambda expression to a callable and call it for the results."""
+
+
+def resolve_lambda_expression(expression: str, as_partial: bool | None = None) -> Any:
     """
     Resolve a lambda expression to a callable.
     Args:
         expression (str): The lambda expression in the format 'LAMBDA:dotted_function,arg1,arg2,...'
+        as_partial (bool | None): If True, return a partial function instead of calling it.
     Returns:
         Any: The result of the lambda function call.
     Raises:
@@ -105,6 +116,9 @@ def resolve_lambda_expression(expression: str) -> Any:
         else:
             typed_args.append(resolve_typed_arg(arg))
 
+    if as_partial:
+        # a partial function that can be called later
+        return partial(func, *typed_args, **typed_kwargs)
     return func(*typed_args, **typed_kwargs)
 
 

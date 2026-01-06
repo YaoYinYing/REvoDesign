@@ -134,7 +134,7 @@ def is_package_installed(package):
     return package_loader is not None
 
 
-def list_all_config_files(config_dir: str) -> list[str]:
+def list_all_config_files(config_dir: str, tree: bool = False) -> list[str]:
     """
     Function: list_all_config_files
     Usage: config_files = list_all_config_files(config_dir)
@@ -147,5 +147,5 @@ def list_all_config_files(config_dir: str) -> list[str]:
     Returns:
     - list[str]: List of paths to YAML configuration files
     """
-    yaml_files = glob.glob(os.path.join(config_dir, "*.yaml"))
+    yaml_files = glob.glob(os.path.join(config_dir, "*.yaml" if not tree else "*/*.yaml"))
     return yaml_files

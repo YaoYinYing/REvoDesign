@@ -36,7 +36,7 @@ def get_file_whitelist():
     """
     from platformdirs import user_log_path
 
-    from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
+    from REvoDesign.application.menu import all_config_files
 
     bus = ConfigBus()
     logfile = bus.cfg_group["logger"].cfg.handlers.file.filename
@@ -51,7 +51,7 @@ def get_file_whitelist():
         notebookfile = os.path.join(notebookfile_dir, "REvoDesign.notebook.log")
 
     # Example hardcoded lists:
-    editable_files = (REVODESIGN_CONFIG_FILE,)
+    editable_files = (*all_config_files.values(),)
     readonly_files = (
         logfile,
         notebookfile,

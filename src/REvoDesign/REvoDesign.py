@@ -22,9 +22,8 @@ from REvoDesign import ConfigBus, file_extensions, issues, reload_config_file, s
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
-from REvoDesign.application.menu import TOOLS_MENU_LINKS
+from REvoDesign.application.menu import MENU_LINKS
 from REvoDesign.basic import MenuActionServerMonitor, MenuCollection, MenuItem
-from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR, REVODESIGN_CONFIG_FILE
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketClient, REvoDesignWebSocketServer
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.multi_mutant_designer import MultiMutantDesigner
@@ -36,7 +35,6 @@ from REvoDesign.driver.environ_register import (
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.driver.param_toggle_register import ParamChangeCollections
 from REvoDesign.driver.ui_driver import StoresWidget
-from REvoDesign.editor import menu_edit_file
 from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
@@ -258,7 +256,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     "actionReconfigure",
                     self.reload_configurations,
                 ),
-                MenuItem("actionEdit_Configuration", menu_edit_file, kwargs={"file_path": REVODESIGN_CONFIG_FILE}),
                 MenuItem("actionSave_Configurations", self.bus.cfg_group["main"].save),
                 MenuItem(
                     "action_LoadExperiment",
@@ -292,7 +289,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ),
         )
         # TODO: dynamic created menu item tree system
-        MenuCollection(self.bus.ui, TOOLS_MENU_LINKS)
+        MenuCollection(self.bus.ui, MENU_LINKS)
 
         # TODO: refactor needed
         # TODO: skip register if headless

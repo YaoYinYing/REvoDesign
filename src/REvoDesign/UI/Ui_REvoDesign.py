@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'src/REvoDesign/UI/REvoDesign.ui'
+# Form implementation generated from reading ui file '/Users/yyy/Documents/protein_design/REvoDesign/src/REvoDesign/UI/REvoDesign.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
