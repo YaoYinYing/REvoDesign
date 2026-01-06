@@ -4581,9 +4581,7 @@
      <property name="title">
       <string>Environment Variables</string>
      </property>
-     <addaction name="actionAddEnvironVar"/>
-     <addaction name="actionDropEnvironVar"/>
-     <addaction name="separator"/>
+     <addaction name="actionRefreshEnvironVar"/>
     </widget>
     <widget class="QMenu" name="menuEdit_Configuration">
      <property name="title">
@@ -4993,9 +4991,9 @@
     <string>Contact</string>
    </property>
   </action>
-  <action name="actionAddEnvironVar">
+  <action name="actionRefreshEnvironVar">
    <property name="text">
-    <string>Add</string>
+    <string>Refresh</string>
    </property>
   </action>
   <action name="actionDropEnvironVar">

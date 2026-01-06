@@ -27,11 +27,7 @@ from REvoDesign.basic import MenuActionServerMonitor, MenuCollection, MenuItem
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketClient, REvoDesignWebSocketServer
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.multi_mutant_designer import MultiMutantDesigner
-from REvoDesign.driver.environ_register import (
-    add_new_environment_variables,
-    drop_environment_variables,
-    register_environment_variables,
-)
+from REvoDesign.driver.environ_register import register_environment_variables
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.driver.param_toggle_register import ParamChangeCollections
 from REvoDesign.driver.ui_driver import StoresWidget
@@ -271,14 +267,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     "actionReinitialize",
                     self.reinitialize,
                     kwargs={"delete": True},
-                ),
-                MenuItem(
-                    "actionAddEnvironVar",
-                    add_new_environment_variables,
-                ),
-                MenuItem(
-                    "actionDropEnvironVar",
-                    drop_environment_variables,
                 ),
                 MenuItem("actionSource_Code", QtGui.QDesktopServices.openUrl, (QtCore.QUrl(REPO_URL),)),
                 MenuItem(

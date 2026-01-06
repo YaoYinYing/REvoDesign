@@ -74,6 +74,7 @@ CONFIG_EDIT_LINKS = [
     for config_name, config_file in all_config_files.items()
 ]
 
+
 TOOLS_MENU_LINKS = (
     MenuItem(
         "actionRenderPickedSidechainGroup",
@@ -127,6 +128,11 @@ TOOLS_MENU_LINKS = (
     MenuItem("actionMake_Residue_Range", "REvoDesign.shortcuts.wrappers.utils:wrapped_convert_residue_ranges"),
     MenuItem("actionShorten_Range", "REvoDesign.shortcuts.wrappers.utils:wrapped_short_range"),
 )
+
+OTHER_MENU_LINKS = (
+    MenuItem("actionRefreshEnvironVar", "REvoDesign.driver.environ_register:register_environment_variables"),
+)
+
 MENU_LINKS = (
     *TOOLS_MENU_LINKS,
     *CONFIG_EDIT_LINKS,
