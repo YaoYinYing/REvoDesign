@@ -1,5 +1,5 @@
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
-from REvoDesign.phylogenetics.gremlin_pytorch import run_gremlin
+from REvoDesign.shortcuts.tools.evolution import run_gremlin
 
 
 registry = DialogWrapperRegistry("evolution")

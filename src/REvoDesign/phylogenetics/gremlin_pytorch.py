@@ -27,14 +27,14 @@ The final 'mrf' dict has the same format as the original:
 --------------------------------------------------------------------------------
 
 
-CPU:  1200 s
-MPS:   600 s (Mem 9.99 GB)
-MPS_memopt: 480 s (Mem 9.19 GB)
+CPU:  1200 s (3.6-4.7 GB)
+MPS:   600 s (9.99 GB)
+MPS_memopt: 480 s (9.19 GB)
+CPU_memopt: 830 s (2.9-3.8  GB)
 """
 
 import pickle
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -384,19 +384,3 @@ def plot_mtx(mtx, key="zscore", vmin=1, vmax=3):
 setattr(_GREMLIN, "__bibtex__", GREMLIN_Tools.__bibtex__)
 
 GREMLIN = get_cited(_GREMLIN)
-
-def run_gremlin(fasta_file: str, mrf_file_save: str, gremlin_iter: int = 100, device: str = 'cpu'):
-    """
-    Run GREMLIN on a given FASTA file and save the MRF results.
-
-    Args:
-        fasta_file (str): Path to the input FASTA file.
-        mrf_file_save (str): Path to save the output MRF file (NumPy .npz format).
-        gremlin_iter (int): Number of iterations for GREMLIN optimization.
-    """
-    headers, seqs = parse_fasta(fasta_file)
-    msa = mk_msa(seqs)
-    mrf = GREMLIN(msa, opt_type="adam", opt_iter=gremlin_iter, lr=1.0, b1=0.9, b2=0.999, b_fix=False, batch_size=None, device=device)
-    # save mtx file
-    with open(mrf_file_save, "wb") as f:
-        pickle.dump(mrf, f)
