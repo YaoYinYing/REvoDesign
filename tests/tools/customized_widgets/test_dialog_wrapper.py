@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
+from REvoDesign import issues
 from REvoDesign.Qt import QtCore, QtWidgets
 from REvoDesign.tools.customized_widgets import (
     AskedValue,
@@ -128,10 +129,10 @@ def test_dialog_wrapper_required_field_validation(dialog, qtbot, monkeypatch, te
 
     # Simulate OK button click
     ok_button = dialog.layout.itemAt(4).itemAt(0).widget()
-
-    with patch.object(dialog, "close") as close_mock:
-        qtbot.mouseClick(ok_button, QtCore.Qt.LeftButton)
-        close_mock.assert_not_called()
+    with pytest.raises(issues.NoInputError):
+        with patch.object(dialog, "close") as close_mock:
+            qtbot.mouseClick(ok_button, QtCore.Qt.LeftButton)
+            close_mock.assert_not_called()
 
 
 @pytest.mark.parametrize(

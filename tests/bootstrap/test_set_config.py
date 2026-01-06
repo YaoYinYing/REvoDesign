@@ -38,8 +38,10 @@ def test_reload_config_file():
 def test_save_configuration():
     with (
         patch("REvoDesign.bootstrap.set_config.OmegaConf.save") as mock_save,
-        patch("REvoDesign.bootstrap.set_config.os.path.dirname", return_value="/mock/path"),
+        patch("REvoDesign.bootstrap.os.path.dirname", return_value="/mock/path"),
     ):
+        from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
+        assert REVODESIGN_CONFIG_DIR == "/mock/path"
 
         config = OmegaConf.create({"key": "value"})
         save_configuration(config)
@@ -49,7 +51,7 @@ def test_save_configuration():
 def test_experiment_config():
     with (
         patch("REvoDesign.bootstrap.set_config.os.makedirs") as mock_makedirs,
-        patch("REvoDesign.bootstrap.set_config.os.path.dirname", return_value="/mock/path"),
+        patch("REvoDesign.bootstrap.os.path.dirname", return_value="/mock/path"),
     ):
 
         exp_dir = experiment_config()
