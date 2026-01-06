@@ -1743,16 +1743,6 @@
         <translation></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4721"/>
-        <source>Set Rosetta Path</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="4726"/>
-        <source>Set GNU Parallel</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="4731"/>
         <source>Source Code</source>
         <translation>源代码</translation>
@@ -1855,21 +1845,6 @@
     <message>
         <location filename="../REvoDesign.ui" line="4822"/>
         <source>Ctrl+Alt+V</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="4830"/>
-        <source>English</source>
-        <translation>英文</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="4838"/>
-        <source>Chinese</source>
-        <translation>中文</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="4846"/>
-        <source>French</source>
         <translation></translation>
     </message>
 </context>
