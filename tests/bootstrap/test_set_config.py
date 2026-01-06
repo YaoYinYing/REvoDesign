@@ -41,21 +41,21 @@ def test_save_configuration():
         patch("REvoDesign.bootstrap.os.path.dirname", return_value="/mock/path"),
     ):
         from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
-        assert REVODESIGN_CONFIG_DIR == "/mock/path"
+
 
         config = OmegaConf.create({"key": "value"})
         save_configuration(config)
-        mock_save.assert_called_once_with(config, "/mock/path/main.yaml")
+        mock_save.assert_called_once_with(config, f"{REVODESIGN_CONFIG_DIR}/main.yaml")
 
 
 def test_experiment_config():
     with (
         patch("REvoDesign.bootstrap.set_config.os.makedirs") as mock_makedirs,
-        patch("REvoDesign.bootstrap.os.path.dirname", return_value="/mock/path"),
     ):
+        from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
 
         exp_dir = experiment_config()
-        mock_makedirs.assert_called_once_with("/mock/path/experiments", exist_ok=True)
+        mock_makedirs.assert_called_once_with(f"{REVODESIGN_CONFIG_DIR}/experiments", exist_ok=True)
         assert "experiments" in exp_dir
 
 

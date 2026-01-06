@@ -1959,7 +1959,8 @@ class ValueDialog(REvoDesignWidget):
             original = next((item for item in self.key_dict if item.key == key), None)
             if original and original.required and not value:
                 QtWidgets.QMessageBox.warning(self, "Missing Input", f"Please provide a value for '{key}'")
-                raise issues.NoInputError(f"No input provided for mandatory key '{key}'")
+                # raise issues.NoInputError(f"No input provided for mandatory key '{key}'")
+                return
             if original:
                 self.updated_values.append(
                     AskedValue(

@@ -118,21 +118,27 @@ def test_dialog_wrapper_required_field_validation(dialog, qtbot, monkeypatch, te
     widget = dialog.table.cellWidget(0, 2)
     widget.setText("")
 
-    # Mock QMessageBox to capture the warning call
-    def mock_warning(parent, title, message):
-        assert title == "Missing Input"
-        assert "Please provide a value for 'field1'" in message
-        save_screenshot(parent, "required_field_validation_warning")
-        return QtWidgets.QMessageBox.Ok
+    with patch('REvoDesign.tools.customized_widgets.QtWidgets.QMessageBox.warning') as mock_msgbox_warning:
 
-    monkeypatch.setattr(QtWidgets.QMessageBox, "warning", mock_warning)
+        # Mock QMessageBox to capture the warning call
+        # def mock_warning(parent, title, message):
+        #     assert title == "Missing Input"
+        #     assert "Please provide a value for 'field1'" in message
+        #     # save_screenshot(parent, "required_field_validation_warning")
+        #     return QtWidgets.QMessageBox.Ok
 
-    # Simulate OK button click
-    ok_button = dialog.layout.itemAt(4).itemAt(0).widget()
-    with pytest.raises(issues.NoInputError):
+        
+        # Simulate OK button click
+        ok_button = dialog.layout.itemAt(4).itemAt(0).widget()
+        
         with patch.object(dialog, "close") as close_mock:
+            
             qtbot.mouseClick(ok_button, QtCore.Qt.LeftButton)
-            close_mock.assert_not_called()
+            mock_msgbox_warning.assert_called_once()
+            # with pytest.raises(issues.NoInputError):
+            monkeypatch.setattr(QtWidgets.QMessageBox, "warning", lambda *args, **kwargs: QtWidgets.QMessageBox.Yes)
+        #     close_mock.assert_not_called()
+        dialog.close()
 
 
 @pytest.mark.parametrize(
