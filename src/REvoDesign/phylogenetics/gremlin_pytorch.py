@@ -25,6 +25,11 @@ The final 'mrf' dict has the same format as the original:
  in return.
  --Sergey Ovchinnikov and Peter Koo
 --------------------------------------------------------------------------------
+
+
+CPU:  1200 s
+MPS:   600 s (Mem 9.99 GB)
+MPS_memopt: 480 s (Mem 9.19 GB)
 """
 
 import pickle
@@ -32,6 +37,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 from scipy.spatial.distance import pdist, squareform
 from scipy import stats
@@ -255,17 +261,17 @@ def _GREMLIN(msa, opt_type="adam", opt_iter=100, lr=1.0, b1=0.9, b2=0.999, b_fix
     torch_device = torch.device(device=device)
     model = GremlinTorch(msa["ncol"], msa["neff"], reg_f=0.01).to(torch_device)
 
-    # Build MSA one-hot tensor
-    oh = np.zeros((msa["nrow"], msa["ncol"], states), dtype=np.float32)
-    for i in range(msa["nrow"]):
-        for j in range(msa["ncol"]):
-            oh[i, j, msa["msa"][i, j]] = 1.0
-    MSA_oh_torch = torch.from_numpy(oh).to(torch_device)
-    MSA_weights_torch = torch.from_numpy(msa["weights"]).float().to(torch_device)
+    msa_tensor = torch.from_numpy(msa["msa"]).to(device=torch_device, dtype=torch.long)
+    MSA_oh_torch = F.one_hot(msa_tensor, num_classes=states).to(dtype=model.V.dtype)
+    MSA_weights_torch = torch.from_numpy(msa["weights"]).to(device=torch_device, dtype=model.V.dtype)
 
     # Initialize V
     pseudo_count = 0.01 * np.log(msa["neff"] + 1e-8)
-    wc = (oh.transpose(1, 2, 0) * msa["weights"]).sum(axis=-1)
+    msa_array = msa["msa"]
+    weights_np = msa["weights"].astype(np.float32, copy=False)
+    wc = np.zeros((msa["ncol"], states), dtype=np.float32)
+    for col in range(msa["ncol"]):
+        wc[col] = np.bincount(msa_array[:, col], weights=weights_np, minlength=states)
     V_ini = np.log(wc + pseudo_count)
     V_ini = V_ini - V_ini.mean(axis=1, keepdims=True)
     with torch.no_grad():

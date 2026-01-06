@@ -4770,10 +4770,11 @@
     </widget>
     <widget class="QMenu" name="menuEvolution">
      <property name="title">
-      <string>Evolution</string>
+      <string>Evolution Tools</string>
      </property>
      <addaction name="actionRun_GREMLIN"/>
     </widget>
+    <addaction name="menuEvolution"/>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
     <addaction name="menuStructure_Tools"/>
@@ -4787,7 +4788,6 @@
     <addaction name="menuEditor_Backend"/>
     <addaction name="separator"/>
     <addaction name="menuUtils"/>
-    <addaction name="menuEvolution"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
