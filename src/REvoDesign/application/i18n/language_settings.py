@@ -2,15 +2,16 @@
 Internationalization settings
 """
 
+import json
 import os
 from dataclasses import dataclass
 from functools import partial
-from typing import Any
-import json
+from typing import Any, TypedDict
+
 from REvoDesign.Qt import QtWidgets
-from typing import TypedDict
-from ...Qt import QtCore
+
 from ...driver.ui_driver import ConfigBus
+from ...Qt import QtCore
 
 _translate = QtCore.QCoreApplication.translate
 
@@ -22,18 +23,21 @@ language_dir = os.path.join(self_dir, "..", "..", "UI", "language")
 # store language registry json file
 language_json_fp = os.path.join(language_dir, "language.json")
 
+
 class LanguageNameRegistry(TypedDict):
-    '''
+    """
     A dictionary representing a language name registry from a JSON file.
-    
+
     Attributes:
     - code: The language code.
     - name: The name of the language.
     - action: The action associated with the language.
-    '''
+    """
+
     code: str
     name: str
     action: str
+
 
 @dataclass(frozen=True)
 class LanguageItem:
@@ -86,7 +90,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         self.window = window
 
         # language mapping
-        with open(language_json_fp, "r", encoding="utf-8") as json_file:
+        with open(language_json_fp, encoding="utf-8") as json_file:
             self.language_settings: list[LanguageNameRegistry] = json.load(json_file)
 
         self.language_items = self.get_language_items()
@@ -136,7 +140,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         """
         language.action.triggered.connect(partial(self.switch_language, language))
 
-    def add_lan_to_menu(self, lan_regsitry:LanguageNameRegistry):
+    def add_lan_to_menu(self, lan_regsitry: LanguageNameRegistry):
         """
         Adds the language item to the language menu.
         """
