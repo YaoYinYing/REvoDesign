@@ -262,7 +262,7 @@ def logger_level_setter_ng(settings: dict[str, str]):
     logger_config.save()
 
     # reload the logger
-    # reload_logging_config()
+    reload_logging_config()
 
 
 def get_current_logger_level(channel: str = "root"):

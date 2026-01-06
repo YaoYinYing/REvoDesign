@@ -4787,16 +4787,6 @@
    <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionSet_Rosetta_Path">
-   <property name="text">
-    <string>Set Rosetta Path</string>
-   </property>
-  </action>
-  <action name="actionSet_GNU_Parallel">
-   <property name="text">
-    <string>Set GNU Parallel</string>
-   </property>
-  </action>
   <action name="actionSource_Code">
    <property name="text">
     <string>Source Code</string>
@@ -4891,30 +4881,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+V</string>
-   </property>
-  </action>
-  <action name="actionEnglish">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>English</string>
-   </property>
-  </action>
-  <action name="actionChinese">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Chinese</string>
-   </property>
-  </action>
-  <action name="actionFrench">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>French</string>
    </property>
   </action>
   <action name="actionEdit_Configuration">
