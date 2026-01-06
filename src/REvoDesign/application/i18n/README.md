@@ -8,10 +8,11 @@ REvoDesign uses Qt Translation files to translate the user interface into differ
 2. Load the UI and translate each string one after another.
 3. Save the translation file (`*.ts`) in the `UI/languages` directory.`
 4. Add the language to the `UI/languages/languages.json` file so that it can be loaded by the program.
-5. Compile the translation file by running `make translate`
-6. After the compile, run `make black` to format the Py-code of UI file.
-7. Add the translation files(`*.ts`, `*.qm`) to the commit and push to a new branch.
-8. Create a pull request to merge the translation.
+5. Add the language as a new line of the linguist project file `src/REvoDesign/UI/liguist.pro`: `TRANSLATIONS += language/<language-code>.ts`
+6. Compile the translation file by running `make translate`
+7. After the compile, run `make black` to format the Py-code of UI file.
+8. Add the translation files(`*.ts`, `*.qm`) to the commit and push to a new branch.
+9. Create a pull request to merge the translation.
 
 ## Language Registry
 

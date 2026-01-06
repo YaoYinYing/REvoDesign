@@ -4585,9 +4585,14 @@
      <addaction name="actionDropEnvironVar"/>
      <addaction name="separator"/>
     </widget>
+    <widget class="QMenu" name="menuEdit_Configuration">
+     <property name="title">
+      <string>Edit Configuration</string>
+     </property>
+    </widget>
     <addaction name="actionReconfigure"/>
     <addaction name="separator"/>
-    <addaction name="actionEdit_Configuration"/>
+    <addaction name="menuEdit_Configuration"/>
     <addaction name="actionSave_Configurations"/>
     <addaction name="actionSave_Configuration_as"/>
     <addaction name="separator"/>
@@ -4881,14 +4886,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+V</string>
-   </property>
-  </action>
-  <action name="actionEdit_Configuration">
-   <property name="text">
-    <string>Edit Configuration</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+E</string>
    </property>
   </action>
   <action name="actionDocumentation">

@@ -16,7 +16,13 @@ from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.basic.extensions import resolve_extension
 from REvoDesign.tools.customized_widgets import AskedValue, AskedValueDynamic, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
-from REvoDesign.tools.utils import resolve_dotted_function, timing
+from REvoDesign.tools.utils import (
+    resolve_default_value,
+    resolve_dotted_config_item,
+    resolve_dotted_function,
+    resolve_lambda_expression,
+    timing,
+)
 
 from ..logger import ROOT_LOGGER
 
@@ -116,100 +122,6 @@ def resolve_default_from(default_from_str: str) -> Any:
     if default_from_str.startswith("LAMBDA:"):
         return resolve_lambda_expression(default_from_str)
     raise issues.UnsupportedDataTypeError(f"Unable to parse {default_from_str}")
-
-
-def resolve_dotted_config_item(config_string: str) -> Any:
-    """
-    Resolves a dotted configuration string to retrieve the corresponding configuration value.
-
-    The input string can be in one of the following formats:
-    1. `"CFG:<config_section>:<config_item>"` - Specifies both the configuration section and item.
-    2. `"CFG:<config_item>"` - Specifies only the configuration item, with no section.
-
-    Args:
-        config_string (str): The dotted configuration string to resolve.
-    Returns:
-        Any: The configuration value retrieved from the specified section and item.
-    Raises:
-        issues.InvalidInputError: If the input string does not conform to the expected format.
-    """
-
-    from REvoDesign.driver.ui_driver import ConfigBus
-
-    config_string = config_string.removeprefix("CFG:")
-    if ":" in config_string:
-        # pattern: config_section:config_item
-        cfg, config_item = config_string.split(":", 1)
-        if cfg == "main":
-            cfg = None
-    else:
-        # pattern: config_item
-        cfg, config_item = None, config_string
-
-    return ConfigBus().get_value(config_item, cfg=cfg)  # type: ignore
-
-
-def resolve_default_value(typing: type) -> Any:
-    if typing == bool:
-        return False
-    if typing == int:
-        return 0
-    if typing == float:
-        return 0.0
-    if typing == str:
-        return ""
-
-
-def resolve_lambda_expression(expression: str) -> Any:
-    """
-    Resolve a lambda expression to a callable.
-    Args:
-        expression (str): The lambda expression in the format 'LAMBDA:dotted_function,arg1,arg2,...'
-    Returns:
-        Any: The result of the lambda function call.
-    Raises:
-        issues.InvalidInputError: If the expression does not start with 'LAMBDA:'.
-
-    Example:
-        >>> resolve_lambda_expression("LAMBDA:math.sqrt,4")
-        2.0
-    """
-    if not expression.startswith("LAMBDA:"):
-        raise issues.InvalidInputError("Lambda expression must start with 'LAMBDA:'", f"not `{expression}`")
-    lambda_str = expression.removeprefix("LAMBDA:")
-    parts = lambda_str.split(",")
-    func_str = parts[0]
-    func = resolve_dotted_function(func_str)
-    if not isinstance(func, Callable):
-        raise issues.InvalidInputError(f"Expected as a callable: {func_str}: {func}, the expression is `{expression}`")
-    args = parts[1:]
-    # recover typing of args buy guessing
-    typed_args = []
-    typed_kwargs = {}
-    for arg in args:
-        if "=" in arg:
-            key, val = arg.split("=", 1)
-            typed_kwargs[key] = resolve_typed_arg(val)
-        else:
-            typed_args.append(resolve_typed_arg(arg))
-
-    return func(*typed_args, **typed_kwargs)
-
-
-def resolve_typed_arg(arg: str) -> Any:
-    if arg.lower() == "true":
-        return True
-    elif arg.lower() == "false":
-        return False
-    # integer
-    elif arg.isdigit():
-        return int(arg)
-    # float
-    elif arg.replace(".", "", 1).isdigit():
-        return float(arg)
-    # string fallback
-    else:
-        return arg
 
 
 def _build_asked_value(entry: dict) -> AskedValue:

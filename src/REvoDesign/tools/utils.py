@@ -72,6 +72,98 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     return getattr(_class, _func_name)
 
 
+def resolve_lambda_expression(expression: str) -> Any:
+    """
+    Resolve a lambda expression to a callable.
+    Args:
+        expression (str): The lambda expression in the format 'LAMBDA:dotted_function,arg1,arg2,...'
+    Returns:
+        Any: The result of the lambda function call.
+    Raises:
+        issues.InvalidInputError: If the expression does not start with 'LAMBDA:'.
+
+    Example:
+        >>> resolve_lambda_expression("LAMBDA:math.sqrt,4")
+        2.0
+    """
+    if not expression.startswith("LAMBDA:"):
+        raise issues.InvalidInputError("Lambda expression must start with 'LAMBDA:'", f"not `{expression}`")
+    lambda_str = expression.removeprefix("LAMBDA:")
+    parts = lambda_str.split(",")
+    func_str = parts[0]
+    func = resolve_dotted_function(func_str)
+    if not isinstance(func, Callable):
+        raise issues.InvalidInputError(f"Expected as a callable: {func_str}: {func}, the expression is `{expression}`")
+    args = parts[1:]
+    # recover typing of args buy guessing
+    typed_args = []
+    typed_kwargs = {}
+    for arg in args:
+        if "=" in arg:
+            key, val = arg.split("=", 1)
+            typed_kwargs[key] = resolve_typed_arg(val)
+        else:
+            typed_args.append(resolve_typed_arg(arg))
+
+    return func(*typed_args, **typed_kwargs)
+
+
+def resolve_typed_arg(arg: str) -> Any:
+    if arg.lower() == "true":
+        return True
+    elif arg.lower() == "false":
+        return False
+    # integer
+    elif arg.isdigit():
+        return int(arg)
+    # float
+    elif arg.replace(".", "", 1).isdigit():
+        return float(arg)
+    # string fallback
+    else:
+        return arg
+
+
+def resolve_default_value(typing: type) -> Any:
+    if typing == bool:
+        return False
+    if typing == int:
+        return 0
+    if typing == float:
+        return 0.0
+    if typing == str:
+        return ""
+
+
+def resolve_dotted_config_item(config_string: str) -> Any:
+    """
+    Resolves a dotted configuration string to retrieve the corresponding configuration value.
+
+    The input string can be in one of the following formats:
+    1. `"CFG:<config_section>:<config_item>"` - Specifies both the configuration section and item.
+    2. `"CFG:<config_item>"` - Specifies only the configuration item, with no section(default for the main config section).
+
+    Args:
+        config_string (str): The dotted configuration string to resolve.
+    Returns:
+        Any: The configuration value retrieved from the specified section and item.
+    Raises:
+        issues.InvalidInputError: If the input string does not conform to the expected format.
+    """
+
+    from REvoDesign.driver.ui_driver import ConfigBus
+
+    config_string = config_string.removeprefix("CFG:")
+    if ":" in config_string:
+        # pattern: config_section:config_item
+        cfg, config_item = config_string.split(":", 1)
+    else:
+        # pattern: config_item
+        cfg, config_item = "main", config_string
+
+    return ConfigBus().get_value(config_item, cfg=cfg)  # type: ignore
+
+
 def pairwise_loop(iterable: Iterable):
     """
     Generate a looped pairwise iterable from the input iterable.
