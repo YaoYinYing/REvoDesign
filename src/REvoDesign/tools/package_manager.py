@@ -2298,7 +2298,7 @@ def issue_collection(
         )
 
         logfile_in_cfg = (
-            ConfigBus().cfg_group["main"].cfg.log.handlers.file.filename if ConfigBus._instance is not None else "N/A"
+            ConfigBus().cfg_group["logger"].cfg.handlers.file.filename if ConfigBus._instance is not None else "N/A"
         )
         if logfile_in_cfg == "AUTO":
             from platformdirs import user_log_path

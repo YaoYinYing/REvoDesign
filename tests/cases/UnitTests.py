@@ -269,7 +269,7 @@ class TestREvoDesignConfigFile(absltest.TestCase):
         self.expected_default_cache_path = user_cache_dir(appname="REvoDesign")
         self.expected_config_dir = os.path.join(self.expected_default_data_path, "config")
         self.expected_main_config_file = os.path.join(self.expected_config_dir, "global_config.yaml")
-        self.expected_global_cfg = self.bus.cfg
+        self.expected_global_cfg = self.bus.cfg_group["main"].cfg
         self.expected_pippack_cfg = reload_config_file("sidechain-solver/pippack")["sidechain-solver"]
         super().setUp()
 

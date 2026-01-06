@@ -357,8 +357,8 @@ class TestWorker:
         new_cfg_base_name: str = os.path.basename(new_cfg_file)
         new_cfg_prefix = experiment_name
         experiment_file = os.path.join(EXPERIMENTS_CONFIG_DIR, new_cfg_base_name)
+        self.plugin.bus.cfg_group['main'].save_as(experiment_file)
 
-        self.plugin.save_configuration_from_ui(experiment=f"experiments/{new_cfg_prefix}")
         # hydra has already saved config into EXPERIMENTS_CONFIG_DIR, copy to user defined config file path
         shutil.copy(experiment_file, new_cfg_file)
         print(f"saved config at {new_cfg_file}, backup at {experiment_file}")
@@ -406,12 +406,12 @@ class TestWorker:
     def check_designable_sequences(self):
         assert self.plugin.designable_sequences is not None, "Designable sequences are not loaded to the plugin."
         assert self.plugin.bus.get_value(
-            "designable_sequences", reject_none=True
+            "designable_sequences", dict, reject_none=True, cfg="runtime"
         ), "Designable sequences are not in Configuration."
 
     def check_molecule_after_loaded(self, molecule: str | None = None):
         if molecule and isinstance(molecule, str):
-            assert self.plugin.bus.get_value("ui.header_panel.input.molecule") == molecule
+            assert self.plugin.bus.get_value("ui.header_panel.input.molecule", str) == molecule
             assert get_widget_value(self.plugin.ui.comboBox_design_molecule) == molecule
             return
 

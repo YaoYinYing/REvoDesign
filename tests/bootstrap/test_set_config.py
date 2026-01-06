@@ -23,7 +23,7 @@ def test_set_REvoDesign_config_file():
 
         main_config = set_REvoDesign_config_file()
         mock_copytree.assert_called_once()
-        assert "global_config.yaml" in main_config
+        assert "main.yaml" in main_config
 
 
 def test_reload_config_file():
@@ -31,7 +31,7 @@ def test_reload_config_file():
         "REvoDesign.bootstrap.set_config.hydra.compose", return_value=DictConfig({"key": "value"})
     ) as mock_compose:
         config = reload_config_file()
-        mock_compose.assert_called_once_with(config_name="global_config", overrides=None, return_hydra_config=False)
+        mock_compose.assert_called_once_with(config_name="main", overrides=None, return_hydra_config=False)
         assert config["key"] == "value"
 
 
@@ -43,7 +43,7 @@ def test_save_configuration():
 
         config = OmegaConf.create({"key": "value"})
         save_configuration(config)
-        mock_save.assert_called_once_with(config, "/mock/path/global_config.yaml")
+        mock_save.assert_called_once_with(config, "/mock/path/main.yaml")
 
 
 def test_experiment_config():
@@ -59,8 +59,8 @@ def test_experiment_config():
 
 def test_set_cache_dir():
     mock_bus = MagicMock()
-    mock_bus.cfg.cache_dir.under_home_dir = True
-    mock_bus.cfg.cache_dir.customized = ""
+    mock_bus.cfg_group["main"].cache_dir.under_home_dir = True
+    mock_bus.cfg_group["main"].cache_dir.customized = ""
 
     with (
         patch("REvoDesign.ConfigBus", return_value=mock_bus),

@@ -78,7 +78,7 @@ def test_resolve_choice_from(input_str, expected_type, expected_val):
     [
         ("range:1,2,3,4", issues.InvalidInputError),
         ("REvoDesign.shortcuts.tools.esm2.ESM1V_MODEL_DICT", issues.InvalidInputError),
-        ("CFG:ui:header_panel:cmap:wtf", issues.InvalidInputError),
+        ("CFG:ui:header_panel:cmap:wtf", KeyError),
         ("unexpected", issues.ConfigurationError),
     ],
 )
