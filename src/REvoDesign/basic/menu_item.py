@@ -117,7 +117,9 @@ class MenuCollection:
                     action.triggered.connect(m.trigger)
                     menu_section_obj.addAction(action)
 
-                    print(f"Successfully bound menu item {m} ({action}) to menu section {m.menu_section} ({menu_section_obj}).")
+                    print(
+                        f"Successfully bound menu item {m} ({action}) to menu section {m.menu_section} ({menu_section_obj})."
+                    )
                 except Exception as e:
                     print(f"Skipping binding menu item due to error: {m}: {e}")
                     continue
