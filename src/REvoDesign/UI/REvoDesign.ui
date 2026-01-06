@@ -4772,7 +4772,7 @@
      <property name="title">
       <string>Evolution</string>
      </property>
-     <addaction name="actionRun_GRENLIN"/>
+     <addaction name="actionRun_GREMLIN"/>
     </widget>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
@@ -5209,9 +5209,9 @@
     <string>Shorten Range</string>
    </property>
   </action>
-  <action name="actionRun_GRENLIN">
+  <action name="actionRun_GREMLIN">
    <property name="text">
-    <string>Run GRENLIN</string>
+    <string>Run GREMLIN</string>
    </property>
   </action>
  </widget>

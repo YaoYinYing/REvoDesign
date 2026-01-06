@@ -19,3 +19,8 @@ run_gremlin:
         default: 100
         reason: "Number of iterations for GREMLIN optimization."
         choices_from: range:10,1000
+      - name: "device"
+        type: str
+        default: "cpu"
+        reason: "Device for computation. MPS may not provide optimal performance."
+        choices_from: "REvoDesign.tools.utils:device_picker"

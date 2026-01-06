@@ -245,22 +245,23 @@ class GremlinTorch(nn.Module):
 # Main GREMLIN routine
 ###################################
 
-
-def _GREMLIN(msa, opt_type="adam", opt_iter=100, lr=1.0, b1=0.9, b2=0.999, b_fix=False, batch_size=None):
+# TODO optimize for memory usage when offloading to GPU(like MPS)
+def _GREMLIN(msa, opt_type="adam", opt_iter=100, lr=1.0, b1=0.9, b2=0.999, b_fix=False, batch_size=None, device: str= 'cpu'):
     """
     If you want to replicate the original code's 'opt_adam' exactly:
       opt_type="adam", b_fix=False, lr=1.0, b1=0.9, b2=0.999, opt_iter=100
       (and batch_size=None for full-batch)
     """
-    model = GremlinTorch(msa["ncol"], msa["neff"], reg_f=0.01)
+    torch_device = torch.device(device=device)
+    model = GremlinTorch(msa["ncol"], msa["neff"], reg_f=0.01).to(torch_device)
 
     # Build MSA one-hot tensor
     oh = np.zeros((msa["nrow"], msa["ncol"], states), dtype=np.float32)
     for i in range(msa["nrow"]):
         for j in range(msa["ncol"]):
             oh[i, j, msa["msa"][i, j]] = 1.0
-    MSA_oh_torch = torch.from_numpy(oh)
-    MSA_weights_torch = torch.from_numpy(msa["weights"]).float()
+    MSA_oh_torch = torch.from_numpy(oh).to(torch_device)
+    MSA_weights_torch = torch.from_numpy(msa["weights"]).float().to(torch_device)
 
     # Initialize V
     pseudo_count = 0.01 * np.log(msa["neff"] + 1e-8)
@@ -268,7 +269,8 @@ def _GREMLIN(msa, opt_type="adam", opt_iter=100, lr=1.0, b1=0.9, b2=0.999, b_fix
     V_ini = np.log(wc + pseudo_count)
     V_ini = V_ini - V_ini.mean(axis=1, keepdims=True)
     with torch.no_grad():
-        model.V.copy_(torch.from_numpy(V_ini))
+        init_tensor = torch.from_numpy(V_ini).to(device=torch_device, dtype=model.V.dtype)
+        model.V.copy_(init_tensor)
 
     # Build optimizer
     if opt_type.lower() == "adam":
@@ -377,8 +379,7 @@ setattr(_GREMLIN, "__bibtex__", GREMLIN_Tools.__bibtex__)
 
 GREMLIN = get_cited(_GREMLIN)
 
-
-def run_gremlin(fasta_file: str, mrf_file_save: str, gremlin_iter: int = 100):
+def run_gremlin(fasta_file: str, mrf_file_save: str, gremlin_iter: int = 100, device: str = 'cpu'):
     """
     Run GREMLIN on a given FASTA file and save the MRF results.
 
@@ -389,7 +390,7 @@ def run_gremlin(fasta_file: str, mrf_file_save: str, gremlin_iter: int = 100):
     """
     headers, seqs = parse_fasta(fasta_file)
     msa = mk_msa(seqs)
-    mrf = GREMLIN(msa, opt_type="adam", opt_iter=gremlin_iter, lr=1.0, b1=0.9, b2=0.999, b_fix=False, batch_size=None)
+    mrf = GREMLIN(msa, opt_type="adam", opt_iter=gremlin_iter, lr=1.0, b1=0.9, b2=0.999, b_fix=False, batch_size=None, device=device)
     # save mtx file
     with open(mrf_file_save, "wb") as f:
         pickle.dump(mrf, f)
