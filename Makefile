@@ -108,14 +108,7 @@ reinstall:
 
 # update translation
 translate:
-	# recompile ui to py
-	pyuic5 src/REvoDesign/UI/REvoDesign.ui -o src/REvoDesign/UI/Ui_REvoDesign.py
-	# update translation file
-	#lupdate  src/REvoDesign/UI/REvoDesign.ui -ts src/REvoDesign/UI/language/eng-eng.ts
-	lupdate  src/REvoDesign/UI/REvoDesign.ui -ts src/REvoDesign/UI/language/eng-chs.ts
-
-	# release translation file to binarys
-	cd src/REvoDesign/UI/;lrelease liguist.pro
+	bash tools/translate.sh
 
 prepare-test:
 	python -m pip install pytest pytest-cov pytest-order coverage -q --no-cache-dir  
