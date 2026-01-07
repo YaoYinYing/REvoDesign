@@ -286,6 +286,7 @@ class Config:
         # unless explicitly saved, the self.path wont be saved to
 
         shutil.move(cached_path, file_path)
+
         logging.info(f"Config file {self.name} saved to {file_path} (cached at {cached_path})")
 
 

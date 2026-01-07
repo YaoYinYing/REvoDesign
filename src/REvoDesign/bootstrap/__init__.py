@@ -20,7 +20,7 @@ REVODESIGN_CONFIG_FILE = set_REvoDesign_config_file()
 REVODESIGN_CONFIG_DIR = os.path.dirname(REVODESIGN_CONFIG_FILE)
 
 # 2. initialize hydra with config dir
-hydra.initialize_config_dir(version_base=None, config_dir=REVODESIGN_CONFIG_DIR)
+hydra.initialize_config_dir(version_base=None, config_dir=REVODESIGN_CONFIG_DIR, job_name='REvoDesign')
 
 # 3. initialize experiments directory, depending on config
 EXPERIMENTS_CONFIG_DIR = experiment_config()

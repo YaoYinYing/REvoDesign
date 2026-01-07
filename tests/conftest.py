@@ -26,43 +26,55 @@ from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
 
 # mostly mock on data and cache to isolated from user's production system
-test_root = os.path.abspath('.')
-data_dirname = os.path.join(test_root, "mock", "data", "dir")
-cache_dirname = os.path.join(test_root, "tests", "downloaded", "cache")
-os.makedirs(data_dirname, exist_ok=True)
-os.makedirs(cache_dirname, exist_ok=True)
+TEST_ROOT = os.path.abspath(os.path.curdir)
+DATA_DIRNAME = os.path.join(TEST_ROOT, "mock", "user_data", "REvoDesign")
+CACHE_DIRNAME = os.path.join(TEST_ROOT, '..',"tests", "downloaded", "cache")
+
+os.makedirs(DATA_DIRNAME, exist_ok=True)
+os.makedirs(CACHE_DIRNAME, exist_ok=True)
+
+# TODO: isolate from user's system by mocking the platformdirs module.
+
+# def _static_platform_dir(dirname: str):
+#     def _impl(*args, **kwargs):
+#         if not os.path.exists(dirname):
+#             os.makedirs(dirname)
+#         return dirname
+
+#     return _impl
 
 
-def _static_platform_dir(dirname: str):
-    def _impl(*args, **kwargs):
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
-        return dirname
+# platformdirs.user_data_dir = _static_platform_dir(DATA_DIRNAME)
+# platformdirs.user_cache_dir = _static_platform_dir(CACHE_DIRNAME)
 
-    return _impl
+# with (
+#     patch("REvoDesign.bootstrap.set_config.user_data_dir", return_value=DATA_DIRNAME) as mock_user_data_dir,
+#     patch("REvoDesign.bootstrap.set_config.user_cache_dir", return_value=CACHE_DIRNAME) as mock_user_cache_dir,
+#     # patch("REvoDesign.bootstrap.set_REvoDesign_config_file", return_value=os.path.join(data_dirname, 'config', 'main.')) as mock_user_config,
+#     ):
+# with (
 
+#         # main.yaml not exists
+#         patch("REvoDesign.bootstrap.set_config.os.path.isfile", return_value=False),
+        
+#         # configure dir not exists
+#         patch("REvoDesign.bootstrap.set_config.os.path.isdir", return_value=False)
+#     ):
+from pymol import CmdException, cmd
 
-platformdirs.user_data_dir = _static_platform_dir(data_dirname)
-platformdirs.user_cache_dir = _static_platform_dir(cache_dirname)
+from REvoDesign import REvoDesignPlugin
+from REvoDesign.basic.abc_singleton import SingletonAbstract, reset_singletons
+from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR, CACHE_CONFIG_DIR
+from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
 
-with (
-    patch("REvoDesign.bootstrap.set_config.user_data_dir", return_value=data_dirname) as mock_user_data_dir,
-    patch("REvoDesign.bootstrap.set_config.user_cache_dir", return_value=cache_dirname) as mock_user_cache_dir
-    ):
-    from pymol import CmdException, cmd
-    
-    from REvoDesign import REvoDesignPlugin
-    from REvoDesign.basic.abc_singleton import SingletonAbstract, reset_singletons
-    from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
-    from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
-    from REvoDesign.common import MutantTree
-    from REvoDesign.driver.ui_driver import ConfigBus
-    from REvoDesign.Qt import QtCore, QtWidgets
-    from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
-    from REvoDesign.tools.package_manager import LiveProcessResult, REvoDesignPackageManager, refresh_window
+from REvoDesign.common import MutantTree
+from REvoDesign.driver.ui_driver import ConfigBus
+from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
+from REvoDesign.tools.package_manager import LiveProcessResult, REvoDesignPackageManager, refresh_window
 
-    from .data import TestData
-    from .data.test_data import KeyData
+from .data import TestData
+from .data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
@@ -595,15 +607,15 @@ class TestWorker:
 # fixtures to patch user cache/data dir are still required
 @pytest.fixture
 def patch_config_user_cache():
-    os.makedirs(cache_dirname, exist_ok=True)
+    os.makedirs(CACHE_DIRNAME, exist_ok=True)
 
-    with patch("REvoDesign.bootstrap.set_config.user_cache_dir", return_value=cache_dirname) as mock_user_cache_dir:
+    with patch("REvoDesign.bootstrap.set_config.user_cache_dir", return_value=CACHE_DIRNAME) as mock_user_cache_dir:
         yield mock_user_cache_dir
 
 @pytest.fixture
 def patch_config_user_data():
-    os.makedirs(data_dirname, exist_ok=True)
-    with patch("REvoDesign.bootstrap.set_config.user_data_dir", return_value=data_dirname) as mock_user_cache_dir:
+    os.makedirs(DATA_DIRNAME, exist_ok=True)
+    with patch("REvoDesign.bootstrap.set_config.user_data_dir", return_value=DATA_DIRNAME) as mock_user_cache_dir:
         yield mock_user_cache_dir
 
 
