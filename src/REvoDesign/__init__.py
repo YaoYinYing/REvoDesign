@@ -24,9 +24,11 @@ from REvoDesign.bootstrap import (
 from REvoDesign.common import file_extensions
 
 # 4. import UI bus, depending on SingletonAbstract, logger, configuration
+# root logger initialized at here
 from REvoDesign.driver.ui_driver import ConfigBus
 
-# 5. import logger
+# 5. import logger, which is based on the configuration
+# import it here so that the logger can be seen everywhere
 from REvoDesign.logger import ROOT_LOGGER, setup_logging
 
 # 6. import the major plugin for PyMOL

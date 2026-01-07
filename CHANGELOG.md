@@ -93,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `rosetta-node`: for rosetta-node configurations
     - `rfdiffusion`: for rfdiffusion parameter presets
   - rename main configuration: `global_config` -> `main`
+    - detect only the main configuration file, if not found, prompt and copy the full configuration tree to allow seamless upgrade (the directory will be dirty however)
   - `experiment_config` now can be used for any sub dirs like cache dir
   - `list_all_config_files` for listing all config files at first and second level
 - `ui_driver`:
@@ -130,6 +131,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - hardcoded language actions
 - Plugin:
   - removed `save_configuration_from_ui` method due to config handling simplfied
+- tests:
+  - obsolete tests `tests/cases/UnitTests.py`
+
 
 ## [1.8.4] - 2025-12-02
 ### Added
