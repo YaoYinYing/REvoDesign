@@ -1388,7 +1388,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
 
         if mode == "r":
-            self.bus.cfg_group["main"].reload_from(path=new_cfg_file)
+            self.bus.cfg_group["main"].reload_from_path(path=new_cfg_file)
             self.refresh_ui_from_new_configuration()
         else:
             self.bus.cfg_group["main"].save_as(file_path=new_cfg_file)

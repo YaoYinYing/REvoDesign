@@ -16,6 +16,7 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="mutate")
+        
 
         set_widget_value(
             test_worker.plugin.ui.comboBox_sidechain_solver,
@@ -220,71 +221,6 @@ class TestREvoDesignPlugin_TabMutate:
 
         test_worker.pse_snapshot("fin")
 
-    # def test_ddg_surf_biolib_calling(
-    #     self, test_worker
-    # ):
-    #
-    #     test_worker.load_session_and_check()
-    #     test_worker.go_to_tab(tab_name='mutate')
-
-    #     set_widget_value(
-    #         test_worker.plugin.ui.comboBox_profile_type,
-    #         test_worker.test_data.ddg_profile_type_biolib,
-    #     )
-
-    #     set_widget_value(
-    #         test_worker.plugin.ui.lineEdit_input_customized_indices,
-    #         test_worker.test_data.ddg_surface_residues,
-    #     )
-    #     set_widget_value(
-    #         test_worker.plugin.ui.lineEdit_output_pse_mutate,
-    #         test_worker.test_data.ddg_design_pse,
-    #     )
-
-    #     set_widget_value(
-    #         test_worker.plugin.ui.lineEdit_score_minima,
-    #         test_worker.test_data.ddg_min_score,
-    #     )
-    #     set_widget_value(
-    #         test_worker.plugin.ui.lineEdit_score_maxima,
-    #         test_worker.test_data.ddg_max_score,
-    #     )
-
-    #     set_widget_value(
-    #         test_worker.plugin.ui.lineEdit_reject_substitution,
-    #         test_worker.test_data.pocket_pssm_reject,
-    #     )
-    #     set_widget_value(
-    #         test_worker.plugin.ui.lineEdit_preffer_substitution,
-    #         '',
-    #     )
-
-    #     set_widget_value(
-    #         test_worker.plugin.ui.checkBox_reverse_mutant_effect,
-    #         test_worker.test_data.ddg_score_reversed,
-    #     )
-
-    #     set_widget_value(
-    #         test_worker.plugin.ui.lineEdit_design_case,
-    #         test_worker.test_data.ddg_design_case,
-    #     )
-
-    #     if os.path.exists(test_worker.test_data.ddg_design_pse):
-    #         os.remove(test_worker.test_data.ddg_design_case)
-
-    #     test_worker.click(widget=test_worker.plugin.ui.pushButton_run_PSSM_to_pse)
-
-    #     test_worker.save_screenshot(
-    #         widget=test_worker.plugin.window,
-    #         basename=test_worker.test_id,
-    #     )
-
-    #     pythia_results = [
-    #         f for f in os.listdir('pythia') if f.endswith('.csv')
-    #     ]
-    #     if pythia_results:
-    #         test_worker.check_existed_mutant_tree()
-    #         test_worker.save_pymol_png(basename=test_worker.test_id)
 
     def test_pssm_pocket_design_dunbrack(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()

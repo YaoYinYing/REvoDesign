@@ -114,6 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - remove logging statements for `DialogWrapperRegistry.unregister` as logger has already exit when unregistering.
 - Tests:
   - Minor fixes according to current changes.
+  - Full user platform dirs mock to isolated from production.
 
 ### Removed
 - Py39 related:

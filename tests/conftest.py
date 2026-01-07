@@ -8,34 +8,61 @@ import gc
 import json
 import os
 import platform
+import platformdirs
 import shutil
 import time
 import warnings
 from dataclasses import dataclass
-from typing import Literal
+from typing import Callable, Literal
 from unittest.mock import MagicMock, patch
 
 import psutil
 import pytest
 from _pytest.nodes import Item
 from immutabledict import immutabledict
-from pymol import CmdException, cmd
+
 from pytestqt import qtbot
 from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
 
-from REvoDesign import REvoDesignPlugin
-from REvoDesign.basic.abc_singleton import SingletonAbstract, reset_singletons
-from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
-from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
-from REvoDesign.common import MutantTree
-from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.Qt import QtCore, QtWidgets
-from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
-from REvoDesign.tools.package_manager import LiveProcessResult, REvoDesignPackageManager, refresh_window
+# mostly mock on data and cache to isolated from user's production system
+test_root = os.path.abspath('.')
+data_dirname = os.path.join(test_root, "mock", "data", "dir")
+cache_dirname = os.path.join(test_root, "tests", "downloaded", "cache")
+os.makedirs(data_dirname, exist_ok=True)
+os.makedirs(cache_dirname, exist_ok=True)
 
-from .data import TestData
-from .data.test_data import KeyData
+
+def _static_platform_dir(dirname: str):
+    def _impl(*args, **kwargs):
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        return dirname
+
+    return _impl
+
+
+platformdirs.user_data_dir = _static_platform_dir(data_dirname)
+platformdirs.user_cache_dir = _static_platform_dir(cache_dirname)
+
+with (
+    patch("REvoDesign.bootstrap.set_config.user_data_dir", return_value=data_dirname) as mock_user_data_dir,
+    patch("REvoDesign.bootstrap.set_config.user_cache_dir", return_value=cache_dirname) as mock_user_cache_dir
+    ):
+    from pymol import CmdException, cmd
+    
+    from REvoDesign import REvoDesignPlugin
+    from REvoDesign.basic.abc_singleton import SingletonAbstract, reset_singletons
+    from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
+    from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
+    from REvoDesign.common import MutantTree
+    from REvoDesign.driver.ui_driver import ConfigBus
+    from REvoDesign.Qt import QtCore, QtWidgets
+    from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
+    from REvoDesign.tools.package_manager import LiveProcessResult, REvoDesignPackageManager, refresh_window
+
+    from .data import TestData
+    from .data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
@@ -75,10 +102,20 @@ def app():
         app = QtWidgets.QApplication([])
     return app
 
+# def check_real_config_dir():
+#     '''
+#     A checkpoint to check whether the test suite has created the real config dir.
+#     '''
+#     the_dir='/Users/yyy/Library/Application Support/REvoDesign/config'
+#     if os.path.exists(the_dir):
+#         raise RuntimeError(f'The test suite has created this dir! {the_dir}')
+
 
 @pytest.fixture(scope="function")
-def plugin(qtbot: qtbot.QtBot, app):
+def plugin(qtbot: qtbot.QtBot, app,patch_config_user_data, patch_config_user_cache):
     # Create and return an instance of the REvoDesignPlugin
+
+    # check_real_config_dir() # failed
 
     cmd.reinitialize()
 
@@ -87,13 +124,21 @@ def plugin(qtbot: qtbot.QtBot, app):
     # reset all singleton classes
 
     gc.collect()
+    # check_real_config_dir() # passed
 
     plugin = REvoDesignPlugin()
 
     if plugin.window:
         plugin.reinitialize()
+    
+    # check_real_config_dir() # passed
     plugin = REvoDesignPlugin()
+
+    # check_real_config_dir() # passed
+
     plugin.run_plugin_gui()
+
+    # check_real_config_dir()
 
     qtbot.addWidget(plugin.window)  # Add the plugin's main window to qtbot for automatic cleanup
     return plugin
@@ -209,6 +254,12 @@ class TestWorker:
         self.qtbot = qtbot
         self.plugin = plugin
         self.qtbot.addWidget(self.plugin.window)  # Add the plugin's main window to qtbot for automatic cleanup
+        # self.workspace_data="./mock/data/dir"
+        # os.makedirs(self.workspace_data, exist_ok=True)
+
+        # a deep reset is necessary to avoid any side effect
+        self.main_config = set_REvoDesign_config_file(True)
+
 
         self.tab_widget_mapping: immutabledict[TAB_NAMES, QtWidgets.QWidget] = immutabledict(  # type: ignore
             {
@@ -280,6 +331,7 @@ class TestWorker:
             self.PERFORMANCE_DIR,
         }
         [os.makedirs(dir, exist_ok=True) for dir in dirs]
+
 
     def pse_snapshot(self, custom_name: str = "none") -> str:
         time_stamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
@@ -415,16 +467,6 @@ class TestWorker:
             assert get_widget_value(self.plugin.ui.comboBox_design_molecule) == molecule
             return
 
-        # assert (
-        #     self.plugin.bus.get_value("ui.header_panel.input.molecule")
-        #     in self.test_data.used_molecules
-        # )
-
-        # assert (
-        #     get_widget_value(self.plugin.ui.comboBox_design_molecule)
-        #     in self.test_data.used_molecules
-        # )
-
     @property
     def existed_mutant_tree(self) -> MutantTree:
         from REvoDesign.tools.mutant_tools import existed_mutant_tree
@@ -538,13 +580,31 @@ class TestWorker:
         self.plugin.bus.set_value("rosetta.node_hint", node_hint or "native")
 
     def teardown(self):
+        # check_real_config_dir()
         self.performace_report()
         self.plugin.reinitialize()
+
+        # deep reset again to avoild downstream side effects
+        set_REvoDesign_config_file(True)
         cmd.reinitialize()
 
         reset_singletons()
 
         gc.collect()
+
+# fixtures to patch user cache/data dir are still required
+@pytest.fixture
+def patch_config_user_cache():
+    os.makedirs(cache_dirname, exist_ok=True)
+
+    with patch("REvoDesign.bootstrap.set_config.user_cache_dir", return_value=cache_dirname) as mock_user_cache_dir:
+        yield mock_user_cache_dir
+
+@pytest.fixture
+def patch_config_user_data():
+    os.makedirs(data_dirname, exist_ok=True)
+    with patch("REvoDesign.bootstrap.set_config.user_data_dir", return_value=data_dirname) as mock_user_cache_dir:
+        yield mock_user_cache_dir
 
 
 @pytest.fixture
@@ -552,7 +612,15 @@ def test_worker(
     qtbot: qtbot.QtBot,
     plugin,
     request,
+    patch_config_user_data,
+    patch_config_user_cache,
 ):
+    # move test worker config to another place so it won't pollute the production
+
+    workspace_data=patch_config_user_data()
+
+    os.makedirs(workspace_data, exist_ok=True)
+    
     w = TestWorker(qtbot, plugin)
 
     def final_action():
@@ -580,242 +648,6 @@ def pm_test_worker(
 @pytest.fixture(scope="session")
 def KeyDataDuringTests():
     return KeyData()
-
-
-# mocks on qt widgets
-
-
-@pytest.fixture
-def mock_push_button():
-    def _mock_push_button(text=""):
-        mock_button = MagicMock(spec=QtWidgets.QPushButton)
-        mock_button.text.return_value = text
-        mock_button.setText = MagicMock()
-        mock_button.clicked = MagicMock()
-        return mock_button
-
-    return _mock_push_button
-
-
-@pytest.fixture
-def mock_line_edit():
-    def _mock_line_edit(initial_text=""):
-        mock_line_edit = MagicMock(spec=QtWidgets.QLineEdit)
-        # Internal state
-        _text = initial_text
-
-        def _setText(value):
-            nonlocal _text
-            _text = str(value)
-
-        def _text_method():
-            return _text
-
-        def _clear():
-            nonlocal _text
-            _text = ""
-
-        mock_line_edit.setText.side_effect = _setText
-        mock_line_edit.text.side_effect = _text_method
-        mock_line_edit.clear.side_effect = _clear
-
-        return mock_line_edit
-
-    return _mock_line_edit
-
-
-@pytest.fixture
-def mock_combo_box():
-    def _mock_combo_box(items=None, current_index=0):
-        if items is None:
-            items = []
-        mock_combo = MagicMock(spec=QtWidgets.QComboBox)
-        # Internal state
-        _items = items.copy()
-        _current_index = current_index
-
-        def _clear():
-            nonlocal _items, _current_index
-            _items.clear()
-            _current_index = -1
-
-        def _addItems(new_items):
-            nonlocal _items
-            _items.extend(map(str, new_items))
-
-        def _addItem(item_text, user_data=None):
-            nonlocal _items
-            _items.append(str(item_text))
-
-        def _setCurrentText(text):
-            nonlocal _current_index
-            text = str(text)
-            if text in _items:
-                _current_index = _items.index(text)
-            else:
-                _current_index = -1
-
-        def _currentText():
-            if 0 <= _current_index < len(_items):
-                return _items[_current_index]
-            return ""
-
-        mock_combo.clear.side_effect = _clear
-        mock_combo.addItems.side_effect = _addItems
-        mock_combo.addItem.side_effect = _addItem
-        mock_combo.setCurrentText.side_effect = _setCurrentText
-        mock_combo.currentText.side_effect = _currentText
-
-        # Mock properties
-        mock_combo.count.side_effect = lambda: len(_items)
-        mock_combo.currentIndex.side_effect = lambda: _current_index
-
-        return mock_combo
-
-    return _mock_combo_box
-
-
-@pytest.fixture
-def mock_spin_box():
-    def _mock_spin_box(initial_value=0):
-        mock_spin = MagicMock(spec=QtWidgets.QSpinBox)
-        # Internal state
-        _value = initial_value
-        _min = 0
-        _max = 100
-
-        def _setValue(value):
-            nonlocal _value
-            if _min <= int(value) <= _max:
-                _value = int(value)
-            else:
-                raise ValueError("Value out of range")
-
-        def _value_method():
-            return _value
-
-        def _setRange(min_value, max_value):
-            nonlocal _min, _max
-            _min = int(min_value)
-            _max = int(max_value)
-
-        mock_spin.setValue.side_effect = _setValue
-        mock_spin.value.side_effect = _value_method
-        mock_spin.setRange.side_effect = _setRange
-
-        return mock_spin
-
-    return _mock_spin_box
-
-
-@pytest.fixture
-def mock_double_spin_box():
-    def _mock_double_spin_box(initial_value=0.0):
-        mock_double_spin = MagicMock(spec=QtWidgets.QDoubleSpinBox)
-        # Internal state
-        _value = initial_value
-        _min = 0.0
-        _max = 100.0
-
-        def _setValue(value):
-            nonlocal _value
-            if _min <= float(value) <= _max:
-                _value = float(value)
-            else:
-                raise ValueError("Value out of range")
-
-        def _value_method():
-            return _value
-
-        def _setRange(min_value, max_value):
-            nonlocal _min, _max
-            _min = float(min_value)
-            _max = float(max_value)
-
-        mock_double_spin.setValue.side_effect = _setValue
-        mock_double_spin.value.side_effect = _value_method
-        mock_double_spin.setRange.side_effect = _setRange
-
-        return mock_double_spin
-
-    return _mock_double_spin_box
-
-
-@pytest.fixture
-def mock_check_box():
-    def _mock_check_box(initial_checked=False):
-        mock_check = MagicMock(spec=QtWidgets.QCheckBox)
-        # Internal state
-        _checked = initial_checked
-
-        def _setChecked(value):
-            nonlocal _checked
-            _checked = bool(value)
-
-        def _isChecked():
-            return _checked
-
-        mock_check.setChecked.side_effect = _setChecked
-        mock_check.isChecked.side_effect = _isChecked
-
-        return mock_check
-
-    return _mock_check_box
-
-
-@pytest.fixture
-def mock_progress_bar():
-    def _mock_progress_bar(initial_value=0):
-        mock_progress = MagicMock(spec=QtWidgets.QProgressBar)
-        # Internal state
-        _value = initial_value
-        _min = 0
-        _max = 100
-
-        def _setValue(value):
-            nonlocal _value
-            if _min <= int(value) <= _max:
-                _value = int(value)
-            else:
-                raise ValueError("Value out of range")
-
-        def _value_method():
-            return _value
-
-        def _setRange(min_value, max_value):
-            nonlocal _min, _max
-            _min = int(min_value)
-            _max = int(max_value)
-
-        mock_progress.setValue.side_effect = _setValue
-        mock_progress.value.side_effect = _value_method
-        mock_progress.setRange.side_effect = _setRange
-
-        return mock_progress
-
-    return _mock_progress_bar
-
-
-@pytest.fixture
-def mock_lcd_number():
-    def _mock_lcd_number(initial_value=0):
-        mock_lcd = MagicMock(spec=QtWidgets.QLCDNumber)
-        # Internal state
-        _value = initial_value
-
-        def _display(value):
-            nonlocal _value
-            _value = float(value)
-
-        def _value_method():
-            return _value
-
-        mock_lcd.display.side_effect = _display
-        mock_lcd.value.side_effect = _value_method  # Assuming value() returns the displayed value
-
-        return mock_lcd
-
-    return _mock_lcd_number
 
 
 @pytest.fixture

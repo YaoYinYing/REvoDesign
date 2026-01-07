@@ -15,7 +15,38 @@ from platformdirs import user_cache_dir, user_data_dir
 from REvoDesign.Qt import QtCore, QtWidgets
 
 
+def decide(title="", description="", rich: bool = False, details: str | None = None):
+    '''
+    A copy of decide function from package_manager.py
+    '''
+
+    # A confirmation message.
+    msg = QtWidgets.QMessageBox()
+    msg.setIcon(QtWidgets.QMessageBox.Question)
+    msg.setWindowTitle(title)
+    msg.setText(description)
+    if details is not None:
+        msg.setDetailedText(details)
+    if rich:
+        msg.setTextFormat(QtCore.Qt.RichText)
+    msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+    result = msg.exec_()
+
+    return result == QtWidgets.QMessageBox.Yes
+
 def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
+    '''
+    Sets the REvoDesign configuration directory. If the main configuration file does not exist, 
+    it will be copied from the template directory. If the configuration directory exists, 
+    it will also be checked for potential issues.
+
+    Arguments:
+        delete_user_config_tree (bool): Whether to delete the user's configuration tree. Defaults to False.
+    
+    Returns:
+        str: The path to the REvoDesign configuration directory.
+
+    '''
     template_config_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "..",
@@ -39,24 +70,7 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
                 "A proper reset is recommended to avoid any potential issues. "
             )
             print(reset_warning)
-
-            # copied from package_manager.py
-            def decide(title="", description="", rich: bool = False, details: str | None = None):
-
-                # A confirmation message.
-                msg = QtWidgets.QMessageBox()
-                msg.setIcon(QtWidgets.QMessageBox.Question)
-                msg.setWindowTitle(title)
-                msg.setText(description)
-                if details is not None:
-                    msg.setDetailedText(details)
-                if rich:
-                    msg.setTextFormat(QtCore.Qt.RichText)
-                msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-                result = msg.exec_()
-
-                return result == QtWidgets.QMessageBox.Yes
-
+            
             if decide(
                 title="Reset REvoDesign Configuration?",
                 description=reset_warning + "Do you want to continue? \n"
@@ -79,6 +93,17 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
 def reload_config_file(
     config_name: str = "main", overrides: list[str] | None = None, return_hydra_config: bool = False
 ) -> DictConfig:
+    '''
+    Reload a configuration yaml file in a Hydra manner. As we initialize hydra w/ initialize_config_dir,
+    which is the REVODESIGN_CONFIG_DIR at user's data directory, the config_name is supposed as a relative path of the yaml file.
+    e.g. config_name="experiments/my_experiment" refers to experiments/my_experiment.yaml
+    the DictConfig object can be accessed like `reload_config_file(config_name="experiments/my_experiment")["experiments"]`
+
+    Arguments:
+        config_name (str): The name of the configuration file. Defaults to "main".
+        overrides (list[str]): A list of overrides to apply to the configuration. Defaults to None.
+        return_hydra_config (bool): Whether to return the Hydra configuration. Defaults to False.
+    '''
     return hydra.compose(
         config_name=config_name,
         overrides=overrides,
