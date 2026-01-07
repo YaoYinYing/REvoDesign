@@ -40,7 +40,6 @@ from scipy import stats
 from scipy.spatial.distance import pdist, squareform
 from torch.optim.optimizer import Optimizer
 
-
 ###################################
 # Alphabet and Basic Setup
 ###################################
@@ -258,7 +257,7 @@ def GREMLIN(
       opt_type="adam", b_fix=False, lr=1.0, b1=0.9, b2=0.999, opt_iter=100
       (and batch_size=None for full-batch)
     """
-    
+
     torch_device = torch.device(device=device)
     model = GremlinTorch(msa["ncol"], msa["neff"], reg_f=0.01).to(torch_device)
 
@@ -380,5 +379,3 @@ def plot_mtx(mtx, key="zscore", vmin=1, vmax=3):
     plt.imshow(squareform(mtx[key]), cmap="Blues", interpolation="none", vmin=vmin, vmax=vmax)
     plt.grid(False)
     plt.show()
-
-

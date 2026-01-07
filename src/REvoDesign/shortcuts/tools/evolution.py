@@ -1,16 +1,18 @@
 import gc
 import pickle
-from REvoDesign.basic.abc_third_party_module import TorchModuleAbstract,ThirdPartyModuleAbstract
+
+from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.phylogenetics.gremlin_tools import GREMLIN_Tools
-from REvoDesign.tools.utils import require_installed,get_cited
+from REvoDesign.tools.utils import get_cited, require_installed
+
 
 @require_installed
-class GremlinPytorch(TorchModuleAbstract,ThirdPartyModuleAbstract):
+class GremlinPytorch(TorchModuleAbstract, ThirdPartyModuleAbstract):
     name: str = "GremlinPytorch"
     installed: bool = is_package_installed("torch")
 
-    __bibtex__=GREMLIN_Tools.__bibtex__
+    __bibtex__ = GREMLIN_Tools.__bibtex__
 
     def __init__(self, device: str = "cpu", **kwargs):
         super().__init__(device, **kwargs)
@@ -45,8 +47,9 @@ class GremlinPytorch(TorchModuleAbstract,ThirdPartyModuleAbstract):
         with open(mrf_file_save, "wb") as f:
             pickle.dump(mrf, f)
 
+
 def run_gremlin(fasta_file: str, mrf_file_save: str, gremlin_iter: int = 100, device: str = "cpu"):
-    app=GremlinPytorch(device)
+    app = GremlinPytorch(device)
     app.run(fasta_file, mrf_file_save, gremlin_iter)
     app.cleanup()
     del app
