@@ -82,13 +82,6 @@ esm2=[
     "fair-esm2 @ git+https://github.com/YaoYinYing/esm2.git#egg=fair-esm2",
 ]
 
-md_analysis = [
-    "biotite",
-    "mdanalysis",
-    "mdtraj",
-    "plotly",
-    "pyqtwebengine"
-]
 
 openmm=[
     "openmm>=8.1.1",

@@ -350,36 +350,6 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
     cmd.delete(aln)
     cmd.deselect()
 
-
-def _load_ermsf_pkl(file_path: str) -> pd.DataFrame:
-    import pickle
-
-    import MDAnalysis as mda
-
-    with open(file_path, "rb") as f:
-        data = pickle.load(f)
-    res: np.ndarray = data["ermsf"]
-    return pd.DataFrame(res)  # shape (n_residues, n_frames)
-
-
-_ermsf_citation = {
-    "eRMSFkit": """
-    @article{
-    arantes_ligabue-braun_pedebos_2025,
-    title={eRMSF: A Python Package for Ensemble-Based RMSF Analysis of Biomolecular Systems},
-    volume={65},
-    DOI={https://doi.org/10.1021/acs.jcim.5c02413},
-    number={23},
-    journal={Journal of Chemical Information and Modeling},
-    publisher={American Chemical Society (ACS)},
-    author={Arantes, Pablo Ricardo and Ligabue-Braun, Rodrigo and Pedebos, Conrado},
-    year={2025}, month={Nov}, pages={12648–12654} }"""
-}
-
-setattr(_load_ermsf_pkl, "__bibtex__", _ermsf_citation)
-load_ermsf_pkl = get_cited(_load_ermsf_pkl)
-
-
 def _read_b_factors(
     file_path: str,
     label_x: str | int | None = 0,
@@ -412,11 +382,6 @@ def _read_b_factors(
     elif file_path.endswith(".xvg"):
         df = xvg2df(file_path)
 
-    # ermsf multiframe data
-    elif file_path.endswith(".pkl"):
-        df: pd.DataFrame = load_ermsf_pkl(file_path)
-        # drop the first column as it is zeros
-        df = df.iloc[:, 1:]
 
     elif file_path.endswith(".pdb"):
         logging.warning(
@@ -704,7 +669,6 @@ def _load_b_factors(
     scale_max: float = 10.0,
     rescale_min: float = 0.0,
     rescale_max: float = 100.0,
-    multi_frame: bool = False,
     visual: bool = True,
     putty_transform_mode: int = 3,
 ) -> None:
