@@ -350,6 +350,7 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
     cmd.delete(aln)
     cmd.deselect()
 
+
 def _read_b_factors(
     file_path: str,
     label_x: str | int | None = 0,
@@ -381,7 +382,6 @@ def _read_b_factors(
 
     elif file_path.endswith(".xvg"):
         df = xvg2df(file_path)
-
 
     elif file_path.endswith(".pdb"):
         logging.warning(

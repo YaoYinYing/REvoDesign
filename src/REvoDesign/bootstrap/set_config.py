@@ -21,7 +21,6 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
         "..",
         "config",
     )
-    
 
     default_storage_path = user_data_dir(appname="REvoDesign")
     config_dir = os.path.join(default_storage_path, "config")
@@ -35,10 +34,12 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     # if main config file does not exist, copy the config tree from template
     if not os.path.isfile(main_config_file):
         if os.path.isdir(config_dir) and [x for x in os.listdir(config_dir) if not x.endswith(".yaml")]:
-            reset_warning='Warning: The configuration directory is not empty, which means you are upgrading REvoDesign. ' \
-                'A proper reset is recommended to avoid any potential issues. '
+            reset_warning = (
+                "Warning: The configuration directory is not empty, which means you are upgrading REvoDesign. "
+                "A proper reset is recommended to avoid any potential issues. "
+            )
             print(reset_warning)
-            
+
             # copied from package_manager.py
             def decide(title="", description="", rich: bool = False, details: str | None = None):
 
@@ -57,22 +58,20 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
                 return result == QtWidgets.QMessageBox.Yes
 
             if decide(
-                title='Reset REvoDesign Configuration?', 
-                description=reset_warning + 'Do you want to continue? \n'
-                'You can still choose to cancel the reset to proceed it manually.'):
+                title="Reset REvoDesign Configuration?",
+                description=reset_warning + "Do you want to continue? \n"
+                "You can still choose to cancel the reset to proceed it manually.",
+            ):
 
                 shutil.rmtree(config_dir)
             else:
                 print("Please manually delete the configuration directory and restart REvoDesign.")
-        
 
-            
         print(f"Copied configurations from {template_config_dir} to {config_dir}")
         shutil.copytree(src=template_config_dir, dst=config_dir, dirs_exist_ok=True)
     else:
         print(f"Config file is already located at `{config_dir}`, do nothing.")
 
-    
     print(f"Main config: {main_config_file}")
     return main_config_file
 
