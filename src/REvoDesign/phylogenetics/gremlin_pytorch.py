@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 GREMLIN (PyTorch version, with a custom "opt_adam" replicating the original)
 Yinying Yao rewrite this PyTorch version with the help of ChatGPT o1
@@ -33,16 +32,16 @@ MPS_memopt: 480 s (9.19 GB)
 CPU_memopt: 830 s (2.9-3.8  GB)
 """
 
-import pickle
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.optim.optimizer import Optimizer
-from scipy.spatial.distance import pdist, squareform
 from scipy import stats
-from REvoDesign.tools.utils import get_cited
+from scipy.spatial.distance import pdist, squareform
+from torch.optim.optimizer import Optimizer
+
 from REvoDesign.phylogenetics.gremlin_tools import GREMLIN_Tools
+from REvoDesign.tools.utils import get_cited
 
 ###################################
 # Alphabet and Basic Setup
@@ -67,7 +66,7 @@ def aa2num(aa):
 def parse_fasta(filename, limit=-1):
     headers = []
     seqs = []
-    with open(filename, "r") as f:
+    with open(filename) as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -251,8 +250,11 @@ class GremlinTorch(nn.Module):
 # Main GREMLIN routine
 ###################################
 
+
 # TODO optimize for memory usage when offloading to GPU(like MPS)
-def _GREMLIN(msa, opt_type="adam", opt_iter=100, lr=1.0, b1=0.9, b2=0.999, b_fix=False, batch_size=None, device: str= 'cpu'):
+def _GREMLIN(
+    msa, opt_type="adam", opt_iter=100, lr=1.0, b1=0.9, b2=0.999, b_fix=False, batch_size=None, device: str = "cpu"
+):
     """
     If you want to replicate the original code's 'opt_adam' exactly:
       opt_type="adam", b_fix=False, lr=1.0, b1=0.9, b2=0.999, opt_iter=100

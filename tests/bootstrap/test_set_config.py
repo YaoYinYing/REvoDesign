@@ -42,16 +42,13 @@ def test_save_configuration():
     ):
         from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
 
-
         config = OmegaConf.create({"key": "value"})
         save_configuration(config)
         mock_save.assert_called_once_with(config, f"{REVODESIGN_CONFIG_DIR}/main.yaml")
 
 
 def test_experiment_config():
-    with (
-        patch("REvoDesign.bootstrap.set_config.os.makedirs") as mock_makedirs,
-    ):
+    with (patch("REvoDesign.bootstrap.set_config.os.makedirs") as mock_makedirs,):
         from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
 
         exp_dir = experiment_config()

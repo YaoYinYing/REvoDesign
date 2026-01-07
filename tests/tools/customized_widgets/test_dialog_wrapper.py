@@ -118,7 +118,7 @@ def test_dialog_wrapper_required_field_validation(dialog, qtbot, monkeypatch, te
     widget = dialog.table.cellWidget(0, 2)
     widget.setText("")
 
-    with patch('REvoDesign.tools.customized_widgets.QtWidgets.QMessageBox.warning') as mock_msgbox_warning:
+    with patch("REvoDesign.tools.customized_widgets.QtWidgets.QMessageBox.warning") as mock_msgbox_warning:
 
         # Mock QMessageBox to capture the warning call
         # def mock_warning(parent, title, message):
@@ -127,12 +127,11 @@ def test_dialog_wrapper_required_field_validation(dialog, qtbot, monkeypatch, te
         #     # save_screenshot(parent, "required_field_validation_warning")
         #     return QtWidgets.QMessageBox.Ok
 
-        
         # Simulate OK button click
         ok_button = dialog.layout.itemAt(4).itemAt(0).widget()
-        
+
         with patch.object(dialog, "close") as close_mock:
-            
+
             qtbot.mouseClick(ok_button, QtCore.Qt.LeftButton)
             mock_msgbox_warning.assert_called_once()
             # with pytest.raises(issues.NoInputError):

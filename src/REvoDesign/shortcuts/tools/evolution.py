@@ -1,10 +1,7 @@
-
-
-
 import pickle
 
 
-def run_gremlin(fasta_file: str, mrf_file_save: str, gremlin_iter: int = 100, device: str = 'cpu'):
+def run_gremlin(fasta_file: str, mrf_file_save: str, gremlin_iter: int = 100, device: str = "cpu"):
     """
     Run GREMLIN on a given FASTA file and save the MRF results.
 
@@ -18,7 +15,17 @@ def run_gremlin(fasta_file: str, mrf_file_save: str, gremlin_iter: int = 100, de
 
     headers, seqs = parse_fasta(fasta_file)
     msa = mk_msa(seqs)
-    mrf = GREMLIN(msa, opt_type="adam", opt_iter=gremlin_iter, lr=1.0, b1=0.9, b2=0.999, b_fix=False, batch_size=None, device=device)
+    mrf = GREMLIN(
+        msa,
+        opt_type="adam",
+        opt_iter=gremlin_iter,
+        lr=1.0,
+        b1=0.9,
+        b2=0.999,
+        b_fix=False,
+        batch_size=None,
+        device=device,
+    )
     # save mtx file
     with open(mrf_file_save, "wb") as f:
         pickle.dump(mrf, f)
