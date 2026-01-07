@@ -40,8 +40,6 @@ from scipy import stats
 from scipy.spatial.distance import pdist, squareform
 from torch.optim.optimizer import Optimizer
 
-from REvoDesign.phylogenetics.gremlin_tools import GREMLIN_Tools
-from REvoDesign.tools.utils import get_cited
 
 ###################################
 # Alphabet and Basic Setup
@@ -252,7 +250,7 @@ class GremlinTorch(nn.Module):
 
 
 # TODO optimize for memory usage when offloading to GPU(like MPS)
-def _GREMLIN(
+def GREMLIN(
     msa, opt_type="adam", opt_iter=100, lr=1.0, b1=0.9, b2=0.999, b_fix=False, batch_size=None, device: str = "cpu"
 ):
     """
@@ -260,6 +258,7 @@ def _GREMLIN(
       opt_type="adam", b_fix=False, lr=1.0, b1=0.9, b2=0.999, opt_iter=100
       (and batch_size=None for full-batch)
     """
+    
     torch_device = torch.device(device=device)
     model = GremlinTorch(msa["ncol"], msa["neff"], reg_f=0.01).to(torch_device)
 
@@ -383,6 +382,3 @@ def plot_mtx(mtx, key="zscore", vmin=1, vmax=3):
     plt.show()
 
 
-setattr(_GREMLIN, "__bibtex__", GREMLIN_Tools.__bibtex__)
-
-GREMLIN = get_cited(_GREMLIN)
