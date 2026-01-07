@@ -1,3 +1,7 @@
+"""
+Wrapper for gremlin
+"""
+
 from REvoDesign.shortcuts.tools.evolution import run_gremlin
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 

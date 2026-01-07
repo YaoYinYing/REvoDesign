@@ -1,3 +1,7 @@
+"""
+Shortcut for running GREMLIN on a given FASTA MSA file.
+"""
+
 import gc
 import pickle
 
