@@ -48,7 +48,7 @@ help:
 	@echo "  translate              Translate UI"
 	@echo "  prepare-test           Run pip to install pytest-related packages"
 	@echo "  test                   Run the UnitTest suite"
-	@echo "  all-test               Run all tests"
+	@echo "  all-test               Run all tests (firstly the parallel(also the fastest), secondly the serial(also the slower), finally the slowest) "
 	@echo "  fast-test              Run all fast tests (first order)"
 	@echo "  serial-test            Run all serial tests (second order)"
 	@echo "  slow-test              Run all slow tests (third order)"
