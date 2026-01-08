@@ -28,7 +28,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property, partial
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, NoReturn, TypeVar, overload
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypeVar, overload
 from urllib.error import HTTPError, URLError
 
 from pymol import cmd, get_version_message
@@ -504,13 +504,18 @@ class CheckableListView(QtWidgets.QWidget):
                 item.setCheckState(QtCore.Qt.Unchecked)
 
 
-# #TODO: simplification needed
+@dataclass(frozen=True)
+class PackageManagerCommand:
+    attr: str
+    executable: str
+    args: tuple[str, ...]
+    requires_sudo: bool = False
 
 
 @dataclass
 class GitSolver:
     """
-    A class that checks for the presence of Git, Conda, and Winget on the system and can install Git if necessary.
+    Resolve how to install Git across multiple platforms/package managers and bootstrap Git if missing.
     """
 
     has_git: str | None = None
@@ -519,27 +524,23 @@ class GitSolver:
     has_winget: str | None = None
     has_brew: str | None = None
     has_choco: str | None = None
+    has_port: str | None = None
+    has_apt_get: str | None = None
+    has_apt: str | None = None
+    has_dnf: str | None = None
+    has_yum: str | None = None
+    has_zypper: str | None = None
+    has_pacman: str | None = None
+    has_pkg: str | None = None
+    has_scoop: str | None = None
+    has_snap: str | None = None
+    has_sudo: str | None = None
 
-    def __post_init__(self):
-        """
-        Initializes instance attributes to check if git, conda, and winget are installed.
-
-        This method is automatically called after the object initialization.
-        It sets the object's properties based on whether these tools are available in the system path.
-        This ensures that the object can determine if it can perform related operations before doing so.
-        """
-        # subprocess.run on Windows treat conda as a excutable file and will check its existence
-        # however conda is AKA a alias in shell and does not exist as a file.
-        # shutil.which will return the real path of conda script
-        for cmd_tool in ["git", "conda", "mamba", "winget", "brew", "choco"]:
-            setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool))
-            logging.debug(f"Command tool check: {cmd_tool}: {getattr(self, f'has_{cmd_tool}')}")
-
-    @property
-    def where_to_install(self) -> list[str] | None:
-        if self.has_winget:
-            return [
-                self.has_winget,
+    INSTALLERS: ClassVar[tuple[PackageManagerCommand, ...]] = (
+        PackageManagerCommand(
+            "has_winget",
+            "winget",
+            (
                 "install",
                 "--id",
                 "Git.Git",
@@ -548,18 +549,55 @@ class GitSolver:
                 "winget",
                 "--accept-package-agreements",
                 "--accept-source-agreements",
-            ]
+            ),
+        ),
+        PackageManagerCommand("has_choco", "choco", ("install", "git", "-y")),
+        PackageManagerCommand("has_scoop", "scoop", ("install", "git")),
+        PackageManagerCommand("has_mamba", "mamba", ("install", "-y", "git")),
+        PackageManagerCommand("has_conda", "conda", ("install", "-y", "git")),
+        PackageManagerCommand("has_brew", "brew", ("install", "git")),
+        PackageManagerCommand("has_port", "port", ("install", "git"), True),
+        PackageManagerCommand("has_snap", "snap", ("install", "git", "--classic"), True),
+        PackageManagerCommand("has_apt_get", "apt-get", ("install", "-y", "git"), True),
+        PackageManagerCommand("has_apt", "apt", ("install", "-y", "git"), True),
+        PackageManagerCommand("has_dnf", "dnf", ("install", "-y", "git"), True),
+        PackageManagerCommand("has_yum", "yum", ("install", "-y", "git"), True),
+        PackageManagerCommand("has_zypper", "zypper", ("install", "-y", "git"), True),
+        PackageManagerCommand("has_pacman", "pacman", ("-S", "--noconfirm", "git"), True),
+        PackageManagerCommand("has_pkg", "pkg", ("install", "-y", "git"), True),
+    )
 
-        # Determine the installation command based on Conda's presence or the system type (Windows with Winget)
-        if self.has_mamba:
-            return [self.has_mamba, "install", "-y", "git"]
-        if self.has_conda:
-            return [self.has_conda, "install", "-y", "git"]
+    def __post_init__(self):
+        """
+        Resolve available package managers once so callers do not shell out repeatedly.
+        """
+        self.has_git = shutil.which("git")
+        logging.debug(f"Command tool check: git: {self.has_git}")
 
-        if self.has_brew:
-            return [self.has_brew, "install", "git"]
-        if self.has_choco:
-            return [self.has_choco, "install", "git"]
+        for installer in self.INSTALLERS:
+            detected = shutil.which(installer.executable)
+            setattr(self, installer.attr, detected)
+            logging.debug(f"Command tool check: {installer.executable}: {detected}")
+
+        self.has_sudo = shutil.which("sudo") if os.name != "nt" else None
+        if self.has_sudo:
+            logging.debug(f"Command tool check: sudo: {self.has_sudo}")
+
+    def _build_install_command(self, installer: PackageManagerCommand) -> list[str] | None:
+        pkg_manager = getattr(self, installer.attr, None)
+        if not pkg_manager:
+            return None
+        command = [pkg_manager, *installer.args]
+        if installer.requires_sudo and self.has_sudo:
+            command = [self.has_sudo, *command]
+        return command
+
+    @property
+    def where_to_install(self) -> list[str] | None:
+        for installer in self.INSTALLERS:
+            command = self._build_install_command(installer)
+            if command:
+                return command
 
         return None
 

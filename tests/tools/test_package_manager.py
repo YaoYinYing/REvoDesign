@@ -250,6 +250,24 @@ def test_pm_where_to_install_with_conda(mock_shutil_which):
     assert solver.where_to_install == expected_command
 
 
+def test_pm_where_to_install_with_apt_and_sudo(mock_shutil_which):
+    """
+    Ensure Linux package managers are supported and prefixed with sudo when needed.
+    """
+
+    def fake_which(tool):
+        mapping = {
+            "apt-get": "/mock/path/to/apt-get",
+            "sudo": "/mock/path/to/sudo",
+        }
+        return mapping.get(tool)
+
+    mock_shutil_which.side_effect = fake_which
+    solver = GitSolver()
+    expected_command = ["/mock/path/to/sudo", "/mock/path/to/apt-get", "install", "-y", "git"]
+    assert solver.where_to_install == expected_command
+
+
 def test_pm_fetch_git_installed(git_solver_instance):
     """
     Test fetch_git method when git is already installed.
