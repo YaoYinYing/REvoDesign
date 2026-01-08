@@ -263,6 +263,7 @@ class Config:
         if not path.endswith(".yaml"):
             raise issues.FileFormatError(f"{path} is not a valid config file")
 
+        # get a copy under the cache directory: cache/<cfgname>_cached_<newfile_basename_prefix>.yaml
         expected_cached_yaml = os.path.join(CACHE_CONFIG_DIR, f"{self.name}_cached_{os.path.basename(path)}")
         new_cfg_base_name: str = os.path.basename(expected_cached_yaml)
         new_cfg_prefix = os.path.basename(new_cfg_base_name)[:-5]
