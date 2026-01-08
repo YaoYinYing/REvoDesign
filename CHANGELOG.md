@@ -52,6 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `resolve_dotted_config_item`: moved from shortcut util module
 - Editor:
   - Monaco editor URLs now carry autosave and autorefresh toggles/intervals so the static front-end can refresh or save files according to `editor.yaml`.
+- Bootstrap configuration:
+  - `_iter_yaml_rel_paths`, `verify_config_tree_structure`, and `enforce_config_key_structure` ensure user config trees mirror the template layout and key hierarchy by auto-copying missing YAML files and replacing outdated ones.
+  - Tests covering the new helpers and the recursive config listing guard future refactors.
 - `ui_driver`:
   - dataclass `Config`  
     - for handling configuration name/yaml path/configuration DictConfig obj
@@ -101,6 +104,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - detect only the main configuration file, if not found, prompt and copy the full configuration tree to allow seamless upgrade (the directory will be dirty however)
   - `experiment_config` now can be used for any sub dirs like cache dir
   - `list_all_config_files` for listing all config files at first and second level
+- Bootstrap:
+  - Import-time initialization now calls the tree/key verification helpers so user config directories are automatically synchronized with the bundled templates.
+- `list_all_config_files`:
+  - deterministic top-level globbing and explicit recursive traversal for nested YAML keeps discoveries stable regardless of filesystem ordering.
 - Experiments:
   - `load_and_save_experiment` now backs up into the `experiments/` directory before custom saves so new runs populate the Recent Experiments menu, and the test harness mirrors the new workflow entirely inside the test workspace.
 - `ui_driver`:
