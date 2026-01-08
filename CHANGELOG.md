@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
       - `is_separator` property for separator adding. set `action` to `---` will do. 
   - `MenuCollection`:
     - `bind` method now supports dynamic menu action creation under a certain menu section
+  - Recent experiments:
+    - `menuRecent_Experiments`: dynamically lists experiment configurations from the `experiments/` tree sorted by their last modification time for quick editing and backups.
 - Phylogenetic:
   - GREMLIN in Pytorch
     - Implementation at `phylogenetics/gremlin_pytorch.py`
@@ -48,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `resolve_typed_arg`: for resolving typed arguments according to what the most it looks like
   - `resolve_default_value`: moved from shortcut util module
   - `resolve_dotted_config_item`: moved from shortcut util module
+- Editor:
+  - Monaco editor URLs now carry autosave and autorefresh toggles/intervals so the static front-end can refresh or save files according to `editor.yaml`.
 - `ui_driver`:
   - dataclass `Config`  
     - for handling configuration name/yaml path/configuration DictConfig obj
@@ -92,10 +96,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `sidechain-solver`: for sidechain solvers
     - `rosetta-node`: for rosetta-node configurations
     - `rfdiffusion`: for rfdiffusion parameter presets
+    - `editor`: split from `main.yaml` into `config/editor.yaml` to isolate Monaco backend/autosave configuration
   - rename main configuration: `global_config` -> `main`
     - detect only the main configuration file, if not found, prompt and copy the full configuration tree to allow seamless upgrade (the directory will be dirty however)
   - `experiment_config` now can be used for any sub dirs like cache dir
   - `list_all_config_files` for listing all config files at first and second level
+- Experiments:
+  - `load_and_save_experiment` now backs up into the `experiments/` directory before custom saves so new runs populate the Recent Experiments menu, and the test harness mirrors the new workflow entirely inside the test workspace.
 - `ui_driver`:
   - `ConfigBus`:
     - `set_value` and `get_value` now supports data  getting/setting value from/to a certain Config obj name
