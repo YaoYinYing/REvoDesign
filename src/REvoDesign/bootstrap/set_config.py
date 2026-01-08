@@ -87,6 +87,8 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     else:
         print(f"Config file is already located at `{config_dir}`, do nothing.")
 
+    verify_config_tree_structure(config_dir, template_config_dir)
+    enforce_config_key_structure(config_dir, template_config_dir)
     print(f"Main config: {main_config_file}")
     return main_config_file
 
@@ -220,3 +222,78 @@ def list_all_config_files(config_dir: str, tree: bool = False) -> list[str]:
             continue
         yaml_files.extend(os.path.join(root, f) for f in files if f.endswith(".yaml"))
     return sorted(yaml_files)
+
+def _iter_yaml_rel_paths(base_dir: str) -> list[str]:
+    base_dir = os.path.abspath(base_dir)
+    rel_paths: list[str] = []
+    for root, _, files in os.walk(base_dir):
+        for file in files:
+            if file.endswith(".yaml"):
+                abs_path = os.path.join(root, file)
+                rel_paths.append(os.path.relpath(abs_path, base_dir))
+    return sorted(rel_paths)
+
+
+def verify_config_tree_structure(user_config_dir: str, template_config_dir: str) -> list[str]:
+    """
+    Ensures every YAML file in the template tree exists in the user's config directory.
+    Missing files are copied over, preserving the relative directory structure.
+    """
+    copied: list[str] = []
+    template_files = _iter_yaml_rel_paths(template_config_dir)
+    user_config_dir = os.path.abspath(user_config_dir)
+    template_config_dir = os.path.abspath(template_config_dir)
+
+    for rel_path in template_files:
+        src = os.path.join(template_config_dir, rel_path)
+        dst = os.path.join(user_config_dir, rel_path)
+        if os.path.exists(dst):
+            continue
+
+        dst_parent = os.path.dirname(dst)
+        if dst_parent:
+            os.makedirs(dst_parent, exist_ok=True)
+        shutil.copy2(src, dst)
+        copied.append(rel_path)
+    return copied
+
+
+def _collect_key_paths(node, prefix: tuple[str, ...], bag: set[tuple[str, ...]]):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            key_path = prefix + (str(key),)
+            bag.add(key_path)
+            _collect_key_paths(value, key_path, bag)
+    elif isinstance(node, list):
+        for item in node:
+            _collect_key_paths(item, prefix, bag)
+
+
+def _yaml_key_signature(path: str) -> frozenset[tuple[str, ...]]:
+    cfg = OmegaConf.load(path)
+    container = OmegaConf.to_container(cfg, resolve=False)
+    bag: set[tuple[str, ...]] = set()
+    _collect_key_paths(container, tuple(), bag)
+    return frozenset(bag)
+
+
+def enforce_config_key_structure(user_config_dir: str, template_config_dir: str) -> list[str]:
+    """
+    Compares YAML files between template and user directories and replaces files
+    whose key structure differs from the template.
+    """
+    replaced: list[str] = []
+    template_files = _iter_yaml_rel_paths(template_config_dir)
+    user_config_dir = os.path.abspath(user_config_dir)
+    template_config_dir = os.path.abspath(template_config_dir)
+
+    for rel_path in template_files:
+        template_file = os.path.join(template_config_dir, rel_path)
+        user_file = os.path.join(user_config_dir, rel_path)
+        if not os.path.exists(user_file):
+            continue
+
+        if _yaml_key_signature(template_file) != _yaml_key_signature(user_file):
+            shutil.copy2(template_file, user_file)
+            replaced.append(rel_path)
+    return replaced
