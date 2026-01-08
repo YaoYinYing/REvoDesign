@@ -8,8 +8,8 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 
 from REvoDesign import ConfigBus, issues
-from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.basic.abc_singleton import SingletonAbstract
+from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import timing
 

@@ -7,7 +7,6 @@ from __future__ import annotations
 import os
 import shutil
 import time
-import random
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial, wraps
@@ -281,7 +280,7 @@ class Config:
         """
         # get a uniq timestamp at the date:time:second level
         timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
-        
+
         # to avoid test case failure, we add a random number to the timestamp
         current_milliseconds = round(time.time() * 1_000_000_000_000_000)
 

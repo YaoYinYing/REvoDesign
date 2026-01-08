@@ -15,21 +15,33 @@ from dataclasses import dataclass
 from typing import Literal
 from unittest.mock import MagicMock, patch
 
-from pymol import CmdException, cmd
 import hydra as unmocked_hydra
 import psutil
 import pytest
 from _pytest.nodes import Item
 from immutabledict import immutabledict
+from pymol import CmdException, cmd
 from pytestqt import qtbot
 from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
 
+from REvoDesign import REvoDesignPlugin
+from REvoDesign.basic.abc_singleton import reset_singletons
+from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
+from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
+from REvoDesign.common import MutantTree
+from REvoDesign.driver.ui_driver import ConfigBus
+from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
+from REvoDesign.tools.package_manager import REvoDesignPackageManager, refresh_window
+
+from .data import TestData
+from .data.test_data import KeyData
 
 REPO_DIR = os.path.join(os.path.dirname(__file__), "..")
 
 # mostly mock on data and cache to isolated from user's production system
-TEST_ROOT = os.path.abspath('.')
+TEST_ROOT = os.path.abspath(".")
 DATA_DIRNAME = os.path.join(TEST_ROOT, "mock", "user_data", "REvoDesign")
 CACHE_DIRNAME = os.path.join(TEST_ROOT, "..", "tests", "downloaded", "cache")
 
@@ -37,24 +49,24 @@ EXPECTED_MAIN_CONFIG_FILE = os.path.join(DATA_DIRNAME, "config", "main.yaml")
 os.makedirs(DATA_DIRNAME, exist_ok=True)
 os.makedirs(CACHE_DIRNAME, exist_ok=True)
 
+
 def copy_config_tree():
-    print('copy config tree to mock user data')
+    print("copy config tree to mock user data")
     shutil.copytree(
-        src=os.path.join(os.path.abspath('..'), 'src/REvoDesign/config'), 
+        src=os.path.join(os.path.abspath(".."), "src/REvoDesign/config"),
         dst=os.path.dirname(EXPECTED_MAIN_CONFIG_FILE),
-        dirs_exist_ok=True
-        )
+        dirs_exist_ok=True,
+    )
+
 
 # simplified initialization
 copy_config_tree()
 
 # initialize hydra before importing REvoDesign
 unmocked_hydra.initialize_config_dir(
-    version_base=None, 
-    config_dir=os.path.dirname(EXPECTED_MAIN_CONFIG_FILE), 
-    job_name="REvoDesign"
-    )
-    
+    version_base=None, config_dir=os.path.dirname(EXPECTED_MAIN_CONFIG_FILE), job_name="REvoDesign"
+)
+
 
 class Counter:
     def __init__(self):
@@ -65,15 +77,17 @@ class Counter:
         self.count += 1
         return self.count
 
+
 # cck=Counter()
 
-def check_real_config_dir(i:int):
-    '''
+
+def check_real_config_dir(i: int):
+    """
     A checkpoint to check whether the test suite has created the real config dir.
-    '''
-    the_dir='/Users/yyy/Library/Application Support/REvoDesign/config'
+    """
+    the_dir = "/Users/yyy/Library/Application Support/REvoDesign/config"
     if os.path.exists(the_dir):
-        raise RuntimeError(f'[{i}]The test suite has created this dir! {the_dir}')
+        raise RuntimeError(f"[{i}]The test suite has created this dir! {the_dir}")
 
 
 # check_real_config_dir(cck.i)
@@ -104,38 +118,19 @@ def check_real_config_dir(i:int):
 #     ):
 
 
-from REvoDesign.bootstrap.set_config import set_REvoDesign_config_file
 # check_real_config_dir(cck.i)
-main_config=set_REvoDesign_config_file()
-# check_real_config_dir(cck.i)
-
-
-
-from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
-
-from REvoDesign import REvoDesignPlugin
-from REvoDesign.basic.abc_singleton import reset_singletons
-from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
-from REvoDesign.common import MutantTree
-from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.Qt import QtCore, QtWidgets
-from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
-from REvoDesign.tools.package_manager import REvoDesignPackageManager, refresh_window
-# check_real_config_dir(cck.i)
-
-from .data import TestData
-from .data.test_data import KeyData
+main_config = set_REvoDesign_config_file()
 # check_real_config_dir(cck.i)
 
 
-    
-    
+# check_real_config_dir(cck.i)
+
+# check_real_config_dir(cck.i)
 
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
 TAB_NAMES = Literal["prepare", "mutate", "evaluate", "cluster", "visualize", "interact", "socket", "config"]
-
 
 
 def pytest_collection_modifyitems(items: list[Item]):
@@ -144,6 +139,7 @@ def pytest_collection_modifyitems(items: list[Item]):
             item.add_marker(pytest.mark.spark)
         elif "_int_" in item.nodeid:
             item.add_marker(pytest.mark.integration)
+
 
 @pytest.fixture
 def counter():
@@ -157,6 +153,7 @@ def app():
     if app is None:
         app = QtWidgets.QApplication([])
     return app
+
 
 @pytest.fixture(scope="function")
 def plugin(qtbot: qtbot.QtBot, app, patch_config_user_data, patch_config_user_cache):

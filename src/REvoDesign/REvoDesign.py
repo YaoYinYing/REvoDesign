@@ -23,8 +23,8 @@ from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
 from REvoDesign.application.menu import MENU_LINKS
-from REvoDesign.basic.server_monitor import MenuActionServerMonitor
 from REvoDesign.basic.menu_item import MenuCollection, MenuItem
+from REvoDesign.basic.server_monitor import MenuActionServerMonitor
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketClient, REvoDesignWebSocketServer
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.multi_mutant_designer import MultiMutantDesigner
