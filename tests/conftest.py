@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Literal
 from unittest.mock import MagicMock, patch
 
-import hydra as unmocked_hydra
+# import hydra as unmocked_hydra
 import psutil
 import pytest
 from _pytest.nodes import Item
@@ -62,10 +62,10 @@ def copy_config_tree():
 # simplified initialization
 copy_config_tree()
 
-# initialize hydra before importing REvoDesign
-unmocked_hydra.initialize_config_dir(
-    version_base=None, config_dir=os.path.dirname(EXPECTED_MAIN_CONFIG_FILE), job_name="REvoDesign"
-)
+# # initialize hydra before importing REvoDesign
+# unmocked_hydra.initialize_config_dir(
+#     version_base=None, config_dir=os.path.dirname(EXPECTED_MAIN_CONFIG_FILE), job_name="REvoDesign"
+# )
 
 
 class Counter:
