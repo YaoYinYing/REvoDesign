@@ -1,0 +1,17 @@
+# Configuration options for the integrated Monaco editor.
+editor:
+  backend:
+    host: '127.0.0.1'
+    port: 5000
+    use_ssl: False
+    no_token: False
+    crt:
+    key:
+    html_dir:
+  token:
+  autosave:
+    enabled: False
+    interval: 10
+  autorefresh:
+    enabled: False
+    interval: 10

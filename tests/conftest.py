@@ -445,15 +445,11 @@ class TestWorker:
         if not experiment_name:
             experiment_name = self.test_id
 
-        new_cfg_file = os.path.join(self.EXPERIMENT_DIR, f"{experiment_name}.yaml")
-        new_cfg_base_name: str = os.path.basename(new_cfg_file)
-        new_cfg_prefix = experiment_name
-        experiment_file = os.path.join(EXPERIMENTS_CONFIG_DIR, new_cfg_base_name)
-        self.plugin.bus.cfg_group["main"].save_as(experiment_file)
+        # do not save to user space
+        experiment_of_test = os.path.join(self.EXPERIMENT_DIR, f"{experiment_name}.yaml")
+        self.plugin.bus.cfg_group["main"].save_as(experiment_of_test)
 
-        # hydra has already saved config into EXPERIMENTS_CONFIG_DIR, copy to user defined config file path
-        shutil.copy(experiment_file, new_cfg_file)
-        print(f"saved config at {new_cfg_file}, backup at {experiment_file}")
+        print(f"saved config at {experiment_of_test}.")
 
     def click(self, widget: QtWidgets.QWidget, times: int = 1):  # type: ignore
         if isinstance(widget, QtWidgets.QAction):

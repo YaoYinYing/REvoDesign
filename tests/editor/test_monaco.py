@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
@@ -72,3 +74,54 @@ def test_edit_file_with_monaco(mock_server_control, mock_config_store, test_tmp_
     with patch("webbrowser.open") as mock_webbrowser_open:
         edit_file_with_monaco(file_path)
         mock_webbrowser_open.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "autosave_enabled,autorefresh_enabled",
+    [
+        (False, False),
+        (False, True),
+        (True, False),
+        (True, True),
+    ],
+)
+def test_edit_file_with_monaco_autosave_refresh_params(test_tmp_dir, autosave_enabled, autorefresh_enabled):
+    file_path = os.path.join(test_tmp_dir, "combo.txt")
+    Path(file_path).write_text("test")
+
+    config_values = {
+        "editor.backend.use_ssl": False,
+        "editor.backend.host": "127.0.0.1",
+        "editor.backend.port": 9999,
+        "editor.token": None,
+        "editor.backend.no_token": True,
+        "editor.autosave.enabled": autosave_enabled,
+        "editor.autosave.interval": 1,
+        "editor.autorefresh.enabled": autorefresh_enabled,
+        "editor.autorefresh.interval": 1,
+    }
+
+    server_monitor = SimpleNamespace(controller=SimpleNamespace(is_running=True))
+    server_monitor._start_server = lambda: None
+    stores_widget = SimpleNamespace(server_switches={"Editor_Backend": server_monitor})
+
+    with (
+        patch("REvoDesign.editor.monaco.monaco.ConfigStore") as MockConfigStore,
+        patch("REvoDesign.editor.monaco.monaco.StoresWidget", return_value=stores_widget),
+        patch("webbrowser.open") as mock_webbrowser_open,
+    ):
+        config_instance = MockConfigStore.return_value
+        config_instance.get.side_effect = lambda key, default=None: config_values.get(key, default)
+
+        edit_file_with_monaco(file_path)
+
+        called_url = mock_webbrowser_open.call_args[0][0]
+
+    parsed = urlparse(called_url)
+    params = {key: value[0] for key, value in parse_qs(parsed.query).items()}
+
+    assert params["autosaveEnabled"] == str(autosave_enabled).lower()
+    assert params["refreshEnabled"] == str(autorefresh_enabled).lower()
+    assert params["autosaveInterval"] == "1"
+    assert params["refreshInterval"] == "1000"
+
