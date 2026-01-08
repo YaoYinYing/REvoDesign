@@ -16,6 +16,7 @@ def create_mock_file_with_content(tmp_path, filename, content):
 
 def _make_token_fixture(use_token: bool):
     """Factory function to create token-related fixtures."""
+
     def _fixture(tmp_path):
         cfg = ConfigStore()
         cfg.set("editor.backend.no_token", not use_token)
@@ -65,6 +66,7 @@ def mock_temp_dir(test_tmp_dir):
 # Helper to reset rate limits
 def reset_rate_limits():
     from REvoDesign.editor.monaco.server import failed_attempts
+
     failed_attempts.clear()
 
 
@@ -74,6 +76,7 @@ def initialize_server():
     server_control = ServerControl()
     yield server_control
     server_control.stop_server()
+
 
 # Test cases
 
@@ -216,12 +219,12 @@ def test_load_file_success(use_token, mock_config_store, test_client):
         ("<script>alert('XSS')</script>", 403, "XSS injection with script tags"),
         ("../unauthorized", 403, "Path traversal attempt"),
         ("valid_file.txt", 403, "Valid file path"),
-        ('../../../../../../../../etc/passwd', 403, 'Path traversal attempt: Hit'),
-        ('../../../../../../../../etcdss/passwd', 403, 'Path traversal attempt: Not hit'),
+        ("../../../../../../../../etc/passwd", 403, "Path traversal attempt: Hit"),
+        ("../../../../../../../../etcdss/passwd", 403, "Path traversal attempt: Not hit"),
         ("lucky.dog", 403, "Lucky dog gets caught"),  # a file that does exist and gets caught by attacker
         ("<img src=x onerror=alert('XSS')>", 403, "XSS injection with image tag"),
         ("<svg onload=alert('XSS')>", 403, "XSS injection with SVG tag"),
-    ]
+    ],
 )
 def test_editor_xss_injection(file_path, expected_status, description, test_client, mock_config_store):
     """Test various XSS injection and path traversal attacks on the editor endpoint."""

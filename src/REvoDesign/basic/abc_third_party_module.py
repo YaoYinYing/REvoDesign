@@ -1,6 +1,6 @@
-'''
+"""
 Abstract Third-Party module.
-'''
+"""
 
 from REvoDesign.citations import CitableModuleAbstract
 

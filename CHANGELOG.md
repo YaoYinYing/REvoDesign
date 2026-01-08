@@ -17,6 +17,125 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 
+### Added
+- Server: 
+  - Basic authentication guide and implementation
+  - Documentation: Cloudflare tunnel as production public cloud service
+- Typing annotations:
+  - `get_cited`: broadcast typing hints from input function to wrapper
+- Menu:
+  - `MenuCollection`: joinded menu items at `MENU_LINKS`
+  - Edit Configuration now supports all primary and secondary level of YAML files at user data dir.
+  - Environment variables now can be edited from the editor and refreshable via menu.
+  - `MenuItem`: 
+    - `func` now can be a lambda string like `LAMBDA:<dotted-path:function>,<arg1>,<arg2>,<kwarg1=val1>,<kwarg2=val2>,...`
+    - dynamic menu item creation
+      - `action_text` for set action text, will fallback to `action` if empty.
+      - `menu_section` for adding non-exist menu action to menu.
+      - `is_separator` property for separator adding. set `action` to `---` will do. 
+  - `MenuCollection`:
+    - `bind` method now supports dynamic menu action creation under a certain menu section
+- Phylogenetic:
+  - GREMLIN in Pytorch
+    - Implementation at `phylogenetics/gremlin_pytorch.py`
+    - Validation at `notebooks/validate_gremlin_pytorch.ipynb`
+    - Menu tool at `shortcuts/tools/evolution.py`
+    - Menu wrapper at `shortcuts/wrappers/evolution.py`
+    - Registered in `shortcuts/registry/evolution.yaml`
+    - Minimal Tests at `tests/evo/test_gremlin_pytorch.py` w/ MSA file `tests/data/msa/4FAZA.i90c75_aln.fas`
+- Tools:
+  - `resolve_lambda_expression`: for resolving lambda expression from menu pop `choices_from` and `default_from`
+  - `resolve_typed_arg`: for resolving typed arguments according to what the most it looks like
+  - `resolve_default_value`: moved from shortcut util module
+  - `resolve_dotted_config_item`: moved from shortcut util module
+- `ui_driver`:
+  - dataclass `Config`  
+    - for handling configuration name/yaml path/configuration DictConfig obj
+    - `__repr__` for full data representation at debug use.
+    - classmethod `from_name` for creating Config obj from name under hydra config dir
+    - classmethod `from_names` for creating mutiple Config obj from names
+    - classmethod `from_file` for creating Config obj from yaml path
+    - classmethod `from_files` for creating multiple Config obj from yamls
+    - `save` for saving configuration to disk
+    - `reload` for reloading configuration from disk
+    - `reload_from` for reloading configuration from another yaml
+    - `save_as` for saving configuration to disk with a new name
+  - `ConfigBus`:
+    - `cfg_group` for holding a Config obj dict: {name: Config obj}
+    - use `self.cfg_group["main"].cfg` to replace `self.cfg`
+- Logger:
+  - `LOGGER_CONFIG` for logger configuration at global level, referenced as `bus.cfg_group['logger'].cfg` after initialization.
+  - Logger module child logger for logging under this module.
+  - `reload_logging_config` for reloading logging configuration (not sure if it really works, a restart may still be needed)
+  - `get_current_logger_level` for getting current logger level
+  - lambdas:
+    - `list_all_logger_levels`: list all logger levels
+    - `list_all_logger_channels`: list all logger channels
+    - `list_all_logger_formatters_non_json`: list all logger formatters except JSON
+    - `get_current_channel_level`: get current logger channel level
+  
+
+### Changed
+- `AGENTS.md`: refined installation guide
+- Simplifed `get_cited` implementation, thanks to ChatGPT.
+- `Makefile`:
+  - `translate` for auto translate
+- I18N:
+  - `language.json` for translation registry
+  - `LanguageNameRegistry` for handling language names/codes/actions
+- Configuration:
+  - Separated from main configuration
+    - `logger`: for logger configuration
+    - `runtime`: for runtime configurations
+    - `openmm`: for openmm setup
+    - `environ`: for environment variables holding
+    - `sidechain-solver`: for sidechain solvers
+    - `rosetta-node`: for rosetta-node configurations
+    - `rfdiffusion`: for rfdiffusion parameter presets
+  - rename main configuration: `global_config` -> `main`
+    - detect only the main configuration file, if not found, prompt and copy the full configuration tree to allow seamless upgrade (the directory will be dirty however)
+  - `experiment_config` now can be used for any sub dirs like cache dir
+  - `list_all_config_files` for listing all config files at first and second level
+- `ui_driver`:
+  - `ConfigBus`:
+    - `set_value` and `get_value` now supports data  getting/setting value from/to a certain Config obj name
+  - Editor:
+    - Added all configuration files to white list so that they can be edited.
+- Logger:
+  - Refactored `logger_level_setter` and `logger_level_setter_ng` for setting logger levels from menu pop
+- Plugin:
+  - Simplified configuration operations
+  
+
+### Fixed
+- package meta: `pyproject.toml`
+  - `pyright`: `pythonVersion = "3.10"`
+- logging:
+  - remove logging statements for `DialogWrapperRegistry.unregister` as logger has already exit when unregistering.
+- Tests:
+  - Minor fixes according to current changes.
+  - ~~Partial user platform dirs mock  to isolate test config from production.~~ WIP
+
+### Removed
+- Py39 related:
+  - pairwise implementation and tests, as it can be imported from `itertools` module
+- README: drop Py39 from badge
+- Driver: 
+  - `environ_register`: add/drop environment variables
+- Menu:
+  - `actionEdit_Configuration`
+- I18N:
+  - removed hardcoded `language_settings` at `LanguageSwitch`
+- UI:
+  - `actionSet_Rosetta_Path`
+  - `actionSet_GNU_Parallel`
+  - hardcoded language actions
+- Plugin:
+  - removed `save_configuration_from_ui` method due to config handling simplfied
+- tests:
+  - obsolete tests `tests/cases/UnitTests.py`
+
+
 ## [1.8.4] - 2025-12-02
 ### Added
 - Customized widget: 
@@ -106,6 +225,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - tests:
   - obsolete tests: `test_menu_item`
   - obsolete tests: `test_download_monaco_editor`
+- Python vession: 3.9 dropped
 
 ### Known Issues
 - CI failed on ubuntu w/ PyMOL Open Source v2.5.0, Python 3.10/3.11

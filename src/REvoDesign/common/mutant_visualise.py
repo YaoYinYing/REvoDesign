@@ -1,6 +1,6 @@
-'''
+"""
 Workhorse of the mutant visualization process.
-'''
+"""
 
 import gc
 import os
@@ -18,8 +18,7 @@ from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.common.profile_parsers import ProfileManager
 from REvoDesign.magician import Magician
 from REvoDesign.sidechain import MutateRunnerAbstract
-from REvoDesign.tools.mutant_tools import (extract_mutant_from_sequences,
-                                           extract_mutants_from_mutant_id)
+from REvoDesign.tools.mutant_tools import extract_mutant_from_sequences, extract_mutants_from_mutant_id
 from REvoDesign.tools.utils import get_color, require_not_none, run_command
 
 matplotlib.use("Agg")
@@ -75,18 +74,16 @@ class MutantVisualizer:
         score = mutant_obj.mutant_score
 
         color = get_color(self.cmap, score, self.min_score, self.max_score)
-        logging.info(f"Visualizing {mutant_obj.short_mutant_id} ({mutant_obj.raw_mutant_id}) : "
-                     f"{color} with {self.mutate_runner.__class__.__name__}")
-        temp_session_path = self.create_mutagenesis_objects(
-            mutant_obj, color, in_place=False
+        logging.info(
+            f"Visualizing {mutant_obj.short_mutant_id} ({mutant_obj.raw_mutant_id}) : "
+            f"{color} with {self.mutate_runner.__class__.__name__}"
         )
+        temp_session_path = self.create_mutagenesis_objects(mutant_obj, color, in_place=False)
 
         return temp_session_path
 
     # provide a full function of PyMOL mutate that requires explicit mutagenesis description as mutant object
-    def create_mutagenesis_objects(
-        self, mutant_obj: Mutant, color, in_place=True
-    ):
+    def create_mutagenesis_objects(self, mutant_obj: Mutant, color, in_place=True):
         """
         Creates mutagenesis objects in PyMOL based on explicit mutagenesis descriptions.
 
@@ -109,14 +106,9 @@ class MutantVisualizer:
         score = mutant_obj.mutant_score
 
         temp_dir = tempfile.mkdtemp(prefix="RD_design_")
-        temp_mutant_path = os.path.join(
-            temp_dir, f"{self.molecule}_{new_obj_name}.pse"
-        )
+        temp_mutant_path = os.path.join(temp_dir, f"{self.molecule}_{new_obj_name}.pse")
 
-        mut_pos = [
-            f"(c. {mut_info.chain_id} and i. {str(mut_info.position)})"
-            for mut_info in mutant_obj.mutations
-        ]
+        mut_pos = [f"(c. {mut_info.chain_id} and i. {str(mut_info.position)})" for mut_info in mutant_obj.mutations]
 
         if not self.mutate_runner:
             raise RuntimeError("no mutate runner is instantiated yet.")
@@ -153,9 +145,7 @@ class MutantVisualizer:
 
         if not self.full:
             # logging.debug(f'Removing:  {new_obj_name} and not ( ({" or ".join(mut_pos)}) and (sidechain or n. CA))')
-            cmd.remove(
-                f' {new_obj_name} and not ( ({" or ".join(mut_pos)}) and (sidechain or n. CA))'
-            )
+            cmd.remove(f' {new_obj_name} and not ( ({" or ".join(mut_pos)}) and (sidechain or n. CA))')
 
         # set backbone color
         cmd.set_color(f"color_{new_obj_name}", color)
@@ -216,9 +206,7 @@ class MutantVisualizer:
             return pd.read_csv(self.mutfile)
         if self.mutfile.lower().endswith(".txt"):
             # Read mutation data from TXT file using pandas and use 'key_col' as the column name
-            return pd.read_csv(
-                self.mutfile, sep="\t", names=[self.key_col]
-            )
+            return pd.read_csv(self.mutfile, sep="\t", names=[self.key_col])
         if self.mutfile.lower().endswith((".xlsx", ".xls")):
             # Read mutation data from Excel file using pandas
             return pd.read_excel(self.mutfile)
@@ -233,19 +221,11 @@ class MutantVisualizer:
                     wt_sequences=self.designable_sequences,
                     chain_id=self.chain_id,
                 )
-                for mut_record in SeqIO.parse(
-                    open(self.mutfile), format="fasta"
-                )
+                for mut_record in SeqIO.parse(open(self.mutfile), format="fasta")
             ]
 
             return pd.DataFrame.from_dict(
-                {
-                    self.key_col: [
-                        mut_obj.short_mutant_id
-                        for mut_obj in _mutation_objs
-                        if mut_obj is not None
-                    ]
-                }
+                {self.key_col: [mut_obj.short_mutant_id for mut_obj in _mutation_objs if mut_obj is not None]}
             )
 
         raise issues.InvalidInputError(
@@ -269,15 +249,11 @@ class MutantVisualizer:
 
         # Check if the key_col exists in the dataframe
         if self.key_col not in mutation_data.columns:
-            raise issues.InvalidInputError(
-                f"Variant column '{self.key_col}' not found in the data."
-            )
+            raise issues.InvalidInputError(f"Variant column '{self.key_col}' not found in the data.")
 
         # Check if the score_col exists in the dataframe, if not, add it with a default value of 1
         if self.score_col not in mutation_data.columns:
-            logging.warning(
-                f"Score column '{self.score_col}' not found in the data. Setting score to 1."
-            )
+            logging.warning(f"Score column '{self.score_col}' not found in the data. Setting score to 1.")
             mutation_data[self.score_col] = 1
 
         variant_objs = [
@@ -285,62 +261,47 @@ class MutantVisualizer:
                 mutant_string=row[self.key_col],
                 sequences=self.designable_sequences,
             )
-            for _, row in mutation_data.loc[~(mutation_data[self.key_col].str.contains(r'WT|wt'))].iterrows()
+            for _, row in mutation_data.loc[~(mutation_data[self.key_col].str.contains(r"WT|wt"))].iterrows()
         ]
 
         # margician stays highest priority.
         if self.magician.gimmick is not None:
-            logging.info(f'Using designer for parallel scoring: {self.magician.gimmick.name}')
-            self.magician.gimmick.parallel_scorer(
-                variant_objs, nproc=self.nproc
-            )
+            logging.info(f"Using designer for parallel scoring: {self.magician.gimmick.name}")
+            self.magician.gimmick.parallel_scorer(variant_objs, nproc=self.nproc)
 
             self.mutant_tree.update_tree_with_new_branches(
-                {
-                    self.group_name: {
-                        mutant_obj.short_mutant_id: mutant_obj
-                        for mutant_obj in variant_objs
-                    }
-                }
+                {self.group_name: {mutant_obj.short_mutant_id: mutant_obj for mutant_obj in variant_objs}}
             )
 
         # the profile scoring is a bit more complicated if the mutant contains multiple substitutions.
         # so we have to igore it here.
         elif (
-            all(
-                len(variant_obj.mutations) == 1 for variant_obj in variant_objs
-            )
+            all(len(variant_obj.mutations) == 1 for variant_obj in variant_objs)
             and self.profile_scoring_df is not None
             and (not self.profile_scoring_df.empty)
         ):
-            logging.info('Using profile scoring for single substitution mutants.')
+            logging.info("Using profile scoring for single substitution mutants.")
             for variant_obj in variant_objs:
                 _score = self.profile_scoring_df.loc[
                     variant_obj.mutations[0].mut_res,
                     str(variant_obj.mutations[0].position - 1),
                 ]
-                logging.debug(
-                    f"Reading profile score for variant DMS table {variant_obj.short_mutant_id}: {_score}"
-                )
+                logging.debug(f"Reading profile score for variant DMS table {variant_obj.short_mutant_id}: {_score}")
                 variant_obj.mutant_score = float(_score)  # type: ignore
-                self.mutant_tree.add_mutant_to_branch(
-                    self.group_name, variant_obj.short_mutant_id, variant_obj
-                )
+                self.mutant_tree.add_mutant_to_branch(self.group_name, variant_obj.short_mutant_id, variant_obj)
 
         else:
-            logging.info(
-                f"Reading profile score for CSV mutant table: Mutant: {self.key_col}, Score: {self.score_col}"
-            )
+            logging.info(f"Reading profile score for CSV mutant table: Mutant: {self.key_col}, Score: {self.score_col}")
             use_col_id = self.group_name in mutation_data.columns
             logging.debug(f"Using {self.group_name} as group name label: {use_col_id}")
             # read wt record from the mutation data
-            _df_wt = mutation_data.loc[mutation_data[self.key_col].str.contains(r'WT|wt')]
+            _df_wt = mutation_data.loc[mutation_data[self.key_col].str.contains(r"WT|wt")]
 
             # use mean score of wt tests as the default wt score for all mutants or none
             _wt_score = _df_wt[self.score_col].mean(0) if not _df_wt.empty else None
 
             # non wt variants
-            df_non_wt = mutation_data.loc[~(mutation_data[self.key_col].str.contains(r'WT|wt'))]
+            df_non_wt = mutation_data.loc[~(mutation_data[self.key_col].str.contains(r"WT|wt"))]
 
             for _, row in df_non_wt.iterrows():
                 variant_obj = extract_mutants_from_mutant_id(
@@ -356,11 +317,7 @@ class MutantVisualizer:
                     variant_obj.wt_score = _wt_score
 
                 variant_obj.mutant_score = float(_score)  # type: ignore
-                self.mutant_tree.add_mutant_to_branch(
-                    _group_name,
-                    variant_obj.short_mutant_id,
-                    variant_obj
-                )
+                self.mutant_tree.add_mutant_to_branch(_group_name, variant_obj.short_mutant_id, variant_obj)
 
         logging.debug(f"Mutant tree: {self.mutant_tree}")
 
@@ -404,10 +361,7 @@ class MutantVisualizer:
         - After executing mutagenesis tasks, it performs merging sessions via command line.
         """
 
-        if any(
-            not (m.pdb_fp and os.path.isfile(m.pdb_fp))
-            for m in self.mutant_tree.all_mutant_objects
-        ):
+        if any(not (m.pdb_fp and os.path.isfile(m.pdb_fp)) for m in self.mutant_tree.all_mutant_objects):
             logging.warning(
                 f"re-compute sidechain for {self.mutant_tree.branch_num}: {self.mutant_tree.mutant_num} MutantTree."
             )
@@ -471,9 +425,7 @@ class MutantVisualizer:
 
         merge_results = run_command(cmd=tmp_merge_command)
         if merge_results.returncode == 0:
-            logging.info(
-                f"Temperal merged result is successfully created at {merged_temp_session}"
-            )
+            logging.info(f"Temperal merged result is successfully created at {merged_temp_session}")
             os.rename(merged_temp_session, self.save_session)
         else:
             warnings.warn(

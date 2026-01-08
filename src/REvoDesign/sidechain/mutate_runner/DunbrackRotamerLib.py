@@ -1,14 +1,14 @@
-'''
+"""
 Wrapper for PyMOL-buildin Dunbrack Rotamer Library and mutagenesis wizard.
 
-'''
+"""
 
 import os
 
 from Bio.Data import IUPACData
 from joblib import Parallel, delayed
 
-from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import ROOT_LOGGER
 
@@ -76,9 +76,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
             p.cmd.reinitialize()
             p.cmd.load(self.input_session, object=self.molecule)
             p.cmd.hide("surface")
-            logging.debug(
-                f"creating {new_obj_name=} copyed from  {self.molecule=}: {p.cmd.get_names()=}"
-            )
+            logging.debug(f"creating {new_obj_name=} copyed from  {self.molecule=}: {p.cmd.get_names()=}")
 
             p.cmd.create(new_obj_name, self.molecule, quiet=0)
 
@@ -86,9 +84,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
             for mut_info in mutant.mutations:
 
-                new_residue_3 = IUPACData.protein_letters_1to3[
-                    mut_info.mut_res
-                ].upper()
+                new_residue_3 = IUPACData.protein_letters_1to3[mut_info.mut_res].upper()
 
                 # a variant from rotkit mutate function that uses pymol2 context manager
                 # http://www.pymolwiki.org/index.php/rotkit
@@ -106,9 +102,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
         return temp_mutant_path
 
-    def run_mutate_parallel(
-        self, mutants: list[Mutant], nproc: int = 2
-    ) -> list[str]:
+    def run_mutate_parallel(self, mutants: list[Mutant], nproc: int = 2) -> list[str]:
         """
         Perform mutation on the protein in parallel.
 
@@ -121,9 +115,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
         - List of paths to the mutated PDB files
         """
 
-        results = Parallel(n_jobs=nproc, return_as="list")(
-            delayed(self.run_mutate)(mutant) for mutant in mutants
-        )
+        results = Parallel(n_jobs=nproc, return_as="list")(delayed(self.run_mutate)(mutant) for mutant in mutants)
         return list(results)  # type: ignore
 
     # https://www.bruot.org/ris2bib/

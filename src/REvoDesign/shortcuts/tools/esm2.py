@@ -1,6 +1,7 @@
-'''
+"""
 ESM-1v variant predict
-'''
+"""
+
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 #
 # This source code is licensed under the MIT license found in the
@@ -18,7 +19,7 @@ from immutabledict import immutabledict
 from tqdm import tqdm
 
 from REvoDesign import issues
-from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
+from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.download_registry import FileDownloadRegistry
 from REvoDesign.tools.utils import get_cited, require_installed
@@ -30,7 +31,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 ESM1V_SCORING_STRATEGY_T = Literal["wt-marginals", "pseudo-ppl", "masked-marginals"]
 
-ESM_MODEL_BASE_URL = 'https://dl.fbaipublicfiles.com/fair-esm/models'
+ESM_MODEL_BASE_URL = "https://dl.fbaipublicfiles.com/fair-esm/models"
 
 ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
     {
@@ -40,29 +41,27 @@ ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
         "esm-1v_4": "esm1v_t33_650M_UR90S_4",
         "esm-1v_5": "esm1v_t33_650M_UR90S_5",
         "msa-1b": "esm_msa1b_t12_100M_UR50S",
-        "esm-2": "esm2_t36_3B_UR50D"
+        "esm-2": "esm2_t36_3B_UR50D",
     }
 )
 
 ESM1V_WEIGHTS = FileDownloadRegistry(
-    name="ESM2",
-    base_url=ESM_MODEL_BASE_URL,
-    registry={f'{v}.pt': None for v in ESM1V_MODEL_DICT.values()}
+    name="ESM2", base_url=ESM_MODEL_BASE_URL, registry={f"{v}.pt": None for v in ESM1V_MODEL_DICT.values()}
 )
 
 
 def list_all_esm_variant_predict_model_names() -> list[str]:
-    '''
+    """
     List all ESM-1v variant predict model names.
 
     Returns:
         list[str]: List of ESM-1v variant predict model names
-    '''
+    """
     return ESM1V_WEIGHTS.list_all_files
 
 
 def remove_insertions(sequence: str) -> str:
-    """ Removes any insertions into the sequence. Needed to load aligned sequences in an MSA. """
+    """Removes any insertions into the sequence. Needed to load aligned sequences in an MSA."""
     # This is an efficient way to delete lowercase characters and insertion characters from a string
     deletekeys = dict.fromkeys(string.ascii_lowercase)
     deletekeys["."] = None
@@ -73,7 +72,7 @@ def remove_insertions(sequence: str) -> str:
 
 
 def read_msa(filename: str, nseq: int) -> list[tuple[str, str]]:
-    """ Reads the first nseq sequences from an MSA file, automatically removes insertions.
+    """Reads the first nseq sequences from an MSA file, automatically removes insertions.
 
     The input file must be in a3m format (although we use the SeqIO fasta parser)
     for remove_insertions to work properly."""
@@ -100,24 +99,24 @@ def label_row(row, sequence, token_probs, alphabet, offset_idx):
 @require_installed
 class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
     name: str = "esm1v"
-    installed: bool = is_package_installed('esm2')
+    installed: bool = is_package_installed("esm2")
 
     # skipcq: PYL-W0231
     def __init__(
-            self,
-            model_names: list[str],
-            sequence: str,
-            dms_output: str,
-            checkpoint_dir: str | None = None,
-            skip_wt: bool = True,
-            mutation_col: str = 'mutation',
-            offset_idx: int = 0,
-            scoring_strategy: ESM1V_SCORING_STRATEGY_T = "wt-marginals",
-            msa_path: str | None = None,
-            msa_samples: int = 400,
-            device: str = 'cpu',
+        self,
+        model_names: list[str],
+        sequence: str,
+        dms_output: str,
+        checkpoint_dir: str | None = None,
+        skip_wt: bool = True,
+        mutation_col: str = "mutation",
+        offset_idx: int = 0,
+        scoring_strategy: ESM1V_SCORING_STRATEGY_T = "wt-marginals",
+        msa_path: str | None = None,
+        msa_samples: int = 400,
+        device: str = "cpu",
     ):
-        '''
+        """
         Initialize Deep Mutation Scan for ESM-1v
         Args:
             model_location: PyTorch model file OR name of pretrained model to download (see README for models)
@@ -130,7 +129,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
             msa_path: path to MSA in a3m format (required for MSA Transformer)
             msa_samples: number of sequences to select from the start of the MSA
 
-        '''
+        """
         self.model_names = model_names
         self.checkpoint_dir = checkpoint_dir
         self.sequence = sequence
@@ -146,27 +145,31 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
         os.makedirs(os.path.dirname(self.dms_output), exist_ok=True)
 
     def generate_dms_list(self) -> pd.DataFrame:
-        '''
+        """
         Generate Deep Mutation Scan list for ESM-1v.
 
         Returns:
             pd.DataFrame: Deep Mutation Scan list for ESM-1v
-        '''
+        """
 
         alphabet = "ARNDCQEGHILKMFPSTWYV"
         if self.skip_wt:
             df_dms = pd.DataFrame(
                 [
-                    f'{self.sequence[idx]}{idx + 1}{mut}'
+                    f"{self.sequence[idx]}{idx + 1}{mut}"
                     for idx, mut in itertools.product(range(0, len(self.sequence)), alphabet)
                     if self.sequence[idx] != mut
-                ], columns=[self.mutation_col])
+                ],
+                columns=[self.mutation_col],
+            )
         else:
             df_dms = pd.DataFrame(
                 [
-                    f'{self.sequence[idx]}{idx + 1}{mut}'
+                    f"{self.sequence[idx]}{idx + 1}{mut}"
                     for idx, mut in itertools.product(range(0, len(self.sequence)), alphabet)
-                ], columns=[self.mutation_col])
+                ],
+                columns=[self.mutation_col],
+            )
         return df_dms
 
     def _resolve_model_weight(self, model_name: str):
@@ -192,14 +195,15 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
             # Verify that the checkpoint directory exists and contains the specified model file
             if not (os.path.isdir(self.checkpoint_dir) and os.path.isfile(expected_model_path)):
                 raise issues.ConfigureError(
-                    'Checkpoint directory is expected to be existing and containing model checkpoint file.'
-                    'If you dont have model checkpoint file, please keep it as blank.')
+                    "Checkpoint directory is expected to be existing and containing model checkpoint file."
+                    "If you dont have model checkpoint file, please keep it as blank."
+                )
 
             logging.info(f"Loading model from {expected_model_path=}")
             return expected_model_path
 
         # Download model from remote server
-        logging.info(f'Fetching model {model_name=} from {ESM1V_WEIGHTS.base_url}')
+        logging.info(f"Fetching model {model_name=} from {ESM1V_WEIGHTS.base_url}")
         return ESM1V_WEIGHTS.setup(model_name).downloaded
 
     @get_cited
@@ -235,9 +239,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                     batch_tokens_masked = batch_tokens.clone()
                     batch_tokens_masked[0, 0, i] = alphabet.mask_idx  # mask out first sequence
                     with torch.no_grad():
-                        token_probs = torch.log_softmax(
-                            model(batch_tokens_masked.to(self.device))["logits"], dim=-1
-                        )
+                        token_probs = torch.log_softmax(model(batch_tokens_masked.to(self.device))["logits"], dim=-1)
                     all_token_probs.append(token_probs[:, 0, i])  # vocab size
                 token_probs = torch.cat(all_token_probs, dim=0).unsqueeze(0)
                 df[model_name] = df.apply(
@@ -306,7 +308,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
             raise ValueError("The listed wildtype does not match the provided sequence")
 
         # modify the sequence
-        sequence = sequence[:idx] + mt + sequence[(idx + 1):]
+        sequence = sequence[:idx] + mt + sequence[(idx + 1) :]
 
         # encode the sequence
         data = [
@@ -330,7 +332,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
         return sum(log_probs)
 
     __bibtex__ = {
-        'ESM': """@article{rives2019biological,
+        "ESM": """@article{rives2019biological,
   author={Rives, Alexander and Meier, Joshua and Sercu, Tom and Goyal, Siddharth and Lin, Zeming and Liu, Jason and Guo, Demi and Ott, Myle and Zitnick, C. Lawrence and Ma, Jerry and Fergus, Rob},
   title={Biological Structure and Function Emerge from Scaling Unsupervised Learning to 250 Million Protein Sequences},
   year={2019},
@@ -338,7 +340,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
   url={https://www.biorxiv.org/content/10.1101/622803v4},
   journal={PNAS}
 }""",
-        'ESM-1v': """@article{meier2021language,
+        "ESM-1v": """@article{meier2021language,
   author = {Meier, Joshua and Rao, Roshan and Verkuil, Robert and Liu, Jason and Sercu, Tom and Rives, Alexander},
   title = {Language models enable zero-shot prediction of the effects of mutations on protein function},
   year={2021},
@@ -346,7 +348,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
   url={https://www.biorxiv.org/content/10.1101/2021.07.09.450648v1},
   journal={bioRxiv}
 }""",
-        'MSA Transformer': """@article{rao2021msa,
+        "MSA Transformer": """@article{rao2021msa,
   author = {Rao, Roshan and Liu, Jason and Verkuil, Robert and Meier, Joshua and Canny, John F. and Abbeel, Pieter and Sercu, Tom and Rives, Alexander},
   title={MSA Transformer},
   year={2021},
@@ -354,29 +356,28 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
   url={https://www.biorxiv.org/content/10.1101/2021.02.12.430858v1},
   journal={bioRxiv}
 }""",
-        'ESM-2': """@article{lin2022language,
+        "ESM-2": """@article{lin2022language,
   title={Language models of protein sequences at the scale of evolution enable accurate structure prediction},
   author={Lin, Zeming and Akin, Halil and Rao, Roshan and Hie, Brian and Zhu, Zhongkai and Lu, Wenting and Smetanin, Nikita and dos Santos Costa, Allan and Fazel-Zarandi, Maryam and Sercu, Tom and Candido, Sal and others},
   journal={bioRxiv},
   year={2022},
   publisher={Cold Spring Harbor Laboratory}
-}"""
-
+}""",
     }
 
 
 def shortcut_esm1v(
-        model_names: list[str],
-        sequence: str,
-        dms_output: str,
-        checkpoint_dir: str | None = None,
-        skip_wt: bool = True,
-        mutation_col: str = 'mutation',
-        offset_idx: int = 0,
-        scoring_strategy: ESM1V_SCORING_STRATEGY_T = "wt-marginals",
-        msa_path: str | None = None,
-        msa_samples: int = 400,
-        device: str = 'cpu',
+    model_names: list[str],
+    sequence: str,
+    dms_output: str,
+    checkpoint_dir: str | None = None,
+    skip_wt: bool = True,
+    mutation_col: str = "mutation",
+    offset_idx: int = 0,
+    scoring_strategy: ESM1V_SCORING_STRATEGY_T = "wt-marginals",
+    msa_path: str | None = None,
+    msa_samples: int = 400,
+    device: str = "cpu",
 ):
     predictor = Esm1v(
         model_names=model_names,

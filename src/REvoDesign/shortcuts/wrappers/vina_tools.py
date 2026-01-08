@@ -1,10 +1,8 @@
-'''
+"""
 Shortcut wrappers of vina-related structure manipulation
-'''
+"""
 
-
-from REvoDesign.shortcuts.tools.vina_tools import (box_helper, get_pca_box,
-                                                   getbox, rmhet)
+from REvoDesign.shortcuts.tools.vina_tools import box_helper, get_pca_box, getbox, rmhet
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 
 # Create registry for vina

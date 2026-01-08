@@ -1,0 +1,5 @@
+[
+    {"code":"eng-eng","name": "English", "action": "actionEnglish"},
+    {"code":"eng-chs","name": "中文", "action": "actionChinese"},
+    {"code":"eng-fr","name": "français", "action": "actionFrench"}
+]

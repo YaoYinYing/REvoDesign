@@ -1,6 +1,6 @@
-'''
+"""
 Module for managing mutant trees.
-'''
+"""
 
 from collections.abc import Mapping
 from typing import Optional, Protocol, TypedDict, Union
@@ -19,13 +19,9 @@ class MutantDict(TypedDict):
 
 
 class MutateRunner(Protocol):
-    def run_mutate_parallel(
-        self, mutants: list[Mutant], nproc: int = 2
-    ) -> list[str]: ...
+    def run_mutate_parallel(self, mutants: list[Mutant], nproc: int = 2) -> list[str]: ...
 
-    def mutated_pdb_mapping(
-        self, mutant_tree: "MutantTree", pdb_fps: list[str]
-    ) -> "MutantTree": ...
+    def mutated_pdb_mapping(self, mutant_tree: "MutantTree", pdb_fps: list[str]) -> "MutantTree": ...
 
     def cite(self) -> None: ...
 
@@ -70,11 +66,7 @@ class MutantTree:
 
     @property
     def all_mutants(self) -> list[tuple[str, Mutant]]:
-        return [
-            mutant
-            for branch_id in self.mutant_tree.keys()
-            for mutant in self.mutant_tree[branch_id].items()
-        ]
+        return [mutant for branch_id in self.mutant_tree.keys() for mutant in self.mutant_tree[branch_id].items()]
 
     @property
     def all_mutant_ids(self) -> list[str]:
@@ -180,9 +172,7 @@ class MutantTree:
         try:
             return self.mutant_tree[branch_id]
         except KeyError as e:
-            raise issues.InvalidInputError(
-                f"Branch ID {branch_id} not found in the tree."
-            ) from e
+            raise issues.InvalidInputError(f"Branch ID {branch_id} not found in the tree.") from e
 
     def search_a_branch(self, branch_kw) -> list:
         """
@@ -233,9 +223,7 @@ class MutantTree:
         result = tree.is_the_mutant_the_last_in_branch('branch_id', 'mutant_id')
         """
         return (
-            list(self.mutant_tree[branch_id].keys())[
-                self.get_mutant_index_in_branch(branch_id, mutant_id)
-            ]
+            list(self.mutant_tree[branch_id].keys())[self.get_mutant_index_in_branch(branch_id, mutant_id)]
             == list(self.mutant_tree[branch_id].keys())[-1]
         )
 
@@ -255,14 +243,10 @@ class MutantTree:
         for branch in self.all_mutant_branch_ids:
             if not self.is_this_branch_empty(branch):
                 self.current_branch_id = branch
-                self.current_mutant_id = list(
-                    self.mutant_tree[self.current_branch_id].keys()
-                )[0]
+                self.current_mutant_id = list(self.mutant_tree[self.current_branch_id].keys())[0]
                 return
 
-    def update_tree_with_new_branches(
-        self, new_branches: Union[dict[str, dict[str, Mutant]], "MutantTree"]
-    ) -> None:
+    def update_tree_with_new_branches(self, new_branches: Union[dict[str, dict[str, Mutant]], "MutantTree"]) -> None:
         """
         Update the MutantTree object with new branches.
 
@@ -282,9 +266,7 @@ class MutantTree:
 
         self.refresh_mutants()
 
-    def add_mutant_to_branch(
-        self, branch: str, mutant: str, mutant_obj: Mutant
-    ) -> None:
+    def add_mutant_to_branch(self, branch: str, mutant: str, mutant_obj: Mutant) -> None:
         """
         Adds a mutant to a specific branch in the MutantTree object.
 
@@ -319,9 +301,7 @@ class MutantTree:
         if mutant in self.mutant_tree[branch].keys():
             self.mutant_tree[branch].pop(mutant)
         else:
-            print(
-                f"Mutant {mutant} does not exist in this branch and there's no need to remove it."
-            )
+            print(f"Mutant {mutant} does not exist in this branch and there's no need to remove it.")
 
         if self.is_this_branch_empty(branch):
             self.mutant_tree.pop(branch)
@@ -358,9 +338,7 @@ class MutantTree:
         new_tree_instance = MutantTree(new_mutant_tree)
         return new_tree_instance
 
-    def jump_to_the_best_mutant_in_branch(
-        self, branch_id: str, ascending_order: bool = False
-    ):
+    def jump_to_the_best_mutant_in_branch(self, branch_id: str, ascending_order: bool = False):
         """
         Jumps to the best mutant in a specific branch based on scores.
 
@@ -372,17 +350,12 @@ class MutantTree:
         Usage:
         tree.jump_to_the_best_mutant_in_branch('branch_id')
         """
-        self.current_mutant_id = self._jump_to_the_best_mutant_in_branch(
-            branch_id, ascending_order
-        )
+        self.current_mutant_id = self._jump_to_the_best_mutant_in_branch(branch_id, ascending_order)
 
     # internal function that returns instead of changes the current stored values
-    def _jump_to_the_best_mutant_in_branch(
-        self, branch_id: str, ascending_order: bool = False
-    ):
+    def _jump_to_the_best_mutant_in_branch(self, branch_id: str, ascending_order: bool = False):
         mutants_scores = {
-            mutant_id: mutant_obj.mutant_score
-            for mutant_id, mutant_obj in self.mutant_tree[branch_id].items()
+            mutant_id: mutant_obj.mutant_score for mutant_id, mutant_obj in self.mutant_tree[branch_id].items()
         }
         sorted_mutants_scores = sorted(
             mutants_scores.items(),
@@ -419,56 +392,36 @@ class MutantTree:
         last_mutant_id = self.current_mutant_id
 
         branch_index = self.get_branch_index(last_branch_id)
-        mutant_index = self.get_mutant_index_in_branch(
-            last_branch_id, last_mutant_id
-        )
+        mutant_index = self.get_mutant_index_in_branch(last_branch_id, last_mutant_id)
 
         if walk_forward:
-            if not self.is_the_mutant_the_last_in_branch(
-                last_branch_id, last_mutant_id
-            ):
+            if not self.is_the_mutant_the_last_in_branch(last_branch_id, last_mutant_id):
                 # Walk to the next mutant in the current branch
                 current_branch_id = last_branch_id
-                current_mutant_id = list(
-                    self.mutant_tree[last_branch_id].keys()
-                )[mutant_index + 1]
+                current_mutant_id = list(self.mutant_tree[last_branch_id].keys())[mutant_index + 1]
             else:
                 if branch_index < len(self.all_mutant_branch_ids) - 1:
                     # Move to the next branch
-                    current_branch_id = self.all_mutant_branch_ids[
-                        branch_index + 1
-                    ]
-                    current_mutant_id = list(
-                        self.mutant_tree[last_branch_id].keys()
-                    )[0]
+                    current_branch_id = self.all_mutant_branch_ids[branch_index + 1]
+                    current_mutant_id = list(self.mutant_tree[last_branch_id].keys())[0]
                 else:
                     # Reached the end of the tree, wrap around to the beginning
                     current_branch_id = self.all_mutant_branch_ids[0]
-                    current_mutant_id = list(
-                        self.mutant_tree[current_branch_id].keys()
-                    )[0]
+                    current_mutant_id = list(self.mutant_tree[current_branch_id].keys())[0]
         else:
             if mutant_index > 0:
                 # Walk to the previous mutant in the current branch
                 current_branch_id = last_branch_id
-                current_mutant_id = list(
-                    self.mutant_tree[last_branch_id].keys()
-                )[mutant_index - 1]
+                current_mutant_id = list(self.mutant_tree[last_branch_id].keys())[mutant_index - 1]
             else:
                 if branch_index > 0:
                     # Move to the previous branch
-                    current_branch_id = self.all_mutant_branch_ids[
-                        branch_index - 1
-                    ]
-                    current_mutant_id = list(
-                        self.mutant_tree[current_branch_id].keys()
-                    )[-1]
+                    current_branch_id = self.all_mutant_branch_ids[branch_index - 1]
+                    current_mutant_id = list(self.mutant_tree[current_branch_id].keys())[-1]
                 else:
                     # Reached the beginning of the tree, wrap around to the end
                     current_branch_id = self.all_mutant_branch_ids[-1]
-                    current_mutant_id = list(
-                        self.mutant_tree[current_branch_id].keys()
-                    )[-1]
+                    current_mutant_id = list(self.mutant_tree[current_branch_id].keys())[-1]
         return (
             current_branch_id,
             current_mutant_id,
@@ -492,9 +445,7 @@ class MutantTree:
             return
 
         self.current_branch_id = branch_id
-        self.current_mutant_id = list(
-            self.mutant_tree[self.current_branch_id].keys()
-        )[0]
+        self.current_mutant_id = list(self.mutant_tree[self.current_branch_id].keys())[0]
 
     def list_mutants(self) -> list[MutantDict]:
         if self.empty:
@@ -507,14 +458,10 @@ class MutantTree:
                 "mutant_obj": mutant_obj,
             }
             for branch_id in self.all_mutant_branch_ids
-            for mutant_id, mutant_obj in self.get_a_branch(
-                branch_id=branch_id
-            ).items()
+            for mutant_id, mutant_obj in self.get_a_branch(branch_id=branch_id).items()
         ]
 
-    def diff_tree_from(
-        self, incoming_tree: "MutantTree"
-    ) -> Optional["MutantTree"]:
+    def diff_tree_from(self, incoming_tree: "MutantTree") -> Optional["MutantTree"]:
         """
         Compares two MutantTree objects and returns the differences as a new MutantTree.
 
@@ -537,24 +484,16 @@ class MutantTree:
         for branch_id in self.all_mutant_branch_ids:
             if branch_id not in incoming_tree.all_mutant_branch_ids:
                 # Branch exists in self but not in other_tree
-                diff_tree.update_tree_with_new_branches(
-                    {branch_id: self.get_a_branch(branch_id)}
-                )
+                diff_tree.update_tree_with_new_branches({branch_id: self.get_a_branch(branch_id)})
             else:
                 # Branch exists in both trees, compare branch contents
                 self_branch = self.get_a_branch(branch_id)
                 incoming_tree_branch = incoming_tree.get_a_branch(branch_id)
 
-                diff_branch_contents = {
-                    k: v
-                    for k, v in self_branch.items()
-                    if k not in incoming_tree_branch
-                }
+                diff_branch_contents = {k: v for k, v in self_branch.items() if k not in incoming_tree_branch}
 
                 if diff_branch_contents:
-                    diff_tree.update_tree_with_new_branches(
-                        {branch_id: diff_branch_contents}
-                    )
+                    diff_tree.update_tree_with_new_branches({branch_id: diff_branch_contents})
 
         return diff_tree if not diff_tree.empty else None
 
@@ -575,9 +514,7 @@ class MutantTree:
         last_branch_id = self.all_mutant_branch_ids[-1]
 
         # Get the last mutant ID and object from the last branch
-        last_mutant_id, last_mutant = list(
-            self.mutant_tree[last_branch_id].items()
-        )[-1]
+        last_mutant_id, last_mutant = list(self.mutant_tree[last_branch_id].items())[-1]
 
         # Remove the last mutant from the branch
         self.remove_mutant_from_branch(last_branch_id, last_mutant_id)
@@ -595,13 +532,7 @@ class MutantTree:
         """
 
         tmp_mutant_obj = Mutant(
-            mutations=squeeze(
-                [
-                    _mut_info
-                    for _mut_obj in self.all_mutant_objects
-                    for _mut_info in _mut_obj.mutations
-                ]
-            ),
+            mutations=squeeze([_mut_info for _mut_obj in self.all_mutant_objects for _mut_info in _mut_obj.mutations]),
             wt_protein_sequence=self.all_mutant_objects[0].wt_protein_sequence,
         )
         return tmp_mutant_obj
@@ -610,16 +541,10 @@ class MutantTree:
         self,
         mutate_runner: MutateRunner,
         nproc: int = 2,
-    ) -> 'MutantTree':
-        with joblib_progress(
-            "Packing ...", total=len(self.all_mutant_objects)
-        ):
-            all_mutants_pdb_fp = mutate_runner.run_mutate_parallel(
-                mutants=self.all_mutant_objects, nproc=nproc
-            )
+    ) -> "MutantTree":
+        with joblib_progress("Packing ...", total=len(self.all_mutant_objects)):
+            all_mutants_pdb_fp = mutate_runner.run_mutate_parallel(mutants=self.all_mutant_objects, nproc=nproc)
 
-        updated_self = mutate_runner.mutated_pdb_mapping(
-            mutant_tree=self, pdb_fps=all_mutants_pdb_fp
-        )
+        updated_self = mutate_runner.mutated_pdb_mapping(mutant_tree=self, pdb_fps=all_mutants_pdb_fp)
         mutate_runner.cite()
         return updated_self

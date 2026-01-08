@@ -1,12 +1,8 @@
-
 from pymol import cmd
 
 
 def visualize_hydrophobic_hydrophilic(
-    pdb_id: str | None = None,
-    remove_hoh: bool = True,
-    rezoom: bool = True,
-    reorient: bool = True
+    pdb_id: str | None = None, remove_hoh: bool = True, rezoom: bool = True, reorient: bool = True
 ):
     """
     Visualize the hydrophobic and hydrophilic regions of a protein structure in PyMOL.
@@ -62,10 +58,7 @@ def visualize_hydrophobic_hydrophilic(
 
 
 def visualize_cartoon_settings(
-    pdb_id: str | None = None,
-    remove_hoh: bool = True,
-    rezoom: bool = True,
-    reorient: bool = True
+    pdb_id: str | None = None, remove_hoh: bool = True, rezoom: bool = True, reorient: bool = True
 ):
     """
     Visualize protein structure with enhanced cartoon settings and rendering options in PyMOL.
@@ -118,10 +111,7 @@ def visualize_cartoon_settings(
 
 
 def visualize_cartoon_loops(
-    pdb_id: str | None = None,
-    remove_hoh: bool = True,
-    rezoom: bool = True,
-    reorient: bool = True
+    pdb_id: str | None = None, remove_hoh: bool = True, rezoom: bool = True, reorient: bool = True
 ):
     """
     Visualize protein cartoon loops with enhanced settings and spectrum coloring in PyMOL.

@@ -1,6 +1,7 @@
-'''
+"""
 pytest configuration
-'''
+"""
+
 from __future__ import annotations
 
 import gc
@@ -14,6 +15,7 @@ from dataclasses import dataclass
 from typing import Literal
 from unittest.mock import MagicMock, patch
 
+# import hydra as unmocked_hydra
 import psutil
 import pytest
 from _pytest.nodes import Item
@@ -24,34 +26,46 @@ from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
 
 from REvoDesign import REvoDesignPlugin
-from REvoDesign.basic.abc_singleton import SingletonAbstract, reset_singletons
+from REvoDesign.basic.abc_singleton import reset_singletons
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
-from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
+from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
 from REvoDesign.common import MutantTree
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.Qt import QtCore, QtWidgets
-from REvoDesign.tools.customized_widgets import (get_widget_value,
-                                                 set_widget_value)
-from REvoDesign.tools.package_manager import (LiveProcessResult,
-                                              REvoDesignPackageManager,
-                                              refresh_window)
+from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
+from REvoDesign.tools.package_manager import REvoDesignPackageManager, refresh_window
 
 from .data import TestData
 from .data.test_data import KeyData
 
-os.environ["PYTEST_QT_API"] = "pyqt5"
+REPO_DIR = os.path.join(os.path.dirname(__file__), "..")
 
-TAB_NAMES = Literal["prepare", "mutate", "evaluate", "cluster", "visualize", "interact", "socket", "config"]
+# mostly mock on data and cache to isolated from user's production system
+TEST_ROOT = os.path.abspath(".")
+DATA_DIRNAME = os.path.join(TEST_ROOT, "mock", "user_data", "REvoDesign")
+CACHE_DIRNAME = os.path.join(TEST_ROOT, "..", "tests", "downloaded", "cache")
 
-repo_dir = os.path.join(os.path.dirname(__file__), '..')
+EXPECTED_MAIN_CONFIG_FILE = os.path.join(DATA_DIRNAME, "config", "main.yaml")
+os.makedirs(DATA_DIRNAME, exist_ok=True)
+os.makedirs(CACHE_DIRNAME, exist_ok=True)
 
 
-def pytest_collection_modifyitems(items: list[Item]):
-    for item in items:
-        if "spark" in item.nodeid:
-            item.add_marker(pytest.mark.spark)
-        elif "_int_" in item.nodeid:
-            item.add_marker(pytest.mark.integration)
+def copy_config_tree():
+    print("copy config tree to mock user data")
+    shutil.copytree(
+        src=os.path.join(os.path.abspath(".."), "src/REvoDesign/config"),
+        dst=os.path.dirname(EXPECTED_MAIN_CONFIG_FILE),
+        dirs_exist_ok=True,
+    )
+
+
+# simplified initialization
+copy_config_tree()
+
+# # initialize hydra before importing REvoDesign
+# unmocked_hydra.initialize_config_dir(
+#     version_base=None, config_dir=os.path.dirname(EXPECTED_MAIN_CONFIG_FILE), job_name="REvoDesign"
+# )
 
 
 class Counter:
@@ -62,6 +76,69 @@ class Counter:
     def i(self):
         self.count += 1
         return self.count
+
+
+# cck=Counter()
+
+
+def check_real_config_dir(i: int):
+    """
+    A checkpoint to check whether the test suite has created the real config dir.
+    """
+    the_dir = "/Users/yyy/Library/Application Support/REvoDesign/config"
+    if os.path.exists(the_dir):
+        raise RuntimeError(f"[{i}]The test suite has created this dir! {the_dir}")
+
+
+# check_real_config_dir(cck.i)
+
+# TODO: isolate from user's system by mocking the platformdirs module.
+
+# def _static_platform_dir(dirname: str):
+#     def _impl(*args, **kwargs):
+#         if not os.path.exists(dirname):
+#             os.makedirs(dirname)
+#         return dirname
+
+#     return _impl
+
+
+# platformdirs.user_data_dir = _static_platform_dir(DATA_DIRNAME)
+# platformdirs.user_cache_dir = _static_platform_dir(CACHE_DIRNAME)
+
+
+# check_real_config_dir(cck.i)
+# with (
+
+#         # main.yaml not exists
+#         patch("REvoDesign.bootstrap.set_config.os.path.isfile", return_value=False),
+
+#         # configure dir not exists
+#         patch("REvoDesign.bootstrap.set_config.os.path.isdir", return_value=False)
+#     ):
+
+
+# check_real_config_dir(cck.i)
+main_config = set_REvoDesign_config_file()
+# check_real_config_dir(cck.i)
+
+
+# check_real_config_dir(cck.i)
+
+# check_real_config_dir(cck.i)
+
+
+os.environ["PYTEST_QT_API"] = "pyqt5"
+
+TAB_NAMES = Literal["prepare", "mutate", "evaluate", "cluster", "visualize", "interact", "socket", "config"]
+
+
+def pytest_collection_modifyitems(items: list[Item]):
+    for item in items:
+        if "spark" in item.nodeid:
+            item.add_marker(pytest.mark.spark)
+        elif "_int_" in item.nodeid:
+            item.add_marker(pytest.mark.integration)
 
 
 @pytest.fixture
@@ -79,8 +156,10 @@ def app():
 
 
 @pytest.fixture(scope="function")
-def plugin(qtbot: qtbot.QtBot, app):
+def plugin(qtbot: qtbot.QtBot, app, patch_config_user_data, patch_config_user_cache):
     # Create and return an instance of the REvoDesignPlugin
+
+    # check_real_config_dir() # failed
 
     cmd.reinitialize()
 
@@ -89,42 +168,53 @@ def plugin(qtbot: qtbot.QtBot, app):
     # reset all singleton classes
 
     gc.collect()
+    # check_real_config_dir() # passed
 
     plugin = REvoDesignPlugin()
 
     if plugin.window:
         plugin.reinitialize()
+
+    # check_real_config_dir() # passed
     plugin = REvoDesignPlugin()
+
+    # check_real_config_dir() # passed
+
     plugin.run_plugin_gui()
 
-    qtbot.addWidget(
-        plugin.window
-    )  # Add the plugin's main window to qtbot for automatic cleanup
+    # check_real_config_dir()
+
+    qtbot.addWidget(plugin.window)  # Add the plugin's main window to qtbot for automatic cleanup
     return plugin
 
 
 def mock_fetch_json(url):
-    d = json.load(open(os.path.join(repo_dir, 'jsons', 'REvoDesignExtrasTableRich.json')))
-    if 'notification' in d:
+    d = json.load(open(os.path.join(REPO_DIR, "jsons", "REvoDesignExtrasTableRich.json")))
+    if "notification" in d:
         warnings.warn(UserWarning(f'These notification lines will be removed: {d["notification"]}'))
-        del d['notification']
+        del d["notification"]
     return d
 
 
 @pytest.fixture(scope="function")
 def pm_plugin(qtbot: qtbot.QtBot) -> REvoDesignPackageManager:
 
-    with patch('REvoDesign.tools.package_manager.notify_box', side_effect=lambda *args, **kargs: None) as mock_notify_box, \
-            patch('REvoDesign.tools.package_manager.fetch_gist_json', side_effect=mock_fetch_json) as mock_fetch_gist_json, \
-            patch('REvoDesign.tools.package_manager.get_github_repo_tags', side_effect=lambda repo_url: ['1.0.0', '1.0.1', '1.0.2']) as mock_notify_box:
+    with (
+        patch(
+            "REvoDesign.tools.package_manager.notify_box", side_effect=lambda *args, **kargs: None
+        ) as mock_notify_box,
+        patch("REvoDesign.tools.package_manager.fetch_gist_json", side_effect=mock_fetch_json) as mock_fetch_gist_json,
+        patch(
+            "REvoDesign.tools.package_manager.get_github_repo_tags",
+            side_effect=lambda repo_url: ["1.0.0", "1.0.1", "1.0.2"],
+        ) as mock_notify_box,
+    ):
 
         plugin = REvoDesignPackageManager()
         plugin.run_plugin_gui()
-        plugin.dialog.lineEdit_local.setText(repo_dir)
+        plugin.dialog.lineEdit_local.setText(REPO_DIR)
 
-        qtbot.addWidget(
-            plugin.dialog
-        )
+        qtbot.addWidget(plugin.dialog)
         return plugin
 
 
@@ -143,12 +233,15 @@ class PmTestWorker:
         basename: str = "default",
     ):
         png_file = self.qtbot.screenshot(widget=widget)
-        moved_file = os.rename(
-            png_file, os.path.join(self.SCREENSHOT_DIR, f"{basename}.png")
-        )
+        moved_file = os.rename(png_file, os.path.join(self.SCREENSHOT_DIR, f"{basename}.png"))
         return moved_file
 
-    def _click(self, widget: QtWidgets.QWidget, cursor, times: int = 1, ):  # type: ignore
+    def _click(
+        self,
+        widget: QtWidgets.QWidget,
+        cursor,
+        times: int = 1,
+    ):  # type: ignore
         if isinstance(widget, QtWidgets.QAction):
             for t in range(times):
                 widget.trigger()
@@ -160,7 +253,11 @@ class PmTestWorker:
             self.sleep(100)
         return self
 
-    def click(self, widget: QtWidgets.QWidget, times: int = 1,):
+    def click(
+        self,
+        widget: QtWidgets.QWidget,
+        times: int = 1,
+    ):
         return self._click(widget, QtCore.Qt.MouseButton.LeftButton, times)
 
     def rclick(self, widget: QtWidgets.QWidget, times: int = 1):
@@ -171,9 +268,7 @@ class PmTestWorker:
             self.qtbot.wait(i * 10)
             refresh_window()
 
-    def do_typing(
-        self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False  # type: ignore
-    ):
+    def do_typing(self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False):  # type: ignore
         set_widget_value(widget=widget, value="")
         # if text is short enough or in strict mode
         # type one after another
@@ -202,13 +297,12 @@ class TestWorker:
         self.test_id = "default"
         self.qtbot = qtbot
         self.plugin = plugin
-        self.qtbot.addWidget(
-            self.plugin.window
-        )  # Add the plugin's main window to qtbot for automatic cleanup
+        self.qtbot.addWidget(self.plugin.window)  # Add the plugin's main window to qtbot for automatic cleanup
 
-        self.tab_widget_mapping: immutabledict[
-            TAB_NAMES, QtWidgets.QWidget  # type: ignore
-        ] = immutabledict(
+        # a shadow reset is necessary to avoid any side effect
+        self.main_config = set_REvoDesign_config_file()
+
+        self.tab_widget_mapping: immutabledict[TAB_NAMES, QtWidgets.QWidget] = immutabledict(  # type: ignore
             {
                 "prepare": self.plugin.ui.tab_prepare,
                 "mutate": self.plugin.ui.tab_mutate,
@@ -232,13 +326,9 @@ class TestWorker:
             "MACBOOKPRO": bool(os.environ.get("PROTEIN_DESIGN_KIT")),
         }
 
-        self.is_in_ci_runner = self.in_which_runner.get(
-            "CIRCLECI"
-        ) or self.in_which_runner.get("GITHUB")
+        self.is_in_ci_runner = self.in_which_runner.get("CIRCLECI") or self.in_which_runner.get("GITHUB")
 
-        self.SKIP_PYMOL_PNG = bool(
-            int(os.environ.get("RD_TEST_SKIP_PYMOL_PNG", 0))
-        )
+        self.SKIP_PYMOL_PNG = bool(int(os.environ.get("RD_TEST_SKIP_PYMOL_PNG", 0)))
 
         self.c = Counter()
 
@@ -253,29 +343,21 @@ class TestWorker:
 
         # test data directories.
         self.DOWNLOAD_DIR = os.path.abspath("../tests/downloaded")
-        self.EXPANDED_DIR = os.path.abspath(
-            "../tests/expanded_compressed_files"
-        )
+        self.EXPANDED_DIR = os.path.abspath("../tests/expanded_compressed_files")
 
         # test results directories
-        self.SCREENSHOT_DIR = os.path.join(os.path.abspath("."), "screenshots")
-        self.PYMOL_PNG_DIR = os.path.join(
-            os.path.abspath("."), "pymol_screenshots"
-        )
+        self.SCREENSHOT_DIR = os.path.join(TEST_DIR, "screenshots")
+        self.PYMOL_PNG_DIR = os.path.join(TEST_DIR, "pymol_screenshots")
 
-        self.EXPERIMENT_DIR = os.path.join(os.path.abspath("."), "experiments")
+        self.EXPERIMENT_DIR = os.path.join(TEST_DIR, "experiments")
 
-        self.ANALYSIS_DIR = os.path.join(os.path.abspath("."), "analysis")
-        self.POCKET_DIR = os.path.join(os.path.abspath("."), "pockets")
-        self.SURFACE_DIR = os.path.join(
-            os.path.abspath("."), "surface_residue_records"
-        )
-        self.MUTAGENESIS_DIR = os.path.join(os.path.abspath("."), "mutagenese")
+        self.ANALYSIS_DIR = os.path.join(TEST_DIR, "analysis")
+        self.POCKET_DIR = os.path.join(TEST_DIR, "pockets")
+        self.SURFACE_DIR = os.path.join(TEST_DIR, "surface_residue_records")
+        self.MUTAGENESIS_DIR = os.path.join(TEST_DIR, "mutagenese")
 
         # performance checks
-        self.PERFORMANCE_DIR = os.path.join(
-            os.path.abspath("."), "performance"
-        )
+        self.PERFORMANCE_DIR = os.path.join(TEST_DIR, "performance")
 
         dirs = {
             self.DOWNLOAD_DIR,
@@ -291,16 +373,14 @@ class TestWorker:
         }
         [os.makedirs(dir, exist_ok=True) for dir in dirs]
 
-    def pse_snapshot(self, custom_name: str = 'none') -> str:
+    def pse_snapshot(self, custom_name: str = "none") -> str:
         time_stamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
-        os.makedirs(os.path.join(self.ANALYSIS_DIR, 'snap'), exist_ok=True)
-        snapshot_pze = os.path.join(self.ANALYSIS_DIR, 'snap', f'{self.test_id}_{time_stamp}_{custom_name}.pze')
+        os.makedirs(os.path.join(self.ANALYSIS_DIR, "snap"), exist_ok=True)
+        snapshot_pze = os.path.join(self.ANALYSIS_DIR, "snap", f"{self.test_id}_{time_stamp}_{custom_name}.pze")
         cmd.save(snapshot_pze)
         return snapshot_pze
 
-    def _fetch_pdb(
-        self, pdb_code: str | None = None, spell: str | None = None
-    ):
+    def _fetch_pdb(self, pdb_code: str | None = None, spell: str | None = None):
         if not pdb_code:
             pdb_code = self.test_data.molecule
         if not spell:
@@ -336,10 +416,7 @@ class TestWorker:
         self.sleep(100)
         nproc = get_widget_value(self.plugin.ui.spinBox_nproc)
         print(f"nproc: {nproc}")
-        if (
-            self.in_which_runner.get("CIRCLECI")
-            and nproc > self.test_data.nproc_circleci
-        ):
+        if self.in_which_runner.get("CIRCLECI") and nproc > self.test_data.nproc_circleci:
             print(
                 f"Fix nproc to reduce performance for CircleCI: {nproc} {os.cpu_count()}-> {self.test_data.nproc_circleci}"
             )
@@ -368,18 +445,12 @@ class TestWorker:
         if not experiment_name:
             experiment_name = self.test_id
 
-        new_cfg_file = os.path.join(
-            self.EXPERIMENT_DIR, f"{experiment_name}.yaml"
-        )
+        new_cfg_file = os.path.join(self.EXPERIMENT_DIR, f"{experiment_name}.yaml")
         new_cfg_base_name: str = os.path.basename(new_cfg_file)
         new_cfg_prefix = experiment_name
-        experiment_file = os.path.join(
-            EXPERIMENTS_CONFIG_DIR, new_cfg_base_name
-        )
+        experiment_file = os.path.join(EXPERIMENTS_CONFIG_DIR, new_cfg_base_name)
+        self.plugin.bus.cfg_group["main"].save_as(experiment_file)
 
-        self.plugin.save_configuration_from_ui(
-            experiment=f"experiments/{new_cfg_prefix}"
-        )
         # hydra has already saved config into EXPERIMENTS_CONFIG_DIR, copy to user defined config file path
         shutil.copy(experiment_file, new_cfg_file)
         print(f"saved config at {new_cfg_file}, backup at {experiment_file}")
@@ -399,9 +470,7 @@ class TestWorker:
     def sleep(self, time=1000):
         self.qtbot.wait(time)
 
-    def do_typing(
-        self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False  # type: ignore
-    ):
+    def do_typing(self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False):  # type: ignore
         set_widget_value(widget=widget, value="")
         # if text is short enough or in strict mode
         # type one after another
@@ -416,9 +485,7 @@ class TestWorker:
         self.qtbot.keyClicks(widget, _t)
         self.sleep(100)
 
-    def _navigate_to_tab(
-        self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget  # type: ignore
-    ):
+    def _navigate_to_tab(self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget):  # type: ignore
         tab.setCurrentWidget(page)
 
     def go_to_tab(self, tab_name: TAB_NAMES):
@@ -429,39 +496,22 @@ class TestWorker:
         self.sleep(5)
 
     def check_designable_sequences(self):
-        assert self.plugin.designable_sequences is not None, 'Designable sequences are not loaded to the plugin.'
+        assert self.plugin.designable_sequences is not None, "Designable sequences are not loaded to the plugin."
         assert self.plugin.bus.get_value(
-            "designable_sequences", reject_none=True), 'Designable sequences are not in Configuration.'
+            "designable_sequences", dict, reject_none=True, cfg="runtime"
+        ), "Designable sequences are not in Configuration."
 
     def check_molecule_after_loaded(self, molecule: str | None = None):
         if molecule and isinstance(molecule, str):
-            assert (
-                self.plugin.bus.get_value("ui.header_panel.input.molecule")
-                == molecule
-            )
-            assert (
-                get_widget_value(self.plugin.ui.comboBox_design_molecule)
-                == molecule
-            )
+            assert self.plugin.bus.get_value("ui.header_panel.input.molecule", str) == molecule
+            assert get_widget_value(self.plugin.ui.comboBox_design_molecule) == molecule
             return
-
-        # assert (
-        #     self.plugin.bus.get_value("ui.header_panel.input.molecule")
-        #     in self.test_data.used_molecules
-        # )
-
-        # assert (
-        #     get_widget_value(self.plugin.ui.comboBox_design_molecule)
-        #     in self.test_data.used_molecules
-        # )
 
     @property
     def existed_mutant_tree(self) -> MutantTree:
         from REvoDesign.tools.mutant_tools import existed_mutant_tree
 
-        self.mutant_tree: MutantTree = existed_mutant_tree(
-            sequences=self.plugin.designable_sequences, enabled_only=0
-        )
+        self.mutant_tree: MutantTree = existed_mutant_tree(sequences=self.plugin.designable_sequences, enabled_only=0)
         print(self.mutant_tree)
 
         return self.mutant_tree
@@ -510,9 +560,7 @@ class TestWorker:
         dist_dir = os.path.dirname(dist_file)
         if not os.path.isdir(dist_dir):
             os.makedirs(dist_dir)
-        moved_file = os.rename(
-            png_file, dist_file
-        )
+        moved_file = os.rename(png_file, dist_file)
         return moved_file
 
     def save_pymol_png(
@@ -528,9 +576,7 @@ class TestWorker:
             warnings.warn("Skip PyMOL png because CI runner is detected")
             return
         if self.SKIP_PYMOL_PNG:
-            warnings.warn(
-                f"Skip PyMOL png because an environment variable is set: {self.SKIP_PYMOL_PNG=}"
-            )
+            warnings.warn(f"Skip PyMOL png because an environment variable is set: {self.SKIP_PYMOL_PNG=}")
             return
 
         if spells:
@@ -544,9 +590,7 @@ class TestWorker:
 
         cmd.png(png_file, dpi=dpi, ray=use_ray)
 
-    def wait_for_file(
-        self, file: str, interval: int = 100, timeout: float = 61.0
-    ) -> bool:
+    def wait_for_file(self, file: str, interval: int = 100, timeout: float = 61.0) -> bool:
         started_moment = time.perf_counter()
         while True:
             self.qtbot.wait(interval)
@@ -554,9 +598,7 @@ class TestWorker:
                 return True
             check_moment = time.perf_counter()
             if check_moment - started_moment > timeout:
-                raise TimeoutError(
-                    f"File {file} is not available within timeout limit ({timeout} sec)."
-                )
+                raise TimeoutError(f"File {file} is not available within timeout limit ({timeout} sec).")
 
     def performace_report(self):
         # print("Performance report...")
@@ -570,18 +612,21 @@ class TestWorker:
     def print_all_mem(self):
         p = psutil.Process()
         procs = [p] + p.children(recursive=True)
-        mem_count_file = os.path.join(
-            "performance", f"ram_usage_{self.run_time}.log"
-        )
+        mem_count_file = os.path.join("performance", f"ram_usage_{self.run_time}.log")
         with open(mem_count_file, "w") as mc:
             mc.write("\n".join([self.print_mem(p) for p in procs]))
 
     def inject_rosetta_node_config(self, node_hint: NodeHintT):
-        self.plugin.bus.set_value('rosetta.node_hint', node_hint or 'native')
+        self.plugin.bus.set_value("rosetta.node_hint", node_hint or "native")
 
     def teardown(self):
+        # check_real_config_dir()
         self.performace_report()
         self.plugin.reinitialize()
+
+        # shadow reset again to avoild downstream side effects
+        # do not deep reset(delete config files)
+        set_REvoDesign_config_file()
         cmd.reinitialize()
 
         reset_singletons()
@@ -589,12 +634,33 @@ class TestWorker:
         gc.collect()
 
 
+# fixtures to patch user cache/data dir are still required
+
+
+@pytest.fixture
+def patch_config_user_cache():
+    os.makedirs(CACHE_DIRNAME, exist_ok=True)
+
+    with patch("REvoDesign.bootstrap.set_config.user_cache_dir", return_value=CACHE_DIRNAME) as mock_user_cache_dir:
+        yield mock_user_cache_dir
+
+
+@pytest.fixture
+def patch_config_user_data():
+    os.makedirs(DATA_DIRNAME, exist_ok=True)
+    with patch("REvoDesign.bootstrap.set_config.user_data_dir", return_value=DATA_DIRNAME) as mock_user_cache_dir:
+        yield mock_user_cache_dir
+
+
 @pytest.fixture
 def test_worker(
     qtbot: qtbot.QtBot,
     plugin,
     request,
+    patch_config_user_data,
+    patch_config_user_cache,
 ):
+
     w = TestWorker(qtbot, plugin)
 
     def final_action():
@@ -622,6 +688,7 @@ def pm_test_worker(
 @pytest.fixture(scope="session")
 def KeyDataDuringTests():
     return KeyData()
+
 
 # mocks on qt widgets
 
@@ -852,9 +919,7 @@ def mock_lcd_number():
             return _value
 
         mock_lcd.display.side_effect = _display
-        mock_lcd.value.side_effect = (
-            _value_method  # Assuming value() returns the displayed value
-        )
+        mock_lcd.value.side_effect = _value_method  # Assuming value() returns the displayed value
 
         return mock_lcd
 
@@ -868,6 +933,7 @@ def test_tmp_dir():
 
 
 # rosetta test configuration from RosettaPy
+
 
 def has_native_rosetta():
     import subprocess
@@ -916,7 +982,7 @@ def test_node_hint(request):
 
 
 def chech_memory_available():
-    return psutil.virtual_memory().available / (1024 ** 3)
+    return psutil.virtual_memory().available / (1024**3)
 
 
 MEMORY_AVAILABLE_GB = chech_memory_available()
@@ -924,12 +990,11 @@ MEMORY_AVAILABLE_GB = chech_memory_available()
 
 def fetch_node_config_from_hint(node_hint: NodeHintT):
     # fetch node config according to node_hint
-    node_config = ConfigConverter.convert(reload_config_file(
-        f'rosetta-node/{node_hint}')['rosetta-node']['node_config'])
+    node_config = ConfigConverter.convert(
+        reload_config_file(f"rosetta-node/{node_hint}")["rosetta-node"]["node_config"]
+    )
 
-    warnings.warn(RuntimeWarning(
-        f"Using rosetta-node/{test_node_hint} as node config: {node_config}"
-    ))
+    warnings.warn(RuntimeWarning(f"Using rosetta-node/{test_node_hint} as node config: {node_config}"))
     return node_config
 
 
@@ -949,9 +1014,9 @@ def mock_rosetta_node_config(test_node_hint):
         node_config: The mocked node configuration dictionary
     """
     # real test node inject
-    ConfigBus().set_value('rosetta.node_hint', test_node_hint)
+    ConfigBus().set_value("rosetta.node_hint", test_node_hint)
 
-    with patch('REvoDesign.tools.rosetta_utils.read_rosetta_node_config') as mock_read_rosetta_node_config:
+    with patch("REvoDesign.tools.rosetta_utils.read_rosetta_node_config") as mock_read_rosetta_node_config:
 
         node_config = fetch_node_config_from_hint(test_node_hint)
         mock_read_rosetta_node_config.return_value = node_config

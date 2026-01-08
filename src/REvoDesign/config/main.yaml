@@ -1,5 +1,5 @@
 # This is the configuration of REvoDesign program.
-# A copy of `src/REvoDesign/config/revodesign/global_config.yaml` will be created inside `<user_data_dir>/REvoDesign/config/` 
+# A copy of `src/REvoDesign/config/main.yaml` will be created inside `<user_data_dir>/REvoDesign/config/` 
 # to perform customized configurations while REvoDesign is called at the very first time.
 # Click menu-File-Reconfigure to apply changes from this copy. 
 
@@ -169,67 +169,8 @@ rosetta:
       nstruct: 4
     iterations: 3
 
-# TODO: move to a separate config file `openmm`
-openmmsetup:
-  host: '127.0.0.1'
-  port: 5050
 
 
-# register all variables here
-# TODO: dynamic variables loading and saving
-# TODO: load preset variables on bootstrap
-# TODO: move to a separate config file `environ`
-environment:
-  variables:
-    # ROSETTA_BIN: /Users/yyy/rosetta/rosetta_binary/rosetta.source.release-371/main/source/bin/
-
-# TODO: move to a separate config file `logger`
-log:
-  version: 1
-  disable_existing_loggers: true
-  formatters:
-    simple:
-      format: '%(message)s'
-      datefmt: '%Y-%m-%dT%H:%M:%S%z'
-    json:
-      fmt_keys:
-        level: levelname
-        message: message
-        timestamp: timestamp
-        logger: name
-        module: module
-        function: funcName
-        line: lineno
-        thread_name: threadName
-  handlers:
-    stdout:
-      class: logging.StreamHandler
-      level: INFO
-      formatter: simple
-      stream: ext://sys.stdout
-    stderr:
-      class: logging.StreamHandler
-      level: DEBUG
-      formatter: simple
-      stream: ext://sys.stderr
-    file:
-      class: logging.handlers.RotatingFileHandler
-      level: DEBUG
-      formatter: json
-      filename: AUTO
-      maxBytes: 1000_000
-      backupCount: 10
-    notebook:
-      class: logging.handlers.RotatingFileHandler
-      level: WARNING
-      formatter: json
-      filename: AUTO
-      maxBytes: 1000_000
-      backupCount: 30
-
-  loggers:
-    root:
-      level: DEBUG
 
 
 cache_dir:
@@ -237,5 +178,3 @@ cache_dir:
   under_home_dir: True
   customized: 
 
-# TODO: move to a separate config file `runtime`
-designable_sequences: 

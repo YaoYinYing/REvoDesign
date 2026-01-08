@@ -1,35 +1,37 @@
 import matplotlib
 import numpy as np
 
-from REvoDesign.basic import ThirdPartyModuleAbstract
+from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.utils import require_installed
 
-matplotlib.use('Qt5Agg')
+matplotlib.use("Qt5Agg")
 
 
 @require_installed
 class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
-    '''
+    """
     This Class helps to reproduce the Extended Data Fig. 6E of the RFdiffusion paper.
 
-    '''
-    name: str = 'SubstratePotentialVisualizer'
-    installed: bool = is_package_installed('rfdiffusion')
+    """
+
+    name: str = "SubstratePotentialVisualizer"
+    installed: bool = is_package_installed("rfdiffusion")
 
     def __init__(
-            self,
-            pdb_path,
-            lig_key,
-            blur: bool = False,
-            weight: float = 1,
-            r_0: float = 8,
-            d_0: float = 2,
-            s: float = 1,
-            eps: float = 1e-6,
-            rep_r_0: float = 5,
-            rep_s: float = 2,
-            rep_r_min: float = 1):
+        self,
+        pdb_path,
+        lig_key,
+        blur: bool = False,
+        weight: float = 1,
+        r_0: float = 8,
+        d_0: float = 2,
+        s: float = 1,
+        eps: float = 1e-6,
+        rep_r_0: float = 5,
+        rep_s: float = 2,
+        rep_r_min: float = 1,
+    ):
         """
         Initializes the SubstratePotentialVisualizer.
 
@@ -129,8 +131,14 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         self.ligand_coords, self.ligand_bonds, self.ligand_elements = self.load_ligand()
         self.align_to_principal_axes()
         self.potential_calculator = substrate_contacts(
-            weight=self.weight, r_0=self.r_0, d_0=self.d_0, s=self.s,
-            eps=self.eps, rep_r_0=self.rep_r_0, rep_s=self.rep_s, rep_r_min=self.rep_r_min
+            weight=self.weight,
+            r_0=self.r_0,
+            d_0=self.d_0,
+            s=self.s,
+            eps=self.eps,
+            rep_r_0=self.rep_r_0,
+            rep_s=self.rep_s,
+            rep_r_min=self.rep_r_min,
         )
 
     def load_ligand(self):
@@ -191,7 +199,7 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
             potential_field = gaussian_filter(potential_field, sigma=5)
         return X, Y, potential_field
 
-    def plot_potential_field(self, grid_size=200, margin=10, save_to: str = 'default.png'):
+    def plot_potential_field(self, grid_size=200, margin=10, save_to: str = "default.png"):
         """
         Plots the substrate potential field with overlaid ligand atoms and bonds.
 
@@ -209,13 +217,20 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         X, Y, P = self.compute_potential_field(grid_size=grid_size, margin=margin)
 
         plt.figure(figsize=(8, 6))
-        cp = plt.imshow(P, extent=[X.min(), X.max(), Y.min(), Y.max()], origin='lower', cmap="bwr_r", alpha=0.8)
+        cp = plt.imshow(P, extent=[X.min(), X.max(), Y.min(), Y.max()], origin="lower", cmap="bwr_r", alpha=0.8)
 
         # Define atom colors
         color_map = {
-            "C": "orange", "N": "cyan", "O": "white", "H": "white",
-            "S": "yellow", "P": "orange", "F": "lime", "Cl": "lime",
-            "Br": "lime", "I": "lime"
+            "C": "orange",
+            "N": "cyan",
+            "O": "white",
+            "H": "white",
+            "S": "yellow",
+            "P": "orange",
+            "F": "lime",
+            "Cl": "lime",
+            "Br": "lime",
+            "I": "lime",
         }
         default_color = "black"
 
@@ -235,19 +250,20 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
             coord1 = self.ligand_coords[atom1]
             coord2 = self.ligand_coords[atom2]
 
-            plt.plot([coord1[0], coord2[0]], [coord1[1], coord2[1]], color='black', linewidth=bond_type * 2, zorder=2)
+            plt.plot([coord1[0], coord2[0]], [coord1[1], coord2[1]], color="black", linewidth=bond_type * 2, zorder=2)
 
         # Remove axis labels
         plt.xticks([])
         plt.yticks([])
 
         # Adjust colorbar
-        cbar = plt.colorbar(cp, orientation='horizontal', pad=0.1)
+        cbar = plt.colorbar(cp, orientation="horizontal", pad=0.1)
         cbar.set_label("Potential", fontsize=12)
         cbar.set_ticks([-9, -6, -3, 0, 3])
 
         # plt.show()
-        plt.savefig(save_to, dpi=300, bbox_inches='tight')
+        plt.savefig(save_to, dpi=300, bbox_inches="tight")
+
 
 # # Example usage:
 # visualizer = SubstratePotentialVisualizer(

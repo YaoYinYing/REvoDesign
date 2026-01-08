@@ -55,7 +55,7 @@ class MonacoEditorManager:
 
         # Fetch available tags
         tags = get_github_repo_tags("https://github.com/microsoft/monaco-editor")
-        tags = [tag for tag in tags if not ("rc" in tag or 'dev' in tag)]
+        tags = [tag for tag in tags if not ("rc" in tag or "dev" in tag)]
         logging.info(f"Available Monaco Editor tags: {tags}")
 
         if self.version == "latest":
@@ -95,9 +95,7 @@ class MonacoEditorManager:
         down_registry = FileDownloadRegistry(
             name="monaco-editor",
             base_url=cdn_base_url,
-            registry={
-                f'monaco-editor-{version}.tgz': None
-            },
+            registry={f"monaco-editor-{version}.tgz": None},
             version=version,
             customized_directory=self.editor_path,
             # https://github.com/amio/npm-mirrors/blob/master/index.js
@@ -105,15 +103,14 @@ class MonacoEditorManager:
                 "https://skimdb.npmjs.com/registry/monaco-editor/-/",
                 "https://r.cnpmjs.org/monaco-editor/-/",
                 "https://registry.npm.taobao.org/monaco-editor/-/",
-                "https://registry.yarnpkg.com/monaco-editor/-/"
-
-            ]
+                "https://registry.yarnpkg.com/monaco-editor/-/",
+            ],
         )
 
         # Download tarball
         try:
             logging.info(f"Downloading tarball from {down_registry}")
-            downloaded_file: DownloadedFile = down_registry.setup(f'monaco-editor-{version}.tgz')
+            downloaded_file: DownloadedFile = down_registry.setup(f"monaco-editor-{version}.tgz")
         except issues.NetworkError as e:
             logging.error(f"Error downloading tarball: {e}, cleaning up...")
             # os.remove(tarball_path)
@@ -185,7 +182,7 @@ def edit_file_with_monaco(file_path: str):
     config_store = ConfigStore()
 
     # Step 2: Ensure the server is running
-    server_monitor = StoresWidget().server_switches['Editor_Backend']
+    server_monitor = StoresWidget().server_switches["Editor_Backend"]
     logging.info(f"Server launch status: {server_monitor.controller.is_running}")
     if not server_monitor.controller.is_running:
         server_monitor._start_server()
@@ -197,12 +194,12 @@ def edit_file_with_monaco(file_path: str):
     logging.info(f"Validated file path: {file_path}")
 
     # Step 4: Construct the editor URL
-    use_ssl = config_store.get('editor.backend.use_ssl', default=False)
+    use_ssl = config_store.get("editor.backend.use_ssl", default=False)
     protocol = "https" if use_ssl else "http"
-    host = config_store.get('editor.backend.host')
-    port = config_store.get('editor.backend.port')
-    token = config_store.get('editor.token', default=None)
-    no_token = config_store.get('editor.backend.no_token', default=False)
+    host = config_store.get("editor.backend.host")
+    port = config_store.get("editor.backend.port")
+    token = config_store.get("editor.token", default=None)
+    no_token = config_store.get("editor.backend.no_token", default=False)
 
     # Build the editor URL
     base_url = f"{protocol}://{host}:{port}"
@@ -234,9 +231,9 @@ def menu_edit_file(file_path):
     )
     if not has_monaco:
         notify_box(
-            message='Monaco Editor is not available. Please check your network connection '
-            'or set `https_proxy` as environment variables (Menu->Edit->Environment Variables->Add) and try again.',
-            error_type=issues.DependencyError
+            message="Monaco Editor is not available. Please check your network connection "
+            "or set `https_proxy` as environment variables (Menu->Edit->Environment Variables->Add) and try again.",
+            error_type=issues.DependencyError,
         )
 
     # Edit the file using Monaco Editor

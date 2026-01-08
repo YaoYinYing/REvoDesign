@@ -2,69 +2,59 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from REvoDesign.tools.download_registry import (DownloadedFile,
-                                                FileDownloadRegistry)
+from REvoDesign.tools.download_registry import DownloadedFile, FileDownloadRegistry
 
 
 class TestFileDownloadRegistry:
     """Test cases for FileDownloadRegistry class"""
 
-    @pytest.mark.parametrize("a_string, hash_type, expected", [
-        ("md5:abc123", "md5", "md5:abc123"),
-        ("abc123", "md5", "md5:abc123"),
-        (None, "md5", None),
-        ("", "md5", None),
-        ("sha256:def456", "md5", "sha256:def456"),
-    ])
+    @pytest.mark.parametrize(
+        "a_string, hash_type, expected",
+        [
+            ("md5:abc123", "md5", "md5:abc123"),
+            ("abc123", "md5", "md5:abc123"),
+            (None, "md5", None),
+            ("", "md5", None),
+            ("sha256:def456", "md5", "sha256:def456"),
+        ],
+    )
     def test_complete_varify_string(self, a_string, hash_type, expected):
         """Test _complete_varify_string method with various inputs"""
         result = FileDownloadRegistry._complete_varify_string(a_string, hash_type)
         assert result == expected
 
-    @pytest.mark.parametrize("registry, expected", [
-        (
-            {"file1.txt": "md5:abc123", "file2.txt": "def456"},
-            {"file1.txt": "md5:abc123", "file2.txt": "md5:def456"}
-        ),
-        (
-            {"file1.txt": None, "file2.txt": ""},
-            {"file1.txt": None, "file2.txt": None}
-        ),
-        (
-            {"file1.txt": "sha256:abc123"},
-            {"file1.txt": "sha256:abc123"}
-        ),
-    ])
+    @pytest.mark.parametrize(
+        "registry, expected",
+        [
+            (
+                {"file1.txt": "md5:abc123", "file2.txt": "def456"},
+                {"file1.txt": "md5:abc123", "file2.txt": "md5:def456"},
+            ),
+            ({"file1.txt": None, "file2.txt": ""}, {"file1.txt": None, "file2.txt": None}),
+            ({"file1.txt": "sha256:abc123"}, {"file1.txt": "sha256:abc123"}),
+        ],
+    )
     def test_preprocess_registry(self, registry, expected):
         """Test preprocess_registry method with various registry inputs"""
         result = FileDownloadRegistry.preprocess_registry(registry)
         assert result == expected
 
-    @pytest.mark.parametrize("md5_contents, expected", [
-        (
-            "abc123 file1.txt\ndef456 file2.txt",
-            {"file1.txt": "md5:abc123", "file2.txt": "md5:def456"}
-        ),
-        (
-            "abc123 file1.txt\n\ndef456 file2.txt",
-            {"file1.txt": "md5:abc123", "file2.txt": "md5:def456"}
-        ),
-        (
-            "malformed-line\nabc123 file1.txt",
-            {"file1.txt": "md5:abc123"}
-        ),
-        (
-            "",
-            {}
-        ),
-    ])
+    @pytest.mark.parametrize(
+        "md5_contents, expected",
+        [
+            ("abc123 file1.txt\ndef456 file2.txt", {"file1.txt": "md5:abc123", "file2.txt": "md5:def456"}),
+            ("abc123 file1.txt\n\ndef456 file2.txt", {"file1.txt": "md5:abc123", "file2.txt": "md5:def456"}),
+            ("malformed-line\nabc123 file1.txt", {"file1.txt": "md5:abc123"}),
+            ("", {}),
+        ],
+    )
     def test_prepare_registry_from_md5(self, md5_contents, expected):
         """Test prepare_registry_from_md5 method with various MD5 content inputs"""
         result = FileDownloadRegistry.prepare_registry_from_md5(md5_contents)
         assert result == expected
 
-    @patch('REvoDesign.tools.download_registry.user_data_dir')
-    @patch('REvoDesign.tools.download_registry.pooch.create')
+    @patch("REvoDesign.tools.download_registry.user_data_dir")
+    @patch("REvoDesign.tools.download_registry.pooch.create")
     def test_init_with_custom_directory(self, mock_pooch_create, mock_user_data_dir):
         """Test FileDownloadRegistry initialization with custom directory"""
         mock_user_data_dir.return_value = "/default/path"
@@ -74,7 +64,7 @@ class TestFileDownloadRegistry:
             base_url="http://example.com",
             registry={"file.txt": "md5:abc123"},
             version="1.0",
-            customized_directory="/custom/path"
+            customized_directory="/custom/path",
         )
 
         assert registry.name == "test_module"
@@ -89,17 +79,14 @@ class TestFileDownloadRegistry:
             retry_if_failed=5,
         )
 
-    @patch('REvoDesign.tools.download_registry.user_data_dir')
-    @patch('REvoDesign.tools.download_registry.pooch.create')
+    @patch("REvoDesign.tools.download_registry.user_data_dir")
+    @patch("REvoDesign.tools.download_registry.pooch.create")
     def test_init_without_custom_directory(self, mock_pooch_create, mock_user_data_dir):
         """Test FileDownloadRegistry initialization without custom directory"""
         mock_user_data_dir.return_value = "/default/path"
 
         registry = FileDownloadRegistry(
-            name="test_module",
-            base_url="http://example.com",
-            registry={"file.txt": "md5:abc123"},
-            version="1.0"
+            name="test_module", base_url="http://example.com", registry={"file.txt": "md5:abc123"}, version="1.0"
         )
 
         assert registry.customized_directory == "/default/path"
@@ -111,12 +98,15 @@ class TestFileDownloadRegistry:
             retry_if_failed=5,
         )
 
-    @pytest.mark.parametrize("item, registry_files, expected", [
-        ("file1.txt", ["file1.txt", "file2.txt"], True),
-        ("file3.txt", ["file1.txt", "file2.txt"], False),
-    ])
-    @patch('REvoDesign.tools.download_registry.user_data_dir')
-    @patch('REvoDesign.tools.download_registry.pooch.create')
+    @pytest.mark.parametrize(
+        "item, registry_files, expected",
+        [
+            ("file1.txt", ["file1.txt", "file2.txt"], True),
+            ("file3.txt", ["file1.txt", "file2.txt"], False),
+        ],
+    )
+    @patch("REvoDesign.tools.download_registry.user_data_dir")
+    @patch("REvoDesign.tools.download_registry.pooch.create")
     def test_has_method(self, mock_pooch_create, mock_user_data_dir, item, registry_files, expected):
         """Test has method to check if file exists in registry"""
         mock_user_data_dir.return_value = "/default/path"
@@ -132,8 +122,8 @@ class TestFileDownloadRegistry:
 
         assert registry.has(item) == expected
 
-    @patch('REvoDesign.tools.download_registry.user_data_dir')
-    @patch('REvoDesign.tools.download_registry.pooch.create')
+    @patch("REvoDesign.tools.download_registry.user_data_dir")
+    @patch("REvoDesign.tools.download_registry.pooch.create")
     def test_list_all_files(self, mock_pooch_create, mock_user_data_dir):
         """Test list_all_files property"""
         mock_user_data_dir.return_value = "/default/path"
@@ -149,8 +139,8 @@ class TestFileDownloadRegistry:
 
         assert registry.list_all_files == ["file1.txt", "file2.txt"]
 
-    @patch('REvoDesign.tools.download_registry.user_data_dir')
-    @patch('REvoDesign.tools.download_registry.pooch.create')
+    @patch("REvoDesign.tools.download_registry.user_data_dir")
+    @patch("REvoDesign.tools.download_registry.pooch.create")
     def test_setup_success(self, mock_pooch_create, mock_user_data_dir):
         """Test setup method for successful file download"""
         mock_user_data_dir.return_value = "/default/path"
@@ -175,8 +165,8 @@ class TestFileDownloadRegistry:
         assert result.registry == "md5:abc123"
         mock_pooch.fetch.assert_called_once_with("file.txt", progressbar=True)
 
-    @patch('REvoDesign.tools.download_registry.user_data_dir')
-    @patch('REvoDesign.tools.download_registry.pooch.create')
+    @patch("REvoDesign.tools.download_registry.user_data_dir")
+    @patch("REvoDesign.tools.download_registry.pooch.create")
     def test_setup_failure(self, mock_pooch_create, mock_user_data_dir):
         """Test setup method when file download fails"""
         mock_user_data_dir.return_value = "/default/path"
@@ -204,7 +194,7 @@ class TestDownloadedFile:
             version="1.0",
             url="http://example.com/test.txt",
             downloaded=f"{test_tmp_dir}/test.txt",
-            registry="md5:abc123"
+            registry="md5:abc123",
         )
 
         assert downloaded_file.name == "test.txt"
@@ -213,15 +203,12 @@ class TestDownloadedFile:
         assert downloaded_file.downloaded == f"{test_tmp_dir}/test.txt"
         assert downloaded_file.registry == "md5:abc123"
 
-    @patch('REvoDesign.tools.download_registry.os.makedirs')
-    @patch('REvoDesign.tools.download_registry.os.listdir')
+    @patch("REvoDesign.tools.download_registry.os.makedirs")
+    @patch("REvoDesign.tools.download_registry.os.listdir")
     def test_flatten_dir(self, mock_listdir, mock_makedirs, test_tmp_dir):
         """Test flatten_dir property"""
         downloaded_file = DownloadedFile(
-            name="test.txt",
-            version="1.0",
-            url="http://example.com/test.txt",
-            downloaded=f"{test_tmp_dir}/test.txt"
+            name="test.txt", version="1.0", url="http://example.com/test.txt", downloaded=f"{test_tmp_dir}/test.txt"
         )
 
         mock_listdir.return_value = []
@@ -231,22 +218,19 @@ class TestDownloadedFile:
         assert flatten_dir == expected_dir
         mock_makedirs.assert_called_once_with(expected_dir, exist_ok=True)
 
-    @patch('REvoDesign.tools.download_registry.extract_archive')
-    @patch('REvoDesign.tools.download_registry.os.listdir')
+    @patch("REvoDesign.tools.download_registry.extract_archive")
+    @patch("REvoDesign.tools.download_registry.os.listdir")
     def test_flatten_archieve_with_empty_dir(self, mock_listdir, mock_extract_archive, test_tmp_dir):
         """Test flatten_archieve property when directory is empty"""
         downloaded_file = DownloadedFile(
-            name="test.zip",
-            version="1.0",
-            url="http://example.com/test.zip",
-            downloaded=f"{test_tmp_dir}/test.zip"
+            name="test.zip", version="1.0", url="http://example.com/test.zip", downloaded=f"{test_tmp_dir}/test.zip"
         )
 
         # First call returns empty list (directory is empty)
         # Second call returns list of extracted files
         mock_listdir.side_effect = [
             [],  # First call - directory empty
-            ["file1.txt", "file2.txt"]  # Second call - after extraction
+            ["file1.txt", "file2.txt"],  # Second call - after extraction
         ]
 
         extracted_files = downloaded_file.flatten_archieve
@@ -254,15 +238,12 @@ class TestDownloadedFile:
         assert extracted_files == ["file1.txt", "file2.txt"]
         mock_extract_archive.assert_called_once_with(f"{test_tmp_dir}/test.zip", f"{test_tmp_dir}/test.zip_flatten/")
 
-    @patch('REvoDesign.tools.download_registry.extract_archive')
-    @patch('REvoDesign.tools.download_registry.os.listdir')
+    @patch("REvoDesign.tools.download_registry.extract_archive")
+    @patch("REvoDesign.tools.download_registry.os.listdir")
     def test_flatten_archieve_with_non_empty_dir(self, mock_listdir, mock_extract_archive, test_tmp_dir):
         """Test flatten_archieve property when directory is not empty"""
         downloaded_file = DownloadedFile(
-            name="test.zip",
-            version="1.0",
-            url="http://example.com/test.zip",
-            downloaded=f"{test_tmp_dir}/test.zip"
+            name="test.zip", version="1.0", url="http://example.com/test.zip", downloaded=f"{test_tmp_dir}/test.zip"
         )
 
         # Directory already has files

@@ -4,8 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from REvoDesign.citations.citation_manager import (CitableModuleAbstract,
-                                                   CitationManager)
+from REvoDesign.citations.citation_manager import CitableModuleAbstract, CitationManager
 
 
 @contextmanager
@@ -44,7 +43,7 @@ def test_citation_manager_output(test_tmp_dir):
     with mock_citation_manager() as manager:
         manager.called_citations = {"module1": "citation1"}
         manager.output(cwd=test_tmp_dir)
-        citation_dir = os.path.join(test_tmp_dir, 'citations')
+        citation_dir = os.path.join(test_tmp_dir, "citations")
         assert os.path.isdir(citation_dir), "Citations directory not created"
         assert os.listdir(citation_dir), "No citation files found in citations directory"
 
@@ -71,8 +70,11 @@ def test_citable_module_abstract_cite():
     class TestModule(CitableModuleAbstract):
         __bibtex__ = {"modulex": "citationx"}
 
-    with mock_citation_manager() as manager, patch("REvoDesign.citations.citation_manager.CitableModuleAbstract.notice") as mock_notice, \
-            patch.object(manager, "update") as mock_update:
+    with (
+        mock_citation_manager() as manager,
+        patch("REvoDesign.citations.citation_manager.CitableModuleAbstract.notice") as mock_notice,
+        patch.object(manager, "update") as mock_update,
+    ):
 
         module = TestModule()
         module.cite()

@@ -4581,13 +4581,16 @@
      <property name="title">
       <string>Environment Variables</string>
      </property>
-     <addaction name="actionAddEnvironVar"/>
-     <addaction name="actionDropEnvironVar"/>
-     <addaction name="separator"/>
+     <addaction name="actionRefreshEnvironVar"/>
+    </widget>
+    <widget class="QMenu" name="menuEdit_Configuration">
+     <property name="title">
+      <string>Edit Configuration</string>
+     </property>
     </widget>
     <addaction name="actionReconfigure"/>
     <addaction name="separator"/>
-    <addaction name="actionEdit_Configuration"/>
+    <addaction name="menuEdit_Configuration"/>
     <addaction name="actionSave_Configurations"/>
     <addaction name="actionSave_Configuration_as"/>
     <addaction name="separator"/>
@@ -4765,6 +4768,13 @@
      </widget>
      <addaction name="menuFormatters"/>
     </widget>
+    <widget class="QMenu" name="menuEvolution">
+     <property name="title">
+      <string>Evolution Tools</string>
+     </property>
+     <addaction name="actionRun_GREMLIN"/>
+    </widget>
+    <addaction name="menuEvolution"/>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
     <addaction name="menuStructure_Tools"/>
@@ -4787,16 +4797,6 @@
    <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionSet_Rosetta_Path">
-   <property name="text">
-    <string>Set Rosetta Path</string>
-   </property>
-  </action>
-  <action name="actionSet_GNU_Parallel">
-   <property name="text">
-    <string>Set GNU Parallel</string>
-   </property>
-  </action>
   <action name="actionSource_Code">
    <property name="text">
     <string>Source Code</string>
@@ -4891,38 +4891,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+V</string>
-   </property>
-  </action>
-  <action name="actionEnglish">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>English</string>
-   </property>
-  </action>
-  <action name="actionChinese">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Chinese</string>
-   </property>
-  </action>
-  <action name="actionFrench">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>French</string>
-   </property>
-  </action>
-  <action name="actionEdit_Configuration">
-   <property name="text">
-    <string>Edit Configuration</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+E</string>
    </property>
   </action>
   <action name="actionDocumentation">
@@ -5030,9 +4998,9 @@
     <string>Contact</string>
    </property>
   </action>
-  <action name="actionAddEnvironVar">
+  <action name="actionRefreshEnvironVar">
    <property name="text">
-    <string>Add</string>
+    <string>Refresh</string>
    </property>
   </action>
   <action name="actionDropEnvironVar">
@@ -5239,6 +5207,11 @@
   <action name="actionShorten_Range">
    <property name="text">
     <string>Shorten Range</string>
+   </property>
+  </action>
+  <action name="actionRun_GREMLIN">
+   <property name="text">
+    <string>Run GREMLIN</string>
    </property>
   </action>
  </widget>

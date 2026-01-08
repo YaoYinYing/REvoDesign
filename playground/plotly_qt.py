@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
         fig = go.Figure(data=go.Scatter(y=[1, 3, 2]))
 
         # Convert Plotly figure to HTML
-        html_content = fig.to_html(include_plotlyjs='cdn')
+        html_content = fig.to_html(include_plotlyjs="cdn")
 
         # Inject JavaScript to handle clicks and call Python
         js_injection = """
@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
             });
         </script>
         """
-        html_content = html_content.replace('</head>', js_injection + '</head>')
+        html_content = html_content.replace("</head>", js_injection + "</head>")
 
         # Load the HTML content into QWebEngineView
         self.browser.setHtml(html_content)
@@ -52,11 +52,12 @@ class MainWindow(QMainWindow):
         # Expose Python object to JavaScript
         self.plotly_handler = PlotlyHandler()
         self.browser.page().profile().setPersistentCookiesPolicy(
-            QWebEngineProfile.NoPersistentCookies)  # Needed for setWebChannel to work reliably
+            QWebEngineProfile.NoPersistentCookies
+        )  # Needed for setWebChannel to work reliably
         self.browser.page().setWebChannel(self.plotly_handler, "plotlyHandler")  # Expose 'plotlyHandler' to JS
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication([])
     window = MainWindow()
     window.show()

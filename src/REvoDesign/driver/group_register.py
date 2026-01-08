@@ -1,6 +1,6 @@
-'''
+"""
 This module contains all grouped values from widgets for the GUI.
-'''
+"""
 
 import os
 
@@ -19,24 +19,18 @@ class CallableGroupValues:
 
     @staticmethod
     def list_some_blanks(n=1) -> list[str]:
-        return [''] * n
+        return [""] * n
 
     @staticmethod
     def list_score_matrix() -> list:
         score_matrix = [
-            mtx
-            for mtx in os.listdir(
-                os.path.join(substitution_matrices.__path__[0], "data")  # type: ignore
-            )
+            mtx for mtx in os.listdir(os.path.join(substitution_matrices.__path__[0], "data"))  # type: ignore
         ]
         return score_matrix
 
     @staticmethod
     def list_color_map() -> dict:
-        cmap_group = {
-            _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
-            for _cmap in matplotlib.colormaps()
-        }
+        cmap_group = {_cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap)) for _cmap in matplotlib.colormaps()}
         return cmap_group
 
     @staticmethod
@@ -55,11 +49,7 @@ class CallableGroupValues:
     def list_all_designers() -> list[str]:
         from REvoDesign.magician import ALL_DESIGNER_CLASSES
 
-        return [
-            dc.name
-            for dc in ALL_DESIGNER_CLASSES
-            if dc.installed and not dc.scorer_only
-        ]
+        return [dc.name for dc in ALL_DESIGNER_CLASSES if dc.installed and not dc.scorer_only]
 
     @staticmethod
     def list_all_scorers() -> list[str]:
@@ -81,36 +71,51 @@ class CallableGroupValues:
             "wsl_mpi",
         ]
 
-        available_run_node_hints = [
-            n for n in node_hints if is_run_node_available(n)
-        ]
+        available_run_node_hints = [n for n in node_hints if is_run_node_available(n)]
 
         return available_run_node_hints
 
 
 # define all group mappers
 # Header
-GroupCmap = GR("comboBox_cmap", (CallableGroupValues.list_color_map,),)
+GroupCmap = GR(
+    "comboBox_cmap",
+    (CallableGroupValues.list_color_map,),
+)
 
 # Tab Cluster
-GroupScoreMatrix = GR("comboBox_cluster_matrix", (CallableGroupValues.list_score_matrix,),)
+GroupScoreMatrix = GR(
+    "comboBox_cluster_matrix",
+    (CallableGroupValues.list_score_matrix,),
+)
 
 # Tab Mutate
-GroupProfileTypeTabMutate = GR("comboBox_profile_type", (
-    CallableGroupValues.list_all_profile_parsers,
-    CallableGroupValues.list_all_designers,
-),)
+GroupProfileTypeTabMutate = GR(
+    "comboBox_profile_type",
+    (
+        CallableGroupValues.list_all_profile_parsers,
+        CallableGroupValues.list_all_designers,
+    ),
+)
 
 # Tab Visualize
-GroupProfileTypeTabVisualize = GR("comboBox_profile_type_2", (
-    CallableGroupValues.list_some_blanks,  # blank for reading scores from table directly
-    CallableGroupValues.list_all_profile_parsers,
-    CallableGroupValues.list_all_scorers,
-),)
+GroupProfileTypeTabVisualize = GR(
+    "comboBox_profile_type_2",
+    (
+        CallableGroupValues.list_some_blanks,  # blank for reading scores from table directly
+        CallableGroupValues.list_all_profile_parsers,
+        CallableGroupValues.list_all_scorers,
+    ),
+)
 
 # Tab Interact
-GroupScorerTabInteract = GR("comboBox_external_scorer", (CallableGroupValues.list_some_blanks,
-                                                         CallableGroupValues.list_all_scorers,))
+GroupScorerTabInteract = GR(
+    "comboBox_external_scorer",
+    (
+        CallableGroupValues.list_some_blanks,
+        CallableGroupValues.list_all_scorers,
+    ),
+)
 
 # Tab Config
 GroupSidechainSolver = GR("comboBox_sidechain_solver", (CallableGroupValues.list_installed_mutate_runners,))

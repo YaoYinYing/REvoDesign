@@ -1,7 +1,6 @@
-'''
+"""
 Shortcut functions of results exporting
-'''
-
+"""
 
 import os
 from collections.abc import Mapping
@@ -62,7 +61,7 @@ def shortcut_dump_sidechains(
     all_groups = get_all_groups(enabled_only=enabled_only)
 
     # disable all groups
-    cmd.disable(' or '.join(all_groups))
+    cmd.disable(" or ".join(all_groups))
     cmd.refresh()
 
     for sel in sele:
@@ -71,13 +70,13 @@ def shortcut_dump_sidechains(
 
         # get all model names of selected group
         all_models = cmd.get_names("objects", int(enabled_only), sel)
-        print(f'Selected group: {sel}: {all_models}')
+        print(f"Selected group: {sel}: {all_models}")
 
-        cmd.disable(' or '.join(all_models))
+        cmd.disable(" or ".join(all_models))
 
         # orient to get pose in the right orientation
         if reorient and neighborhood and neighborhood > 0:
-            cmd.orient(f'{sel} or byres {sel} around {neighborhood}')
+            cmd.orient(f"{sel} or byres {sel} around {neighborhood}")
 
         for m in all_models:
             cmd.refresh()
@@ -96,11 +95,11 @@ def shortcut_dump_sidechains(
 
 
 def shortcut_dump_fasta_from_struct(
-        format: str = "fasta",
-        chain_ids: list[str] = [],
-        output_dir: str = 'dumped_sequences',
-        drop_missing_residue: bool = False,
-        suffix: str = '',
+    format: str = "fasta",
+    chain_ids: list[str] = [],
+    output_dir: str = "dumped_sequences",
+    drop_missing_residue: bool = False,
+    suffix: str = "",
 ):
     """
     Runs the dump_fasta_from_struct function with parameters collected from the dialog.
@@ -113,11 +112,11 @@ def shortcut_dump_fasta_from_struct(
     """
 
     bus = ConfigBus()
-    molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
+    molecule = bus.get_value("ui.header_panel.input.molecule", str, reject_none=True)
     if not chain_ids:
         logging.warning("No chain selected. Dumping the chain picked on UI.")
-        chain_ids = [bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)]
-    designable_sequences: Mapping | None = bus.get_value("designable_sequences", dict, reject_none=True)
+        chain_ids = [bus.get_value("ui.header_panel.input.chain_id", str, reject_none=True)]
+    designable_sequences: Mapping | None = bus.get_value("designable_sequences", dict, cfg="runtime", reject_none=True)
 
     os.makedirs(output_dir, exist_ok=True)
     if suffix:
@@ -129,22 +128,19 @@ def shortcut_dump_fasta_from_struct(
         if sequence is None:
             raise issues.NoResultsError(f"No designable sequence found for chain {chain_id}")
         if drop_missing_residue:
-            sequence = sequence.replace('X', '')
-        logging.debug(
-            f"Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}"
-        )
+            sequence = sequence.replace("X", "")
+        logging.debug(f"Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}")
 
         all_seq_records.append(
-            SeqRecord(
-                Seq(sequence),
-                id=f"{molecule}_{chain_id}", description=f"{suffix.lstrip('_')}"))
+            SeqRecord(Seq(sequence), id=f"{molecule}_{chain_id}", description=f"{suffix.lstrip('_')}")
+        )
 
     try:
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             SeqIO.write(all_seq_records, f, format)
     except Bio.StreamModeError as e:
         logging.warning(f"Error occurs while dumping sequence: {e} Retry with binary mode.")
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             SeqIO.write(all_seq_records, f, format)  # type: ignore
     except ValueError as e:
         os.remove(output_path)

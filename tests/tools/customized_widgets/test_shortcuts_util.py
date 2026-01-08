@@ -4,11 +4,8 @@ import yaml
 from REvoDesign import issues
 from REvoDesign.basic.extensions import resolve_extension
 from REvoDesign.common.file_extensions import ExtColl
-from REvoDesign.shortcuts.tools.esm2 import \
-    list_all_esm_variant_predict_model_names
-from REvoDesign.shortcuts.utils import (REGISTRY_DIR, _build_asked_value,
-                                        resolve_choice_from,
-                                        resolve_default_value)
+from REvoDesign.shortcuts.tools.esm2 import list_all_esm_variant_predict_model_names
+from REvoDesign.shortcuts.utils import REGISTRY_DIR, _build_asked_value, resolve_choice_from, resolve_default_value
 from REvoDesign.tools.utils import resolve_dotted_function
 
 # --- Test resolve_extension --- #
@@ -21,7 +18,7 @@ from REvoDesign.tools.utils import resolve_dotted_function
         ("pdb", "Customized - PDB File ( *.pdb )"),
         ("fasta", "Customized - FASTA File ( *.fasta )"),
         ("custom;txt", "Customized - CUSTOM File ( *.custom );;Customized - TXT File ( *.txt )"),
-    ]
+    ],
 )
 def test_resolve_extension(extension, expected_pattern):
     result = resolve_extension(extension)
@@ -35,7 +32,7 @@ def test_resolve_extension(extension, expected_pattern):
         "REvoDesign.tools.utils:device_picker",
         "REvoDesign.shortcuts.tools.esm2:list_all_esm_variant_predict_model_names",
         "REvoDesign.driver.group_register:CallableGroupValues.list_all_profile_parsers",
-    ]
+    ],
 )
 def test_resolve_dotted_function_pass(dotted_str):
     from collections.abc import Callable
@@ -49,7 +46,7 @@ def test_resolve_dotted_function_pass(dotted_str):
     "dotted_str",
     [
         "REvoDesign.tools.utils.device_picker",
-    ]
+    ],
 )
 def test_resolve_dotted_function_error(dotted_str):
     with pytest.raises(issues.InvalidInputError):
@@ -59,17 +56,16 @@ def test_resolve_dotted_function_error(dotted_str):
 @pytest.mark.parametrize(
     "input_str, expected_type, expected_val",
     [
-        ('range:1,10', range, range(1, 10)),
-        ('range:1,10,2', range, range(1, 10, 2)),
+        ("range:1,10", range, range(1, 10)),
+        ("range:1,10,2", range, range(1, 10, 2)),
         (
-            'REvoDesign.shortcuts.tools.esm2:list_all_esm_variant_predict_model_names',
+            "REvoDesign.shortcuts.tools.esm2:list_all_esm_variant_predict_model_names",
             list,
-            list_all_esm_variant_predict_model_names()
+            list_all_esm_variant_predict_model_names(),
         ),
-        ('CFG:ui.header_panel.cmap.default', str, 'bwr_r'),
-        ('CFG:ui.header_panel.cmap.wtf', type(None), None)
-
-    ]
+        ("CFG:ui.header_panel.cmap.default", str, "bwr_r"),
+        ("CFG:ui.header_panel.cmap.wtf", type(None), None),
+    ],
 )
 def test_resolve_choice_from(input_str, expected_type, expected_val):
     result = resolve_choice_from(input_str)
@@ -80,11 +76,11 @@ def test_resolve_choice_from(input_str, expected_type, expected_val):
 @pytest.mark.parametrize(
     "input_str, error_type",
     [
-        ('range:1,2,3,4', issues.InvalidInputError),
-        ('REvoDesign.shortcuts.tools.esm2.ESM1V_MODEL_DICT', issues.InvalidInputError),
-        ('CFG:ui:header_panel:cmap:wtf', issues.InvalidInputError),
-        ('unexpected', issues.ConfigurationError)
-    ]
+        ("range:1,2,3,4", issues.InvalidInputError),
+        ("REvoDesign.shortcuts.tools.esm2.ESM1V_MODEL_DICT", issues.InvalidInputError),
+        ("CFG:ui:header_panel:cmap:wtf", KeyError),
+        ("unexpected", issues.ConfigurationError),
+    ],
 )
 def test_resolve_choice_from_error(input_str, error_type):
     with pytest.raises(error_type):
@@ -110,38 +106,20 @@ def test_resolve_default_value_unknown_type():
 
     assert resolve_default_value(CustomType) is None
 
+
 # --- Test _build_asked_value --- #
 
 
 @pytest.mark.parametrize(
     "entry, expected_name, expected_type, expected_default",
     [
-        (
-            {"name": "num_iter", "type": "int", "default": 10},
-            "num_iter", int, 10
-        ),
-        (
-            {"name": "log_file", "type": "str", "default": "/tmp/log.txt"},
-            "log_file", str, "/tmp/log.txt"
-        ),
-        (
-            {"name": "verbose", "type": "bool", "default": True},
-            "verbose", bool, True
-        ),
-        (
-            {"name": "output_dir", "type": "str"},
-            "output_dir", str, ""
-        ),
-        (
-            {"name": "file_ext", "type": "str", "ext": "pdb;fasta"},
-            "file_ext", str, ""
-        ),
-        (
-            {"name": "num_iter", "type": "int", "choices_from": 'range:1,11', "default": 10},
-            "num_iter", int, 10
-        ),
-
-    ]
+        ({"name": "num_iter", "type": "int", "default": 10}, "num_iter", int, 10),
+        ({"name": "log_file", "type": "str", "default": "/tmp/log.txt"}, "log_file", str, "/tmp/log.txt"),
+        ({"name": "verbose", "type": "bool", "default": True}, "verbose", bool, True),
+        ({"name": "output_dir", "type": "str"}, "output_dir", str, ""),
+        ({"name": "file_ext", "type": "str", "ext": "pdb;fasta"}, "file_ext", str, ""),
+        ({"name": "num_iter", "type": "int", "choices_from": "range:1,11", "default": 10}, "num_iter", int, 10),
+    ],
 )
 def test_build_asked_value(entry, expected_name, expected_type, expected_default):
     asked_value = _build_asked_value(entry)
@@ -153,11 +131,7 @@ def test_build_asked_value(entry, expected_name, expected_type, expected_default
 REQUIRED_KEYS = {"title", "banner", "options"}
 
 
-@pytest.mark.parametrize(
-    "yaml_path",
-    list((REGISTRY_DIR).glob("*.yaml")),
-    ids=lambda p: p.stem
-)
+@pytest.mark.parametrize("yaml_path", list((REGISTRY_DIR).glob("*.yaml")), ids=lambda p: p.stem)
 def test_dialog_yaml_valid_structure(yaml_path):
     """
     Ensure every dialog YAML is:

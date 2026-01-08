@@ -14,29 +14,27 @@ from hydra import errors as hydra_errors
 from omegaconf import DictConfig, OmegaConf
 
 from REvoDesign import ROOT_LOGGER, issues
-from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
+from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
-from REvoDesign.bootstrap.set_config import (is_package_installed,
-                                             reload_config_file)
+from REvoDesign.bootstrap.set_config import is_package_installed, reload_config_file
 from REvoDesign.tools.download_registry import FileDownloadRegistry
 from REvoDesign.tools.package_manager import run_command
 from REvoDesign.tools.rfdiffusion_tools import SubstratePotentialVisualizer
-from REvoDesign.tools.utils import (device_picker, get_cited,
-                                    require_installed, timing)
+from REvoDesign.tools.utils import device_picker, get_cited, require_installed, timing
 
 logging = ROOT_LOGGER.getChild(__name__)
 
 this_file_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-RFDIFFUSION_WEIGHTS_BASE_URL = 'https://github.com/YaoYinYing/RFdiffusion/releases/download/weights/'
+RFDIFFUSION_WEIGHTS_BASE_URL = "https://github.com/YaoYinYing/RFdiffusion/releases/download/weights/"
 
 # DGL Solver to solve installation of dgl(dgl==2.2.1)
 # non-cuda: `pip install dgl==2.2.1 -f https://data.dgl.ai/wheels/repo.html`
 # ge cuda-121: `pip install  dgl==2.2.1 -f https://data.dgl.ai/wheels/cu121/repo.html`
 # ge cuda-118: `pip install  dgl -f https://data.dgl.ai/wheels/cu118/repo.html`
 
-RFD_WEIGHTS_STR = '''
+RFD_WEIGHTS_STR = """
 0d9f82af03c73011c6fec060bac5b731 ActiveSite_ckpt.pt
 4aa4a27ba280d23541e01860c106c7cc Base_ckpt.pt
 5c58d7d5c329c1297fab0aa6cebad81b Base_epoch8_ckpt.pt
@@ -46,43 +44,44 @@ RFD_WEIGHTS_STR = '''
 1e9245a486262dff3cb3286f22a3014d InpaintSeq_Fold_ckpt.pt
 a6f8652938bb45c332ffa683d8ad3509 InpaintSeq_ckpt.pt
 6f4d00394d34f6a9072d70976f6c8777 RF_structure_prediction_weights.pt
-'''
+"""
 
 
 @dataclass
 class DglSolver:
-    installed: bool = is_package_installed('dgl')
-    cuda_version: str = ''
-    which_nvcc = shutil.which('nvcc')
+    installed: bool = is_package_installed("dgl")
+    cuda_version: str = ""
+    which_nvcc = shutil.which("nvcc")
 
     def fetch_cuda_version_before_install(self):
 
         if not self.which_nvcc:
             return
-        nvcc_version = run_command(['nvcc', '--version']).stdout.split('\n')[3]
-        nvcc_version_match = re.search(r'release (\d+\.\d+)', nvcc_version)
+        nvcc_version = run_command(["nvcc", "--version"]).stdout.split("\n")[3]
+        nvcc_version_match = re.search(r"release (\d+\.\d+)", nvcc_version)
         if not nvcc_version_match:
             return
         cuda_version = nvcc_version_match.group(1)
-        if cuda_version >= '12.1':
-            self.cuda_version = 'cu121'
-        elif cuda_version >= '11.8':
-            self.cuda_version = 'cu118'
+        if cuda_version >= "12.1":
+            self.cuda_version = "cu121"
+        elif cuda_version >= "11.8":
+            self.cuda_version = "cu118"
         else:
-            self.cuda_version = ''
+            self.cuda_version = ""
             warnings.warn(
                 issues.PlatformNotSupportedWarning(
                     f"CUDA version {cuda_version} is not supported by DGL. Please install CUDA version >= 11.8 if you need to use DGL with CUDA support."
-                ))
+                )
+            )
 
     def install(self):
         self.fetch_cuda_version_before_install()
         if self.cuda_version:
-            index_link = f'https://data.dgl.ai/wheels/{self.cuda_version}/repo.html'
+            index_link = f"https://data.dgl.ai/wheels/{self.cuda_version}/repo.html"
         else:
-            index_link = 'https://data.dgl.ai/wheels/repo.html'
+            index_link = "https://data.dgl.ai/wheels/repo.html"
 
-        c = run_command([sys.executable, '-m', 'pip', 'install', 'dgl==2.2.1', '-f', index_link])
+        c = run_command([sys.executable, "-m", "pip", "install", "dgl==2.2.1", "-f", index_link])
         if c.returncode != 0:
             logging.error(f"Failed to install DGL: {c.stderr}")
             raise RuntimeError(f"Failed to install DGL: {c.stderr}")
@@ -90,13 +89,13 @@ class DglSolver:
 
 
 RFD_WEIGHTS = FileDownloadRegistry(
-    name='RFdiffusion',
+    name="RFdiffusion",
     base_url=RFDIFFUSION_WEIGHTS_BASE_URL,
-    registry=FileDownloadRegistry.prepare_registry_from_md5(RFD_WEIGHTS_STR)
+    registry=FileDownloadRegistry.prepare_registry_from_md5(RFD_WEIGHTS_STR),
 )
 
 
-RFDIFFUSION_CONFIG_DIR = os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE), 'rfdiffusion')
+RFDIFFUSION_CONFIG_DIR = os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE), "rfdiffusion")
 
 
 def list_all_rfd_models() -> list[str]:
@@ -104,7 +103,7 @@ def list_all_rfd_models() -> list[str]:
 
 
 def list_all_config_preset() -> list[str]:
-    return [f[:-5] for f in os.listdir(RFDIFFUSION_CONFIG_DIR) if f.endswith('.yaml')]
+    return [f[:-5] for f in os.listdir(RFDIFFUSION_CONFIG_DIR) if f.endswith(".yaml")]
 
 
 def make_deterministic(seed=0):
@@ -117,14 +116,14 @@ def make_deterministic(seed=0):
 
 @require_installed
 class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
-    name: str = 'RFDiffusion'
-    installed: bool = is_package_installed('rfdiffusion')
+    name: str = "RFDiffusion"
+    installed: bool = is_package_installed("rfdiffusion")
 
     all_models = RFD_WEIGHTS.list_all_files
 
     def _download_and_set_model(self, model_name: str):
-        if not model_name.endswith('.pt'):
-            model_name += '.pt'
+        if not model_name.endswith(".pt"):
+            model_name += ".pt"
         with timing(f"Downloading {model_name} weights"):
             ckpt_path = RFD_WEIGHTS.setup(model_name).downloaded
             self.config.inference.ckpt_override_path = ckpt_path
@@ -132,7 +131,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             return
 
     def pick_model(self, model_name: str | None = None) -> None:
-        '''
+        """
         Pick a model.
         Override Priority:
             1. If ckpt_override_path is set in config, use it.
@@ -146,7 +145,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
         model_name: str, optional
             The name of the model to use. If None, the model will be automatically picked based on the input.
 
-        '''
+        """
         # have one model on local
         if self.config.inference.ckpt_override_path and os.path.isfile(self.config.inference.ckpt_override_path):
             logging.info(f"Using ckpt_override_path from config: {self.config.inference.ckpt_override_path}")
@@ -158,54 +157,60 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             if RFD_WEIGHTS.has(model_name):
                 return self._download_and_set_model(model_name)
 
-            warnings.warn(issues.FallingBackWarning(
-                f"Model {model_name} not found. Falling back to pick one according to the input."))
+            warnings.warn(
+                issues.FallingBackWarning(
+                    f"Model {model_name} not found. Falling back to pick one according to the input."
+                )
+            )
 
         # automatically pick the model based on the input
         # rfdiffusion/inference/model_runners.py
-        if self.config.contigmap.inpaint_seq is not None or self.config.contigmap.provide_seq is not None or self.config.contigmap.inpaint_str:
+        if (
+            self.config.contigmap.inpaint_seq is not None
+            or self.config.contigmap.provide_seq is not None
+            or self.config.contigmap.inpaint_str
+        ):
             # use model trained for inpaint_seq
             if self.config.contigmap.provide_seq is not None:
                 # this is only used for partial diffusion
-                assert self.config.diffuser.partial_T is not None, "The provide_seq input is specifically for partial diffusion"
+                assert (
+                    self.config.diffuser.partial_T is not None
+                ), "The provide_seq input is specifically for partial diffusion"
             if self.config.scaffoldguided.scaffoldguided:
-                model_name = 'InpaintSeq_Fold_ckpt'
+                model_name = "InpaintSeq_Fold_ckpt"
             else:
-                model_name = 'InpaintSeq_ckpt'
+                model_name = "InpaintSeq_ckpt"
         elif self.config.ppi.hotspot_res is not None and self.config.scaffoldguided.scaffoldguided is False:
             # use complex trained model
-            model_name = 'Complex_base_ckpt'
+            model_name = "Complex_base_ckpt"
         elif self.config.scaffoldguided.scaffoldguided is True:
             # use complex and secondary structure-guided model
-            model_name = 'Complex_Fold_base_ckpt'
+            model_name = "Complex_Fold_base_ckpt"
         else:
             # use default model
-            model_name = 'Base_ckpt'
+            model_name = "Base_ckpt"
 
-        logging.warning(f'Using Model {model_name}')
+        logging.warning(f"Using Model {model_name}")
         return self._download_and_set_model(model_name)
 
     @staticmethod
     def ensure_dgl():
-        '''
+        """
         Ensure DGL is installed. If not, try to install it.
-        '''
+        """
         if (dgl_solver := DglSolver()).installed:
             return
 
-        warnings.warn(issues.MissingExternalTool(
-            "DGL is not installed. Now try to install it."))
+        warnings.warn(issues.MissingExternalTool("DGL is not installed. Now try to install it."))
 
         dgl_solver.install()
         if not dgl_solver.installed:
             raise issues.MissingExternalToolError(
-                'DGL may not be installed. Please install it manually or take a restart to take effect.')
+                "DGL may not be installed. Please install it manually or take a restart to take effect."
+            )
 
-    def __init__(self,
-                 config_preset: str = 'base',
-                 model_name: str | None = None,
-                 overrides: list[str] | None = None):
-        '''
+    def __init__(self, config_preset: str = "base", model_name: str | None = None, overrides: list[str] | None = None):
+        """
         Instantiate RFDiffusion app with config preset and overrides.
 
         Args:
@@ -215,7 +220,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 The model name to use. Defaults to None.
             overrides: Optional[List[str]], optional
                 The overrides to use. Defaults to None.
-        '''
+        """
         self.ensure_dgl()
 
         try:
@@ -227,17 +232,18 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
         except hydra_errors.MissingConfigException as e:
             raise issues.ConfigureOutofDateError(
-                'To run RFDiffusion, please reset/the configuration files '
+                "To run RFDiffusion, please reset/the configuration files "
                 f'or copy the entire directory {os.path.join(this_file_dir, "../../config/rfdiffusion")}'
-                f'to {os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE))} and restart REvoDesign.') from e
+                f"to {os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE))} and restart REvoDesign."
+            ) from e
 
     # a copy from `https://github.com/RosettaCommons/RFdiffusion/blob/main/scripts/run_inference.py`
 
     @get_cited
     def main(self) -> None:
-        '''
+        """
         Run RFdifussion inference.
-        '''
+        """
         import torch
         from rfdiffusion.inference import utils as iu
         from rfdiffusion.util import writepdb, writepdb_multi
@@ -282,13 +288,11 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
             out_prefix = f"{sampler.inf_conf.output_prefix}_{i_des}"
 
-            with timing(f'making design {out_prefix} / {sampler.inf_conf.num_designs}', unit='min'):
+            with timing(f"making design {out_prefix} / {sampler.inf_conf.num_designs}", unit="min"):
                 # for record time elapsed
                 start_time = time.time()
                 if sampler.inf_conf.cautious and os.path.exists(out_prefix + ".pdb"):
-                    logging.info(
-                        f"(cautious mode) Skipping this design because {out_prefix}.pdb already exists."
-                    )
+                    logging.info(f"(cautious mode) Skipping this design because {out_prefix}.pdb already exists.")
                     continue
 
                 x_init, seq_init = sampler.sample_init()
@@ -368,9 +372,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
                 if sampler.inf_conf.write_trajectory:
                     # trajectory pdbs
-                    traj_prefix = (
-                        os.path.dirname(out_prefix) + "/traj/" + os.path.basename(out_prefix)
-                    )
+                    traj_prefix = os.path.dirname(out_prefix) + "/traj/" + os.path.basename(out_prefix)
                     os.makedirs(os.path.dirname(traj_prefix), exist_ok=True)
 
                     out = f"{traj_prefix}_Xt-1_traj.pdb"
@@ -395,12 +397,12 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                         chain_ids=sampler.chain_idx,
                     )
 
-            with timing('cleaning up...'):
+            with timing("cleaning up..."):
                 self.cleanup()
 
     # converted using https://www.bruot.org/ris2bib/
     __bibtex__ = {
-        'RFDiffusion': '''@Article{Watson2023,
+        "RFDiffusion": """@Article{Watson2023,
 author={Watson, Joseph L.
 and Juergens, David
 and Bennett, Nathaniel R.
@@ -443,21 +445,23 @@ doi={10.1038/s41586-023-06415-8},
 url={https://doi.org/10.1038/s41586-023-06415-8}
 }
 
-''',
+""",
     }
 
 
-def visualize_substrate_potentials(pdb_path,
-                                   lig_key,
-                                   blur: bool = False,
-                                   weight: float = 1,
-                                   r_0: float = 8,
-                                   d_0: float = 2,
-                                   s: float = 1,
-                                   eps: float = 1e-6,
-                                   rep_r_0: float = 5,
-                                   rep_s: float = 2,
-                                   rep_r_min: float = 1,):
+def visualize_substrate_potentials(
+    pdb_path,
+    lig_key,
+    blur: bool = False,
+    weight: float = 1,
+    r_0: float = 8,
+    d_0: float = 2,
+    s: float = 1,
+    eps: float = 1e-6,
+    rep_r_0: float = 5,
+    rep_s: float = 2,
+    rep_r_min: float = 1,
+):
 
     return SubstratePotentialVisualizer(
         pdb_path=pdb_path,
@@ -474,9 +478,9 @@ def visualize_substrate_potentials(pdb_path,
     )
 
 
-def run_general_rfdiffusion_task(config_preset: str = 'base',
-                                 model_name: str | None = None,
-                                 overrides: list[str] | None = None):
+def run_general_rfdiffusion_task(
+    config_preset: str = "base", model_name: str | None = None, overrides: list[str] | None = None
+):
 
     app = RfDiffusion(
         config_preset=config_preset,

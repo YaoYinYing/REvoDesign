@@ -3,8 +3,7 @@ import os
 import pytest
 
 from REvoDesign.sidechain.mutate_runner.PIPPack import PIPPack_worker
-from REvoDesign.tools.customized_widgets import (get_widget_value,
-                                                 set_widget_value)
+from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
 from tests.conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
@@ -13,17 +12,13 @@ os.environ["PYTEST_QT_API"] = "pyqt5"
 @pytest.mark.serial
 class TestREvoDesignPlugin_TabConfig:
 
-    @pytest.mark.skipif(
-        not PIPPack_worker.installed, reason="PIPPack not installed"
-    )
+    @pytest.mark.skipif(not PIPPack_worker.installed, reason="PIPPack not installed")
     def test_use_pippack_mpnn_design(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="config")
 
-        set_widget_value(
-            test_worker.plugin.ui.comboBox_sidechain_solver, "PIPPack"
-        )
+        set_widget_value(test_worker.plugin.ui.comboBox_sidechain_solver, "PIPPack")
         assert (
             get_widget_value(
                 test_worker.plugin.ui.comboBox_sidechain_solver_model,
@@ -105,9 +100,7 @@ class TestREvoDesignPlugin_TabConfig:
             os.remove(test_worker.test_data.pippack_pse)
 
         test_worker.save_new_experiment()
-        test_worker.click(
-            widget=test_worker.plugin.ui.pushButton_run_PSSM_to_pse
-        )
+        test_worker.click(widget=test_worker.plugin.ui.pushButton_run_PSSM_to_pse)
 
         test_worker.save_screenshot(
             widget=test_worker.plugin.window,

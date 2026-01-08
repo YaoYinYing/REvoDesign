@@ -1,6 +1,7 @@
-'''
+"""
 Shortcut wrappers of other utility functions
-'''
+"""
+
 from REvoDesign.logger.logger import logger_level_setter
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 from REvoDesign.tools.mutant_tools import shorter_range
@@ -23,8 +24,8 @@ def _short_range(input_string: str, separator: str, connector: str):
     logging.debug(f"Shortening range {input_string}")
     input_list = [int(x) for x in input_string.split(",") if x.isdigit()]
     ret = shorter_range(input_list, separator, connector)
-    logging.info(f'Shortened range: \n{ret}')
+    logging.info(f"Shortened range: \n{ret}")
     return ret
 
 
-wrapped_short_range = utils_registry.register('short_residue_ranges', _short_range)
+wrapped_short_range = utils_registry.register("short_residue_ranges", _short_range)

@@ -108,3 +108,6 @@ pr_summary.csv
 src/REvoDesign/UI/REvoDesign_ui.py
 src/REvoDesign/tools/REvoDesign-manager/UI/REvoDesign_installer.ui
 server/pssm_gremlin/users.txt
+src/REvoDesign/phylogenetics/.ipynb_checkpoints/validate-checkpoint.ipynb
+/notebooks/.ipynb_checkpoints
+mock/

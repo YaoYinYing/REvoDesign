@@ -1,6 +1,7 @@
-'''
+"""
 File Dialog
-'''
+"""
+
 import os
 from functools import partial
 from typing import Any, Literal
@@ -10,8 +11,7 @@ from pymol.Qt.utils import getSaveFileNameWithExt
 from ..basic import FileExtensionCollection, SingletonAbstract
 from ..common import file_extensions
 from ..logger import ROOT_LOGGER
-from ..tools.customized_widgets import (decide, getMultipleFiles,
-                                        getOpenFileNameWithExt)
+from ..tools.customized_widgets import decide, getMultipleFiles, getOpenFileNameWithExt
 from ..tools.utils import extract_archive
 from .ui_driver import ConfigBus
 
@@ -47,8 +47,9 @@ class FileDialog(SingletonAbstract):
     # class public function that can be shared with each tab
     # callback for the "Browse" button
 
-    def browse_multiple_files(self, exts: tuple[FileExtensionCollection, ...] | None = (file_extensions.Any,)
-                              ) -> list[str]:
+    def browse_multiple_files(
+        self, exts: tuple[FileExtensionCollection, ...] | None = (file_extensions.Any,)
+    ) -> list[str]:
         return getMultipleFiles(self.window, exts)
 
     def browse_filename(
@@ -72,16 +73,12 @@ class FileDialog(SingletonAbstract):
         # refer a file path to write in
         if mode == "w":
             browse_title = "Save As..."
-            filename = getSaveFileNameWithExt(
-                self.window, browse_title, filter=filter_strings
-            )
+            filename = getSaveFileNameWithExt(self.window, browse_title, filter=filter_strings)
             return filename if filename else None
 
         # otherwise, open a file to read
         browse_title = "Open ..."
-        filename = getOpenFileNameWithExt(
-            self.window, browse_title, filter=filter_strings
-        )
+        filename = getOpenFileNameWithExt(self.window, browse_title, filter=filter_strings)
 
         # no file selected
         if not filename:
@@ -99,8 +96,7 @@ class FileDialog(SingletonAbstract):
         # if so, ask user whether to extract this compressed file
         confirmed = decide(
             title="Extract Archive",
-            description=f"The selected file '{filename_bn}'"
-            " is a compressed archive. Do you want to extract it?",
+            description=f"The selected file '{filename_bn}'" " is a compressed archive. Do you want to extract it?",
         )
 
         # if the answer is no
@@ -114,8 +110,9 @@ class FileDialog(SingletonAbstract):
 
     # A universal and versatile function for input file path browsing.
 
-    def open_file(self, cfg_item: str, exts: tuple[FileExtensionCollection, ...] = (
-            file_extensions.Any,)) -> str | None:
+    def open_file(
+        self, cfg_item: str, exts: tuple[FileExtensionCollection, ...] = (file_extensions.Any,)
+    ) -> str | None:
         """Open Any File
 
         Args:
@@ -141,17 +138,17 @@ class FileDialog(SingletonAbstract):
         if mode == "r":
             input_mut_txt_fn = self.open_file(
                 cfg_mutant_table,
-                (file_extensions.Mutable,
+                (
+                    file_extensions.Mutable,
                     file_extensions.Any,
-                    file_extensions.Compressed,),
+                    file_extensions.Compressed,
+                ),
             )
             if input_mut_txt_fn:
                 ConfigBus().set_widget_value(cfg_mutant_table, input_mut_txt_fn)
                 return
 
-            logging.warning(
-                f"Could not open file for reading: {input_mut_txt_fn}"
-            )
+            logging.warning(f"Could not open file for reading: {input_mut_txt_fn}")
             return
 
         output_mut_txt_fn = self.browse_filename(
@@ -161,9 +158,7 @@ class FileDialog(SingletonAbstract):
                 file_extensions.Any,
             ),
         )
-        if output_mut_txt_fn and os.path.exists(
-            os.path.dirname(output_mut_txt_fn)
-        ):
+        if output_mut_txt_fn and os.path.exists(os.path.dirname(output_mut_txt_fn)):
             logging.info(f"Output file is set as {output_mut_txt_fn}")
             ConfigBus().set_widget_value(cfg_mutant_table, output_mut_txt_fn)
             return
@@ -184,9 +179,11 @@ class FileDialog(SingletonAbstract):
             partial(
                 self.open_file,
                 "ui.mutate.input.profile",
-                (file_extensions.PSSM,
+                (
+                    file_extensions.PSSM,
                     file_extensions.Any,
-                    file_extensions.Compressed,)
+                    file_extensions.Compressed,
+                ),
             )
         )
 
@@ -194,9 +191,11 @@ class FileDialog(SingletonAbstract):
             partial(
                 self.open_file,
                 "ui.visualize.input.profile",
-                (file_extensions.PSSM,
+                (
+                    file_extensions.PSSM,
                     file_extensions.Any,
-                    file_extensions.Compressed,),
+                    file_extensions.Compressed,
+                ),
             )
         )
         bus.button("open_gremlin_mtx").clicked.connect(
@@ -210,9 +209,7 @@ class FileDialog(SingletonAbstract):
             )
         )
         bus.button("open_mut_table_2").clicked.connect(
-            partial(
-                self.open_mutant_table, "ui.cluster.input.from_mutant_txt", "r"
-            )
+            partial(self.open_mutant_table, "ui.cluster.input.from_mutant_txt", "r")
         )
         bus.button("open_mut_table_csv").clicked.connect(
             partial(
@@ -236,9 +233,7 @@ class FileDialog(SingletonAbstract):
             )
         )
         bus.button("open_mut_table").clicked.connect(
-            partial(
-                self.open_mutant_table, "ui.evaluate.input.to_mutant_txt", "w"
-            )
+            partial(self.open_mutant_table, "ui.evaluate.input.to_mutant_txt", "w")
         )
 
 

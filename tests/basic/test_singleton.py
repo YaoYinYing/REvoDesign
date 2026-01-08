@@ -91,8 +91,12 @@ def test_reset_instance():
     ServerAController.reset_instance()
 
     assert ServerAController._instance is None, "Instance should be reset after calling reset_instance()."
-    assert ServerBController._instance is not None, "Instance of B should not be reset after A calling reset_instance()."
-    assert ServerCController._instance is not None, "Instance of C should not be reset after A calling reset_instance()."
+    assert (
+        ServerBController._instance is not None
+    ), "Instance of B should not be reset after A calling reset_instance()."
+    assert (
+        ServerCController._instance is not None
+    ), "Instance of C should not be reset after A calling reset_instance()."
 
     # Create a new instance and verify it is independent
     new_server_a = ServerAController(name="New Server A")

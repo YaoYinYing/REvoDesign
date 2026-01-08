@@ -1,10 +1,10 @@
-'''
+"""
 Evolutionary involved mutation processings
 
 TODO: need refactor:
 1. GREMLIN analyser: use CGO to replace bonding
 2. Decision making workflow: refactor
-'''
+"""
 
 import asyncio
 import itertools
@@ -34,16 +34,19 @@ from REvoDesign.magician import IMPLEMENTED_DESIGNERS, Magician
 from REvoDesign.phylogenetics.gremlin_tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.revo_designer import REvoDesigner
 from REvoDesign.sidechain import SidechainSolver
-from REvoDesign.tools.customized_widgets import (QButtonMatrixGremlin,
-                                                 hold_trigger_button,
-                                                 refresh_window,
-                                                 set_widget_value)
+from REvoDesign.tools.customized_widgets import (
+    QButtonMatrixGremlin,
+    hold_trigger_button,
+    refresh_window,
+    set_widget_value,
+)
 from REvoDesign.tools.mutant_tools import save_mutant_choices
-from REvoDesign.tools.pymol_utils import (any_posision_has_been_selected,
-                                          is_a_REvoDesign_session,
-                                          make_temperal_input_pdb)
-from REvoDesign.tools.utils import (cmap_reverser, get_color, rescale_number,
-                                    run_worker_thread_with_progress, timing)
+from REvoDesign.tools.pymol_utils import (
+    any_posision_has_been_selected,
+    is_a_REvoDesign_session,
+    make_temperal_input_pdb,
+)
+from REvoDesign.tools.utils import cmap_reverser, get_color, rescale_number, run_worker_thread_with_progress, timing
 
 matplotlib.use("Agg")
 
@@ -93,60 +96,34 @@ class MutateWorker:
         self.bus: ConfigBus = ConfigBus()
         self.PWD: str = self.bus.get_value("work_dir", str)
 
-        self.design_molecule: str = self.bus.get_value(
-            "ui.header_panel.input.molecule"
+        self.design_molecule: str = self.bus.get_value("ui.header_panel.input.molecule")
+        self.design_chain_id: str = self.bus.get_value("ui.header_panel.input.chain_id")
+        self.designable_sequences = self.bus.get_value(
+            "designable_sequences", RosettaPyProteinSequence.from_dict, cfg="runtime"
         )
-        self.design_chain_id: str = self.bus.get_value(
-            "ui.header_panel.input.chain_id"
-        )
-        self.designable_sequences = RosettaPyProteinSequence.from_dict(
-            dict(self.bus.get_value("designable_sequences"))
-        )
-        self.design_sequence: str = (
-            self.designable_sequences.get_sequence_by_chain(
-                self.design_chain_id
-            )
-        )
+        self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(self.design_chain_id)
 
     def run_mutant_loading_from_profile(self):
         try:
             design_profile = self.bus.get_value("ui.mutate.input.profile")
-            design_profile_format = self.bus.get_value(
-                "ui.mutate.input.profile_type"
-            )
+            design_profile_format = self.bus.get_value("ui.mutate.input.profile_type")
             preffered = self.bus.get_value("ui.mutate.accept")
             rejected = self.bus.get_value("ui.mutate.reject")
 
-            temperature = self.bus.get_value(
-                "ui.mutate.designer.temperature", float
-            )
-            num_designs = self.bus.get_value(
-                "ui.mutate.designer.num_sample", int
-            )
+            temperature = self.bus.get_value("ui.mutate.designer.temperature", float)
+            num_designs = self.bus.get_value("ui.mutate.designer.num_sample", int)
             batch = self.bus.get_value("ui.mutate.designer.batch", int)
-            homooligomeric = self.bus.get_value(
-                "ui.mutate.designer.homooligomeric"
-            )
-            deduplicate_designs = self.bus.get_value(
-                "ui.mutate.designer.deduplicate_designs"
-            )
-            randomized_sample = self.bus.get_value(
-                "ui.mutate.designer.enable_randomized_sampling"
-            )
-            randomized_sample_num = self.bus.get_value(
-                "ui.mutate.designer.randomized_sampling", int
-            )
+            homooligomeric = self.bus.get_value("ui.mutate.designer.homooligomeric")
+            deduplicate_designs = self.bus.get_value("ui.mutate.designer.deduplicate_designs")
+            randomized_sample = self.bus.get_value("ui.mutate.designer.enable_randomized_sampling")
+            randomized_sample_num = self.bus.get_value("ui.mutate.designer.randomized_sampling", int)
             design_case = self.bus.get_value("ui.mutate.input.design_case")
-            custom_indices_fp = self.bus.get_value(
-                "ui.mutate.input.residue_ids"
-            )
+            custom_indices_fp = self.bus.get_value("ui.mutate.input.residue_ids")
             cutoff = [
                 (self.bus.get_value("ui.mutate.min_score", float)),
                 (self.bus.get_value("ui.mutate.max_score", float)),
             ]
-            reversed_mutant_effect = self.bus.get_value(
-                "ui.header_panel.cmap.reverse_score"
-            )
+            reversed_mutant_effect = self.bus.get_value("ui.header_panel.cmap.reverse_score")
             output_pse = self.bus.get_value("ui.mutate.input.to_pse")
             nproc = self.bus.get_value("ui.header_panel.nproc", int)
 
@@ -184,9 +161,7 @@ class MutateWorker:
             self.design.randomized_sample = randomized_sample
             self.design.randomized_sample_num = randomized_sample_num
 
-            self.design.mutate_runner = (
-                SidechainSolver().refresh().mutate_runner
-            )
+            self.design.mutate_runner = SidechainSolver().refresh().mutate_runner
 
             self.design.preffered_substitutions = preffered
             self.design.reject_aa = rejected
@@ -216,11 +191,7 @@ class MutateWorker:
                 )
 
             if not os.path.isdir(os.path.dirname(self.design.output_pse)):
-                warnings.warn(
-                    issues.NoResultsWarning(
-                        "No output PyMOL session is created."
-                    )
-                )
+                warnings.warn(issues.NoResultsWarning("No output PyMOL session is created."))
                 return
 
             cmd.reinitialize()
@@ -252,26 +223,16 @@ class VisualizingWorker:
 
         self.PWD: str = self.bus.get_value("work_dir", str)
 
-        self.design_molecule: str = self.bus.get_value(
-            "ui.header_panel.input.molecule"
-        )
-        self.design_chain_id: str = self.bus.get_value(
-            "ui.header_panel.input.chain_id"
-        )
-        self.designable_sequences = RosettaPyProteinSequence.from_dict(
-            dict(self.bus.get_value("designable_sequences"))
+        self.design_molecule: str = self.bus.get_value("ui.header_panel.input.molecule")
+        self.design_chain_id: str = self.bus.get_value("ui.header_panel.input.chain_id")
+        self.designable_sequences = self.bus.get_value(
+            "designable_sequences", RosettaPyProteinSequence.from_dict, cfg="runtime"
         )
 
-        self.design_sequence: str = (
-            self.designable_sequences.get_sequence_by_chain(
-                self.design_chain_id
-            )
-        )
+        self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(self.design_chain_id)
 
     def visualize_mutants(self):
-        input_mut_table_csv = self.bus.get_value(
-            "ui.visualize.input.from_mutant_txt"
-        )
+        input_mut_table_csv = self.bus.get_value("ui.visualize.input.from_mutant_txt")
 
         output_pse = self.bus.get_value("ui.visualize.input.to_pse")
         best_leaf = self.bus.get_value("ui.visualize.input.best_leaf")
@@ -279,23 +240,17 @@ class VisualizingWorker:
         nproc = self.bus.get_value("ui.header_panel.nproc", int)
         group_name = self.bus.get_value("ui.visualize.input.group_name", str)
 
-        use_global_scores = self.bus.get_value(
-            "ui.visualize.global_score_policy"
-        )
+        use_global_scores = self.bus.get_value("ui.visualize.global_score_policy")
 
         try:
-            reversed_mutant_effect = self.bus.get_value(
-                "ui.header_panel.cmap.reverse_score"
-            )
+            reversed_mutant_effect = self.bus.get_value("ui.header_panel.cmap.reverse_score")
             cmap = cmap_reverser(
                 cmap=self.bus.get_value("ui.header_panel.cmap.default"),
                 reverse=reversed_mutant_effect,
             )
 
             design_profile = self.bus.get_value("ui.visualize.input.profile")
-            design_profile_format: str = str(
-                self.bus.get_value("ui.visualize.input.profile_type")
-            )
+            design_profile_format: str = str(self.bus.get_value("ui.visualize.input.profile_type"))
 
             self.visualizer = MutantVisualizer(
                 molecule=self.design_molecule,
@@ -311,14 +266,12 @@ class VisualizingWorker:
             self.visualizer.nproc = nproc
             self.visualizer.sequence = self.design_sequence
 
-            self.visualizer.consider_global_score_from_profile = (
-                use_global_scores
-            )
+            self.visualizer.consider_global_score_from_profile = use_global_scores
 
             self.visualizer.profile_scoring_df = None
             self.visualizer.consider_global_score_from_profile = False
 
-            if design_profile_format == '':
+            if design_profile_format == "":
                 logging.debug("No profile is given. Expected to use score labels")
 
             elif design_profile_format in IMPLEMENTED_DESIGNERS:
@@ -332,11 +285,9 @@ class VisualizingWorker:
 
             else:
                 self.visualizer.magician.setup()  # cool it down
-                self.visualizer.profile_scoring_df = (
-                    self.visualizer.parse_profile(
-                        profile_fp=design_profile,
-                        profile_format=design_profile_format,
-                    )
+                self.visualizer.profile_scoring_df = self.visualizer.parse_profile(
+                    profile_fp=design_profile,
+                    profile_format=design_profile_format,
                 )
 
             self.visualizer.key_col = best_leaf or self.visualizer.key_col
@@ -347,9 +298,7 @@ class VisualizingWorker:
             self.visualizer.group_name = group_name
             self.visualizer.cmap = cmap
 
-            self.visualizer.mutate_runner = (
-                SidechainSolver().refresh().mutate_runner
-            )
+            self.visualizer.mutate_runner = SidechainSolver().refresh().mutate_runner
 
             run_worker_thread_with_progress(
                 worker_function=self.visualizer.run,
@@ -357,9 +306,7 @@ class VisualizingWorker:
             )
 
             cmd.reinitialize()
-            cmd.load(
-                self.visualizer.input_session, object=self.design_molecule
-            )
+            cmd.load(self.visualizer.input_session, object=self.design_molecule)
 
             cmd.load(self.visualizer.save_session, partial=2)
             cmd.center(self.design_molecule)
@@ -393,6 +340,7 @@ class ChainBinder:
     - chains_to_bind (tuple): Chains to bind in interchain binding mode.
     - n_jobs (int): Number of jobs for parallel execution.
     """
+
     design_molecule: str
     design_chain_id: str
     max_interact_dist: float
@@ -430,8 +378,8 @@ class ChainBinder:
             if chain.id == chain_id:
                 for residue in chain:
                     if residue.id[1] == int(residue_id):  # Match residue number
-                        if 'CA' in residue:
-                            return residue['CA']
+                        if "CA" in residue:
+                            return residue["CA"]
         raise ValueError(f"CA atom not found in chain {chain_id}, residue {residue_id}")
 
     def _get_dist(
@@ -476,14 +424,12 @@ class ChainBinder:
         if not (self.chain_binding_enabled and self.chains_to_bind):
             logging.info("Intrachain connections.")
             results = Parallel(n_jobs=self.n_jobs)(
-                delayed(self._calculate_intrachain_dist)(pair)
-                for pair in coevolved_pairs
+                delayed(self._calculate_intrachain_dist)(pair) for pair in coevolved_pairs
             )
             return tuple(results)
 
         results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._calculate_interchain_dist)(pair)
-            for pair in coevolved_pairs
+            delayed(self._calculate_interchain_dist)(pair) for pair in coevolved_pairs
         )
 
         return tuple(results)
@@ -506,9 +452,7 @@ class ChainBinder:
             j_1=pair.j_1,
         )
         if dist >= 0:
-            pair.homochains_dist.update(
-                {f"{self.design_chain_id}{self.design_chain_id}": dist}
-            )
+            pair.homochains_dist.update({f"{self.design_chain_id}{self.design_chain_id}": dist})
         return pair
 
     def _calculate_interchain_dist(self, pair: CoevolvedPair) -> CoevolvedPair:
@@ -523,9 +467,7 @@ class ChainBinder:
         """
         pair.dist_cutoff = self.max_interact_dist
         for c1, c2 in itertools.product(self.chains_to_bind, repeat=2):
-            dist = self._get_dist(
-                chain_1=c1, chain_2=c2, i_1=pair.i_1, j_1=pair.j_1
-            )
+            dist = self._get_dist(chain_1=c1, chain_2=c2, i_1=pair.i_1, j_1=pair.j_1)
             if 0 <= dist <= self.max_interact_dist:
                 pair.homochains_dist.update({f"{c1}{c2}": dist})
         return pair
@@ -541,20 +483,12 @@ class GremlinAnalyser:
         self.PWD: str = self.bus.get_value("work_dir", str)
         self.ws_server: REvoDesignWebSocketServer = REvoDesignWebSocketServer()
 
-        self.design_molecule: str = self.bus.get_value(
-            "ui.header_panel.input.molecule"
+        self.design_molecule: str = self.bus.get_value("ui.header_panel.input.molecule")
+        self.design_chain_id: str = self.bus.get_value("ui.header_panel.input.chain_id")
+        self.designable_sequences = self.bus.get_value(
+            "designable_sequences", RosettaPyProteinSequence.from_dict, cfg="runtime"
         )
-        self.design_chain_id: str = self.bus.get_value(
-            "ui.header_panel.input.chain_id"
-        )
-        self.designable_sequences = RosettaPyProteinSequence.from_dict(
-            dict(self.bus.get_value("designable_sequences"))
-        )
-        self.design_sequence: str = (
-            self.designable_sequences.get_sequence_by_chain(
-                self.design_chain_id
-            )
-        )
+        self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(self.design_chain_id)
         self.ce_object_group_valid: str = None
         self.ce_object_group_invalid: str = None
 
@@ -574,35 +508,23 @@ class GremlinAnalyser:
 
         gremlin_mrf_fp = self.bus.get_value("ui.interact.input.gremlin_pkl")
 
-        topN_gremlin_candidates = self.bus.get_value(
-            "ui.interact.topN_pairs", int
-        )
+        topN_gremlin_candidates = self.bus.get_value("ui.interact.topN_pairs", int)
         if (not self.design_molecule) or (not self.design_chain_id):
             logging.error(
-                "Molecule Info not complete. \n"
-                f"molecule: {self.design_molecule}\n"
-                f"chain: {self.design_chain_id}."
+                "Molecule Info not complete. \n" f"molecule: {self.design_molecule}\n" f"chain: {self.design_chain_id}."
             )
             return
 
         if not os.path.exists(gremlin_mrf_fp):
-            logging.error(
-                "Could not run GREMLIN tools. Please check your configuration"
-            )
-            raise issues.InvalidInputError(
-                f"GREMLIN MRF file {gremlin_mrf_fp} does not exist."
-            )
+            logging.error("Could not run GREMLIN tools. Please check your configuration")
+            raise issues.InvalidInputError(f"GREMLIN MRF file {gremlin_mrf_fp} does not exist.")
 
         pushButton_run_interact_scan = self.bus.button("run_interact_scan")
         gridLayout_interact_pairs = self.bus.ui.gridLayout_interact_pairs
 
         # reset design info
-        lineEdit_current_pair_wt_score = (
-            self.bus.ui.lineEdit_current_pair_wt_score
-        )
-        lineEdit_current_pair_mut_score = (
-            self.bus.ui.lineEdit_current_pair_mut_score
-        )
+        lineEdit_current_pair_wt_score = self.bus.ui.lineEdit_current_pair_wt_score
+        lineEdit_current_pair_mut_score = self.bus.ui.lineEdit_current_pair_mut_score
         lineEdit_current_pair = self.bus.ui.lineEdit_current_pair
         lineEdit_current_pair_score = self.bus.ui.lineEdit_current_pair_score
 
@@ -631,9 +553,7 @@ class GremlinAnalyser:
         pushButton_run_interact_scan.setEnabled(bool(self.gremlin_tool))
 
         if not self.gremlin_tool:
-            logging.error(
-                "Failed to create gremlin tool object. Please check the inputs."
-            )
+            logging.error("Failed to create gremlin tool object. Please check the inputs.")
             return
 
         self.gremlin_tool.pwd = self.PWD
@@ -649,31 +569,17 @@ class GremlinAnalyser:
         try:
             set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)
         except AttributeError:
-            logging.info(
-                "Work Space is cleaned. Click once again to reinitialize. "
-            )
+            logging.info("Work Space is cleaned. Click once again to reinitialize. ")
 
     def run_gremlin_tool(self):
-        self.chain_binding_enabled: bool = self.bus.get_value(
-            "ui.interact.chain_binding.enabled", bool
-        )
-        self.chains_to_bind: tuple = tuple(
-            set(
-                self.bus.get_value(
-                    "ui.interact.chain_binding.chains_to_bind", str
-                )
-            )
-        )
-        self.max_interact_dist: float = self.bus.get_value(
-            "ui.interact.max_interact_dist", float
-        )
+        self.chain_binding_enabled: bool = self.bus.get_value("ui.interact.chain_binding.enabled", bool)
+        self.chains_to_bind: tuple = tuple(set(self.bus.get_value("ui.interact.chain_binding.chains_to_bind", str)))
+        self.max_interact_dist: float = self.bus.get_value("ui.interact.max_interact_dist", float)
 
         # name this subdir for every analysis
         chains = "".join(self.chains_to_bind)
         if self.chain_binding_enabled and self.chains_to_bind:
-            subdir = (
-                f"{self.design_molecule}_{self.design_chain_id}.homo.{chains}"
-            )
+            subdir = f"{self.design_molecule}_{self.design_chain_id}.homo.{chains}"
         else:
             subdir = f"{self.design_molecule}_{self.design_chain_id}.mono"
 
@@ -692,12 +598,10 @@ class GremlinAnalyser:
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
 
-            coevolved_pairs: tuple[CoevolvedPair] = (
-                run_worker_thread_with_progress(
-                    worker_function=self.gremlin_tool.plot_w_o2a,
-                    resi=resi - 1,
-                    progress_bar=self.bus.ui.progressBar,
-                )
+            coevolved_pairs: tuple[CoevolvedPair] = run_worker_thread_with_progress(
+                worker_function=self.gremlin_tool.plot_w_o2a,
+                resi=resi - 1,
+                progress_bar=self.bus.ui.progressBar,
             )
 
         else:
@@ -713,19 +617,13 @@ class GremlinAnalyser:
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
 
-            coevolved_pairs: tuple[CoevolvedPair] = (
-                run_worker_thread_with_progress(
-                    worker_function=self.gremlin_tool.plot_w_a2a,
-                    progress_bar=self.bus.ui.progressBar,
-                )
+            coevolved_pairs: tuple[CoevolvedPair] = run_worker_thread_with_progress(
+                worker_function=self.gremlin_tool.plot_w_a2a,
+                progress_bar=self.bus.ui.progressBar,
             )
 
         if not coevolved_pairs:
-            warnings.warn(
-                issues.NoResultsWarning(
-                    "No Available co-evolutionary signal in global"
-                )
-            )
+            warnings.warn(issues.NoResultsWarning("No Available co-evolutionary signal in global"))
             # early return if no data.
             return
 
@@ -743,27 +641,19 @@ class GremlinAnalyser:
             n_jobs=self.bus.get_value("ui.header_panel.nproc", int),
         )
 
-        coevolved_pairs: tuple[CoevolvedPair] = (
-            run_worker_thread_with_progress(
-                worker_function=chain_binder.bind_chains,
-                coevolved_pairs=coevolved_pairs,
-                progress_bar=self.bus.ui.progressBar,
-            )
+        coevolved_pairs: tuple[CoevolvedPair] = run_worker_thread_with_progress(
+            worker_function=chain_binder.bind_chains,
+            coevolved_pairs=coevolved_pairs,
+            progress_bar=self.bus.ui.progressBar,
         )
 
-        self.coevolved_pairs = IterableLoop(
-            iterable=tuple(
-                filter(self.coevolved_pairs_filter, coevolved_pairs)
-            )
-        )
+        self.coevolved_pairs = IterableLoop(iterable=tuple(filter(self.coevolved_pairs_filter, coevolved_pairs)))
 
         del coevolved_pairs
         del chain_binder
 
         if self.coevolved_pairs.empty:
-            warnings.warn(
-                issues.NoResultsWarning("No coevolved_pairs passes filter.")
-            )
+            warnings.warn(issues.NoResultsWarning("No coevolved_pairs passes filter."))
             return
 
         logging.info("Visualizing as bonds ...")
@@ -773,24 +663,14 @@ class GremlinAnalyser:
             self.bus.button("previous").clicked.disconnect()
             self.bus.button("next").clicked.disconnect()
         except Exception as e:
-            warnings.warn(
-                issues.AlreadyDisconnectedWarning(
-                    f"button is already disconnected. do nothing. {e=}"
-                )
-            )
+            warnings.warn(issues.AlreadyDisconnectedWarning(f"button is already disconnected. do nothing. {e=}"))
 
-        self.bus.button("previous").clicked.connect(
-            partial(self.load_co_evolving_pairs, False)
-        )
+        self.bus.button("previous").clicked.connect(partial(self.load_co_evolving_pairs, False))
 
-        self.bus.button("next").clicked.connect(
-            partial(self.load_co_evolving_pairs, True)
-        )
+        self.bus.button("next").clicked.connect(partial(self.load_co_evolving_pairs, True))
 
         # intitialize
-        set_widget_value(
-            self.bus.ui.progressBar, [0, len(self.coevolved_pairs.iterable)]
-        )
+        set_widget_value(self.bus.ui.progressBar, [0, len(self.coevolved_pairs.iterable)])
 
         self.picked_gremlin_group_id = ""
 
@@ -815,17 +695,11 @@ class GremlinAnalyser:
                 0,
             ]
         )
-        max_gremlin_score = max(
-            [p.zscore for p in self.coevolved_pairs.iterable]
-        )
+        max_gremlin_score = max([p.zscore for p in self.coevolved_pairs.iterable])
 
-        self.ce_object_group_valid = cmd.get_unused_name(
-            f"cep_{self.design_molecule}_"
-        )
+        self.ce_object_group_valid = cmd.get_unused_name(f"cep_{self.design_molecule}_")
 
-        self.ce_object_group_invalid = cmd.get_unused_name(
-            f"invalid_{self.ce_object_group_valid}_"
-        )
+        self.ce_object_group_invalid = cmd.get_unused_name(f"invalid_{self.ce_object_group_valid}_")
 
         _tmp_obj = f"_tmp_object_for_{self.ce_object_group_valid}"
 
@@ -835,9 +709,7 @@ class GremlinAnalyser:
 
         i_out_of_range: list[CoevolvedPair] = []
         discarded: list[CoevolvedPair] = []
-        set_widget_value(
-            self.bus.ui.progressBar, (0, len(self.coevolved_pairs.iterable))
-        )
+        set_widget_value(self.bus.ui.progressBar, (0, len(self.coevolved_pairs.iterable)))
         for i, pair in enumerate(self.coevolved_pairs.iterable):
             set_widget_value(self.bus.ui.progressBar, i)
             refresh_window()
@@ -845,26 +717,18 @@ class GremlinAnalyser:
             sele_name = repr(pair)
             logging.debug(f"{sele_name=}")
             pair.selection_string = cmd.get_unused_name(f"{sele_name}_")
-            _sele = " or ".join(
-                [x for x in pair.all_res_pairs_selections.values()]
-            )
+            _sele = " or ".join([x for x in pair.all_res_pairs_selections.values()])
             sele = f"{_tmp_obj} and ({_sele}) and n. CA"
 
             try:
-                logging.debug(
-                    f"trying to get all atom from {pair.selection_string=}: {sele=}"
-                )
+                logging.debug(f"trying to get all atom from {pair.selection_string=}: {sele=}")
                 cmd.create(
                     pair.selection_string,
                     sele,
                 )
             except CmdException:
                 logging.debug("Failed, now discard this pair!")
-                warnings.warn(
-                    issues.BadDataWarning(
-                        f"This atom selection is invalid: {sele}"
-                    )
-                )
+                warnings.warn(issues.BadDataWarning(f"This atom selection is invalid: {sele}"))
                 discarded.append(pair)
                 continue
             refresh_window()
@@ -878,9 +742,7 @@ class GremlinAnalyser:
                 max_value=max_gremlin_score,
             )
             refresh_window()
-            logging.debug(
-                f"Setting stick_radius as {zscore=} for {pair.selection_string=}"
-            )
+            logging.debug(f"Setting stick_radius as {zscore=} for {pair.selection_string=}")
             cmd.set(
                 "stick_radius",
                 zscore,
@@ -890,15 +752,11 @@ class GremlinAnalyser:
             refresh_window()
             if pair.all_out_of_range:
                 i_out_of_range.append(pair)
-                logging.debug(
-                    f"Grouping {pair.selection_string=} to {self.ce_object_group_invalid=}"
-                )
+                logging.debug(f"Grouping {pair.selection_string=} to {self.ce_object_group_invalid=}")
                 cmd.group(self.ce_object_group_invalid, pair.selection_string)
 
             else:
-                logging.debug(
-                    f"Grouping {pair.selection_string=} to {self.ce_object_group_valid=}"
-                )
+                logging.debug(f"Grouping {pair.selection_string=} to {self.ce_object_group_valid=}")
                 cmd.group(self.ce_object_group_valid, pair.selection_string)
 
             # bond w/o colors
@@ -912,9 +770,7 @@ class GremlinAnalyser:
 
                     continue
 
-                logging.debug(
-                    f"Bonding {pair.selection_string}: {res_pair[0]} and {res_pair[1]}"
-                )
+                logging.debug(f"Bonding {pair.selection_string}: {res_pair[0]} and {res_pair[1]}")
 
                 cmd.bond(
                     f"{pair.selection_string} and {res_pair[0]} and n. CA",
@@ -926,9 +782,7 @@ class GremlinAnalyser:
         cmd.group(self.ce_object_group_invalid, action="close")
         refresh_window()
         for p in i_out_of_range:
-            logging.info(
-                f"Pair {p.i_aa}-{p.j_aa} will be removed: out of range."
-            )
+            logging.info(f"Pair {p.i_aa}-{p.j_aa} will be removed: out of range.")
 
         self.mark_pair_state(
             pairs=tuple(p for p in i_out_of_range),
@@ -954,13 +808,9 @@ class GremlinAnalyser:
 
         logging.warning(f"Out of range: {len(i_out_of_range)}")
         logging.warning(f"Discarded pairs: {len(discarded)}")
-        logging.warning(
-            f"Filtered pairs: {len(self.coevolved_pairs.iterable)}"
-        )
+        logging.warning(f"Filtered pairs: {len(self.coevolved_pairs.iterable)}")
 
-        set_widget_value(
-            self.bus.ui.progressBar, (0, len(self.coevolved_pairs.iterable))
-        )
+        set_widget_value(self.bus.ui.progressBar, (0, len(self.coevolved_pairs.iterable)))
 
         CitationManager().output()
         return
@@ -1052,14 +902,10 @@ class GremlinAnalyser:
                         mut_res=mut,
                     )
                     if expected_mutant in _mutant:
-                        logging.warning(
-                            f"Ignore existed mutagenese {expected_mutant}"
-                        )
+                        logging.warning(f"Ignore existed mutagenese {expected_mutant}")
                         continue
                     if wt == mut and ignore_wt:
-                        logging.debug(
-                            f"Ignore WT to WT mutagenese {expected_mutant}"
-                        )
+                        logging.debug(f"Ignore WT to WT mutagenese {expected_mutant}")
                         continue
 
                     if mut == "-":
@@ -1072,14 +918,10 @@ class GremlinAnalyser:
 
             # early return if nothing is created.
             if not _mutant:
-                logging.info(
-                    "No mutagenesis will be performed since the picked pair is a wt-wt pair"
-                )
+                logging.info("No mutagenesis will be performed since the picked pair is a wt-wt pair")
                 return
 
-            mutant_obj = Mutant(
-                mutations=_mutant, wt_protein_sequence=self.designable_sequences
-            )
+            mutant_obj = Mutant(mutations=_mutant, wt_protein_sequence=self.designable_sequences)
 
             self.refresh_magician()
 
@@ -1109,8 +951,10 @@ class GremlinAnalyser:
 
             # if mutant obj exists, activate it and return early.
             if self.explored_mutant_tree.has(mutant_obj.full_mutant_id):
-                logging.info(f"Picked mutant: {mutant_obj.short_mutant_id} ({mutant_obj.full_mutant_id}) "
-                             f"already exists. Do nothing.")
+                logging.info(
+                    f"Picked mutant: {mutant_obj.short_mutant_id} ({mutant_obj.full_mutant_id}) "
+                    f"already exists. Do nothing."
+                )
                 self.activate_focused_interaction()
                 return
 
@@ -1130,9 +974,7 @@ class GremlinAnalyser:
 
                 logging.info(f"Visualizing {mutant} ({full_mutant_id}): {color}")
 
-                visualizer = MutantVisualizer(
-                    molecule=self.design_molecule, chain_id=self.design_chain_id
-                )
+                visualizer = MutantVisualizer(molecule=self.design_molecule, chain_id=self.design_chain_id)
 
                 run_worker_thread_with_progress(
                     worker_function=SidechainSolver().refresh,
@@ -1166,20 +1008,14 @@ class GremlinAnalyser:
             del visualizer
 
             # create a small mutant tree and send to broadcaster.
-            mutant_tree = MutantTree(
-                {self.picked_gremlin_group_id: {mutant: mutant_obj}}
-            )
+            mutant_tree = MutantTree({self.picked_gremlin_group_id: {mutant: mutant_obj}})
             self.to_broadcaster(mutant_tree)
 
-        with hold_trigger_button(
-            buttons=self.bus.buttons(button_ids=("previous", "next"))
-        ):
+        with hold_trigger_button(buttons=self.bus.buttons(button_ids=("previous", "next"))):
             ignore_wt = self.bus.get_value("ui.interact.interact_ignore_wt")
 
             lineEdit_current_pair = self.bus.ui.lineEdit_current_pair
-            lineEdit_current_pair_score = (
-                self.bus.ui.lineEdit_current_pair_score
-            )
+            lineEdit_current_pair_score = self.bus.ui.lineEdit_current_pair_score
 
             if not self.design_chain_id or not self.design_molecule:
                 logging.error("No available molecule or chain id.")
@@ -1188,23 +1024,17 @@ class GremlinAnalyser:
             # before walking the index, set this pair back
             self.mark_pair_state(
                 pairs=(p := self.coevolved_pairs.current_item),
-                state=(
-                    "available" if not p.all_out_of_range else "out_of_range"
-                ),
+                state=("available" if not p.all_out_of_range else "out_of_range"),
             )
 
             self.coevolved_pairs.walker(direction=walk_to_next)
 
-            set_widget_value(
-                self.bus.ui.progressBar, self.coevolved_pairs.current_idx
-            )
+            set_widget_value(self.bus.ui.progressBar, self.coevolved_pairs.current_idx)
 
             pair = self.coevolved_pairs.current_item
 
             # Clear the existing widgets from gridLayout_interact_pairs
-            for i in reversed(
-                range(self.bus.ui.gridLayout_interact_pairs.count())
-            ):
+            for i in reversed(range(self.bus.ui.gridLayout_interact_pairs.count())):
                 widget = self.bus.ui.gridLayout_interact_pairs.itemAt(i).widget()
                 if widget is not None:
                     widget.deleteLater()
@@ -1217,7 +1047,8 @@ class GremlinAnalyser:
                 sequence=self.design_sequence,
                 pair_i=pair.i,
                 pair_j=pair.j,
-                cmap=self.bus.get_value("ui.header_panel.cmap.default"))
+                cmap=self.bus.get_value("ui.header_panel.cmap.default"),
+            )
 
             button_matrix.alphabet_col = list("ARNDCQEGHILKMFPSTWYV-")
             button_matrix.alphabet_row = list("ARNDCQEGHILKMFPSTWYV-")
@@ -1242,8 +1073,10 @@ class GremlinAnalyser:
             set_widget_value(lineEdit_current_pair_score, f"{pair.zscore:.3f}")
 
             if pair.all_out_of_range:
-                logging.warning(f"Resi {pair.i_1} ({pair.i_aa}) is {pair.min_dist:.2f} Å away "
-                                f"from {pair.j_1} {pair.j_aa}, out of distance {pair.dist_cutoff} Å")
+                logging.warning(
+                    f"Resi {pair.i_1} ({pair.i_aa}) is {pair.min_dist:.2f} Å away "
+                    f"from {pair.j_1} {pair.j_aa}, out of distance {pair.dist_cutoff} Å"
+                )
                 set_widget_value(lineEdit_current_pair, "Out of range.")
 
             # To disable the QbuttonMatrix:
@@ -1256,9 +1089,7 @@ class GremlinAnalyser:
         picked_gremlin_mutant_id = self.picked_gremlin_mutant.short_mutant_id
 
         if accept:
-            logging.debug(
-                f"Accepting co-evolved mutant {picked_gremlin_mutant_id}"
-            )
+            logging.debug(f"Accepting co-evolved mutant {picked_gremlin_mutant_id}")
             cmd.enable(picked_gremlin_mutant_id)
 
             self.mutant_tree_coevolved.add_mutant_to_branch(
@@ -1267,14 +1098,10 @@ class GremlinAnalyser:
                 self.picked_gremlin_mutant,
             )
         else:
-            logging.debug(
-                f" Rejecting co-evolved mutant {picked_gremlin_mutant_id}"
-            )
+            logging.debug(f" Rejecting co-evolved mutant {picked_gremlin_mutant_id}")
             cmd.disable(picked_gremlin_mutant_id)
             if not self.mutant_tree_coevolved.has(picked_gremlin_mutant_id):
-                logging.warning(
-                    f"{picked_gremlin_mutant_id} has not been accepted yet. Skipped."
-                )
+                logging.warning(f"{picked_gremlin_mutant_id} has not been accepted yet. Skipped.")
                 return
 
             self.mutant_tree_coevolved.remove_mutant_from_branch(
@@ -1313,13 +1140,13 @@ class GremlinAnalyser:
 
     def activate_focused_interaction(self):
         if not self.picked_gremlin_mutant or self.picked_gremlin_mutant.empty:
-            raise issues.UnexpectedWorkflowError(
-                "Co-evolved pairs are not loaded. "
-            )
+            raise issues.UnexpectedWorkflowError("Co-evolved pairs are not loaded. ")
 
         if self.explored_mutant_tree.has(self.picked_gremlin_mutant.full_mutant_id):
-            logging.warning(f"Igore repetative picking: {self.picked_gremlin_mutant.short_mutant_id} "
-                            f"({self.picked_gremlin_mutant.full_mutant_id})")
+            logging.warning(
+                f"Igore repetative picking: {self.picked_gremlin_mutant.short_mutant_id} "
+                f"({self.picked_gremlin_mutant.full_mutant_id})"
+            )
         self.hide_all_mutants()
         self.show_mutant(
             mutant_id=self.picked_gremlin_mutant.short_mutant_id,
@@ -1327,12 +1154,8 @@ class GremlinAnalyser:
         )
 
         # display scores
-        lineEdit_current_pair_wt_score = (
-            self.bus.ui.lineEdit_current_pair_wt_score
-        )
-        lineEdit_current_pair_mut_score = (
-            self.bus.ui.lineEdit_current_pair_mut_score
-        )
+        lineEdit_current_pair_wt_score = self.bus.ui.lineEdit_current_pair_wt_score
+        lineEdit_current_pair_mut_score = self.bus.ui.lineEdit_current_pair_mut_score
 
         set_widget_value(
             lineEdit_current_pair_wt_score,
@@ -1352,28 +1175,18 @@ class GremlinAnalyser:
             name_cfg_item="ui.interact.use_external_scorer",
             molecule=self.design_molecule,
             ignore_missing=bool("X" in self.design_sequence),
-            chain=",".join(
-                self.chains_to_bind
-                if self.chain_binding_enabled
-                else self.design_chain_id
-            ),
+            chain=",".join(self.chains_to_bind if self.chain_binding_enabled else self.design_chain_id),
             homooligomeric=self.chain_binding_enabled and self.chains_to_bind,
             progress_bar=self.bus.ui.progressBar,
         )
         if magician is None:
-            raise issues.UnexpectedWorkflowError(
-                "Magician failed to initialize."
-            )
+            raise issues.UnexpectedWorkflowError("Magician failed to initialize.")
         self.magician = magician
 
         return
 
     def to_broadcaster(self, mutant_tree: MutantTree):
-        if (
-            self.ws_server
-            and self.ws_server.is_running
-            and not mutant_tree.empty
-        ):
+        if self.ws_server and self.ws_server.is_running and not mutant_tree.empty:
             asyncio.run(
                 self.ws_server.broadcast_object(
                     obj=mutant_tree,

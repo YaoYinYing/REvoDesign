@@ -1,7 +1,7 @@
-'''
+"""
 Utils for fetching files from the internet
 
-'''
+"""
 
 import os
 from dataclasses import dataclass
@@ -31,6 +31,7 @@ class DownloadedFile:
         downloaded (str): Local path where the file is downloaded
         registry (Optional[str]): Registry information, defaults to None
     """
+
     name: str
     version: str | None
     url: str
@@ -48,7 +49,7 @@ class DownloadedFile:
         Returns:
             str: Path to the flatten directory
         """
-        flatten_dir = f'{self.downloaded}_flatten/'
+        flatten_dir = f"{self.downloaded}_flatten/"
         os.makedirs(flatten_dir, exist_ok=True)
         return flatten_dir
 
@@ -67,11 +68,11 @@ class DownloadedFile:
         # Check if destination directory is empty, if so extract archive
         extracted_files: list[str] = os.listdir(dist_dir)
         if not extracted_files:
-            print(f'Extracting {self.downloaded} to {dist_dir}')
+            print(f"Extracting {self.downloaded} to {dist_dir}")
             extract_archive(self.downloaded, dist_dir)
 
         extracted_files: list[str] = os.listdir(dist_dir)
-        print(f'Extracted {extracted_files}')
+        print(f"Extracted {extracted_files}")
         return extracted_files
 
 
@@ -99,14 +100,15 @@ class FileDownloadRegistry(CitableModuleAbstract):
     """
 
     def __init__(
-            self,
-            name: str,
-            base_url: str,
-            registry: dict[str, str | None],
-            version: str | None = None,
-            alternative_base_urls: list[str] | None = None,
-            customized_directory: str | None = None,
-            retry_count: int = 5,):
+        self,
+        name: str,
+        base_url: str,
+        registry: dict[str, str | None],
+        version: str | None = None,
+        alternative_base_urls: list[str] | None = None,
+        customized_directory: str | None = None,
+        retry_count: int = 5,
+    ):
         self.name = name
         self.base_url = base_url
         self.alternative_base_urls = alternative_base_urls
@@ -118,7 +120,8 @@ class FileDownloadRegistry(CitableModuleAbstract):
 
         # Set download directory, use default user data directory if not provided
         self.customized_directory = customized_directory or user_data_dir(
-            self.name, version=self.version, ensure_exists=True)
+            self.name, version=self.version, ensure_exists=True
+        )
 
         all_base_urls = [self.base_url]
         if self.alternative_base_urls:
@@ -137,7 +140,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
             self.pooches.append(my_pooch)
 
     @staticmethod
-    def _complete_varify_string(a_string: str | None = None, hash_type: str = 'md5') -> str | None:
+    def _complete_varify_string(a_string: str | None = None, hash_type: str = "md5") -> str | None:
         """
         Complete hash string format, return directly if not provided or already contains type prefix.
 
@@ -171,7 +174,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
         :raises NetworkError: Raises network error exception if download fails.
         """
         for my_pooch in self.pooches:
-            url = urljoin(self.base_url.rstrip('/') + '/', item)
+            url = urljoin(self.base_url.rstrip("/") + "/", item)
             try:
                 # each-base-url retry will be performed sequentially in pooch
                 downloaded_path = my_pooch.fetch(item, progressbar=True)
@@ -183,11 +186,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
             # download succeeded and return early
             registry_entry = my_pooch.registry.get(item, None)
             return DownloadedFile(
-                name=item,
-                version=self.version,
-                url=url,
-                downloaded=downloaded_path,
-                registry=registry_entry
+                name=item, version=self.version, url=url, downloaded=downloaded_path, registry=registry_entry
             )
 
         # all retry attempts failed, raise an error
@@ -220,7 +219,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
         :return: Parsed registry dictionary.
         """
         registry = {}
-        for item in md5_contents.split('\n'):
+        for item in md5_contents.split("\n"):
             if not item:
                 continue
             logging.debug(f"Processing item: {item}")
@@ -229,12 +228,12 @@ class FileDownloadRegistry(CitableModuleAbstract):
                 logging.warning(f"Skipping malformed line: {item}")
                 continue
             hash_val, filename = parts
-            registry[filename] = f'md5:{hash_val}'
+            registry[filename] = f"md5:{hash_val}"
         logging.debug(f"Registry: {registry}")
         return registry
 
     __bibtex__ = {
-        'Pooch': """
+        "Pooch": """
 @article{uieda2020,
   title = {{Pooch}: {A} friend to fetch your data files},
   author = {Leonardo Uieda and Santiago Soler and R{\'{e}}mi Rampin and Hugo van Kemenade and Matthew Turk and Daniel Shapero and Anderson Banihirwe and John Leeman},

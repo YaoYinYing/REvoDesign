@@ -1,26 +1,32 @@
 import pytest
 
 from REvoDesign.Qt import QtCore, QtWidgets
-from REvoDesign.tools.customized_widgets import (AskedValue,
-                                                 AskedValueCollection,
-                                                 MultiCheckableComboBox,
-                                                 ValueDialog, real_bool)
+from REvoDesign.tools.customized_widgets import (
+    AskedValue,
+    AskedValueCollection,
+    MultiCheckableComboBox,
+    ValueDialog,
+    real_bool,
+)
 
 
-@pytest.mark.parametrize("input_value, expected", [
-    ("True", True),
-    ("true", True),
-    ("1", True),
-    ("yes", True),
-    (1, True),
-    (True, True),
-    ("False", False),
-    ("false", False),
-    ("0", False),
-    ("no", False),
-    (0, False),
-    (False, False),
-])
+@pytest.mark.parametrize(
+    "input_value, expected",
+    [
+        ("True", True),
+        ("true", True),
+        ("1", True),
+        ("yes", True),
+        (1, True),
+        (True, True),
+        ("False", False),
+        ("false", False),
+        ("0", False),
+        ("no", False),
+        (0, False),
+        (False, False),
+    ],
+)
 def test_real_bool(input_value, expected):
     assert real_bool(input_value) is expected
 
@@ -31,13 +37,23 @@ def sample_asked_value_collection():
     asked_values = [
         AskedValue(key="field1", val="test", typing=str, required=True),
         AskedValue(key="field2", val=42, typing=int, required=False, choices=range(0, 100)),
-        AskedValue(key="field3", val=42, typing=int, required=False, choices=(29, 30, 42,)),
+        AskedValue(
+            key="field3",
+            val=42,
+            typing=int,
+            required=False,
+            choices=(
+                29,
+                30,
+                42,
+            ),
+        ),
     ]
     return AskedValueCollection(asked_values=asked_values, banner="Test Banner")
 
 
 def test_typing_fixed(sample_asked_value_collection: AskedValueCollection):
-    sample_asked_value_collection.asked_values[2].val = '30'
+    sample_asked_value_collection.asked_values[2].val = "30"
     fixed = sample_asked_value_collection.typing_fixed
     assert fixed.asked_values[2].val == 30
 

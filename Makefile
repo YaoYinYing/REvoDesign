@@ -48,8 +48,10 @@ help:
 	@echo "  translate              Translate UI"
 	@echo "  prepare-test           Run pip to install pytest-related packages"
 	@echo "  test                   Run the UnitTest suite"
-	@echo "  all-test               Run all tests"
-	@echo "  fast-test              Run all fast tests"
+	@echo "  all-test               Run all tests (firstly the parallel(also the fastest), secondly the serial(also the slower), finally the slowest) "
+	@echo "  fast-test              Run all fast tests (first order)"
+	@echo "  serial-test            Run all serial tests (second order)"
+	@echo "  slow-test              Run all slow tests (third order)"
 	@echo "  kw-test                Run the Keyword Test suite"
 	@echo "  kw-test-pdb            Run the Keyword Test suite with pdb"
 	@echo "  macos-rosetta-test     Run UI tests versus PyMOL incentive installation (MacOS Application)"
@@ -108,14 +110,7 @@ reinstall:
 
 # update translation
 translate:
-	# recompile ui to py
-	pyuic5 src/REvoDesign/UI/REvoDesign.ui -o src/REvoDesign/UI/Ui_REvoDesign.py
-	# update translation file
-	#lupdate  src/REvoDesign/UI/REvoDesign.ui -ts src/REvoDesign/UI/language/eng-eng.ts
-	lupdate  src/REvoDesign/UI/REvoDesign.ui -ts src/REvoDesign/UI/language/eng-chs.ts
-
-	# release translation file to binarys
-	cd src/REvoDesign/UI/;lrelease liguist.pro
+	bash tools/translate.sh
 
 prepare-test:
 	python -m pip install pytest pytest-cov pytest-order coverage -q --no-cache-dir  
@@ -160,6 +155,17 @@ fast-test:
 	cd $(TESTDIR); \
 	python -m pytest $(PYTEST_RUN_FIRST_ARGS)
 
+serial-test:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR); \
+	python -m pytest $(PYTEST_RUN_SECOND_ARGS)
+
+slow-test:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR); \
+	python -m pytest $(PYTEST_RUN_THIRD_ARGS)
 
 
 # all test with keyword

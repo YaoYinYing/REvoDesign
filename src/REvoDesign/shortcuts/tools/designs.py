@@ -1,7 +1,6 @@
-'''
+"""
 Shortcut functions of sequence designs
-'''
-
+"""
 
 import os
 import warnings

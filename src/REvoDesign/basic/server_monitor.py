@@ -37,17 +37,17 @@ class ServerControlAbstract(SingletonAbstract):
 
     @abstractmethod
     def start_server(self):
-        '''
+        """
         Behavior of the server start action.
-        '''
+        """
         if self.is_running:
             print("Server is already running.")
             return
 
     def stop_server(self):
-        '''
+        """
         Behavior of the server stop action.
-        '''
+        """
         if not self.is_running:
             print("Server is not running.")
             return

@@ -36,29 +36,22 @@ def get_file_whitelist():
     """
     from platformdirs import user_log_path
 
-    from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
+    from REvoDesign.application.menu import all_config_files
 
     bus = ConfigBus()
-    logfile = bus.cfg.log.handlers.file.filename
-    notebookfile = bus.cfg.log.handlers.notebook.filename
+    logfile = bus.cfg_group["logger"].cfg.handlers.file.filename
+    notebookfile = bus.cfg_group["logger"].cfg.handlers.notebook.filename
 
     if logfile == "AUTO":
         logfile_dir = user_log_path("REvoDesign", ensure_exists=True)
-        logfile = os.path.join(
-            logfile_dir, "REvoDesign.runtime.log"
-        )
+        logfile = os.path.join(logfile_dir, "REvoDesign.runtime.log")
 
     if notebookfile == "AUTO":
         notebookfile_dir = user_log_path("REvoDesign", ensure_exists=True)
-        notebookfile = os.path.join(
-            notebookfile_dir, "REvoDesign.notebook.log"
-        )
+        notebookfile = os.path.join(notebookfile_dir, "REvoDesign.notebook.log")
 
     # Example hardcoded lists:
-    editable_files = (
-        REVODESIGN_CONFIG_FILE,
-
-    )
+    editable_files = (*all_config_files.values(),)
     readonly_files = (
         logfile,
         notebookfile,
@@ -114,7 +107,7 @@ def initialize_token() -> str:
 
 def get_token() -> str:
     config_store = ConfigStore()
-    return config_store.get('editor.token')
+    return config_store.get("editor.token")
 
 
 def distruct_token() -> None:
@@ -168,6 +161,7 @@ async def lifespan(app: FastAPI):
     config_store.reset()
     print("Application shutdown complete.")
 
+
 app = FastAPI(lifespan=lifespan)
 
 
@@ -175,10 +169,11 @@ app = FastAPI(lifespan=lifespan)
 # Routes
 # -----------------------
 
+
 @app.get("/favicon.svg", include_in_schema=False)
 async def favicon():
     this_file_dir = os.path.dirname(os.path.abspath(__file__))
-    return FileResponse(os.path.join(this_file_dir, '..', '..', 'meta/images/logo.svg'), media_type="image/svg+xml")
+    return FileResponse(os.path.join(this_file_dir, "..", "..", "meta/images/logo.svg"), media_type="image/svg+xml")
 
 
 @app.get("/editor", response_class=HTMLResponse)
@@ -209,7 +204,7 @@ async def serve_editor(file_path: str, token: str = None, request: Request = Non
         raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
 
     # Serve the editor HTML
-    html_template_path = os.path.join(config_store.get("editor.backend.html_dir"), 'index.html')
+    html_template_path = os.path.join(config_store.get("editor.backend.html_dir"), "index.html")
     if not os.path.exists(html_template_path):
         raise HTTPException(status_code=500, detail=f"Editor HTML template not found: {html_template_path}.")
 
@@ -224,11 +219,7 @@ async def serve_editor(file_path: str, token: str = None, request: Request = Non
 
 
 @app.get("/load_file", response_class=JSONResponse)
-async def load_file(
-    file_path: str,
-    token: str = Query(None),
-    request: Request = None
-):
+async def load_file(file_path: str, token: str = Query(None), request: Request = None):
     verify_token(token, request)
 
     # Validate file existence
@@ -256,11 +247,7 @@ class SaveFileRequest(BaseModel):
 
 
 @app.post("/save_file", response_class=JSONResponse)
-async def save_file(
-    data: SaveFileRequest,
-    token: str = Query(None),
-    request: Request = None
-):
+async def save_file(data: SaveFileRequest, token: str = Query(None), request: Request = None):
     verify_token(token, request)
 
     # Validate the file path
@@ -315,19 +302,19 @@ class ServerControl(ServerControlAbstract):
             return
 
         # Check if token authentication is required
-        no_token = ConfigBus().get_value('editor.backend.no_token', bool, default_value=False)
-        self.config_store.set('editor.backend.no_token', no_token)
+        no_token = ConfigBus().get_value("editor.backend.no_token", bool, default_value=False)
+        self.config_store.set("editor.backend.no_token", no_token)
         if not no_token:
             initialize_token()
         else:
-            self.config_store.set('editor.token', None)  # Ensure no token is used
+            self.config_store.set("editor.token", None)  # Ensure no token is used
 
-        HTML_DIR = self.config_store.get('editor.backend.html_dir')
-        print(f'{HTML_DIR=}')
+        HTML_DIR = self.config_store.get("editor.backend.html_dir")
+        print(f"{HTML_DIR=}")
 
         # Determine if SSL is enabled
-        use_ssl = ConfigBus().get_value('editor.backend.use_ssl', bool, default_value=False)
-        self.config_store.set('editor.backend.use_ssl', use_ssl)
+        use_ssl = ConfigBus().get_value("editor.backend.use_ssl", bool, default_value=False)
+        self.config_store.set("editor.backend.use_ssl", use_ssl)
         ssl_certfile = None
         ssl_keyfile = None
 
@@ -339,19 +326,19 @@ class ServerControl(ServerControlAbstract):
             ssl_keyfile = ssl_manager.key_path
 
             # Store SSL paths in ConfigBus
-            self.config_store.set('editor.backend.crt', ssl_certfile)
-            self.config_store.set('editor.backend.key', ssl_keyfile)
+            self.config_store.set("editor.backend.crt", ssl_certfile)
+            self.config_store.set("editor.backend.key", ssl_keyfile)
 
-        host = ConfigBus().get_value('editor.backend.host', str, reject_none=True)
-        self.config_store.set('editor.backend.host', host)
-        port = ConfigBus().get_value('editor.backend.port', int, reject_none=True)
-        self.config_store.set('editor.backend.port', port)
+        host = ConfigBus().get_value("editor.backend.host", str, reject_none=True)
+        self.config_store.set("editor.backend.host", host)
+        port = ConfigBus().get_value("editor.backend.port", int, reject_none=True)
+        self.config_store.set("editor.backend.port", port)
 
         # Configure Uvicorn
         config = uvicorn.Config(
             app=app,
-            host=self.config_store.get('editor.backend.host'),
-            port=self.config_store.get('editor.backend.port'),
+            host=self.config_store.get("editor.backend.host"),
+            port=self.config_store.get("editor.backend.port"),
             ssl_certfile=ssl_certfile,
             ssl_keyfile=ssl_keyfile,
             log_level="info",
@@ -364,9 +351,11 @@ class ServerControl(ServerControlAbstract):
         self.server_thread.finished_signal.connect(self._on_server_finished)
         self.server_thread.start()
         self.is_running = True
-        print(f"Server started with {'SSL' if use_ssl else 'no SSL'} and "
-              f"{'no token' if no_token else 'token-based'} authentication.")
-        print(f'ServerControl::Config:{self.config_store.cfg}')
+        print(
+            f"Server started with {'SSL' if use_ssl else 'no SSL'} and "
+            f"{'no token' if no_token else 'token-based'} authentication."
+        )
+        print(f"ServerControl::Config:{self.config_store.cfg}")
 
     def stop_server(self):
         if not self.is_running:

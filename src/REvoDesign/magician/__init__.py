@@ -1,15 +1,15 @@
-'''
+"""
 Module to manage external design tools.
 Collect, Register, Heat up and Cool down.
-'''
+"""
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
 
 from REvoDesign import ConfigBus, issues
-from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.basic.abc_singleton import SingletonAbstract
+from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import timing
 
@@ -24,8 +24,8 @@ ALL_DESIGNER_CLASSES: list[type[ExternalDesignerAbstract]] = [
     ColabDesigner_MPNN,
     ddg,
 ]
-IMPLEMENTED_DESIGNERS: Mapping[str, type[ExternalDesignerAbstract]] = (
-    MappingProxyType({c.name: c for c in ALL_DESIGNER_CLASSES})
+IMPLEMENTED_DESIGNERS: Mapping[str, type[ExternalDesignerAbstract]] = MappingProxyType(
+    {c.name: c for c in ALL_DESIGNER_CLASSES}
 )
 
 
@@ -38,11 +38,7 @@ class MagicianAssistant:
     A class to manage the installation and usage of external design tools.
     """
 
-    installed_worker: list[str] = field(
-        default_factory=lambda: [
-            c.name for c in ALL_DESIGNER_CLASSES if c.installed
-        ]
-    )
+    installed_worker: list[str] = field(default_factory=lambda: [c.name for c in ALL_DESIGNER_CLASSES if c.installed])
 
     def get(self, name, **kwargs) -> ExternalDesignerAbstract:
         designer_class = IMPLEMENTED_DESIGNERS[name]
@@ -104,27 +100,20 @@ class Magician(SingletonAbstract):
             return self
 
         # If the current gimmick does not match the required name, pre-heat up a new gimmick
-        if not (
-            isinstance(self.gimmick, ExternalDesignerAbstract)
-            and self.gimmick.name == name
-        ):
+        if not (isinstance(self.gimmick, ExternalDesignerAbstract) and self.gimmick.name == name):
 
             with timing(f"Pre-heating up Magician's gimmick {name}"):
                 try:
                     # if not ready, initialize it and return
                     logging.info("This could take a while ...")
-                    self.gimmick = self.magician_assistant.get(
-                        name=name, **kwargs
-                    )
+                    self.gimmick = self.magician_assistant.get(name=name, **kwargs)
                     self.gimmick.initialize(**kwargs)
                     return self
                 except KeyError:
                     # not a valid class, return with cooled down.
                     return self.setup()
                 except Exception as e:
-                    raise issues.DependencyError(
-                        f"Failed to setup Magician's gimmick {name}"
-                    ) from e
+                    raise issues.DependencyError(f"Failed to setup Magician's gimmick {name}") from e
 
         # If the gimmick does not need to change, log information and return
         logging.info(f"Designer stays unchanged: {self.gimmick.name}")

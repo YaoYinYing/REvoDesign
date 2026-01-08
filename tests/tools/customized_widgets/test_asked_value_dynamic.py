@@ -4,10 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 
 # Import target module
-from REvoDesign.tools.customized_widgets import (AskedValue,
-                                                 AskedValueCollection,
-                                                 AskedValueDynamic,
-                                                 dialog_wrapper)
+from REvoDesign.tools.customized_widgets import AskedValue, AskedValueCollection, AskedValueDynamic, dialog_wrapper
 
 # -----------------------------
 # Fixtures and Helpers
@@ -23,6 +20,7 @@ def dummy_function():
 def assert_asked_value_equal(av1: AskedValue, av2: AskedValue):
     """Helper to compare two AskedValue objects."""
     assert vars(av1) == vars(av2)
+
 
 # -----------------------------
 # Parametrized Tests
@@ -57,6 +55,7 @@ def test_asked_value_dynamic_type_check(input_dict: dict[str, Any]):
     except Exception as e:
         pytest.fail(f"Unexpected exception: {e}")
 
+
 # Test merging static + dynamic options
 
 
@@ -72,9 +71,7 @@ def test_asked_value_dynamic_type_check(input_dict: dict[str, Any]):
         # Case 2: Dynamic insert beyond length appends at end
         (
             test_asked_values,
-            [
-                {"value": AskedValue(key="extra", val="end", typing=str), "index": 10}
-            ],
+            [{"value": AskedValue(key="extra", val="end", typing=str), "index": 10}],
             ["name", "age", "is_active", "extra"],
         ),
         # Case 3: No dynamic values
@@ -101,13 +98,10 @@ def test_asked_value_dynamic_merge_static_and_dynamic_values(
 
 def test_asked_value_dynamic_direct_use():
     avd = [
-        AskedValueDynamic(
-            value=AskedValue(key="email", val="alice@example.com", typing=str),
-            index=1
-        ),
+        AskedValueDynamic(value=AskedValue(key="email", val="alice@example.com", typing=str), index=1),
         AskedValueDynamic(
             value=AskedValue(key="score", val=95, typing=int),
             index=3,
-        )
+        ),
     ]
     assert avd == dynamic_asked_values_with_index

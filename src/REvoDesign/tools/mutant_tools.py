@@ -1,6 +1,6 @@
-'''
+"""
 This module contains functions for handling mutants.
-'''
+"""
 
 import json
 import os
@@ -45,9 +45,7 @@ NOT_ALLOWED_GROUP_ID_PREFIX: tuple = (
 
 
 def extract_mutants_from_mutant_id(
-    mutant_string: str,
-    sequences: Mapping[str, str] | RosettaPyProteinSequence,
-    wt_before_chain: bool = False
+    mutant_string: str, sequences: Mapping[str, str] | RosettaPyProteinSequence, wt_before_chain: bool = False
 ) -> Mutant:
     """
     Extract mutant info from an mutant id string. This mutant can be virtual from PyMOL session.
@@ -92,9 +90,7 @@ def extract_mutants_from_mutant_id(
 
             _mut = re.match(r"([A-Z]{1})(\d+)([A-Z]{1})", mut)
 
-            _chain_id = sequences.all_chain_ids[
-                0
-            ]  # expected as the first chain.
+            _chain_id = sequences.all_chain_ids[0]  # expected as the first chain.
             _position = int(_mut.group(2))
             _wt_res = _mut.group(1)
             _mut_res = _mut.group(3)
@@ -105,21 +101,13 @@ def extract_mutants_from_mutant_id(
 
             _mut = re.match(r"(\d+)([A-Z]{1})", mut)
 
-            _chain_id = sequences.all_chain_ids[
-                0
-            ]  # expected as the first chain.
+            _chain_id = sequences.all_chain_ids[0]  # expected as the first chain.
             _position = int(_mut.group(1))
-            _wt_res = list(sequences.get_sequence_by_chain(_chain_id))[
-                _position - 1
-            ]
+            _wt_res = list(sequences.get_sequence_by_chain(_chain_id))[_position - 1]
             _mut_res = _mut.group(2)
 
         else:
-            warnings.warn(
-                issues.BadDataWarning(
-                    f"Error while processing mutant id {mut}. "
-                )
-            )
+            warnings.warn(issues.BadDataWarning(f"Error while processing mutant id {mut}. "))
             continue
 
         mutations.append(
@@ -132,16 +120,12 @@ def extract_mutants_from_mutant_id(
         )
 
     if not mutations:
-        raise issues.InvalidInputError(
-            f"No valid mutations found in `{mutant_string}`"
-        )
+        raise issues.InvalidInputError(f"No valid mutations found in `{mutant_string}`")
 
     mutant_obj = Mutant(mutations, sequences)
 
     # if the mutation has a position of score, we need to extract it.
-    mutant_score = extract_mutant_score_from_string(
-        mutant_string=mutant_string
-    )
+    mutant_score = extract_mutant_score_from_string(mutant_string=mutant_string)
     if mutant_score:
         mutant_obj.mutant_score = mutant_score
 
@@ -149,6 +133,7 @@ def extract_mutants_from_mutant_id(
 
     # Join the mutants into a single string separated by underscores and instantialized Mutant obj
     return mutant_obj
+
 
 # TODO: static method of mutant class
 
@@ -165,13 +150,12 @@ def extract_mutant_score_from_string(mutant_string: str) -> float | None:
     float: Mutant score.
     """
     if re.match(r"[\d+\w]+_[-\d\.e]+", mutant_string):
-        matched_mutant_id = re.match(
-            r"[\w\d\-]+_(\-?\d+\.?\d*e?\-?\d*)$", mutant_string
-        )
+        matched_mutant_id = re.match(r"[\w\d\-]+_(\-?\d+\.?\d*e?\-?\d*)$", mutant_string)
         mutant_score = matched_mutant_id.group(1)
         mutant_score = float(mutant_score)
         return mutant_score
     return None
+
 
 # TODO: static method of mutant class
 
@@ -202,18 +186,15 @@ def extract_mutant_from_sequences(
     if len(_mutant_sequence) != len(_wt_sequence):
         raise issues.InvalidInputError(
             "Lengths of filtered WT and mutant are not equal to each other: "
-            f"{len(_wt_sequence)}: {len(_mutant_sequence)}")
+            f"{len(_wt_sequence)}: {len(_mutant_sequence)}"
+        )
 
     if mutant_sequence == wt_sequence:
         logging.warning("WT and mutant sequences are identical.")
         return
 
     if "X" in wt_sequence and not fix_missing:
-        warnings.warn(
-            issues.ResidueMissingWarning(
-                'WT has missing residue masked as "X"!'
-            )
-        )
+        warnings.warn(issues.ResidueMissingWarning('WT has missing residue masked as "X"!'))
 
     if fix_missing:
         _mutant_sequence = ""
@@ -228,7 +209,8 @@ def extract_mutant_from_sequences(
         if len(_mutant_sequence) != len(wt_sequence):
             raise issues.NoInputError(
                 "Lengths of WT and fixed mutant are not equal to each other: "
-                f"{len(wt_sequence)}: {len(_mutant_sequence)}")
+                f"{len(wt_sequence)}: {len(_mutant_sequence)}"
+            )
 
         mutant_sequence = _mutant_sequence
 
@@ -307,9 +289,7 @@ def shorter_range(
     return seperator.join(range_pairs)
 
 
-def expand_range(
-    shortened_str: str, connector: str = "-", seperator: str = "+"
-) -> list[int]:
+def expand_range(shortened_str: str, connector: str = "-", seperator: str = "+") -> list[int]:
     """
     Expand a shortened string expression representing a list of integers to the original list.
 
@@ -340,19 +320,19 @@ def expand_range(
                 start, end = map(int, rng.split(connector))
                 expanded_list.extend(range(start, end + 1))
             except ValueError as e:
-                raise issues.InvalidInputError(f"Error parsing range '{rng}': {e}\n"
-                                               f"Did you mean {rng.strip(connector)} ?") from e
+                raise issues.InvalidInputError(
+                    f"Error parsing range '{rng}': {e}\n" f"Did you mean {rng.strip(connector)} ?"
+                ) from e
         else:
             expanded_list.append(int(rng))
 
     return expanded_list
 
+
 # TODO: static method of mutant class
 
 
-def extract_mutant_from_pymol_object(
-    pymol_object: str, sequences: RosettaPyProteinSequence
-) -> Mutant:
+def extract_mutant_from_pymol_object(pymol_object: str, sequences: RosettaPyProteinSequence) -> Mutant:
     """
     Extract mutant info from an existing pymol object.
 
@@ -368,9 +348,7 @@ def extract_mutant_from_pymol_object(
 
     for _, chain in enumerate(sequences.chains):
         sequence = chain.sequence
-        for at in cmd.get_model(
-            f"{pymol_object} and c. {chain.chain_id} and n. CA"
-        ).atom:
+        for at in cmd.get_model(f"{pymol_object} and c. {chain.chain_id} and n. CA").atom:
             try:
                 mutant_info.append(
                     Mutation(
@@ -424,20 +402,12 @@ def read_customized_indice(custom_indices_from_input="") -> str:
     if any(custom_indices_from_input.count(x) >= 1 for x in "-:,;+ "):
         from REvoDesign.tools.utils import count_and_sort_characters
 
-        _guessed_connector = count_and_sort_characters(
-            input_string=custom_indices_from_input, characters="-:"
-        )
+        _guessed_connector = count_and_sort_characters(input_string=custom_indices_from_input, characters="-:")
 
-        _guessed_seperator = count_and_sort_characters(
-            input_string=custom_indices_from_input, characters=",;+ "
-        )
+        _guessed_seperator = count_and_sort_characters(input_string=custom_indices_from_input, characters=",;+ ")
 
-        guessed_connector = (
-            list(_guessed_connector.keys())[0] if _guessed_connector else "-"
-        )
-        guessed_seperator = (
-            list(_guessed_seperator.keys())[0] if _guessed_seperator else ","
-        )
+        guessed_connector = list(_guessed_connector.keys())[0] if _guessed_connector else "-"
+        guessed_seperator = list(_guessed_seperator.keys())[0] if _guessed_seperator else ","
 
         custom_indices_str = expand_range(
             shortened_str=custom_indices_from_input,
@@ -447,9 +417,8 @@ def read_customized_indice(custom_indices_from_input="") -> str:
 
         return ",".join([str(x) for x in custom_indices_str])
 
-    raise issues.InvalidInputError(
-        f"Failed in parsing customized indice file/string: {custom_indices_from_input}"
-    )
+    raise issues.InvalidInputError(f"Failed in parsing customized indice file/string: {custom_indices_from_input}")
+
 
 # TODO: rename for clearity
 
@@ -483,12 +452,14 @@ def process_mutations(data):
             result.append((position, wt_residue, wt_profile_score, candidates))
     return result
 
+
 # TODO: rename for clearity
 
 
 def read_profile_design_mutations(filename):
     data = json.load(open(filename))
     return process_mutations(data)
+
 
 # TODO: static method of mutant tree class
 
@@ -512,23 +483,17 @@ def existed_mutant_tree(
     if isinstance(sequences, Mapping):
         sequences = RosettaPyProteinSequence.from_dict(dict(sequences))
 
-    group_ids: list[str] = cmd.get_names(
-        type="group_objects", enabled_only=enabled_only
-    )
+    group_ids: list[str] = cmd.get_names(type="group_objects", enabled_only=enabled_only)
 
     # if the group id starts with any of the disallowed prefixes, filter it out.
     filtered_group_ids = filter(
-        lambda group_id: not any(
-            group_id.startswith(p) for p in NOT_ALLOWED_GROUP_ID_PREFIX
-        ),
+        lambda group_id: not any(group_id.startswith(p) for p in NOT_ALLOWED_GROUP_ID_PREFIX),
         group_ids,
     )
 
     _mutant_tree = {
         group_id: {
-            mutant_id: extract_mutant_from_pymol_object(
-                pymol_object=mutant_id, sequences=sequences
-            )
+            mutant_id: extract_mutant_from_pymol_object(pymol_object=mutant_id, sequences=sequences)
             for mutant_id in cmd.get_object_list(f"({group_id})")
             if not enabled_only or not is_hidden_object(selection=mutant_id)
         }
@@ -554,8 +519,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
     molecule = bus.get_value("ui.header_panel.input.molecule")
     chain_id = bus.get_value("ui.header_panel.input.chain_id")
-    designable_sequences: RosettaPyProteinSequence = bus.get_value(
-        "designable_sequences", RosettaPyProteinSequence.from_dict)
+    designable_sequences = bus.get_value("designable_sequences", RosettaPyProteinSequence.from_dict)
 
     nproc = bus.get_value("ui.header_panel.nproc")
 
@@ -568,7 +532,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
     with timing("Quick Mutageneses"):
         input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
         visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
-        cfg = bus.cfg
+        cfg = bus.cfg_group["main"].cfg
 
         visualizer.designable_sequences = designable_sequences
 
@@ -578,8 +542,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
         visualizer.full = cfg.ui.visualize.full_pdb
         visualizer.cmap = cmap_reverser(
-            bus.get_value('ui.header_panel.cmap.default'),
-            bus.get_value('ui.header_panel.cmap.reverse_score')
+            bus.get_value("ui.header_panel.cmap.default"), bus.get_value("ui.header_panel.cmap.reverse_score")
         )
         visualizer.mutate_runner = sidechain_solver.mutate_runner
 
@@ -601,9 +564,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
                 f'group.{group_id}.{os.path.basename(input_pdb).replace(".pdb", ".pze")}',
             )
 
-            visualizer.mutant_tree = MutantTree(
-                {group_id: mutant_tree.get_a_branch(branch_id=group_id)}
-            )
+            visualizer.mutant_tree = MutantTree({group_id: mutant_tree.get_a_branch(branch_id=group_id)})
             for m in visualizer.mutant_tree.all_mutant_objects:
                 color = get_color(
                     visualizer.cmap,
@@ -611,12 +572,12 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
                     visualizer.min_score,
                     visualizer.max_score,
                 )
-                logging.info(f"Visualizing {m.short_mutant_id} ({m.raw_mutant_id}) : {color} with "
-                             f"{visualizer.mutate_runner.__class__.__name__}")
-
-                visualizer.create_mutagenesis_objects(
-                    mutant_obj=m, color=color, in_place=True
+                logging.info(
+                    f"Visualizing {m.short_mutant_id} ({m.raw_mutant_id}) : {color} with "
+                    f"{visualizer.mutate_runner.__class__.__name__}"
                 )
+
+                visualizer.create_mutagenesis_objects(mutant_obj=m, color=color, in_place=True)
     return
 
 
@@ -625,9 +586,7 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
         raise issues.NoInputError("No Mutant tree is given!")
 
     if mutant_tree.empty:
-        warnings.warn(
-            issues.NoResultsWarning("mutant tree is empty. save nothing.")
-        )
+        warnings.warn(issues.NoResultsWarning("mutant tree is empty. save nothing."))
         return
 
     mutants_to_save = mutant_tree.all_mutant_ids
@@ -636,19 +595,13 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
     # TODO mutant_choices function
     output_mut_txt_dir = os.path.dirname(output_mut_txt_fn)
     if not os.path.exists(output_mut_txt_dir):
-        logging.warning(
-            f"Parent dir for mutant table does NOT exist! {output_mut_txt_dir}"
-        )
+        logging.warning(f"Parent dir for mutant table does NOT exist! {output_mut_txt_dir}")
         # os.makedirs(output_mut_txt_dir,exist_ok=True)
         logging.warning("Skip saving mutant file.")
         return
 
     if os.path.exists(output_mut_txt_fn):
-        warnings.warn(
-            issues.OverridesWarning(
-                f"Mutant table exists and will be overriden! {output_mut_txt_fn}"
-            )
-        )
+        warnings.warn(issues.OverridesWarning(f"Mutant table exists and will be overriden! {output_mut_txt_fn}"))
         write_input_mutant_table(
             output_mut_txt_fn,
             [mt.raw_mutant_id for mt in mutant_tree.all_mutant_objects],
@@ -665,15 +618,11 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
     os.makedirs(output_mut_txt_dir_ckp, exist_ok=True)
 
     _time_stamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
-    output_mut_txt_bn_ckp = f'ckp_{_time_stamp}.{os.path.basename(output_mut_txt_fn)}'
-    output_mut_txt_ckp = os.path.join(
-        output_mut_txt_dir_ckp, output_mut_txt_bn_ckp
-    )
+    output_mut_txt_bn_ckp = f"ckp_{_time_stamp}.{os.path.basename(output_mut_txt_fn)}"
+    output_mut_txt_ckp = os.path.join(output_mut_txt_dir_ckp, output_mut_txt_bn_ckp)
 
     logging.info(f"Saving checkpoint: {output_mut_txt_ckp}")
-    write_input_mutant_table(
-        output_mut_txt_ckp, [mt for mt in mutants_to_save]
-    )
+    write_input_mutant_table(output_mut_txt_ckp, [mt for mt in mutants_to_save])
 
 
 def write_input_mutant_table(output_mut_txt_fn, mutant_list):
@@ -704,8 +653,7 @@ def get_mutant_table_columns(mutfile: str):
 
     if not file_extensions.Mutable.match(filename_ext):
         raise issues.InvalidInputError(
-            f"Invalid file extention {mutfile=}. \n"
-            f"All available: {file_extensions.Mutable.list_dot_ext=}"
+            f"Invalid file extention {mutfile=}. \n" f"All available: {file_extensions.Mutable.list_dot_ext=}"
         )
 
     if mutfile.lower().endswith(".txt"):
@@ -720,21 +668,22 @@ def get_mutant_table_columns(mutfile: str):
     elif mutfile.lower().endswith((".xlsx", ".xls")):
         mutation_data = pd.read_excel(mutfile)
     else:
-        raise issues.UnsupportedDataTypeError(f'Unsupported file type for mutant table: {filename_ext}')
+        raise issues.UnsupportedDataTypeError(f"Unsupported file type for mutant table: {filename_ext}")
 
     return list(mutation_data.columns)
+
 
 # TODO: performance issue
 
 
 def pick_design_from_profile(
-        profile: str,
-        profile_type: str,
-        prefer_lower_score: bool = False,
-        keep_missing: bool = True,
-        residue_range: str = '',
-        view_highlight: str = 'orient',
-        view_highlight_nbr: int = 6
+    profile: str,
+    profile_type: str,
+    prefer_lower_score: bool = False,
+    keep_missing: bool = True,
+    residue_range: str = "",
+    view_highlight: str = "orient",
+    view_highlight_nbr: int = 6,
 ):
     from RosettaPy.common.mutation import Mutation
 
@@ -745,19 +694,18 @@ def pick_design_from_profile(
     from ..common.mutant_visualise import MutantVisualizer
     from ..phylogenetics.revo_designer import REvoDesigner
     from ..sidechain.sidechain_solver import SidechainSolver
-    from ..tools.utils import (cmap_reverser, get_color,
-                               run_worker_thread_with_progress)
+    from ..tools.utils import cmap_reverser, get_color, run_worker_thread_with_progress
 
     bus = ConfigBus()
-    molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
-    chain_id = bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)
+    molecule = bus.get_value("ui.header_panel.input.molecule", str, reject_none=True)
+    chain_id = bus.get_value("ui.header_panel.input.chain_id", str, reject_none=True)
 
     cmap = cmap_reverser(
         cmap=bus.get_value("ui.header_panel.cmap.default"),
         reverse=prefer_lower_score,
     )
 
-    if sequences := bus.get_value('designable_sequences', ConfigConverter.convert, reject_none=True):
+    if sequences := bus.get_value("designable_sequences", ConfigConverter.convert, reject_none=True, cfg="runtime"):
         designable_sequences = RosettaPyProteinSequence.from_dict(sequences)
     else:
         raise issues.NoInputError("Failed to get sequence from Config, Session or PDB file!")
@@ -769,12 +717,13 @@ def pick_design_from_profile(
     print(sequence)
 
     # Get residue range, if none, use full length
-    custom_indices_str: str = residue_range if residue_range else shorter_range(
-        [i for i, aa in enumerate(sequence) if aa != 'X'])
+    custom_indices_str: str = (
+        residue_range if residue_range else shorter_range([i for i, aa in enumerate(sequence) if aa != "X"])
+    )
 
     custom_indices_str = read_customized_indice(custom_indices_from_input=custom_indices_str.strip())
     logging.debug(f"Read:  {custom_indices_str=}")
-    custom_indices_str = ','.join([str(int(resi)) for resi in custom_indices_str.split(',')])
+    custom_indices_str = ",".join([str(int(resi)) for resi in custom_indices_str.split(",")])
     logging.debug(f"Fixed: {custom_indices_str=}")
 
     # Parse profile with MutantVisualizer's profile reading
@@ -795,9 +744,7 @@ def pick_design_from_profile(
         df.columns = df.columns.map(int)
 
     if df is None or df.empty:
-        raise issues.NoResultsError(
-            f"Error occurs while parsing profile {profile} with format {profile_type}"
-        )
+        raise issues.NoResultsError(f"Error occurs while parsing profile {profile} with format {profile_type}")
 
     profile_alphabet = "".join(df.T.columns.to_list())
     logging.info(df.head())
@@ -810,11 +757,11 @@ def pick_design_from_profile(
     designer.cmap = cmap
     designer.profile_alphabet = profile_alphabet
     designer.pwd = os.getcwd()
-    designer.design_case = 'default'
+    designer.design_case = "default"
     designer.designable_sequences = designable_sequences
 
     designer.mutate_runner = SidechainSolver().refresh().mutate_runner
-    designer.reject_aa = ''
+    designer.reject_aa = ""
 
     max_abs = np.max((np.abs(df.values.min()), df.values.max()))
 
@@ -828,12 +775,12 @@ def pick_design_from_profile(
             df_ori=df,
             custom_indices_str=custom_indices_str,
             cutoff=cutoff,
-            preferred_substitutions='',
+            preferred_substitutions="",
         )
 
     except KeyError as e:
         raise issues.InvalidInputError(
-            f'A Key Error occurred due to invalid residue range({residue_range} --> {custom_indices_str}): \n{e}'
+            f"A Key Error occurred due to invalid residue range({residue_range} --> {custom_indices_str}): \n{e}"
         ) from e
 
     custom_indices = expand_range(shortened_str=custom_indices_str, seperator=",", connector="-")
@@ -861,19 +808,20 @@ def pick_design_from_profile(
 
         with timing(f"Mutating picked {chain_id}{wt_res}{resi}{resn}"):
 
-            group_id = f'mt_manual_{wt_res}{resi}_{wt_score}'
-            mutant = Mutant([Mutation(chain_id=chain_id, position=resi, wt_res=wt_res, mut_res=resn)],
-                            wt_protein_sequence=designable_sequences)
+            group_id = f"mt_manual_{wt_res}{resi}_{wt_score}"
+            mutant = Mutant(
+                [Mutation(chain_id=chain_id, position=resi, wt_res=wt_res, mut_res=resn)],
+                wt_protein_sequence=designable_sequences,
+            )
             mutant.mutant_score = mut_score
             visualizer.group_name = group_id
 
             # build the sidechain if not existed
             if designed_tree.has(mutant.full_mutant_id):
-                logging.info(f'{mutant} already exists in the tree')
+                logging.info(f"{mutant} already exists in the tree")
             else:
                 sidechain_solver = run_worker_thread_with_progress(
-                    SidechainSolver().refresh,
-                    progress_bar=bus.ui.progressBar
+                    SidechainSolver().refresh, progress_bar=bus.ui.progressBar
                 )
                 if not sidechain_solver:
                     raise issues.InternalError("Sidechain solver failed")
@@ -882,30 +830,32 @@ def pick_design_from_profile(
                 score = mutant.mutant_score
 
                 color = get_color(cmap, score, -max_abs, max_abs)
-                print(f"Visualizing {mutant.short_mutant_id} ({mutant.raw_mutant_id}) : {color} "
-                      f"with {visualizer.mutate_runner.__class__.__name__}")
+                print(
+                    f"Visualizing {mutant.short_mutant_id} ({mutant.raw_mutant_id}) : {color} "
+                    f"with {visualizer.mutate_runner.__class__.__name__}"
+                )
                 run_worker_thread_with_progress(
                     visualizer.create_mutagenesis_objects,
                     mutant_obj=mutant,
                     color=color,
                     in_place=True,
-                    progress_bar=bus.ui.progressBar
+                    progress_bar=bus.ui.progressBar,
                 )
 
                 designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)
 
         highlight_method_name = view_highlight
-        if highlight_method_name == 'center':
+        if highlight_method_name == "center":
             highlight_method = cmd.center
-        elif highlight_method_name == 'zoom':
+        elif highlight_method_name == "zoom":
             highlight_method = cmd.zoom
-        elif highlight_method_name == 'orient':
+        elif highlight_method_name == "orient":
             highlight_method = cmd.orient
         else:
             return
 
         if view_highlight_nbr > 0:
-            highlight_method(f'byres {mutant.full_mutant_id} around {view_highlight_nbr}', animate=1)
+            highlight_method(f"byres {mutant.full_mutant_id} around {view_highlight_nbr}", animate=1)
         else:
             highlight_method(mutant.full_mutant_id, animate=1)
 
@@ -915,13 +865,9 @@ def pick_design_from_profile(
     pix_per_block = 25
 
     button_matrix = QButtonMatrix(
-        df_matrix=df_button_matrix,
-        sequence=sequence,
-        cmap=cmap,
-        flip_cmap=True,
-        button_size=12
+        df_matrix=df_button_matrix, sequence=sequence, cmap=cmap, flip_cmap=True, button_size=12
     )
-    button_matrix.setObjectName('ProfileDesignButtonMatrix')
+    button_matrix.setObjectName("ProfileDesignButtonMatrix")
     button_matrix.label_size = [18, 9]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
@@ -950,7 +896,7 @@ def pick_design_from_profile(
     window.setMinimumSize(dynamic_width, dynamic_height)
     window.setMaximumSize(dynamic_width, dynamic_height)
     window.setToolTip(
-        f'''Click on a button to mutate the corresponding residue.
+        f"""Click on a button to mutate the corresponding residue.
 
 Design with Profile:
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-
@@ -961,7 +907,7 @@ Prefer Lower Score: {prefer_lower_score}
 Keep Missing Residues: {keep_missing}
 View Highlight: {view_highlight}
 View Highlight Nbr: {view_highlight_nbr}
--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-'''
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-"""
     )
 
     # Add a scroll area to the window
@@ -987,9 +933,7 @@ View Highlight Nbr: {view_highlight_nbr}
     header_layout = QtWidgets.QHBoxLayout()
     header_widget.setLayout(header_layout)
 
-    banner_label = QtWidgets.QLabel(
-        f"Design with Profiles: {shorter_range(custom_indices)}"
-    )
+    banner_label = QtWidgets.QLabel(f"Design with Profiles: {shorter_range(custom_indices)}")
     banner_label.setWordWrap(True)
     banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)  # type: ignore
     banner_label.setStyleSheet(

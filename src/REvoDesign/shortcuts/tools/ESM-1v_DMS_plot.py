@@ -8,10 +8,10 @@ import pathlib
 import matplotlib.pylab as plt
 import pandas as pd
 
-alphabet = 'ARNDCQEGHILKMFPSTWYV'
+alphabet = "ARNDCQEGHILKMFPSTWYV"
 
 
-def plot_w(df_ori, sequence, pop=False, annotate=False, base=0, png_name='undefined.png', score_max_abs=None):
+def plot_w(df_ori, sequence, pop=False, annotate=False, base=0, png_name="undefined.png", score_max_abs=None):
     # make a copy of mtx to prevent further modifications
     df = df_ori.copy()
 
@@ -24,13 +24,13 @@ def plot_w(df_ori, sequence, pop=False, annotate=False, base=0, png_name='undefi
 
     # show the data
     if score_max_abs is not None:
-        pcm = plt.imshow(df, cmap='bwr_r', vmax=score_max_abs, vmin=-score_max_abs)
+        pcm = plt.imshow(df, cmap="bwr_r", vmax=score_max_abs, vmin=-score_max_abs)
     else:
-        pcm = plt.imshow(df, cmap='bwr_r')
+        pcm = plt.imshow(df, cmap="bwr_r")
     # add set y axis
     al_a = [x[0] for x in df.index.values.tolist()]
     # print(al_a)
-    alphabet = ''.join(al_a)
+    alphabet = "".join(al_a)
 
     # select space of x-axis
     if len(sequence) <= 20:
@@ -45,8 +45,8 @@ def plot_w(df_ori, sequence, pop=False, annotate=False, base=0, png_name='undefi
     x_ax += [x for x in range(len(sequence) + 1) if x % s == 0 and x != 0]
     plt.xticks([x - 1 for x in x_ax], [base + x for x in x_ax])
     plt.yticks(range(len(alphabet)), list(alphabet))
-    plt.xlabel('Positions')
-    plt.ylabel('Amino Acid')
+    plt.xlabel("Positions")
+    plt.ylabel("Amino Acid")
     plt.grid(False)
 
     # show a color bar
@@ -80,45 +80,63 @@ def plot_in_segment(df, sequence, n, label, save_dir, score_max_abs):
     for i in range(df.shape[1]):
         i_ = int(i)
         if i % n == 0:
-            plot_w(df_1.iloc[:, i_:i_ + n], sequence[i_:i_ + n], annotate=True, base=i_,
-                   png_name=f"{save_dir}/{label}_{i_}-{i_ + n}.png", score_max_abs=score_max_abs)
+            plot_w(
+                df_1.iloc[:, i_ : i_ + n],
+                sequence[i_ : i_ + n],
+                annotate=True,
+                base=i_,
+                png_name=f"{save_dir}/{label}_{i_}-{i_ + n}.png",
+                score_max_abs=score_max_abs,
+            )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Visualize Deep Mutation Scan results of ESM-1v for a sequence.")
-    parser.add_argument('--sequence', dest='sequence', help='sequence for scan', required=True, type=str)
-    parser.add_argument('--instance', dest='instance', help='instance for pdb', required=True, type=str)
-    parser.add_argument('--mutant_col', dest='mutant_col', help='mutant_col for DMS', default="mutations", type=str)
-    parser.add_argument('--models', dest='models', help='models path used for ESM-1v', type=str, nargs='+',
-                        default=[
-                            '/mnt/db/esm/esm1v_t33_650M_UR90S_1.pt',
-                            '/mnt/db/esm/esm1v_t33_650M_UR90S_2.pt',
-                            '/mnt/db/esm/esm1v_t33_650M_UR90S_3.pt',
-                            '/mnt/db/esm/esm1v_t33_650M_UR90S_4.pt',
-                            '/mnt/db/esm/esm1v_t33_650M_UR90S_5.pt',
-                        ])
-    parser.add_argument('--model_names', dest='model_names', action="store", type=str, nargs='+',
-                        default=['esm-1v_1', 'esm-1v_2', 'esm-1v_3', 'esm-1v_4', 'esm-1v_5'],
-                        help="method names used for generating mut tables")
-    parser.add_argument('--esm_dms_csv', dest='esm_dms_csv', help='esm_dms_csv', required=True,
-                        type=str)
+    parser.add_argument("--sequence", dest="sequence", help="sequence for scan", required=True, type=str)
+    parser.add_argument("--instance", dest="instance", help="instance for pdb", required=True, type=str)
+    parser.add_argument("--mutant_col", dest="mutant_col", help="mutant_col for DMS", default="mutations", type=str)
+    parser.add_argument(
+        "--models",
+        dest="models",
+        help="models path used for ESM-1v",
+        type=str,
+        nargs="+",
+        default=[
+            "/mnt/db/esm/esm1v_t33_650M_UR90S_1.pt",
+            "/mnt/db/esm/esm1v_t33_650M_UR90S_2.pt",
+            "/mnt/db/esm/esm1v_t33_650M_UR90S_3.pt",
+            "/mnt/db/esm/esm1v_t33_650M_UR90S_4.pt",
+            "/mnt/db/esm/esm1v_t33_650M_UR90S_5.pt",
+        ],
+    )
+    parser.add_argument(
+        "--model_names",
+        dest="model_names",
+        action="store",
+        type=str,
+        nargs="+",
+        default=["esm-1v_1", "esm-1v_2", "esm-1v_3", "esm-1v_4", "esm-1v_5"],
+        help="method names used for generating mut tables",
+    )
+    parser.add_argument("--esm_dms_csv", dest="esm_dms_csv", help="esm_dms_csv", required=True, type=str)
 
-    parser.add_argument('--save_dir', dest='save_dir', action="store", type=str, default=".",
-                        help="Path to save results")
+    parser.add_argument(
+        "--save_dir", dest="save_dir", action="store", type=str, default=".", help="Path to save results"
+    )
     args_dict = vars(parser.parse_args())
 
     # read args
-    sequence = args_dict['sequence']
-    instance = args_dict['instance']
-    models = args_dict['models']
-    model_names = args_dict['model_names']
-    esm_dms_csv = args_dict['esm_dms_csv']
-    mutant_col = args_dict['mutant_col']
-    save_dir = args_dict['save_dir']
+    sequence = args_dict["sequence"]
+    instance = args_dict["instance"]
+    models = args_dict["models"]
+    model_names = args_dict["model_names"]
+    esm_dms_csv = args_dict["esm_dms_csv"]
+    mutant_col = args_dict["mutant_col"]
+    save_dir = args_dict["save_dir"]
 
     # check args:
     assert len(sequence) > 0
-    assert instance is not None and instance != ''
+    assert instance is not None and instance != ""
     assert os.path.exists(esm_dms_csv)
     assert len(model_names) == len(models)
     os.makedirs(save_dir, exist_ok=True)
@@ -133,18 +151,19 @@ if __name__ == "__main__":
     if model_names[0] not in df_dms.columns:
         df_dms.rename(columns={model: model_name for model, model_name in zip(models, model_names)}, inplace=True)
 
-    df_dms['wt_aa'] = df_dms[mutant_col].str.split().str[0].str[0]
-    df_dms['mut_aa'] = df_dms[mutant_col].str.split().str[0].str[-1]
-    df_dms['pos'] = df_dms[mutant_col].str.split().str[0].str[1:-1].astype(int)
+    df_dms["wt_aa"] = df_dms[mutant_col].str.split().str[0].str[0]
+    df_dms["mut_aa"] = df_dms[mutant_col].str.split().str[0].str[-1]
+    df_dms["pos"] = df_dms[mutant_col].str.split().str[0].str[1:-1].astype(int)
 
     for model_name in model_names:
-        df_this_model = df_dms[[model_name, 'wt_aa', 'pos', 'mut_aa']]
+        df_this_model = df_dms[[model_name, "wt_aa", "pos", "mut_aa"]]
         df_this_model_ = pd.DataFrame(columns=[x for x in alphabet])
-        print(f'Processing model prediction: {model_name} ...')
+        print(f"Processing model prediction: {model_name} ...")
 
         # take a loop to original dataframe and write scores as a two-dimensional aaray.
-        for wt, pos, mut, sc in zip(df_this_model['wt_aa'], df_this_model['pos'], df_this_model['mut_aa'],
-                                    df_this_model[model_name]):
+        for wt, pos, mut, sc in zip(
+            df_this_model["wt_aa"], df_this_model["pos"], df_this_model["mut_aa"], df_this_model[model_name]
+        ):
             # print(pos-1)
             # print(alphabet.index(mut))
             df_this_model_.loc[pos, mut] = sc
@@ -164,25 +183,32 @@ if __name__ == "__main__":
         sc_maxima = max(df_this_model_t.max())
 
         sc_max_abs = max(abs(sc_minima), abs(sc_maxima))
-        print(f'scores minima: {-sc_max_abs}')
-        print(f'scores maxima: {sc_max_abs}')
+        print(f"scores minima: {-sc_max_abs}")
+        print(f"scores maxima: {sc_max_abs}")
 
         # set color scale using score minima/maxima
         # sc_abs_max=max([abs(x)  for x in [sc_minima,sc_maxima]])
-        print(f'color scale: {-sc_max_abs}:{sc_max_abs}')
+        print(f"color scale: {-sc_max_abs}:{sc_max_abs}")
 
         # plot in full length
-        plot_w(df_ori=df_this_model_t, sequence=sequence, annotate=True, pop=False,
-               png_name=f'{save_dir}/{instance}_{model_name}_full_prediction.png', score_max_abs=sc_max_abs)
+        plot_w(
+            df_ori=df_this_model_t,
+            sequence=sequence,
+            annotate=True,
+            pop=False,
+            png_name=f"{save_dir}/{instance}_{model_name}_full_prediction.png",
+            score_max_abs=sc_max_abs,
+        )
 
         # plot in segments
         plot_in_segment(
             df=df_this_model_t,
             sequence=sequence,
             n=100,
-            label=f'{instance}_{model_name}',
+            label=f"{instance}_{model_name}",
             save_dir=save_dir,
-            score_max_abs=sc_max_abs)
+            score_max_abs=sc_max_abs,
+        )
 
         # find out the mutation w/ improvement
         mut_list = []
@@ -193,8 +219,8 @@ if __name__ == "__main__":
             if len(df_this_model_screen) > 0:
                 for mut in df_this_model_screen:
                     # print(f'{wt_aa}{idx}{mut}')
-                    mut_list.append(f'{wt_aa}{idx}{mut}')
-        with open(f'{save_dir}/mutlist_{instance}_{model_name}_dms.txt', 'w') as dms_mutlist_fh:
-            dms_mutlist_fh.write('\n'.join(mut_list))
+                    mut_list.append(f"{wt_aa}{idx}{mut}")
+        with open(f"{save_dir}/mutlist_{instance}_{model_name}_dms.txt", "w") as dms_mutlist_fh:
+            dms_mutlist_fh.write("\n".join(mut_list))
         # dump csv:
-        df_this_model_t.to_csv(f'{save_dir}/{instance}_{model_name}_dms_mtx.csv')
+        df_this_model_t.to_csv(f"{save_dir}/{instance}_{model_name}_dms_mtx.csv")

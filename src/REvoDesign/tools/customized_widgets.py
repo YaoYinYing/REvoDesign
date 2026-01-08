@@ -26,8 +26,7 @@ from REvoDesign.common import file_extensions as Fext
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 
-from .package_manager import (WorkerThread, decide, hold_trigger_button,
-                              notify_box, refresh_window)
+from .package_manager import WorkerThread, decide, hold_trigger_button, notify_box, refresh_window
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -47,10 +46,8 @@ class ImageWidget(QtWidgets.QWidget):
 
 
 def pick_color(
-        parent: QtWidgets.QWidget,
-        init_color: str | None = "",
-        disable_native_picker: bool = False,
-        alpha: bool = False) -> str | None:
+    parent: QtWidgets.QWidget, init_color: str | None = "", disable_native_picker: bool = False, alpha: bool = False
+) -> str | None:
 
     opts = QtWidgets.QColorDialog.ColorDialogOption()
     if disable_native_picker:
@@ -64,6 +61,7 @@ def pick_color(
         print(f"Selected Color: {color.name()}")
         return color.name()
 
+
 # Class REvoDesignWidget
 # This class represents a custom widget in the REvoDesign application. It inherits from QtWidgets.QWidget.
 # The widget can be named and optionally allows multiple instances with the same name.
@@ -73,7 +71,7 @@ def pick_color(
 
 
 class REvoDesignWidget(QtWidgets.QWidget):
-    '''
+    """
     REvoDesign Widget Window Class
 
     This Widget class represents a custom widget in the REvoDesign application.
@@ -81,7 +79,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
     detaching from a central UI bus, and ensures no duplicate windows are opened
     unless explicitly allowed.
 
-    '''
+    """
 
     def __init__(self, object_name: str | None = None, allow_repeat: bool = False, parent=None):
         """
@@ -93,7 +91,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
             parent (Optional[QWidget]): The parent widget. Defaults to None.
         """
         super().__init__(parent)
-        self.setObjectName(object_name or 'AnonymousWidget')
+        self.setObjectName(object_name or "AnonymousWidget")
         self.allow_repeat = allow_repeat
 
         # Connect the destroyed signal to the detach method for cleanup
@@ -134,17 +132,19 @@ class REvoDesignWidget(QtWidgets.QWidget):
         Checks if a window with the same name is already open. If found, raises it to the front and raises a RuntimeError.
         """
         from REvoDesign.driver.ui_driver import ConfigBus
+
         bus = ConfigBus()
         if bus.headless:
             return
-        if not hasattr(bus.ui, 'open_windows'):
+        if not hasattr(bus.ui, "open_windows"):
             return
 
         # Find windows with the same name
         the_windows = [
-            w for w in bus.ui.open_windows if hasattr(
-                w, 'objectName') and getattr(
-                w, 'objectName')() == self.objectName()]
+            w
+            for w in bus.ui.open_windows
+            if hasattr(w, "objectName") and getattr(w, "objectName")() == self.objectName()
+        ]
         if any(the_windows):
             # Raise the existing window to the front
             this_window: REvoDesignWidget = the_windows[0]
@@ -157,6 +157,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
         Attaches the widget to the UI bus by adding it to the list of open windows.
         """
         from REvoDesign.driver.ui_driver import ConfigBus
+
         bus = ConfigBus()
         if bus.headless:
             raise issues.UnexpectedWorkflowError("Attaching window in headless mode is not allowed.")
@@ -164,17 +165,18 @@ class REvoDesignWidget(QtWidgets.QWidget):
         logging.debug(f"Window {self.objectName()} attaching...")
 
         # Ensure the open_windows list exists and add this widget to it
-        if not hasattr(bus.ui, 'open_windows'):
+        if not hasattr(bus.ui, "open_windows"):
             logging.debug(f"Creating open_windows list under ui for {self.objectName()}")
-            setattr(bus.ui, 'open_windows', [])
+            setattr(bus.ui, "open_windows", [])
         bus.ui.open_windows.append(self)
-        logging.debug(f'Window {self.objectName()} attached.')
+        logging.debug(f"Window {self.objectName()} attached.")
 
     def detach(self):
         """
         Detaches the widget from the UI bus by removing it from the list of open windows.
         """
         from REvoDesign.driver.ui_driver import ConfigBus
+
         bus = ConfigBus()
         if bus.headless:
             raise issues.UnexpectedWorkflowError("Detaching window in headless mode is not allowed.")
@@ -182,11 +184,11 @@ class REvoDesignWidget(QtWidgets.QWidget):
         logging.debug(f"Window {self.objectName()} detaching...")
 
         # Remove this widget from the open_windows list if it exists
-        if hasattr(bus.ui, 'open_windows') and self in bus.ui.open_windows:
+        if hasattr(bus.ui, "open_windows") and self in bus.ui.open_windows:
             bus.ui.open_windows.remove(self)
             if bus.ui.open_windows == []:
-                delattr(bus.ui, 'open_windows')
-                logging.debug('Empty open_windows list from ui is deleted.')
+                delattr(bus.ui, "open_windows")
+                logging.debug("Empty open_windows list from ui is deleted.")
         logging.debug(f"Window {self.objectName()} destroyed and cleaned up.")
 
     @contextmanager
@@ -215,6 +217,7 @@ class ButtonCoords:
         col (int): The column index of the button.
         col_name (str): The name of the column.
     """
+
     row: int
     row_name: str
     col: int
@@ -234,6 +237,7 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         button_name: Constructs the unique object name for the button.
         style_sheet: Generates the CSS styling for the button.
     """
+
     hover_signal = QtCore.pyqtSignal(int, int)
     leave_signal = QtCore.pyqtSignal()
 
@@ -382,14 +386,10 @@ class QHoverCross(QtWidgets.QWidget):
         center_y = self.hover_position.center().y()
 
         # Horizontal rectangle: full width, centered at button
-        horizontal_rect = QtCore.QRect(
-            0, center_y - button_height // 2, self.width(), button_height
-        )
+        horizontal_rect = QtCore.QRect(0, center_y - button_height // 2, self.width(), button_height)
 
         # Vertical rectangle: full height, centered at button
-        vertical_rect = QtCore.QRect(
-            center_x - button_width // 2, 0, button_width, self.height()
-        )
+        vertical_rect = QtCore.QRect(center_x - button_width // 2, 0, button_width, self.height())
 
         # Draw the empty rectangles
         painter.drawRect(horizontal_rect)
@@ -489,7 +489,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         sequence: str,
         func: Callable[[int, int], None] | None = None,
         parent=None,
-        cmap: str = 'bwr',
+        cmap: str = "bwr",
         flip_cmap: bool = False,
         button_size=12,
         zero_index_offset=0,
@@ -525,7 +525,7 @@ class QButtonMatrix(QtWidgets.QWidget):
 
         # Add widgets to the stacked layout
         self.main_layout.addWidget(self.matrix_widget)  # Button layer
-        self.main_layout.addWidget(self.hover_cross)    # Hover cross layer
+        self.main_layout.addWidget(self.hover_cross)  # Hover cross layer
 
         self.button_size = button_size
         self.sequence = sequence
@@ -580,7 +580,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         Args:
             label (QtWidgets.QLabel): The label to resize.
         """
-        if not (hasattr(self, 'label_size') and self.label_size):
+        if not (hasattr(self, "label_size") and self.label_size):
             return
         if len(self.label_size) != 2:
             raise ValueError("label size must be a list of length 2")
@@ -609,13 +609,14 @@ class QButtonMatrix(QtWidgets.QWidget):
         return (len(self.alphabet_row), len(self.alphabet_col))
 
     def _make_button_tip(
-            self,
-            row_name: str,
-            col_name: str,
-            value: float,
-            row: int | None = None,
-            col: int | None = None,
-            is_wt_pair: bool = False):
+        self,
+        row_name: str,
+        col_name: str,
+        value: float,
+        row: int | None = None,
+        col: int | None = None,
+        is_wt_pair: bool = False,
+    ):
         """
         Constructs a tooltip for a button.
 
@@ -633,7 +634,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         _WT = self.sequence[int(col_name) - 1 + self.zero_index_offset]
         _IDX = str(int(col_name) + self.zero_index_offset)
         _SUB = row_name
-        _IS_WT_NOTE = ', WT' if is_wt_pair else ''
+        _IS_WT_NOTE = ", WT" if is_wt_pair else ""
         return f"{_WT}{_IDX}{_SUB} ({value:.3f}){_IS_WT_NOTE}"
 
     def init_ui(self):
@@ -645,14 +646,15 @@ class QButtonMatrix(QtWidgets.QWidget):
         font.setBold(True)
 
         logging.debug(
-            f'Initialized button matrix with shape {self.shape}: {self.shape[0]} rows, {self.shape[1]} columns')
+            f"Initialized button matrix with shape {self.shape}: {self.shape[0]} rows, {self.shape[1]} columns"
+        )
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
 
         for row, row_name in enumerate(self.alphabet_row):
             label = QtWidgets.QLabel(row_name)
             label.setFont(font)
-            if hasattr(self, '_set_label_size'):
+            if hasattr(self, "_set_label_size"):
                 self._set_label_size(label)
 
             self.button_layout.addWidget(label, row, 0, QtCore.Qt.AlignRight)
@@ -661,10 +663,8 @@ class QButtonMatrix(QtWidgets.QWidget):
 
                 is_wt_button = self.is_wt_button(row_name=row_name, col_name=col_name, row=row, col=col)
                 button_tip = self._make_button_tip(
-                    col_name=col_name,
-                    row_name=row_name,
-                    value=value,
-                    is_wt_pair=is_wt_button)
+                    col_name=col_name, row_name=row_name, value=value, is_wt_pair=is_wt_button
+                )
 
                 # new button
                 button = QButtonBrick(
@@ -678,7 +678,7 @@ class QButtonMatrix(QtWidgets.QWidget):
 
                 # set style
                 bfont = QtGui.QFont()
-                bfont.setPointSizeF(self.button_size * .9)
+                bfont.setPointSizeF(self.button_size * 0.9)
                 bfont.setBold(True)
                 button.setFont(bfont)
 
@@ -698,14 +698,16 @@ class QButtonMatrix(QtWidgets.QWidget):
                     col_name = str(int(col_name) - self.zero_index_offset)
                 except ValueError as e:
                     raise issues.UnsupportedDataTypeError(
-                        f'Zero-index offset is not supported for Column where {self.alphabet_col}.\n'
-                        f'Expected type is int or digit string, not {type(col_name)}.') from e
+                        f"Zero-index offset is not supported for Column where {self.alphabet_col}.\n"
+                        f"Expected type is int or digit string, not {type(col_name)}."
+                    ) from e
             label = QtWidgets.QLabel(str(col_name))
             label.setFont(font)
-            if hasattr(self, '_set_label_size'):
+            if hasattr(self, "_set_label_size"):
                 self._set_label_size(label)
-            self.button_layout.addWidget(label, len(self.alphabet_col), col + 1,
-                                         QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+            self.button_layout.addWidget(
+                label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft
+            )
 
     def signal_process(self, row, col):
         """
@@ -738,18 +740,20 @@ class QButtonMatrixGremlin(QButtonMatrix):
         is_wt_button: Redefines wild type button criteria for Gremlin.
         _make_button_tip: Custom tooltip generation for Gremlin.
     """
+
     label_size: list[int] | None = [12, 12]
 
     def __init__(
-            self,
-            df_matrix,
-            sequence,
-            pair_i: int,
-            pair_j: int,
-            parent=None,
-            func: Callable | None = None,
-            cmap='bwr',
-            button_size=12):
+        self,
+        df_matrix,
+        sequence,
+        pair_i: int,
+        pair_j: int,
+        parent=None,
+        func: Callable | None = None,
+        cmap="bwr",
+        button_size=12,
+    ):
         """
         Initializes the QButtonMatrixGremlin widget.
 
@@ -768,7 +772,7 @@ class QButtonMatrixGremlin(QButtonMatrix):
         self.pair_j = pair_j
 
     def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
-        return 'WT'
+        return "WT"
 
     def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
         """
@@ -786,13 +790,14 @@ class QButtonMatrixGremlin(QButtonMatrix):
         return row_name == self.sequence[self.pair_i] and self.alphabet_col[col] == self.sequence[self.pair_j]
 
     def _make_button_tip(
-            self,
-            row_name: str,
-            col_name: str,
-            value: float,
-            row: int | None = None,
-            col: int | None = None,
-            is_wt_pair: bool = False):
+        self,
+        row_name: str,
+        col_name: str,
+        value: float,
+        row: int | None = None,
+        col: int | None = None,
+        is_wt_pair: bool = False,
+    ):
         """
         Constructs a tooltip for a button in Gremlin.
 
@@ -818,7 +823,7 @@ class QButtonMatrixGremlin(QButtonMatrix):
             else ""
         )
         button_tip = " - ".join(t for t in [button_tip_i, button_tip_j] if t)
-        return button_tip if button_tip else 'WT'
+        return button_tip if button_tip else "WT"
 
 
 class MultiCheckableComboBox(QtWidgets.QComboBox):
@@ -856,8 +861,10 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
             current_state = item.data(QtCore.Qt.CheckStateRole)
-            item.setData(QtCore.Qt.Checked if current_state ==
-                         QtCore.Qt.Unchecked else QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+            item.setData(
+                QtCore.Qt.Checked if current_state == QtCore.Qt.Unchecked else QtCore.Qt.Unchecked,
+                QtCore.Qt.CheckStateRole,
+            )
 
     def get_checked_items(self) -> list[str]:
         """Retrieve all checked items."""
@@ -944,10 +951,9 @@ def set_widget_value(widget: QtWidgets.QProgressBar, value: int | list[int] | tu
 
 
 @overload
-def set_widget_value(widget: (
-    QtWidgets.QDoubleSpinBox |
-    QtWidgets.QSpinBox),
-    value: int | float | list[str] | tuple[str, str]): ...
+def set_widget_value(
+    widget: QtWidgets.QDoubleSpinBox | QtWidgets.QSpinBox, value: int | float | list[str] | tuple[str, str]
+): ...
 
 
 @overload
@@ -963,11 +969,7 @@ def set_widget_value(widget: QtWidgets.QGridLayout, value: str): ...
 
 
 @overload
-def set_widget_value(widget: (
-    QtWidgets.QLineEdit |
-    QtWidgets.QLCDNumber |
-    QtWidgets.QCheckBox
-), value: Any): ...
+def set_widget_value(widget: QtWidgets.QLineEdit | QtWidgets.QLCDNumber | QtWidgets.QCheckBox, value: Any): ...
 
 
 def set_widget_value(widget, value):
@@ -1067,22 +1069,15 @@ def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ...  # type: ignore
 
 
 @overload
-def get_widget_value(widget: (  # type: ignore
-    QtWidgets.QComboBox |
-    QtWidgets.QLineEdit)) -> str: ...
+def get_widget_value(widget: QtWidgets.QComboBox | QtWidgets.QLineEdit) -> str: ...  # type: ignore
 
 
 @overload
-def get_widget_value(widget: (  # type: ignore
-    QtWidgets.QDoubleSpinBox |
-    QtWidgets.QLCDNumber
-)) -> float: ...
+def get_widget_value(widget: QtWidgets.QDoubleSpinBox | QtWidgets.QLCDNumber) -> float: ...  # type: ignore
 
 
 @overload
-def get_widget_value(widget: (  # type: ignore
-    QtWidgets.QSpinBox |
-    QtWidgets.QProgressBar)) -> int: ...
+def get_widget_value(widget: QtWidgets.QSpinBox | QtWidgets.QProgressBar) -> int: ...  # type: ignore
 
 
 @overload
@@ -1189,9 +1184,7 @@ def widget_signal_tape(widget: QtWidgets.QWidget, event, disconnect: bool = Fals
 
     # Raise an error for unsupported widget types
     else:
-        raise NotImplementedError(
-            f"{widget} {type(widget)} is not supported yet"
-        )
+        raise NotImplementedError(f"{widget} {type(widget)} is not supported yet")
 
 
 def refresh_widget_while_another_changed(
@@ -1520,10 +1513,11 @@ class AskedValueCollection:
     @property
     def need_action(self) -> bool:
         return any(asked.source != "None" for asked in self.asked_values) or any(
-            asked.typing is list for asked in self.asked_values)
+            asked.typing is list for asked in self.asked_values
+        )
 
     @property
-    def typing_fixed(self) -> 'AskedValueCollection':
+    def typing_fixed(self) -> "AskedValueCollection":
         """
         Returns a new object with the `asked_values` field where each element's `val` attribute has been type-converted.
 
@@ -1671,7 +1665,7 @@ class ValueDialog(REvoDesignWidget):
             enable_real_time_update_checkbox.setChecked(self.enable_real_time_update)
             enable_real_time_update_checkbox.stateChanged.connect(self._on_real_time_update_changed)
             enable_real_time_update_checkbox.setToolTip(
-                'When enabled, the dialog will be run in real-time as you type or change the values.'
+                "When enabled, the dialog will be run in real-time as you type or change the values."
             )
             enable_real_time_update_checkbox.setObjectName("EnableRealTimeUpdateCheckbox")
             apply_now_layout.addWidget(enable_real_time_update_checkbox)
@@ -1683,9 +1677,7 @@ class ValueDialog(REvoDesignWidget):
 
         apply_now_button = QtWidgets.QPushButton("Apply Now")
         apply_now_button.setObjectName("ApplyNow")
-        apply_now_button.setToolTip(
-            'Click to apply the current values to the dialog. '
-        )
+        apply_now_button.setToolTip("Click to apply the current values to the dialog. ")
         apply_now_button.clicked.connect(self._on_apply_now_clicked)
         apply_now_layout.addWidget(apply_now_button)
 
@@ -1697,8 +1689,9 @@ class ValueDialog(REvoDesignWidget):
         load_button.clicked.connect(self._on_load_clicked)
         load_button.setObjectName("Load")
         load_button.setToolTip(
-            'Load the previous saved recipe to replicate the same settings. '
-            'Also, you can drag and drop the recipe file (json) into this window here.')
+            "Load the previous saved recipe to replicate the same settings. "
+            "Also, you can drag and drop the recipe file (json) into this window here."
+        )
 
         save_button = QtWidgets.QPushButton("Save")
         save_button.clicked.connect(self._on_save_clicked)
@@ -1813,7 +1806,8 @@ class ValueDialog(REvoDesignWidget):
             choices = tuple(choices) if not isinstance(choices, filter) else tuple(deepcopy(choices))
             if not choices:
                 raise issues.InternalError(
-                    f"Drop-down field must have a valid choices, not {choices}. Asked by: {asked_value}")
+                    f"Drop-down field must have a valid choices, not {choices}. Asked by: {asked_value}"
+                )
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
             widget.setCurrentText(str(asked_value.val) or str(choices[0]))
@@ -1836,18 +1830,16 @@ class ValueDialog(REvoDesignWidget):
             self._connect_widget_change(widget)
 
         action_button_size_policy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Minimum,
-            QtWidgets.QSizePolicy.Policy.Fixed)
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed
+        )
 
         # Column 3: Action button if file=True
-        if asked_value.source in ("File", 'FileO'):
+        if asked_value.source in ("File", "FileO"):
             action_button = QtWidgets.QPushButton("Browse")
             action_button.setToolTip("Browse for a file")
             action_button.clicked.connect(
-                lambda: self._browse_file(
-                    widget,
-                    asked_value.ext,
-                    mode='r' if asked_value.source == "File" else 'w'))
+                lambda: self._browse_file(widget, asked_value.ext, mode="r" if asked_value.source == "File" else "w")
+            )
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "Files":
             action_button = QtWidgets.QPushButton("Browse")
@@ -1863,10 +1855,8 @@ class ValueDialog(REvoDesignWidget):
             action_button = QtWidgets.QPushButton("Pick Color")
             action_button.setToolTip("Pick a color and return it as a hexadecimal string")
             action_button.clicked.connect(
-                lambda: widget.setText(
-                    pick_color(
-                        widget,
-                        widget.text() or "") or widget.text() or ""))
+                lambda: widget.setText(pick_color(widget, widget.text() or "") or widget.text() or "")
+            )
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "JsonInput":
             # Create a container widget for the layout
@@ -1920,8 +1910,7 @@ class ValueDialog(REvoDesignWidget):
 
             self.table.setCellWidget(row, 3, container_widget)
 
-    def _browse_file(self, widget, exts: FExCol | None = None,
-                     multiple: bool = False, mode: Literal['r', 'w'] = 'r'):
+    def _browse_file(self, widget, exts: FExCol | None = None, multiple: bool = False, mode: Literal["r", "w"] = "r"):
         """
         Opens a file dialog to select a file and updates the input field.
 
@@ -1931,18 +1920,23 @@ class ValueDialog(REvoDesignWidget):
         # prevent circular import
         from REvoDesign.driver.file_dialog import FileDialog
 
-        ext = (exts, Fext.Any,) if exts else (Fext.Any,)
+        ext = (
+            (
+                exts,
+                Fext.Any,
+            )
+            if exts
+            else (Fext.Any,)
+        )
 
         file_dialog = FileDialog(None, os.getcwd())
         if multiple:
             selected_file = file_dialog.browse_multiple_files(ext)
             if selected_file:
-                widget.setText('|'.join(selected_file))
+                widget.setText("|".join(selected_file))
             return
 
-        selected_file = file_dialog.browse_filename(
-            mode=mode, exts=ext
-        )
+        selected_file = file_dialog.browse_filename(mode=mode, exts=ext)
         if selected_file:
             widget.setText(selected_file)
 
@@ -1965,6 +1959,7 @@ class ValueDialog(REvoDesignWidget):
             original = next((item for item in self.key_dict if item.key == key), None)
             if original and original.required and not value:
                 QtWidgets.QMessageBox.warning(self, "Missing Input", f"Please provide a value for '{key}'")
+                # raise issues.NoInputError(f"No input provided for mandatory key '{key}'")
                 return
             if original:
                 self.updated_values.append(
@@ -1990,10 +1985,9 @@ class ValueDialog(REvoDesignWidget):
     def _on_save_clicked(self):
         from REvoDesign import __version__
         from REvoDesign.driver.file_dialog import FileDialog
+
         file_dialog = FileDialog(None, os.getcwd())
-        selected_file = file_dialog.browse_filename(
-            mode='w', exts=(Fext.JSON, Fext.Any)
-        )
+        selected_file = file_dialog.browse_filename(mode="w", exts=(Fext.JSON, Fext.Any))
 
         if not selected_file:
             return
@@ -2003,17 +1997,16 @@ class ValueDialog(REvoDesignWidget):
         # value: AskedValue.val
 
         contents_to_save = {
-            'metadata': {
-                '__window__': self.windowTitle(),
-                '__version__': __version__,
-                '__date__': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "metadata": {
+                "__window__": self.windowTitle(),
+                "__version__": __version__,
+                "__date__": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             },
-            '__asked_values__': {a.key: get_widget_value(self.input_fields[a.key]) for a in self.key_dict}
-
+            "__asked_values__": {a.key: get_widget_value(self.input_fields[a.key]) for a in self.key_dict},
         }
 
         try:
-            with open(selected_file, 'w') as f:
+            with open(selected_file, "w") as f:
                 json.dump(contents_to_save, f, indent=4)
                 logging.info(f"Saved recipe: {selected_file}")
         except Exception as e:
@@ -2025,22 +2018,25 @@ class ValueDialog(REvoDesignWidget):
 
         # load back all asked values from a json file
         contents_to_load: dict[str, dict[str, Any]] = json.load(open(selected_file))
-        if contents_to_load['metadata']['__window__'] != self.windowTitle():
-            logging.error(f"The recipe is made for Dialog `{contents_to_load['metadata']['__window__']}`, "
-                          f"which is not compatible with the current window `{self.windowTitle()}`")
+        if contents_to_load["metadata"]["__window__"] != self.windowTitle():
+            logging.error(
+                f"The recipe is made for Dialog `{contents_to_load['metadata']['__window__']}`, "
+                f"which is not compatible with the current window `{self.windowTitle()}`"
+            )
             return
-        if contents_to_load['metadata']['__version__'] != __version__:
+        if contents_to_load["metadata"]["__version__"] != __version__:
             logging.warning(
                 f"The recipe is made with version {contents_to_load['metadata']['__version__']}, "
-                f"which may not be compatible from the current version {__version__}")
+                f"which may not be compatible from the current version {__version__}"
+            )
         logging.info(f'Recipe created at: {contents_to_load["metadata"]["__date__"]}')
-        for key, val in contents_to_load['__asked_values__'].items():
+        for key, val in contents_to_load["__asked_values__"].items():
             widget = self.input_fields[key]
             try:
                 set_widget_value(widget, val)
             except Exception as e:
                 logging.error(f"Error setting value to widget {widget}: {e}. ")
-                logging.warning(f'You may have been using an incompatible recipe. The field ({key}) will be ignored.')
+                logging.warning(f"You may have been using an incompatible recipe. The field ({key}) will be ignored.")
 
         logging.info(f"Loaded recipe: {selected_file}")
 
@@ -2049,9 +2045,7 @@ class ValueDialog(REvoDesignWidget):
         from REvoDesign.driver.file_dialog import FileDialog
 
         file_dialog = FileDialog(None, os.getcwd())
-        selected_file = file_dialog.browse_filename(
-            mode='r', exts=(Fext.JSON, Fext.Any)
-        )
+        selected_file = file_dialog.browse_filename(mode="r", exts=(Fext.JSON, Fext.Any))
         if not selected_file:
             return
         self._load_json_file(selected_file)
@@ -2075,9 +2069,9 @@ class ValueDialog(REvoDesignWidget):
         if a0.mimeData().hasUrls:
             a0.setDropAction(QtCore.Qt.CopyAction)
             file_path = a0.mimeData().urls()[0].toString()
-            file_path = file_path.replace('file://', '')
-            if not file_path.endswith('.json'):
-                raise ValueError('Only json files are allowed')
+            file_path = file_path.replace("file://", "")
+            if not file_path.endswith(".json"):
+                raise ValueError("Only json files are allowed")
             self._load_json_file(file_path)
 
             a0.accept()
@@ -2263,12 +2257,13 @@ def ask_for_multiple_values_as_json() -> str:
 
 
 class AskedValueDynamic(TypedDict):
-    '''
+    """
     Dynamic value to be passed to the dialog window.
     It is a dictionary with two keys:
     - value (AskedValue): the value to be passed to the dialog window
     - index (int): the index of the value to be inserted in the list of values
-    '''
+    """
+
     value: AskedValue
     index: int
 
@@ -2305,10 +2300,9 @@ def dialog_wrapper(
                 all_options.insert(index, dynamic_value["value"])
 
             values: AskedValueCollection | None = None
-            dialog = ValueDialog(title, AskedValueCollection(
-                all_options,
-                banner=banner,
-                allow_real_time_update=allow_real_time_update))
+            dialog = ValueDialog(
+                title, AskedValueCollection(all_options, banner=banner, allow_real_time_update=allow_real_time_update)
+            )
 
             def real_time_update(x: list[AskedValue]):
                 nonlocal values

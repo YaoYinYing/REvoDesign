@@ -1,6 +1,7 @@
-'''
+"""
 Shortcut functions of structure manipulation
-'''
+"""
+
 import itertools
 
 from pymol import cmd
@@ -58,9 +59,7 @@ def shortcut_find_interface(
                 }
             )
             if len(ifc_residues) == 0:
-                print(
-                    f"No interact residue is found btw {x} chain {ch_combination} within {interact_dist} angstrom."
-                )
+                print(f"No interact residue is found btw {x} chain {ch_combination} within {interact_dist} angstrom.")
                 continue
             ifc_residues.sort()
             print(ifc_residues)

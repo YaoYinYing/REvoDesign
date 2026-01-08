@@ -47,21 +47,14 @@ def main():
     Add license notice to every source file if not present or just check
     """
     # Create option parser
-    parser = ArgumentParser(
-        description=" Add license notice to every source file if not present."
-    )
-    parser.add_argument(
-        "--check", action="store_true", dest="check", default=False, help=CHECK_HELP
-    )
+    parser = ArgumentParser(description=" Add license notice to every source file if not present.")
+    parser.add_argument("--check", action="store_true", dest="check", default=False, help=CHECK_HELP)
     args = parser.parse_args()
 
     gitignore = get_gitignore(Path("."))
 
     python_files = [
-        path
-        for path in Path(".").glob("**/*.py")
-        if not str(path).startswith(".")
-        if not gitignore.match_file(path)
+        path for path in Path(".").glob("**/*.py") if not str(path).startswith(".") if not gitignore.match_file(path)
     ]
 
     missing_notice_files = []

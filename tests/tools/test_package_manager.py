@@ -10,12 +10,16 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from REvoDesign.tools.package_manager import (GitSolver, PIPInstaller,
-                                              fetch_gist_file, fetch_gist_json,
-                                              filter_sensitive_data,
-                                              get_github_repo_tags,
-                                              run_command,
-                                              solve_installation_config)
+from REvoDesign.tools.package_manager import (
+    GitSolver,
+    PIPInstaller,
+    fetch_gist_file,
+    fetch_gist_json,
+    filter_sensitive_data,
+    get_github_repo_tags,
+    run_command,
+    solve_installation_config,
+)
 
 
 # Test for fetch_gist_file
@@ -49,6 +53,7 @@ def test_pm_fetch_gist_file_url_error():
     with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("Mock error")):
         with pytest.raises(urllib.error.URLError, match="Failed to download file:"):
             fetch_gist_file(mock_url, "temp_file.ui")
+
 
 # Test for fetch_gist_json
 
@@ -277,7 +282,7 @@ def pip_installer():
 
 def test_pm_ensurepip_success(pip_installer, mocker):
     """Test ensurepip executes successfully."""
-    mock_run_command = mocker.patch('REvoDesign.tools.package_manager.run_command')
+    mock_run_command = mocker.patch("REvoDesign.tools.package_manager.run_command")
     mock_run_command.return_value = MagicMock(returncode=0)
 
     pip_installer.ensurepip()
@@ -287,28 +292,28 @@ def test_pm_ensurepip_success(pip_installer, mocker):
 
 def test_pm_ensurepip_failure(pip_installer, mocker):
     """Test ensurepip raises an error on failure."""
-    mock_run_command = mocker.patch('REvoDesign.tools.package_manager.run_command')
-    mocker.patch('REvoDesign.tools.package_manager.notify_box')
-    mock_run_command.return_value = MagicMock(returncode=1, stdout='stdout', stderr='stderr')
+    mock_run_command = mocker.patch("REvoDesign.tools.package_manager.run_command")
+    mocker.patch("REvoDesign.tools.package_manager.notify_box")
+    mock_run_command.return_value = MagicMock(returncode=1, stdout="stdout", stderr="stderr")
 
     pip_installer.ensurepip()
 
 
 def test_pm_install_revo_design_success(pip_installer, mocker):
     """Test installing the REvoDesign package successfully."""
-    mock_run_command = mocker.patch('REvoDesign.tools.package_manager.run_command')
-    mock_solve_installation_config = mocker.patch('REvoDesign.tools.package_manager.solve_installation_config')
-    mock_solve_installation_config.return_value = 'mocked_package_string'
+    mock_run_command = mocker.patch("REvoDesign.tools.package_manager.run_command")
+    mock_solve_installation_config = mocker.patch("REvoDesign.tools.package_manager.solve_installation_config")
+    mock_solve_installation_config.return_value = "mocked_package_string"
     mock_run_command.return_value = MagicMock(returncode=0)
 
-    result = pip_installer.install(package_name='REvoDesign', source='https://example.com@v1.0')
+    result = pip_installer.install(package_name="REvoDesign", source="https://example.com@v1.0")
 
     mock_solve_installation_config.assert_called_once_with(
-        source='https://example.com@v1.0',
-        git_url='https://example.com',
-        git_tag='v1.0',
+        source="https://example.com@v1.0",
+        git_url="https://example.com",
+        git_tag="v1.0",
         extras=None,
-        package_name='REvoDesign'
+        package_name="REvoDesign",
     )
 
     mock_run_command.assert_called()
@@ -317,22 +322,15 @@ def test_pm_install_revo_design_success(pip_installer, mocker):
 
 def test_pm_uninstall(pip_installer, mocker):
     """Test uninstalling a package."""
-    mock_run_command = mocker.patch('REvoDesign.tools.package_manager.run_command')
+    mock_run_command = mocker.patch("REvoDesign.tools.package_manager.run_command")
     mock_run_command.return_value = MagicMock(returncode=0)
 
-    result = pip_installer.uninstall(package_name='some_package')
+    result = pip_installer.uninstall(package_name="some_package")
 
     mock_run_command.assert_called_once_with(
-        [
-            pip_installer.python_exe,
-            "-m",
-            "pip",
-            "uninstall",
-            "-y",
-            "some_package"
-        ],
+        [pip_installer.python_exe, "-m", "pip", "uninstall", "-y", "some_package"],
         verbose=pip_installer.verbose_level > -1,
-        env=pip_installer.env
+        env=pip_installer.env,
     )
 
     assert result.returncode == 0
@@ -340,14 +338,12 @@ def test_pm_uninstall(pip_installer, mocker):
 
 def test_pm_ensure_package(pip_installer, mocker):
     """Test ensuring a package installation."""
-    mock_install = mocker.patch.object(pip_installer, 'install')
+    mock_install = mocker.patch.object(pip_installer, "install")
     mock_install.return_value = MagicMock(returncode=0)
 
-    pip_installer.ensure_package(package_string='some_package')
+    pip_installer.ensure_package(package_string="some_package")
 
-    mock_install.assert_called_once_with(
-        'some_package', upgrade=True, env=None, mirror=None
-    )
+    mock_install.assert_called_once_with("some_package", upgrade=True, env=None, mirror=None)
 
 
 class TestGetGithubRepoTags:
@@ -373,7 +369,7 @@ class TestGetGithubRepoTags:
         def mock_urlopen(*args, **kwargs):
             raise HTTPError(args[0], 404, "Not Found", None, None)
 
-        monkeypatch.setattr(urllib.request, 'urlopen', mock_urlopen)
+        monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
 
         repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
         tags = get_github_repo_tags(repo_url)
@@ -385,7 +381,7 @@ class TestGetGithubRepoTags:
         def mock_urlopen(*args, **kwargs):
             raise URLError("Failed to reach the server")
 
-        monkeypatch.setattr(urllib.request, 'urlopen', mock_urlopen)
+        monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
 
         repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
         tags = get_github_repo_tags(repo_url)
@@ -402,13 +398,12 @@ def test_pm_get_github_repo_tags_success():
 
 def test_pm_get_github_repo_tags_http_error():
     """Test handling of an HTTPError."""
-    with patch("urllib.request.urlopen", side_effect=urllib.error.HTTPError(
-        url="https://api.github.com/repos/test_owner/test_repo/tags",
-        code=404,
-        msg="Not Found",
-        hdrs=None,
-        fp=None
-    )):
+    with patch(
+        "urllib.request.urlopen",
+        side_effect=urllib.error.HTTPError(
+            url="https://api.github.com/repos/test_owner/test_repo/tags", code=404, msg="Not Found", hdrs=None, fp=None
+        ),
+    ):
         result = get_github_repo_tags("https://github.com/test_owner/test_repo")
         assert result == []
 
@@ -480,6 +475,7 @@ def mocked_run_command(cmd):
         return MockCompletedProcess(stdout="Active code page: 65001")
     return MockCompletedProcess(stdout="mock output")
 
+
 # Mock utility function for fetch_gist_json
 
 
@@ -491,18 +487,20 @@ def mock_fetch_gist_json(url):
 
 @pytest.fixture
 def mock_environment():
-    with patch("platform.uname", return_value=platform.uname()), \
-            patch("platform.architecture", return_value=("64bit", "")), \
-            patch("platform.system", return_value="Linux"), \
-            patch("platform.release", return_value="5.15.0-1"), \
-            patch("platform.version", return_value="mock-version"), \
-            patch("os.cpu_count", return_value=8), \
-            patch("sys.platform", "linux"), \
-            patch("os.getenv", side_effect=lambda key: "mock_value" if key.startswith("CONDA") else None), \
-            patch.dict(os.environ, {"CONDA_PREFIX": ""}, {'OPENAI_TOKEN': 'my_awesome_chatgpt_token'}), \
-            patch("socket.gethostbyname_ex", return_value=("localhost", [], ["127.0.0.1"])), \
-            patch("REvoDesign.tools.package_manager.run_command", side_effect=mocked_run_command), \
-            patch("REvoDesign.tools.package_manager.fetch_gist_json", side_effect=mock_fetch_gist_json):
+    with (
+        patch("platform.uname", return_value=platform.uname()),
+        patch("platform.architecture", return_value=("64bit", "")),
+        patch("platform.system", return_value="Linux"),
+        patch("platform.release", return_value="5.15.0-1"),
+        patch("platform.version", return_value="mock-version"),
+        patch("os.cpu_count", return_value=8),
+        patch("sys.platform", "linux"),
+        patch("os.getenv", side_effect=lambda key: "mock_value" if key.startswith("CONDA") else None),
+        patch.dict(os.environ, {"CONDA_PREFIX": ""}, {"OPENAI_TOKEN": "my_awesome_chatgpt_token"}),
+        patch("socket.gethostbyname_ex", return_value=("localhost", [], ["127.0.0.1"])),
+        patch("REvoDesign.tools.package_manager.run_command", side_effect=mocked_run_command),
+        patch("REvoDesign.tools.package_manager.fetch_gist_json", side_effect=mock_fetch_gist_json),
+    ):
         yield
 
 
@@ -538,7 +536,7 @@ def test_pm_issue_collection_drop_sensitive(mock_environment):
     from REvoDesign.tools.package_manager import issue_collection
 
     result = issue_collection(drop_sensitives=True, collect_dummy=True)
-    assert not any(k for k in result["Dummy::Environ"] if 'TOKEN' in k.upper())
+    assert not any(k for k in result["Dummy::Environ"] if "TOKEN" in k.upper())
 
 
 # Mock the notify_box function to capture its calls
@@ -547,12 +545,13 @@ def mock_notify_box(message, exception=None):
     if exception:
         raise exception(message)
 
+
 # Patch the notify_box function to use the mock
 
 
 @pytest.fixture(autouse=True)
 def patch_notify_box(monkeypatch):
-    monkeypatch.setattr('REvoDesign.tools.package_manager.notify_box', mock_notify_box)
+    monkeypatch.setattr("REvoDesign.tools.package_manager.notify_box", mock_notify_box)
 
 
 def test_pm_installation_from_github_url():
@@ -562,6 +561,7 @@ def test_pm_installation_from_github_url():
     extras = None
     expected_output = "REvoDesign @ git+https://github.com/user/revo-design@v1.0.0"
     assert solve_installation_config(source, git_url, git_tag, extras) == expected_output
+
 
 # def test_pm_installation_from_local_git_repo(test_tmp_dir):
 #     source = test_tmp_dir
@@ -591,7 +591,7 @@ def test_pm_installation_from_zipped_file():
     git_tag = None
     extras = "extra1,extra2"
     expected_output = "/path/to/local/code.zip[extra1,extra2]"
-    with patch('os.path.isfile', return_value=True):
+    with patch("os.path.isfile", return_value=True):
         assert solve_installation_config(source, git_url, git_tag, extras) == expected_output
 
 
@@ -601,7 +601,7 @@ def test_pm_installation_from_invalid_dir(test_tmp_dir):
     git_tag = "v1.0.0"
     extras = None
 
-    with pytest.raises(ValueError, match='should atleast be a Git repository or a code directory'):
+    with pytest.raises(ValueError, match="should atleast be a Git repository or a code directory"):
         solve_installation_config(source, git_url, git_tag, extras)
 
 
@@ -610,7 +610,7 @@ def test_pm_installation_from_invalid_file_type():
     git_url = "https://github.com/user/revo-design"
     git_tag = None
     extras = None
-    with patch('os.path.isfile'), pytest.raises(FileNotFoundError, match='is neither a zipped file nor a tar.gz file!'):
+    with patch("os.path.isfile"), pytest.raises(FileNotFoundError, match="is neither a zipped file nor a tar.gz file!"):
         solve_installation_config(source, git_url, git_tag, extras)
 
 
@@ -619,5 +619,5 @@ def test_pm_installation_from_random_shit_source():
     git_url = "https://github.com/user/revo-design"
     git_tag = None
     extras = None
-    with pytest.raises(ValueError, match='Unknown installation source'):
+    with pytest.raises(ValueError, match="Unknown installation source"):
         solve_installation_config(source, git_url, git_tag, extras)

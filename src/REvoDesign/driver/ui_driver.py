@@ -1,9 +1,14 @@
-'''
+"""
 The heart of REvoDesign. A UI-Configuration Bus
-'''
+"""
+
+from __future__ import annotations
 
 import os
+import shutil
+import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import partial, wraps
 from typing import Any, Protocol, TypeVar, overload
 
@@ -12,13 +17,13 @@ from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
-from REvoDesign.basic import MenuActionServerMonitor
+from REvoDesign.basic.server_monitor import MenuActionServerMonitor
+from REvoDesign.bootstrap import CACHE_CONFIG_DIR, REVODESIGN_CONFIG_DIR
+from REvoDesign.bootstrap.set_config import list_all_config_files, save_configuration
 from REvoDesign.citations import CitableModuleAbstract
-from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.logger import LOGGER_CONFIG, ROOT_LOGGER
 from REvoDesign.Qt import QtWidgets
-from REvoDesign.tools.customized_widgets import (get_widget_value, notify_box,
-                                                 set_widget_value,
-                                                 widget_signal_tape)
+from REvoDesign.tools.customized_widgets import get_widget_value, notify_box, set_widget_value, widget_signal_tape
 from REvoDesign.tools.utils import CLASS_ARGSLICE
 
 from .group_register import GroupRegistryCollection
@@ -38,13 +43,13 @@ class StoresWidget(SingletonAbstract):
 
     @classmethod
     def reset_instance(cls):
-        '''
+        """
         Reset the instance of the class and clear all server switches dictionaries.
-        '''
+        """
         myinstance = cls()
 
         for attr in myinstance.__dict__:
-            if attr.startswith('_'):
+            if attr.startswith("_"):
                 continue
 
             attr_dict: dict | Any = getattr(myinstance, attr)
@@ -52,15 +57,15 @@ class StoresWidget(SingletonAbstract):
                 continue
 
             for k, s in attr_dict.items():
-                if hasattr(s, 'controller'):
-                    controller = getattr(s, 'controller')
+                if hasattr(s, "controller"):
+                    controller = getattr(s, "controller")
                     try:
                         if issubclass(s.controller.__class__, SingletonAbstract):
-                            print(f'Resetting {k}: {controller.__class__.__name__}', end=' ')
+                            print(f"Resetting {k}: {controller.__class__.__name__}", end=" ")
                             s.controller.__class__.reset_instance()
-                        print('done.')
+                        print("done.")
                     except Exception as e:
-                        print(f'failed: ({e}).')
+                        print(f"failed: ({e}).")
 
             del attr_dict
 
@@ -77,10 +82,218 @@ class HeadlessProtocol(Protocol):
     Attributes:
     headless: bool -- A boolean attribute indicating whether the object runs in headless mode.
     """
+
     headless: bool
 
 
 ConfigBusT = TypeVar("ConfigBusT", bound=HeadlessProtocol)
+
+
+@dataclass
+class Config:
+    """
+    A dataclass to represent a configuration file. It contains the name, path, and configuration data of a configuration file.
+
+    Attributes:
+    name: str -- The name of the configuration file.
+    path: str -- The path to the configuration file.
+    cfg: DictConfig -- The configuration data of the configuration file.
+
+    Methods:
+    from_name(name: str) -> Config
+        A class method to create a Config object from a configuration name.
+    from_names(names: list[str]) -> dict[str, Config]
+        A class method to create a dictionary of Config objects from a list of configuration names.
+    from_file(path: str) -> Config
+        A class method to create a Config object from a configuration file path.
+    from_files(paths: list[str]) -> dict[str, Config]
+        A class method to create a dictionary of Config objects from a list of configuration file paths.
+    save()
+        Saves the configuration data to the configuration file.
+    reload()
+        Reloads the configuration data from the configuration file.
+    save_as(file_path: str)
+        Saves the configuration data to a specified file path.
+    """
+
+    name: str
+    path: str
+    cfg: DictConfig
+
+    def __repr__(self):
+        return f"""Config:
+ - name: {self.name}
+ - path: {self.path}
+ - cfg:
+ -=-=-=-=-=-=-=-=-
+ {OmegaConf.to_yaml(self.cfg)}
+ -=-=-=-=-=-=-=-=-"""
+
+    @classmethod
+    def from_name(cls, name: str) -> Config:
+        """
+        Create a Config object from a configuration name.
+        Args:
+            name (str): The name of the configuration file.
+        Returns:
+            Config: A Config object created from the configuration file.
+        Raises:
+            issues.ConfigureError: If the configuration file does not exist.
+            issues.FileFormatError: If the configuration file is not a valid YAML file.
+        """
+        path = os.path.join(REVODESIGN_CONFIG_DIR, f"{name}.yaml")
+        cfg = reload_config_file(config_name=name)
+        return cls(name=name, path=path, cfg=cfg)
+
+    @classmethod
+    def from_names(cls, names: list[str]) -> dict[str, Config]:
+        """
+        Create a dictionary of Config objects from a list of configuration names.
+        Args:
+            names (list[str]): A list of configuration file names.
+        Returns:
+            dict[str, Config]: A dictionary of Config objects created from the configuration files.
+
+        Raises:
+            issues.ConfigureError: If any of the configuration files do not exist.
+            issues.FileFormatError: If any of the configuration files are not valid YAML files.
+        """
+        configs = {}
+        for name in names:
+            try:
+                config = cls.from_name(name)
+                configs[config.name] = config
+            except Exception as e:
+                logging.error(f"Failed to load config {name}: {e}")
+
+        return configs
+
+    @classmethod
+    def from_file(cls, path: str) -> Config:
+        """
+        Create a Config object from a configuration file path.
+        Args:
+            path (str): The path to the configuration file.
+        Returns:
+            Config: A Config object created from the configuration file.
+
+        Raises:
+            issues.ConfigureError: If the configuration file does not exist.
+            issues.FileFormatError: If the configuration file is not a valid YAML file.
+        """
+        basename = os.path.basename(path)
+        name = basename.removesuffix(".yaml")
+        path = os.path.abspath(path)
+        cfg = reload_config_file(config_name=name)
+        return cls(name=name, path=path, cfg=cfg)
+
+    @classmethod
+    def from_files(cls, paths: list[str]) -> dict[str, Config]:
+        """
+        Create a dictionary of Config objects from a list of configuration file paths.
+        Args:
+            paths (list[str]): A list of paths to configuration files.
+        Returns:
+            dict[str, Config]: A dictionary of Config objects created from the configuration files.
+
+        Raises:
+            issues.ConfigureError: If any of the configuration files do not exist.
+            issues.FileFormatError: If any of the configuration files are not valid YAML files.
+        """
+        configs = {}
+        for path in paths:
+            config = cls.from_file(path)
+            configs[config.name] = config
+        return configs
+
+    def save(self):
+        """
+        Saves the configuration data to the configuration file.
+        """
+        save_configuration(self.cfg, self.name)
+
+    def save_to_experiment(self, experiment: str):
+        """
+        located at REVODESIGN_CONFIG_DIR
+
+        experiment:
+            - experiment: experiment/<name-of-experiment>.yaml
+            - cache: cache/<name-of-cache>.yaml
+        return:
+            - path to the saved experiment file
+        """
+        save_configuration(self.cfg, experiment)
+        return os.path.join(REVODESIGN_CONFIG_DIR, f"{experiment}.yaml")
+
+    def reload(self):
+        """
+        Reloads the configuration data from the configuration file.
+        """
+        self.cfg = reload_config_file(self.name)
+
+    def reload_from_experiment(self, experiment: str):
+        """
+        experiment:
+            - experiment: experiment/<name-of-experiment>.yaml
+            - cache: cache/<name-of-cache>.yaml
+        """
+        reload_from_prefix = experiment.split("/", 1)[0]
+        if reload_from_prefix not in ("experiments", "cache"):
+            raise issues.UnexpectedWorkflowError(
+                f"The reload type must be experiments or cache, not {reload_from_prefix}"
+            )
+
+        # follow the hydra rule
+        expected = os.path.join(REVODESIGN_CONFIG_DIR, f"{experiment}.yaml")
+        if not os.path.isfile(expected):
+            raise FileNotFoundError(f"An experiment file is expected at {expected} for {experiment}")
+        self.cfg = reload_config_file(config_name=experiment)[reload_from_prefix]
+
+    def reload_from_path(self, path: str):
+        """
+        Reloads the configuration data from a specified file path.
+        Args:
+        path (str): The path to the configuration file.
+        Raises:
+            issues.ConfigureError: If the configuration file does not exist.
+            issues.FileFormatError: If the configuration file is not a valid YAML file.
+        """
+        if not os.path.exists(path):
+            raise issues.ConfigureError(f"{path} does not exist")
+        if not path.endswith(".yaml"):
+            raise issues.FileFormatError(f"{path} is not a valid config file")
+
+        # get a copy under the cache directory: cache/<cfgname>_cached_<newfile_basename_prefix>.yaml
+        expected_cached_yaml = os.path.join(CACHE_CONFIG_DIR, f"{self.name}_cached_{os.path.basename(path)}")
+        new_cfg_base_name: str = os.path.basename(expected_cached_yaml)
+        new_cfg_prefix = os.path.basename(new_cfg_base_name)[:-5]
+
+        shutil.copy(path, expected_cached_yaml)
+        self.cfg = reload_config_file(config_name=f"cache/{new_cfg_prefix}")["cache"]
+
+    def save_as(self, file_path: str):
+        """
+        Saves the configuration data to a specified file path.
+
+        Args:
+            file_path (str): The path to save the configuration file.
+
+        """
+        # get a uniq timestamp at the date:time:second level
+        timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
+
+        # to avoid test case failure, we add a random number to the timestamp
+        current_milliseconds = round(time.time() * 1_000_000_000_000_000)
+
+        # save to cache
+        cached_path = self.save_to_experiment(f"cache/{self.name}_cached_{timestamp}_{current_milliseconds}")
+
+        # move cached to the target path
+        # unless explicitly saved, the self.path wont be saved to
+
+        shutil.move(cached_path, file_path)
+
+        logging.info(f"Config file {self.name} saved to {file_path} (cached at {cached_path})")
 
 
 def require_non_headless(method):
@@ -148,10 +361,18 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             buttons based on the existence of file paths in the configuration.
 
     """
+
     headless: bool = True
 
     def singleton_init(self, ui=None):
-        self.cfg: DictConfig = reload_config_file()
+        # logger must be excluded from the  config group, as logger starts before the config bus
+        self.cfg_group = Config.from_files(
+            [cf for cf in list_all_config_files(REVODESIGN_CONFIG_DIR) if not cf.startswith("logger")]
+        )
+
+        # attacth loggger config to the config group
+        self.cfg_group["logger"] = Config("logger", os.path.join(REVODESIGN_CONFIG_DIR, "logger.yaml"), LOGGER_CONFIG)
+
         if ui:
             self.headless = False
             self.ui = ui
@@ -176,9 +397,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 if callable(group_cfg):
                     values = group_cfg()
                 else:
-                    logging.debug(
-                        f"Group {j} of widget {gr.cfg_item} does not return any values"
-                    )
+                    logging.debug(f"Group {j} of widget {gr.cfg_item} does not return any values")
                     continue
 
                 # exclude blank string, blank list, or blank tuple
@@ -217,7 +436,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         if not cfg_item:
             return
         value = get_widget_value(widget=widget)
-        OmegaConf.update(self.cfg, cfg_item, value)
+        OmegaConf.update(self.cfg_group["main"].cfg, cfg_item, value)
 
     def _widget_link(self, widget_id: str):
         return partial(self.update_cfg_item_from_widget, widget_id)
@@ -230,7 +449,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             try:
                 widget_signal_tape(widget, self._widget_link(widget_id))
             except Exception as e:
-                raise issues.UnknownWidgetError(f'Expect link of {widget_id} with {widget.__name__} is broken.') from e
+                raise issues.UnknownWidgetError(f"Expect link of {widget_id} with {widget.__name__} is broken.") from e
 
     @require_non_headless
     def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:
@@ -248,15 +467,11 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     @require_non_headless
     def get_widget_value(self, cfg_item: str, converter: Callable[[Any], ValueFromConfigT]) -> ValueFromConfigT:
         try:
-            value = get_widget_value(
-                widget=self.get_widget_from_cfg_item(cfg_item)
-            )
+            value = get_widget_value(widget=self.get_widget_from_cfg_item(cfg_item))
         except ValueError as e:
             # record error then re-raise it
-            logging.error(f'Error in the configuration item: {cfg_item}: {e}')
-            raise ValueError(
-                f"Error in the configuration item: {cfg_item}"
-            ) from e
+            logging.error(f"Error in the configuration item: {cfg_item}: {e}")
+            raise ValueError(f"Error in the configuration item: {cfg_item}") from e
 
         # Retrieves the value of a UI widget based on its corresponding configuration item.
         return converter(value)
@@ -284,22 +499,37 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         return cfg_item
 
     @overload
-    def get_value(self, cfg_item: str, converter: Callable[[Any], ValueFromConfigT],
-                  reject_none: bool, default_value: None = ...) -> ValueFromConfigT: ...
+    def get_value(
+        self,
+        cfg_item: str,
+        converter: Callable[[Any], ValueFromConfigT],
+        reject_none: bool,
+        default_value: None = ...,
+        cfg: Config | str = "main",
+    ) -> ValueFromConfigT: ...
 
     @overload
-    def get_value(self, cfg_item: str, converter: type[bool], reject_none: bool, default_value: bool = ...) -> bool: ...
+    def get_value(
+        self,
+        cfg_item: str,
+        converter: type[bool],
+        reject_none: bool,
+        default_value: bool = ...,
+        cfg: Config | str = "main",
+    ) -> bool: ...
 
     @overload
-    def get_value(self,
-                  cfg_item: str,
-                  converter: Callable[[Any],
-                                      ValueFromConfigT],
-                  reject_none: bool = True,
-                  default_value: ValueFromConfigT | None = ...) -> ValueFromConfigT: ...
+    def get_value(
+        self,
+        cfg_item: str,
+        converter: Callable[[Any], ValueFromConfigT],
+        reject_none: bool = True,
+        default_value: ValueFromConfigT | None = ...,
+        cfg: Config | str = "main",
+    ) -> ValueFromConfigT: ...
 
     @overload
-    def get_value(self, cfg_item: str, converter=None) -> Any: ...
+    def get_value(self, cfg_item: str, converter: None) -> Any: ...
 
     def get_value(
         self,
@@ -307,6 +537,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         converter: Callable[[Any], ValueFromConfigT] | None = None,
         reject_none: bool = False,
         default_value: ValueFromConfigT | None = None,
+        cfg: Config | str = "main",
     ) -> ValueFromConfigT | None:
         """
         Retrieves the value of a configuration item with optional type casting.
@@ -324,7 +555,11 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             ValueError: If `reject_none` is True and the resolved value is None.
         """
         # Retrieve the value of a configuration item
-        value = OmegaConf.select(self.cfg, cfg_item)
+
+        if isinstance(cfg, str):
+            cfg = self.cfg_group[cfg]
+
+        value = OmegaConf.select(cfg.cfg, cfg_item)
 
         # Handle None values
         if value is None:
@@ -334,7 +569,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             # Reject to raise an error
             elif reject_none:
                 # not loaded?
-                if not self.get_value('ui.header_panel.input.molecule', None):
+                if not self.get_value("ui.header_panel.input.molecule", None):
                     notify_box(
                         "No molecule is loaded in PyMOL. Please load a molecule first.", issues.UnexpectedWorkflowError
                     )
@@ -342,7 +577,8 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 notify_box(
                     "This configure file might be out of date. "
                     "Please reinitialize REvoDesign (menu->Edit->Reinitialize) and restart PyMOL to fix this.",
-                    issues.ConfigureOutofDateError
+                    issues.ConfigureOutofDateError,
+                    details=f"Key: {cfg_item}\n-=-=-=-=-=-\n{cfg}",
                 )
             else:
                 return None  # Return None if reject_none is False and no default is provided
@@ -358,11 +594,14 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         return value
 
-    def set_value(self, cfg_item: str, value: Any, force_add: bool = False) -> None:
+    def set_value(self, cfg_item: str, value: Any, cfg: Config | str = "main", force_add: bool = False) -> None:
         # Sets the value of a configuration item.
+        if isinstance(cfg, str):
+            cfg = self.cfg_group[cfg]
+
         if value is not None:
             try:
-                OmegaConf.update(self.cfg, cfg_item, value, force_add=force_add)
+                OmegaConf.update(cfg.cfg, cfg_item, value, force_add=force_add)
             except omegaconf.errors.ConfigKeyError as e:
                 raise issues.ConfigureOutofDateError(
                     "This configure file might be out of date. Please remove it and restart PyMOL to fix this."
@@ -391,9 +630,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         buttons_id_to_release: tuple[str, ...],
     ):
         # Locks or unlocks buttons based on the existence of file paths in the configuration.
-        self.toggle_buttons(
-            button_ids=buttons_id_to_release, set_enabled=False
-        )
+        self.toggle_buttons(button_ids=buttons_id_to_release, set_enabled=False)
 
         for cfg_fp in cfg_fps:
             _fp = self.get_value(cfg_fp)
@@ -419,7 +656,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             QtWidgets.QPushButton: Button object
         """
         if button_id not in self.w2c.run_button_ids:
-            raise issues.UnknownWidgetError(f'Button ID not found: {button_id}')
+            raise issues.UnknownWidgetError(f"Button ID not found: {button_id}")
         return self.w2c.push_buttons.get(button_id)
 
     @require_non_headless
@@ -433,15 +670,9 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             tuple[QtWidgets.QPushButton]: Button objects in the same order as
                 the given IDs.
         """
-        if any(
-            button_id not in self.w2c.run_button_ids for button_id in button_ids
-        ):
-            raise issues.UnknownWidgetError(
-                f"Unknown button IDs: {', '.join(button_id for button_id in button_ids)}"
-            )
-        return tuple(
-            self.w2c.push_buttons.get(button_id) for button_id in button_ids
-        )
+        if any(button_id not in self.w2c.run_button_ids for button_id in button_ids):
+            raise issues.UnknownWidgetError(f"Unknown button IDs: {', '.join(button_id for button_id in button_ids)}")
+        return tuple(self.w2c.push_buttons.get(button_id) for button_id in button_ids)
 
     __bibtex__ = {
         "hydra": """@Misc{Yadan2019Hydra,
@@ -479,26 +710,15 @@ class Widget2ConfigMapper:
 
         self.run_button_ids: tuple[str] = tuple(PushButtons().button_ids)
         self.push_buttons: immutabledict[str, QtWidgets.QPushButton] = immutabledict(
-            {
-                button_id: self.get_button_from_id(button_id=button_id)
-                for button_id in self.run_button_ids
-            }
+            {button_id: self.get_button_from_id(button_id=button_id) for button_id in self.run_button_ids}
         )
         self.c2wi = Config2WidgetIds()
-        self.config_widget_id_map: immutabledict[str, str] = immutabledict(
-            self.c2wi.c2wi
-        )
+        self.config_widget_id_map: immutabledict[str, str] = immutabledict(self.c2wi.c2wi)
         self.config2widget_map: immutabledict[str, QtWidgets.QWidget] = immutabledict(
-            {
-                c: self.get_widget_from_id(wi)
-                for c, wi in self.config_widget_id_map.items()
-            }
+            {c: self.get_widget_from_id(wi) for c, wi in self.config_widget_id_map.items()}
         )
         self.widget_id2widget_map: immutabledict[str, QtWidgets.QWidget] = immutabledict(
-            {
-                self._find_widget_id(c): w
-                for c, w in self.config2widget_map.items()
-            }
+            {self._find_widget_id(c): w for c, w in self.config2widget_map.items()}
         )
 
     def find_child(self, widget_type, name):
@@ -513,18 +733,11 @@ class Widget2ConfigMapper:
             The found widget, or None if not found.
         """
         for attr in dir(self.ui):
-            if (
-                isinstance(found_widget := getattr(self.ui, attr), widget_type)
-                and attr == name
-            ):
+            if isinstance(found_widget := getattr(self.ui, attr), widget_type) and attr == name:
                 logging.debug(f"Found widget by name: {attr=}")
                 return found_widget
 
-        layouts = [
-            layout_widget
-            for layout_widget in dir(self.ui)
-            if "Layout" in layout_widget
-        ]
+        layouts = [layout_widget for layout_widget in dir(self.ui) if "Layout" in layout_widget]
 
         for layout_name in layouts:
             layout = getattr(self.ui, layout_name)
@@ -535,19 +748,12 @@ class Widget2ConfigMapper:
             logging.debug(f"Searching {layout_name=}: {dir(layout)=}")
             if found_widget := layout.findChild(widget_type, name):
                 # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
-                logging.debug(
-                    f"Found child with {name=} {found_widget=} in {layout}: {layout_name=}"
-                )
+                logging.debug(f"Found child with {name=} {found_widget=} in {layout}: {layout_name=}")
                 return found_widget
 
             for attr in dir(layout):
-                if (
-                    isinstance((found_widget := getattr(layout, attr)), widget_type)
-                    and attr == name
-                ):
-                    logging.debug(
-                        f"Found widget with by name in {layout}: {attr=}: {layout_name=}"
-                    )
+                if isinstance((found_widget := getattr(layout, attr)), widget_type) and attr == name:
+                    logging.debug(f"Found widget with by name in {layout}: {attr=}: {layout_name=}")
                     return found_widget
 
         raise issues.UnknownWidgetError(
@@ -567,9 +773,7 @@ class Widget2ConfigMapper:
 
     @property
     def widget_id2config_dict(self) -> immutabledict[str, str]:
-        return immutabledict(
-            {v: k for k, v in self.config_widget_id_map.items()}
-        )
+        return immutabledict({v: k for k, v in self.config_widget_id_map.items()})
 
     def find_config_item(self, widget_id):
         config_item = self.widget_id2config_dict.get(widget_id)
@@ -582,7 +786,5 @@ class Widget2ConfigMapper:
         return widget_id
 
     def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:
-        widget = self.find_child(
-            self.c2wi.get_widget_typing(widget_id=widget_id), widget_id
-        )
+        widget = self.find_child(self.c2wi.get_widget_typing(widget_id=widget_id), widget_id)
         return widget

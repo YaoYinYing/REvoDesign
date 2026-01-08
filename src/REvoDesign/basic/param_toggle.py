@@ -1,6 +1,7 @@
-'''
+"""
 Module to register parameter changes in the UI.
-'''
+"""
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
@@ -53,7 +54,8 @@ class ParamChangeRegistryItem:
             return event
         except AttributeError as e:
             raise issues.InternalError(
-                f"Widget {self.widget_name} does not have signal {self.widget_signal_name}") from e
+                f"Widget {self.widget_name} does not have signal {self.widget_signal_name}"
+            ) from e
 
     def register(self, register_func: Callable[[str, str, dict[str, tuple]], None], ui: Any):
         """
@@ -64,14 +66,7 @@ class ParamChangeRegistryItem:
             ui (Any): The UI instance containing the widgets.
         """
         event = self.widget_signal(ui=ui)
-        event.connect(
-            partial(
-                register_func,
-                self.source_cfg_item,
-                self.target_cfg_item,
-                self.param_mapping
-            )
-        )
+        event.connect(partial(register_func, self.source_cfg_item, self.target_cfg_item, self.param_mapping))
 
 
 @dataclass(frozen=True)
@@ -85,6 +80,7 @@ class ParamChangeRegister:
     - registry: tuple[ParamChangeRegistryItem, ...]
         A tuple of items to be registered.
     """
+
     register_func: Callable[[str, str, dict[str, tuple]], None]
     registry: tuple[ParamChangeRegistryItem, ...]
 

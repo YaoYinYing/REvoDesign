@@ -1,8 +1,8 @@
-'''
+"""
 Molecule utilities with PyMOL
 
 TODO: deprecate this module with biotite or biopython
-'''
+"""
 
 import os
 import warnings
@@ -27,10 +27,7 @@ def is_empty_session():
 
 
 def is_hidden_object(selection="(all)"):
-    return (
-        len(cmd.get_names(type="objects", selection=selection, enabled_only=1))
-        == 0
-    )
+    return len(cmd.get_names(type="objects", selection=selection, enabled_only=1)) == 0
 
 
 def fetch_exclusion_expressions():
@@ -52,9 +49,7 @@ def is_polymer_protein(sele=""):
         return None  # Return None if the selection is empty
 
     # Retrieve the atoms that belong to a protein polymer within the selection and count unique residues
-    resi_list = [
-        at.resi for at in cmd.get_model(f"({sele}) and polymer.protein").atom
-    ]
+    resi_list = [at.resi for at in cmd.get_model(f"({sele}) and polymer.protein").atom]
     unique_residues = set(resi_list)
 
     # Check if the count of unique residues is greater than 10 to determine if it's a protein with at least 10 residues
@@ -74,18 +69,11 @@ def find_small_molecules_in_protein(sele):
                       Returns None if the selection is not provided.
     """
     if not sele:
-        warnings.warn(
-            issues.NoInputWarning(
-                "Selection for small molecules is not provided."
-            )
-        )
+        warnings.warn(issues.NoInputWarning("Selection for small molecules is not provided."))
         return None  # Return None if the selection is not provided
 
     # Retrieve the atoms that belong to small molecules within the selection and extract unique small molecule names
-    small_molecules = [
-        at.resn
-        for at in cmd.get_model(f"( {sele} ) and (not polymer.protein)").atom
-    ]
+    small_molecules = [at.resn for at in cmd.get_model(f"( {sele} ) and (not polymer.protein)").atom]
     logging.info(f"Found small molecule names: {small_molecules}")
     unique_small_molecules = list(set(small_molecules))
 
@@ -102,10 +90,7 @@ def find_small_molecules_in_protein(sele):
         return unique_small_molecules
 
     warnings.warn(issues.FallingBackWarning("Falling back to all `hetatm`"))
-    small_molecules = [
-        at.resn
-        for at in cmd.get_model("hetatm and (not polymer.protein)").atom
-    ]
+    small_molecules = [at.resn for at in cmd.get_model("hetatm and (not polymer.protein)").atom]
 
     unique_small_molecules = list(set(small_molecules))
 
@@ -123,15 +108,11 @@ def find_design_molecules():
     # Retrieve all public non-group objects and filter for those identified as polymer proteins
     objects = [
         object
-        for object in cmd.get_names(
-            "public_nongroup_objects", enabled_only=1, selection="all"
-        )
+        for object in cmd.get_names("public_nongroup_objects", enabled_only=1, selection="all")
         if is_polymer_protein(object)
     ]
     if not objects:
-        raise issues.MoleculeUnloadedError(
-            "Failed to load objects. Is it enabled?"
-        )
+        raise issues.MoleculeUnloadedError("Failed to load objects. Is it enabled?")
     return objects
 
 
@@ -155,11 +136,7 @@ def find_all_protein_chain_ids_in_protein(sele) -> list[str]:
 
     chain_ids = [chain_id for chain_id in cmd.get_chains(sele) if chain_id]
 
-    all_chains = [
-        chain_id
-        for chain_id in chain_ids
-        if is_polymer_protein(f"( {sele} and c. {chain_id} )")
-    ]
+    all_chains = [chain_id for chain_id in chain_ids if is_polymer_protein(f"( {sele} and c. {chain_id} )")]
 
     if not all_chains:
         raise issues.MoleculeError(f"Fail to fetch all chain ids in {sele=}")
@@ -209,9 +186,7 @@ def is_distal_residue_pair(
     Ca_distance = cmd.get_distance(atom1=Ca_atom_1, atom2=Ca_atom_2)
 
     # Check if either of the residues is glycine or not using sidechain angle
-    if (not use_sidechain_angle) or any(
-        resn == "G" for resn in [resn_1, resn_2]
-    ):
+    if (not use_sidechain_angle) or any(resn == "G" for resn in [resn_1, resn_2]):
         return Ca_distance > minimal_distance
 
     # Construct strings representing sidechain atoms of the two residues
@@ -225,9 +200,7 @@ def is_distal_residue_pair(
     SC_COM_2 = np.array(cmd.centerofmass(SC_atoms_2))
 
     # Calculate the orientation of the side chains
-    sidechain_orient = np.dot(
-        SC_COM_1 - Ca_atom_1_coord, SC_COM_2 - Ca_atom_2_coord
-    )
+    sidechain_orient = np.dot(SC_COM_1 - Ca_atom_1_coord, SC_COM_2 - Ca_atom_2_coord)
     sidechain_com_dist = abs(np.linalg.norm(SC_COM_1 - SC_COM_2))
 
     # Check if the side chains are oriented in opposite directions
@@ -235,17 +208,19 @@ def is_distal_residue_pair(
         if sidechain_com_dist >= Ca_distance:
             # /-------------\
             # *---Ca   Ca---*
-            logging.warning(
-                f"Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, distal."
-            )
+            logging.warning(f"Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, distal.")
             return True
         #       /--\
         # Ca---*    *---Ca
-        logging.warning(f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, '
-                        f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.')
+        logging.warning(
+            f"Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, "
+            f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.'
+        )
         return sidechain_com_dist > minimal_distance
-    logging.warning(f'Sidechains: {resi_1}{resn_1} and {resi_2}{resn_2}: same, '
-                    f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.')
+    logging.warning(
+        f"Sidechains: {resi_1}{resn_1} and {resi_2}{resn_2}: same, "
+        f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.'
+    )
     # Ca---*
     #        \
     #         \
@@ -273,9 +248,7 @@ def renumber_chain_ids(target_protein):
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     for chain_id, _alphabet in zip(chain_ids, alphabet):
         logging.info(f"rechain: {chain_id} - {_alphabet}")
-        cmd.alter(
-            f"{target_protein} and c. {chain_id}", f"chain='{_alphabet}'"
-        )
+        cmd.alter(f"{target_protein} and c. {chain_id}", f"chain='{_alphabet}'")
 
 
 def get_molecule_sequence(molecule, chain_id, keep_missing=True) -> str:
@@ -295,17 +268,9 @@ def get_molecule_sequence(molecule, chain_id, keep_missing=True) -> str:
     """
     from Bio.Data import IUPACData
 
-    protein_letters_3to1_upper = {
-        key.upper(): val.upper()
-        for key, val in IUPACData.protein_letters_3to1.items()
-    }
+    protein_letters_3to1_upper = {key.upper(): val.upper() for key, val in IUPACData.protein_letters_3to1.items()}
 
-    CA = [
-        atom
-        for atom in cmd.get_model(
-            f"( {molecule} and c. {chain_id} and n. CA )"
-        ).atom
-    ]
+    CA = [atom for atom in cmd.get_model(f"( {molecule} and c. {chain_id} and n. CA )").atom]
     if keep_missing:
         resi = [int(atom.resi) for atom in CA]
         resi_max = max(resi)
@@ -339,9 +304,7 @@ def get_atom_pair_cst(selection="sele"):
     """
     _s = cmd.get_model(selection=selection).atom
     if len(_s) != 2:
-        logging.error(
-            f"Atom pair selection {selection} must contain exactly 2 atoms!"
-        )
+        logging.error(f"Atom pair selection {selection} must contain exactly 2 atoms!")
         return
     cst = f"AtomPair {_s[0].name} {_s[0].resi}{_s[0].chain} {_s[1].name} {_s[1].resi}{_s[1].chain} HARMONIC 3 0.5"
     return cst
@@ -368,18 +331,9 @@ def autogrid_flexible_residue(molecule, chain_id, selection):
             f"Invalid parameters: \nmolecule - {molecule}\n chain_id - {chain_id} \n selection - {selection}"
         )
         return None
-    residues = "_".join(
-        list(
-            {
-                f"{at.resn.upper()}{at.resi}"
-                for at in cmd.get_model(f"{selection} and n. CA").atom
-            }
-        )
-    )
+    residues = "_".join(list({f"{at.resn.upper()}{at.resi}" for at in cmd.get_model(f"{selection} and n. CA").atom}))
     autodock_flexible_residues = f"{molecule}:{chain_id}:{residues}"
-    logging.info(
-        f"Flexible residues for AutoGrid: {autodock_flexible_residues}"
-    )
+    logging.info(f"Flexible residues for AutoGrid: {autodock_flexible_residues}")
     return autodock_flexible_residues
 
 
@@ -395,11 +349,7 @@ def refresh_all_selections():
     """
     from REvoDesign.tools.mutant_tools import shorter_range
 
-    selections = [
-        sel
-        for sel in cmd.get_names(type="selections")
-        if sel != "sele" and (not sel.startswith("_align"))
-    ]
+    selections = [sel for sel in cmd.get_names(type="selections") if sel != "sele" and (not sel.startswith("_align"))]
 
     for sel in selections:
         _resi = sorted(list({at.resi for at in cmd.get_model(sel).atom}))
@@ -486,9 +436,7 @@ def make_temperal_input_pdb(
     try:
         cmd.save(input_file, selection_str, -1)
     except QuietException:
-        raise issues.MoleculeUnloadedError(
-            "Could not save molecule because it is not loaded yet."
-        )
+        raise issues.MoleculeUnloadedError("Could not save molecule because it is not loaded yet.")
 
     if reload:
         cmd.reinitialize()
@@ -501,9 +449,7 @@ def make_temperal_input_pdb(
     return input_file
 
 
-def extract_smiles_from_chain(
-    molecule, chain_id="", segment_id="", resn="", selection=""
-) -> list[str]:
+def extract_smiles_from_chain(molecule, chain_id="", segment_id="", resn="", selection="") -> list[str]:
     from rdkit import Chem
     from rdkit.Chem import MolToSmiles
 
@@ -562,11 +508,7 @@ def extract_smiles_from_chain(
 
 
 def any_posision_has_been_selected():
-    selected_positions = [
-        x
-        for x in cmd.get_names(type="selections", enabled_only=1)
-        if x == "sele"
-    ]
+    selected_positions = [x for x in cmd.get_names(type="selections", enabled_only=1) if x == "sele"]
     return bool(selected_positions)
 
 
@@ -609,19 +551,19 @@ class PyMOLSetting:
     name: str
     val: Any
     typing: type
-    obj: str | None = ''
+    obj: str | None = ""
 
     def apply(self):
-        cmd.set(self.name, self.typing(self.val), selection=self.obj or '')
+        cmd.set(self.name, self.typing(self.val), selection=self.obj or "")
 
     @property
     def as_dict_item(self) -> tuple[str, Any]:
         return self.name, self
 
 
-def get_pymol_settings(keyword: str, obj: str | None = '') -> dict[str, PyMOLSetting]:
+def get_pymol_settings(keyword: str, obj: str | None = "") -> dict[str, PyMOLSetting]:
     return {
-        key_name: PyMOLSetting(key_name, cmd.get(key_name, selection=obj or ''), type(cmd.get(key_name)), obj)
+        key_name: PyMOLSetting(key_name, cmd.get(key_name, selection=obj or ""), type(cmd.get(key_name)), obj)
         for key_name in PYMOL_SETTINGS
         if keyword in key_name
     }

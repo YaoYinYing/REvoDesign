@@ -1,6 +1,6 @@
-'''
+"""
 Warnings for REvoDesign
-'''
+"""
 
 
 class REvoDesignWarning(Warning):

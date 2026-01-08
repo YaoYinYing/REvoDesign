@@ -1,6 +1,7 @@
-'''
+"""
 Dialog wrapper registry
-'''
+"""
+
 import atexit
 from collections.abc import Callable
 from functools import partial
@@ -13,30 +14,37 @@ from immutabledict import immutabledict
 from REvoDesign import issues
 from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.basic.extensions import resolve_extension
-from REvoDesign.tools.customized_widgets import (AskedValue, AskedValueDynamic,
-                                                 dialog_wrapper)
+from REvoDesign.tools.customized_widgets import AskedValue, AskedValueDynamic, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
-from REvoDesign.tools.utils import resolve_dotted_function, timing
+from REvoDesign.tools.utils import (
+    resolve_default_value,
+    resolve_dotted_config_item,
+    resolve_dotted_function,
+    resolve_lambda_expression,
+    timing,
+)
 
 from ..logger import ROOT_LOGGER
 
 logging = ROOT_LOGGER.getChild(__name__)
 
 # Typing selection dictionary for safe type handling
-asked_value_typing_dict: immutabledict[str, type] = immutabledict({
-    "int": int,
-    "str": str,
-    "float": float,
-    "dict": dict,
-    "list": list,
-    "bool": bool,
-    "tuple": tuple,
-})
+asked_value_typing_dict: immutabledict[str, type] = immutabledict(
+    {
+        "int": int,
+        "str": str,
+        "float": float,
+        "dict": dict,
+        "list": list,
+        "bool": bool,
+        "tuple": tuple,
+    }
+)
 
 REGISTRY_DIR = Path(__file__).parent / "registry"
 
 
-def resolve_choice_from(range_str: str):
+def resolve_choice_from(choice_from_str: str):
     """
     Interprets an input string and dynamically returns a corresponding value based on its prefix.
 
@@ -69,42 +77,51 @@ def resolve_choice_from(range_str: str):
         issues.InvalidInputError: If the input format for 'range:' or 'CFG:' is invalid.
         issues.ConfigurationError: If the input doesn't match any known pattern or expected type.
     """
-    if range_str.startswith(('range:', 'FloatRange:')):  # range:1,10 or range:1,10,2 or FloatRange:1,10
+    if choice_from_str.startswith(("range:", "FloatRange:")):  # range:1,10 or range:1,10,2 or FloatRange:1,10
         try:
-            range_type, range_str = range_str.split(":", 1)
-            if range_type == 'range':
-                return range(*map(int, range_str.split(",")))
+            range_type, choice_from_str = choice_from_str.split(":", 1)
+            if range_type == "range":
+                return range(*map(int, choice_from_str.split(",")))
             else:
-                return FloatRange.from_str(range_str)
+                return FloatRange.from_str(choice_from_str)
         except TypeError as e:
             raise issues.InvalidInputError(
-                'range input expect an input string in pattern range:[<start>,]<end>[,<step>]',
-                f'not `{range_str}`'
+                "range input expect an input string in pattern range:[<start>,]<end>[,<step>]",
+                f"not `{choice_from_str}`",
             ) from e
-    elif range_str.startswith("REvoDesign."):
-        resolved_callable = resolve_dotted_function(range_str)
+    elif choice_from_str.startswith("REvoDesign."):
+        resolved_callable = resolve_dotted_function(choice_from_str)
         if not isinstance(resolved_callable, Callable):
-            raise issues.ConfigurationError(f"Expected as a callable: {range_str}: {resolved_callable}")
+            raise issues.ConfigurationError(f"Expected as a callable: {choice_from_str}: {resolved_callable}")
         return resolved_callable()  # Get callable dynamically
-    elif range_str.startswith("CFG:"):
-        from REvoDesign.driver.ui_driver import ConfigBus
+    elif choice_from_str.startswith("CFG:"):
+        return resolve_dotted_config_item(choice_from_str)
+    elif choice_from_str.startswith("LAMBDA:"):
+        return resolve_lambda_expression(choice_from_str)
 
-        if '.' not in range_str:
-            raise issues.InvalidInputError(f'Expected as a config item: {range_str}')
-        return ConfigBus().get_value(range_str.removeprefix('CFG:'))
-
-    raise issues.ConfigurationError(f"Unable to parse {range_str}")
+    raise issues.ConfigurationError(f"Unable to parse {choice_from_str}")
 
 
-def resolve_default_value(typing: type) -> Any:
-    if typing == bool:
-        return False
-    if typing == int:
-        return 0
-    if typing == float:
-        return 0.0
-    if typing == str:
-        return ""
+def resolve_default_from(default_from_str: str) -> Any:
+    """
+    Resolves a dotted configuration string to retrieve the corresponding default value.
+
+    Args:
+        default_from_str (str): The dotted configuration string to resolve.
+
+    Returns:
+        Any: The default value retrieved from the specified configuration.
+    """
+    if default_from_str.startswith("REvoDesign."):
+        resolved_callable = resolve_dotted_function(default_from_str)
+        if not isinstance(resolved_callable, Callable):
+            raise issues.ConfigurationError(f"Expected as a callable: {default_from_str}: {resolved_callable}")
+        return resolved_callable()  # Get callable dynamically
+    if default_from_str.startswith("CFG:"):
+        return resolve_dotted_config_item(default_from_str)
+    if default_from_str.startswith("LAMBDA:"):
+        return resolve_lambda_expression(default_from_str)
+    raise issues.UnsupportedDataTypeError(f"Unable to parse {default_from_str}")
 
 
 def _build_asked_value(entry: dict) -> AskedValue:
@@ -143,9 +160,7 @@ def _build_asked_value(entry: dict) -> AskedValue:
     # Handle default value from a callable (e.g., using a function name from dotted string)
     val = entry.get("default")
     if "default_from" in entry:
-        val = resolve_dotted_function(entry["default_from"])
-        if isinstance(val, Callable):
-            val = val()
+        val = resolve_default_from(entry["default_from"])
 
     # Handle choices dynamically
     choices: Any = entry.get("choices")
@@ -163,10 +178,11 @@ def _build_asked_value(entry: dict) -> AskedValue:
         reason=entry.get("reason", ""),
         required=entry.get("required", False),
         choices=choices,
-        source=entry.get("source", 'None'),
-        ext=resolve_extension(entry.get("ext", 'Any')),
-        multiple_choices=entry.get('multiple_choices', False)
+        source=entry.get("source", "None"),
+        ext=resolve_extension(entry.get("ext", "Any")),
+        multiple_choices=entry.get("multiple_choices", False),
     )
+
 
 # TODO: skip registry if headless
 
@@ -187,7 +203,7 @@ class DialogWrapperRegistry:
         self.funcs: dict[str, Callable] = {}
 
     def _load_yaml(self, path: Path) -> dict:
-        '''
+        """
         Load YAML file.
 
         Args:
@@ -195,7 +211,7 @@ class DialogWrapperRegistry:
 
         Returns:
             dict: The YAML content as a dictionary.
-        '''
+        """
         with path.open("r") as f:
             return yaml.safe_load(f)
 
@@ -206,8 +222,8 @@ class DialogWrapperRegistry:
         use_thread: bool = False,
         has_dynamic_values: bool = False,
         use_progressbar: bool = True,
-        kwargs: dict | None = None
-    ):
+        kwargs: dict | None = None,
+    ) -> Callable:
         """
         Register the raw Python function under a given ID.
 
@@ -226,10 +242,8 @@ class DialogWrapperRegistry:
         logging.debug(f"Registering function {func_id}")
         if use_thread:
             self.funcs[func_id] = partial(
-                run_wrapped_func_in_thread,
-                func,
-                use_progressbar=use_progressbar,
-                **kwargs or {})
+                run_wrapped_func_in_thread, func, use_progressbar=use_progressbar, **kwargs or {}
+            )
         else:
             self.funcs[func_id] = func
 
@@ -242,23 +256,23 @@ class DialogWrapperRegistry:
 
         if has_dynamic_values:
             func = window_wrapper_dynamic_values
-            func.__doc__ = f'''
+            func.__doc__ = f"""
 Wrapper for the function `{func_id}` to be called from the GUI.
 It calls the function `{func_id}` with the given dynamic values.
 
 Arguments:
 dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
-'''
+"""
         else:
             func = window_wrapper
-            func.__doc__ = f'''
+            func.__doc__ = f"""
 Wrapper for the function `{func_id}` to be called from the GUI.
 It calls the function `{func_id}` with the no dynamic values.
 
 Arguments:
 dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
     Will be ignored if has_dynamic_values=False.
-'''
+"""
 
         atexit.register(self.unregister, func_id)
         return func
@@ -270,7 +284,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         Args:
             func_id (str): The ID of the function to unregister.
         """
-        logging.debug(f"Unregistering function {func_id}")
+        # logging.debug(f"Unregistering function {func_id}")
         del self.funcs[func_id]
 
     def call(self, func_id: str, dynamic_values: list[AskedValueDynamic] | None = None):
@@ -300,7 +314,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         wrapped_func_window = dialog_wrapper(
             title=conf.get("title", func_id),
             banner=conf.get("banner", ""),
-            allow_real_time_update=conf.get('real_time', False),
+            allow_real_time_update=conf.get("real_time", False),
             options=tuple(asked_values),
         )(self.funcs[func_id])
         logging.debug(f"Dialog is ready: {wrapped_func_window}")
@@ -321,7 +335,5 @@ def run_wrapped_func_in_thread(func, use_progressbar: bool = True, **kwargs):
     with timing(f"performing {func.__name__}"):
         logging.info(kwargs)
         run_worker_thread_with_progress(
-            func,
-            **kwargs,
-            progress_bar=ConfigBus().ui.progressBar if use_progressbar else None
+            func, **kwargs, progress_bar=ConfigBus().ui.progressBar if use_progressbar else None
         )

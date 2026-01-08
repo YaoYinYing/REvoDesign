@@ -1,6 +1,6 @@
-'''
+"""
 Module for DataFrame parsers.
-'''
+"""
 
 import os
 from abc import ABC, abstractmethod
@@ -163,9 +163,7 @@ class PSSM_Parser(ProfileParserAbstract):
 
         # Guess colspecs for read_fwf to read the table
         _width = _idx[1] - _idx[0]
-        colspec = [
-            (_idx[i] - _width + 1, _idx[i] + 1) for i in range(len(_idx))
-        ]
+        colspec = [(_idx[i] - _width + 1, _idx[i] + 1) for i in range(len(_idx))]
         logging.info(colspec)
         df = pd.read_fwf(input_pssm_file, skiprows=2, colspecs=colspec)
 
@@ -177,26 +175,18 @@ class PSSM_Parser(ProfileParserAbstract):
 
     def parse(self) -> pd.DataFrame:
         if not self.is_valid_profile:
-            raise issues.NoResultsError(
-                f"Profile {self.profile_input} does not exist."
-            )
+            raise issues.NoResultsError(f"Profile {self.profile_input} does not exist.")
 
-        df_pssm_raw = self.convert_PSSM_file_to_df(
-            input_pssm_file=self.profile_input
-        )
+        df_pssm_raw = self.convert_PSSM_file_to_df(input_pssm_file=self.profile_input)
 
         # Explanation: Add 1 to each column index to convert to one-indexing
         df_pssm_raw.columns = [col + 1 for col in range(len(df_pssm_raw.columns))]
 
-        csv_fp = os.path.join(
-            os.path.dirname(self.profile_input), f"{self.profile_input_bn}.csv"
-        )
+        csv_fp = os.path.join(os.path.dirname(self.profile_input), f"{self.profile_input_bn}.csv")
         df_pssm_raw.to_csv(csv_fp)
         logging.info(f"Saving CSV at {csv_fp=}")
         self.df = pd.read_csv(csv_fp, index_col=0)
-        logging.debug(
-            f"Profile data: min {self.min_score_profile} max {self.max_score_profile}"
-        )
+        logging.debug(f"Profile data: min {self.min_score_profile} max {self.max_score_profile}")
 
         return self.df
 
@@ -207,14 +197,10 @@ class CSVProfileParser(ProfileParserAbstract):
 
     def parse(self) -> pd.DataFrame:
         if not self.is_valid_profile:
-            raise issues.NoResultsError(
-                f"Profile {self.profile_input} does not exist."
-            )
+            raise issues.NoResultsError(f"Profile {self.profile_input} does not exist.")
 
         self.df = self._parse()
-        logging.debug(
-            f"Profile data: min {self.min_score_profile} max {self.max_score_profile}"
-        )
+        logging.debug(f"Profile data: min {self.min_score_profile} max {self.max_score_profile}")
         return self.df
 
     def _parse(self):
@@ -238,9 +224,7 @@ class CSVProfileParser(ProfileParserAbstract):
             logging.debug(f"Column : {df.columns}")
 
             # Create a dictionary to map old column names to new column names
-            column_rename_mapping = {
-                str(int(i)): str(int(i) - 1) for i in df.columns
-            }
+            column_rename_mapping = {str(int(i)): str(int(i) - 1) for i in df.columns}
 
             logging.debug(f"Rename column : {column_rename_mapping}")
 
@@ -249,20 +233,12 @@ class CSVProfileParser(ProfileParserAbstract):
 
         logging.debug(df.columns)
 
-        if (
-            len(df.columns) == len(self.sequence.replace("X", ""))
-            and "X" in self.sequence
-        ):
+        if len(df.columns) == len(self.sequence.replace("X", "")) and "X" in self.sequence:
             logging.warning("Missing residues from structure.")
 
-            non_missing_resi = [
-                i for i, j in enumerate(self.sequence) if j != "X"
-            ]
+            non_missing_resi = [i for i, j in enumerate(self.sequence) if j != "X"]
             # Create a dictionary to map old column names to new column names
-            column_rename_mapping = {
-                str(int(i)): str(int(j))
-                for i, j in zip(df.columns, non_missing_resi)
-            }
+            column_rename_mapping = {str(int(i)): str(int(j)) for i, j in zip(df.columns, non_missing_resi)}
             # Rename the columns using the mapping
             df.rename(columns=column_rename_mapping, inplace=True)
             logging.debug(f"Repaired: {df.columns}")
@@ -271,9 +247,7 @@ class CSVProfileParser(ProfileParserAbstract):
             logging.warning("Filling missing with zeros")
             for i, j in enumerate(self.sequence):
                 if j == "X":
-                    df.insert(
-                        loc=i, column=f"{i}", value=[0 for k in range(20)]
-                    )
+                    df.insert(loc=i, column=f"{i}", value=[0 for k in range(20)])
 
             logging.debug(f"Filled: {df.columns}")
 
@@ -282,9 +256,7 @@ class CSVProfileParser(ProfileParserAbstract):
 
             return df
 
-        logging.debug(
-            f"Failed to process profile data {self.profile_input}.."
-        )
+        logging.debug(f"Failed to process profile data {self.profile_input}..")
         raise issues.InvalidInputError(f"Failed to process profile data {self.profile_input}..")
 
 
@@ -294,9 +266,7 @@ class TSVProfileParser(ProfileParserAbstract):
 
     def parse(self) -> pd.DataFrame:
         if not self.is_valid_profile:
-            raise issues.NoResultsError(
-                f"Profile {self.profile_input} does not exist."
-            )
+            raise issues.NoResultsError(f"Profile {self.profile_input} does not exist.")
         self.df = pd.read_table(self.profile_input, names=["mut", "score"])
         return self.df
 
@@ -316,23 +286,15 @@ class ProfileManager:
     def _initialize_parser(self, kwargs) -> "ProfileParserAbstract":
 
         try:
-            parser_class = [
-                parser
-                for parser in ALL_PARSER_CLASSES
-                if parser.name == self.profile_type
-            ][0]
+            parser_class = [parser for parser in ALL_PARSER_CLASSES if parser.name == self.profile_type][0]
             return parser_class(**kwargs)
 
         except IndexError:
-            raise issues.InvalidInputError(
-                f"Unknown profile format {self.profile_type}: {kwargs=}"
-            )
+            raise issues.InvalidInputError(f"Unknown profile format {self.profile_type}: {kwargs=}")
 
     def parse(self, kwargs):
         if not (parser := self._initialize_parser(kwargs)):
-            raise issues.ConfigureError(
-                f"Failed to parse profile in {self.profile_type} with config ({kwargs=})"
-            )
+            raise issues.ConfigureError(f"Failed to parse profile in {self.profile_type} with config ({kwargs=})")
 
         self.parser = parser
         self.parser.parse()

@@ -13,17 +13,16 @@ from absl import app, logging
 from celery import Celery
 from celery.result import AsyncResult
 from docker import types
-from flask import (Flask, jsonify, redirect, render_template, request,
-                   send_from_directory)
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
 from flask_httpauth import HTTPBasicAuth
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
 
 app = Flask(__name__, template_folder="./templates")
 auth = HTTPBasicAuth()
-user_file=os.path.join(THIS_DIR, 'users.txt')
+user_file = os.path.join(THIS_DIR, "users.txt")
 
 
 # A dictionary of users and their hashed passwords
@@ -37,7 +36,6 @@ with open(user_file) as f:
             continue
         username, password = line.strip().split(":")
         users[username] = generate_password_hash(password)
-
 
 
 # Celery configurations
@@ -84,15 +82,15 @@ except BaseException:
     _ROOT_MOUNT_DIRECTORY = os.path.abspath("/tmp/")
     os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 
+
 @auth.verify_password
 def verify_password(username, password):
     if username in users and check_password_hash(users.get(username), password):
         return username
     return None
 
-def _create_mount(
-    mount_name: str, path: str, read_only=True
-) -> tuple[types.Mount, str]:
+
+def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mount, str]:
     """Create a mount point for each file and directory used by the model."""
     path = os.path.abspath(path)
     target_path = os.path.join(_ROOT_MOUNT_DIRECTORY, mount_name)
@@ -137,31 +135,23 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir):
 
     if os.path.exists(fasta_path):
         fasta = os.path.abspath(fasta_path)
-        mount_fasta, mounted_fasta = _create_mount(
-            mount_name="fasta", path=fasta, read_only=True
-        )
+        mount_fasta, mounted_fasta = _create_mount(mount_name="fasta", path=fasta, read_only=True)
         mounts.append(mount_fasta)
         command_args.append(f"-i {mounted_fasta}")
 
     os.makedirs(output_dir, exist_ok=True)
     output = os.path.abspath(output_dir)
-    mount_output, mounted_output = _create_mount(
-        mount_name="output", path=output, read_only=False
-    )
+    mount_output, mounted_output = _create_mount(mount_name="output", path=output, read_only=False)
     mounts.append(mount_output)
     command_args.append(f"-o {mounted_output}")
 
     uniref30_db = os.path.abspath(UNIREF_30_DB)
-    mount_uniref30_db, mounted_uniref30_db = _create_mount(
-        mount_name="uniref30_db", path=uniref30_db, read_only=True
-    )
+    mount_uniref30_db, mounted_uniref30_db = _create_mount(mount_name="uniref30_db", path=uniref30_db, read_only=True)
     mounts.append(mount_uniref30_db)
     command_args.append(f"-U {mounted_uniref30_db}")
 
     uniref90_db = os.path.abspath(UNIREF_90_DB)
-    mount_uniref90_db, mounted_uniref90_db = _create_mount(
-        mount_name="uniref90_db", path=uniref90_db, read_only=True
-    )
+    mount_uniref90_db, mounted_uniref90_db = _create_mount(mount_name="uniref90_db", path=uniref90_db, read_only=True)
     mounts.append(mount_uniref90_db)
     command_args.append(f"-u {mounted_uniref90_db}")
 
@@ -288,9 +278,8 @@ def upload_file():
             return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
 
         # early return for running tasks
-        if (
-            os.path.exists(state_file)
-            and ((job_state := open(state_file).read().strip()) == "running" or job_state == "queued")
+        if os.path.exists(state_file) and (
+            (job_state := open(state_file).read().strip()) == "running" or job_state == "queued"
         ):
             return (
                 jsonify(
@@ -378,9 +367,7 @@ def get_results(md5sum):
         )
         if status == "finished":
             if not os.path.exists(zip_filename):
-                shutil.make_archive(
-                    os.path.splitext(zip_filename)[0], "zip", result_dir
-                )
+                shutil.make_archive(os.path.splitext(zip_filename)[0], "zip", result_dir)
                 # Provide a link to download the zip file
             return redirect(f"/PSSM_GREMLIN/api/download/{md5sum}", code=302)
 
@@ -478,11 +465,7 @@ def cancel_task(md5sum):
                 return jsonify({"error": "Failed to cancel the task"}), 500
         else:
             return (
-                jsonify(
-                    {
-                        "error": "Task cannot be cancelled as it is not in the queue or running"
-                    }
-                ),
+                jsonify({"error": "Task cannot be cancelled as it is not in the queue or running"}),
                 400,
             )
     else:
@@ -506,12 +489,8 @@ def task_dashboard():
             fasta_fp = glob.glob(f"{results_folder}/{md5sum}/*.fasta")[0]
             fasta_fn = os.path.basename(fasta_fp)
             submitted_time = get_file_time(fasta_fp)
-            finished_time = get_file_time(
-                os.path.join(state_folder, filename), modified=True
-            )
-            walltime = get_task_walltime(
-                submitted_time=submitted_time, finished_time=finished_time
-            )
+            finished_time = get_file_time(os.path.join(state_folder, filename), modified=True)
+            walltime = get_task_walltime(submitted_time=submitted_time, finished_time=finished_time)
             with open(os.path.join(UPLOAD_FOLDER, fasta_fn)) as f:
                 try:
                     fasta_seq = f.read().strip()
@@ -525,9 +504,7 @@ def task_dashboard():
                     "status": status,
                     "fasta_fn": fasta_fn,
                     "submitted_time": format_times(submitted_time),
-                    "finished_time": format_times(finished_time)
-                    if status == "finished"
-                    else "-",
+                    "finished_time": format_times(finished_time) if status == "finished" else "-",
                     "walltime": int(walltime) if status == "finished" else "-",
                     "submitted_timestamp": submitted_time,
                     "sequence": fasta_seq,
