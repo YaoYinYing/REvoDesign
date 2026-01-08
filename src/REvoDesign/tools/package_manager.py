@@ -2502,16 +2502,38 @@ def __init_plugin__(app=None):
     """
     logging.info(f"REvoDesign entrypoint is located at {os.path.dirname(__file__)}")
 
-    plugin = REvoDesignPackageManager()
-    addmenuitemqt("REvoDesign Package Manager", plugin.run_plugin_gui)
+    manager_plugin: REvoDesignPackageManager | None = None
 
-    if is_package_installed("REvoDesign"):
-        try:
-            from REvoDesign import REvoDesignPlugin
+    def launch_manager():
+        nonlocal manager_plugin
+        if manager_plugin is None:
+            manager_plugin = REvoDesignPackageManager()
+        manager_plugin.run_plugin_gui()
 
-            plugin = REvoDesignPlugin()
-            addmenuitemqt("REvoDesign", plugin.run_plugin_gui)
-        except Exception as e:
-            logging.error(str(e))
-    else:
+    addmenuitemqt("REvoDesign Package Manager", launch_manager)
+
+    if not is_package_installed("REvoDesign"):
         logging.critical("REvoDesign is not available.")
+        return
+
+    revodesign_plugin = None
+
+    def launch_revodesign():
+        nonlocal revodesign_plugin
+        if revodesign_plugin is None:
+            try:
+                from REvoDesign import REvoDesignPlugin
+
+                revodesign_plugin = REvoDesignPlugin()
+            except Exception as exc:
+                logging.error("Failed to initialize REvoDesign plugin", exc_info=True)
+                notify_box(
+                    "Failed to initialize the REvoDesign plugin. Please check the logs for details.",
+                    RuntimeWarning,
+                    details=str(exc),
+                )
+                return
+
+        revodesign_plugin.run_plugin_gui()
+
+    addmenuitemqt("REvoDesign", launch_revodesign)
