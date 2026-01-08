@@ -40,7 +40,7 @@
 ## Pre-commit hooks
 
 - Enable the hooks with `pre-commit install` so they run on each commit.
-- Run `pre-commit run --all-files` before pushing to ensure formatting and linting with flake8, isort, autopep8, autoflake and other hooks.
+- Run `pre-commit run --all-files` or just `make black` before pushing to ensure formatting and linting with flake8, isort, autopep8, autoflake and other hooks.
 
 ## Running tests
 

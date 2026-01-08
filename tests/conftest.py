@@ -266,10 +266,9 @@ class TestWorker:
         self.qtbot = qtbot
         self.plugin = plugin
         self.qtbot.addWidget(self.plugin.window)  # Add the plugin's main window to qtbot for automatic cleanup
-        # self.workspace_data="./mock/data/dir"
-        # os.makedirs(self.workspace_data, exist_ok=True)
 
-        # a deep reset is necessary to avoid any side effect
+
+        # a shadow reset is necessary to avoid any side effect
         self.main_config = set_REvoDesign_config_file()
 
 
@@ -317,18 +316,18 @@ class TestWorker:
         self.EXPANDED_DIR = os.path.abspath("../tests/expanded_compressed_files")
 
         # test results directories
-        self.SCREENSHOT_DIR = os.path.join(os.path.abspath("."), "screenshots")
-        self.PYMOL_PNG_DIR = os.path.join(os.path.abspath("."), "pymol_screenshots")
+        self.SCREENSHOT_DIR = os.path.join(TEST_DIR, "screenshots")
+        self.PYMOL_PNG_DIR = os.path.join(TEST_DIR, "pymol_screenshots")
 
-        self.EXPERIMENT_DIR = os.path.join(os.path.abspath("."), "experiments")
+        self.EXPERIMENT_DIR = os.path.join(TEST_DIR, "experiments")
 
-        self.ANALYSIS_DIR = os.path.join(os.path.abspath("."), "analysis")
-        self.POCKET_DIR = os.path.join(os.path.abspath("."), "pockets")
-        self.SURFACE_DIR = os.path.join(os.path.abspath("."), "surface_residue_records")
-        self.MUTAGENESIS_DIR = os.path.join(os.path.abspath("."), "mutagenese")
+        self.ANALYSIS_DIR = os.path.join(TEST_DIR, "analysis")
+        self.POCKET_DIR = os.path.join(TEST_DIR, "pockets")
+        self.SURFACE_DIR = os.path.join(TEST_DIR, "surface_residue_records")
+        self.MUTAGENESIS_DIR = os.path.join(TEST_DIR, "mutagenese")
 
         # performance checks
-        self.PERFORMANCE_DIR = os.path.join(os.path.abspath("."), "performance")
+        self.PERFORMANCE_DIR = os.path.join(TEST_DIR, "performance")
 
         dirs = {
             self.DOWNLOAD_DIR,
@@ -596,7 +595,8 @@ class TestWorker:
         self.performace_report()
         self.plugin.reinitialize()
 
-        # deep reset again to avoild downstream side effects
+        # shadow reset again to avoild downstream side effects
+        # do not deep reset(delete config files)
         set_REvoDesign_config_file()
         cmd.reinitialize()
 
@@ -627,11 +627,6 @@ def test_worker(
     patch_config_user_data,
     patch_config_user_cache,
 ):
-    # move test worker config to another place so it won't pollute the production
-
-    workspace_data=patch_config_user_data()
-
-    os.makedirs(workspace_data, exist_ok=True)
     
     w = TestWorker(qtbot, plugin)
 
