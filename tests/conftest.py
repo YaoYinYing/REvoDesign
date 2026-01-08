@@ -440,7 +440,6 @@ class TestWorker:
         self.check_designable_sequences()
 
     def save_new_experiment(self, experiment_name: str | None = None):
-        import shutil
 
         if not experiment_name:
             experiment_name = self.test_id

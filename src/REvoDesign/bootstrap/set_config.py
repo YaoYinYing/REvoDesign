@@ -197,7 +197,6 @@ def is_package_installed(package):
     package_loader = importlib.util.find_spec(package)
     return package_loader is not None
 
-
 def list_all_config_files(config_dir: str, tree: bool = False) -> list[str]:
     """
     Function: list_all_config_files
@@ -211,5 +210,13 @@ def list_all_config_files(config_dir: str, tree: bool = False) -> list[str]:
     Returns:
     - list[str]: List of paths to YAML configuration files
     """
-    yaml_files = glob.glob(os.path.join(config_dir, "*.yaml" if not tree else "*/*.yaml"))
-    return yaml_files
+    if not tree:
+        return sorted(glob.glob(os.path.join(config_dir, "*.yaml")))
+
+    config_dir = os.path.abspath(config_dir)
+    yaml_files: list[str] = []
+    for root, _, files in os.walk(config_dir):
+        if root == config_dir:
+            continue
+        yaml_files.extend(os.path.join(root, f) for f in files if f.endswith(".yaml"))
+    return sorted(yaml_files)

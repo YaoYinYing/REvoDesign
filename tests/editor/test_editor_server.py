@@ -261,4 +261,3 @@ def test_save_file_success(use_token, mock_config_store, test_client):
     assert response.status_code == 200
     assert response.json() == {"status": "success"}
     assert Path(temp_file).read_text() == "Updated Content"
-

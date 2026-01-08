@@ -124,4 +124,3 @@ def test_edit_file_with_monaco_autosave_refresh_params(test_tmp_dir, autosave_en
     assert params["refreshEnabled"] == str(autorefresh_enabled).lower()
     assert params["autosaveInterval"] == "1"
     assert params["refreshInterval"] == "1000"
-

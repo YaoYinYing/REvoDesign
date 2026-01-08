@@ -1,3 +1,4 @@
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,7 +12,10 @@ from REvoDesign.bootstrap.set_config import (
     save_configuration,
     set_cache_dir,
     set_REvoDesign_config_file,
+    list_all_config_files,
 )
+
+from tests.conftest import DATA_DIRNAME
 
 # from tests.conftest import check_real_config_dir
 
@@ -115,3 +119,43 @@ def test_main_config_upgrade(user_decide, patch_config_user_data):
             mock_rmtree.assert_called_once()
         else:
             mock_rmtree.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "tree, expected_rel_paths",
+    [
+        (
+            False,
+            [
+                "editor.yaml",
+                "environ.yaml",
+                "logger.yaml",
+                "main.yaml",
+                "openmm.yaml",
+                "runtime.yaml",
+            ],
+        ),
+        (
+            True,
+            [
+                os.path.join("rfdiffusion", "base.yaml"),
+                os.path.join("rfdiffusion", "enzyme.yaml"),
+                os.path.join("rfdiffusion", "motif_scaffoldding.yaml"),
+                os.path.join("rfdiffusion", "partial_diffusion.yaml"),
+                os.path.join("rfdiffusion", "symmetry.yaml"),
+                os.path.join("rosetta-node", "docker.yaml"),
+                os.path.join("rosetta-node", "docker_mpi.yaml"),
+                os.path.join("rosetta-node", "mpi.yaml"),
+                os.path.join("rosetta-node", "native.yaml"),
+                os.path.join("rosetta-node", "wsl.yaml"),
+                os.path.join("rosetta-node", "wsl_mpi.yaml"),
+                os.path.join("sidechain-solver", "pippack.yaml"),
+            ],
+        ),
+    ],
+)
+def test_list_all_config_files(tree, expected_rel_paths):
+    config_dir = os.path.join(DATA_DIRNAME, "config")
+    results = list_all_config_files(config_dir, tree=tree)
+    expected = sorted(os.path.join(config_dir, rel_path) for rel_path in expected_rel_paths)
+    assert results == expected
