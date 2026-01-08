@@ -6,6 +6,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from REvoDesign.bootstrap.set_config import (
     ConfigConverter,
+    _iter_yaml_rel_paths,
     experiment_config,
     is_package_installed,
     list_all_config_files,
@@ -14,9 +15,7 @@ from REvoDesign.bootstrap.set_config import (
     set_cache_dir,
     set_REvoDesign_config_file,
     verify_config_tree_structure,
-    _iter_yaml_rel_paths,
 )
-
 from tests.conftest import DATA_DIRNAME
 
 # from tests.conftest import check_real_config_dir
