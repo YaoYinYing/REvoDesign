@@ -120,8 +120,9 @@ class FileDownloadRegistry(CitableModuleAbstract):
 
         # Set download directory, use default user data directory if not provided
         self.customized_directory = customized_directory or user_data_dir(
-            self.name, version=self.version, ensure_exists=True
+            self.name, version=self.version,
         )
+        os.makedirs(self.customized_directory, exist_ok=True)
 
         all_base_urls = [self.base_url]
         if self.alternative_base_urls:
