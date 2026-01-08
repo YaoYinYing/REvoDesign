@@ -8,7 +8,7 @@ from typing import Any
 from joblib import Parallel, delayed
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-from REvoDesign.basic import ThirdPartyModuleAbstract
+from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract
 from REvoDesign.common.mutant import Mutant
 
 

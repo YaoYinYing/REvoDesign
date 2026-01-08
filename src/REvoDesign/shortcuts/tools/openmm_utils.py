@@ -6,7 +6,8 @@ import webbrowser
 
 import uvicorn
 
-from REvoDesign.basic import ServerControlAbstract, ThirdPartyModuleAbstract
+from REvoDesign.basic.server_monitor import ServerControlAbstract
+from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.tools.package_manager import WorkerThread, run_worker_thread_with_progress

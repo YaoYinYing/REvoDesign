@@ -9,7 +9,7 @@ import warnings
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import issues
-from REvoDesign.basic import ExternalDesignerAbstract
+from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb

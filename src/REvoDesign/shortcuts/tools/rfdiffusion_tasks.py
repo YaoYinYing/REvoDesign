@@ -14,7 +14,7 @@ from hydra import errors as hydra_errors
 from omegaconf import DictConfig, OmegaConf
 
 from REvoDesign import ROOT_LOGGER, issues
-from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
+from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
 from REvoDesign.bootstrap.set_config import is_package_installed, reload_config_file
 from REvoDesign.tools.download_registry import FileDownloadRegistry

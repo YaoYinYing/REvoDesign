@@ -8,7 +8,7 @@ import os
 from Bio.Data import IUPACData
 from joblib import Parallel, delayed
 
-from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import ROOT_LOGGER
 

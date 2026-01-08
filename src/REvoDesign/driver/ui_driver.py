@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import shutil
 import time
+import random
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial, wraps
@@ -17,7 +18,7 @@ from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
-from REvoDesign.basic import MenuActionServerMonitor
+from REvoDesign.basic.server_monitor import MenuActionServerMonitor
 from REvoDesign.bootstrap import CACHE_CONFIG_DIR, REVODESIGN_CONFIG_DIR
 from REvoDesign.bootstrap.set_config import list_all_config_files, save_configuration
 from REvoDesign.citations import CitableModuleAbstract
@@ -278,12 +279,16 @@ class Config:
             file_path (str): The path to save the configuration file.
 
         """
-        # get a uniq timestamp
+        # get a uniq timestamp at the date:time:second level
         timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
+        
+        # to avoid test case failure, we add a random number to the timestamp
+        current_milliseconds = round(time.time() * 1_000_000_000_000_000)
 
-        cached_path = self.save_to_experiment(f"cache/{self.name}_cached_{timestamp}")
+        # save to cache
+        cached_path = self.save_to_experiment(f"cache/{self.name}_cached_{timestamp}_{current_milliseconds}")
 
-        # move to the target path
+        # move cached to the target path
         # unless explicitly saved, the self.path wont be saved to
 
         shutil.move(cached_path, file_path)

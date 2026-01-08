@@ -9,7 +9,7 @@ from types import MappingProxyType
 from RosettaPy.utils.escape import print_diff
 
 from REvoDesign import ConfigBus, SingletonAbstract, issues
-from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.logger import ROOT_LOGGER
 
 # 1. implement the mutate runner and import then here

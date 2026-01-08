@@ -12,7 +12,7 @@ from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence, mutant
 from RosettaPy.node import NodeHintT
 
 from REvoDesign import ConfigBus
-from REvoDesign.basic import ExternalDesignerAbstract
+from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 from REvoDesign.tools.rosetta_utils import IS_ROSETTA_RUNNABLE, copy_rosetta_citation, read_rosetta_node_config

@@ -9,7 +9,7 @@ known issue:
 import os
 
 from REvoDesign import reload_config_file, set_cache_dir
-from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import ROOT_LOGGER

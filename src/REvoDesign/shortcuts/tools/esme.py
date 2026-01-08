@@ -2,7 +2,7 @@ from typing import Literal
 
 import pandas as pd
 
-from REvoDesign.basic import ThirdPartyModuleAbstract
+from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.utils import get_cited, require_installed
 

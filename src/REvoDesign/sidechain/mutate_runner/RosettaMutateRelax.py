@@ -13,7 +13,7 @@ from RosettaPy.app.mutate_relax import ScoreClusters, script_dir
 from RosettaPy.node import NodeHintT
 
 from REvoDesign import ConfigBus
-from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.rosetta_utils import (

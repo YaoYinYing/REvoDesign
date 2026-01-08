@@ -9,7 +9,7 @@ import pandas as pd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import ROOT_LOGGER
-from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
+from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.common.mutant_tree import MutantTree

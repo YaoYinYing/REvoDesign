@@ -19,7 +19,7 @@ import pandas as pd
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import issues
-from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.citations import CitationManager
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.common.mutant_visualise import MutantVisualizer

@@ -1,7 +1,7 @@
 import matplotlib
 import numpy as np
 
-from REvoDesign.basic import ThirdPartyModuleAbstract
+from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.utils import require_installed
 
