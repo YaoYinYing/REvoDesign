@@ -3,10 +3,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from omegaconf import DictConfig, OmegaConf
 
-# from tests.conftest import check_real_config_dir
-
-# check_real_config_dir() # failed
-
 from REvoDesign.bootstrap.set_config import (
     ConfigConverter,
     experiment_config,
@@ -15,9 +11,11 @@ from REvoDesign.bootstrap.set_config import (
     save_configuration,
     set_cache_dir,
     set_REvoDesign_config_file,
-
 )
 
+# from tests.conftest import check_real_config_dir
+
+# check_real_config_dir() # failed
 
 
 def test_set_REvoDesign_config_file():
@@ -28,7 +26,6 @@ def test_set_REvoDesign_config_file():
         patch("REvoDesign.bootstrap.set_config.os.listdir", return_value=[]),
         patch("REvoDesign.bootstrap.set_config.shutil.copytree") as mock_copytree,
     ):
-        
 
         main_config = set_REvoDesign_config_file()
         mock_copytree.assert_called_once()
@@ -94,36 +91,27 @@ def test_is_package_installed():
     with patch("REvoDesign.bootstrap.set_config.importlib.util.find_spec", return_value=None):
         assert is_package_installed("nonexistent") is False
 
-@pytest.mark.parametrize('user_decide',[
-    True, False
-])
 
+@pytest.mark.parametrize("user_decide", [True, False])
 def test_main_config_upgrade(user_decide, patch_config_user_data):
     with (
-        patch('REvoDesign.bootstrap.set_config.decide', return_value=user_decide) as mock_decide,
-        
+        patch("REvoDesign.bootstrap.set_config.decide", return_value=user_decide) as mock_decide,
         # main.yaml not exists
         patch("REvoDesign.bootstrap.set_config.os.path.isfile", return_value=False),
-        
         # configure dir exists
         patch("REvoDesign.bootstrap.set_config.os.path.isdir", return_value=True),
-
         # configure dir exists
-        patch("REvoDesign.bootstrap.set_config.os.listdir", return_value=[ 'master.yaml', 'a_dir']),
-
+        patch("REvoDesign.bootstrap.set_config.os.listdir", return_value=["master.yaml", "a_dir"]),
         # if user has decide, the tree will be removed
         patch("REvoDesign.bootstrap.set_config.shutil.rmtree") as mock_rmtree,
-
         # whatever, the new tree will be copied
         patch("REvoDesign.bootstrap.set_config.shutil.copytree") as mock_copytree,
-        ):
+    ):
 
-            main_config = set_REvoDesign_config_file()
-            mock_decide.assert_called_once()
-            mock_copytree.assert_called_once()
-            if user_decide:
-                mock_rmtree.assert_called_once()
-            else:
-                mock_rmtree.assert_not_called()
-
-            
+        set_REvoDesign_config_file()
+        mock_decide.assert_called_once()
+        mock_copytree.assert_called_once()
+        if user_decide:
+            mock_rmtree.assert_called_once()
+        else:
+            mock_rmtree.assert_not_called()

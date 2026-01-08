@@ -6,10 +6,10 @@ from __future__ import annotations
 
 import os
 import shutil
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial, wraps
-import time
 from typing import Any, Protocol, TypeVar, overload
 
 import omegaconf.errors
@@ -213,7 +213,7 @@ class Config:
         save_configuration(self.cfg, self.name)
 
     def save_to_experiment(self, experiment: str):
-        '''
+        """
         located at REVODESIGN_CONFIG_DIR
 
         experiment:
@@ -221,9 +221,9 @@ class Config:
             - cache: cache/<name-of-cache>.yaml
         return:
             - path to the saved experiment file
-        '''
+        """
         save_configuration(self.cfg, experiment)
-        return os.path.join(REVODESIGN_CONFIG_DIR, f'{experiment}.yaml')
+        return os.path.join(REVODESIGN_CONFIG_DIR, f"{experiment}.yaml")
 
     def reload(self):
         """
@@ -232,21 +232,22 @@ class Config:
         self.cfg = reload_config_file(self.name)
 
     def reload_from_experiment(self, experiment: str):
-        '''
+        """
         experiment:
             - experiment: experiment/<name-of-experiment>.yaml
             - cache: cache/<name-of-cache>.yaml
-        '''
-        reload_from_prefix=experiment.split('/',1)[0]
-        if reload_from_prefix not in ('experiments', 'cache'):
-            raise issues.UnexpectedWorkflowError(f'The reload type must be experiments or cache, not {reload_from_prefix}')
-        
-        # follow the hydra rule
-        expected=os.path.join(REVODESIGN_CONFIG_DIR, f'{experiment}.yaml')
-        if not os.path.isfile(expected):
-            raise FileNotFoundError(f'An experiment file is expected at {expected} for {experiment}')
-        self.cfg=reload_config_file(config_name=experiment)[reload_from_prefix]
+        """
+        reload_from_prefix = experiment.split("/", 1)[0]
+        if reload_from_prefix not in ("experiments", "cache"):
+            raise issues.UnexpectedWorkflowError(
+                f"The reload type must be experiments or cache, not {reload_from_prefix}"
+            )
 
+        # follow the hydra rule
+        expected = os.path.join(REVODESIGN_CONFIG_DIR, f"{experiment}.yaml")
+        if not os.path.isfile(expected):
+            raise FileNotFoundError(f"An experiment file is expected at {expected} for {experiment}")
+        self.cfg = reload_config_file(config_name=experiment)[reload_from_prefix]
 
     def reload_from_path(self, path: str):
         """
@@ -279,8 +280,8 @@ class Config:
         """
         # get a uniq timestamp
         timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
-        
-        cached_path=self.save_to_experiment(f'cache/{self.name}_cached_{timestamp}')
+
+        cached_path = self.save_to_experiment(f"cache/{self.name}_cached_{timestamp}")
 
         # move to the target path
         # unless explicitly saved, the self.path wont be saved to

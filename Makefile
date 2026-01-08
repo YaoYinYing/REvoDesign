@@ -49,7 +49,9 @@ help:
 	@echo "  prepare-test           Run pip to install pytest-related packages"
 	@echo "  test                   Run the UnitTest suite"
 	@echo "  all-test               Run all tests"
-	@echo "  fast-test              Run all fast tests"
+	@echo "  fast-test              Run all fast tests (first order)"
+	@echo "  serial-test            Run all serial tests (second order)"
+	@echo "  slow-test              Run all slow tests (third order)"
 	@echo "  kw-test                Run the Keyword Test suite"
 	@echo "  kw-test-pdb            Run the Keyword Test suite with pdb"
 	@echo "  macos-rosetta-test     Run UI tests versus PyMOL incentive installation (MacOS Application)"
@@ -153,6 +155,17 @@ fast-test:
 	cd $(TESTDIR); \
 	python -m pytest $(PYTEST_RUN_FIRST_ARGS)
 
+serial-test:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR); \
+	python -m pytest $(PYTEST_RUN_SECOND_ARGS)
+
+slow-test:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR); \
+	python -m pytest $(PYTEST_RUN_THIRD_ARGS)
 
 
 # all test with keyword

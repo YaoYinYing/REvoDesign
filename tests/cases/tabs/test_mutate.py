@@ -16,7 +16,6 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="mutate")
-        
 
         set_widget_value(
             test_worker.plugin.ui.comboBox_sidechain_solver,
@@ -220,7 +219,6 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.check_existed_mutant_tree()
 
         test_worker.pse_snapshot("fin")
-
 
     def test_pssm_pocket_design_dunbrack(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()

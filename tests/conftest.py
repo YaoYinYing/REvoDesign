@@ -8,7 +8,6 @@ import gc
 import json
 import os
 import platform
-
 import shutil
 import time
 import warnings
@@ -20,7 +19,6 @@ import psutil
 import pytest
 from _pytest.nodes import Item
 from immutabledict import immutabledict
-
 from pytestqt import qtbot
 from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
@@ -28,7 +26,7 @@ from RosettaPy.utils import tmpdir_manager
 # mostly mock on data and cache to isolated from user's production system
 TEST_ROOT = os.path.abspath(os.path.curdir)
 DATA_DIRNAME = os.path.join(TEST_ROOT, "mock", "user_data", "REvoDesign")
-CACHE_DIRNAME = os.path.join(TEST_ROOT, '..',"tests", "downloaded", "cache")
+CACHE_DIRNAME = os.path.join(TEST_ROOT, "..", "tests", "downloaded", "cache")
 
 os.makedirs(DATA_DIRNAME, exist_ok=True)
 os.makedirs(CACHE_DIRNAME, exist_ok=True)
@@ -50,23 +48,24 @@ os.makedirs(CACHE_DIRNAME, exist_ok=True)
 with (
     patch("REvoDesign.bootstrap.set_config.user_data_dir", return_value=DATA_DIRNAME) as mock_user_data_dir,
     patch("REvoDesign.bootstrap.set_config.user_cache_dir", return_value=CACHE_DIRNAME) as mock_user_cache_dir,
-    # patch("REvoDesign.bootstrap.set_REvoDesign_config_file", return_value=os.path.join(data_dirname, 'config', 'main.')) as mock_user_config,
-    ):
-# with (
+    # patch("REvoDesign.bootstrap.set_REvoDesign_config_file",
+    # return_value=os.path.join(data_dirname, 'config', 'main.')) as
+    # mock_user_config,
+):
+    # with (
 
-#         # main.yaml not exists
-#         patch("REvoDesign.bootstrap.set_config.os.path.isfile", return_value=False),
-        
-#         # configure dir not exists
-#         patch("REvoDesign.bootstrap.set_config.os.path.isdir", return_value=False)
-#     ):
+    #         # main.yaml not exists
+    #         patch("REvoDesign.bootstrap.set_config.os.path.isfile", return_value=False),
+
+    #         # configure dir not exists
+    #         patch("REvoDesign.bootstrap.set_config.os.path.isdir", return_value=False)
+    #     ):
     from pymol import CmdException, cmd
 
     from REvoDesign import REvoDesignPlugin
-    from REvoDesign.basic.abc_singleton import  reset_singletons
+    from REvoDesign.basic.abc_singleton import reset_singletons
     from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
     from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
-
     from REvoDesign.common import MutantTree
     from REvoDesign.driver.ui_driver import ConfigBus
     from REvoDesign.Qt import QtCore, QtWidgets
@@ -114,6 +113,7 @@ def app():
         app = QtWidgets.QApplication([])
     return app
 
+
 # def check_real_config_dir():
 #     '''
 #     A checkpoint to check whether the test suite has created the real config dir.
@@ -124,7 +124,7 @@ def app():
 
 
 @pytest.fixture(scope="function")
-def plugin(qtbot: qtbot.QtBot, app,patch_config_user_data, patch_config_user_cache):
+def plugin(qtbot: qtbot.QtBot, app, patch_config_user_data, patch_config_user_cache):
     # Create and return an instance of the REvoDesignPlugin
 
     # check_real_config_dir() # failed
@@ -142,7 +142,7 @@ def plugin(qtbot: qtbot.QtBot, app,patch_config_user_data, patch_config_user_cac
 
     if plugin.window:
         plugin.reinitialize()
-    
+
     # check_real_config_dir() # passed
     plugin = REvoDesignPlugin()
 
@@ -267,10 +267,8 @@ class TestWorker:
         self.plugin = plugin
         self.qtbot.addWidget(self.plugin.window)  # Add the plugin's main window to qtbot for automatic cleanup
 
-
         # a shadow reset is necessary to avoid any side effect
         self.main_config = set_REvoDesign_config_file()
-
 
         self.tab_widget_mapping: immutabledict[TAB_NAMES, QtWidgets.QWidget] = immutabledict(  # type: ignore
             {
@@ -342,7 +340,6 @@ class TestWorker:
             self.PERFORMANCE_DIR,
         }
         [os.makedirs(dir, exist_ok=True) for dir in dirs]
-
 
     def pse_snapshot(self, custom_name: str = "none") -> str:
         time_stamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
@@ -604,13 +601,17 @@ class TestWorker:
 
         gc.collect()
 
+
 # fixtures to patch user cache/data dir are still required
+
+
 @pytest.fixture
 def patch_config_user_cache():
     os.makedirs(CACHE_DIRNAME, exist_ok=True)
 
     with patch("REvoDesign.bootstrap.set_config.user_cache_dir", return_value=CACHE_DIRNAME) as mock_user_cache_dir:
         yield mock_user_cache_dir
+
 
 @pytest.fixture
 def patch_config_user_data():
@@ -627,7 +628,7 @@ def test_worker(
     patch_config_user_data,
     patch_config_user_cache,
 ):
-    
+
     w = TestWorker(qtbot, plugin)
 
     def final_action():
@@ -655,6 +656,7 @@ def pm_test_worker(
 @pytest.fixture(scope="session")
 def KeyDataDuringTests():
     return KeyData()
+
 
 # mocks on qt widgets
 
