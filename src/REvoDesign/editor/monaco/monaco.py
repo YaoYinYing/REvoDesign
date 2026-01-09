@@ -1,6 +1,7 @@
 import os
 import shutil
 import tarfile
+from urllib.parse import urlencode
 
 from platformdirs import user_data_dir
 
@@ -201,11 +202,33 @@ def edit_file_with_monaco(file_path: str):
     token = config_store.get("editor.token", default=None)
     no_token = config_store.get("editor.backend.no_token", default=False)
 
+    # Apply autosave/autorefresh configuration to editor URL
+    def _positive_int(value, default):
+        try:
+            value = int(value)
+        except (TypeError, ValueError):
+            return default
+        return value if value > 0 else default
+
+    autosave_enabled = bool(config_store.get("editor.autosave.enabled", default=False))
+    autosave_interval = _positive_int(config_store.get("editor.autosave.interval", default=10), 10)
+    autorefresh_enabled = bool(config_store.get("editor.autorefresh.enabled", default=False))
+    # Convert seconds to milliseconds for the front-end refresh loop
+    autorefresh_interval_ms = _positive_int(config_store.get("editor.autorefresh.interval", default=10), 10) * 1000
+
     # Build the editor URL
     base_url = f"{protocol}://{host}:{port}"
-    editor_url = f"{base_url}/editor?file_path={file_path}"
+    query_params = {
+        "file_path": file_path,
+        "autosaveEnabled": str(autosave_enabled).lower(),
+        "autosaveInterval": autosave_interval,
+        "refreshEnabled": str(autorefresh_enabled).lower(),
+        "refreshInterval": autorefresh_interval_ms,
+    }
     if not no_token and token:
-        editor_url += f"&token={token}"
+        query_params["token"] = token
+
+    editor_url = f"{base_url}/editor?{urlencode(query_params)}"
 
     logging.info(f"Editor URL constructed: {editor_url}")
 

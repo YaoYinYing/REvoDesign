@@ -63,8 +63,31 @@
     <script>
         let lastSavedContent = ''; // To keep track of the last saved content
         let isContentChanged = false; // To track if the content is changed
-    
-        const refreshInterval = 10000; // 10 seconds
+        const urlParams = new URLSearchParams(window.location.search);
+        const parseBooleanParam = (key, defaultValue) => {
+            const value = urlParams.get(key);
+            if (value === null) {
+                return defaultValue;
+            }
+            if (value === '1' || value.toLowerCase() === 'true') {
+                return true;
+            }
+            if (value === '0' || value.toLowerCase() === 'false') {
+                return false;
+            }
+            return defaultValue;
+        };
+        const parseIntervalParam = (key, defaultValue, multiplier = 1) => {
+            const value = parseFloat(urlParams.get(key));
+            if (!Number.isFinite(value) || value <= 0) {
+                return defaultValue * multiplier;
+            }
+            return value * multiplier;
+        };
+        const refreshEnabled = parseBooleanParam('refreshEnabled', true);
+        const refreshIntervalMs = parseIntervalParam('refreshInterval', 10000);
+        const autosaveEnabled = parseBooleanParam('autosaveEnabled', true);
+        const autosaveIntervalMs = parseIntervalParam('autosaveInterval', 10, 1000); // convert seconds to ms
     
         // Function to check if the editor content has changed
         const checkContentChange = () => {
@@ -125,15 +148,21 @@
             }
         };
     
-        // Set an interval to handle file refresh and autosave
-        setInterval(() => {
-            checkContentChange();
-            if (isContentChanged) {
-                saveFile();
-            } else {
-                reloadFile();
-            }
-        }, refreshInterval);
+        if (refreshEnabled) {
+            setInterval(() => {
+                if (!checkContentChange()) {
+                    reloadFile();
+                }
+            }, refreshIntervalMs);
+        }
+
+        if (autosaveEnabled) {
+            setInterval(() => {
+                if (checkContentChange()) {
+                    saveFile();
+                }
+            }, autosaveIntervalMs);
+        }
     
     </script>
     
@@ -195,7 +224,6 @@
         }
 
         const serverUrl = `${window.location.origin}`;
-        const urlParams = new URLSearchParams(window.location.search);
         const filePath = urlParams.get('file_path');
         const token = urlParams.get('token');
 

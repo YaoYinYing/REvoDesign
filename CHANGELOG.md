@@ -14,9 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+
+
 ```
 ## [Unreleased]
-
 ### Added
 - Server: 
   - Basic authentication guide and implementation
@@ -35,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
       - `is_separator` property for separator adding. set `action` to `---` will do. 
   - `MenuCollection`:
     - `bind` method now supports dynamic menu action creation under a certain menu section
+  - Recent experiments:
+    - `menuRecent_Experiments`: dynamically lists experiment configurations from the `experiments/` tree sorted by their last modification time for quick editing and backups.
 - Phylogenetic:
   - GREMLIN in Pytorch
     - Implementation at `phylogenetics/gremlin_pytorch.py`
@@ -48,6 +51,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `resolve_typed_arg`: for resolving typed arguments according to what the most it looks like
   - `resolve_default_value`: moved from shortcut util module
   - `resolve_dotted_config_item`: moved from shortcut util module
+- Package manager:
+  - `PackageManagerCommand` dataclass consolidates package manager metadata for Git bootstrap logic.
+  - Tests ensuring apt-based installers leverage sudo when available.
+- Editor:
+  - Monaco editor URLs now carry autosave and autorefresh toggles/intervals so the static front-end can refresh or save files according to `editor.yaml`.
+- Bootstrap configuration:
+  - `_iter_yaml_rel_paths`, `verify_config_tree_structure`, and `enforce_config_key_structure` ensure user config trees mirror the template layout and key hierarchy by auto-copying missing YAML files and replacing outdated ones.
+  - Tests covering the new helpers and the recursive config listing guard future refactors.
 - `ui_driver`:
   - dataclass `Config`  
     - for handling configuration name/yaml path/configuration DictConfig obj
@@ -92,10 +103,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `sidechain-solver`: for sidechain solvers
     - `rosetta-node`: for rosetta-node configurations
     - `rfdiffusion`: for rfdiffusion parameter presets
+    - `editor`: split from `main.yaml` into `config/editor.yaml` to isolate Monaco backend/autosave configuration
   - rename main configuration: `global_config` -> `main`
     - detect only the main configuration file, if not found, prompt and copy the full configuration tree to allow seamless upgrade (the directory will be dirty however)
   - `experiment_config` now can be used for any sub dirs like cache dir
   - `list_all_config_files` for listing all config files at first and second level
+- Bootstrap:
+  - Import-time initialization now calls the tree/key verification helpers so user config directories are automatically synchronized with the bundled templates.
+- `list_all_config_files`:
+  - deterministic top-level globbing and explicit recursive traversal for nested YAML keeps discoveries stable regardless of filesystem ordering.
+- Experiments:
+  - `load_and_save_experiment` now backs up into the `experiments/` directory before custom saves so new runs populate the Recent Experiments menu, and the test harness mirrors the new workflow entirely inside the test workspace.
 - `ui_driver`:
   - `ConfigBus`:
     - `set_value` and `get_value` now supports data  getting/setting value from/to a certain Config obj name
@@ -103,6 +121,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added all configuration files to white list so that they can be edited.
 - Logger:
   - Refactored `logger_level_setter` and `logger_level_setter_ng` for setting logger levels from menu pop
+- Package manager:
+  - `GitSolver` now caches detected installers, includes Linux/BSD managers (apt, dnf, yum, zypper, pacman, pkg, snap, scoop, port), and prefixes sudo only when required.
 - Plugin:
   - Simplified configuration operations
   
@@ -115,6 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests:
   - Minor fixes according to current changes.
   - ~~Partial user platform dirs mock  to isolate test config from production.~~ WIP
+  - PyMOL session helpers now surface exceptions instead of swallowing them so debugging fetch/load failures is easier.
 
 ### Removed
 - Py39 related:
@@ -134,6 +155,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - removed `save_configuration_from_ui` method due to config handling simplfied
 - tests:
   - obsolete tests `tests/cases/UnitTests.py`
+- CI:
+  - Removed the stale CircleCI pipeline configuration (`.circleci/config.yml`).
 
 
 ## [1.8.4] - 2025-12-02

@@ -1371,7 +1371,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             widget = self.bus.get_widget_from_id(widget_id=widget_id)
             set_widget_value(widget, OmegaConf.select(self.bus.cfg_group["main"].cfg, config_item))
 
-    def load_and_save_experiment(self, mode: IO_MODE = "r"):
+    def load_and_save_experiment(self, mode: IO_MODE = "r", do_backup: bool = True):
         """Loads and saves experiment configurations, copying files
         between directories based on the specified mode.
 
@@ -1392,4 +1392,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.bus.cfg_group["main"].reload_from_path(path=new_cfg_file)
             self.refresh_ui_from_new_configuration()
         else:
+            # always save to experiment directory first
+            # all yaml inside the experiment directory can be discovered and
+            # appeared as recent experiments
+            if do_backup:
+                new_cfg_basename = os.path.basename(new_cfg_file)
+                backup = self.bus.cfg_group["main"].save_to_experiment(
+                    experiment=f"experiments/{new_cfg_basename[:-5]}"
+                )
+                logging.info(f"Backup of current experiment saved to {backup}")
+            # save again to the custom experiment file
             self.bus.cfg_group["main"].save_as(file_path=new_cfg_file)

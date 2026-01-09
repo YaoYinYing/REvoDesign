@@ -302,7 +302,24 @@ class ServerControl(ServerControlAbstract):
             return
 
         # Check if token authentication is required
-        no_token = ConfigBus().get_value("editor.backend.no_token", bool, default_value=False)
+        config_bus = ConfigBus()
+
+        autosave_enabled = config_bus.get_value("editor.autosave.enabled", bool, default_value=False, cfg="editor")
+        autosave_interval = max(
+            1, config_bus.get_value("editor.autosave.interval", int, default_value=10, cfg="editor")
+        )
+        autorefresh_enabled = config_bus.get_value(
+            "editor.autorefresh.enabled", bool, default_value=False, cfg="editor"
+        )
+        autorefresh_interval = max(
+            1, config_bus.get_value("editor.autorefresh.interval", int, default_value=10, cfg="editor")
+        )
+        self.config_store.set("editor.autosave.enabled", autosave_enabled)
+        self.config_store.set("editor.autosave.interval", autosave_interval)
+        self.config_store.set("editor.autorefresh.enabled", autorefresh_enabled)
+        self.config_store.set("editor.autorefresh.interval", autorefresh_interval)
+
+        no_token = config_bus.get_value("editor.backend.no_token", bool, default_value=False, cfg="editor")
         self.config_store.set("editor.backend.no_token", no_token)
         if not no_token:
             initialize_token()
@@ -313,7 +330,7 @@ class ServerControl(ServerControlAbstract):
         print(f"{HTML_DIR=}")
 
         # Determine if SSL is enabled
-        use_ssl = ConfigBus().get_value("editor.backend.use_ssl", bool, default_value=False)
+        use_ssl = config_bus.get_value("editor.backend.use_ssl", bool, default_value=False, cfg="editor")
         self.config_store.set("editor.backend.use_ssl", use_ssl)
         ssl_certfile = None
         ssl_keyfile = None
@@ -329,9 +346,9 @@ class ServerControl(ServerControlAbstract):
             self.config_store.set("editor.backend.crt", ssl_certfile)
             self.config_store.set("editor.backend.key", ssl_keyfile)
 
-        host = ConfigBus().get_value("editor.backend.host", str, reject_none=True)
+        host = config_bus.get_value("editor.backend.host", str, reject_none=True, cfg="editor")
         self.config_store.set("editor.backend.host", host)
-        port = ConfigBus().get_value("editor.backend.port", int, reject_none=True)
+        port = config_bus.get_value("editor.backend.port", int, reject_none=True, cfg="editor")
         self.config_store.set("editor.backend.port", port)
 
         # Configure Uvicorn

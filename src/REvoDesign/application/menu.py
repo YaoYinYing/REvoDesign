@@ -65,6 +65,7 @@ def _clean_config_name(config_name: str):
 
 CONFIG_EDIT_LINKS = []
 
+
 for config_name, config_file in all_main_config_files.items():
     CONFIG_EDIT_LINKS.append(
         MenuItem(
@@ -80,7 +81,7 @@ for config_name, config_file in all_main_config_files.items():
 last_section = ""
 for config_name, config_file in all_secondary_config_files.items():
     # exclude cache files
-    if config_name.startswith("cache"):
+    if config_name.startswith(("cache", "experiments")):
         continue
     current_section = config_name.split("/")[0]
     if current_section != last_section:
@@ -97,6 +98,33 @@ for config_name, config_file in all_secondary_config_files.items():
         )
     )
 
+
+# recent experiments
+recent_experiments = {
+    config_name: config_file
+    for config_name, config_file in all_secondary_config_files.items()
+    if config_name.startswith("experiments")
+}
+
+# sort by config file's modified time
+sorted_recent_experiments = {
+    config_name: config_file
+    for config_name, config_file in sorted(
+        recent_experiments.items(), key=lambda x: os.path.getmtime(x[1]), reverse=True
+    )
+}
+
+for config_name, config_file in sorted_recent_experiments.items():
+
+    CONFIG_EDIT_LINKS.append(
+        MenuItem(
+            f"actionEditConf_{_clean_config_name(config_name)}",
+            f"REvoDesign.editor.monaco.monaco:menu_edit_file",
+            kwargs={"file_path": config_file},
+            action_text=f"Edit {config_name}",
+            menu_section="menuRecent_Experiments",
+        )
+    )
 
 TOOLS_MENU_LINKS = (
     MenuItem(

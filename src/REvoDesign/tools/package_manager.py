@@ -8,6 +8,7 @@ import importlib
 import importlib.util
 import io
 import json
+import locale
 import math
 import os
 import platform
@@ -19,12 +20,14 @@ import sys
 import threading
 import time
 import urllib.request
+import uuid
 import warnings
 from collections.abc import Callable, Iterable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Any, NoReturn, TypeVar, overload
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypeVar, overload
 from urllib.error import HTTPError, URLError
 
 from pymol import cmd, get_version_message
@@ -500,13 +503,18 @@ class CheckableListView(QtWidgets.QWidget):
                 item.setCheckState(QtCore.Qt.Unchecked)
 
 
-# #TODO: simplification needed
+@dataclass(frozen=True)
+class PackageManagerCommand:
+    attr: str
+    executable: str
+    args: tuple[str, ...]
+    requires_sudo: bool = False
 
 
 @dataclass
 class GitSolver:
     """
-    A class that checks for the presence of Git, Conda, and Winget on the system and can install Git if necessary.
+    Resolve how to install Git across multiple platforms/package managers and bootstrap Git if missing.
     """
 
     has_git: str | None = None
@@ -515,27 +523,23 @@ class GitSolver:
     has_winget: str | None = None
     has_brew: str | None = None
     has_choco: str | None = None
+    has_port: str | None = None
+    has_apt_get: str | None = None
+    has_apt: str | None = None
+    has_dnf: str | None = None
+    has_yum: str | None = None
+    has_zypper: str | None = None
+    has_pacman: str | None = None
+    has_pkg: str | None = None
+    has_scoop: str | None = None
+    has_snap: str | None = None
+    has_sudo: str | None = None
 
-    def __post_init__(self):
-        """
-        Initializes instance attributes to check if git, conda, and winget are installed.
-
-        This method is automatically called after the object initialization.
-        It sets the object's properties based on whether these tools are available in the system path.
-        This ensures that the object can determine if it can perform related operations before doing so.
-        """
-        # subprocess.run on Windows treat conda as a excutable file and will check its existence
-        # however conda is AKA a alias in shell and does not exist as a file.
-        # shutil.which will return the real path of conda script
-        for cmd_tool in ["git", "conda", "mamba", "winget", "brew", "choco"]:
-            setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool))
-            logging.debug(f"Command tool check: {cmd_tool}: {getattr(self, f'has_{cmd_tool}')}")
-
-    @property
-    def where_to_install(self) -> list[str] | None:
-        if self.has_winget:
-            return [
-                self.has_winget,
+    INSTALLERS: ClassVar[tuple[PackageManagerCommand, ...]] = (
+        PackageManagerCommand(
+            "has_winget",
+            "winget",
+            (
                 "install",
                 "--id",
                 "Git.Git",
@@ -544,18 +548,55 @@ class GitSolver:
                 "winget",
                 "--accept-package-agreements",
                 "--accept-source-agreements",
-            ]
+            ),
+        ),
+        PackageManagerCommand("has_choco", "choco", ("install", "git", "-y")),
+        PackageManagerCommand("has_scoop", "scoop", ("install", "git")),
+        PackageManagerCommand("has_mamba", "mamba", ("install", "-y", "git")),
+        PackageManagerCommand("has_conda", "conda", ("install", "-y", "git")),
+        PackageManagerCommand("has_brew", "brew", ("install", "git")),
+        PackageManagerCommand("has_port", "port", ("install", "git"), True),
+        PackageManagerCommand("has_snap", "snap", ("install", "git", "--classic"), True),
+        PackageManagerCommand("has_apt_get", "apt-get", ("install", "-y", "git"), True),
+        PackageManagerCommand("has_apt", "apt", ("install", "-y", "git"), True),
+        PackageManagerCommand("has_dnf", "dnf", ("install", "-y", "git"), True),
+        PackageManagerCommand("has_yum", "yum", ("install", "-y", "git"), True),
+        PackageManagerCommand("has_zypper", "zypper", ("install", "-y", "git"), True),
+        PackageManagerCommand("has_pacman", "pacman", ("-S", "--noconfirm", "git"), True),
+        PackageManagerCommand("has_pkg", "pkg", ("install", "-y", "git"), True),
+    )
 
-        # Determine the installation command based on Conda's presence or the system type (Windows with Winget)
-        if self.has_mamba:
-            return [self.has_mamba, "install", "-y", "git"]
-        if self.has_conda:
-            return [self.has_conda, "install", "-y", "git"]
+    def __post_init__(self):
+        """
+        Resolve available package managers once so callers do not shell out repeatedly.
+        """
+        self.has_git = shutil.which("git")
+        logging.debug(f"Command tool check: git: {self.has_git}")
 
-        if self.has_brew:
-            return [self.has_brew, "install", "git"]
-        if self.has_choco:
-            return [self.has_choco, "install", "git"]
+        for installer in self.INSTALLERS:
+            detected = shutil.which(installer.executable)
+            setattr(self, installer.attr, detected)
+            logging.debug(f"Command tool check: {installer.executable}: {detected}")
+
+        self.has_sudo = shutil.which("sudo") if os.name != "nt" else None
+        if self.has_sudo:
+            logging.debug(f"Command tool check: sudo: {self.has_sudo}")
+
+    def _build_install_command(self, installer: PackageManagerCommand) -> list[str] | None:
+        pkg_manager = getattr(self, installer.attr, None)
+        if not pkg_manager:
+            return None
+        command = [pkg_manager, *installer.args]
+        if installer.requires_sudo and self.has_sudo:
+            command = [self.has_sudo, *command]
+        return command
+
+    @property
+    def where_to_install(self) -> list[str] | None:
+        for installer in self.INSTALLERS:
+            command = self._build_install_command(installer)
+            if command:
+                return command
 
         return None
 
@@ -2110,9 +2151,6 @@ def filter_sensitive_data(env):
     return filtered_env
 
 
-# TODO: dynamically collections of based on extra groups object
-
-
 def issue_collection(
     collect_dummy: bool = False,
     network: bool = True,
@@ -2125,177 +2163,199 @@ def issue_collection(
     - collect_dummy: A boolean indicating whether to collect additional 'dummy' information for debugging purposes.
     - network: A boolean indicating whether to collect network information.
     - drop_sensitives: A boolean indicating whether to drop sensitive information like passwords, tokens, etc.
-
     Returns:
     - A dictionary containing detailed information about the system, environment, and installed software.
     """
-    issue_dict = {}
-
-    # Collect platform information
     platform_info = platform.uname()
-
-    # Platform
-    issue_dict.update({"Platform::Platform": sys.platform})
-    issue_dict.update({"Platform::Architecture": platform.architecture()[0]})
-    issue_dict.update({"Platform::OS": platform_info.system})
-    if platform_info.system == "Darwin":
-        issue_dict.update({"Platform::MacOS::Version": platform.mac_ver()[0]})
-    elif platform_info.system == "Windows":
-        issue_dict.update({"Platform::Windows::Version": platform.win32_ver()})
-        issue_dict.update({"Platform::Windows::Edition": platform.win32_edition()})
-        issue_dict.update({"Platform::Windows::IsIotDevice": platform.win32_is_iot()})
-    elif platform_info.system == "Linux":
-        issue_dict.update(
-            {
-                "Platform::Linux::Version": (
-                    platform.freedesktop_os_release() if hasattr(platform, "freedesktop_os_release") else None
-                )
-            }
-        )
-    issue_dict.update({"Platform::Release": platform_info.release})
-    issue_dict.update({"Platform::Version": platform_info.version})
-
-    if platform_info.system == "Windows":
-        issue_dict.update({"Platform::CPU": platform_info.processor})
-    elif platform_info.system == "Linux":
-        cpuinfo = run_command(["cat", "/proc/cpuinfo"]).stdout.strip()
-        cpu_model = re.search(r"model name\s+:\s+(.+)", cpuinfo)
-        issue_dict.update({"Platform::CPU": cpu_model.group(1) if cpu_model else "Unknown"})
-    elif platform_info.system == "Darwin":
-        issue_dict.update({"Platform::CPU": run_command(["sysctl", "-n", "machdep.cpu.brand_string"]).stdout.strip()})
-    else:
-        issue_dict.update({"Platform::CPU": "Unknown"})
-
-    issue_dict.update({"Platform::CPU::Num": os.cpu_count()})
-    issue_dict.update({"Platform::Machine": platform_info.machine})
-    issue_dict.update({"Platform::Hostname": platform_info.node})
-
-    is_rosetta_mac = (
-        "ARM64" in platform_info.version and platform_info.machine == "x86_64"
-        if platform_info.system == "Darwin"
-        else False
-    )
-    issue_dict.update({"Platform::IsRosettaTranlated": is_rosetta_mac})
-    which_chcp = shutil.which("chcp")
-    if which_chcp:
-        try:
-            issue_dict.update({"Platform::Windows::Chcp": run_command(["chcp"]).stdout.strip()})
-        except Exception as e:
-            issue_dict.update({"Platform::Windows::Chcp": f"Error: {e}"})
-
-    # Shell
-    issue_dict.update({"Shell::Name": os.getenv("SHELL")})
-    issue_dict.update({"Shell::Encoding": sys.stdout.encoding})
-    issue_dict.update({"Shell::IsCygwin": "CYGWIN" in os.environ.get("MSYSTEM", "")})
-
-    # Python
-    issue_dict.update({"Python::Version": sys.version})
-    issue_dict.update({"Python::PythonPath": sys.executable})
-    issue_dict.update({"Python::PIP": run_command([sys.executable, "-m", "pip", "--version"]).stdout.strip()})
-    issue_dict.update({"Python::Compiler": platform.python_compiler()})
-    issue_dict.update({"Python::Implementation": platform.python_implementation()})
-
-    # PyQt
-    issue_dict.update({"PyQt::Version": QtCore.PYQT_VERSION_STR})
-    issue_dict.update({"PyQt::QtPath": QtCore.__file__})
-
-    # Tools
-
     git_solver = GitSolver()
 
-    try:
-        conda_version = (
-            run_command([git_solver.has_conda, "--version"]).stdout.strip() if git_solver.has_conda else "Not Found"
-        )
-    except Exception:
-        conda_version = "Not Found"
-    issue_dict.update({"Tools::Conda": conda_version})
+    def _collect(label: str, builder: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+        try:
+            payload = builder()
+        except Exception as exc:  # pragma: no cover - defensive safety
+            logging.debug("Issue collector failed for %s: %s", label, exc, exc_info=True)
+            payload = {f"{label}::Error": str(exc)}
+        return payload
 
-    try:
-        mamba_version = (
-            run_command([git_solver.has_mamba, "--version"]).stdout.strip() if git_solver.has_mamba else "Not Found"
-        )
-    except Exception:
-        mamba_version = "Not Found"
+    def _safe_version(executable: str | None) -> str:
+        if not executable:
+            return "Not Found"
+        try:
+            return run_command([executable, "--version"]).stdout.strip()
+        except Exception as exc:  # pragma: no cover - defensive safety
+            return f"Error: {exc}"
 
-    issue_dict.update({"Tools::Mamba": mamba_version})
-    issue_dict.update({"Tools::Git": git_solver.has_git})
-    issue_dict.update(
-        {
-            "Tools::Git::Version": (
-                run_command([git_solver.has_git, "--version"]).stdout.strip() if git_solver.has_git else "Not Found"
-            )
+    issue_dict: dict[str, Any] = {
+        "Capture::RunId": uuid.uuid4().hex,
+        "Capture::Timestamp": datetime.now(timezone.utc).isoformat(),
+        "Capture::Timezone": time.tzname[0] if time.tzname else None,
+        "Capture::WorkingDir": os.getcwd(),
+        "Capture::PID": os.getpid(),
+    }
+
+    def _gather_platform() -> dict[str, Any]:
+        try:
+            locale_value = ".".join(filter(None, locale.getdefaultlocale()))
+        except ValueError:
+            locale_value = None
+
+        architecture = platform.architecture()[0]
+        data: dict[str, Any] = {
+            "Platform::Platform": sys.platform,
+            "Platform::Architecture": architecture,
+            "Platform::Is64Bit": architecture.endswith("64"),
+            "Platform::OS": platform_info.system,
+            "Platform::Release": platform_info.release,
+            "Platform::Version": platform_info.version,
+            "Platform::Machine": platform_info.machine,
+            "Platform::Hostname": platform_info.node,
+            "Platform::CPU::Num": os.cpu_count(),
+            "Platform::Locale": locale_value,
+            "Platform::IsRosettaTranlated": (
+                "ARM64" in platform_info.version and platform_info.machine == "x86_64"
+                if platform_info.system == "Darwin"
+                else False
+            ),
+            "Platform::IsVirtualEnv": sys.prefix != getattr(sys, "base_prefix", sys.prefix),
+            "Platform::IsWSL": platform_info.system == "Linux" and "microsoft" in platform_info.release.lower(),
         }
-    )
-    issue_dict.update({"Tools::Homebrew": git_solver.has_brew})
-    issue_dict.update(
-        {
-            "Tools::Homebrew::Version": (
-                run_command([git_solver.has_brew, "--version"]).stdout.strip() if git_solver.has_brew else "Not Found"
-            )
-        }
-    )
-    issue_dict.update({"Tools::Win-Get": git_solver.has_winget})
-    issue_dict.update(
-        {
-            "Tools::Win-Get::Version": (
-                run_command([git_solver.has_winget, "--version"]).stdout.strip()
-                if git_solver.has_winget
-                else "Not Found"
-            )
-        }
-    )
 
-    # Env Vars
-    issue_dict.update({"Env::CondaPath::0": os.getenv("CONDA_PREFIX")})
-    issue_dict.update({"Env::CondaPath::1": os.getenv("CONDA_PREFIX_1")})
-    issue_dict.update({"Env::CondaPath::2": os.getenv("CONDA_PREFIX_2")})
-    issue_dict.update({"Env::CondaEnvName": os.getenv("CONDA_DEFAULT_ENV")})
-    issue_dict.update({"Env::CondaPython": os.getenv("CONDA_PYTHON_EXE")})
+        if platform_info.system == "Darwin":
+            data["Platform::MacOS::Version"] = platform.mac_ver()[0]
+            try:
+                data["Platform::CPU"] = run_command(["sysctl", "-n", "machdep.cpu.brand_string"]).stdout.strip()
+            except Exception as exc:  # pragma: no cover - macOS specific
+                data["Platform::CPU"] = f"Error: {exc}"
+        elif platform_info.system == "Windows":
+            data["Platform::Windows::Version"] = platform.win32_ver()
+            data["Platform::Windows::Edition"] = platform.win32_edition()
+            data["Platform::Windows::IsIotDevice"] = platform.win32_is_iot()
+            data["Platform::CPU"] = platform_info.processor or "Unknown"
+        elif platform_info.system == "Linux":
+            data["Platform::Linux::Version"] = None
+            try:
+                cpuinfo = run_command(["cat", "/proc/cpuinfo"]).stdout.strip()
+                cpu_model = re.search(r"model name\s+:\s+(.+)", cpuinfo)
+                data["Platform::CPU"] = cpu_model.group(1) if cpu_model else "Unknown"
+            except Exception as exc:
+                data["Platform::CPU"] = f"Error: {exc}"
 
-    issue_dict.update({"User::HomeDir": os.getenv("HOME")})
-    try:
-        issue_dict.update({"User::Username": os.getlogin()})
-    except OSError:
-        issue_dict.update({"User::Username": "Unknown"})
-
-    # Network
-    try:
-        ip = socket.gethostbyname_ex(socket.gethostname())[2]
-    except Exception as e:
-        ip = f"Failed to fetch client ip: {e}"
-
-    issue_dict.update({"Network::IP": ip})
-
-    if network:
-        ip_location = fetch_gist_json("https://ipinfo.io")
-        if ip_location:
-            issue_dict.update({"Network::Location": ip_location})
+            if hasattr(platform, "freedesktop_os_release"):
+                try:
+                    data["Platform::Linux::Version"] = platform.freedesktop_os_release()
+                except Exception as exc:  # pragma: no cover - depends on distro
+                    data["Platform::Linux::Version"] = f"Error: {exc}"
         else:
-            issue_dict.update({"Network::Location": "Failed to fetch client location"})
+            data["Platform::CPU"] = "Unknown"
 
-    # PyMOL
-    issue_dict.update({"PyMOL::Version": cmd.get_version()[0]})
-    issue_dict.update({"PyMOL::Build": get_version_message()})
+        which_chcp = shutil.which("chcp")
+        if which_chcp:
+            try:
+                data["Platform::Windows::Chcp"] = run_command(["chcp"]).stdout.strip()
+            except Exception as exc:
+                data["Platform::Windows::Chcp"] = f"Error: {exc}"
 
-    # REvoDesign
-    issue_dict.update({"REvoDesign::Installer": __file__})
+        return data
 
-    if is_package_installed("REvoDesign"):
+    def _gather_shell() -> dict[str, Any]:
+        return {
+            "Shell::Name": os.getenv("SHELL") or os.getenv("COMSPEC"),
+            "Shell::Encoding": sys.stdout.encoding,
+            "Shell::IsCygwin": "CYGWIN" in os.environ.get("MSYSTEM", ""),
+            "Shell::Terminal": os.getenv("TERM"),
+        }
+
+    def _gather_python() -> dict[str, Any]:
+        pip_version = run_command([sys.executable, "-m", "pip", "--version"]).stdout.strip()
+        return {
+            "Python::Version": sys.version,
+            "Python::PythonPath": sys.executable,
+            "Python::PIP": pip_version,
+            "Python::Compiler": platform.python_compiler(),
+            "Python::Implementation": platform.python_implementation(),
+            "Python::Prefix": sys.prefix,
+            "Python::Args": sys.argv,
+            "Python::VirtualEnv": os.getenv("VIRTUAL_ENV"),
+        }
+
+    def _gather_pyqt() -> dict[str, Any]:
+        return {"PyQt::Version": QtCore.PYQT_VERSION_STR, "PyQt::QtPath": QtCore.__file__}
+
+    def _gather_tools() -> dict[str, Any]:
+        tools: dict[str, Any] = {
+            "Tools::Conda": _safe_version(git_solver.has_conda),
+            "Tools::Conda::Path": git_solver.has_conda,
+            "Tools::Mamba": _safe_version(git_solver.has_mamba),
+            "Tools::Mamba::Path": git_solver.has_mamba,
+            "Tools::Git": git_solver.has_git,
+            "Tools::Git::Version": _safe_version(git_solver.has_git),
+            "Tools::Homebrew": git_solver.has_brew,
+            "Tools::Homebrew::Version": _safe_version(git_solver.has_brew),
+            "Tools::Win-Get": git_solver.has_winget,
+            "Tools::Win-Get::Version": _safe_version(git_solver.has_winget),
+            "Tools::Chocolatey": git_solver.has_choco,
+            "Tools::Chocolatey::Version": _safe_version(git_solver.has_choco),
+        }
+        return tools
+
+    def _gather_env() -> dict[str, Any]:
+        path_value = os.getenv("PATH", "")
+        path_entries = [entry for entry in path_value.split(os.pathsep) if entry] if path_value else []
+        return {
+            "Env::CondaPath::0": os.getenv("CONDA_PREFIX"),
+            "Env::CondaPath::1": os.getenv("CONDA_PREFIX_1"),
+            "Env::CondaPath::2": os.getenv("CONDA_PREFIX_2"),
+            "Env::CondaEnvName": os.getenv("CONDA_DEFAULT_ENV"),
+            "Env::CondaPython": os.getenv("CONDA_PYTHON_EXE"),
+            "Env::VirtualEnv": os.getenv("VIRTUAL_ENV"),
+            "Env::LANG": os.getenv("LANG"),
+            "Env::PATH::EntriesPreview": path_entries[:5],
+            "Env::PATH::TotalEntries": len(path_entries),
+        }
+
+    def _gather_user() -> dict[str, Any]:
+        try:
+            username = os.getlogin()
+        except OSError:
+            username = "Unknown"
+        uid = getattr(os, "getuid", lambda: None)()
+        return {"User::HomeDir": os.getenv("HOME"), "User::Username": username, "User::UID": uid}
+
+    def _gather_network() -> dict[str, Any]:
+        try:
+            ip = socket.gethostbyname_ex(socket.gethostname())[2]
+        except Exception as exc:
+            ip = f"Failed to fetch client ip: {exc}"
+        data: dict[str, Any] = {
+            "Network::IP": ip,
+            "Network::Hostname": socket.gethostname(),
+            "Network::FQDN": socket.getfqdn(),
+        }
+        if network:
+            ip_location = fetch_gist_json("https://ipinfo.io")
+            data["Network::Location"] = ip_location if ip_location else "Failed to fetch client location"
+        return data
+
+    def _gather_pymol() -> dict[str, Any]:
+        return {"PyMOL::Version": cmd.get_version()[0], "PyMOL::Build": get_version_message()}
+
+    def _gather_revodesign() -> dict[str, Any]:
+        info: dict[str, Any] = {"REvoDesign::Installer": __file__}
+
+        if not is_package_installed("REvoDesign"):
+            info["REvoDesign::Version"] = "Not Installed"
+            return info
+
         import REvoDesign
         from REvoDesign.driver.ui_driver import ConfigBus
         from REvoDesign.magician import ALL_DESIGNER_CLASSES
         from REvoDesign.sidechain.sidechain_solver import ALL_RUNNER_CLASSES
 
-        issue_dict.update({"REvoDesign::Version": REvoDesign.__version__})
-        issue_dict.update({"REvoDesign::Config": REvoDesign.REVODESIGN_CONFIG_FILE})
-        issue_dict.update(
-            {
-                "REvoDesign::UI::Language": (
-                    ConfigBus().cfg_group["main"].cfg.language if ConfigBus._instance is not None else "N/A"
-                )
-            }
-        )
+        info["REvoDesign::Version"] = REvoDesign.__version__
+        info["REvoDesign::Config"] = REvoDesign.REVODESIGN_CONFIG_FILE
+
+        ui_language = ConfigBus().cfg_group["main"].cfg.language if ConfigBus._instance is not None else "N/A"
+        info["REvoDesign::UI::Language"] = ui_language
 
         logfile_in_cfg = (
             ConfigBus().cfg_group["logger"].cfg.handlers.file.filename if ConfigBus._instance is not None else "N/A"
@@ -2308,23 +2368,15 @@ def issue_collection(
         else:
             logfile = logfile_in_cfg
 
-        issue_dict.update({"REvoDesign::Logger::File": logfile})
-        issue_dict.update(
-            {"REvoDesign::Extras::SidechainSolver": [runner.name for runner in ALL_RUNNER_CLASSES if runner.installed]}
-        )
-        issue_dict.update(
-            {
-                "REvoDesign::Extras::Designers": [
-                    designer.name for designer in ALL_DESIGNER_CLASSES if designer.installed
-                ]
-            }
-        )
-        issue_dict.update({"REvoDesign::Extras::TestSuite": is_package_installed("pytest")})
-    else:
-        issue_dict.update({"REvoDesign::Version": "Not Installed"})
+        info["REvoDesign::Logger::File"] = logfile
+        info["REvoDesign::Extras::SidechainSolver"] = [runner.name for runner in ALL_RUNNER_CLASSES if runner.installed]
+        info["REvoDesign::Extras::Designers"] = [
+            designer.name for designer in ALL_DESIGNER_CLASSES if designer.installed
+        ]
+        info["REvoDesign::Extras::TestSuite"] = is_package_installed("pytest")
+        return info
 
-    # Dummy
-    if collect_dummy:
+    def _gather_dummy() -> dict[str, Any]:
         if drop_sensitives:
             env_dict = filter_sensitive_data(os.environ)
             logging.info("Sensitive data are removed.")
@@ -2332,26 +2384,49 @@ def issue_collection(
             env_dict = dict(os.environ)
             logging.warning("Sensitive data may be kept.")
 
-        issue_dict.update({"Dummy::Environ": env_dict})
+        pip_lines: list[str] = run_command(["pip", "list"]).stdout.splitlines()
+        pip_packages: dict[str, str] = {}
+        for line in pip_lines[2:]:
+            if not line.strip():
+                continue
+            columns = line.split()
+            if columns:
+                pip_packages[columns[0]] = columns[-1]
 
-        pip_list_stdout: list[str] = run_command(["pip", "list"]).stdout.split("\n")
-        pip_list_stdout_body: list[list[str]] = [l.split(" ") for l in pip_list_stdout[2:]]
+        dummy_payload: dict[str, Any] = {"Dummy::Environ": env_dict, "Dummy::Pip::List": pip_packages}
 
-        issue_dict.update({"Dummy::Pip::List": {line[0]: line[-1] for line in pip_list_stdout_body if line[0]}})
         if is_package_installed("REvoDesign"):
             import REvoDesign
             from REvoDesign.bootstrap.set_config import ConfigConverter
             from REvoDesign.driver.ui_driver import ConfigBus
 
-            issue_dict.update(
-                {
-                    "Dummy::REvoDesign::Configurations": (
-                        ConfigConverter().convert(ConfigBus().cfg_group["main"].cfg)
-                        if ConfigBus._instance is not None
-                        else "N/A"
-                    )
-                }
+            dummy_payload["Dummy::REvoDesign::Configurations"] = (
+                ConfigConverter().convert(ConfigBus().cfg_group["main"].cfg)
+                if ConfigBus._instance is not None
+                else "N/A"
             )
+
+        return dummy_payload
+
+    collectors: tuple[tuple[str, Callable[[], dict[str, Any]]], ...] = (
+        ("Platform", _gather_platform),
+        ("Shell", _gather_shell),
+        ("Python", _gather_python),
+        ("PyQt", _gather_pyqt),
+        ("Tools", _gather_tools),
+        ("Env", _gather_env),
+        ("User", _gather_user),
+        ("Network", _gather_network),
+        ("PyMOL", _gather_pymol),
+        ("REvoDesign", _gather_revodesign),
+    )
+
+    for label, builder in collectors:
+        issue_dict.update(_collect(label, builder))
+
+    if collect_dummy:
+        issue_dict.update(_collect("Dummy", _gather_dummy))
+
     return issue_dict
 
 
@@ -2502,16 +2577,38 @@ def __init_plugin__(app=None):
     """
     logging.info(f"REvoDesign entrypoint is located at {os.path.dirname(__file__)}")
 
-    plugin = REvoDesignPackageManager()
-    addmenuitemqt("REvoDesign Package Manager", plugin.run_plugin_gui)
+    manager_plugin: REvoDesignPackageManager | None = None
 
-    if is_package_installed("REvoDesign"):
-        try:
-            from REvoDesign import REvoDesignPlugin
+    def launch_manager():
+        nonlocal manager_plugin
+        if manager_plugin is None:
+            manager_plugin = REvoDesignPackageManager()
+        manager_plugin.run_plugin_gui()
 
-            plugin = REvoDesignPlugin()
-            addmenuitemqt("REvoDesign", plugin.run_plugin_gui)
-        except Exception as e:
-            logging.error(str(e))
-    else:
+    addmenuitemqt("REvoDesign Package Manager", launch_manager)
+
+    if not is_package_installed("REvoDesign"):
         logging.critical("REvoDesign is not available.")
+        return
+
+    revodesign_plugin = None
+
+    def launch_revodesign():
+        nonlocal revodesign_plugin
+        if revodesign_plugin is None:
+            try:
+                from REvoDesign import REvoDesignPlugin
+
+                revodesign_plugin = REvoDesignPlugin()
+            except Exception as exc:
+                logging.error("Failed to initialize REvoDesign plugin", exc_info=True)
+                notify_box(
+                    "Failed to initialize the REvoDesign plugin. Please check the logs for details.",
+                    RuntimeWarning,
+                    details=str(exc),
+                )
+                return
+
+        revodesign_plugin.run_plugin_gui()
+
+    addmenuitemqt("REvoDesign", launch_revodesign)

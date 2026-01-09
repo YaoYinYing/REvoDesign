@@ -4551,11 +4551,16 @@
      <addaction name="actionSetLogLevel"/>
      <addaction name="actionLogToCurrentDirectory"/>
     </widget>
+    <widget class="QMenu" name="menuRecent_Experiments">
+     <property name="title">
+      <string>Recent Experiments</string>
+     </property>
+    </widget>
     <addaction name="actionCheck_PyMOL_session"/>
     <addaction name="actionSet_Working_Directory"/>
     <addaction name="separator"/>
     <addaction name="menuExperiment"/>
-    <addaction name="actionRecent_Experiments"/>
+    <addaction name="menuRecent_Experiments"/>
     <addaction name="separator"/>
     <addaction name="menuLanguage"/>
     <addaction name="separator"/>
@@ -4899,11 +4904,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+D</string>
-   </property>
-  </action>
-  <action name="actionRecent_Experiments">
-   <property name="text">
-    <string>Recent Experiments</string>
    </property>
   </action>
   <action name="actionSave_Configuration_as">

@@ -8,11 +8,13 @@ import hydra
 
 from .. import Qt
 from .set_config import (
+    enforce_config_key_structure,
     experiment_config,
     reload_config_file,
     save_configuration,
     set_cache_dir,
     set_REvoDesign_config_file,
+    verify_config_tree_structure,
 )
 
 # 1. initialize config file at user space
@@ -36,6 +38,15 @@ except ValueError as e:
         "-=" * 49,
     )
 
+_TEMPLATE_CONFIG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config"))
+_copied = verify_config_tree_structure(REVODESIGN_CONFIG_DIR, _TEMPLATE_CONFIG_DIR)
+_replaced = enforce_config_key_structure(REVODESIGN_CONFIG_DIR, _TEMPLATE_CONFIG_DIR)
+if _copied or _replaced:
+    print(
+        "Configuration synchronized.",
+        f"copied={_copied}",
+        f"replaced={_replaced}",
+    )
 
 # 3. initialize experiments directory, depending on config
 EXPERIMENTS_CONFIG_DIR = experiment_config()

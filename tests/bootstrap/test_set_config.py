@@ -1,3 +1,4 @@
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -5,13 +6,17 @@ from omegaconf import DictConfig, OmegaConf
 
 from REvoDesign.bootstrap.set_config import (
     ConfigConverter,
+    _iter_yaml_rel_paths,
     experiment_config,
     is_package_installed,
+    list_all_config_files,
     reload_config_file,
     save_configuration,
     set_cache_dir,
     set_REvoDesign_config_file,
+    verify_config_tree_structure,
 )
+from tests.conftest import DATA_DIRNAME
 
 # from tests.conftest import check_real_config_dir
 
@@ -115,3 +120,110 @@ def test_main_config_upgrade(user_decide, patch_config_user_data):
             mock_rmtree.assert_called_once()
         else:
             mock_rmtree.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "tree, expected_rel_paths",
+    [
+        (
+            False,
+            [
+                "editor.yaml",
+                "environ.yaml",
+                "logger.yaml",
+                "main.yaml",
+                "openmm.yaml",
+                "runtime.yaml",
+            ],
+        ),
+        (
+            True,
+            [
+                os.path.join("rfdiffusion", "base.yaml"),
+                os.path.join("rfdiffusion", "enzyme.yaml"),
+                os.path.join("rfdiffusion", "motif_scaffoldding.yaml"),
+                os.path.join("rfdiffusion", "partial_diffusion.yaml"),
+                os.path.join("rfdiffusion", "symmetry.yaml"),
+                os.path.join("rosetta-node", "docker.yaml"),
+                os.path.join("rosetta-node", "docker_mpi.yaml"),
+                os.path.join("rosetta-node", "mpi.yaml"),
+                os.path.join("rosetta-node", "native.yaml"),
+                os.path.join("rosetta-node", "wsl.yaml"),
+                os.path.join("rosetta-node", "wsl_mpi.yaml"),
+                os.path.join("sidechain-solver", "pippack.yaml"),
+            ],
+        ),
+    ],
+)
+def test_list_all_config_files(tree, expected_rel_paths):
+    config_dir = os.path.join(DATA_DIRNAME, "config")
+    results = list_all_config_files(config_dir, tree=tree)
+    expected = sorted(os.path.join(config_dir, rel_path) for rel_path in expected_rel_paths)
+    assert results == expected
+
+
+def test_iter_yaml_rel_paths(tmp_path):
+    base_dir = tmp_path / "configs"
+    base_dir.mkdir()
+    (base_dir / "root.yaml").write_text("root: 1\n")
+    (base_dir / "readme.txt").write_text("ignore\n")
+    nested = base_dir / "nested"
+    nested.mkdir()
+    (nested / "child.yaml").write_text("child: 2\n")
+    (nested / "another.txt").write_text("nope\n")
+    deeper = nested / "deeper"
+    deeper.mkdir()
+    (deeper / "deep.yaml").write_text("deep: 3\n")
+
+    results = _iter_yaml_rel_paths(str(base_dir))
+    expected = [
+        "root.yaml",
+        os.path.join("nested", "child.yaml"),
+        os.path.join("nested", "deeper", "deep.yaml"),
+    ]
+    assert results == sorted(expected)
+
+
+def test_verify_config_tree_structure_copies_missing_files(tmp_path):
+    template_dir = tmp_path / "template"
+    user_dir = tmp_path / "user"
+    template_dir.mkdir()
+    user_dir.mkdir()
+
+    (template_dir / "main.yaml").write_text("template: true\n")
+    nested_template = template_dir / "subdir"
+    nested_template.mkdir()
+    (nested_template / "missing.yaml").write_text("copied: true\n")
+
+    (user_dir / "main.yaml").write_text("template: false\n")
+
+    copied = verify_config_tree_structure(str(user_dir), str(template_dir))
+    assert copied == [os.path.join("subdir", "missing.yaml")]
+    copied_file = user_dir / "subdir" / "missing.yaml"
+    assert copied_file.exists()
+    assert copied_file.read_text() == "copied: true\n"
+    assert (user_dir / "main.yaml").read_text() == "template: false\n"
+
+
+def test_verify_config_tree_structure_no_missing_files(tmp_path):
+    template_dir = tmp_path / "template"
+    user_dir = tmp_path / "user"
+    template_dir.mkdir()
+    user_dir.mkdir()
+
+    files = [
+        template_dir / "base.yaml",
+        template_dir / "nested" / "inner.yaml",
+    ]
+    for path in files:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"content for {path.name}\n")
+        user_path = user_dir / path.relative_to(template_dir)
+        user_path.parent.mkdir(parents=True, exist_ok=True)
+        user_path.write_text(f"user {path.name}\n")
+
+    with patch("REvoDesign.bootstrap.set_config.shutil.copy2") as mock_copy:
+        copied = verify_config_tree_structure(str(user_dir), str(template_dir))
+
+    assert copied == []
+    mock_copy.assert_not_called()

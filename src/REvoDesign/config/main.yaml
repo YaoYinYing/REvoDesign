@@ -134,18 +134,6 @@ ui:
       use: "Dunbrack Rotamer Library"
       model: '' # TODO: deprecated
       repack_radius: 0.0 # TODO: deprecated
-
-editor:
-  backend:
-    host: '127.0.0.1'
-    port: 5000
-    use_ssl: False
-    no_token: False
-    crt: 
-    key:
-    html_dir: 
-  token:
-
 # for deep learning frameworks like pytorch, tensorflow, etc.
 # unified device setting across all deep learning frameworks
 accelerator: cpu
@@ -154,7 +142,6 @@ accelerator: cpu
 config_settings:
   auto_save: False
   save_on_exit: False
-  save_interval: 100 # in seconds
 
 rosetta: 
   node_hint: native # Literal["docker", "docker_mpi", "mpi", "wsl", "wsl_mpi", "native"]
@@ -177,4 +164,3 @@ cache_dir:
   # ~/.REvoDesign/
   under_home_dir: True
   customized: 
-

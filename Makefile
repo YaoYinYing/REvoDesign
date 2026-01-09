@@ -39,6 +39,7 @@ help:
 	@echo "  help                   Print this message and exit"
 	@echo "  setup-display-gha      Setup ubuntu display for GitHub Actions and CircleCI"
 	@echo "  upload-gists           Upload Gist files"
+	@echo "  install-pymol-plugin   Install PyMOL plugin "
 	@echo "  install                Install from pip "
 	@echo "  install-no-dept        Install from pip, no dependencies"
 	@echo "  install-pytorch-cpu    Install torch-cpu for ci runner image"
@@ -78,6 +79,8 @@ upload-gists:
 	# JSONs for installer
 	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesignExtrasTableRich.json jsons/REvoDesignExtrasTableRich.json
 
+install-pymol-plugin:
+	cp ./src/REvoDesign/tools/package_manager.py ~/.pymol/startup/REvoDesign_PyMOL.py
 
 # only for test on runner or local machine.
 install:
