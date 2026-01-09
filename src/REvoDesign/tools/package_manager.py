@@ -3,7 +3,6 @@
 # pylint: disable=unused-argument
 
 
-
 import difflib
 import importlib
 import importlib.util
@@ -26,8 +25,8 @@ import warnings
 from collections.abc import Callable, Iterable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
-from functools import cached_property, partial
 from datetime import datetime, timezone
+from functools import cached_property, partial
 from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypeVar, overload
 from urllib.error import HTTPError, URLError
 
@@ -2218,8 +2217,7 @@ def issue_collection(
                 else False
             ),
             "Platform::IsVirtualEnv": sys.prefix != getattr(sys, "base_prefix", sys.prefix),
-            "Platform::IsWSL": platform_info.system == "Linux"
-            and "microsoft" in platform_info.release.lower(),
+            "Platform::IsWSL": platform_info.system == "Linux" and "microsoft" in platform_info.release.lower(),
         }
 
         if platform_info.system == "Darwin":
@@ -2371,10 +2369,10 @@ def issue_collection(
             logfile = logfile_in_cfg
 
         info["REvoDesign::Logger::File"] = logfile
-        info["REvoDesign::Extras::SidechainSolver"] = [
-            runner.name for runner in ALL_RUNNER_CLASSES if runner.installed
+        info["REvoDesign::Extras::SidechainSolver"] = [runner.name for runner in ALL_RUNNER_CLASSES if runner.installed]
+        info["REvoDesign::Extras::Designers"] = [
+            designer.name for designer in ALL_DESIGNER_CLASSES if designer.installed
         ]
-        info["REvoDesign::Extras::Designers"] = [designer.name for designer in ALL_DESIGNER_CLASSES if designer.installed]
         info["REvoDesign::Extras::TestSuite"] = is_package_installed("pytest")
         return info
 
