@@ -394,8 +394,8 @@ class TestWorker:
 
             molecules = cmd.get_names()
             print(f"After fetch: {molecules}")
-        except CmdException:
-            pass
+        except Exception as e:
+            print(e)
 
     def _load_pocket_pse(self, pse_file):
         try:
@@ -403,8 +403,8 @@ class TestWorker:
             print(f"loading {pse_file}")
             cmd.reinitialize()
             cmd.load(pse_file)
-        except CmdException:
-            pass
+        except Exception as e:
+            print(e)
 
     def load_session_and_check(
         self,

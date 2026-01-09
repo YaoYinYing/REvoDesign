@@ -50,6 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `resolve_typed_arg`: for resolving typed arguments according to what the most it looks like
   - `resolve_default_value`: moved from shortcut util module
   - `resolve_dotted_config_item`: moved from shortcut util module
+- Package manager:
+  - `PackageManagerCommand` dataclass consolidates package manager metadata for Git bootstrap logic.
+  - Tests ensuring apt-based installers leverage sudo when available.
 - Editor:
   - Monaco editor URLs now carry autosave and autorefresh toggles/intervals so the static front-end can refresh or save files according to `editor.yaml`.
 - Bootstrap configuration:
@@ -117,6 +120,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added all configuration files to white list so that they can be edited.
 - Logger:
   - Refactored `logger_level_setter` and `logger_level_setter_ng` for setting logger levels from menu pop
+- Package manager:
+  - `GitSolver` now caches detected installers, includes Linux/BSD managers (apt, dnf, yum, zypper, pacman, pkg, snap, scoop, port), and prefixes sudo only when required.
 - Plugin:
   - Simplified configuration operations
   
