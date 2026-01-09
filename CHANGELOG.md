@@ -14,9 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+
+
 ```
 ## [Unreleased]
-
 ### Added
 - Server: 
   - Basic authentication guide and implementation
@@ -134,6 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests:
   - Minor fixes according to current changes.
   - ~~Partial user platform dirs mock  to isolate test config from production.~~ WIP
+  - PyMOL session helpers now surface exceptions instead of swallowing them so debugging fetch/load failures is easier.
 
 ### Removed
 - Py39 related:
@@ -153,6 +155,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - removed `save_configuration_from_ui` method due to config handling simplfied
 - tests:
   - obsolete tests `tests/cases/UnitTests.py`
+- CI:
+  - Removed the stale CircleCI pipeline configuration (`.circleci/config.yml`).
 
 
 ## [1.8.4] - 2025-12-02
