@@ -76,6 +76,7 @@ class DownloadedFile:
         return extracted_files
 
 
+
 class FileDownloadRegistry(CitableModuleAbstract):
     """
     A file download registry manager for handling remote file resources.
