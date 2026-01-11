@@ -96,10 +96,10 @@ class MeetingRoom:
         if self.empty:
             return {}
 
-        from REvoDesign.tools.system_tools import CLIENT_INFO
+        from REvoDesign.tools.system_tools import get_client_info
 
         user_tree = self.user_tree
-        user_tree["Host"] = CLIENT_INFO().__dict__
+        user_tree["Host"] = get_client_info()
         return user_tree
 
     @property
@@ -494,7 +494,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
         if client not in self.meetingroom.current_clients:
             from REvoDesign.tools.client_tools import UUIDGenerator
-            from REvoDesign.tools.system_tools import CLIENT_INFO
+            from REvoDesign.tools.system_tools import get_client_info
 
             if not self.use_authentication or not self.authentication_key:
                 authenticated = True
@@ -531,9 +531,10 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
             logging.info(f'Client {message["user"]} from {message["node"]} is join.')
 
+            host_info = get_client_info()
             self.bc_worker.wisper(
                 client=client,
-                obj=f'Key authentication is successful.\nWellcome to {CLIENT_INFO().node}, {message["user"]}.',
+                obj=f'Key authentication is successful.\nWellcome to {host_info["node"]}, {message["user"]}.',
             )
 
             self.bc_worker.wisper(obj=uuid, obj_type="UUID", client=client, final=True)
@@ -616,7 +617,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         self.bc_worker.broadcast(meetingroom=self.meetingroom, obj=obj, obj_type=data_type)
 
     def setup_ws_server(self):
-        from REvoDesign.tools.system_tools import CLIENT_INFO
+        from REvoDesign.tools.system_tools import get_client_info
 
         self.use_authentication = self.bus.get_value("ui.socket.use_key")
         self.authentication_key = self.bus.get_value("ui.socket.input.key")
@@ -637,8 +638,9 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         self.view_broadcast_interval = self.bus.get_value("ui.socket.broadcast.interval", float)
         logging.info(f"Server is reconfigured! \n " f"Key: {self.authentication_key}\n")
 
+        host_info = get_client_info()
         if not self.server:
-            self.server = QtWebSockets.QWebSocketServer(CLIENT_INFO().node, QtWebSockets.QWebSocketServer.NonSecureMode)
+            self.server = QtWebSockets.QWebSocketServer(host_info["node"], QtWebSockets.QWebSocketServer.NonSecureMode)
 
             if not self.server.listen(QtNetwork.QHostAddress.Any, self.port):
                 self.meetingroom = None
@@ -646,7 +648,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
             logging.info(f"Listening: {self.server.serverAddress().toString()}:{str(self.server.serverPort())}")
 
-            self.meetingroom = MeetingRoom(host_id=CLIENT_INFO().node, host=self.server, clients={})
+            self.meetingroom = MeetingRoom(host_id=host_info["node"], host=self.server, clients={})
 
             self.server.acceptError.connect(self.onAcceptError)
             self.server.newConnection.connect(self.onNewConnection)
@@ -809,9 +811,9 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             return False
 
     def authenticate_client(self):
-        from REvoDesign.tools.system_tools import CLIENT_INFO
+        from REvoDesign.tools.system_tools import get_client_info
 
-        greeting_message = CLIENT_INFO().__dict__
+        greeting_message = get_client_info()
 
         if self.authentication_key:
             greeting_message["auth_key"] = self.authentication_key
