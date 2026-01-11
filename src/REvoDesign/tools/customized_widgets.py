@@ -90,7 +90,12 @@ class REvoDesignWidget(QtWidgets.QWidget):
             allow_repeat (bool): If True, allows multiple instances of the widget with the same name. Defaults to False.
             parent (Optional[QWidget]): The parent widget. Defaults to None.
         """
-        super().__init__(parent)
+        from REvoDesign.application.font.font_manager import DEFAULT_FONT, CURRENT_FONT
+        from REvoDesign.driver.ui_driver import ConfigBus
+        super().__init__(parent=parent or ConfigBus().ui.centralwidget)
+        if not parent:
+            self.setFont(CURRENT_FONT or DEFAULT_FONT)
+    
         self.setObjectName(object_name or "AnonymousWidget")
         self.allow_repeat = allow_repeat
 
@@ -1060,6 +1065,11 @@ def set_widget_value(widget, value):
                     widget.deleteLater()
             image_widget = ImageWidget(value)  # Assuming ImageWidget is defined elsewhere
             widget.addWidget(image_widget)
+    elif isinstance(widget, QtWidgets.QFontComboBox):
+        if isinstance(value, str):
+            widget.setCurrentFont(QtGui.QFont(value))
+        elif isinstance(value, QtGui.QFont):
+            widget.setCurrentFont(value)
     else:
         set_value_error(widget, value)
 
@@ -1119,6 +1129,8 @@ def get_widget_value(widget: QtWidgets.QWidget) -> Any:
         return float(widget.value())
     if isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
+    if isinstance(widget, QtWidgets.QFontComboBox):
+        return widget.currentFont().family()
 
     raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
@@ -1447,7 +1459,7 @@ class AskedValue:
     reason: str | None = None
     required: bool = False
     choices: Iterable | Callable[[], Iterable | None] | None = None
-    source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput", "ColorPicker"] = "None"
+    source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput", "ColorPicker", 'Font', 'FontDialog'] = "None"
     ext: FExCol | None = None
     multiple_choices: bool = False
 
@@ -1760,6 +1772,7 @@ class ValueDialog(REvoDesignWidget):
         # Preprocess choices if callable
         choices = asked_value.choices
 
+        # get actual choices from callable
         if callable(choices):
             try:
                 choices = choices()
@@ -1769,7 +1782,8 @@ class ValueDialog(REvoDesignWidget):
                 )
                 choices = None
 
-        # a multi-choice
+        # Col 2 Dispatch
+        #  a multi-choice
         if asked_value.multiple_choices:
             if not choices:
                 raise issues.InternalError(f"Multi-choice field must have a valid choices, not {choices}")
@@ -1811,6 +1825,12 @@ class ValueDialog(REvoDesignWidget):
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
             widget.setCurrentText(str(asked_value.val) or str(choices[0]))
+        elif asked_value.source == 'Font':
+            widget=QtWidgets.QFontComboBox()
+            from REvoDesign.application.font.font_manager import CURRENT_FONT
+
+            widget.setCurrentFont(CURRENT_FONT)
+
 
         # a normal text input
         else:
@@ -1820,7 +1840,7 @@ class ValueDialog(REvoDesignWidget):
             if asked_value.required:
                 widget.setPlaceholderText("Required")
 
-        # Column 2: Input widget
+        # Column 2: Input widget common properties
         widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         widget.setToolTip(asked_value.reason or "")
         self.input_fields[asked_value.key] = widget
@@ -1909,6 +1929,9 @@ class ValueDialog(REvoDesignWidget):
             button_layout.addWidget(select_invert_button)
 
             self.table.setCellWidget(row, 3, container_widget)
+
+    
+            
 
     def _browse_file(self, widget, exts: FExCol | None = None, multiple: bool = False, mode: Literal["r", "w"] = "r"):
         """

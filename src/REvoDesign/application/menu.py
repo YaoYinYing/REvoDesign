@@ -4,6 +4,7 @@ from REvoDesign.basic.menu_item import MenuItem
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
 from REvoDesign.bootstrap.set_config import list_all_config_files
 
+
 all_main_config_files = {
     x.removeprefix(REVODESIGN_CONFIG_DIR + os.sep).removesuffix(".yaml"): x
     for x in list_all_config_files(REVODESIGN_CONFIG_DIR)
@@ -181,6 +182,15 @@ TOOLS_MENU_LINKS = (
     MenuItem("actionRun_GREMLIN", "REvoDesign.shortcuts.wrappers.evolution:wrapped_gremlin"),
 )
 
+PREFERENCES_MENU_LINKS = (
+    MenuItem(
+        "actionPreferences_Font",
+        "REvoDesign.application.font.font_manager:set_font_dialog",
+        menu_section='menuPreferences',
+        action_text="Font Setting",
+    ),
+)
+
 OTHER_MENU_LINKS = (
     MenuItem("actionRefreshEnvironVar", "REvoDesign.driver.environ_register:register_environment_variables"),
 )
@@ -188,5 +198,6 @@ OTHER_MENU_LINKS = (
 MENU_LINKS = (
     *TOOLS_MENU_LINKS,
     *CONFIG_EDIT_LINKS,
+    *PREFERENCES_MENU_LINKS,
     *OTHER_MENU_LINKS,
 )

@@ -364,7 +364,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
     headless: bool = True
 
-    def singleton_init(self, ui=None):
+    def singleton_init(self, ui=None, window=None):
         # logger must be excluded from the  config group, as logger starts before the config bus
         self.cfg_group = Config.from_files(
             [cf for cf in list_all_config_files(REVODESIGN_CONFIG_DIR) if not cf.startswith("logger")]
@@ -375,6 +375,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         if ui:
             self.headless = False
+            self.main_window =window
             self.ui = ui
             self.w2c = Widget2ConfigMapper(ui=self.ui)
             self.push_buttons = self.w2c.push_buttons

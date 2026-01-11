@@ -7,7 +7,10 @@ from dataclasses import dataclass
 
 from immutabledict import immutabledict
 
-from REvoDesign.Qt import QtGui
+from REvoDesign.Qt import QtGui, QtWidgets,QtCore
+
+DEFAULT_FONT: QtGui.QFont = None  # type: ignore
+CURRENT_FONT: QtGui.QFont = None # type: ignore
 
 
 @dataclass(frozen=True)
@@ -39,7 +42,7 @@ class FlavoredFonts:
 
 
 class FontSetter:
-    def __init__(self, main_window):
+    def __init__(self, main_window:QtWidgets.QWidget):
         """
         Function: set_window_font
         Usage: set_window_font(main_window)
@@ -56,10 +59,16 @@ class FontSetter:
 
         self.font_families = QtGui.QFontDatabase().families()
         self.flavored_fonts = FlavoredFonts.OS_TYPE_FONT_TABLE
+        global DEFAULT_FONT
+        global CURRENT_FONT
 
+        DEFAULT_FONT = self.main_window.font()
+        
         self.set_window_font()
+        CURRENT_FONT = self.main_window.font()
+        
 
-    def set_window_font(self):
+    def set_window_font(self, custom_font: QtGui.QFont |str | None= None):
         """
         Set the window font based on the operating system type.
 
@@ -74,6 +83,12 @@ class FontSetter:
         Returns:
         - None
         """
+        if custom_font:
+            if isinstance(custom_font, str):
+                custom_font = QtGui.QFont(custom_font)
+            self.main_window.setFont(custom_font)
+            return
+
         os_type: str = platform.system()
 
         if os_type not in self.flavored_fonts:
@@ -82,8 +97,50 @@ class FontSetter:
         for font_str in self.flavored_fonts[os_type]:
             if font_str in self.font_families:
                 # Create a QFont object and set its family to the found font string
-                font = QtGui.QFont()
-                font.setFamily(font_str)
+                font = QtGui.QFont(font_str)
                 # Set the main window's font to the created font
                 self.main_window.setFont(font)
                 return
+
+
+def set_font(font: QtGui.QFont | str | None = None):
+    """
+    Sets the font for the application interface
+    
+    Args:
+        font (QtGui.QFont | str | None): The font object, font name string or None to use.
+                                       If None, the default font (DEFAULT_FONT) will be used.
+    
+    Returns:
+        None
+    """
+    if not font:
+        font=DEFAULT_FONT
+    if isinstance(font, str):
+        font = QtGui.QFont(font)
+    
+    # Get configuration bus and UI instance
+    from REvoDesign.driver.ui_driver import ConfigBus
+    from REvoDesign.UI.Ui_REvoDesign import Ui_REvoDesignPyMOL_UI as UI
+    bus=ConfigBus()
+    ui:UI=bus.ui
+    window=bus.ui.centralwidget
+    window.setFont(font)
+    
+
+    # Iterate through and set font for all open windows
+    if hasattr(ui, 'open_windows'):
+        open_windows:list[QtWidgets.QWidget]=getattr(ui, 'open_windows')
+        for window in open_windows:
+            window.setFont(font)
+    
+def set_font_dialog():
+    from REvoDesign.application.font.font_manager import DEFAULT_FONT, set_font
+
+
+    fq=QtWidgets.QFontDialog()
+    if fq.exec():
+        set_font(fq.currentFont())
+        global CURRENT_FONT
+
+        CURRENT_FONT=fq.currentFont()

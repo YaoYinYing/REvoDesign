@@ -4593,6 +4593,13 @@
       <string>Edit Configuration</string>
      </property>
     </widget>
+    <widget class="QMenu" name="menuPreferences">
+     <property name="title">
+      <string>Preferences</string>
+     </property>
+    </widget>
+    <addaction name="menuPreferences"/>
+    <addaction name="separator"/>
     <addaction name="actionReconfigure"/>
     <addaction name="separator"/>
     <addaction name="menuEdit_Configuration"/>
@@ -5212,6 +5219,11 @@
   <action name="actionRun_GREMLIN">
    <property name="text">
     <string>Run GREMLIN</string>
+   </property>
+  </action>
+  <action name="actionFont">
+   <property name="text">
+    <string>Font</string>
    </property>
   </action>
  </widget>
