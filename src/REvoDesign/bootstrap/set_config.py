@@ -14,7 +14,6 @@ from platformdirs import user_cache_dir, user_data_dir
 
 from REvoDesign.Qt import QtCore, QtWidgets
 
-
 def decide(title="", description="", rich: bool = False, details: str | None = None):
     """
     A copy of decide function from package_manager.py
@@ -63,7 +62,12 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
         print("WARNING: The configuration directory will be deleted as required")
         shutil.rmtree(config_dir)
 
-    # if main config file does not exist, copy the config tree from template
+    print('-'*79)
+    print('Ensuring the configuration directory...')
+
+    # if main config file does not exist, 
+    # a new release may have been upgrated to. 
+    # copy the config tree from template
     if not os.path.isfile(main_config_file):
         if os.path.isdir(config_dir) and [x for x in os.listdir(config_dir) if not x.endswith(".yaml")]:
             reset_warning = (
@@ -84,12 +88,22 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
 
         print(f"Copied configurations from {template_config_dir} to {config_dir}")
         shutil.copytree(src=template_config_dir, dst=config_dir, dirs_exist_ok=True)
+
+    # othwerwise, check the structure of the config tree. If there are missing files or keys, 
+    # a new minor release may have been upgrated to.
+    # fix the config tree from template
     else:
         print(f"Config file is already located at `{config_dir}`, do nothing.")
-
-    verify_config_tree_structure(config_dir, template_config_dir)
-    enforce_config_key_structure(config_dir, template_config_dir)
+    
+        print(f'Verifying the structure of the configuration directory...')
+        verify_config_tree_structure(config_dir, template_config_dir)
+        print('Enforcing the key structure of the configuration directory...')
+        
+        enforce_config_key_structure(config_dir, template_config_dir)
+        
     print(f"Main config: {main_config_file}")
+    print('All set.')
+    print('-'*79)
     return main_config_file
 
 
@@ -115,8 +129,19 @@ def reload_config_file(
 
 
 def save_configuration(new_cfg: DictConfig, config_name: str = "main"):
+    """
+    Save configuration to specified directory
+    
+    Args:
+        new_cfg (DictConfig): The configuration object to be saved
+        config_name (str, optional): Configuration file name, defaults to "main"
+    
+    Returns:
+        None
+    """
     from . import REVODESIGN_CONFIG_DIR
 
+    # Build the path for saving the configuration file
     cfg_save_fp = os.path.join(REVODESIGN_CONFIG_DIR, f"{config_name}.yaml")
     OmegaConf.save(new_cfg, cfg_save_fp)
     print(f"Saved configuration: {cfg_save_fp}")
@@ -124,8 +149,22 @@ def save_configuration(new_cfg: DictConfig, config_name: str = "main"):
 
 
 def experiment_config(name: str = "experiments") -> str:
+    """
+    Create and return the path to the experiment configuration directory.
+    
+    This function creates an experiment directory based on the global configuration directory 
+    and the specified name. If the directory doesn't exist, it automatically creates it, 
+    ensuring the directory exists before returning its full path.
+    
+    Args:
+        name (str): The name of the experiment directory, defaults to "experiments"
+        
+    Returns:
+        str: The full path to the experiment directory
+    """
     from . import REVODESIGN_CONFIG_DIR
 
+    # Build the experiment directory path and create the directory
     experiments_dir = os.path.join(REVODESIGN_CONFIG_DIR, name)
     os.makedirs(experiments_dir, exist_ok=True)
     return experiments_dir
@@ -163,8 +202,10 @@ class ConfigConverter:
         :param config: The DictConfig object to convert.
         :return: A standard Python dictionary representation of the input DictConfig.
         """
+        # Check if the input is a DictConfig instance and perform conversion
         if isinstance(config, DictConfig):
             return ConfigConverter._recursive_convert(config)
+        # Raise error if input is not a DictConfig instance
         raise ValueError("Input must be an instance of omegaconf.DictConfig")
 
     @staticmethod
@@ -208,7 +249,9 @@ def list_all_config_files(config_dir: str, tree: bool = False) -> list[str]:
     This function lists all YAML configuration files in the specified directory.
 
     Args:
-    - config_dir (str): Path to the configuration directory
+        config_dir (str): Path to the configuration directory
+        tree (bool): If True, returns a recursive list of paths to all YAML files in the directory tree. 
+            Defaults to False.
 
     Returns:
     - list[str]: List of paths to YAML configuration files
@@ -226,8 +269,18 @@ def list_all_config_files(config_dir: str, tree: bool = False) -> list[str]:
 
 
 def _iter_yaml_rel_paths(base_dir: str) -> list[str]:
+    """
+    Iterates through the specified directory and its subdirectories to collect relative paths of all .yaml files
+    
+    Args:
+        base_dir (str): The base directory path to traverse
+    
+    Returns:
+        list[str]: A list containing relative paths of all found .yaml files with respect to base_dir, sorted in lexicographical order
+    """
     base_dir = os.path.abspath(base_dir)
     rel_paths: list[str] = []
+    # Traverse the directory tree to find all .yaml files
     for root, _, files in os.walk(base_dir):
         for file in files:
             if file.endswith(".yaml"):
@@ -240,33 +293,61 @@ def verify_config_tree_structure(user_config_dir: str, template_config_dir: str)
     """
     Ensures every YAML file in the template tree exists in the user's config directory.
     Missing files are copied over, preserving the relative directory structure.
+
+    Args:
+        user_config_dir (str): Path to the user's configuration directory where files should be present
+        template_config_dir (str): Path to the template configuration directory containing reference files
+
+    Returns:
+        list[str]: List of relative paths of files that were copied from template to user config directory
     """
+    # Initialize list to track copied files
     copied: list[str] = []
+    
+    # Get all YAML file paths from template directory
     template_files = _iter_yaml_rel_paths(template_config_dir)
     user_config_dir = os.path.abspath(user_config_dir)
     template_config_dir = os.path.abspath(template_config_dir)
 
+    # Process each template file to ensure it exists in user config
     for rel_path in template_files:
         src = os.path.join(template_config_dir, rel_path)
         dst = os.path.join(user_config_dir, rel_path)
         if os.path.exists(dst):
             continue
-
+        
+        # Create parent directories if they don't exist
         dst_parent = os.path.dirname(dst)
         if dst_parent:
             os.makedirs(dst_parent, exist_ok=True)
+        
+        # Copy file and record the operation
         shutil.copy2(src, dst)
         copied.append(rel_path)
+        print(f'Copied {src} to {dst}')
     return copied
 
 
 def _collect_key_paths(node, prefix: tuple[str, ...], bag: set[tuple[str, ...]]):
+    """
+    Recursively collects all key paths in a nested data structure
+    
+    Args:
+        node: The data node to traverse (can be dictionary, list, or other type)
+        prefix: Current path prefix stored as a tuple of keys in the path
+        bag: A set used to store all found key paths
+    
+    Returns:
+        None, results are stored directly in the bag parameter
+    """
     if isinstance(node, dict):
+        # Traverse each key-value pair in the dictionary, build path and recursively process values
         for key, value in node.items():
             key_path = prefix + (str(key),)
             bag.add(key_path)
             _collect_key_paths(value, key_path, bag)
     elif isinstance(node, list):
+        # Traverse each element in the list, keeping the current path prefix for recursive calls
         for item in node:
             _collect_key_paths(item, prefix, bag)
 
@@ -283,7 +364,21 @@ def enforce_config_key_structure(user_config_dir: str, template_config_dir: str)
     """
     Compares YAML files between template and user directories and replaces files
     whose key structure differs from the template.
+
+    Args:
+        user_config_dir (str): Path to the user configuration directory
+        template_config_dir (str): Path to the template configuration directory
+
+    Returns:
+        list[str]: Returns a list of relative paths of files that were replaced
     """
+    from REvoDesign.issues import InternalError
+
+    # Define list of files to be ignored
+    ignored= (
+        "environ.yaml",
+    )
+
     replaced: list[str] = []
     template_files = _iter_yaml_rel_paths(template_config_dir)
     user_config_dir = os.path.abspath(user_config_dir)
@@ -292,10 +387,19 @@ def enforce_config_key_structure(user_config_dir: str, template_config_dir: str)
     for rel_path in template_files:
         template_file = os.path.join(template_config_dir, rel_path)
         user_file = os.path.join(user_config_dir, rel_path)
+
+        # Check if user file exists, raise internal error if it doesn't
         if not os.path.exists(user_file):
+            raise InternalError(f"Missing file: {user_file}, which should have already been copied from {template_file}")
+        
+        # Skip ignored files
+        if os.path.basename(rel_path) in ignored:
+            print(f'Skipped {rel_path} due to being ignored')
             continue
 
+        # Compare YAML file key signatures, if they don't match, replace user file with template file
         if _yaml_key_signature(template_file) != _yaml_key_signature(user_file):
             shutil.copy2(template_file, user_file)
             replaced.append(rel_path)
+            print(f'Replaced {user_file} -> {template_file}')
     return replaced

@@ -760,14 +760,18 @@ def timing(msg: str, unit: Literal["ms", "sec", "min", "hr"] = "sec"):
     yield
     toc = time.perf_counter()
     tic_toc = toc - tic
-    if unit == "sec":
-        logging.info(f"Finished {msg} in {tic_toc:.3f} seconds")
-    elif unit == "min":
-        logging.info(f"Finished {msg} in {tic_toc / 60:.3f} minutes")
-    elif unit == "hr":
-        logging.info(f"Finished {msg} in {tic_toc / 3600:.3f} hours")
-    elif unit == "ms":
-        logging.info(f"Finished {msg} in {tic_toc * 1000:.3f} milliseconds")
+    match  unit:
+        case "ms":
+            tic_toc *= 1000
+        case "min":
+            tic_toc /= 60
+        case "hr":
+            tic_toc /= 3600
+        case _:
+            unit = "sec"
+            pass
+    logging.info(f"{msg} took {tic_toc:.3f} {unit}")
+
 
 
 def convert_residue_ranges(
