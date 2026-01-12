@@ -50,6 +50,18 @@
 13. Editor: Monaco, bootstrap, server control, whitelist
 14. Download Registry and File fetches: retrieve,retry,switch mirrors,validate, store, flatten
 15. Package Manager (also the package manager util at `tools`)
+    1.  UI
+    2.  bootstrap of UI and Extras rich table
+    3.  Git solving
+    4.  live run command
+    5.  pip installer (commit, tag, branch, extras)
+    6.  Package Manager
+    7.  Worker Thread
+    8.  Unified worker thread wrapping
+    9.  notify box and decide forks
+    10. issue collections and sensitive data filtering
+    11. trigger button holding and animation
+    12. lazy loading of REvoDesign packages
 16. Menu shortcuts
    1.  `AskedValue` dataclasses: representation of data form inputs, collected by `AskedValueCollection`
    2.  YAML config: registry and wrapper, dynamic inputs
@@ -110,7 +122,8 @@ Python Version: as required in matrix
 
 Environments: Conda, Pip
 
-PyMOL versions:
+PyMOL versions and channels:
+
 - PyMOL Open Source (Conda-Forge), v2 or v3
 - PyMOL Bundled (Schrodinger, officially), v2 or v3
 
@@ -118,6 +131,7 @@ PyMOL versions:
 Rosetta: Rosetta Docker (inject rosetta node as docker_mpi, only available for Ubuntu)
 
 #### CI workflow
+
 1. Cancel previous runs
 2. Checkout repository
 3. Setup Qt headless virtual display device
