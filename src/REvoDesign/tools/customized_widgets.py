@@ -91,9 +91,8 @@ class REvoDesignWidget(QtWidgets.QWidget):
             parent (Optional[QWidget]): The parent widget. Defaults to None.
         """
         from REvoDesign.application.font.font_manager import CURRENT_FONT, DEFAULT_FONT
-        from REvoDesign.driver.ui_driver import ConfigBus
 
-        super().__init__(parent=parent or ConfigBus().ui.centralwidget)
+        super().__init__(parent=parent)
         if not parent:
             self.setFont(CURRENT_FONT or DEFAULT_FONT)
 
