@@ -20,18 +20,7 @@ from ..basic import SingletonAbstract
 
 logging = ROOT_LOGGER.getChild(__name__)
 
-# TODO: use color escapes from RosettaPy instead
-# Color escape sequences
-GREEN = "\033[0;32m"
-RED = "\033[0;31m"
-YELLOW = "\033[0;33m"
-RESET = "\033[0m"
-
-BOLD = "\033[1m"
-
-CYAN_BG = "\033[0;44m"
-RED_BG = "\033[0;41m"
-MAGENTA_BG = "\033[0;45m"
+from RosettaPy.utils import Colors
 
 
 class CitationManager(SingletonAbstract):
@@ -147,7 +136,10 @@ class CitableModuleAbstract(ABC):
             return
 
         # Log the citation notice header.
-        logging.info(f"{CYAN_BG}{BOLD}[Citation Notice]{RESET}{RESET}\nThe following publications should be cited:\n")
+        logging.info(
+            f"{Colors.CYAN_BG}{Colors.BOLD}[Citation Notice]{Colors.RESET}{Colors.RESET}\n"
+            "The following publications should be cited:\n"
+        )
         # Iterate through the citation items of the current module.
         for i, citation_item in cls.__bibtex__.items():
             # If the current citation item has been silenced, skip it.
@@ -155,11 +147,17 @@ class CitableModuleAbstract(ABC):
                 continue
             # If the citation item is a single string, log it directly.
             if isinstance(citation_item, str):
-                logging.info(f"{RED_BG}{BOLD}{i}{RESET}{RESET}: {MAGENTA_BG}{citation_item}{RESET}\n")
+                logging.info(
+                    f"{Colors.RED_BG}{Colors.BOLD}{i}{Colors.RESET}{Colors.RESET}: "
+                    f"{Colors.MAGENTA_BG}{citation_item}{Colors.RESET}\n"
+                )
             # If the citation item is a tuple or list, log each citation content.
             elif isinstance(citation_item, (tuple, list)):
                 for j, _c in enumerate(citation_item):
-                    logging.info(f"{RED_BG}{BOLD}{i}-{j}{RESET}{RESET}: {MAGENTA_BG}{_c}{RESET}\n")
+                    logging.info(
+                        f"{Colors.RED_BG}{Colors.BOLD}{i}-{j}{Colors.RESET}{Colors.RESET}: "
+                        f"{Colors.MAGENTA_BG}{_c}{Colors.RESET}\n"
+                    )
             # Dismiss the current citation item to avoid displaying it again.
             CitationManager().dismiss(i)
 
