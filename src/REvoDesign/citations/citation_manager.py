@@ -13,14 +13,14 @@ from abc import ABC
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from RosettaPy.utils import Colors
+
 from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
 
 from ..basic import SingletonAbstract
 
 logging = ROOT_LOGGER.getChild(__name__)
-
-from RosettaPy.utils import Colors
 
 
 class CitationManager(SingletonAbstract):

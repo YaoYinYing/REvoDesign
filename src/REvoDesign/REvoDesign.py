@@ -19,21 +19,14 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 import REvoDesign
 from REvoDesign import ConfigBus, file_extensions, issues, reload_config_file, set_REvoDesign_config_file
-
-
-
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.multi_mutant_designer import MultiMutantDesigner
 from REvoDesign.driver.environ_register import register_environment_variables
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
-
-
-
 from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import GremlinAnalyser, MutateWorker, VisualizingWorker
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
-
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (
     WorkerThread,
@@ -57,7 +50,6 @@ from REvoDesign.tools.pymol_utils import (
     get_molecule_sequence,
     is_empty_session,
 )
-
 from REvoDesign.tools.utils import generate_strong_password, require_not_none, run_worker_thread_with_progress, timing
 from REvoDesign.UI import Ui_REvoDesignPyMOL_UI as REvoDesignMainUI
 
@@ -205,10 +197,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         Returns:
             QtWidgets.QMainWindow: new main window object
         """
-        from REvoDesign.application.menu import MENU_LINKS
         from REvoDesign.application.font import FontSetter
         from REvoDesign.application.i18n import LanguageSwitch
         from REvoDesign.application.icon import IconSetter
+        from REvoDesign.application.menu import MENU_LINKS
         from REvoDesign.basic.menu_item import MenuCollection, MenuItem
         from REvoDesign.basic.server_monitor import MenuActionServerMonitor
         from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketClient, REvoDesignWebSocketServer

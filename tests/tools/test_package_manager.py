@@ -184,6 +184,7 @@ def test_pm_run_command_with_env():
     # Check that env was passed correctly
     assert mock_subproc.call_args.kwargs["env"]["MY_VAR"] == "test_value"
 
+
 @pytest.fixture(autouse=True)
 def static_python_version(monkeypatch):
     """
@@ -199,51 +200,41 @@ def static_python_version(monkeypatch):
     ("spec", "current_version", "python_version_matched"),
     [
         # empty match
-        (None, "3.10", True), 
+        (None, "3.10", True),
         (" , , ", "3.9", True),
         (">=3.8", None, True),
-
         # lists and exclusion
         ("3.10,3.11,3.12", "3.10", True),
         ("3.10,3.11,3.12", "3.13", False),
         ("3.10,3.11,3.12,!=3.11.8", "3.10", True),
         ("3.10,3.11,3.12,!=3.11.8", "3.11.8", False),
-
         # ranges
-        
         (">3.8", "3.9", True),
         (">=3.8,<3.11", "3.10", True),
         (">=3.8,<3.11", "3.11", False),
         (">3.8", "3.8", False),
         ("<=3.9", "3.10", False),
         ("<=3.10", "3.10", True),
-
         # equals
         ("==3.9", "3.9", True),
         ("==3.9", "3.10", False),
         ("==3.10", "3.10.4", True),
         ("==3.10.1", "3.10.2", False),
-        
         # not equals
         ("!=3.9", "3.9", False),
         ("!=3.9", "3.8", True),
         ("!=3.10.4", "3.10.4", False),
         ("!=3.10.4", "3.10.5", True),
-        
-        
         # mixed
         (">=3.8,<3.11,!=3.10.2", "3.10.2", False),
         (">=3.8,<3.11,!=3.10.2", "3.10.3", True),
         (">=3.10,==3.10.0", "3.10.1", False),
-
         # spaces included
         (" >= 3.10 , < 3.11 ", "3.10.5", True),
-
         # invalid
         ("foo,bar", "3.11", True),
         ("==invalid,>=3.8", "3.9", True),
         (">=3.8", "invalid", True),
-
     ],
 )
 def test_python_version_matches(spec, current_version, python_version_matched):

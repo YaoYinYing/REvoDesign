@@ -27,11 +27,10 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypeVar, overload, TypedDict
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypedDict, TypeVar, overload
 from urllib.error import HTTPError, URLError
 
 from packaging.version import InvalidVersion, Version
-
 from pymol import cmd, get_version_message
 from pymol.plugins import addmenuitemqt
 from pymol.Qt.utils import loadUi
@@ -115,6 +114,7 @@ ALLOWED_PROXY_PROTOCOLS = ["http", "https", "socks5", "socks5h"]
 
 # TODO: native filter on extra groups
 
+
 class PlatformInfo(TypedDict):
     HAS_CUDA: bool
     HAS_MPS: bool
@@ -122,9 +122,9 @@ class PlatformInfo(TypedDict):
 
 
 PLATFORM_INFO: PlatformInfo = {
-    'HAS_CUDA': shutil.which("nvidia-smi") is not None,
-    'HAS_MPS': platform.system() == "Darwin" and platform.mac_ver()[-1] == "arm64",
-    'PYTHON_VERSION': platform.python_version(),
+    "HAS_CUDA": shutil.which("nvidia-smi") is not None,
+    "HAS_MPS": platform.system() == "Darwin" and platform.mac_ver()[-1] == "arm64",
+    "PYTHON_VERSION": platform.python_version(),
 }
 
 
@@ -139,6 +139,7 @@ def _safe_parse_version(value: str) -> Version | None:
     except InvalidVersion:
         logging.debug("Invalid python version spec: %s", value)
         return None
+
 
 def _python_version_matches(spec: str | None, current_version: str | None) -> bool:
     """
@@ -194,7 +195,7 @@ def _python_version_matches(spec: str | None, current_version: str | None) -> bo
         for prefix in ("!=", ">=", "<=", "==", ">", "<"):
             if token.startswith(prefix):
                 operator = prefix
-                target_value = token[len(prefix):]
+                target_value = token[len(prefix) :]
                 break
         if operator is None:
             operator = "=="
@@ -203,7 +204,7 @@ def _python_version_matches(spec: str | None, current_version: str | None) -> bo
         target = _safe_parse_version(target_value)
         if target is None:
             continue
-        
+
         # Execute corresponding version comparison logic based on different operators
         match operator:
             case "==":
@@ -229,9 +230,10 @@ def _python_version_matches(spec: str | None, current_version: str | None) -> bo
         if not other_constraints_ok:
             break
 
-    # Return final result: other constraints must be satisfied, and if there are equality 
+    # Return final result: other constraints must be satisfied, and if there are equality
     # constraints they must match
     return other_constraints_ok and (not has_equality or equality_match)
+
 
 @dataclass
 class ExtrasItem:
@@ -963,8 +965,6 @@ class REvoDesignPackageManager:
     extra_checkbox: CheckableListView = None  # type: ignore
     pip_installer: PIPInstaller = None  # type: ignore
     remote_extra_group_data: ExtrasGroups = None  # type: ignore
-
-
 
     def ensure_ui_file(self, upgrade: bool = False):
         ui_file = os.path.abspath(
