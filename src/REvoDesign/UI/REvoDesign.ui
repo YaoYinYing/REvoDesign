@@ -4556,6 +4556,11 @@
       <string>Recent Experiments</string>
      </property>
     </widget>
+    <widget class="QMenu" name="menuUI_Preferences">
+     <property name="title">
+      <string>UI Preferences</string>
+     </property>
+    </widget>
     <addaction name="actionCheck_PyMOL_session"/>
     <addaction name="actionSet_Working_Directory"/>
     <addaction name="separator"/>
@@ -4565,6 +4570,7 @@
     <addaction name="menuLanguage"/>
     <addaction name="separator"/>
     <addaction name="menuLog_File"/>
+    <addaction name="menuUI_Preferences"/>
     <addaction name="separator"/>
     <addaction name="actionClose"/>
    </widget>
@@ -4593,13 +4599,6 @@
       <string>Edit Configuration</string>
      </property>
     </widget>
-    <widget class="QMenu" name="menuPreferences">
-     <property name="title">
-      <string>Preferences</string>
-     </property>
-    </widget>
-    <addaction name="menuPreferences"/>
-    <addaction name="separator"/>
     <addaction name="actionReconfigure"/>
     <addaction name="separator"/>
     <addaction name="menuEdit_Configuration"/>

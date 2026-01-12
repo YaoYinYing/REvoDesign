@@ -4,7 +4,6 @@ from REvoDesign.basic.menu_item import MenuItem
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
 from REvoDesign.bootstrap.set_config import list_all_config_files
 
-
 all_main_config_files = {
     x.removeprefix(REVODESIGN_CONFIG_DIR + os.sep).removesuffix(".yaml"): x
     for x in list_all_config_files(REVODESIGN_CONFIG_DIR)
@@ -186,7 +185,7 @@ PREFERENCES_MENU_LINKS = (
     MenuItem(
         "actionPreferences_Font",
         "REvoDesign.application.font.font_manager:set_font_dialog",
-        menu_section='menuPreferences',
+        menu_section="menuUI_Preferences",
         action_text="Font Setting",
     ),
 )

@@ -90,12 +90,13 @@ class REvoDesignWidget(QtWidgets.QWidget):
             allow_repeat (bool): If True, allows multiple instances of the widget with the same name. Defaults to False.
             parent (Optional[QWidget]): The parent widget. Defaults to None.
         """
-        from REvoDesign.application.font.font_manager import DEFAULT_FONT, CURRENT_FONT
+        from REvoDesign.application.font.font_manager import CURRENT_FONT, DEFAULT_FONT
         from REvoDesign.driver.ui_driver import ConfigBus
+
         super().__init__(parent=parent or ConfigBus().ui.centralwidget)
         if not parent:
             self.setFont(CURRENT_FONT or DEFAULT_FONT)
-    
+
         self.setObjectName(object_name or "AnonymousWidget")
         self.allow_repeat = allow_repeat
 
@@ -1459,7 +1460,9 @@ class AskedValue:
     reason: str | None = None
     required: bool = False
     choices: Iterable | Callable[[], Iterable | None] | None = None
-    source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput", "ColorPicker", 'Font', 'FontDialog'] = "None"
+    source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput", "ColorPicker", "Font", "FontDialog"] = (
+        "None"
+    )
     ext: FExCol | None = None
     multiple_choices: bool = False
 
@@ -1825,12 +1828,11 @@ class ValueDialog(REvoDesignWidget):
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
             widget.setCurrentText(str(asked_value.val) or str(choices[0]))
-        elif asked_value.source == 'Font':
-            widget=QtWidgets.QFontComboBox()
+        elif asked_value.source == "Font":
+            widget = QtWidgets.QFontComboBox()
             from REvoDesign.application.font.font_manager import CURRENT_FONT
 
             widget.setCurrentFont(CURRENT_FONT)
-
 
         # a normal text input
         else:
@@ -1929,9 +1931,6 @@ class ValueDialog(REvoDesignWidget):
             button_layout.addWidget(select_invert_button)
 
             self.table.setCellWidget(row, 3, container_widget)
-
-    
-            
 
     def _browse_file(self, widget, exts: FExCol | None = None, multiple: bool = False, mode: Literal["r", "w"] = "r"):
         """

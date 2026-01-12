@@ -575,11 +575,17 @@ palette_tuple = tuple(palette_dict.keys())
 def list_palettes() -> tuple[str, ...]:
     return palette_tuple
 
+
 # from caver
+
+
 def exists(name: str):
     return name in cmd.get_names("all")
 
+
 # from caver
+
+
 def load_safely(file: str, name: str):
     if exists(name):
         cmd.delete(name)

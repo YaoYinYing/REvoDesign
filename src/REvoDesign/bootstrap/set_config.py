@@ -14,6 +14,7 @@ from platformdirs import user_cache_dir, user_data_dir
 
 from REvoDesign.Qt import QtCore, QtWidgets
 
+
 def decide(title="", description="", rich: bool = False, details: str | None = None):
     """
     A copy of decide function from package_manager.py
@@ -62,11 +63,11 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
         print("WARNING: The configuration directory will be deleted as required")
         shutil.rmtree(config_dir)
 
-    print('-'*79)
-    print('Ensuring the configuration directory...')
+    print("-" * 79)
+    print("Ensuring the configuration directory...")
 
-    # if main config file does not exist, 
-    # a new release may have been upgrated to. 
+    # if main config file does not exist,
+    # a new release may have been upgrated to.
     # copy the config tree from template
     if not os.path.isfile(main_config_file):
         if os.path.isdir(config_dir) and [x for x in os.listdir(config_dir) if not x.endswith(".yaml")]:
@@ -89,21 +90,21 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
         print(f"Copied configurations from {template_config_dir} to {config_dir}")
         shutil.copytree(src=template_config_dir, dst=config_dir, dirs_exist_ok=True)
 
-    # othwerwise, check the structure of the config tree. If there are missing files or keys, 
+    # othwerwise, check the structure of the config tree. If there are missing files or keys,
     # a new minor release may have been upgrated to.
     # fix the config tree from template
     else:
         print(f"Config file is already located at `{config_dir}`, do nothing.")
-    
-        print(f'Verifying the structure of the configuration directory...')
+
+        print(f"Verifying the structure of the configuration directory...")
         verify_config_tree_structure(config_dir, template_config_dir)
-        print('Enforcing the key structure of the configuration directory...')
-        
+        print("Enforcing the key structure of the configuration directory...")
+
         enforce_config_key_structure(config_dir, template_config_dir)
-        
+
     print(f"Main config: {main_config_file}")
-    print('All set.')
-    print('-'*79)
+    print("All set.")
+    print("-" * 79)
     return main_config_file
 
 
@@ -131,11 +132,11 @@ def reload_config_file(
 def save_configuration(new_cfg: DictConfig, config_name: str = "main"):
     """
     Save configuration to specified directory
-    
+
     Args:
         new_cfg (DictConfig): The configuration object to be saved
         config_name (str, optional): Configuration file name, defaults to "main"
-    
+
     Returns:
         None
     """
@@ -151,14 +152,14 @@ def save_configuration(new_cfg: DictConfig, config_name: str = "main"):
 def experiment_config(name: str = "experiments") -> str:
     """
     Create and return the path to the experiment configuration directory.
-    
-    This function creates an experiment directory based on the global configuration directory 
-    and the specified name. If the directory doesn't exist, it automatically creates it, 
+
+    This function creates an experiment directory based on the global configuration directory
+    and the specified name. If the directory doesn't exist, it automatically creates it,
     ensuring the directory exists before returning its full path.
-    
+
     Args:
         name (str): The name of the experiment directory, defaults to "experiments"
-        
+
     Returns:
         str: The full path to the experiment directory
     """
@@ -250,7 +251,7 @@ def list_all_config_files(config_dir: str, tree: bool = False) -> list[str]:
 
     Args:
         config_dir (str): Path to the configuration directory
-        tree (bool): If True, returns a recursive list of paths to all YAML files in the directory tree. 
+        tree (bool): If True, returns a recursive list of paths to all YAML files in the directory tree.
             Defaults to False.
 
     Returns:
@@ -271,10 +272,10 @@ def list_all_config_files(config_dir: str, tree: bool = False) -> list[str]:
 def _iter_yaml_rel_paths(base_dir: str) -> list[str]:
     """
     Iterates through the specified directory and its subdirectories to collect relative paths of all .yaml files
-    
+
     Args:
         base_dir (str): The base directory path to traverse
-    
+
     Returns:
         list[str]: A list containing relative paths of all found .yaml files with respect to base_dir, sorted in lexicographical order
     """
@@ -303,7 +304,7 @@ def verify_config_tree_structure(user_config_dir: str, template_config_dir: str)
     """
     # Initialize list to track copied files
     copied: list[str] = []
-    
+
     # Get all YAML file paths from template directory
     template_files = _iter_yaml_rel_paths(template_config_dir)
     user_config_dir = os.path.abspath(user_config_dir)
@@ -315,28 +316,28 @@ def verify_config_tree_structure(user_config_dir: str, template_config_dir: str)
         dst = os.path.join(user_config_dir, rel_path)
         if os.path.exists(dst):
             continue
-        
+
         # Create parent directories if they don't exist
         dst_parent = os.path.dirname(dst)
         if dst_parent:
             os.makedirs(dst_parent, exist_ok=True)
-        
+
         # Copy file and record the operation
         shutil.copy2(src, dst)
         copied.append(rel_path)
-        print(f'Copied {src} to {dst}')
+        print(f"Copied {src} to {dst}")
     return copied
 
 
 def _collect_key_paths(node, prefix: tuple[str, ...], bag: set[tuple[str, ...]]):
     """
     Recursively collects all key paths in a nested data structure
-    
+
     Args:
         node: The data node to traverse (can be dictionary, list, or other type)
         prefix: Current path prefix stored as a tuple of keys in the path
         bag: A set used to store all found key paths
-    
+
     Returns:
         None, results are stored directly in the bag parameter
     """
@@ -375,9 +376,7 @@ def enforce_config_key_structure(user_config_dir: str, template_config_dir: str)
     from REvoDesign.issues import InternalError
 
     # Define list of files to be ignored
-    ignored= (
-        "environ.yaml",
-    )
+    ignored = ("environ.yaml",)
 
     replaced: list[str] = []
     template_files = _iter_yaml_rel_paths(template_config_dir)
@@ -390,16 +389,18 @@ def enforce_config_key_structure(user_config_dir: str, template_config_dir: str)
 
         # Check if user file exists, raise internal error if it doesn't
         if not os.path.exists(user_file):
-            raise InternalError(f"Missing file: {user_file}, which should have already been copied from {template_file}")
-        
+            raise InternalError(
+                f"Missing file: {user_file}, which should have already been copied from {template_file}"
+            )
+
         # Skip ignored files
         if os.path.basename(rel_path) in ignored:
-            print(f'Skipped {rel_path} due to being ignored')
+            print(f"Skipped {rel_path} due to being ignored")
             continue
 
         # Compare YAML file key signatures, if they don't match, replace user file with template file
         if _yaml_key_signature(template_file) != _yaml_key_signature(user_file):
             shutil.copy2(template_file, user_file)
             replaced.append(rel_path)
-            print(f'Replaced {user_file} -> {template_file}')
+            print(f"Replaced {user_file} -> {template_file}")
     return replaced

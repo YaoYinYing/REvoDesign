@@ -375,7 +375,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         if ui:
             self.headless = False
-            self.main_window =window
+            self.main_window = window
             self.ui = ui
             self.w2c = Widget2ConfigMapper(ui=self.ui)
             self.push_buttons = self.w2c.push_buttons

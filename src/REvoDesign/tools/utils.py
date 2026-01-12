@@ -31,7 +31,6 @@ from .package_manager import run_command, run_worker_thread_with_progress
 logging = ROOT_LOGGER.getChild(__name__)
 
 
-
 def resolve_dotted_expression(dotted_str: str) -> Any:
     """
     Import the object referenced by a dotted string such as `<module>:attr` or
@@ -67,6 +66,7 @@ def resolve_dotted_expression(dotted_str: str) -> Any:
     _class = getattr(module, _class_name)
     return getattr(_class, _func_name)
 
+
 def resolve_dotted_function(dotted_str: str) -> Callable:
     """
     Resolve a dotted reference to a callable object and return it.
@@ -82,7 +82,7 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
         issues.UnsupportedDataTypeError: If the resolved object exists but
             cannot be called.
     """
-    c=resolve_dotted_expression(dotted_str)
+    c = resolve_dotted_expression(dotted_str)
     logging.debug(f"Dotted resolving `{c}` from {dotted_str}")
     if callable(c):
         return c
@@ -193,8 +193,6 @@ def resolve_dotted_config_item(config_string: str) -> Any:
         cfg, config_item = "main", config_string
 
     return ConfigBus().get_value(config_item, cfg=cfg)  # type: ignore
-
-
 
 
 def pairwise_loop(iterable: Iterable):
@@ -779,7 +777,7 @@ def timing(msg: str, unit: Literal["ms", "sec", "min", "hr"] = "sec"):
     yield
     toc = time.perf_counter()
     tic_toc = toc - tic
-    match  unit:
+    match unit:
         case "ms":
             tic_toc *= 1000
         case "min":
@@ -788,9 +786,7 @@ def timing(msg: str, unit: Literal["ms", "sec", "min", "hr"] = "sec"):
             tic_toc /= 3600
         case _:
             unit = "sec"
-            pass
     logging.info(f"{msg} took {tic_toc:.3f} {unit}")
-
 
 
 def convert_residue_ranges(
