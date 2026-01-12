@@ -268,6 +268,7 @@ def list_all_config_files(config_dir: str, tree: bool = False) -> list[str]:
         yaml_files.extend(os.path.join(root, f) for f in files if f.endswith(".yaml"))
     return sorted(yaml_files)
 
+# TODO: get file verification and key structure comparation process parallelized
 
 def _iter_yaml_rel_paths(base_dir: str) -> list[str]:
     """

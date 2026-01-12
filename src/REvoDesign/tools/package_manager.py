@@ -2593,6 +2593,7 @@ def __init_plugin__(app=None):
 
     revodesign_plugin = None
 
+    # lazy load
     def launch_revodesign():
         nonlocal revodesign_plugin
         if revodesign_plugin is None:
