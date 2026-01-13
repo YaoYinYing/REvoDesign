@@ -7,8 +7,7 @@ from tests.conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
-
-@pytest.mark.serial
+# move to the fast
 @pytest.mark.order(1)
 class TestREvoDesignPlugin:
     def test_plugin_gui_visibility(self, test_worker: TestWorker):

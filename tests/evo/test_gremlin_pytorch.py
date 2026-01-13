@@ -7,8 +7,14 @@ from REvoDesign.shortcuts.tools.evolution import run_gremlin
 
 @pytest.mark.serial
 def test_run_gremlin():
-    msa = f"../tests/data/msa/4FAZA.i90c75_aln.fas"
-    save_to = f"./evol/gremlin/4FAZA.i90c75_aln.mrf.pkl"
+    # 4FAZA, 17.35 s in apple m1 pro 10c
+    # msa = f"../tests/data/msa/4FAZA.i90c75_aln.fas" 
+    # save_to = f"./evol/gremlin/4FAZA.i90c75_aln.mrf.pkl"
+
+    # 2KL8, 2.67 s in apple m1 pro 10c
+    msa = f"../tests/data/msa/2KL8.i90c75_aln.fas" 
+    save_to = f"./evol/gremlin/2KL8.i90c75_aln.mrf.pkl"
+
     os.makedirs(os.path.dirname(save_to), exist_ok=True)
     assert os.path.isfile(msa)
     # clean up

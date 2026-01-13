@@ -50,7 +50,7 @@ class TestData:
 
     # surface design
     entropy_min_score: str = "3"
-    entropy_max_score: str = "20"
+    entropy_max_score: str = "20" # 11.18s call for 20, 3 design; no diff
     entropy_score_reversed: bool = False
     entropy_design_case: str = "pssm.ent.surf"
     entropy_reject: str = "PC"
@@ -62,7 +62,7 @@ class TestData:
 
     mpnn_profile_type: str = "ProteinMPNN"
     mpnn_surface_residues: str = "37,38,39,40"
-    mpnn_num_designs: int = 5
+    mpnn_num_designs: int = 1 # 19.38s call for 5 designs, 13.83s call for 2, 11.56s call for 1
     mpnn_temperature: float = 0.1
     mpnn_batch_designs: int = 1
     mpnn_deduplicated: bool = True
@@ -94,7 +94,10 @@ class TestData:
     # pocket design
     # use dumbrack rotamer lib
     pocket_pssm_residues: str = (
-        "98+100-105+108+114-115+206+209+218+294-303+362-363+365-368+428-429+434+436-439+442+477-478"
+        # "98+100-105+108+114-115+206+209+218+294-303+362-363+365-368+428-429+434+436-439+442+477-478" # 17.25s call
+        # "98+100-105+108+114-115+206" # 11.21s call
+        # "100-105" # 10.61s call
+        "101-103" # 7.45s call
     )
     pocket_pssm_min_score: str = "-2"
     pocket_pssm_max_score: str = "0"
@@ -212,9 +215,6 @@ class TestData:
             6,
             1,
         ),
-        (3, 13),
-        2,
-        -7,
     )
     gremlin_monomer_clicks_o2a: tuple = (
         1,
@@ -222,16 +222,13 @@ class TestData:
             0,
             19,
         ),
-        (9, 0),
-        2,
-        -7,
     )
 
     @property
     def gremlin_monomer_pse(self):
         return f"{self.test_data_repo}/analysis/{self.molecule}.{self.chain_id}.xtal.test_gremlin_monomer.pze"
 
-    gremlin_topN: int = 35
+    gremlin_topN: int = 20
     gremlin_homomer_molecule: str = "4MB8"
     gremlin_homomer_chain: str = "A"
     gremlin_homomer_o2a_pos: int = 196
@@ -246,21 +243,14 @@ class TestData:
     gremlin_homomer_chains: str = "ABCD"
 
     gremlin_homomer_clicks_a2a: tuple = (
-        2,
-        (1, 6),
-        14,
-        (0, 1),
-        2,
-        (3, 11),
+        2, # page forward 2
+        (1, 6), # click 1,6
     )
 
     gremlin_homomer_clicks_o2a: tuple = (
-        2,
-        (15, 15),
-        1,
-        (6, 1),
-        7,
-        -20,
+        2, # page forward 2
+        (15, 15), # click 15,15
+        -10, # page backward 10
     )
 
     @property

@@ -11,19 +11,24 @@ from tests.data.test_data import KeyData
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
 
-@pytest.mark.serial
+# move to fast tests
 class TestREvoDesignPlugin_TabVisualize:
-    @pytest.mark.skipif(not PIPPack_worker.installed, reason="PIPPack not installed")
+
     def test_visualize_pssm_ddg(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="config")
 
-        set_widget_value(test_worker.plugin.ui.comboBox_sidechain_solver, "PIPPack")
-        set_widget_value(
-            test_worker.plugin.ui.comboBox_sidechain_solver_model,
-            "pippack_model_1",
-        )
+        # 14.12s call if use PIPpack
+        # set_widget_value(test_worker.plugin.ui.comboBox_sidechain_solver, "PIPPack")
+        # set_widget_value(
+        #     test_worker.plugin.ui.comboBox_sidechain_solver_model,
+        #     "pippack_model_1",
+        # )
+
+        # 6.80s call if use Dunbrack
+        set_widget_value(test_worker.plugin.ui.comboBox_sidechain_solver, "Dunbrack Rotamer Library")
+
         test_worker.go_to_tab(tab_name="visualize")
 
         test_worker.do_typing(
@@ -265,7 +270,7 @@ class TestREvoDesignPlugin_TabVisualize:
 
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_input_mut_table_csv,
-            KeyDataDuringTests.visualize_excel,
+            KeyDataDuringTests.visualize_excel, # 12.16s call for full, 8.47s call for reduced
         )
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_output_pse_visualize,
@@ -315,6 +320,6 @@ class TestREvoDesignPlugin_TabVisualize:
 
         assert os.path.exists(test_worker.test_data.visualize_5_pse)
         mt = test_worker.check_existed_mutant_tree()
-        assert len(mt.all_mutant_branch_ids) == 10
-        for _id in [f"c.{i}" for i in range(0, 10)]:
+        assert len(mt.all_mutant_branch_ids) == 4
+        for _id in [f"c.{i}" for i in range(0, 4)]:
             assert _id in mt.all_mutant_branch_ids
