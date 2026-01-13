@@ -786,7 +786,7 @@ def timing(msg: str, unit: Literal["ms", "sec", "min", "hr"] = "sec"):
             tic_toc /= 3600
         case _:
             unit = "sec"
-    logging.info(f"{msg} took {tic_toc:.3f} {unit}")
+    logging.info(f"Finished {msg} in {tic_toc:.3f} {unit}")
 
 
 def convert_residue_ranges(

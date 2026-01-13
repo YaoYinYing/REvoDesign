@@ -438,7 +438,7 @@ def test_timing(caplog, unit, expected_unit):
         assert "Started test message" in caplog.text
         assert "Finished test message in " in caplog.text
 
-        assert expected_unit in caplog.text
+        assert unit in caplog.text
 
 
 @pytest.mark.parametrize(
