@@ -292,7 +292,7 @@ class PmTestWorker:
 
 class TestWorker:
     def __init__(self, qtbot: qtbot.QtBot, plugin: REvoDesignPlugin):
-        from REvoDesign.tools.system_tools import CLIENT_INFO
+        from REvoDesign.tools.system_tools import get_client_info
 
         self.test_id = "default"
         self.qtbot = qtbot
@@ -315,7 +315,7 @@ class TestWorker:
             }
         )
 
-        self.client_info = CLIENT_INFO()
+        self.client_info = get_client_info()
         self.run_time = time.strftime("%Y%m%d_%H%M%S", time.localtime())
         self.CURSOR = QtCore.Qt.MouseButton.LeftButton
 

@@ -84,7 +84,7 @@ def test_multicheckable_combobox(qtbot):
     assert combo_box.currentText() == "Option1, Option3"
 
 
-def test_value_dialog_initialization(qtbot, sample_asked_value_collection):
+def test_value_dialog_initialization(qtbot, sample_asked_value_collection, test_worker):
 
     dialog = ValueDialog("Test Dialog", sample_asked_value_collection)
     qtbot.addWidget(dialog)

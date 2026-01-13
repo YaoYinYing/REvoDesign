@@ -1,0 +1,18 @@
+
+# TODO: font settings according to the current font settings
+
+# store the current font settings (QFont properties)
+font:
+  # primary setting
+  family: ...  # string
+  weight: ... # float
+  bold: ... # bool
+  italic: ... # bool
+
+  # secondary settings
+  letterSpacing: ...
+  # ...
+
+
+  
+  

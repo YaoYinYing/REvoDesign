@@ -4,7 +4,7 @@ System info collector
 
 import platform
 import warnings
-from dataclasses import dataclass, field
+from typing import Any, TypedDict, cast
 
 from immutabledict import immutabledict
 
@@ -58,44 +58,51 @@ class SystemInfoReduced(SingletonAbstract):
         self.initialized = True
 
 
-# TODO: refactor needed
+CLIENT_INFO_FIELD_MAP = immutabledict(
+    {
+        "node": "Platform::Hostname",
+        "user": "User::Username",
+        "os": "Platform::OS",
+        "os_build": "Platform::Version",
+        "machine_arch": "Platform::Machine",
+        "revodesign_version": "REvoDesign::Version",
+        "pymol_version": "PyMOL::Version",
+        "pymol_build": "PyMOL::Build",
+        "python_version": "Python::Version",
+        "ip": "Network::IP",
+        "qt_ver": "PyQt::Version",
+        "is_translated_arm_mac": "Platform::IsRosettaTranlated",
+        "nproc": "Platform::CPU::Num",
+    }
+)
 
 
-@dataclass
-class CLIENT_INFO:
-    """
-    A reduced client information class.
-    """
+class CLIENT_INFO(TypedDict):
+    node: str
+    user: str
+    os: str
+    os_build: str
+    machine_arch: str
+    revodesign_version: str
+    pymol_version: str
+    pymol_build: str
+    python_version: str
+    ip: list[str]
+    qt_ver: str
+    OS_TYPE: str
+    is_translated_arm_mac: bool
+    nproc: int
 
-    node: str = ""
-    user: str = ""
-    os: str = ""
-    os_build: str = ""
-    machine_arch: str = ""
-    revodesign_version: str = ""
-    pymol_version: str = ""
-    pymol_build: str = ""
-    python_version: str = ""
-    ip: list = field(default_factory=list)
-    qt_ver: str = ""
-    OS_TYPE: str = ""
-    is_translated_arm_mac: bool = False
-    nproc: int = 4
 
-    def __post_init__(self):
-        self.SYSTEM_INFO_DICT = SystemInfoReduced().info
+def get_client_info() -> CLIENT_INFO:
+    info = SystemInfoReduced().info
+    client_info: dict[str, Any] = {}
 
-        self.node: str = self.SYSTEM_INFO_DICT["Platform::Hostname"]
-        self.user: str = self.SYSTEM_INFO_DICT["User::Username"]
-        self.os: str = self.SYSTEM_INFO_DICT["Platform::OS"]
-        self.os_build: str = self.SYSTEM_INFO_DICT["Platform::Version"]
-        self.machine_arch: str = self.SYSTEM_INFO_DICT["Platform::Machine"]
-        self.revodesign_version: str = self.SYSTEM_INFO_DICT["REvoDesign::Version"]
-        self.pymol_version: str = self.SYSTEM_INFO_DICT["PyMOL::Version"]
-        self.pymol_build: str = self.SYSTEM_INFO_DICT["PyMOL::Build"]
-        self.python_version: str = self.SYSTEM_INFO_DICT["Python::Version"]
-        self.ip: list = self.SYSTEM_INFO_DICT["Network::IP"]
-        self.qt_ver: str = self.SYSTEM_INFO_DICT["PyQt::Version"]
-        self.OS_TYPE: str = f"{self.SYSTEM_INFO_DICT['Platform::OS']}_{self.SYSTEM_INFO_DICT['Platform::Machine']}"
-        self.is_translated_arm_mac: bool = self.SYSTEM_INFO_DICT["Platform::IsRosettaTranlated"]
-        self.nproc: int = self.SYSTEM_INFO_DICT["Platform::CPU::Num"]
+    for attr, info_key in CLIENT_INFO_FIELD_MAP.items():
+        value = info[info_key]
+        if attr == "ip":
+            value = list(value)
+        client_info[attr] = value
+
+    client_info["OS_TYPE"] = f"{client_info['os']}_{client_info['machine_arch']}"
+    return cast(CLIENT_INFO, client_info)

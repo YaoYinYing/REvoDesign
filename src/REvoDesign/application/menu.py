@@ -181,6 +181,15 @@ TOOLS_MENU_LINKS = (
     MenuItem("actionRun_GREMLIN", "REvoDesign.shortcuts.wrappers.evolution:wrapped_gremlin"),
 )
 
+PREFERENCES_MENU_LINKS = (
+    MenuItem(
+        "actionPreferences_Font",
+        "REvoDesign.application.font.font_manager:set_font_dialog",
+        menu_section="menuUI_Preferences",
+        action_text="Font Setting",
+    ),
+)
+
 OTHER_MENU_LINKS = (
     MenuItem("actionRefreshEnvironVar", "REvoDesign.driver.environ_register:register_environment_variables"),
 )
@@ -188,5 +197,6 @@ OTHER_MENU_LINKS = (
 MENU_LINKS = (
     *TOOLS_MENU_LINKS,
     *CONFIG_EDIT_LINKS,
+    *PREFERENCES_MENU_LINKS,
     *OTHER_MENU_LINKS,
 )

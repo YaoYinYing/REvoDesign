@@ -51,9 +51,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `resolve_typed_arg`: for resolving typed arguments according to what the most it looks like
   - `resolve_default_value`: moved from shortcut util module
   - `resolve_dotted_config_item`: moved from shortcut util module
+  - PyMOL: `load_safely` removes existing objects before reloading files, preventing duplicate-object errors when running iterative workflows. Bollowed from Caver
 - Package manager:
   - `PackageManagerCommand` dataclass consolidates package manager metadata for Git bootstrap logic.
   - Tests ensuring apt-based installers leverage sudo when available.
+  - Extras table now includes `python_version` key and filtrated according to current Python version.
+- Application:
+  - FontSetter`, `set_font`, and `REvoDesignWidget` propagate the current font to standalone dialogs, while the widget helpers now understand `QFontComboBox` instances so ValueDialog forms keep typography consistent.
 - Editor:
   - Monaco editor URLs now carry autosave and autorefresh toggles/intervals so the static front-end can refresh or save files according to `editor.yaml`.
 - Bootstrap configuration:
@@ -84,6 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `list_all_logger_channels`: list all logger channels
     - `list_all_logger_formatters_non_json`: list all logger formatters except JSON
     - `get_current_channel_level`: get current logger channel level
+- UI: `socket.ui` for future UI splitting
+- Docs: a documentation plan at `docs/plan.md`
   
 
 ### Changed
@@ -110,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `list_all_config_files` for listing all config files at first and second level
 - Bootstrap:
   - Import-time initialization now calls the tree/key verification helpers so user config directories are automatically synchronized with the bundled templates.
+  - Prints clearer copy/verify progress during bootstrap
 - `list_all_config_files`:
   - deterministic top-level globbing and explicit recursive traversal for nested YAML keeps discoveries stable regardless of filesystem ordering.
 - Experiments:
@@ -125,6 +132,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `GitSolver` now caches detected installers, includes Linux/BSD managers (apt, dnf, yum, zypper, pacman, pkg, snap, scoop, port), and prefixes sudo only when required.
 - Plugin:
   - Simplified configuration operations
+  - Move some pluggin-specified imports inside the plugin class
+- Makefile:
+  - Build tooling: `make compile-ui` recompiles Qt forms, and `tools/translate.sh` now accepts a `stage` env flag plus formats regenerated UI modules with `black` for deterministic artifacts; `make translate` now performs the full release stage.
+- Utils:
+  - Modernized `resolve_lambda_expression`, 
+  - Refactored the `timing` helper with structural pattern matching, prompting updated assertions in `tests/tools/test_utils.py`
+- Citation Manager:
+  - now uses color escape code from `RosettaPy`
   
 
 ### Fixed
@@ -136,6 +151,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Minor fixes according to current changes.
   - ~~Partial user platform dirs mock  to isolate test config from production.~~ WIP
   - PyMOL session helpers now surface exceptions instead of swallowing them so debugging fetch/load failures is easier.
+  - Fixed `test_value_dialog_initialization` by using test worker, as the font propagation was broken under headless environment.
 
 ### Removed
 - Py39 related:
@@ -157,6 +173,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - obsolete tests `tests/cases/UnitTests.py`
 - CI:
   - Removed the stale CircleCI pipeline configuration (`.circleci/config.yml`).
+- Docs:
+  - removed the obsolete API reference and slide decks under `docs/api/` and `docs/slides/`, moving `docs/GCO.md` into `docs/legacy` as part of the new documentation plan.
+- Shortcuts: dropped the unused `shortcuts/tools/ESM-1v_DMS_plot.py`.
+- Tests:
+  - dropped `test_list_all_config_files` case because it is not robust enough when config tree changes during development.
 
 
 ## [1.8.4] - 2025-12-02

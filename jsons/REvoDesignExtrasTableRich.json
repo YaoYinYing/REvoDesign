@@ -12,12 +12,14 @@
                     "name": "DLPacker",
                     "extras_id":"dlpacker",
                     "description": "DLPacker is a GNN-based sidechain solver",
-                    "depts": ["DLPacker"]
+                    "depts": ["DLPacker"],
+                    "python_version": ">=3.10,<3.13"
                 },
                 {
                     "name": "PIPPack",
                     "extras_id":"pippack",
-                    "depts": ["PIPPack"]
+                    "depts": ["PIPPack"],
+                    "python_version": ">=3.10,<3.13"
                 }
             ]
         },
@@ -29,7 +31,8 @@
                     "name": "ColabDesign",
                     "description": "ColabDesign to run ProteinMPNN",
                     "extras_id":"colabdesign",
-                    "depts": ["colabdesign"]
+                    "depts": ["colabdesign"],
+                    "python_version": ">=3.10,<3.13"
                 }
             ]
         },
@@ -41,7 +44,8 @@
                     "name": "ThermoMPNN",
                     "description": "ThermoMPNN-D",
                     "extras_id":"thermompnn",
-                    "depts": ["thermompnn"]
+                    "depts": ["thermompnn"],
+                    "python_version": ">=3.10,<3.13"
                 }
             ]
         },
@@ -53,14 +57,16 @@
                     "name": "ESM1/2",
                     "extras_id":"esm2",
                     "description": "ESM1/2, a protein language model. Renamed as fair-esm2 to avoid name collision with esm3",
-                    "depts": ["fair-esm2"]
+                    "depts": ["fair-esm2"],
+                    "python_version": ">=3.10,<3.13"
                 },
                 {
                     "name": "ESM-Efficient",
                     "extras_id":"esme",
                     "description": "ESM-Efficient, ESM with Flash Attention for faster inference and reduced memory usage",
                     "depts": ["esm-efficient","flash-attn"],
-                    "platform": ["CUDA"]
+                    "platform": ["CUDA"],
+                    "python_version": ">=3.13"
                 }
             ]
         },
@@ -71,7 +77,8 @@
                 {
                     "name": "OpenMM",
                     "extras_id":"openmm",
-                    "depts": ["openmm","asgiref","pdbfixer","openmm-setup"]
+                    "depts": ["openmm","asgiref","pdbfixer","openmm-setup"],
+                    "python_version": ">=3.10,<3.13"
                 }
             ]
         },
@@ -84,7 +91,8 @@
                     "extras_id":"rfdiffusion_cuda",
                     "depts": ["rfdiffusion","nvtx","se3-transformer","wandb"],
                     "description": "RFdiffusion on CUDA",
-                    "platform": ["CUDA"]
+                    "platform": ["CUDA"],
+                    "python_version": ">=3.10,<3.13"
                 },
                 {
                     "name": "RFdiffusion (MPS)",
@@ -94,7 +102,8 @@
                     "platform": ["MPS"],
                     "recipe": [
                         {"pip": ["dgl -f https://data.dgl.ai/wheels/repo.html"]}
-                    ]
+                    ],
+                    "python_version": ">=3.10,<3.13"
                 },
                 {
                     "name": "RFdiffusion",
@@ -109,7 +118,8 @@
                     ],
                     "recipe": [
                         {"pip": ["dgl -f https://data.dgl.ai/wheels/repo.html"]}
-                    ]
+                    ],
+                    "python_version": ">=3.10,<3.13"
                 }
             ]
         },

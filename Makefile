@@ -46,7 +46,8 @@ help:
 	@echo "  install-dgl-linux      Install DGL(<=2.4.0) for Ubuntu"
 	@echo "  install-dgl-win        Install DGL(<=2.2.1) for Windows and macOS"
 	@echo "  reinstall              Reinstall after code changes"
-	@echo "  translate              Translate UI"
+	@echo "  compile-ui             Compile UI to Python code"
+	@echo "  translate              Translate UI translation into binaries"
 	@echo "  prepare-test           Run pip to install pytest-related packages"
 	@echo "  test                   Run the UnitTest suite"
 	@echo "  all-test               Run all tests (firstly the parallel(also the fastest), secondly the serial(also the slower), finally the slowest) "
@@ -111,9 +112,12 @@ reinstall:
 	make clean
 	make black;rm -r /Users/yyy/.REvoDesign/config/; pip install . -U
 
+compile-ui:
+	stage=compile bash tools/translate.sh
+
 # update translation
 translate:
-	bash tools/translate.sh
+	stage=release bash tools/translate.sh
 
 prepare-test:
 	python -m pip install pytest pytest-cov pytest-order coverage -q --no-cache-dir  

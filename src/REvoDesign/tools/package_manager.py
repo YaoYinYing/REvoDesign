@@ -27,9 +27,10 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypeVar, overload
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypedDict, TypeVar, overload
 from urllib.error import HTTPError, URLError
 
+from packaging.version import InvalidVersion, Version
 from pymol import cmd, get_version_message
 from pymol.plugins import addmenuitemqt
 from pymol.Qt.utils import loadUi
@@ -114,14 +115,124 @@ ALLOWED_PROXY_PROTOCOLS = ["http", "https", "socks5", "socks5h"]
 # TODO: native filter on extra groups
 
 
-@dataclass
-class PlatformInfo:
-    """
-    A dataclass representing platform information.
-    """
+class PlatformInfo(TypedDict):
+    HAS_CUDA: bool
+    HAS_MPS: bool
+    PYTHON_VERSION: str
 
-    HAS_CUDA = shutil.which("nvidia-smi") is not None
-    HAS_MPS = platform.system() == "Darwin" and platform.mac_ver()[-1] == "arm64"
+
+PLATFORM_INFO: PlatformInfo = {
+    "HAS_CUDA": shutil.which("nvidia-smi") is not None,
+    "HAS_MPS": platform.system() == "Darwin" and platform.mac_ver()[-1] == "arm64",
+    "PYTHON_VERSION": platform.python_version(),
+}
+
+
+def _safe_parse_version(value: str) -> Version | None:
+    """
+    Parse a version string into a packaging Version, returning None for invalid inputs.
+    """
+    if not value:
+        return None
+    try:
+        return Version(value.strip())
+    except InvalidVersion:
+        logging.debug("Invalid python version spec: %s", value)
+        return None
+
+
+def _python_version_matches(spec: str | None, current_version: str | None) -> bool:
+    """
+    Check if the current Python version matches the specified version specification.
+
+    This function supports multiple version comparison operators including ==, !=, >=, <=, >, <.
+    The version specification can be multiple conditions separated by commas, all conditions must be satisfied.
+    Supports series matching with omitted patch version numbers (e.g., 3.10 can match 3.10.x).
+
+    Args:
+        spec: Version specification string, e.g. ">=3.8,<3.12" or "==3.10", returns True if None
+        current_version: Current Python version string, e.g. "3.10.5", returns True if None
+
+    Returns:
+        bool: Returns True if current version complies with the specification, otherwise False
+    """
+    if not spec or not current_version:
+        return True
+
+    current = _safe_parse_version(current_version)
+    if current is None:
+        return True
+
+    tokens = [token.strip() for token in spec.split(",") if token.strip()]
+    if not tokens:
+        return True
+
+    def _series_match(curr: Version, target: Version) -> bool:
+        """
+        Return True if the current version matches the target series.
+
+        Handles cases where the target omits patch numbers (e.g., 3.10) so that
+        the comparison succeeds when current is 3.10.x.
+        """
+        if curr == target:
+            return True
+        curr_release = curr.release
+        target_release = target.release
+        if not target_release:
+            return False
+        if len(target_release) > len(curr_release):
+            return False
+        return curr_release[: len(target_release)] == target_release
+
+    # Initialize state variables to track equality matching and results of other constraints
+    has_equality = False
+    equality_match = False
+    other_constraints_ok = True
+
+    for token in tokens:
+        # Parse operator and target version value
+        operator = None
+        for prefix in ("!=", ">=", "<=", "==", ">", "<"):
+            if token.startswith(prefix):
+                operator = prefix
+                target_value = token[len(prefix) :]
+                break
+        if operator is None:
+            operator = "=="
+            target_value = token
+
+        target = _safe_parse_version(target_value)
+        if target is None:
+            continue
+
+        # Execute corresponding version comparison logic based on different operators
+        match operator:
+            case "==":
+                has_equality = True
+                if _series_match(current, target):
+                    equality_match = True
+            case "!=":
+                if _series_match(current, target):
+                    other_constraints_ok = False
+            case ">=":
+                if current < target:
+                    other_constraints_ok = False
+            case "<=":
+                if current > target:
+                    other_constraints_ok = False
+            case ">":
+                if current <= target:
+                    other_constraints_ok = False
+            case "<":
+                if current >= target:
+                    other_constraints_ok = False
+
+        if not other_constraints_ok:
+            break
+
+    # Return final result: other constraints must be satisfied, and if there are equality
+    # constraints they must match
+    return other_constraints_ok and (not has_equality or equality_match)
 
 
 @dataclass
@@ -140,6 +251,7 @@ class ExtrasItem:
     depts: list[str]
     description: str | None = None
     platform: list[str] | None = None
+    python_version: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "ExtrasItem":
@@ -158,6 +270,7 @@ class ExtrasItem:
             depts=data["depts"],
             description=data.get("description", data["name"]),
             platform=data.get("platform", None),
+            python_version=data.get("python_version", None),
         )
 
 
@@ -429,6 +542,7 @@ class CheckableListView(QtWidgets.QWidget):
 
         self.items = items
         self.filter = filter
+        python_version_filter = filter.get("PYTHON_VERSION")
 
         for e in self.items.entities:
             # Add as a separator
@@ -444,8 +558,15 @@ class CheckableListView(QtWidgets.QWidget):
 
             for _e in e.extras:
                 if _e.platform:
-                    if any(not getattr(filter, f"HAS_{p}") for p in _e.platform):
+                    if any(not filter.get(f"HAS_{p}") for p in _e.platform):
                         logging.debug(f"Skipping {_e.name} for {_e.platform}")
+                        continue
+
+                if _e.python_version and python_version_filter:
+                    if not _python_version_matches(_e.python_version, python_version_filter):
+                        logging.debug(
+                            f"Skipping {_e.name} due to python version ({python_version_filter} requires {_e.python_version})",
+                        )
                         continue
 
                 # Add as a regular checkable item
@@ -635,7 +756,6 @@ class GitSolver:
         return False, file_path
 
 
-# TODO: switch to uv maybe
 @dataclass
 class PIPInstaller:
     """
@@ -844,8 +964,6 @@ class REvoDesignPackageManager:
     extra_checkbox: CheckableListView = None  # type: ignore
     pip_installer: PIPInstaller = None  # type: ignore
     remote_extra_group_data: ExtrasGroups = None  # type: ignore
-
-    platform_info = PlatformInfo()
 
     def ensure_ui_file(self, upgrade: bool = False):
         ui_file = os.path.abspath(
@@ -1096,7 +1214,7 @@ class REvoDesignPackageManager:
 
         # Create and position the extra components checkbox list
         self.extra_checkbox = CheckableListView(
-            self.installer_ui.listView_extras, self.remote_extra_group_data, filter=self.platform_info
+            self.installer_ui.listView_extras, self.remote_extra_group_data, filter=PLATFORM_INFO
         )
 
     def notification_channel(self, d: dict):
@@ -2569,8 +2687,6 @@ def solve_installation_config(
 
 
 # entrypoint of PyMOL plugin
-
-
 def __init_plugin__(app=None):
     """
     Add an entry to the PyMOL "Plugin" menu
@@ -2593,6 +2709,7 @@ def __init_plugin__(app=None):
 
     revodesign_plugin = None
 
+    # lazy load
     def launch_revodesign():
         nonlocal revodesign_plugin
         if revodesign_plugin is None:

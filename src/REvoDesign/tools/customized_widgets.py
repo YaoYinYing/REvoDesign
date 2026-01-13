@@ -90,7 +90,12 @@ class REvoDesignWidget(QtWidgets.QWidget):
             allow_repeat (bool): If True, allows multiple instances of the widget with the same name. Defaults to False.
             parent (Optional[QWidget]): The parent widget. Defaults to None.
         """
-        super().__init__(parent)
+        from REvoDesign.application.font.font_manager import CURRENT_FONT, DEFAULT_FONT
+
+        super().__init__(parent=parent)
+        if not parent:
+            self.setFont(CURRENT_FONT or DEFAULT_FONT)
+
         self.setObjectName(object_name or "AnonymousWidget")
         self.allow_repeat = allow_repeat
 
@@ -941,6 +946,9 @@ def getOpenFileNameWithExt(*args, **kwargs):
 
     return fname
 
+@overload
+def set_widget_value(widget: QtWidgets.QFontComboBox, value: QtGui.QFont | str ): ...
+
 
 @overload
 def set_widget_value(widget: QtWidgets.QStackedWidget, value: list): ...
@@ -1060,6 +1068,11 @@ def set_widget_value(widget, value):
                     widget.deleteLater()
             image_widget = ImageWidget(value)  # Assuming ImageWidget is defined elsewhere
             widget.addWidget(image_widget)
+    elif isinstance(widget, QtWidgets.QFontComboBox):
+        if isinstance(value, str):
+            widget.setCurrentFont(QtGui.QFont(value))
+        elif isinstance(value, QtGui.QFont):
+            widget.setCurrentFont(value)
     else:
         set_value_error(widget, value)
 
@@ -1069,7 +1082,7 @@ def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ...  # type: ignore
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QComboBox | QtWidgets.QLineEdit) -> str: ...  # type: ignore
+def get_widget_value(widget: QtWidgets.QComboBox | QtWidgets.QLineEdit | QtWidgets.QFontComboBox) -> str: ...  # type: ignore
 
 
 @overload
@@ -1119,6 +1132,8 @@ def get_widget_value(widget: QtWidgets.QWidget) -> Any:
         return float(widget.value())
     if isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
+    if isinstance(widget, QtWidgets.QFontComboBox):
+        return widget.currentFont().family()
 
     raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
@@ -1405,6 +1420,7 @@ def refresh_tree_widget(user_tree: dict[str, dict], treeWidget_ws_peers):
 
     return
 
+AskedValueSourceT=Literal["None", "File", "FileO", "Files", "Directory", "JsonInput", "ColorPicker"]
 
 @dataclass
 class AskedValue:
@@ -1447,7 +1463,7 @@ class AskedValue:
     reason: str | None = None
     required: bool = False
     choices: Iterable | Callable[[], Iterable | None] | None = None
-    source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput", "ColorPicker"] = "None"
+    source: AskedValueSourceT  = "None"
     ext: FExCol | None = None
     multiple_choices: bool = False
 
@@ -1760,6 +1776,7 @@ class ValueDialog(REvoDesignWidget):
         # Preprocess choices if callable
         choices = asked_value.choices
 
+        # get actual choices from callable
         if callable(choices):
             try:
                 choices = choices()
@@ -1769,7 +1786,8 @@ class ValueDialog(REvoDesignWidget):
                 )
                 choices = None
 
-        # a multi-choice
+        # Col 2 Dispatch
+        #  a multi-choice
         if asked_value.multiple_choices:
             if not choices:
                 raise issues.InternalError(f"Multi-choice field must have a valid choices, not {choices}")
@@ -1820,7 +1838,7 @@ class ValueDialog(REvoDesignWidget):
             if asked_value.required:
                 widget.setPlaceholderText("Required")
 
-        # Column 2: Input widget
+        # Column 2: Input widget common properties
         widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         widget.setToolTip(asked_value.reason or "")
         self.input_fields[asked_value.key] = widget

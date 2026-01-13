@@ -7,7 +7,6 @@ from __future__ import annotations
 import contextlib
 import importlib
 import inspect
-import itertools
 import random
 import string
 import sys
@@ -32,27 +31,23 @@ from .package_manager import run_command, run_worker_thread_with_progress
 logging = ROOT_LOGGER.getChild(__name__)
 
 
-def resolve_dotted_function(dotted_str: str) -> Callable:
+def resolve_dotted_expression(dotted_str: str) -> Any:
     """
-    Resolves a dotted string into a callable Python object (function or method).
-
-    The input string must follow one of these formats:
-
-    - `<module_path>:<function_name>` (for module-level functions)
-      Example: `"my_module.submodule:my_function"`
-
-    - `<module_path>:<class_name>.<method_name>` (for class methods)
-      Example: `"my_module.submodule:MyClass.my_method"`
+    Import the object referenced by a dotted string such as `<module>:attr` or
+    `<module>:Class.member`.
 
     Args:
-        dotted_str (str): A string representing the fully qualified path to a callable.
+        dotted_str (str): Fully qualified reference using a colon between the
+            import path and the attribute/member portion.
 
     Returns:
-        Callable: The resolved callable function or method.
+        Any: The resolved attribute, which can be a function, class, descriptor,
+            or any other object exposed by the module or class.
 
     Raises:
-        issues.InvalidInputError: If the string does not contain a colon (`:`) or does not follow the expected format.
-        AttributeError: If the specified module, class, or function does not exist.
+        issues.InvalidInputError: If the string does not contain a colon or
+            otherwise violates the expected pattern.
+        AttributeError: If the module, class, or attribute cannot be located.
     """
     if ":" not in dotted_str:
         raise issues.InvalidInputError(
@@ -62,40 +57,62 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     module_path, func_name = dotted_str.rsplit(":", 1)
     module = importlib.import_module(module_path)
     if "." not in func_name:
-        logging.debug(f"Dotted function resolving `{func_name}` from {module}")
+        logging.debug(f"Dotted resolving `{func_name}` from {module}")
         return getattr(module, func_name)
     # maybe a class method?
 
     _class_name, _func_name = func_name.rsplit(".")
-    logging.debug(f"Dotted function resolving `{_class_name}.{_func_name}` from {module}")
+    logging.debug(f"Dotted resolving `{_class_name}.{_func_name}` from {module}")
     _class = getattr(module, _class_name)
     return getattr(_class, _func_name)
 
 
+def resolve_dotted_function(dotted_str: str) -> Callable:
+    """
+    Resolve a dotted reference to a callable object and return it.
+
+    Args:
+        dotted_str (str): Dotted identifier in the form `<module>:callable` or
+            `<module>:Class.method`.
+
+    Returns:
+        Callable: The imported callable referenced by `dotted_str`.
+
+    Raises:
+        issues.UnsupportedDataTypeError: If the resolved object exists but
+            cannot be called.
+    """
+    c = resolve_dotted_expression(dotted_str)
+    logging.debug(f"Dotted resolving `{c}` from {dotted_str}")
+    if callable(c):
+        return c
+    raise issues.UnsupportedDataTypeError(f"Expected as a callable: {dotted_str}: {c}")
+
+
 @overload
 def resolve_lambda_expression(expression: str, as_partial: Literal[True]) -> Callable:
-    """Resolve a lambda expression to a partial function."""
+    """Return a partial callable for the encoded expression."""
 
 
 @overload
 def resolve_lambda_expression(expression: str, as_partial: Literal[False] | None) -> Any:
-    """Resolve a lambda expression to a callable and call it for the results."""
+    """Execute the encoded expression and return the result."""
 
 
 def resolve_lambda_expression(expression: str, as_partial: bool | None = None) -> Any:
     """
-    Resolve a lambda expression to a callable.
-    Args:
-        expression (str): The lambda expression in the format 'LAMBDA:dotted_function,arg1,arg2,...'
-        as_partial (bool | None): If True, return a partial function instead of calling it.
-    Returns:
-        Any: The result of the lambda function call.
-    Raises:
-        issues.InvalidInputError: If the expression does not start with 'LAMBDA:'.
+    Resolve a serialized callable expression of the form
+    `LAMBDA:<dotted_callable>[,<arg>|,<key=value>...]`.
 
-    Example:
-        >>> resolve_lambda_expression("LAMBDA:math.sqrt,4")
-        2.0
+    Positional and keyword arguments are converted from their string form into
+    bools, ints, floats, or left as strings when no other conversion is
+    possible. When `as_partial` is truthy the function returns a
+    `functools.partial`; otherwise the callable is invoked immediately and its
+    return value is passed through.
+
+    Raises:
+        issues.InvalidInputError: If the expression is not prefixed with
+            `LAMBDA:` or it does not refer to a callable object.
     """
     if not expression.startswith("LAMBDA:"):
         raise issues.InvalidInputError("Lambda expression must start with 'LAMBDA:'", f"not `{expression}`")
@@ -760,14 +777,16 @@ def timing(msg: str, unit: Literal["ms", "sec", "min", "hr"] = "sec"):
     yield
     toc = time.perf_counter()
     tic_toc = toc - tic
-    if unit == "sec":
-        logging.info(f"Finished {msg} in {tic_toc:.3f} seconds")
-    elif unit == "min":
-        logging.info(f"Finished {msg} in {tic_toc / 60:.3f} minutes")
-    elif unit == "hr":
-        logging.info(f"Finished {msg} in {tic_toc / 3600:.3f} hours")
-    elif unit == "ms":
-        logging.info(f"Finished {msg} in {tic_toc * 1000:.3f} milliseconds")
+    match unit:
+        case "ms":
+            tic_toc *= 1000
+        case "min":
+            tic_toc /= 60
+        case "hr":
+            tic_toc /= 3600
+        case _:
+            unit = "sec"
+    logging.info(f"Finished {msg} in {tic_toc:.3f} {unit}")
 
 
 def convert_residue_ranges(

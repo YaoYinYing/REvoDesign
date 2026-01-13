@@ -136,7 +136,11 @@ ui:
       repack_radius: 0.0 # TODO: deprecated
 # for deep learning frameworks like pytorch, tensorflow, etc.
 # unified device setting across all deep learning frameworks
-accelerator: cpu
+# auto: the best device available
+# cpu: cpu
+# mps: mps
+# cuda: cuda
+accelerator: auto
 
 # TODO: config setting triggers
 config_settings:
