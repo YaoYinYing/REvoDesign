@@ -1,4 +1,6 @@
-# Form implementation generated from reading ui file '/Users/yyy/Documents/protein_design/REvoDesign/src/REvoDesign/UI/REvoDesign.ui'
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'src/REvoDesign/UI/REvoDesign.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -9,7 +11,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_REvoDesignPyMOL_UI:
+class Ui_REvoDesignPyMOL_UI(object):
     def setupUi(self, REvoDesignPyMOL_UI):
         REvoDesignPyMOL_UI.setObjectName("REvoDesignPyMOL_UI")
         REvoDesignPyMOL_UI.setEnabled(True)
@@ -2335,16 +2337,10 @@ class Ui_REvoDesignPyMOL_UI:
         self.retranslateUi(REvoDesignPyMOL_UI)
         self.tabWidget.setCurrentIndex(0)
         self.stackedWidget.setCurrentIndex(1)
-        self.checkBox_ws_server_mode.toggled["bool"].connect(
-            self.groupBox_ws_server_settings.setEnabled
-        )  # type: ignore
-        self.checkBox_ws_server_mode.toggled["bool"].connect(
-            self.groupBox_ws_client_settings.setDisabled
-        )  # type: ignore
+        self.checkBox_ws_server_mode.toggled["bool"].connect(self.groupBox_ws_server_settings.setEnabled)  # type: ignore
+        self.checkBox_ws_server_mode.toggled["bool"].connect(self.groupBox_ws_client_settings.setDisabled)  # type: ignore
         self.checkBox_ws_server_use_key.toggled["bool"].connect(self.lineEdit_ws_server_key.setEnabled)  # type: ignore
-        self.checkBox_randomized_sampling.toggled["bool"].connect(
-            self.spinBox_randomized_sampling.setEnabled
-        )  # type: ignore
+        self.checkBox_randomized_sampling.toggled["bool"].connect(self.spinBox_randomized_sampling.setEnabled)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(REvoDesignPyMOL_UI)
 
     def retranslateUi(self, REvoDesignPyMOL_UI):
