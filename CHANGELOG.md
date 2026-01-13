@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```
 ## [Unreleased]
+
+## [1.8.5] - 2026-01-14
 ### Added
 - Server: 
   - Basic authentication guide and implementation
@@ -152,6 +154,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ~~Partial user platform dirs mock  to isolate test config from production.~~ WIP
   - PyMOL session helpers now surface exceptions instead of swallowing them so debugging fetch/load failures is easier.
   - Fixed `test_value_dialog_initialization` by using test worker, as the font propagation was broken under headless environment.
+  - reduce test time for:
+    - unmark `TestREvoDesignPlugin`, `TestREvoDesignPlugin_TabPrepare` and `TestREvoDesignPlugin_TabVisualize` to run in fast group. Test results from Prepare module is required for downstream test cases of tabs.
+    - use `Dunbrack Rotamer Library` for `test_visualize_pssm_ddg`
+    - reduced mutant numbers in xlsx and csv files
+    - replace test data msa file of `test_run_gremlin`
+    - reduced `partial_T` for RFD test
+    - reduced `mpnn_num_designs`, `pocket_pssm_residues` for `mutate` and `visualize`
+    - reduced click operations of gremlin analysis:
+      - `gremlin_monomer_clicks_a2a`
+      - `gremlin_monomer_clicks_o2a`
+      - `gremlin_homomer_clicks_a2a`
+      - `gremlin_homomer_clicks_o2a`
+    - reduced `gremlin_topN` from 35 to 5
 
 ### Removed
 - Py39 related:
