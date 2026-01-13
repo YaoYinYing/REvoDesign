@@ -10,7 +10,6 @@
 
 ## Developer guide
 
-
 ### Key concepts in REvoDesign
 
 #### Biology
@@ -23,7 +22,7 @@
 6. [Profiles](../../src/REvoDesign/common/profile_parsers.py) (PSSM, ddG, ESM1v, etc): read various data sources
 7. [Mutant Visualizer](../../src/REvoDesign/common/mutant_visualise.py): Load mutants into PyMOL
 8. [Evaluator](../../src/REvoDesign/evaluate/evaluator.py), mutant decision makings
-9. [Interact](../../src/REvoDesign/phylogenetics/evo_mutator.py): [ GREMLIN tool](../../src/REvoDesign/phylogenetics/gremlin_tools.py) and Pytorch [implementation](../../src/REvoDesign/phylogenetics/gremlin_pytorch.py) and [validation](../../notebooks/validate_gremlin_pytorch.ipynb)
+9. [Interact](../../src/REvoDesign/phylogenetics/evo_mutator.py): [GREMLIN tool](../../src/REvoDesign/phylogenetics/gremlin_tools.py) and Pytorch [implementation](../../src/REvoDesign/phylogenetics/gremlin_pytorch.py) and [validation](../../notebooks/validate_gremlin_pytorch.ipynb)
 10. [Cluster](../../src/REvoDesign/clusters/cluster_sequence.py): Clustering mutant sequences
 11. [Rosetta Tasks](../../src/REvoDesign/shortcuts/tools/rosetta_tasks.py)
 
@@ -57,7 +56,7 @@
 16. [Package Manager](../../src/REvoDesign/tools/package_manager.py) (also the package manager util at `tools`)
     1. UI: stored at `../../src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui`, uploaed to Gist via `make upload-gists`
     2. bootstrap of UI and Extras rich table
-    3. Extras registry: 
+    3. Extras registry:
        1. stored at `../../jsons/REvoDesignExtrasTableRich.json`, uploaded to Gist via `make upload-gists`
        2. fetch, record, solve, filter, show, install
     4. Git solving
@@ -65,19 +64,19 @@
     6. pip installer (commit, tag, branch, extras)
     7. Package Manager
     8. Worker Thread
-    9.  Unified worker thread wrapping
+    9. Unified worker thread wrapping
     10. notify box and decide forks
     11. issue collections and sensitive data filtering
     12. trigger button holding and animation
     13. lazy loading of REvoDesign packages
 17. Menu shortcuts
-   1. [`AskedValue` dataclasses](../../src/REvoDesign/tools/customized_widgets.py): representation of data form inputs, collected by `AskedValueCollection`
-   2. YAML config: [registry](../../src/REvoDesign/shortcuts/registry) and [wrapper](../../src/REvoDesign/shortcuts/wrappers), dynamic inputs, [resolve inputs from various sources](../../src/REvoDesign/shortcuts/utils.py)
-   3. Window pop-ups w/ [`ValueDialog`]((../../src/REvoDesign/tools/customized_widgets.py)): create, edit, submit, destroy, real-time updates. See also the [README](../../src/REvoDesign/shortcuts/README.md).
+       1. [`AskedValue` dataclasses](../../src/REvoDesign/tools/customized_widgets.py): representation of data form inputs, collected by `AskedValueCollection`
+       2. YAML config: [registry](../../src/REvoDesign/shortcuts/registry) and [wrapper](../../src/REvoDesign/shortcuts/wrappers), dynamic inputs, [resolve inputs from various sources](../../src/REvoDesign/shortcuts/utils.py)
+       3. Window pop-ups w/ [`ValueDialog`]((../../src/REvoDesign/tools/customized_widgets.py)): create, edit, submit, destroy, real-time updates. See also the [README](../../src/REvoDesign/shortcuts/README.md).
 
 18. Tools Uitilities:
     1. [CGO](../../src/REvoDesign/tools/cgo_utils.py): high-level API for PyMOL CGO generation, for future uses. Contains an easter egg.
-    2.  [Customized widgets](../../src/REvoDesign/tools/customized_widgets.py): Customized widgets for REvoDesign.
+    2. [Customized widgets](../../src/REvoDesign/tools/customized_widgets.py): Customized widgets for REvoDesign.
         1. `REvoDesignWidget`: base class for customized widgets in REvoDesign.
         2. `ButtonCoords` and `QButtonBrick`: data class for button coordinates and button brick.
         3. `QHoverCross`: hover cross widget.
@@ -101,7 +100,7 @@
 2. Server setup
    1. Documentation at this [README](../../server/README.md)
    2. Docker image at [DockerHub](https://hub.docker.com/r/yaoyinying/revodesign-pssm-gremlin)
-   3. Also Dockerfile at [here](../../server/docker/Dockerfile)
+   3. Also [Dockerfile for making the image](../../server/docker/Dockerfile)
    4. Environment [inside container](../../server/env/GREMLIN.yml) and [for the server](../../server/env/REvoDesign.yml)
 
 ### UI design
@@ -135,9 +134,13 @@ Package manager currently doesn't have any translations.
 4. Test data
    1. Minimal at `tests/data`
    2. Large case as urls
-   
+5. Test runs
+   The test run must be under `<repo-root>/tmp-test-dir-with-unique-name` to avoid polluting the repo. Shortcut commands in Makefile have already included this.
+6. cleanup:
+   Run `make clean` to remove all temporary files.
 
 ### CI file for GHA
+
 - [Test suite](../../.github/workflows/unit_tests_tag.yml)
 - [linting badge](../../.github/workflows/lint_badge.yml)
 - [PR semantic check](../../.github/workflows/schedule-update-actions.yml)
@@ -148,14 +151,14 @@ Package manager currently doesn't have any translations.
 
 CI concept: Test REvoDesign with different versions of Python and PyMOL releases across different platforms.
 
-| Test  | Configuration |
-|-------|---------------|
-| Platform|  GitHub Actions|
-| OS | Ubuntu by default for daily dev, MacOS and Windows can be added if needed |
-| Python |  3.10, 3.11, 3.12 |
-| Environments|  Conda, Pip |
-| PyMOL versions and channels | PyMOL Open Source (Conda-Forge), PyMOL Bundled (Schrodinger, officially). v2 or v3 |
-| Rosetta | Rosetta Docker (inject rosetta node as docker_mpi, only available for Ubuntu) |
+| Aspect                     | Configuration                                                                                             | Notes                                                                                              |
+|----------------------------|-----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| Platform                   | GitHub Actions                                                                                            | Mirrors prod workflows; supports matrix jobs + caching.                                            |
+| Operating systems          | Ubuntu (primary), macOS, Windows                                                                          | Linux images run daily; macOS/Windows triggered for release validation when additional coverage needed. |
+| Python versions            | 3.10, 3.11, 3.12                                                                                          | Matrix fan-out ensures backward compatibility across supported interpreters.                       |
+| Environment managers       | Conda, Pip                                                                                                | Conda used for PyMOL + scientific stack; pip wheel path covers lightweight smoke tests.            |
+| PyMOL channels / versions  | PyMOL Open Source (Conda-Forge), PyMOL Bundled (Schrödinger) v2 & v3                                      | Ensures plugin works both with OSS builds and official bundle APIs.                                |
+| Rosetta integration        | Rosetta Docker (docker_mpi node injection, Ubuntu-only)                                                   | Pulled conditionally using `ENABLE_ROSETTA_CONTAINER_NODE_TEST`; skipped in lightweight workflows. |
 
 #### CI workflow
 
@@ -176,6 +179,7 @@ CI concept: Test REvoDesign with different versions of Python and PyMOL releases
    8. cleanup environment
 
 #### Release process
+
 1. Check the latest CI results
 2. Document any changes in the changelog `CHANGELOG.md`
 3. Change the version number in `src/REvoDesign/__init__.py`, make sure the new version is correct and could pass the [checker](https://regex101.com/r/6AoOI9/1) or match the regex:
@@ -187,5 +191,68 @@ CI concept: Test REvoDesign with different versions of Python and PyMOL releases
 4. Save the file `src/REvoDesign/__init__.py`
 5. Commit the changes by running `make tag`. A new tag will be created in tag history and the changelog.
 
+### Code Quality
+
+Various tools are engaged to maintain the code quality.
+
+#### Cloud-based
+
+- Maintainability: Codebase maintainability check
+- DeepSource: Code Quality analysis
+- CodeRabbit: Code Review (150 files maximum)
+- Codecov: Test coverage tracking
+- Qlty: Code Quality analysis
+- ChatGPT Codex: Code Review
+
+#### Pre-commit hooks
+
+See the [pre-commit hooks](../../.pre-commit-config.yaml) for details.
+
+- `pyupgrade`
+- `pycln`
+- `pygrep-hooks`
+- `check-manifest`
+- `autopep8`
+- `flake8`
+- `autoflake`
+- `isort`
+- `black`
+
+> [!IMPORTANT]
+> Note that the hooks will not be run before committing, as current quality gate wont allow it. ;-)
+
 ### Makefile shortcuts
+
 (see `Makefile` for details)
+
+| command              | description                                                                                               |
+|----------------------|-----------------------------------------------------------------------------------------------------------|
+| help                 | Print this message and exit                                                                               |
+| setup-display-gha    | Setup ubuntu display for GitHub Actions and CircleCI                                                      |
+| upload-gists         | Upload Gist files                                                                                         |
+| install-pymol-plugin | Install PyMOL plugin                                                                                      |
+| install              | Install from pip                                                                                          |
+| install-no-dept      | Install from pip, no dependencies                                                                         |
+| install-pytorch-cpu  | Install torch-cpu for ci runner image                                                                     |
+| install-dgl-linux    | Install DGL(<=2.4.0) for Ubuntu                                                                           |
+| install-dgl-win      | Install DGL(<=2.2.1) for Windows and macOS                                                                |
+| reinstall            | Reinstall after code changes                                                                              |
+| compile-ui           | Compile UI to Python code                                                                                 |
+| translate            | Translate UI translation into binaries                                                                    |
+| prepare-test         | Run pip to install pytest-related packages                                                                |
+| test                 | Run the UnitTest suite                                                                                    |
+| all-test             | Run all tests (firstly the parallel(also the fastest), secondly the serial(also the slower), finally the slowest) |
+| fast-test            | Run all fast tests (first order)                                                                          |
+| serial-test          | Run all serial tests (second order)                                                                       |
+| slow-test            | Run all slow tests (third order)                                                                          |
+| kw-test              | Run the Keyword Test suite                                                                                |
+| kw-test-pdb          | Run the Keyword Test suite with pdb                                                                       |
+| macos-rosetta-test   | Run UI tests versus PyMOL incentive installation (MacOS Application)                                      |
+| memray               | Memoray profile for leakage, saved as html file                                                           |
+| memray-live          | Memoray profile for leakage in live mode                                                                  |
+| tag                  | Bump a new tag from package version to github tag                                                         |
+| black                | Reformat the code with pre-commit hook                                                                    |
+| reverse              | Run pyreverse for package and methods and create SVGs                                                     |
+| license-update       | License updates for all files                                                                             |
+| license-check        | Check license for all files                                                                               |
+| clean                | Clean up build and generated files                                                                        |
