@@ -224,7 +224,7 @@ Test REvoDesign with different versions of Python and PyMOL releases across diff
    7. upload coverage data to Codecov
    8. cleanup environment
 
-#### Release process
+### Release process (`docs/release-tag.md`)
 
 1. Check the latest CI results
 2. Document any changes in the changelog `CHANGELOG.md`
