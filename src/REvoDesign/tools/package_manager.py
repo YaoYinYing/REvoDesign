@@ -756,7 +756,6 @@ class GitSolver:
         return False, file_path
 
 
-
 @dataclass
 class PIPInstaller:
     """
