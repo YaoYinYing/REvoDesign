@@ -9,8 +9,9 @@ from tests.conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
+# move to the fast
 
-@pytest.mark.serial
+
 @pytest.mark.order(2)
 class TestREvoDesignPlugin_TabPrepare:
     def test_load_molecule(self, test_worker: TestWorker):

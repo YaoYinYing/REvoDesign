@@ -122,8 +122,6 @@ def test_main_config_upgrade(user_decide, patch_config_user_data):
             mock_rmtree.assert_not_called()
 
 
-
-
 def test_iter_yaml_rel_paths(tmp_path):
     base_dir = tmp_path / "configs"
     base_dir.mkdir()
