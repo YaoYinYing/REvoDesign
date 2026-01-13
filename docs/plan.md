@@ -14,7 +14,7 @@ This plan turns the scattered documentation notes into a cohesive set of guides 
 - **Contributors**: Engineers extending the platform, writing plugins, or integrating new analyses.
 - **Maintainers**: Owners of release, build, and infrastructure processes.
 
-## User Tutorial
+## User Tutorial (`docs/tutorials/**.md`)
 
 ### 1. Introduction
 
@@ -26,7 +26,7 @@ This plan turns the scattered documentation notes into a cohesive set of guides 
 
 ### Key concepts in REvoDesign
 
-#### Biology (`docs/biological.md`)
+#### Biology (`docs/concepts/biological.md`)
 
 1. [Mutant](../src/REvoDesign/common/mutant.py)
 2. [Mutant Tree](../src/REvoDesign/common/mutant_tree.py)
@@ -40,7 +40,7 @@ This plan turns the scattered documentation notes into a cohesive set of guides 
 10. [Cluster](../src/REvoDesign/clusters/cluster_sequence.py): Clustering mutant sequences
 11. [Rosetta Tasks](../src/REvoDesign/shortcuts/tools/rosetta_tasks.py)
 
-#### Software and API designs (`docs/api-designs.md`)
+#### Software and API designs (`docs/api-designs/**.md`)
 
 1. [Singleton Abstract](../src/REvoDesign/basic/README.md)
 2. Config Tree
@@ -108,7 +108,34 @@ This plan turns the scattered documentation notes into a cohesive set of guides 
     6. [Session merger](../src/REvoDesign/tools/SessionMerger.py): Merge PyMOL sessions in a safe way (via commandline interface calls to avoid segfaults caused by loading the same-name objects into a PyMOL session)
 19. PyMOL extended command [auto-completion](../src/REvoDesign/shortcuts/README.autocompletion.md)
 
-#### PSSM_GREMLIN (`docs/pssm_gremlin_server.md`)
+### HOW-TOs
+
+#### Functions (`docs/how-to/add-new-functions.md`)
+
+1. Add a new designer
+2. Add a new mutate runner
+3. Support a new profile format
+4. Add a new Rosetta Protocol
+5. Add a new design function
+
+#### Code (`docs/how-to/add-new-code.md`)
+
+1. Add a new config file
+2. Convert a new function into a window pop and register it to a QMenu
+3. Add a new dependency extra record
+4. Modify the UIs and translate them
+5. Synchronize the gists for the PM
+
+#### Maintenance (`docs/how-to/get-codebase-maintainable.md`)
+
+1. Write tests and get them to pass
+2. Get codebase formatted
+3. Bump version and record changes in CHANGELOG
+4. Troubleshoot when failed to get a CI green check
+5. Vibe-coding tool uses (certain functions, tests, docs, etc.) under strict control
+6. Typing checker matters, yet it's not always the law. **Don't** fight against it and struggle to get it right.
+
+### PSSM_GREMLIN (`docs/pssm_gremlin_server.md`)
 
 1. [Run script](../server/REvoDesign_PSSM_GREMLIN.sh) for direct execution
 2. Server setup
@@ -135,23 +162,25 @@ Package manager currently doesn't have any translations.
    2. Serial: Heavy and resource-occupying (coverage appended)
    3. Slow Tests: Gremlin analysis (coverage appended)
 3. [Test Worker](../tests/conftest.py) (for launching tests w/ head and handles specialised GUI interacts w/ REvoDesign main window)
-   1. load molecules
-   2. edit widgets
-   3. click buttons
+   1. Load molecules
+   2. Edit widgets
+   3. Click buttons
    4. UI screenshots
    5. PyMOL screenshots
-   6. check mutant tree
-   7. unique test case name
-   8. performance report
-   9. config injection
-   10. reinitialize everything
+   6. Check mutant tree
+   7. Unique test case name
+   8. Performance report
+   9. Config injection
+   10. Reinitialize everything
 4. Test data
    1. Minimal at `tests/data`
    2. Large case as urls
 5. Test runs
    The test run must be under `<repo-root>/tmp-test-dir-with-unique-name` to avoid polluting the repo. Shortcut commands in Makefile have already included this.
-6. cleanup:
+6. Cleanup:
    Run `make clean` to remove all temporary files.
+7. Test the changes on local machine before pushing to repo.
+   Keyword testings first, then the fast, finally the full.
 
 ### CI file for GHA (`docs/ci-gha.md`)
 
@@ -161,9 +190,12 @@ Package manager currently doesn't have any translations.
 - [PSSM GREMLIN docker image](../.github/workflows/docker-image.yml)
 - [Action version upgrader](../.github/workflows/schedule-update-actions.yml)
 
-#### Basic
+> [!WARNING]
+> DO NOT EVER USE CIRCLECI.
 
-CI concept: Test REvoDesign with different versions of Python and PyMOL releases across different platforms.
+#### CI concept
+
+Test REvoDesign with different versions of Python and PyMOL releases across different platforms.
 
 | Aspect                     | Configuration                                                                                             | Notes                                                                                              |
 |----------------------------|-----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
@@ -200,6 +232,12 @@ CI concept: Test REvoDesign with different versions of Python and PyMOL releases
 
    ```regex
    v?(?:(?:(?P<epoch>[0-9]+)!)?(?P<release>[0-9]+(?:\.[0-9]+)*)(?P<pre>[-_\.]?(?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))[-_\.]?(?P<pre_n>[0-9]+)?)?(?P<post>(?:-(?P<post_n1>[0-9]+))|(?:[-_\.]?(?P<post_l>post|rev|r)[-_\.]?(?P<post_n2>[0-9]+)?))?(?P<dev>[-_\.]?(?P<dev_l>dev)[-_\.]?(?P<dev_n>[0-9]+)?)?)(?:\+(?P<local>[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?
+   ```
+
+   It also can be checked via the test suite:
+
+   ```bash
+   make kw-test PYTEST_KW='test_version'
    ```
 
 4. Save the file `src/REvoDesign/__init__.py`
