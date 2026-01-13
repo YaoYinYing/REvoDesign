@@ -1,151 +1,118 @@
-# Plan on REvoDesign documents
+# REvoDesign Documentation Plan
 
-## User Tutorial
+This plan turns the scattered documentation notes into a cohesive set of guides that serve both new users and contributors. Each deliverable below should link back to the README and be written in approachable Markdown with diagrams or tables where useful.
 
-### 1. Introduction
+## Goals
+- Explain what REvoDesign does, why the workflow matters, and how to reproduce core tasks.
+- Remove guesswork for developers by documenting architecture, APIs, and testing/CI expectations.
+- Keep onboarding quick by pointing to automated setup commands and troubleshooting tips.
 
-### 2. UI, modules, functions, menus
+## Audiences
+- **Practitioners**: Researchers using REvoDesign through the GUI or CLI who need task-driven tutorials.
+- **Contributors**: Engineers extending the platform, writing plugins, or integrating new analyses.
+- **Maintainers**: Owners of release, build, and infrastructure processes.
 
-### 3. Case
+## Deliverables Snapshot
 
-## Developer guide
+| Doc | Owner | Content Summary | Status Target |
+| --- | ----- | --------------- | ------------- |
+| README refresh | Docs WG | Link to tutorials, quick start matrix, support channels | Ready |
+| `docs/tutorial.md` | UX + Bio team | Step-by-step walkthrough with screenshots/video refs | Draft |
+| `docs/developer-guide.md` | Core devs | Architecture, APIs, style, contribution workflow | Draft |
+| `docs/testing.md` | QA | Test tiers, fixtures, CI diagnostics | Draft |
+| `docs/ci.md` | DevOps | GitHub Actions matrix, caching, credentials handling | Draft |
+| `docs/ui-design.md` | UX | Widget conventions, accessibility, translation workflow | Backlog |
 
+## User Tutorial (`docs/tutorial.md`)
+1. **Introduction**
+   - Short overview of REvoDesign goals; cite supported operating systems and environment setup (conda + PyMOL + PyTorch CPU).
+   - Link to demo datasets and video overview.
+2. **Interface Tour**
+   - Break down UI panels: configuration pane, mutant tree, workspace canvas, 3D PyMOL view, log console.
+   - Highlight menus with annotated screenshots.
+3. **Core Workflow**
+   - Importing structures, defining design hotspots, running mutant designers.
+   - Visualizing results (Mutant Visualizer, GREMLIN analyzer) and interpreting metrics (ddG, PSSM).
+4. **Case Studies**
+   - Mini-project: mutate binding pocket, evaluate with GREMLIN clustering, export report.
+   - Provide copy/paste commands, expected runtime, troubleshooting checklist.
+5. **Appendix**
+   - Keyboard shortcuts, data file formats, glossary of domain terms.
 
+## Developer Guide (`docs/developer-guide.md`)
 
-### Key concepts in REvoDesign
+### Architecture Overview
+- Explain high-level modules: Config tree/bus, Designer protocols, Mutant runners, Visualizer pipeline.
+- Detail launch order: `SingletonAbstract` bootstrap → configuration verification/copying → root logger → ConfigBus → PyMOL plugin initialization.
 
-#### Biology
-1. Mutant
-2. Mutant Tree
-3. Designers
-4. Mutant Runners and Sidechain Solver
-5. Design hotspots: pockets, surfaces, inter-chain contacts
-6. Profiles (PSSM, ddG, ESM1v, etc): read various data sources
-7. Mutant Visualizer: Load mutants into PyMOL
-8. Evaluator, mutant decision makings
-9. Interact: GREMLIN analyser
-10. Cluster: Clustering mutant sequences
+### Key Concepts
+1. **Biology Domain**
+   - Mutants, mutant trees, designer/runner roles.
+   - Design hotspots (pockets, surfaces, inter-chain contacts).
+   - Profiles: PSSM, ddG, ESM1v ingestion and how data flows to UI widgets.
+   - Evaluator workflow and interaction with PyMOL visual inspections.
+   - GREMLIN analyzer integration and sequence clustering pipeline.
+2. **Software & APIs**
+   - Config Tree/Bus schema, experiment definitions, widget links, parameter toggles.
+   - Logging guidelines, warning/exception taxonomy, file extensions.
+   - PyQt wrapper strategy (importing PyQt within PyMOL), menu registry/bind/trigger pattern, Monaco editor embedding, download/file-fetch pipeline.
+   - Package Manager internals: UI, bootstrap, Git solver, pip installer options, worker thread orchestration, notification UX, issue filtering, lazy loading.
+   - Utility packages: CGO helpers, custom widgets (`REvoDesignWidget`, `QButtonMatrix`, etc.), PyMOL/Rosetta helpers, session merger flow.
+   - Designer/Magician protocol, runner + sidechain solver, RosettaPy backend nodes and REU/ddG analyzer.
+   - Citation manager, shortcut mapping, YAML config registry, `ValueDialog` pop-ups, parallel executor abstractions.
 
+### Coding Guidelines
+- Preferred patterns (dataclasses for `AskedValue`, signal tape usage, `refresh_widget_while_another_changed` for param toggles).
+- Error handling, thread safety rules, style conformance (black/isort/autoflake).
+- Example PR checklist referencing pre-commit and tests.
 
-#### Software and API designs
-1. Config Tree
-2. Config Bus and Experiments
-   1. Widget links
-   2. Param Toggles
-3. Logger system
-4. Launch order: 
-   1. basic SingletonAbstract
-   2. bootsrtrap for configurations: verify, copy, load
-   3. Root logger
-   4. ConfigBus
-   5. PyMOL Plugin class
-5. Issues: warnnings and exceptions
-6. File Extensions
-7. Qt Wrapper: import PyQt from PyMOL
-8. Menu actions: registry, bind, trigger
-9.  Designers and Magician Protocol
-10. Mutant Runners and Sidechain Solver
-11. Rosetta related: RosettaPy, Backend Nodes, Python programming interface, REU/ddG Analyser
-12. Citation Manager System
-13. Editor: Monaco, bootstrap, server control, whitelist
-14. Download Registry and File fetches: retrieve,retry,switch mirrors,validate, store, flatten
-15. Package Manager (also the package manager util at `tools`)
-    1.  UI
-    2.  bootstrap of UI and Extras rich table
-    3.  Git solving
-    4.  live run command
-    5.  pip installer (commit, tag, branch, extras)
-    6.  Package Manager
-    7.  Worker Thread
-    8.  Unified worker thread wrapping
-    9.  notify box and decide forks
-    10. issue collections and sensitive data filtering
-    11. trigger button holding and animation
-    12. lazy loading of REvoDesign packages
-16. Menu shortcuts
-   1.  `AskedValue` dataclasses: representation of data form inputs, collected by `AskedValueCollection`
-   2.  YAML config: registry and wrapper, dynamic inputs
-   3.  Window pop-ups w/ `ValueDialog`: create, edit, submit, destroy, real-time updates
-17. Tools Uitilities:
-    1.  CGO: high-level API for PyMOL CGO generation, for future uses.
-    2.  Customized widgets: Customized widgets for REvoDesign.
-        1.  `REvoDesignWidget`: base class for customized widgets in REvoDesign.
-        2.  `ButtonCoords` and `QButtonBrick`: data class for button coordinates and button brick.
-        3.  `QHoverCross`: hover cross widget.
-        4.  `QButtonMatrix`: button matrix widget for profile design and GREMLIN.
-        5.  `QButtonMatrixGremlin`: button matrix widget for GREMLIN.
-        6.  `set_widget_value` and `get_widget_value`: set and get widget values in a unified way.
-        7.  `widget_signal_tape`: Tape for widget signals to certain events.
-        8.  `refresh_widget_while_another_changed`: refresh widget while another widget changed for param toggles
-        9.  `ParallelExecutor` and `QtParallelExecutor`: Parallel executors for REvoDesign.
-        10. `create_cmap_icon`: Color Map Icon
-        11. `dialog_wrapper`: Dialog wrapper for creating window pop-ups according to input parameters.
-    3.  Mutant Tools: Mutant related tools
-    4.  PyMOL Utils: PyMOL related helpers
-    5.  Rosetta Utils: Rosetta related helpers
-    6.  Session merger: Merge PyMOL sessions in a safe way (via commandline interface calls)
+### Extension Recipes
+- Adding a new designer or runner.
+- Registering a menu action with Qt widgets and ConfigBus.
+- Integrating a third-party model (e.g., new diffusion backend) through package manager hooks.
 
-### UI design
-### Translation
+## UI Design & Translation (`docs/ui-design.md`)
+- Component library overview with screenshots.
+- Accessibility guidelines: color maps, keyboard navigation, hover aids (`QHoverCross`).
+- Internationalization: translation source files, workflow for submitting `.po` files, QA steps.
+- PyMOL integration tips and fallback behaviors when headless.
 
-### Testing
-1. Framework: PyTest + PyQt(Qtbot)
-2. Test classification: avoid memory leaks during tests, which lead to slower test runs
-   1. Fast Tests: Fastest and parallelizable (coverage created)
-   2. Serial: Heavy and Runtime occupied (coverage appended)
-   3. Slow Tests: Gremlin analysis (coverage appended)
-3. Test Worker (for launching tests w/ head and handles specialised GUI interacts w/ REvoDesign main window)
-   1. load molecules
-   2. edit widgets
-   3. click buttons
-   4. UI screenshots
-   5. PyMOL screenshots
-   6. check mutant tree
-   7. unique test case name
-   8. performance report
-   9. config injection
-   10. reinitialize everything
-4. Test data
-   1. Minimal at `tests/data`
-   2. Large case as urls
-   
+## Testing Strategy (`docs/testing.md`)
+1. **Framework**
+   - PyTest + PyQt (qtbot), CLI entry points, environment variables for headless display.
+2. **Test Tiers**
+   - Fast tests (parallel, coverage baseline), Serial heavy tests (UI + PyMOL interaction), Slow GREMLIN analysis suite.
+3. **Test Worker Toolkit**
+   - Features provided (molecule loaders, widget editors, button clickers, UI/PyMOL screenshots, mutant tree verifiers, performance reporters, config injection, teardown lifecycle).
+4. **Data Management**
+   - Minimal fixtures in `tests/data`, large datasets via downloadable URLs and caching guidance.
+5. **Practices**
+   - Memory leak avoidance, unique case naming, how to add new fixtures, when to mark tests as slow.
 
-### CI
+## Continuous Integration (`docs/ci.md`)
+- Platform: GitHub Actions, default Ubuntu with optional macOS/Windows jobs.
+- Python versions, Conda vs pip envs, PyMOL sources (Conda Forge vs bundled) and Rosetta Docker availability.
+- Workflow breakdown:
+  1. Cancel previous runs.
+  2. Checkout repo, configure headless display (`make setup-display-gha`).
+  3. Pull Rosetta Docker image (Ubuntu jobs only).
+  4. Setup Conda, install PyMOL, PyTorch CPU, REvoDesign deps, DGL (best-effort).
+  5. Run `make prepare-test`, execute fast → serial → slow suites, collect XML coverage, upload to Codecov.
+  6. Cache/minimize large downloads, final cleanup.
+- Troubleshooting table for flaky tests, GPU unavailability, Docker pull limits.
 
-#### Basic
+## Makefile & Tooling Reference (`docs/makefile.md`)
+- Document shortcuts for environment prep (`make install`, `make install-pytorch-cpu-non-mac`, `make install-dgl-linux`).
+- Testing helpers (`make fast-test`, `make kw-test`, `make all-test`), linting (`make black`, `pre-commit run --all-files`).
+- Releasing helper (`make tag`) after changing the version number. A new commit and tag will be created and pushed to GitHub.
+- Dev utilities: launching GUI, building docs, cleaning cache.
 
-Platform: GitHub Actions
+## Release Notes Process (`docs/release.md`)
+- Versioning policy, changelog template, conventional commit reminders.
+- CI gates before release, packages to publish, citation updates.
+- Post-release checklist: notify users, update docs snapshots, create tutorial tags.
 
-OS: Ubuntu by default, MacOS and Windows can be added if needed.
-
-Python Version: as required in matrix
-
-Environments: Conda, Pip
-
-PyMOL versions and channels:
-
-- PyMOL Open Source (Conda-Forge), v2 or v3
-- PyMOL Bundled (Schrodinger, officially), v2 or v3
-
-
-Rosetta: Rosetta Docker (inject rosetta node as docker_mpi, only available for Ubuntu)
-
-#### CI workflow
-
-1. Cancel previous runs
-2. Checkout repository
-3. Setup Qt headless virtual display device
-4. Pull Rosetta Docker image
-5. Setup Conda environment
-6. Setup PyMOL 
-7. Setup REvoDesign
-   1. pytorch
-   2. REvoDesign, all dependencies as possible
-   3. DGL, required by RFDiffusion
-   4. Ensure test suites
-   5. Run all tests (in order of fast, serial, slowest)
-   6. collect coverage data as xml
-   7. upload coverage data to Codecov
-   8. cleanup environment
-
-### Makefile shortcuts
+## Maintenance & Ownership (`docs/ownership.md`)
+- Table of modules vs maintainers.
+- Response SLAs for bug reports and security issues.
+- Process for proposing doc updates (issue template + PR labels).

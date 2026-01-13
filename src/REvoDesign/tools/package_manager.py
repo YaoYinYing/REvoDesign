@@ -756,7 +756,7 @@ class GitSolver:
         return False, file_path
 
 
-# TODO: switch to uv maybe
+
 @dataclass
 class PIPInstaller:
     """
