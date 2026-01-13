@@ -109,4 +109,3 @@ class TestREvoDesignPlugin_TabConfig:
         test_worker.save_pymol_png(basename=test_worker.test_id)
 
         test_worker.check_existed_mutant_tree()
-

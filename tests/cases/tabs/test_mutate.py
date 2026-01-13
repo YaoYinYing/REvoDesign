@@ -73,7 +73,10 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.pse_snapshot("fin")
 
     @pytest.mark.skipif(not ColabDesigner_MPNN.installed, reason="ColabDesign not installed")
-    def test_mpnn_surf(self, test_worker: TestWorker, ):
+    def test_mpnn_surf(
+        self,
+        test_worker: TestWorker,
+    ):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="config")
@@ -124,7 +127,7 @@ class TestREvoDesignPlugin_TabMutate:
 
         set_widget_value(
             test_worker.plugin.ui.spinBox_designer_batch,
-            test_worker.test_data.mpnn_batch_designs, # 9.05s call for 1
+            test_worker.test_data.mpnn_batch_designs,  # 9.05s call for 1
         )
         set_widget_value(
             test_worker.plugin.ui.spinBox_designer_num_samples,

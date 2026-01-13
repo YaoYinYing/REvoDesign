@@ -50,7 +50,7 @@ class TestData:
 
     # surface design
     entropy_min_score: str = "3"
-    entropy_max_score: str = "20" # 11.18s call for 20, 3 design; no diff
+    entropy_max_score: str = "20"  # 11.18s call for 20, 3 design; no diff
     entropy_score_reversed: bool = False
     entropy_design_case: str = "pssm.ent.surf"
     entropy_reject: str = "PC"
@@ -62,7 +62,7 @@ class TestData:
 
     mpnn_profile_type: str = "ProteinMPNN"
     mpnn_surface_residues: str = "37,38,39,40"
-    mpnn_num_designs: int = 1 # 19.38s call for 5 designs, 13.83s call for 2, 11.56s call for 1
+    mpnn_num_designs: int = 1  # 19.38s call for 5 designs, 13.83s call for 2, 11.56s call for 1
     mpnn_temperature: float = 0.1
     mpnn_batch_designs: int = 1
     mpnn_deduplicated: bool = True
@@ -97,7 +97,7 @@ class TestData:
         # "98+100-105+108+114-115+206+209+218+294-303+362-363+365-368+428-429+434+436-439+442+477-478" # 17.25s call
         # "98+100-105+108+114-115+206" # 11.21s call
         # "100-105" # 10.61s call
-        "101-103" # 7.45s call
+        "101-103"  # 7.45s call
     )
     pocket_pssm_min_score: str = "-2"
     pocket_pssm_max_score: str = "0"
@@ -243,14 +243,14 @@ class TestData:
     gremlin_homomer_chains: str = "ABCD"
 
     gremlin_homomer_clicks_a2a: tuple = (
-        2, # page forward 2
-        (1, 6), # click 1,6
+        2,  # page forward 2
+        (1, 6),  # click 1,6
     )
 
     gremlin_homomer_clicks_o2a: tuple = (
-        2, # page forward 2
-        (15, 15), # click 15,15
-        -3, # page backward 5
+        2,  # page forward 2
+        (15, 15),  # click 15,15
+        -3,  # page backward 5
     )
 
     @property

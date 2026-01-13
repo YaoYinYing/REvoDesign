@@ -946,8 +946,9 @@ def getOpenFileNameWithExt(*args, **kwargs):
 
     return fname
 
+
 @overload
-def set_widget_value(widget: QtWidgets.QFontComboBox, value: QtGui.QFont | str ): ...
+def set_widget_value(widget: QtWidgets.QFontComboBox, value: QtGui.QFont | str): ...
 
 
 @overload
@@ -1082,7 +1083,9 @@ def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ...  # type: ignore
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QComboBox | QtWidgets.QLineEdit | QtWidgets.QFontComboBox) -> str: ...  # type: ignore
+def get_widget_value(
+    widget: QtWidgets.QComboBox | QtWidgets.QLineEdit | QtWidgets.QFontComboBox,
+) -> str: ...  # type: ignore
 
 
 @overload
@@ -1420,7 +1423,9 @@ def refresh_tree_widget(user_tree: dict[str, dict], treeWidget_ws_peers):
 
     return
 
-AskedValueSourceT=Literal["None", "File", "FileO", "Files", "Directory", "JsonInput", "ColorPicker"]
+
+AskedValueSourceT = Literal["None", "File", "FileO", "Files", "Directory", "JsonInput", "ColorPicker"]
+
 
 @dataclass
 class AskedValue:
@@ -1463,7 +1468,7 @@ class AskedValue:
     reason: str | None = None
     required: bool = False
     choices: Iterable | Callable[[], Iterable | None] | None = None
-    source: AskedValueSourceT  = "None"
+    source: AskedValueSourceT = "None"
     ext: FExCol | None = None
     multiple_choices: bool = False
 

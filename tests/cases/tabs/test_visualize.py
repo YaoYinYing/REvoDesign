@@ -270,7 +270,7 @@ class TestREvoDesignPlugin_TabVisualize:
 
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_input_mut_table_csv,
-            KeyDataDuringTests.visualize_excel, # 12.16s call for full, 8.47s call for reduced
+            KeyDataDuringTests.visualize_excel,  # 12.16s call for full, 8.47s call for reduced
         )
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_output_pse_visualize,
