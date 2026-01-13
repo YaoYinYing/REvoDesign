@@ -23,7 +23,7 @@
 6. [Profiles](../../src/REvoDesign/common/profile_parsers.py) (PSSM, ddG, ESM1v, etc): read various data sources
 7. [Mutant Visualizer](../../src/REvoDesign/common/mutant_visualise.py): Load mutants into PyMOL
 8. [Evaluator](../../src/REvoDesign/evaluate/evaluator.py), mutant decision makings
-9. [Interact](../../src/REvoDesign/phylogenetics/evo_mutator.py): [ GREMLIN tool](../../src/REvoDesign/phylogenetics/gremlin_tools.py) and [Pytorch implementation](../../src/REvoDesign/phylogenetics/gremlin_pytorch.py)
+9. [Interact](../../src/REvoDesign/phylogenetics/evo_mutator.py): [ GREMLIN tool](../../src/REvoDesign/phylogenetics/gremlin_tools.py) and Pytorch [implementation](../../src/REvoDesign/phylogenetics/gremlin_pytorch.py) and [validation](../../notebooks/validate_gremlin_pytorch.ipynb)
 10. [Cluster](../../src/REvoDesign/clusters/cluster_sequence.py): Clustering mutant sequences
 11. [Rosetta Tasks](../../src/REvoDesign/shortcuts/tools/rosetta_tasks.py)
 
@@ -76,8 +76,8 @@
    3. Window pop-ups w/ [`ValueDialog`]((../../src/REvoDesign/tools/customized_widgets.py)): create, edit, submit, destroy, real-time updates. See also the [README](../../src/REvoDesign/shortcuts/README.md).
 
 18. Tools Uitilities:
-    1. CGO: high-level API for PyMOL CGO generation, for future uses.
-    2.  Customized widgets: Customized widgets for REvoDesign.
+    1. [CGO](../../src/REvoDesign/tools/cgo_utils.py): high-level API for PyMOL CGO generation, for future uses. Contains an easter egg.
+    2.  [Customized widgets](../../src/REvoDesign/tools/customized_widgets.py): Customized widgets for REvoDesign.
         1. `REvoDesignWidget`: base class for customized widgets in REvoDesign.
         2. `ButtonCoords` and `QButtonBrick`: data class for button coordinates and button brick.
         3. `QHoverCross`: hover cross widget.
@@ -89,10 +89,10 @@
         9. `ParallelExecutor` and `QtParallelExecutor`: Parallel executors for REvoDesign.
         10. `create_cmap_icon`: Color Map Icon
         11. `dialog_wrapper`: Dialog wrapper for creating window pop-ups according to input parameters.
-    3. Mutant Tools: Mutant related tools
-    4. PyMOL Utils: PyMOL related helpers
-    5. Rosetta Utils: Rosetta related helpers
-    6. Session merger: Merge PyMOL sessions in a safe way (via commandline interface calls)
+    3. [Mutant Tools](../../src/REvoDesign/tools/mutant_tools.py): Mutant related tools
+    4. [PyMOL Utils](../../src/REvoDesign/tools/pymol_utils.py): PyMOL related helpers
+    5. [Rosetta Utils](../../src/REvoDesign/tools/rosetta_utils.py): Rosetta related helpers
+    6. [Session merger](../../src/REvoDesign/tools/SessionMerger.py): Merge PyMOL sessions in a safe way (via commandline interface calls to avoid segfaults caused by loading the same-name objects into a PyMOL session)
 19. PyMOL extended command [auto-completion](../../src/REvoDesign/shortcuts/README.autocompletion.md)
 
 #### PSSM_GREMLIN
@@ -113,7 +113,6 @@ REvoDesign uses Qt Designer for UI design. UI files are located in `src/REvoDesi
 REvoDesign uses Qt Linguist for UI translation. Translation files (`*.qm, *.ts`) are located in `src/REvoDesign/UI/language` directory. Available languages must be registered in `src/REvoDesign/UI/language/language.json` so that they can be loaded by REvoDesign.
 
 Package manager currently doesn't have any translations.
-
 
 ### Testing
 
@@ -138,8 +137,12 @@ Package manager currently doesn't have any translations.
    2. Large case as urls
    
 
-### CI
-(See `.github/workflows/unit_tests_tag.yml`)
+### CI file for GHA
+- [Test suite](../../.github/workflows/unit_tests_tag.yml)
+- [linting badge](../../.github/workflows/lint_badge.yml)
+- [PR semantic check](../../.github/workflows/schedule-update-actions.yml)
+- [PSSM GREMLIN docker image](../../.github/workflows/docker-image.yml)
+- [Action version upgrader](../../.github/workflows/schedule-update-actions.yml)
 
 #### Basic
 
