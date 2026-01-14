@@ -193,10 +193,11 @@ PREFERENCES_MENU_LINKS = (
 OTHER_MENU_LINKS = (
     MenuItem("actionRefreshEnvironVar", "REvoDesign.driver.environ_register:register_environment_variables"),
     MenuItem(
-        "actionThreadPoolDashboard", 
-        "REvoDesign.tools.package_manager:ThreadDashboard.show_thread_dashboard", 
-        menu_section='menuRuntime',
-        action_text='Thread Pool Dashboard')
+        "actionThreadPoolDashboard",
+        "REvoDesign.tools.package_manager:ThreadDashboard.show_thread_dashboard",
+        menu_section="menuRuntime",
+        action_text="Thread Pool Dashboard",
+    ),
 )
 
 MENU_LINKS = (

@@ -35,7 +35,6 @@ from pymol import cmd, get_version_message
 from pymol.plugins import addmenuitemqt
 from pymol.Qt.utils import loadUi
 
-
 LOGGER_LEVEL = 0
 _WORKER_CONTEXT = threading.local()
 
@@ -256,7 +255,7 @@ class ExtrasItem:
     python_version: str | None = None
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ExtrasItem":
+    def from_dict(cls, data: dict) -> ExtrasItem:
         """
         Create an ExtrasItem instance from a dictionary.
 
@@ -293,7 +292,7 @@ class ExtrasGroup:
     extras: list[ExtrasItem]
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ExtrasGroup":
+    def from_dict(cls, data: dict) -> ExtrasGroup:
         """
         Create an ExtrasGroup instance from a dictionary.
 
@@ -319,7 +318,7 @@ class ExtrasGroups:
     entities: tuple[ExtrasGroup, ...]
 
     @classmethod
-    def from_dict(cls, d: dict) -> "ExtrasGroups":
+    def from_dict(cls, d: dict) -> ExtrasGroups:
         """
         Create an ExtrasGroups object from a dictionary.
 
@@ -1877,7 +1876,7 @@ class ThreadPoolEntry:
 class ThreadDashboard(QtWidgets.QDialog):
     """Simple dashboard that visualises worker threads."""
 
-    _instance: ClassVar["ThreadDashboard" | None] = None
+    _instance: ClassVar[ThreadDashboard | None] = None
 
     def __init__(self) -> None:
         super().__init__()
@@ -1939,10 +1938,10 @@ class ThreadDashboard(QtWidgets.QDialog):
                 return None
             cls._instance = cls()
         return cls._instance
-    
+
     @classmethod
     def show_thread_dashboard(cls):
-        i=cls.instance()
+        i = cls.instance()
         if not i:
             print("No QApplication instance found.")
             return
@@ -2190,11 +2189,11 @@ class AbortButtonOverlay(QtCore.QObject):
 class ThreadExecutionManager(QtCore.QObject):
     """Binds worker threads with UI affordances (abort button, progress, dashboard)."""
 
-    _instances: ClassVar[dict[int, "ThreadExecutionManager"]] = {}
+    _instances: ClassVar[dict[int, ThreadExecutionManager]] = {}
 
     def __init__(
         self,
-        worker_thread: "WorkerThread",
+        worker_thread: WorkerThread,
         *,
         description: str,
         trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
@@ -2345,6 +2344,7 @@ class WorkerThread(QtCore.QThread):
 
     def _handle_interrupt(self) -> None:
         pass
+
 
 def get_github_repo_tags(repo_url) -> list[str]:
     """
@@ -2566,7 +2566,9 @@ def run_worker_thread_in_pool(
     work_thread = WorkerThread(worker_function, args=args, kwargs=kwargs)
     ThreadExecutionManager(
         work_thread,
-        description=getattr(worker_function, "__qualname__", getattr(worker_function, "__name__", str(worker_function))),
+        description=getattr(
+            worker_function, "__qualname__", getattr(worker_function, "__name__", str(worker_function))
+        ),
         trigger_buttons=trigger_buttons,
         notify_slot=notify_slot or notify_box,
     )

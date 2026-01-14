@@ -171,8 +171,7 @@ class MutateWorker:
 
             if design_profile_format in IMPLEMENTED_DESIGNERS:
                 run_worker_thread_in_pool(
-                    worker_function=self.design.design_protein_via_magician,
-                    custom_indices_fp=custom_indices_fp
+                    worker_function=self.design.design_protein_via_magician, custom_indices_fp=custom_indices_fp
                 )
             else:
                 (
@@ -184,8 +183,7 @@ class MutateWorker:
                 )
 
                 run_worker_thread_in_pool(
-                    worker_function=self.design.load_mutants_to_pymol_session,
-                    mutant_json=mutation_json_fp
+                    worker_function=self.design.load_mutants_to_pymol_session, mutant_json=mutation_json_fp
                 )
 
             if not os.path.isdir(os.path.dirname(self.design.output_pse)):
@@ -277,7 +275,7 @@ class VisualizingWorker:
                     worker_function=self.visualizer.magician.setup,
                     magician_name=design_profile_format,
                     molecule=self.design_molecule,
-                    chain=self.design_chain_id
+                    chain=self.design_chain_id,
                 )
 
             else:
@@ -297,9 +295,7 @@ class VisualizingWorker:
 
             self.visualizer.mutate_runner = SidechainSolver().refresh().mutate_runner
 
-            run_worker_thread_in_pool(
-                worker_function=self.visualizer.run
-            )
+            run_worker_thread_in_pool(worker_function=self.visualizer.run)
 
             cmd.reinitialize()
             cmd.load(self.visualizer.input_session, object=self.design_molecule)
@@ -540,10 +536,7 @@ class GremlinAnalyser:
         self.gremlin_tool.sequence = self.design_sequence
         self.alphabet = self.gremlin_tool.alphabet
 
-        run_worker_thread_in_pool(
-            worker_function=self.gremlin_tool.load_msa_and_mrf,
-            mrf_path=gremlin_mrf_fp
-        )
+        run_worker_thread_in_pool(worker_function=self.gremlin_tool.load_msa_and_mrf, mrf_path=gremlin_mrf_fp)
 
         pushButton_run_interact_scan.setEnabled(bool(self.gremlin_tool))
 
@@ -554,9 +547,7 @@ class GremlinAnalyser:
         self.gremlin_tool.pwd = self.PWD
         self.gremlin_tool.topN = topN_gremlin_candidates
 
-        run_worker_thread_in_pool(
-            worker_function=self.gremlin_tool.get_to_coevolving_pairs
-        )
+        run_worker_thread_in_pool(worker_function=self.gremlin_tool.get_to_coevolving_pairs)
 
         plot_mtx_fp = self.gremlin_tool.plot_mtx()
 
@@ -593,8 +584,7 @@ class GremlinAnalyser:
             self.gremlin_tool.pwd = self.gremlin_workpath
 
             coevolved_pairs: tuple[CoevolvedPair] = run_worker_thread_in_pool(
-                worker_function=self.gremlin_tool.plot_w_o2a,
-                resi=resi - 1
+                worker_function=self.gremlin_tool.plot_w_o2a, resi=resi - 1
             )
 
         else:
@@ -634,8 +624,7 @@ class GremlinAnalyser:
         )
 
         coevolved_pairs: tuple[CoevolvedPair] = run_worker_thread_in_pool(
-            worker_function=chain_binder.bind_chains,
-            coevolved_pairs=coevolved_pairs
+            worker_function=chain_binder.bind_chains, coevolved_pairs=coevolved_pairs
         )
 
         self.coevolved_pairs = IterableLoop(iterable=tuple(filter(self.coevolved_pairs_filter, coevolved_pairs)))
@@ -925,13 +914,9 @@ class GremlinAnalyser:
                     wt_score = 0
                 else:
                     wt_score = run_worker_thread_in_pool(
-                        worker_function=self.magician.gimmick.scorer,
-                        mutant=self.designable_sequences
+                        worker_function=self.magician.gimmick.scorer, mutant=self.designable_sequences
                     )
-                mut_score = run_worker_thread_in_pool(
-                    worker_function=self.magician.gimmick.scorer,
-                    mutant=mutant_obj
-                )
+                mut_score = run_worker_thread_in_pool(worker_function=self.magician.gimmick.scorer, mutant=mutant_obj)
 
             mutant_obj.wt_score = wt_score
             mutant_obj.mutant_score = mut_score
@@ -965,9 +950,7 @@ class GremlinAnalyser:
 
                 visualizer = MutantVisualizer(molecule=self.design_molecule, chain_id=self.design_chain_id)
 
-                run_worker_thread_in_pool(
-                    worker_function=SidechainSolver().refresh
-                )
+                run_worker_thread_in_pool(worker_function=SidechainSolver().refresh)
 
                 visualizer.mutate_runner = SidechainSolver().mutate_runner
                 visualizer.designable_sequences = self.designable_sequences
@@ -976,9 +959,7 @@ class GremlinAnalyser:
                 visualizer.group_name = self.picked_gremlin_group_id
 
                 run_worker_thread_in_pool(
-                    worker_function=visualizer.create_mutagenesis_objects,
-                    mutant_obj=mutant_obj,
-                    color=color
+                    worker_function=visualizer.create_mutagenesis_objects, mutant_obj=mutant_obj, color=color
                 )
                 cmd.hide("everything", "hydrogens and polymer.protein")
                 cmd.hide("cartoon", mutant)
@@ -1163,7 +1144,7 @@ class GremlinAnalyser:
             molecule=self.design_molecule,
             ignore_missing=bool("X" in self.design_sequence),
             chain=",".join(self.chains_to_bind if self.chain_binding_enabled else self.design_chain_id),
-            homooligomeric=self.chain_binding_enabled and self.chains_to_bind
+            homooligomeric=self.chain_binding_enabled and self.chains_to_bind,
         )
         if magician is None:
             raise issues.UnexpectedWorkflowError("Magician failed to initialize.")

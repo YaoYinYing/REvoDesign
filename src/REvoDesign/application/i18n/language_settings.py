@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Any, TypedDict
 
-from REvoDesign.Qt import QtWidgets
 from REvoDesign import ROOT_LOGGER
+from REvoDesign.Qt import QtWidgets
 
 from ...driver.ui_driver import ConfigBus
 from ...Qt import QtCore
@@ -17,7 +17,7 @@ from ...Qt import QtCore
 _translate = QtCore.QCoreApplication.translate
 
 self_dir = os.path.dirname(__file__)
-logging=ROOT_LOGGER.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 # stores all translation files with Qt's Linguist format
 language_dir = os.path.join(self_dir, "..", "..", "UI", "language")
