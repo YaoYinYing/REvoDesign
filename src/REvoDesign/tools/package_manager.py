@@ -1860,7 +1860,6 @@ class ThreadPoolEntry:
     thread: QtCore.QThread
     description: str
     started_at: float = field(default_factory=time.time)
-    status: str = "Running"
     finished_at: float | None = None
 
     @property
@@ -1871,11 +1870,6 @@ class ThreadPoolEntry:
     def duration(self) -> float:
         end_time = self.finished_at or time.time()
         return max(0.0, end_time - self.started_at)
-
-    def build_row(self) -> tuple[str, str, str, str]:
-        return (hex(self.thread_id), self.description, self.status, f"{self.duration:.1f}s")
-
-
 class ThreadDashboard(QtWidgets.QDialog):
     """Simple dashboard that visualises worker threads."""
 
@@ -1886,11 +1880,48 @@ class ThreadDashboard(QtWidgets.QDialog):
         self.setWindowTitle("Thread Dashboard")
         self.setModal(False)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
-        self.table = QtWidgets.QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["Thread", "Task", "Status", "Duration"])
+        self.resize(540, 260)
+        self.setStyleSheet(
+            """
+            QDialog {
+                background-color: #1e1e1e;
+                color: #f0f0f0;
+            }
+            QTableWidget {
+                background-color: #252526;
+                color: #f0f0f0;
+                border: 1px solid #3c3c3c;
+                gridline-color: #3c3c3c;
+                font-size: 12px;
+            }
+            QHeaderView::section {
+                background-color: #2d2d2d;
+                color: #bbbbbb;
+                padding: 6px;
+                border: none;
+                font-weight: bold;
+            }
+            QTableWidget::item {
+                padding: 6px;
+            }
+            """
+        )
+        self.table = QtWidgets.QTableWidget(0, 3)
+        self.table.setHorizontalHeaderLabels(["Task", "Duration", "Thread ID"])
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.setShowGrid(False)
+        self.table.setAlternatingRowColors(True)
+        self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+        self.table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+        self._refresh_timer = QtCore.QTimer(self)
+        self._refresh_timer.setInterval(200)
+        self._refresh_timer.timeout.connect(self._refresh_durations)
+        self._refresh_timer.start()
+        self._entries_cache: list[ThreadPoolEntry] = []
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.table)
 
@@ -1904,12 +1935,29 @@ class ThreadDashboard(QtWidgets.QDialog):
 
     def update_entries(self, entries: Iterable[ThreadPoolEntry]) -> None:
         entries = list(entries)
+        self._entries_cache = entries
         self.table.setRowCount(len(entries))
         for row, entry in enumerate(entries):
-            for column, value in enumerate(entry.build_row()):
-                self.table.setItem(row, column, QtWidgets.QTableWidgetItem(value))
-        if entries:
-            self.table.resizeColumnsToContents()
+            duration_item = QtWidgets.QTableWidgetItem(f"{entry.duration:.1f}s")
+            duration_item.setTextAlignment(QtCore.Qt.AlignCenter)
+            thread_item = QtWidgets.QTableWidgetItem(hex(entry.thread_id))
+            thread_item.setForeground(QtGui.QColor("#9cdcfe"))
+            thread_item.setTextAlignment(QtCore.Qt.AlignCenter)
+            task_item = QtWidgets.QTableWidgetItem(entry.description)
+            task_item.setForeground(QtGui.QColor("#ce9178"))
+            self.table.setItem(row, 0, task_item)
+            self.table.setItem(row, 1, duration_item)
+            self.table.setItem(row, 2, thread_item)
+        if not entries:
+            self.table.clearContents()
+
+    def _refresh_durations(self) -> None:
+        if not self._entries_cache:
+            return
+        for row, entry in enumerate(self._entries_cache):
+            item = self.table.item(row, 1)
+            if item:
+                item.setText(f"{entry.duration:.1f}s")
 
 
 class ThreadPoolRegistry:
@@ -1924,17 +1972,6 @@ class ThreadPoolRegistry:
         with cls._lock:
             cls._entries[entry.thread_id] = entry
         cls._sync_dashboard(ensure_visible)
-
-    @classmethod
-    def mark_finished(cls, thread: QtCore.QThread, status: str) -> None:
-        thread_id = id(thread)
-        with cls._lock:
-            entry = cls._entries.get(thread_id)
-            if entry is None:
-                return
-            entry.status = status
-            entry.finished_at = time.time()
-        cls._sync_dashboard(False)
 
     @classmethod
     def unregister(cls, thread: QtCore.QThread) -> None:
@@ -2185,8 +2222,6 @@ class ThreadExecutionManager(QtCore.QObject):
         self._aborted = True
 
     def _handle_finish(self) -> None:
-        status = "Aborted" if self._aborted else "Finished"
-        ThreadPoolRegistry.mark_finished(self.worker_thread, status)
         ThreadPoolRegistry.unregister(self.worker_thread)
         self._cleanup_abort_buttons()
 
