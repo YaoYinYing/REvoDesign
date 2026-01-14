@@ -18,6 +18,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```
 ## [Unreleased]
+### Added
+- Thread Pool Dashboard can be launched from `Runtime → Thread Pool Dashboard`, making it easy to inspect live worker threads and kill stuck installers/jobs without digging through logs.
+- Shared `run_worker_thread_in_pool` helper now backs Monaco bootstrap, EvoMutator, cluster runner, Qt socket client, and PyMOL plugin actions so every long-running workflow inherits the same cancellation/UI wiring.
+- `tests/tools/test_package_manager.py` gained regression coverage for the new worker helpers, subprocess execution, and gist download utilities.
+- Translation: Traditional Chinese (zh-tw)
+
+### Changed
+- `ThreadExecutionManager`/registry now track worker instances, expose a dashboard context menu Kill action, and default to the shared notifier so abort overlays and notifications stay in sync across workers.
+- Multi-mutagenesis buttons and other UI triggers switched from the progress-bar specific helper to the shared thread-pool utility, preventing UI freezes while keeping abort buttons responsive.
+- `run_worker_thread_with_progress` -> `run_worker_thread_in_pool`, w/ dropped progressbar uses for indicating running task status.
+
+### Fixed
+- Abort overlays now disappear when the cursor leaves their trigger areas and cleanup runs even when PyMOL cannot service interrupts, removing stuck abort buttons.
+- Killing a worker tears down registered subprocesses and forcibly terminates straggling threads, so the dashboard accurately reflects running tasks.
+
+### Removed
+
+
 
 ## [1.8.5] - 2026-01-14
 ### Added
