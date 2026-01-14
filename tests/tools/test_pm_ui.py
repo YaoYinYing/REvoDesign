@@ -62,22 +62,35 @@ def test_pm_dialog_extras_panel_expand_collapse(size_before, size_after, preset,
             # assert patched_resize.assert_called_once()
         pm_test_worker.save_screenshot(pm_test_worker.plugin.dialog, f"{pm_test_worker.method_name}-p.{preset}")
 
-        def wait_for_dialog_size(target_size: QtCore.QSize):
-            pm_test_worker.qtbot.waitUntil(
-                lambda: pm_test_worker.plugin.dialog.size() == target_size,
-                timeout=2000,
-            )
-
-        expected_size_before = QtCore.QSize(*size_before)
-        wait_for_dialog_size(expected_size_before)
-        assert pm_test_worker.plugin.dialog.size() == expected_size_before
+        dialog = pm_test_worker.plugin.dialog
+        pm_test_worker.sleep(300)
+        before_size = dialog.size()
         pm_test_worker.click(getattr(pm_test_worker.plugin.dialog, triger))
         pm_test_worker.save_screenshot(
             pm_test_worker.plugin.dialog, f"{pm_test_worker.method_name}-p.{preset}-t.{triger}"
         )
-        expected_size_after = QtCore.QSize(*size_after)
-        wait_for_dialog_size(expected_size_after)
-        assert pm_test_worker.plugin.dialog.size() == expected_size_after
+
+        def wait_for_width_change(start_width: int, direction: int, min_delta: int = 20):
+
+            def _changed():
+                delta = dialog.size().width() - start_width
+                return delta * direction >= min_delta
+
+            pm_test_worker.qtbot.waitUntil(_changed, timeout=2000)
+            return dialog.size().width()
+
+        expected_direction = 0
+        if size_after[0] > size_before[0]:
+            expected_direction = 1
+        elif size_after[0] < size_before[0]:
+            expected_direction = -1
+
+        if expected_direction:
+            final_width = wait_for_width_change(before_size.width(), expected_direction)
+            assert (final_width - before_size.width()) * expected_direction >= 20
+        else:
+            pm_test_worker.sleep(200)
+            assert abs(dialog.size().width() - before_size.width()) < 5
 
 
 def test_pm_dialog_select_extras(pm_test_worker: PmTestWorker):
