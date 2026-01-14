@@ -201,3 +201,31 @@ They’re nice-to-have accelerants, not prerequisites.
  - However, core priorities—decoupling from PyMOL, modular extras, stable recipes/envs—don’t depend on AI helpers. Without a clean architecture and reliable runtimes, a copilot would just be another layer on shaky foundations.
 
 So: not strictly necessary right now; invest in the infrastructure first. Once the tooling and APIs are solid, AI assistants become more feasible and actually useful.
+
+
+# Current Status
+
+> [!TIP] Rate the current project based on your code review results, memory and opinions above. you can do the rating from various aspects.
+
+- Architecture / Modularity – 4/10
+Core logic is tightly coupled to PyMOL and a global ConfigBus, making it hard to run headless or in tests. Lots of work still needed to isolate features into optional runners and recipes.
+
+- Dependency Management – 3/10
+Everything installs into one environment; extras are just pip packages with minimal metadata. No per-tool env orchestration yet, and fragile deps like DGL/RFdiffusion can break the whole stack.
+
+- Portability / Platform Coverage – 4/10
+Heavy reliance on PyMOL/Qt, absolute paths, and Linux-centric scripts (GREMLIN pipeline) limit Windows/macOS adoption. The subprocess-per-env plan is still aspirational.
+
+- Testability / CI – 5/10
+There’s pytest infrastructure, but import-time side effects (Qt dialogs, logging) and PyMOL deps complicate automation. More mocking/abstraction is needed to run suites in standard Python stacks.
+
+- Extensibility (Extras/Package Manager) – 5/10
+The extras registry exists but is basic. Refactoring to Homebrew-style recipes plus env isolation would boost this score substantially.
+
+- UX / Responsiveness – 6/10
+Thread management exists (worker threads, abort overlays), but long-running ops still block the UI (busy-wait loops, synchronous downloads). Observability/logging is decent once running.
+
+- Security / Isolation – 3/10
+Pickle-based sockets, shell eval in scripts, plaintext credentials, and global env mutations all pose risks. Needs hardening before broader deployment.
+
+Overall: ~4/10 today. The roadmap (decouple from PyMOL, recipe-driven extras, per-env subprocesses, optional containers/cloud offload) is the right direction, but there’s a sizable gap between the current codebase and that future. Prioritize architectural cleanup and dependency isolation to raise the baseline before layering on new features.
