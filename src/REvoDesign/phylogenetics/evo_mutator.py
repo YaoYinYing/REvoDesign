@@ -46,7 +46,7 @@ from REvoDesign.tools.pymol_utils import (
     is_a_REvoDesign_session,
     make_temperal_input_pdb,
 )
-from REvoDesign.tools.utils import cmap_reverser, get_color, rescale_number, run_worker_thread_with_progress, timing
+from REvoDesign.tools.utils import cmap_reverser, get_color, rescale_number, run_worker_thread_in_pool, timing
 
 matplotlib.use("Agg")
 
@@ -170,10 +170,9 @@ class MutateWorker:
             self.design.create_full_pdb = False
 
             if design_profile_format in IMPLEMENTED_DESIGNERS:
-                run_worker_thread_with_progress(
+                run_worker_thread_in_pool(
                     worker_function=self.design.design_protein_via_magician,
-                    custom_indices_fp=custom_indices_fp,
-                    progress_bar=self.bus.ui.progressBar,
+                    custom_indices_fp=custom_indices_fp
                 )
             else:
                 (
@@ -184,10 +183,9 @@ class MutateWorker:
                     cutoff=tuple(cutoff),
                 )
 
-                run_worker_thread_with_progress(
+                run_worker_thread_in_pool(
                     worker_function=self.design.load_mutants_to_pymol_session,
-                    mutant_json=mutation_json_fp,
-                    progress_bar=self.bus.ui.progressBar,
+                    mutant_json=mutation_json_fp
                 )
 
             if not os.path.isdir(os.path.dirname(self.design.output_pse)):
@@ -275,12 +273,11 @@ class VisualizingWorker:
                 logging.debug("No profile is given. Expected to use score labels")
 
             elif design_profile_format in IMPLEMENTED_DESIGNERS:
-                run_worker_thread_with_progress(
+                run_worker_thread_in_pool(
                     worker_function=self.visualizer.magician.setup,
                     magician_name=design_profile_format,
                     molecule=self.design_molecule,
-                    chain=self.design_chain_id,
-                    progress_bar=self.bus.ui.progressBar,
+                    chain=self.design_chain_id
                 )
 
             else:
@@ -300,9 +297,8 @@ class VisualizingWorker:
 
             self.visualizer.mutate_runner = SidechainSolver().refresh().mutate_runner
 
-            run_worker_thread_with_progress(
-                worker_function=self.visualizer.run,
-                progress_bar=self.bus.ui.progressBar,
+            run_worker_thread_in_pool(
+                worker_function=self.visualizer.run
             )
 
             cmd.reinitialize()
@@ -544,10 +540,9 @@ class GremlinAnalyser:
         self.gremlin_tool.sequence = self.design_sequence
         self.alphabet = self.gremlin_tool.alphabet
 
-        run_worker_thread_with_progress(
+        run_worker_thread_in_pool(
             worker_function=self.gremlin_tool.load_msa_and_mrf,
-            mrf_path=gremlin_mrf_fp,
-            progress_bar=self.bus.ui.progressBar,
+            mrf_path=gremlin_mrf_fp
         )
 
         pushButton_run_interact_scan.setEnabled(bool(self.gremlin_tool))
@@ -559,9 +554,8 @@ class GremlinAnalyser:
         self.gremlin_tool.pwd = self.PWD
         self.gremlin_tool.topN = topN_gremlin_candidates
 
-        run_worker_thread_with_progress(
-            worker_function=self.gremlin_tool.get_to_coevolving_pairs,
-            progress_bar=self.bus.ui.progressBar,
+        run_worker_thread_in_pool(
+            worker_function=self.gremlin_tool.get_to_coevolving_pairs
         )
 
         plot_mtx_fp = self.gremlin_tool.plot_mtx()
@@ -598,10 +592,9 @@ class GremlinAnalyser:
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
 
-            coevolved_pairs: tuple[CoevolvedPair] = run_worker_thread_with_progress(
+            coevolved_pairs: tuple[CoevolvedPair] = run_worker_thread_in_pool(
                 worker_function=self.gremlin_tool.plot_w_o2a,
-                resi=resi - 1,
-                progress_bar=self.bus.ui.progressBar,
+                resi=resi - 1
             )
 
         else:
@@ -617,9 +610,8 @@ class GremlinAnalyser:
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
 
-            coevolved_pairs: tuple[CoevolvedPair] = run_worker_thread_with_progress(
-                worker_function=self.gremlin_tool.plot_w_a2a,
-                progress_bar=self.bus.ui.progressBar,
+            coevolved_pairs: tuple[CoevolvedPair] = run_worker_thread_in_pool(
+                worker_function=self.gremlin_tool.plot_w_a2a
             )
 
         if not coevolved_pairs:
@@ -641,10 +633,9 @@ class GremlinAnalyser:
             n_jobs=self.bus.get_value("ui.header_panel.nproc", int),
         )
 
-        coevolved_pairs: tuple[CoevolvedPair] = run_worker_thread_with_progress(
+        coevolved_pairs: tuple[CoevolvedPair] = run_worker_thread_in_pool(
             worker_function=chain_binder.bind_chains,
-            coevolved_pairs=coevolved_pairs,
-            progress_bar=self.bus.ui.progressBar,
+            coevolved_pairs=coevolved_pairs
         )
 
         self.coevolved_pairs = IterableLoop(iterable=tuple(filter(self.coevolved_pairs_filter, coevolved_pairs)))
@@ -933,15 +924,13 @@ class GremlinAnalyser:
                 if self.magician.gimmick.no_need_to_score_wt:
                     wt_score = 0
                 else:
-                    wt_score = run_worker_thread_with_progress(
+                    wt_score = run_worker_thread_in_pool(
                         worker_function=self.magician.gimmick.scorer,
-                        mutant=self.designable_sequences,
-                        progress_bar=self.bus.ui.progressBar,
+                        mutant=self.designable_sequences
                     )
-                mut_score = run_worker_thread_with_progress(
+                mut_score = run_worker_thread_in_pool(
                     worker_function=self.magician.gimmick.scorer,
-                    mutant=mutant_obj,
-                    progress_bar=self.bus.ui.progressBar,
+                    mutant=mutant_obj
                 )
 
             mutant_obj.wt_score = wt_score
@@ -976,9 +965,8 @@ class GremlinAnalyser:
 
                 visualizer = MutantVisualizer(molecule=self.design_molecule, chain_id=self.design_chain_id)
 
-                run_worker_thread_with_progress(
-                    worker_function=SidechainSolver().refresh,
-                    progress_bar=self.bus.ui.progressBar,
+                run_worker_thread_in_pool(
+                    worker_function=SidechainSolver().refresh
                 )
 
                 visualizer.mutate_runner = SidechainSolver().mutate_runner
@@ -987,11 +975,10 @@ class GremlinAnalyser:
 
                 visualizer.group_name = self.picked_gremlin_group_id
 
-                run_worker_thread_with_progress(
+                run_worker_thread_in_pool(
                     worker_function=visualizer.create_mutagenesis_objects,
                     mutant_obj=mutant_obj,
-                    color=color,
-                    progress_bar=self.bus.ui.progressBar,
+                    color=color
                 )
                 cmd.hide("everything", "hydrogens and polymer.protein")
                 cmd.hide("cartoon", mutant)
@@ -1170,14 +1157,13 @@ class GremlinAnalyser:
 
     def refresh_magician(self):
 
-        magician = run_worker_thread_with_progress(
+        magician = run_worker_thread_in_pool(
             worker_function=self.magician.setup,
             name_cfg_item="ui.interact.use_external_scorer",
             molecule=self.design_molecule,
             ignore_missing=bool("X" in self.design_sequence),
             chain=",".join(self.chains_to_bind if self.chain_binding_enabled else self.design_chain_id),
-            homooligomeric=self.chain_binding_enabled and self.chains_to_bind,
-            progress_bar=self.bus.ui.progressBar,
+            homooligomeric=self.chain_binding_enabled and self.chains_to_bind
         )
         if magician is None:
             raise issues.UnexpectedWorkflowError("Magician failed to initialize.")

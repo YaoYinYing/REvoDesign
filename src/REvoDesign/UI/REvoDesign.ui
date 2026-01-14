@@ -4599,6 +4599,11 @@
       <string>Edit Configuration</string>
      </property>
     </widget>
+    <widget class="QMenu" name="menuRuntime">
+     <property name="title">
+      <string>Runtime</string>
+     </property>
+    </widget>
     <addaction name="actionReconfigure"/>
     <addaction name="separator"/>
     <addaction name="menuEdit_Configuration"/>
@@ -4609,6 +4614,7 @@
     <addaction name="separator"/>
     <addaction name="actionReinitialize"/>
     <addaction name="separator"/>
+    <addaction name="menuRuntime"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">

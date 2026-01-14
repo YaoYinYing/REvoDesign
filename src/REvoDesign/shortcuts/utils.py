@@ -15,7 +15,7 @@ from REvoDesign import issues
 from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.basic.extensions import resolve_extension
 from REvoDesign.tools.customized_widgets import AskedValue, AskedValueDynamic, dialog_wrapper
-from REvoDesign.tools.package_manager import run_worker_thread_with_progress
+from REvoDesign.tools.package_manager import run_worker_thread_in_pool
 from REvoDesign.tools.utils import (
     resolve_default_value,
     resolve_dotted_config_item,
@@ -334,6 +334,4 @@ def run_wrapped_func_in_thread(func, use_progressbar: bool = True, **kwargs):
 
     with timing(f"performing {func.__name__}"):
         logging.info(kwargs)
-        run_worker_thread_with_progress(
-            func, **kwargs, progress_bar=ConfigBus().ui.progressBar if use_progressbar else None
-        )
+        run_worker_thread_in_pool(func, **kwargs)

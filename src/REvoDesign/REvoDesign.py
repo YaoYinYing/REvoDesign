@@ -50,7 +50,7 @@ from REvoDesign.tools.pymol_utils import (
     get_molecule_sequence,
     is_empty_session,
 )
-from REvoDesign.tools.utils import generate_strong_password, require_not_none, run_worker_thread_with_progress, timing
+from REvoDesign.tools.utils import generate_strong_password, require_not_none, run_worker_thread_in_pool, timing
 from REvoDesign.UI import Ui_REvoDesignPyMOL_UI as REvoDesignMainUI
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
@@ -505,57 +505,57 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.bus.button("multi_design_initialize").clicked.connect(
             partial(
-                run_worker_thread_with_progress,
+                run_worker_thread_in_pool,
                 worker_function=self.multi_mutagenesis_design_initialize,
-                progress_bar=self.bus.ui.progressBar,
+                trigger_buttons=self.bus.button("multi_design_initialize"),
             )
         )
 
         self.bus.button("multi_design_start_new_design").clicked.connect(
             partial(
-                run_worker_thread_with_progress,
+                run_worker_thread_in_pool,
                 worker_function=self.multi_mutagenesis_design_start,
-                progress_bar=self.bus.ui.progressBar,
+                trigger_buttons=self.bus.button("multi_design_start_new_design"),
             )
         )
 
         self.bus.button("multi_design_left").clicked.connect(
             partial(
-                run_worker_thread_with_progress,
+                run_worker_thread_in_pool,
                 worker_function=self.multi_mutagenesis_design_undo_picking,
-                progress_bar=self.bus.ui.progressBar,
+                trigger_buttons=self.bus.button("multi_design_left"),
             )
         )
 
         self.bus.button("multi_design_right").clicked.connect(
             partial(
-                run_worker_thread_with_progress,
+                run_worker_thread_in_pool,
                 worker_function=self.multi_mutagenesis_design_pick_next_mut,
-                progress_bar=self.bus.ui.progressBar,
+                trigger_buttons=self.bus.button("multi_design_right"),
             )
         )
 
         self.bus.button("multi_design_end_this_design").clicked.connect(
             partial(
-                run_worker_thread_with_progress,
+                run_worker_thread_in_pool,
                 worker_function=self.multi_mutagenesis_design_stop_design,
-                progress_bar=self.bus.ui.progressBar,
+                trigger_buttons=self.bus.button("multi_design_end_this_design"),
             )
         )
 
         self.bus.button("multi_design_export_mutants_from_table").clicked.connect(
             partial(
-                run_worker_thread_with_progress,
+                run_worker_thread_in_pool,
                 worker_function=self.multi_mutagenesis_design_save_design,
-                progress_bar=self.bus.ui.progressBar,
+                trigger_buttons=self.bus.button("multi_design_export_mutants_from_table"),
             )
         )
 
         self.bus.button("run_multi_design").clicked.connect(
             partial(
-                run_worker_thread_with_progress,
+                run_worker_thread_in_pool,
                 worker_function=self.multi_mutagenesis_design_auto,
-                progress_bar=self.bus.ui.progressBar,
+                trigger_buttons=self.bus.button("run_multi_design"),
             )
         )
 

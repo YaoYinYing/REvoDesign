@@ -719,25 +719,6 @@ def test_pm_installation_from_random_shit_source():
         solve_installation_config(source, git_url, git_tag, extras)
 
 
-def test_pm_thread_manage_worker_run_restores_progress(qtbot):
-    progress_bar = QtWidgets.QProgressBar()
-    qtbot.addWidget(progress_bar)
-    progress_bar.setRange(-5, 15)
-    progress_bar.setValue(3)
-
-    def add(a, b):
-        return a + b
-
-    result = package_manager.run_worker_thread_with_progress(add, 5, 7, progress_bar=progress_bar)
-
-    assert result == 12
-    assert progress_bar.minimum() == -5
-    assert progress_bar.maximum() == 15
-    assert progress_bar.value() == 3
-    assert package_manager.ThreadPoolRegistry._entries == {}
-    assert package_manager.ThreadExecutionManager._instances == {}
-
-
 def test_pm_thread_manage_kill_entry(qtbot, monkeypatch):
     button = QtWidgets.QPushButton("Killable")
     qtbot.addWidget(button)

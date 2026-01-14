@@ -1121,7 +1121,7 @@ class REvoDesignPackageManager:
 
         self.refresh_remote_json()
 
-        self.pip_installer = run_worker_thread_with_progress(PIPInstaller)
+        self.pip_installer = run_worker_thread_in_pool(PIPInstaller)
 
         self.extra_checkbox.setGeometry(QtCore.QRect(540, 90, 141, 431))
 
@@ -1165,12 +1165,11 @@ class REvoDesignPackageManager:
 
         if proxy.startswith("socks5"):
             logging.info("Ensuring pysocks is installed...")
-            run_worker_thread_with_progress(
+            run_worker_thread_in_pool(
                 worker_function=self.pip_installer.ensure_package,
                 package_string="pysocks",
                 mirror=mirror,
                 env={},
-                progress_bar=self.installer_ui.progressBar,
             )
 
         logging.info(f"using proxy: {proxy}")
@@ -1197,9 +1196,7 @@ class REvoDesignPackageManager:
                 }
             ],
         }
-        remote_data = run_worker_thread_with_progress(
-            worker_function=fetch_gist_json, url=RICH_TABLE_JSON, progress_bar=self.installer_ui.progressBar
-        )
+        remote_data = run_worker_thread_in_pool(worker_function=fetch_gist_json, url=RICH_TABLE_JSON)
 
         self.notification_channel(remote_data)
 
@@ -1267,11 +1264,10 @@ class REvoDesignPackageManager:
         cb.clear(mode=cb.Clipboard)
 
         # Collect diagnostic data using a worker thread
-        diagnostic_data = run_worker_thread_with_progress(
+        diagnostic_data = run_worker_thread_in_pool(
             worker_function=issue_collection,
             collect_dummy=collect_dummy,
             drop_sensitives=drop_sensitives,
-            progress_bar=self.installer_ui.progressBar,
         )
         diagnostic_data_json = json.dumps(diagnostic_data, indent=2)
         # Copy the collected diagnostic data to the clipboard in JSON format
@@ -1336,7 +1332,7 @@ class REvoDesignPackageManager:
         # Create a new dialog window
         dialog = QtWidgets.QDialog()
 
-        ui_file = run_worker_thread_with_progress(worker_function=self.ensure_ui_file)
+        ui_file = run_worker_thread_in_pool(worker_function=self.ensure_ui_file)
         # Set up the UI for the dialog
         try:
             self.installer_ui = loadUi(ui_file, dialog)
@@ -1469,9 +1465,7 @@ class REvoDesignPackageManager:
         and then sets the result as the value of the `comboBox_version` combo box in the UI.
         """
         # Run a worker thread to fetch tags with a progress bar
-        tags = run_worker_thread_with_progress(
-            worker_function=get_github_repo_tags, repo_url=REPO_URL, progress_bar=self.installer_ui.progressBar
-        )
+        tags = run_worker_thread_in_pool(worker_function=get_github_repo_tags, repo_url=REPO_URL)
         if tags and isinstance(tags, list):
             return set_widget_value(self.installer_ui.comboBox_version, tags)
 
@@ -1594,10 +1588,9 @@ class REvoDesignPackageManager:
         # During the uninstallation process, hold down the remove button on the UI to prevent multiple triggers
         with hold_trigger_button(self.installer_ui.pushButton_remove), self.freeze_manager():
             # Run the uninstallation process in a separate thread and monitor its progress
-            ret = run_worker_thread_with_progress(
+            ret = run_worker_thread_in_pool(
                 worker_function=self.pip_installer.uninstall,
                 package_name="REvoDesign",
-                progress_bar=self.installer_ui.progressBar,
                 trigger_buttons=self.installer_ui.pushButton_remove,
             )
 
@@ -1607,9 +1600,8 @@ class REvoDesignPackageManager:
 
             remove_deps = decide("Clean up warning", "Do you want to remove all the dependencies?")
             if remove_deps:
-                run_worker_thread_with_progress(
+                run_worker_thread_in_pool(
                     self.remove_depts,
-                    progress_bar=self.installer_ui.progressBar,
                     trigger_buttons=self.installer_ui.pushButton_remove,
                 )
 
@@ -1751,11 +1743,10 @@ class REvoDesignPackageManager:
                     )
                     return
 
-                git_solver_res = run_worker_thread_with_progress(
+                git_solver_res = run_worker_thread_in_pool(
                     worker_function=git_solver.fetch_git,
                     git_fetch_command=git_fetch_command,
                     env=env,
-                    progress_bar=self.installer_ui.progressBar,
                     trigger_buttons=self.installer_ui.pushButton_install,
                 )
 
@@ -1765,14 +1756,13 @@ class REvoDesignPackageManager:
                 # If successful, show a notification and return True
                 notify_box(message="Git installed successfully.")
 
-            installed = run_worker_thread_with_progress(
+            installed = run_worker_thread_in_pool(
                 worker_function=self.pip_installer.install,
                 source=install_source,
                 upgrade=upgrade,
                 extras=extras,
                 verbose_level=verbose_level,
                 mirror=mirror_url if (use_mirror and mirror_url) else "",
-                progress_bar=self.installer_ui.progressBar,
                 trigger_buttons=self.installer_ui.pushButton_install,
             )
             # Provide feedback on the installation result
@@ -1943,12 +1933,20 @@ class ThreadDashboard(QtWidgets.QDialog):
         self.table.customContextMenuRequested.connect(self._show_context_menu)
 
     @classmethod
-    def instance(cls) -> "ThreadDashboard" | None:
+    def instance(cls) -> ThreadDashboard | None:
         if cls._instance is None:
             if QtWidgets.QApplication.instance() is None:
                 return None
             cls._instance = cls()
         return cls._instance
+    
+    @classmethod
+    def show_thread_dashboard(cls):
+        i=cls.instance()
+        if not i:
+            print("No QApplication instance found.")
+            return
+        i.show()
 
     def update_entries(self, entries: Iterable[ThreadPoolEntry]) -> None:
         entries = list(entries)
@@ -2200,13 +2198,11 @@ class ThreadExecutionManager(QtCore.QObject):
         *,
         description: str,
         trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
-        progress_bar: Any | None = None,
         notify_slot: Callable[[str], None] | None = None,
     ) -> None:
         super().__init__(worker_thread)
         self.worker_thread = worker_thread
         self.notify_slot = notify_slot
-        self.progress_bar = progress_bar
         self.abort_overlays: list[AbortButtonOverlay] = []
         self._aborted = False
 
@@ -2229,9 +2225,6 @@ class ThreadExecutionManager(QtCore.QObject):
         self.worker_thread.finished_signal.connect(self._handle_finish)
         self.worker_thread.interrupt_signal.connect(self._mark_aborted)
         self.worker_thread.notify_signal.connect(self._handle_notification)
-        if self.progress_bar is not None:
-            self.worker_thread.progress_val_set_signal.connect(self.progress_bar.setValue)
-            self.worker_thread.progress_range_set_signal.connect(self.progress_bar.setRange)
 
     def _handle_abort_request(self) -> None:
         self._aborted = True
@@ -2265,6 +2258,9 @@ class ThreadExecutionManager(QtCore.QObject):
 
     def _kill_thread(self) -> None:
         self._handle_abort_request()
+        self.worker_thread.wait(100)
+        if self.worker_thread.isRunning():
+            self.worker_thread.terminate()
         self._cleanup_abort_buttons()
 
     @classmethod
@@ -2272,6 +2268,8 @@ class ThreadExecutionManager(QtCore.QObject):
         manager = cls._instances.get(entry.thread_id)
         if manager is not None:
             manager._kill_thread()
+            ThreadPoolRegistry.unregister(manager.worker_thread)
+            cls._instances.pop(entry.thread_id, None)
         else:
             cls._force_quit(entry.thread)
 
@@ -2283,6 +2281,7 @@ class ThreadExecutionManager(QtCore.QObject):
             thread.quit()
             if not thread.wait(100):
                 thread.terminate()
+        ThreadPoolRegistry.unregister(thread)
 
     @staticmethod
     def _normalize_buttons(
@@ -2535,39 +2534,40 @@ def raise_error(error_type: type[Exception], message: str) -> NoReturn:
 
 
 @overload
-def run_worker_thread_with_progress(
+def run_worker_thread_in_pool(
     worker_function: Callable[..., R],
     *args,
-    progress_bar: Any | None = None,
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
     notify_slot: Callable[[str], None] | None = None,
     **kwargs,
 ) -> R: ...
 
 
-def run_worker_thread_with_progress(
+@overload
+def run_worker_thread_in_pool(
     worker_function: Callable[..., R | None],
     *args,
-    progress_bar: Any | None = None,
+    trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
+    notify_slot: Callable[[str], None] | None = None,
+    **kwargs,
+) -> R | None: ...
+
+
+def run_worker_thread_in_pool(
+    worker_function: Callable[..., R | None],
+    *args,
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
     notify_slot: Callable[[str], None] | None = None,
     **kwargs,
 ) -> R | None:
     """
-    Runs a worker function in a separate thread and optionally updates a progress bar.
+    Runs a worker function in a separate thread managed by the thread dashboard.
     """
-    if progress_bar:
-        _min = progress_bar.minimum()
-        _max = progress_bar.maximum()
-        _val = progress_bar.value()
-        progress_bar.setRange(0, 0)
-
     work_thread = WorkerThread(worker_function, args=args, kwargs=kwargs)
     ThreadExecutionManager(
         work_thread,
         description=getattr(worker_function, "__qualname__", getattr(worker_function, "__name__", str(worker_function))),
         trigger_buttons=trigger_buttons,
-        progress_bar=progress_bar,
         notify_slot=notify_slot or notify_box,
     )
     work_thread.start()
@@ -2575,10 +2575,6 @@ def run_worker_thread_with_progress(
     while not work_thread.isFinished():
         refresh_window()
         time.sleep(0.01)
-
-    if progress_bar:
-        progress_bar.setRange(_min, _max)
-        progress_bar.setValue(_val)
 
     result = work_thread.handle_result()
     return result[0] if result else None

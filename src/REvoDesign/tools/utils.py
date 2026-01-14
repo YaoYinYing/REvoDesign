@@ -26,7 +26,7 @@ from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
 
 from ..bootstrap.set_config import is_package_installed
-from .package_manager import run_command, run_worker_thread_with_progress
+from .package_manager import run_command, run_worker_thread_in_pool
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -898,7 +898,7 @@ def xvg2df(xvg_file: str) -> pd.DataFrame:
 
 __all__ = [
     "run_command",
-    "run_worker_thread_with_progress",
+    "run_worker_thread_in_pool",
     "timing",
     "generate_strong_password",
     "random_deduplicate",

@@ -10,7 +10,7 @@ from REvoDesign.clusters.score_clusters import score_clusters
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.customized_widgets import set_widget_value
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-from REvoDesign.tools.utils import run_worker_thread_with_progress
+from REvoDesign.tools.utils import run_worker_thread_in_pool
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -99,13 +99,12 @@ class ClusterRunner:
 
                 node_hint: NodeHintT | None = bus.get_value("rosetta.node_hint", default_value="native")  # type: ignore
 
-                run_worker_thread_with_progress(
+                run_worker_thread_in_pool(
                     worker_function=score_clusters,
                     pdb=pdb_file,
                     chain_id=self.design_chain_id,
                     node_hint=node_hint,
                     tasks_dir=str(clustering.save_dir),
-                    progress_bar=progressbar,
                 )
 
             clustering.cite()

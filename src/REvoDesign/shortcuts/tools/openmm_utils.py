@@ -10,7 +10,7 @@ from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract
 from REvoDesign.basic.server_monitor import ServerControlAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.tools.package_manager import WorkerThread, run_worker_thread_with_progress
+from REvoDesign.tools.package_manager import WorkerThread, run_worker_thread_in_pool
 from REvoDesign.tools.utils import require_installed
 
 
@@ -38,7 +38,7 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
     def open_url(self, url):
 
         # Run the browser opening operation in a separate thread with progress dialog
-        run_worker_thread_with_progress(webbrowser.open, url)
+        run_worker_thread_in_pool(webbrowser.open, url)
 
         # Call the citation method
         self.cite()

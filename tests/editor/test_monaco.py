@@ -33,9 +33,9 @@ def mock_user_data_dir(test_tmp_dir):
 
 
 @pytest.fixture
-def mock_run_worker_thread_with_progress():
-    """Fixture to mock run_worker_thread_with_progress."""
-    with patch("REvoDesign.tools.utils.run_worker_thread_with_progress") as mock:
+def mock_run_worker_thread_in_pool():
+    """Fixture to mock run_worker_thread_in_pool."""
+    with patch("REvoDesign.tools.utils.run_worker_thread_in_pool") as mock:
         yield mock
 
 
