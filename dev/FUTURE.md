@@ -229,3 +229,26 @@ Thread management exists (worker threads, abort overlays), but long-running ops 
 Pickle-based sockets, shell eval in scripts, plaintext credentials, and global env mutations all pose risks. Needs hardening before broader deployment.
 
 Overall: ~4/10 today. The roadmap (decouple from PyMOL, recipe-driven extras, per-env subprocesses, optional containers/cloud offload) is the right direction, but there’s a sizable gap between the current codebase and that future. Prioritize architectural cleanup and dependency isolation to raise the baseline before layering on new features.
+
+
+# To be a infrastructure
+
+> [!TIP] How to make it into an industrial-grade software infrastructure?
+
+- Codify architecture boundaries: split “core REvoDesign” (config, UI shell, task orchestration) from “extras” (RFdiffusion, ThermoMPNN, OpenMM) via stable plugin APIs. Each runner should expose a clear contract (inputs/outputs, env requirements, health checks) so you can version, test, and swap them independently.
+
+- Embrace recipe-based dependency management: treat every heavy tool as a Homebrew-style recipe describing how to provision its own conda env/container, what GPUs/OSes it supports, and how it’s invoked. Build tooling to create/update those envs automatically, cache artifacts, and validate compatibility matrices (Python versions, CUDA, macOS Intel/M-Series). That gives deterministic installs across Windows, Linux, macOS, and aarch.
+
+- Harden runtime isolation: launch extras in dedicated subprocesses or containers, propagate inputs via standardized data layers (Biopython/Biotite), and capture logs/metrics for each job. Provide first-class support for optional Docker/Singularity paths and remote executors (cloud APIs) so enterprise deployments can choose the isolation model that fits their compliance rules.
+
+- Decouple from PyMOL: wrap visualization and structure manipulation behind backend-agnostic services. Treat PyMOL as one UI option, but ensure the engine can run headless (CLI/REST) in standard scientific Python stacks with Biopython/Biotite/MDAnalysis. That unlocks CI, cloud, and multi-user workflows.
+
+- Invest in instrumentation and ops: add structured logging, metrics, tracing, and health endpoints for every service/runner. Build a dashboard for queue status, env health, and dependency versions. Automate regression suites (unit + integration + performance) to catch env drift early.
+
+- Security and policy: eliminate insecure patterns (pickle over sockets, eval in shell scripts), add auth, TLS, secrets management, and sandboxing. Review environment mutations and provide least-privilege defaults.
+
+- Governance and release management: move toward semantic versioning, signed artifacts, reproducible builds (conda-lock, containers), and staged release pipelines (dev → staging → prod). Adopt docs-as-code for recipes, APIs, and deployment guidance.
+
+- API/automation surface: expose structured APIs (Python, REST, CLI) so external automation (including AI copilots) can orchestrate workflows without UI hacks. Document event hooks/callbacks to integrate with enterprise schedulers or cloud services.
+
+By executing on these themes—modular design, recipe-based dependency handling, isolation, backend-agnostic data layers, observability, security, and disciplined release practices—you can turn REvoDesign from a PyMOL plugin into a robust industrial software platform.
