@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Any, TypedDict
 
+from REvoDesign import ROOT_LOGGER
 from REvoDesign.Qt import QtWidgets
 
 from ...driver.ui_driver import ConfigBus
@@ -16,6 +17,7 @@ from ...Qt import QtCore
 _translate = QtCore.QCoreApplication.translate
 
 self_dir = os.path.dirname(__file__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 # stores all translation files with Qt's Linguist format
 language_dir = os.path.join(self_dir, "..", "..", "UI", "language")
@@ -107,7 +109,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         lan = self.language_items[0]
 
         if lan_id := self.bus.get_value("language", str, reject_none=True):
-            print(f"Language {lan_id} is loaded from configuration.")
+            logging.debug(f"Language {lan_id} is loaded from configuration.")
             lan = [_language for _language in self.language_items if _language.id == lan_id][0]
 
         self.switch_language(language=lan)
@@ -151,6 +153,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         setattr(self.bus.ui, lan_regsitry["action"], new_action)
         self.bus.ui.menuLanguage.addAction(new_action)
         new_action.setText(_translate("REvoDesignPyMOL_UI", lan_regsitry["name"]))
+        logging.debug(f"Adding language {lan_regsitry['name']} to menu.")
         return new_action
 
     def register_language(self):
@@ -158,7 +161,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         Registers all languages.
         """
         for lan in self.language_items:
-            print(f"Registering language {lan.name} by {lan.id} from {lan.language_file}")
+            logging.debug(f"Registering language {lan.name} by {lan.id} from {lan.language_file}")
             self._bind_to_action(language=lan)
 
     def switch_language(self, language: LanguageItem):
@@ -170,10 +173,11 @@ class LanguageSwitch(QtWidgets.QWidget):
         """
         if language.id and os.path.exists(language.language_file):
             self.bus.ui.trans.load(language.language_file)
-            print(f"loading {language.name} ({language.id}) from {language.language_file}")
+            logging.info(f"loading {language.name} ({language.id}) from {language.language_file}")
             QtWidgets.QApplication.instance().installTranslator(self.bus.ui.trans)
 
         else:
+            logging.debug(f"{language.name} ({language.id}) is not available.")
             QtWidgets.QApplication.instance().removeTranslator(self.bus.ui.trans)
         self.bus.ui.retranslateUi(self.window)
         self._set_action_checked(language=language)

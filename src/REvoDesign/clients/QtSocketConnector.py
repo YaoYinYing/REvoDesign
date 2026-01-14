@@ -27,7 +27,7 @@ from REvoDesign.common.mutant_tree import MutantTree
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.customized_widgets import refresh_tree_widget
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
-from REvoDesign.tools.utils import run_worker_thread_with_progress
+from REvoDesign.tools.utils import run_worker_thread_in_pool
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -682,7 +682,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         """
         last_view = cmd.get_view()
         while True:
-            run_worker_thread_with_progress(
+            run_worker_thread_in_pool(
                 time.sleep,
                 None,
                 self.check_broadcast_interval(),
@@ -691,7 +691,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             view_data = cmd.get_view()
             if view_data == last_view:
                 # external sleep if view is not changed.
-                # run_worker_thread_with_progress(time.sleep, None, 1)
+                # run_worker_thread_in_pool(time.sleep, None, 1)
                 continue
             if not self.check_broadcast_enabled_flag():
                 return
@@ -837,7 +837,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
                 f"{len(diff_mutant_tree.all_mutant_ids)} mutants"
             )
 
-            run_worker_thread_with_progress(
+            run_worker_thread_in_pool(
                 worker_function=self.mutagenesis_from_mutant_tree,
                 mutant_tree=diff_mutant_tree,
             )

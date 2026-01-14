@@ -35,7 +35,7 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         self.pdb_filename = None
         self.reload = False
 
-    # initializing takes time so it should be sent to run_worker_thread_with_progress so UI will not be frozen.
+    # initializing takes time so it should be sent to run_worker_thread_in_pool so UI will not be frozen.
     def initialize(self, *args, **kwargs):
         """
         Initialize the ColabDesigner_MPNN class.

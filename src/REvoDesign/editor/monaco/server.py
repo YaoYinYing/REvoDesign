@@ -56,8 +56,8 @@ def get_file_whitelist():
         logfile,
         notebookfile,
     )
-    print(f"Editable files: {editable_files}")
-    print(f"Readonly files: {readonly_files}")
+    logging.debug(f"Editable files: {editable_files}")
+    logging.debug(f"Readonly files: {readonly_files}")
     return editable_files, readonly_files
 
 
@@ -101,7 +101,7 @@ def initialize_token() -> str:
     SECRET_TOKEN = secrets.token_urlsafe(32)
     config_store.set("editor.token", SECRET_TOKEN)
 
-    print(f"Generated SECRET_TOKEN: {SECRET_TOKEN}")
+    logging.info(f"Generated SECRET_TOKEN: {SECRET_TOKEN}")
     return SECRET_TOKEN
 
 
@@ -127,7 +127,7 @@ def verify_token(token: str, request: Request):
     no_token = config_store.get("editor.backend.no_token", default=False)
 
     if should_block(request):
-        print(f"Blocked IP: {client_ip}")
+        logging.warning(f"Blocked IP: {client_ip}")
         raise HTTPException(status_code=429, detail="Too many failed attempts. Please try again later.")
 
     if (not no_token) and token != expected_token:
@@ -156,10 +156,10 @@ async def lifespan(app: FastAPI):
     config_store.set("monaco.file_whitelist.editable", editable_files)
     config_store.set("monaco.file_whitelist.readonly", readonly_files)
 
-    print("Application startup complete.")
+    logging.info("Editor backend startup complete.")
     yield
     config_store.reset()
-    print("Application shutdown complete.")
+    logging.info("Editor backend shutdown complete.")
 
 
 app = FastAPI(lifespan=lifespan)
@@ -298,7 +298,7 @@ class ServerControl(ServerControlAbstract):
 
     def start_server(self):
         if self.is_running:
-            print("Server is already running.")
+            logging.warning("Server is already running.")
             return
 
         # Check if token authentication is required
@@ -327,7 +327,7 @@ class ServerControl(ServerControlAbstract):
             self.config_store.set("editor.token", None)  # Ensure no token is used
 
         HTML_DIR = self.config_store.get("editor.backend.html_dir")
-        print(f"{HTML_DIR=}")
+        logging.debug(f"{HTML_DIR=}")
 
         # Determine if SSL is enabled
         use_ssl = config_bus.get_value("editor.backend.use_ssl", bool, default_value=False, cfg="editor")
@@ -351,15 +351,32 @@ class ServerControl(ServerControlAbstract):
         port = config_bus.get_value("editor.backend.port", int, reject_none=True, cfg="editor")
         self.config_store.set("editor.backend.port", port)
 
+        logging_silent = config_bus.get_value("editor.logging.silent", bool, default_value=True, cfg="editor")
+        raw_logging_level = config_bus.get_value("editor.logging.level", str, default_value="INFO", cfg="editor")
+        normalized_level = "info"
+        if raw_logging_level:
+            normalized_level = str(raw_logging_level).strip().lower() or "info"
+        valid_levels = {"critical", "error", "warning", "info", "debug", "trace"}
+        if normalized_level not in valid_levels:
+            normalized_level = "info"
+        self.config_store.set("editor.logging.silent", logging_silent)
+        self.config_store.set("editor.logging.level", normalized_level.upper())
+
+        log_level = "critical" if logging_silent else normalized_level
+
         # Configure Uvicorn
-        config = uvicorn.Config(
+        uvicorn_config_kwargs = dict(
             app=app,
             host=self.config_store.get("editor.backend.host"),
             port=self.config_store.get("editor.backend.port"),
             ssl_certfile=ssl_certfile,
             ssl_keyfile=ssl_keyfile,
-            log_level="info",
+            log_level=log_level,
+            access_log=not logging_silent,
         )
+        if logging_silent:
+            uvicorn_config_kwargs["log_config"] = None
+        config = uvicorn.Config(**uvicorn_config_kwargs)
         self.server = uvicorn.Server(config)
 
         # Start server in a WorkerThread
@@ -368,15 +385,15 @@ class ServerControl(ServerControlAbstract):
         self.server_thread.finished_signal.connect(self._on_server_finished)
         self.server_thread.start()
         self.is_running = True
-        print(
+        logging.debug(
             f"Server started with {'SSL' if use_ssl else 'no SSL'} and "
             f"{'no token' if no_token else 'token-based'} authentication."
         )
-        print(f"ServerControl::Config:{self.config_store.cfg}")
+        logging.debug(f"ServerControl::Config:{self.config_store.cfg}")
 
     def stop_server(self):
         if not self.is_running:
-            print("Server is not running.")
+            logging.warning("Server is not running.")
             return
 
         print("Stopping server...")

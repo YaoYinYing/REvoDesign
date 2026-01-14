@@ -1,7 +1,7 @@
 # pylint: disable=too-many-lines
 # pylint: disable=import-outside-toplevel
 # pylint: disable=unused-argument
-
+from __future__ import annotations
 
 import difflib
 import importlib
@@ -24,10 +24,10 @@ import uuid
 import warnings
 from collections.abc import Callable, Iterable, Mapping
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypedDict, TypeVar, overload
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypedDict, TypeVar, cast, overload
 from urllib.error import HTTPError, URLError
 
 from packaging.version import InvalidVersion, Version
@@ -36,6 +36,7 @@ from pymol.plugins import addmenuitemqt
 from pymol.Qt.utils import loadUi
 
 LOGGER_LEVEL = 0
+_WORKER_CONTEXT = threading.local()
 
 if TYPE_CHECKING:
     # type checking branch
@@ -254,7 +255,7 @@ class ExtrasItem:
     python_version: str | None = None
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ExtrasItem":
+    def from_dict(cls, data: dict) -> ExtrasItem:
         """
         Create an ExtrasItem instance from a dictionary.
 
@@ -291,7 +292,7 @@ class ExtrasGroup:
     extras: list[ExtrasItem]
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ExtrasGroup":
+    def from_dict(cls, data: dict) -> ExtrasGroup:
         """
         Create an ExtrasGroup instance from a dictionary.
 
@@ -317,7 +318,7 @@ class ExtrasGroups:
     entities: tuple[ExtrasGroup, ...]
 
     @classmethod
-    def from_dict(cls, d: dict) -> "ExtrasGroups":
+    def from_dict(cls, d: dict) -> ExtrasGroups:
         """
         Create an ExtrasGroups object from a dictionary.
 
@@ -409,7 +410,6 @@ def fetch_gist_json(url: str) -> dict[str, Any]:
         return {}
 
 
-# Define a generic type variable for the return type of worker_function
 R = TypeVar("R")
 
 
@@ -479,6 +479,7 @@ def run_command(
         bufsize=1,
         env=patched_env,
     )
+    RunningProcessRegistry.register_current_worker(process)
 
     t1 = threading.Thread(target=stream_reader, args=(process.stdout, stdout_lines, "STDOUT"))
     t2 = threading.Thread(target=stream_reader, args=(process.stderr, stderr_lines, "STDERR"))
@@ -488,6 +489,7 @@ def run_command(
     process.wait()
     t1.join()
     t2.join()
+    RunningProcessRegistry.unregister_process(process)
 
     stdout_text = "".join(stdout_lines)
     stderr_text = "".join(stderr_lines)
@@ -1118,7 +1120,7 @@ class REvoDesignPackageManager:
 
         self.refresh_remote_json()
 
-        self.pip_installer = run_worker_thread_with_progress(PIPInstaller)
+        self.pip_installer = run_worker_thread_in_pool(PIPInstaller)
 
         self.extra_checkbox.setGeometry(QtCore.QRect(540, 90, 141, 431))
 
@@ -1162,12 +1164,11 @@ class REvoDesignPackageManager:
 
         if proxy.startswith("socks5"):
             logging.info("Ensuring pysocks is installed...")
-            run_worker_thread_with_progress(
+            run_worker_thread_in_pool(
                 worker_function=self.pip_installer.ensure_package,
                 package_string="pysocks",
                 mirror=mirror,
                 env={},
-                progress_bar=self.installer_ui.progressBar,
             )
 
         logging.info(f"using proxy: {proxy}")
@@ -1194,9 +1195,7 @@ class REvoDesignPackageManager:
                 }
             ],
         }
-        remote_data = run_worker_thread_with_progress(
-            worker_function=fetch_gist_json, url=RICH_TABLE_JSON, progress_bar=self.installer_ui.progressBar
-        )
+        remote_data = run_worker_thread_in_pool(worker_function=fetch_gist_json, url=RICH_TABLE_JSON)
 
         self.notification_channel(remote_data)
 
@@ -1264,11 +1263,10 @@ class REvoDesignPackageManager:
         cb.clear(mode=cb.Clipboard)
 
         # Collect diagnostic data using a worker thread
-        diagnostic_data = run_worker_thread_with_progress(
+        diagnostic_data = run_worker_thread_in_pool(
             worker_function=issue_collection,
             collect_dummy=collect_dummy,
             drop_sensitives=drop_sensitives,
-            progress_bar=self.installer_ui.progressBar,
         )
         diagnostic_data_json = json.dumps(diagnostic_data, indent=2)
         # Copy the collected diagnostic data to the clipboard in JSON format
@@ -1333,7 +1331,7 @@ class REvoDesignPackageManager:
         # Create a new dialog window
         dialog = QtWidgets.QDialog()
 
-        ui_file = run_worker_thread_with_progress(worker_function=self.ensure_ui_file)
+        ui_file = run_worker_thread_in_pool(worker_function=self.ensure_ui_file)
         # Set up the UI for the dialog
         try:
             self.installer_ui = loadUi(ui_file, dialog)
@@ -1385,6 +1383,7 @@ class REvoDesignPackageManager:
 
         # Connect the set cache directory button to the setup_cache_dir method
         self.installer_ui.pushButton_set_cache_dir.clicked.connect(self.setup_cache_dir)
+        self.installer_ui.label_header.mouseDoubleClickEvent = self._open_thread_dashboard
 
         # Connect the install button to the install method
         self.installer_ui.pushButton_install.clicked.connect(self.install)
@@ -1465,9 +1464,7 @@ class REvoDesignPackageManager:
         and then sets the result as the value of the `comboBox_version` combo box in the UI.
         """
         # Run a worker thread to fetch tags with a progress bar
-        tags = run_worker_thread_with_progress(
-            worker_function=get_github_repo_tags, repo_url=REPO_URL, progress_bar=self.installer_ui.progressBar
-        )
+        tags = run_worker_thread_in_pool(worker_function=get_github_repo_tags, repo_url=REPO_URL)
         if tags and isinstance(tags, list):
             return set_widget_value(self.installer_ui.comboBox_version, tags)
 
@@ -1590,10 +1587,10 @@ class REvoDesignPackageManager:
         # During the uninstallation process, hold down the remove button on the UI to prevent multiple triggers
         with hold_trigger_button(self.installer_ui.pushButton_remove), self.freeze_manager():
             # Run the uninstallation process in a separate thread and monitor its progress
-            ret = run_worker_thread_with_progress(
+            ret = run_worker_thread_in_pool(
                 worker_function=self.pip_installer.uninstall,
                 package_name="REvoDesign",
-                progress_bar=self.installer_ui.progressBar,
+                trigger_buttons=self.installer_ui.pushButton_remove,
             )
 
             if ret is None or ret.returncode:
@@ -1602,7 +1599,10 @@ class REvoDesignPackageManager:
 
             remove_deps = decide("Clean up warning", "Do you want to remove all the dependencies?")
             if remove_deps:
-                run_worker_thread_with_progress(self.remove_depts, progress_bar=self.installer_ui.progressBar)
+                run_worker_thread_in_pool(
+                    self.remove_depts,
+                    trigger_buttons=self.installer_ui.pushButton_remove,
+                )
 
             # If the uninstallation is successful, notify the user
             return notify_box(
@@ -1742,11 +1742,11 @@ class REvoDesignPackageManager:
                     )
                     return
 
-                git_solver_res = run_worker_thread_with_progress(
+                git_solver_res = run_worker_thread_in_pool(
                     worker_function=git_solver.fetch_git,
                     git_fetch_command=git_fetch_command,
                     env=env,
-                    progress_bar=self.installer_ui.progressBar,
+                    trigger_buttons=self.installer_ui.pushButton_install,
                 )
 
                 if not git_solver.has_git:
@@ -1755,14 +1755,14 @@ class REvoDesignPackageManager:
                 # If successful, show a notification and return True
                 notify_box(message="Git installed successfully.")
 
-            installed = run_worker_thread_with_progress(
+            installed = run_worker_thread_in_pool(
                 worker_function=self.pip_installer.install,
                 source=install_source,
                 upgrade=upgrade,
                 extras=extras,
                 verbose_level=verbose_level,
                 mirror=mirror_url if (use_mirror and mirror_url) else "",
-                progress_bar=self.installer_ui.progressBar,
+                trigger_buttons=self.installer_ui.pushButton_install,
             )
             # Provide feedback on the installation result
             if isinstance(installed, subprocess.CompletedProcess) and installed.returncode == 0:
@@ -1843,53 +1843,458 @@ class REvoDesignPackageManager:
 
         set_REvoDesign_config_file(delete_user_config_tree=True)
 
+    def _open_thread_dashboard(self, event=None):
+        dashboard = ThreadDashboard.instance()
+        if dashboard is None:
+            return
+        dashboard.show()
+        dashboard.raise_()
+        dashboard.activateWindow()
+        if event is not None:
+            event.accept()
 
-# TODO: 1. add interrupt signal and slot
-# TODO: 2. bind trigger button(s) and interact w/ abort buttons:
-#    when running:
-#      a. prepare red abort buttons, connect them to interrupt signal;
-#      b. when mouse cursor is on it, show abort button, hide trigger buttons; do the reverse while mouse cursor is out of it;
-#    when finished or aborted:
-#      a. cleanup abord buttons
-#      b. recover trigger buttons
-# TODO: 3. register to thread pool and show on thread dashboard
-# TODO: 4. add notification slot
-# TODO: 5. add progress bar setting slot
-# TODO: add abort button
-# self.abortbutton = QtWidgets.QPushButton('Abort')
-# self.abortbutton.setStyleSheet("background: #FF0000; color: #FFFFFF")
-# self.abortbutton.released.connect(cmd.interrupt)
+
+@dataclass
+class ThreadPoolEntry:
+    """Bookkeeping structure for WorkerThread instances."""
+
+    thread: QtCore.QThread
+    description: str
+    started_at: float = field(default_factory=time.time)
+    finished_at: float | None = None
+
+    @property
+    def thread_id(self) -> int:
+        return id(self.thread)
+
+    @property
+    def duration(self) -> float:
+        end_time = self.finished_at or time.time()
+        return max(0.0, end_time - self.started_at)
+
+
+class ThreadDashboard(QtWidgets.QDialog):
+    """Simple dashboard that visualises worker threads."""
+
+    _instance: ClassVar[ThreadDashboard | None] = None
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setWindowTitle("Thread Dashboard")
+        self.setModal(False)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
+        self.resize(540, 260)
+        self.setStyleSheet(
+            """
+            QDialog {
+                background-color: #1e1e1e;
+                color: #f0f0f0;
+            }
+            QTableWidget {
+                background-color: #252526;
+                color: #f0f0f0;
+                border: 1px solid #3c3c3c;
+                gridline-color: #3c3c3c;
+                font-size: 12px;
+            }
+            QHeaderView::section {
+                background-color: #2d2d2d;
+                color: #bbbbbb;
+                padding: 6px;
+                border: none;
+                font-weight: bold;
+            }
+            QTableWidget::item {
+                padding: 6px;
+            }
+            """
+        )
+        self.table = QtWidgets.QTableWidget(0, 3)
+        self.table.setHorizontalHeaderLabels(["Task", "Duration", "Thread ID"])
+        self.table.verticalHeader().setVisible(False)
+        self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.setShowGrid(False)
+        self.table.setAlternatingRowColors(True)
+        self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+        self.table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+        self._refresh_timer = QtCore.QTimer(self)
+        self._refresh_timer.setInterval(200)
+        self._refresh_timer.timeout.connect(self._refresh_durations)
+        self._refresh_timer.start()
+        self._entries_cache: list[ThreadPoolEntry] = []
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.table)
+        self.hide()
+        self.table.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._show_context_menu)
+
+    @classmethod
+    def instance(cls) -> ThreadDashboard | None:
+        if cls._instance is None:
+            if QtWidgets.QApplication.instance() is None:
+                return None
+            cls._instance = cls()
+        return cls._instance
+
+    @classmethod
+    def show_thread_dashboard(cls):
+        i = cls.instance()
+        if not i:
+            print("No QApplication instance found.")
+            return
+        i.show()
+
+    def update_entries(self, entries: Iterable[ThreadPoolEntry]) -> None:
+        entries = list(entries)
+        self._entries_cache = entries
+        self.table.setRowCount(len(entries))
+        for row, entry in enumerate(entries):
+            duration_item = QtWidgets.QTableWidgetItem(f"{entry.duration:.1f}s")
+            duration_item.setTextAlignment(QtCore.Qt.AlignCenter)
+            thread_item = QtWidgets.QTableWidgetItem(hex(entry.thread_id))
+            thread_item.setForeground(QtGui.QColor("#9cdcfe"))
+            thread_item.setTextAlignment(QtCore.Qt.AlignCenter)
+            task_item = QtWidgets.QTableWidgetItem(entry.description)
+            task_item.setForeground(QtGui.QColor("#ce9178"))
+            self.table.setItem(row, 0, task_item)
+            self.table.setItem(row, 1, duration_item)
+            self.table.setItem(row, 2, thread_item)
+        if not entries:
+            self.table.clearContents()
+
+    def _refresh_durations(self) -> None:
+        if not self._entries_cache:
+            return
+        for row, entry in enumerate(self._entries_cache):
+            item = self.table.item(row, 1)
+            if item:
+                item.setText(f"{entry.duration:.1f}s")
+
+    def _show_context_menu(self, pos: QtCore.QPoint) -> None:
+        index = self.table.indexAt(pos)
+        if not index.isValid():
+            return
+        row = index.row()
+        if row >= len(self._entries_cache):
+            return
+        entry = self._entries_cache[row]
+        menu = QtWidgets.QMenu(self)
+        kill_action = menu.addAction("Kill")
+        global_pos = self.table.viewport().mapToGlobal(pos)
+        action = menu.exec_(global_pos)
+        if action == kill_action:
+            ThreadExecutionManager.kill_entry(entry)
+
+
+class ThreadPoolRegistry:
+    """Global registry tracking running worker threads."""
+
+    _entries: ClassVar[dict[int, ThreadPoolEntry]] = {}
+    _lock: ClassVar[threading.Lock] = threading.Lock()
+
+    @classmethod
+    def register(cls, thread: QtCore.QThread, description: str) -> None:
+        entry = ThreadPoolEntry(thread=thread, description=description)
+        with cls._lock:
+            cls._entries[entry.thread_id] = entry
+        cls._sync_dashboard()
+
+    @classmethod
+    def unregister(cls, thread: QtCore.QThread) -> None:
+        with cls._lock:
+            cls._entries.pop(id(thread), None)
+        cls._sync_dashboard()
+
+    @classmethod
+    def _sync_dashboard(cls) -> None:
+        dashboard = ThreadDashboard.instance()
+        if dashboard is None:
+            return
+        with cls._lock:
+            entries = list(cls._entries.values())
+        dashboard.update_entries(entries)
+
+
+class RunningProcessRegistry:
+    """Tracks subprocesses spawned within worker threads to allow cancellation."""
+
+    _lock: ClassVar[threading.Lock] = threading.Lock()
+    _worker_processes: ClassVar[dict[int, set[subprocess.Popen]]] = {}
+    _process_worker: ClassVar[dict[int, int]] = {}
+
+    @classmethod
+    def register_current_worker(cls, process: subprocess.Popen[str]) -> None:
+        worker = getattr(_WORKER_CONTEXT, "current_worker", None)
+        if worker is None:
+            return
+        worker_id = id(worker)
+        with cls._lock:
+            cls._worker_processes.setdefault(worker_id, set()).add(process)
+            cls._process_worker[id(process)] = worker_id
+
+    @classmethod
+    def unregister_process(cls, process: subprocess.Popen[str]) -> None:
+        proc_id = id(process)
+        with cls._lock:
+            worker_id = cls._process_worker.pop(proc_id, None)
+            if worker_id is None:
+                return
+            processes = cls._worker_processes.get(worker_id)
+            if not processes:
+                return
+            processes.discard(process)
+            if not processes:
+                cls._worker_processes.pop(worker_id, None)
+
+    @classmethod
+    def terminate(cls, worker: QtCore.QThread) -> None:
+        cls._clear(worker, terminate=True)
+
+    @classmethod
+    def clear(cls, worker: QtCore.QThread) -> None:
+        cls._clear(worker, terminate=False)
+
+    @classmethod
+    def _clear(cls, worker: QtCore.QThread, terminate: bool) -> None:
+        worker_id = id(worker)
+        with cls._lock:
+            processes = cls._worker_processes.pop(worker_id, set())
+            for process in processes:
+                cls._process_worker.pop(id(process), None)
+        if terminate:
+            for process in processes:
+                cls._terminate_process(process)
+
+    @staticmethod
+    def _terminate_process(process: subprocess.Popen[str]) -> None:
+        if process.poll() is None:
+            try:
+                process.terminate()
+            except Exception:
+                pass
+            try:
+                process.wait(timeout=5)
+            except Exception:
+                try:
+                    process.kill()
+                except Exception:
+                    pass
+
+
+class AbortButtonOverlay(QtCore.QObject):
+    """Overlay that reveals a red abort button on hover."""
+
+    def __init__(self, trigger_button: QtWidgets.QPushButton, interrupt_callback: Callable[[], None]) -> None:
+        super().__init__(trigger_button)
+        self.trigger_button = trigger_button
+        self.interrupt_callback = interrupt_callback
+        self.abort_button = QtWidgets.QPushButton("Abort")
+        self.abort_button.setWindowFlags(
+            QtCore.Qt.Tool
+            | QtCore.Qt.FramelessWindowHint
+            | QtCore.Qt.WindowStaysOnTopHint
+            | QtCore.Qt.WindowDoesNotAcceptFocus
+        )
+        self.abort_button.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
+        self.abort_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.abort_button.setStyleSheet("background-color: #FF0000; color: #FFFFFF; font-weight: bold;")
+        self.abort_button.hide()
+        self.abort_button.clicked.connect(self._handle_abort_click)
+        self.abort_button.installEventFilter(self)
+        self.abort_button.setCursor(QtCore.Qt.PointingHandCursor)
+        self._button_rect: QtCore.QRect | None = None
+        self._hover_timer = QtCore.QTimer(self)
+        self._hover_timer.setInterval(80)
+        self._hover_timer.timeout.connect(self._update_hover_visibility)
+        self._hover_timer.start()
+        trigger_button.installEventFilter(self)
+        self._sync_geometry()
+
+    def _handle_abort_click(self) -> None:
+        self.interrupt_callback()
+        self.abort_button.setText("Aborting...")
+        self.abort_button.setEnabled(False)
+
+    def _sync_geometry(self) -> None:
+        if not self.trigger_button or not self.abort_button:
+            return
+        if not self.trigger_button.isVisible():
+            self.abort_button.hide()
+            self._button_rect = None
+            return
+        top_left = self.trigger_button.mapToGlobal(QtCore.QPoint(0, 0))
+        size = self.trigger_button.size()
+        self._button_rect = QtCore.QRect(top_left, size)
+        self.abort_button.setFixedSize(size)
+        self.abort_button.move(top_left)
+        self.abort_button.raise_()
+
+    def _show_abort(self) -> None:
+        if not self.abort_button:
+            return
+        self._sync_geometry()
+        if not self.abort_button.isVisible():
+            self.abort_button.show()
+        self.abort_button.raise_()
+
+    def _hide_abort(self) -> None:
+        if self.abort_button is not None:
+            self.abort_button.hide()
+
+    def _update_hover_visibility(self) -> None:
+        if not self.abort_button:
+            return
+        self._sync_geometry()
+        cursor_pos = QtGui.QCursor.pos()
+        if self.abort_button.isVisible() and self.abort_button.geometry().contains(cursor_pos):
+            return
+        if self._button_rect and self._button_rect.contains(cursor_pos):
+            self._show_abort()
+        elif not self.abort_button.geometry().contains(cursor_pos):
+            self._hide_abort()
+
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:  # type: ignore[override]
+        if obj is self.trigger_button:
+            if event.type() in (QtCore.QEvent.Resize, QtCore.QEvent.Move, QtCore.QEvent.Show):
+                self._sync_geometry()
+            elif event.type() == QtCore.QEvent.Hide:
+                self._hide_abort()
+            elif event.type() == QtCore.QEvent.Close:
+                self.cleanup()
+        elif obj is self.abort_button and event.type() == QtCore.QEvent.Leave:
+            self._hide_abort()
+        return super().eventFilter(obj, event)
+
+    def cleanup(self) -> None:
+        self._hover_timer.stop()
+        self._hide_abort()
+        try:
+            self.trigger_button.removeEventFilter(self)
+        except RuntimeError:
+            pass
+        abort_button = self.abort_button
+        self.abort_button = None
+        if abort_button is not None:
+            try:
+                abort_button.removeEventFilter(self)
+            except RuntimeError:
+                pass
+            abort_button.hide()
+            abort_button.deleteLater()
+
+
+class ThreadExecutionManager(QtCore.QObject):
+    """Binds worker threads with UI affordances (abort button, progress, dashboard)."""
+
+    _instances: ClassVar[dict[int, ThreadExecutionManager]] = {}
+
+    def __init__(
+        self,
+        worker_thread: WorkerThread,
+        *,
+        description: str,
+        trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
+        notify_slot: Callable[[str], None] | None = None,
+    ) -> None:
+        super().__init__(worker_thread)
+        self.worker_thread = worker_thread
+        self.notify_slot = notify_slot
+        self.abort_overlays: list[AbortButtonOverlay] = []
+        self._aborted = False
+
+        self._bind_abort_buttons(trigger_buttons)
+        self._connect_signals()
+        ThreadPoolRegistry.register(worker_thread, description)
+        ThreadExecutionManager._instances[id(worker_thread)] = self
+
+    def _bind_abort_buttons(
+        self, trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None
+    ) -> None:
+        buttons = self._normalize_buttons(trigger_buttons)
+        for button in buttons:
+            if not isinstance(button, QtWidgets.QPushButton):
+                continue
+            overlay = AbortButtonOverlay(button, self._handle_abort_request)
+            self.abort_overlays.append(overlay)
+
+    def _connect_signals(self) -> None:
+        self.worker_thread.finished_signal.connect(self._handle_finish)
+        self.worker_thread.interrupt_signal.connect(self._mark_aborted)
+        self.worker_thread.notify_signal.connect(self._handle_notification)
+
+    def _handle_abort_request(self) -> None:
+        self._aborted = True
+        try:
+            cmd.interrupt()
+        except Exception:
+            pass
+        self.worker_thread.interrupt()
+        if self.worker_thread.isRunning():
+            self.worker_thread.quit()
+            if not self.worker_thread.wait(100):
+                self.worker_thread.terminate()
+
+    def _mark_aborted(self) -> None:
+        self._aborted = True
+
+    def _handle_finish(self) -> None:
+        ThreadPoolRegistry.unregister(self.worker_thread)
+        ThreadExecutionManager._instances.pop(id(self.worker_thread), None)
+        self._cleanup_abort_buttons()
+
+    def _handle_notification(self, message: str) -> None:
+        callback = self.notify_slot or notify_box
+        if message and callback is not None:
+            callback(message)
+
+    def _cleanup_abort_buttons(self) -> None:
+        for overlay in self.abort_overlays:
+            overlay.cleanup()
+        self.abort_overlays.clear()
+
+    def _kill_thread(self) -> None:
+        self._handle_abort_request()
+        self.worker_thread.wait(100)
+        if self.worker_thread.isRunning():
+            self.worker_thread.terminate()
+        self._cleanup_abort_buttons()
+
+    @classmethod
+    def kill_entry(cls, entry: ThreadPoolEntry) -> None:
+        manager = cls._instances.get(entry.thread_id)
+        if manager is not None:
+            manager._kill_thread()
+            ThreadPoolRegistry.unregister(manager.worker_thread)
+            cls._instances.pop(entry.thread_id, None)
+        else:
+            cls._force_quit(entry.thread)
+
+    @staticmethod
+    def _force_quit(thread: QtCore.QThread) -> None:
+        thread.requestInterruption()
+        RunningProcessRegistry.terminate(thread)
+        if thread.isRunning():
+            thread.quit()
+            if not thread.wait(100):
+                thread.terminate()
+        ThreadPoolRegistry.unregister(thread)
+
+    @staticmethod
+    def _normalize_buttons(
+        buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None,
+    ) -> tuple[QtWidgets.QPushButton, ...]:
+        if buttons is None:
+            return tuple()
+        if isinstance(buttons, QtWidgets.QPushButton):
+            return (buttons,)
+        return tuple(button for button in buttons if isinstance(button, QtWidgets.QPushButton))
 
 
 class WorkerThread(QtCore.QThread):
-    """
-    Custom worker thread for executing a function in a separate thread.
-
-    Attributes:
-    - result_signal (QtCore.pyqtSignal): Signal emitted when the result is available.
-    - finished_signal (QtCore.pyqtSignal): Signal emitted when the thread finishes its execution.
-    - interrupt_signal (QtCore.pyqtSignal): Signal to interrupt the thread.
-
-    Methods:
-    - __init__: Initializes the WorkerThread object.
-    - run: Executes the specified function with arguments and emits the result through signals.
-    - handle_result: Returns the result obtained after the thread execution.
-    - interrupt: Interrupts the execution of the thread.
-
-    Example Usage:
-    ```python
-    def some_function(x, y):
-        return x + y
-
-    worker = WorkerThread(func=some_function, args=(10, 20))
-    worker.result_signal.connect(handle_result_function)
-    worker.finished_signal.connect(handle_finished_function)
-    worker.interrupt_signal.connect(handle_interrupt_function)
-    worker.start()
-    # To interrupt the execution:
-    # worker.interrupt()
-    ```
-    """
+    """Custom worker thread for executing a function in a separate thread."""
 
     result_signal = QtCore.pyqtSignal(list)
     finished_signal = QtCore.pyqtSignal()
@@ -1903,109 +2308,42 @@ class WorkerThread(QtCore.QThread):
         self.func = func
         self.args = args or ()
         self.kwargs = kwargs or {}
-        self.results = None  # Define the results attribute
+        self.results = None
+        self.interrupt_signal.connect(self._handle_interrupt)
 
     def run(self):
-        """
-        Executes the task and handles the results.
-
-        This function checks if an interruption has been requested. If not, it runs the specified function with
-        given arguments and keyword arguments.
-        The result is then emitted through a signal if available, and a completion signal is emitted at the end.
-
-        Parameters:
-        - self: The instance of the class containing this method. It should have the following attributes:
-            - func: The function to be executed.
-            - args: A tuple of positional arguments for the function.
-            - kwargs: A dictionary of keyword arguments for the function.
-            - result_signal: A signal to emit the results.
-            - finished_signal: A signal to indicate the task has finished.
-            - isInterruptionRequested: A method that returns True if an interruption has been requested,
-            otherwise False.
-        """
-        # Check if an interruption has been requested
-        if not self.isInterruptionRequested():
-            # Execute the function with provided arguments and store the result
+        previous_worker = getattr(_WORKER_CONTEXT, "current_worker", None)
+        _WORKER_CONTEXT.current_worker = self
+        try:
+            if self.isInterruptionRequested():
+                return
             self.results = [self.func(*self.args, **self.kwargs)]
-
-            # Emit the result if it exists
             if self.results:
                 self.result_signal.emit(self.results)
-
-            # Emit the finished signal
-            self.finished_signal.emit()
+        finally:
+            try:
+                self.finished_signal.emit()
+            except RuntimeError:
+                pass
+            if previous_worker is None:
+                try:
+                    delattr(_WORKER_CONTEXT, "current_worker")
+                except AttributeError:
+                    pass
+            else:
+                _WORKER_CONTEXT.current_worker = previous_worker
+            RunningProcessRegistry.clear(self)
 
     def handle_result(self):
-        """
-        Retrieves the results from the current instance.
-
-        This method returns the 'results' attribute of the current instance.
-        It is used to obtain the result data within other methods of the class.
-        """
         return self.results
 
     def interrupt(self):
-        """
-        Emit an interrupt signal.
-
-        This function triggers an interrupt signal.
-        """
+        self.requestInterruption()
+        RunningProcessRegistry.terminate(self)
         self.interrupt_signal.emit()
 
-
-@overload
-def run_worker_thread_with_progress(
-    worker_function: Callable[..., R], *args, progress_bar: Any | None = None, **kwargs
-) -> R: ...
-
-
-def run_worker_thread_with_progress(
-    worker_function: Callable[..., R | None], *args, progress_bar: Any | None = None, **kwargs
-) -> R | None:
-    """
-    Runs a worker function in a separate thread and optionally updates a progress bar.
-
-    This function is designed to execute a given task (worker_function) in a separate thread,
-    allowing the main thread to remain responsive, such as updating a progress bar.
-    After the task is completed, it restores the progress bar's state and returns the result of the task.
-
-    Parameters:
-    - worker_function: The function to execute in a separate thread.
-    - progress_bar: An optional progress bar object to update during the execution of the worker function.
-    - *args, **kwargs: Additional arguments and keyword arguments to pass to the worker function.
-
-    Returns:
-    - The result of the worker function or None if no result is available.
-    """
-
-    # If a progress bar is provided, store its current state and set it to indeterminate progress
-    if progress_bar:
-        # store the progress bar state
-        _min = progress_bar.minimum()
-        _max = progress_bar.maximum()
-        _val = progress_bar.value()
-
-        progress_bar.setRange(0, 0)
-
-    # Create and start a worker thread with the given function and parameters
-    work_thread = WorkerThread(worker_function, args=args, kwargs=kwargs)
-    work_thread.start()
-
-    # Keep the main thread running until the worker thread finishes
-    while not work_thread.isFinished():
-        refresh_window()
-        time.sleep(0.01)
-
-    # If a progress bar was used, restore its state after the task is completed
-    if progress_bar:
-        # restore the progressbar state
-        progress_bar.setRange(_min, _max)
-        progress_bar.setValue(_val)
-
-    # Obtain and return the result of the worker function
-    result = work_thread.handle_result()
-
-    return result[0] if result else None
+    def _handle_interrupt(self) -> None:
+        pass
 
 
 def get_github_repo_tags(repo_url) -> list[str]:
@@ -2126,6 +2464,78 @@ def refresh_window():
     QtWidgets.QApplication.processEvents()
 
 
+GuiResult = TypeVar("GuiResult")
+
+
+class _GuiThreadInvoker(QtCore.QObject):
+    """
+    Utility object that marshals callables back onto the GUI thread.
+
+    Worker threads emit `execute_signal` with a zero-argument callback.
+    The signal is delivered to this object's thread (the GUI thread), so
+    PyQt widgets are never touched from background workers.
+    """
+
+    _instance: ClassVar[_GuiThreadInvoker | None] = None
+    execute_signal = QtCore.pyqtSignal(object)
+
+    def __init__(self):
+        super().__init__()
+        self.execute_signal.connect(self._execute)
+
+    @classmethod
+    def instance(cls) -> _GuiThreadInvoker | None:
+        app = QtWidgets.QApplication.instance()
+        if app is None:
+            return None
+        if cls._instance is None:
+            cls._instance = cls()
+            try:
+                cls._instance.moveToThread(app.thread())
+            except RuntimeError:
+                pass
+        return cls._instance
+
+    @QtCore.pyqtSlot(object)
+    def _execute(self, callback: Callable[[], None]) -> None:
+        callback()
+
+
+def execute_on_main_thread(func: Callable[..., GuiResult], *args, **kwargs) -> GuiResult:
+    """
+    Run `func` on the GUI thread, waiting for completion, and return its result.
+
+    If REvoDesign is already on the GUI thread (or no QApplication exists),
+    the function executes immediately.
+    """
+    app = QtWidgets.QApplication.instance()
+    gui_thread = app.thread() if app else None
+    if app is None or QtCore.QThread.currentThread() == gui_thread:
+        return func(*args, **kwargs)
+
+    invoker = _GuiThreadInvoker.instance()
+    if invoker is None:
+        return func(*args, **kwargs)
+
+    semaphore = QtCore.QSemaphore(0)
+    result: dict[str, Any] = {}
+    error: dict[str, BaseException] = {}
+
+    def callback():
+        try:
+            result["value"] = func(*args, **kwargs)
+        except BaseException as exc:  # pragma: no cover - defensive against unexpected UI failures
+            error["error"] = exc
+        finally:
+            semaphore.release()
+
+    invoker.execute_signal.emit(callback)
+    semaphore.acquire()
+    if error:
+        raise error["error"]
+    return cast(GuiResult, result.get("value"))
+
+
 # Overload #1: None or Warning => returns bool
 
 
@@ -2141,6 +2551,13 @@ def notify_box(message: str, error_type: type[Exception], details: str | None = 
 
 
 def notify_box(
+    message: str = "", error_type: type[Exception] | None = None, details: str | None = None
+) -> None | NoReturn:
+    """Display a QMessageBox safely even when invoked from a worker thread."""
+    return execute_on_main_thread(_show_notification_dialog, message, error_type, details)
+
+
+def _show_notification_dialog(
     message: str = "", error_type: type[Exception] | None = None, details: str | None = None
 ) -> None | NoReturn:
     """
@@ -2195,7 +2612,61 @@ def raise_error(error_type: type[Exception], message: str) -> NoReturn:
     raise error_type(message)
 
 
+@overload
+def run_worker_thread_in_pool(
+    worker_function: Callable[..., R],
+    *args,
+    trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
+    notify_slot: Callable[[str], None] | None = None,
+    **kwargs,
+) -> R: ...
+
+
+@overload
+def run_worker_thread_in_pool(
+    worker_function: Callable[..., R | None],
+    *args,
+    trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
+    notify_slot: Callable[[str], None] | None = None,
+    **kwargs,
+) -> R | None: ...
+
+
+def run_worker_thread_in_pool(
+    worker_function: Callable[..., R | None],
+    *args,
+    trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
+    notify_slot: Callable[[str], None] | None = None,
+    **kwargs,
+) -> R | None:
+    """
+    Runs a worker function in a separate thread managed by the thread dashboard.
+    """
+    work_thread = WorkerThread(worker_function, args=args, kwargs=kwargs)
+    ThreadExecutionManager(
+        work_thread,
+        description=getattr(
+            worker_function, "__qualname__", getattr(worker_function, "__name__", str(worker_function))
+        ),
+        trigger_buttons=trigger_buttons,
+        notify_slot=notify_slot or notify_box,
+    )
+    work_thread.start()
+
+    while not work_thread.isFinished():
+        refresh_window()
+        time.sleep(0.01)
+
+    result = work_thread.handle_result()
+    return result[0] if result else None
+
+
 def decide(title="", description="", rich: bool = False, details: str | None = None):
+    """Confirmation dialog wrapper that always executes on the GUI thread."""
+    return execute_on_main_thread(_decide_dialog, title, description, rich, details)
+
+
+def _decide_dialog(title="", description="", rich: bool = False, details: str | None = None):
     """
     Function: decide
     Usage: result = decide(title='', description='', rich=True)

@@ -694,7 +694,7 @@ def pick_design_from_profile(
     from ..common.mutant_visualise import MutantVisualizer
     from ..phylogenetics.revo_designer import REvoDesigner
     from ..sidechain.sidechain_solver import SidechainSolver
-    from ..tools.utils import cmap_reverser, get_color, run_worker_thread_with_progress
+    from ..tools.utils import cmap_reverser, get_color, run_worker_thread_in_pool
 
     bus = ConfigBus()
     molecule = bus.get_value("ui.header_panel.input.molecule", str, reject_none=True)
@@ -820,9 +820,7 @@ def pick_design_from_profile(
             if designed_tree.has(mutant.full_mutant_id):
                 logging.info(f"{mutant} already exists in the tree")
             else:
-                sidechain_solver = run_worker_thread_with_progress(
-                    SidechainSolver().refresh, progress_bar=bus.ui.progressBar
-                )
+                sidechain_solver = run_worker_thread_in_pool(SidechainSolver().refresh)
                 if not sidechain_solver:
                     raise issues.InternalError("Sidechain solver failed")
 
@@ -834,12 +832,11 @@ def pick_design_from_profile(
                     f"Visualizing {mutant.short_mutant_id} ({mutant.raw_mutant_id}) : {color} "
                     f"with {visualizer.mutate_runner.__class__.__name__}"
                 )
-                run_worker_thread_with_progress(
+                run_worker_thread_in_pool(
                     visualizer.create_mutagenesis_objects,
                     mutant_obj=mutant,
                     color=color,
                     in_place=True,
-                    progress_bar=bus.ui.progressBar,
                 )
 
                 designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)

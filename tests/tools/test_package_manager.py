@@ -3,14 +3,17 @@ import json
 import os
 import platform
 import tempfile
+import time
 import urllib.error
 import urllib.request
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError, URLError
 
 import pytest
 
 import REvoDesign.tools.package_manager as package_manager
+from REvoDesign.Qt import QtWidgets
 from REvoDesign.tools.package_manager import (
     GitSolver,
     PIPInstaller,
@@ -194,6 +197,23 @@ def static_python_version(monkeypatch):
     monkeypatch.setattr(platform, "python_version", lambda: version)
     monkeypatch.setattr("REvoDesign.tools.package_manager.platform.python_version", lambda: version)
     monkeypatch.setitem(package_manager.PLATFORM_INFO, "PYTHON_VERSION", version)
+
+
+@pytest.fixture(autouse=True)
+def reset_thread_components():
+    package_manager.ThreadPoolRegistry._entries.clear()
+    package_manager.ThreadExecutionManager._instances.clear()
+    dashboard = package_manager.ThreadDashboard._instance
+    if dashboard is not None:
+        dashboard.close()
+        package_manager.ThreadDashboard._instance = None
+    yield
+    package_manager.ThreadPoolRegistry._entries.clear()
+    package_manager.ThreadExecutionManager._instances.clear()
+    dashboard = package_manager.ThreadDashboard._instance
+    if dashboard is not None:
+        dashboard.close()
+        package_manager.ThreadDashboard._instance = None
 
 
 @pytest.mark.parametrize(
@@ -697,3 +717,39 @@ def test_pm_installation_from_random_shit_source():
     extras = None
     with pytest.raises(ValueError, match="Unknown installation source"):
         solve_installation_config(source, git_url, git_tag, extras)
+
+
+def test_pm_thread_manage_kill_entry(qtbot, monkeypatch):
+    button = QtWidgets.QPushButton("Killable")
+    qtbot.addWidget(button)
+
+    def cancellable_task():
+        thread = package_manager.QtCore.QThread.currentThread()
+        start = time.monotonic()
+        while time.monotonic() - start < 2:
+            if thread.isInterruptionRequested():
+                return "aborted"
+            time.sleep(0.01)
+        return "completed"
+
+    worker_thread = package_manager.WorkerThread(cancellable_task)
+    manager = package_manager.ThreadExecutionManager(worker_thread, description="Kill", trigger_buttons=button)
+    assert manager.abort_overlays
+
+    mock_cmd = SimpleNamespace(interrupt=MagicMock())
+    monkeypatch.setattr(package_manager, "cmd", mock_cmd, raising=False)
+
+    worker_thread.start()
+    qtbot.wait(50)
+
+    entry = next(iter(package_manager.ThreadPoolRegistry._entries.values()))
+    package_manager.ThreadExecutionManager.kill_entry(entry)
+
+    qtbot.waitUntil(lambda: not package_manager.ThreadPoolRegistry._entries, timeout=2000)
+    qtbot.waitUntil(lambda: not package_manager.ThreadExecutionManager._instances, timeout=2000)
+    worker_thread.wait(2000)
+    result = worker_thread.handle_result()
+
+    assert manager.abort_overlays == []
+    assert mock_cmd.interrupt.called
+    assert result is None or result[0] == "aborted"

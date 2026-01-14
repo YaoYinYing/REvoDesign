@@ -80,7 +80,7 @@ class HeadlessProtocol(Protocol):
     It includes an attribute `headless` of type bool, which indicates whether the object runs in headless mode.
 
     Attributes:
-    headless: bool -- A boolean attribute indicating whether the object runs in headless mode.
+        headless: bool -- A boolean attribute indicating whether the object runs in headless mode.
     """
 
     headless: bool

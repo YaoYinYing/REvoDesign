@@ -11,7 +11,7 @@ from ...driver.ui_driver import ConfigBus, StoresWidget
 from ...logger import ROOT_LOGGER
 from ...tools.download_registry import DownloadedFile, FileDownloadRegistry
 from ...tools.package_manager import get_github_repo_tags, notify_box
-from ...tools.utils import run_worker_thread_with_progress
+from ...tools.utils import run_worker_thread_in_pool
 from .config import ConfigStore
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -248,10 +248,7 @@ def menu_edit_file(file_path):
         None
     """
     # Check if Monaco Editor is available
-    has_monaco = run_worker_thread_with_progress(
-        worker_function=ensure_monaco,
-        progress_bar=ConfigBus().ui.progressBar,
-    )
+    has_monaco = run_worker_thread_in_pool(worker_function=ensure_monaco)
     if not has_monaco:
         notify_box(
             message="Monaco Editor is not available. Please check your network connection "
@@ -260,7 +257,7 @@ def menu_edit_file(file_path):
         )
 
     # Edit the file using Monaco Editor
-    run_worker_thread_with_progress(
+    run_worker_thread_in_pool(
         worker_function=edit_file_with_monaco,
         file_path=file_path,
     )

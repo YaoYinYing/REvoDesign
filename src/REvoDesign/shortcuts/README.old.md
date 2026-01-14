@@ -56,11 +56,10 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
        """
        with timing("Task Execution"):
            print(kwargs)
-           run_worker_thread_with_progress(
-               target_function,
-               **kwargs,
-               progress_bar=ConfigBus().ui.progressBar
-           )
+          run_worker_thread_in_pool(
+              target_function,
+              **kwargs,
+          )
    ```
 
 3. **Define a Menu Function**:
