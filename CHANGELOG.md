@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Abort overlays now disappear when the cursor leaves their trigger areas and cleanup runs even when PyMOL cannot service interrupts, removing stuck abort buttons.
 - Killing a worker tears down registered subprocesses and forcibly terminates straggling threads, so the dashboard accurately reflects running tasks.
 - notify box and decide box now works under subthreads.
+- Tests:
+  - `test_pm_dialog_extras_panel_expand_collapse` now waites for the dialog to fully expand before asserting.
 
 ### Removed
 
