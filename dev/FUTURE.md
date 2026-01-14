@@ -179,3 +179,25 @@ In short: extend the current registry to carry the same kinds of instructions Ho
 - Clean up imports and initialization so modules don’t have side effects (Qt dialogs, log listeners) on import. That’s table stakes for being a good citizen in scientific Python ecosystems.
 
 If you refactor along those lines, the codebase can run headless in typical scientific Python environments, while PyMOL becomes an optional—but well-supported—visual shell.
+
+---
+
+## Biomedal?
+
+> [!TIP] Will this project become a new biomedal?
+
+Hard to say—REvoDesign has a different scope (PyMOL‑centric design workflows, lots of local tooling), whereas new Biomedal seems focused on cloud-native pipelines. You can certainly adopt ideas (env isolation, modular runners, web-first UX), but whether it “becomes” Biomedal depends on product goals and resourcing more than technology. Focus on the roadmap we discussed (decouple from PyMOL, recipe-based extras, optional cloud offload) and you’ll carve out your own niche; convergence into another product isn’t predetermined.
+
+---
+
+## Agent and Copilot
+
+> [!TIP] How about agents and AI copilot? does it necessary to the project?
+
+They’re nice-to-have accelerants, not prerequisites.
+
+ - An “agent” or AI copilot could help users compose workflows (“design 20 mutants and run RFdiffusion on chain A”) or assist developers (diagnose environment issues, auto-generate config). If you build a well-structured API layer, you can add such assistants later—either inside REvoDesign (e.g., natural-language macro recorder) or as out-of-band services.
+
+ - However, core priorities—decoupling from PyMOL, modular extras, stable recipes/envs—don’t depend on AI helpers. Without a clean architecture and reliable runtimes, a copilot would just be another layer on shaky foundations.
+
+So: not strictly necessary right now; invest in the infrastructure first. Once the tooling and APIs are solid, AI assistants become more feasible and actually useful.
