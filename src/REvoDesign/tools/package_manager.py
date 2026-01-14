@@ -27,7 +27,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypedDict, TypeVar, overload
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypedDict, TypeVar, cast, overload
 from urllib.error import HTTPError, URLError
 
 from packaging.version import InvalidVersion, Version
@@ -2464,6 +2464,78 @@ def refresh_window():
     QtWidgets.QApplication.processEvents()
 
 
+GuiResult = TypeVar("GuiResult")
+
+
+class _GuiThreadInvoker(QtCore.QObject):
+    """
+    Utility object that marshals callables back onto the GUI thread.
+
+    Worker threads emit `execute_signal` with a zero-argument callback.
+    The signal is delivered to this object's thread (the GUI thread), so
+    PyQt widgets are never touched from background workers.
+    """
+
+    _instance: ClassVar[_GuiThreadInvoker | None] = None
+    execute_signal = QtCore.pyqtSignal(object)
+
+    def __init__(self):
+        super().__init__()
+        self.execute_signal.connect(self._execute)
+
+    @classmethod
+    def instance(cls) -> _GuiThreadInvoker | None:
+        app = QtWidgets.QApplication.instance()
+        if app is None:
+            return None
+        if cls._instance is None:
+            cls._instance = cls()
+            try:
+                cls._instance.moveToThread(app.thread())
+            except RuntimeError:
+                pass
+        return cls._instance
+
+    @QtCore.pyqtSlot(object)
+    def _execute(self, callback: Callable[[], None]) -> None:
+        callback()
+
+
+def execute_on_main_thread(func: Callable[..., GuiResult], *args, **kwargs) -> GuiResult:
+    """
+    Run `func` on the GUI thread, waiting for completion, and return its result.
+
+    If REvoDesign is already on the GUI thread (or no QApplication exists),
+    the function executes immediately.
+    """
+    app = QtWidgets.QApplication.instance()
+    gui_thread = app.thread() if app else None
+    if app is None or QtCore.QThread.currentThread() == gui_thread:
+        return func(*args, **kwargs)
+
+    invoker = _GuiThreadInvoker.instance()
+    if invoker is None:
+        return func(*args, **kwargs)
+
+    semaphore = QtCore.QSemaphore(0)
+    result: dict[str, Any] = {}
+    error: dict[str, BaseException] = {}
+
+    def callback():
+        try:
+            result["value"] = func(*args, **kwargs)
+        except BaseException as exc:  # pragma: no cover - defensive against unexpected UI failures
+            error["error"] = exc
+        finally:
+            semaphore.release()
+
+    invoker.execute_signal.emit(callback)
+    semaphore.acquire()
+    if error:
+        raise error["error"]
+    return cast(GuiResult, result.get("value"))
+
+
 # Overload #1: None or Warning => returns bool
 
 
@@ -2479,6 +2551,13 @@ def notify_box(message: str, error_type: type[Exception], details: str | None = 
 
 
 def notify_box(
+    message: str = "", error_type: type[Exception] | None = None, details: str | None = None
+) -> None | NoReturn:
+    """Display a QMessageBox safely even when invoked from a worker thread."""
+    return execute_on_main_thread(_show_notification_dialog, message, error_type, details)
+
+
+def _show_notification_dialog(
     message: str = "", error_type: type[Exception] | None = None, details: str | None = None
 ) -> None | NoReturn:
     """
@@ -2583,6 +2662,11 @@ def run_worker_thread_in_pool(
 
 
 def decide(title="", description="", rich: bool = False, details: str | None = None):
+    """Confirmation dialog wrapper that always executes on the GUI thread."""
+    return execute_on_main_thread(_decide_dialog, title, description, rich, details)
+
+
+def _decide_dialog(title="", description="", rich: bool = False, details: str | None = None):
     """
     Function: decide
     Usage: result = decide(title='', description='', rich=True)
