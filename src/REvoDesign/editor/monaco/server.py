@@ -351,15 +351,32 @@ class ServerControl(ServerControlAbstract):
         port = config_bus.get_value("editor.backend.port", int, reject_none=True, cfg="editor")
         self.config_store.set("editor.backend.port", port)
 
+        logging_silent = config_bus.get_value("editor.logging.silent", bool, default_value=True, cfg="editor")
+        raw_logging_level = config_bus.get_value("editor.logging.level", str, default_value="INFO", cfg="editor")
+        normalized_level = "info"
+        if raw_logging_level:
+            normalized_level = str(raw_logging_level).strip().lower() or "info"
+        valid_levels = {"critical", "error", "warning", "info", "debug", "trace"}
+        if normalized_level not in valid_levels:
+            normalized_level = "info"
+        self.config_store.set("editor.logging.silent", logging_silent)
+        self.config_store.set("editor.logging.level", normalized_level.upper())
+
+        log_level = "critical" if logging_silent else normalized_level
+
         # Configure Uvicorn
-        config = uvicorn.Config(
+        uvicorn_config_kwargs = dict(
             app=app,
             host=self.config_store.get("editor.backend.host"),
             port=self.config_store.get("editor.backend.port"),
             ssl_certfile=ssl_certfile,
             ssl_keyfile=ssl_keyfile,
-            log_level="info",
+            log_level=log_level,
+            access_log=not logging_silent,
         )
+        if logging_silent:
+            uvicorn_config_kwargs["log_config"] = None
+        config = uvicorn.Config(**uvicorn_config_kwargs)
         self.server = uvicorn.Server(config)
 
         # Start server in a WorkerThread

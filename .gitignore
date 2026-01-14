@@ -111,3 +111,4 @@ server/pssm_gremlin/users.txt
 src/REvoDesign/phylogenetics/.ipynb_checkpoints/validate-checkpoint.ipynb
 /notebooks/.ipynb_checkpoints
 mock/
+/.venv_*

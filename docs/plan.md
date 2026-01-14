@@ -150,7 +150,9 @@ REvoDesign uses `Qt Designer` for UI design. UI files are located in `src/REvoDe
 
 ### Translation (`docs/ui-translation.md`)
 
-REvoDesign uses `Qt Linguist` for UI translation. Translation files (`*.qm, *.ts`) are located in `src/REvoDesign/UI/language` directory. Available languages must be registered in `src/REvoDesign/UI/language/language.json` so that they can be loaded by REvoDesign.
+REvoDesign uses `Qt Linguist` for UI translation. Translation files (`*.qm, *.ts`) are located in `src/REvoDesign/UI/language` directory. Available languages must be registered in `src/REvoDesign/UI/language/language.json` and `add new languages to src/REvoDesign/UI/liguist.pro` so that they can be loaded by REvoDesign.
+
+After adding new language, you need to rebuild the translation files by running `make translate`.
 
 Package manager currently doesn't have any translations.
 

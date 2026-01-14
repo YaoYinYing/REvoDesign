@@ -42,3 +42,9 @@ class ConfigStore(SingletonAbstract):
         """
         # skipcq: PYL-W0201
         self.cfg = DictConfig({})  # Reset the configuration to an empty DictConfig
+
+    def __repr__(self) -> str:
+        """
+        Return the current configuration serialized as human readable YAML.
+        """
+        return OmegaConf.to_yaml(self.cfg, resolve=True)
