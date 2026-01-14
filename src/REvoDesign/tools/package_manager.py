@@ -1388,6 +1388,7 @@ class REvoDesignPackageManager:
 
         # Connect the set cache directory button to the setup_cache_dir method
         self.installer_ui.pushButton_set_cache_dir.clicked.connect(self.setup_cache_dir)
+        self.installer_ui.label_header.mouseDoubleClickEvent = self._open_thread_dashboard
 
         # Connect the install button to the install method
         self.installer_ui.pushButton_install.clicked.connect(self.install)
@@ -1853,6 +1854,16 @@ class REvoDesignPackageManager:
 
         set_REvoDesign_config_file(delete_user_config_tree=True)
 
+    def _open_thread_dashboard(self, event=None):
+        dashboard = ThreadDashboard.instance()
+        if dashboard is None:
+            return
+        dashboard.show()
+        dashboard.raise_()
+        dashboard.activateWindow()
+        if event is not None:
+            event.accept()
+
 @dataclass
 class ThreadPoolEntry:
     """Lightweight bookkeeping structure for WorkerThread instances."""
@@ -1873,7 +1884,7 @@ class ThreadPoolEntry:
 class ThreadDashboard(QtWidgets.QDialog):
     """Simple dashboard that visualises worker threads."""
 
-    _instance: ClassVar["ThreadDashboard" | None] = None
+    _instance: ClassVar[ThreadDashboard | None] = None
 
     def __init__(self) -> None:
         super().__init__()
@@ -1924,9 +1935,10 @@ class ThreadDashboard(QtWidgets.QDialog):
         self._entries_cache: list[ThreadPoolEntry] = []
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.table)
+        self.hide()
 
     @classmethod
-    def instance(cls) -> "ThreadDashboard" | None:
+    def instance(cls) -> ThreadDashboard | None:
         if cls._instance is None:
             if QtWidgets.QApplication.instance() is None:
                 return None
@@ -2408,7 +2420,7 @@ def run_worker_thread_with_progress(
         trigger_buttons=trigger_buttons,
         progress_bar=progress_bar,
         notify_slot=notify_slot,
-        show_dashboard=bool(trigger_buttons),
+        show_dashboard=False,
     )
     work_thread.start()
 
