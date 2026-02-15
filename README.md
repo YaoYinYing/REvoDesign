@@ -187,11 +187,7 @@ You are now ready to use **REvoDesign** for your enzyme redesign projects!
 
 **Extras table**
 
-| extras tag and packages | references                                               |  explanations   |
-| :---------------------: | :------------------------------------------------------- | :-------------: |
-|      `ColabDesign`      | <https://github.com/sokrypton/ColabDesign.git@v1.1.1>    |    with JAX     |
-|       `DLPacker`        | <https://github.com/YaoYinYing/DLPacker@pip-installable> | with TensorFlow |
-|        `PIPPack`        | <https://github.com/YaoYinYing/PIPPack@pip-installable>  |  with PyTorch   |
+For detailed plugin, please refer to the [Extras table](jsons/REvoDesignExtrasTableRich.json).
 
 > [!WARNING]
 > ColabDesign uses Jax, which requires **Python >= 3.9**
