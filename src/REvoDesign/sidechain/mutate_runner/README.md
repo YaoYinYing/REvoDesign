@@ -1,5 +1,8 @@
 # Call Mutate Runners within a Python script/prompt
 
+
+## Mutate and Model
+
 ```python
 
 from RosettaPy.common.mutation import RosettaPyProteinSequence
@@ -22,4 +25,18 @@ d=DLPacker_worker(pdb_file, 6)
 
 # run the mutate
 mfp=d.run_mutate_parallel(mut_objs, 6)
+```
+
+## Validate the mutation info
+
+```python
+from RosettaPy.common.mutation import Mutant
+
+def print_mut_info(wt: str, mut: str):
+    m=Mutant.from_pdb(wt, [mut])
+    print(f'Mutant {mut.removesuffix(".pdb")} (compare to {wt.removesuffix(".pdb")}): {m[0].format_as()}')
+
+
+for i in [1, 2, 3]:
+    print_mut_info('WT.pdb', f'M{i}.pdb')
 ```

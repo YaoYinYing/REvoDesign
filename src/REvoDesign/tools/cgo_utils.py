@@ -2577,7 +2577,7 @@ def _aptx4869():
 
     cmd.set("movie_fps", 90)
 
-    print(__easter_egg.__doc__)
+    print(_aptx4869.__doc__)
     cmd.mplay()
 
 

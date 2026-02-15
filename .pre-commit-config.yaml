@@ -86,6 +86,9 @@ repos:
     hooks:
       - id: black
         args:
+        - --line-length
+        - '120'
+        - --fast
         - ./src
         - ./tests
 
