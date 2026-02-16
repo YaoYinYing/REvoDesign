@@ -59,7 +59,7 @@ In brief, the **REvoDesign** PyMOL plugin provides a set of essential tools to h
 
 **REvoDesign** is your indispensable companion in the intricate journey of enzyme redesign. Whether you are a seasoned protein designer or just beginning your exploration, **REvoDesign** Toolkit is here to simplify your workflow and enhance your enzyme engineering endeavors.
 
-Please refer to the [documentation(WIP)](link_to_documentation) for detailed instructions on how to use the toolkit and make the most of its features.
+Please refer to the [manual]([link_to_documentation](https://raw.githubusercontent.com/YaoYinYing/REvoDesignTutorial/refs/heads/main/manual-REvoDesign-%20English.demo_case.docx)) for detailed instructions on how to use the toolkit and make the most of its features.
 
 ---
 
