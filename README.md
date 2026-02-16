@@ -18,6 +18,8 @@
 | Server Docker Image | [![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-pssm-gremlin?style=social&logo=docker&label=server%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-pssm-gremlin) |
 | Code Quality Control | [![Hook](https://img.shields.io/badge/autofix-pre--commit--hooks-000000.svg)](https://github.com/pre-commit/pre-commit-hooks) [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint) [![imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/) [![syntax upgrade: pyupgrade](https://img.shields.io/badge/pyupgrade-white?style=plastic&logo=python&logoColor=ebedf0&label=syntax&labelColor=da394b&color=white&link=https%3A%2F%2Fgithub.com%2Fasottile%2Fpyupgrade)](https://github.com/asottile/pyupgrade) [![pycln](https://img.shields.io/badge/pycln-white?style=plastic&logo=python&logoColor=35475c&label=imports&labelColor=c4fcfd&color=c6fdbc&link=https%3A%2F%2Fgithub.com%2Fhadialqattan%2Fpycln)](https://github.com/hadialqattan/pycln) [![Flake8](https://img.shields.io/badge/flake8-white?style=plastic&logo=python&logoColor=silver&label=style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fflake8)](https://github.com/PyCQA/flake8) [![autoflake](https://img.shields.io/badge/autoflake-yellow?style=plastic&logo=python&logoColor=cyan&label=style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fautoflake)](https://github.com/PyCQA/autoflake) [![autopep8](https://img.shields.io/badge/autopep8-orange?style=plastic&logo=python&logoColor=red&label=style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fautopep8)](https://github.com/hhatto/autopep8) [![Code style: black](https://img.shields.io/badge/black-black.svg?logo=python&logoColor=black&label=style)](https://github.com/psf/black)| 
 
+REvoDesign requires no non-standard hardware to run. 
+
 ### Dependency
 
 All dependencies and extras are listed in `pyproject.toml`.
@@ -215,9 +217,35 @@ Happy enzyme redesigning with **REvoDesign**! If you encounter any issues during
 
 REvoDesign is tested on various test cases, which can be found in the `tests/cases/tabs` directory, with related test data under `tests/data` directory.
 
+A detailed tutorial of using REvoDesign can be found as [this manual](https://raw.githubusercontent.com/YaoYinYing/REvoDesignTutorial/refs/heads/main/manual-REvoDesign-%20English.demo_case.docx).
+
 ### Expected demo results and runtime
 
-Please refer to the test cases.
+Please refer to the test cases and tutorial document.
+
+## Reproduce
+
+To reproduce our data, please refer to our manuscript as well as the input data section bellow. Note that during software development, results may fluctuate. This does not affect the results and conclusion in our manuscript.
+
+### T5aH
+
+#### Input Data
+
+1. Sequence: [`T5aH2.fasta`](https://github.com/YaoYinYing/REvoDesignTutorial/raw/refs/heads/main/T5aH2.fasta)
+
+2. docked structure: [`T5aH2-HEM-T31_initial_4263.pdb`](https://github.com/YaoYinYing/REvoDesignTutorial/raw/refs/heads/main/T5aH2-HEM-T31_initial_4263.pdb)
+
+3. PSSM: [`T5aH2_PSSM_ascii_mtx_file`](https://github.com/YaoYinYing/REvoDesignTutorial/raw/refs/heads/main/T5aH2_PSSM_ascii_mtx_file)
+4. Full PSSM GREMLIN archive: [`T5aH2_wt_PSSM_GREMLIN_results.zip`](https://github.com/YaoYinYing/REvoDesignTutorial/releases/download/T5aH2/T5aH2_wt_PSSM_GREMLIN_results.zip)
+5. Pythia ddG scan result: [`T5aH2-pythia-ddg.zip`](https://github.com/YaoYinYing/REvoDesignTutorial/releases/download/T5aH2/T5aH2-pythia-ddg.zip)
+
+### Online tools
+
+- Pythia-ddG: `https://biolib.com/YaoYinYing/pythia-wubianlab/`
+
+## Timings
+
+Most of the design tasks w/ REvoDesign will not take very long time, as the software is designed and optimized w/ the most common desktop machines. We recently added a thread pool management mechanism so users can check and control the detailed wall time of their calculations.
 
 ## Testing
 
