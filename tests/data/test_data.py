@@ -23,12 +23,12 @@ class TestData:
 
     # dataset PSSM&GREMLIN
     PSSM_GREMLIN_DATA_URL: str = (
-        "https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_A_PSSM_GREMLIN_results.zip"
+        "https://github.com/YaoYinYing/REvoDesignTutorial/releases/download/1SUO/1SUO_A_PSSM_GREMLIN_results.zip"
     )
     PSSM_GREMLIN_DATA_MD5: str = "md5:5fc8ab8f657051ae8117a678924ac471"
 
     PYTHIA_DDG_CSV_URL: str = (
-        "https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_pred_mask.csv"
+        "https://github.com/YaoYinYing/REvoDesignTutorial/releases/download/1SUO/1SUO_pred_mask.csv"
     )
     PYTHIA_DDG_CSV_MD5: str = "md5:982eda8c8056c388d9741407dea8e750"
 
@@ -114,7 +114,7 @@ class TestData:
     entropy_to_ddg_group_id: str = "surf.pssm.ddg"
 
     EVALUATION_PSE_URL: str = (
-        "https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO.xtal.surface.ent.pssm.2.pze"
+        "https://github.com/YaoYinYing/REvoDesignTutorial/releases/download/1SUO/1SUO.xtal.surface.ent.pssm.2.pze"
     )
     EVALUATION_PSE_MD5: str = "md5:225128f0958ad622de9af6b485de5e86"
 
@@ -236,7 +236,7 @@ class TestData:
         "remove r. hoh;set cartoon_cylindrical_helices;spectrum chain, blue_white_red, 4MB8"
     )
     gremlin_homomer_profile_url: str = (
-        "https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/4MB8/4MB8_A_PSSM_GREMLIN_results.zip"
+        "https://github.com/YaoYinYing/REvoDesignTutorial/releases/download/4MB8/4MB8_A_PSSM_GREMLIN_results.zip"
     )
     gremlin_homomer_profile_md5: str = "md5:999af75bd166b15594ed0435066b4e2d"
 
@@ -390,7 +390,7 @@ class KeyData:
 
 @dataclass()
 class TestDataOnLocalMac(TestData):
-    test_data_repo: str = "/Users/yyy/Documents/protein_design/REvoDesign-test-data/"
+    test_data_repo: str = "/Users/yyy/Documents/protein_design/REvoDesignTutorial/"
 
 
 if __name__ == "__main__":

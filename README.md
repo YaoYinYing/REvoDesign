@@ -18,6 +18,12 @@
 | Server Docker Image | [![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-pssm-gremlin?style=social&logo=docker&label=server%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-pssm-gremlin) |
 | Code Quality Control | [![Hook](https://img.shields.io/badge/autofix-pre--commit--hooks-000000.svg)](https://github.com/pre-commit/pre-commit-hooks) [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint) [![imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/) [![syntax upgrade: pyupgrade](https://img.shields.io/badge/pyupgrade-white?style=plastic&logo=python&logoColor=ebedf0&label=syntax&labelColor=da394b&color=white&link=https%3A%2F%2Fgithub.com%2Fasottile%2Fpyupgrade)](https://github.com/asottile/pyupgrade) [![pycln](https://img.shields.io/badge/pycln-white?style=plastic&logo=python&logoColor=35475c&label=imports&labelColor=c4fcfd&color=c6fdbc&link=https%3A%2F%2Fgithub.com%2Fhadialqattan%2Fpycln)](https://github.com/hadialqattan/pycln) [![Flake8](https://img.shields.io/badge/flake8-white?style=plastic&logo=python&logoColor=silver&label=style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fflake8)](https://github.com/PyCQA/flake8) [![autoflake](https://img.shields.io/badge/autoflake-yellow?style=plastic&logo=python&logoColor=cyan&label=style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fautoflake)](https://github.com/PyCQA/autoflake) [![autopep8](https://img.shields.io/badge/autopep8-orange?style=plastic&logo=python&logoColor=red&label=style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fautopep8)](https://github.com/hhatto/autopep8) [![Code style: black](https://img.shields.io/badge/black-black.svg?logo=python&logoColor=black&label=style)](https://github.com/psf/black)| 
 
+REvoDesign requires no non-standard hardware to run. 
+
+### Dependency
+
+All dependencies and extras are listed in `pyproject.toml`.
+
 
 ---
 
@@ -53,32 +59,7 @@ In brief, the **REvoDesign** PyMOL plugin provides a set of essential tools to h
 
 **REvoDesign** is your indispensable companion in the intricate journey of enzyme redesign. Whether you are a seasoned protein designer or just beginning your exploration, **REvoDesign** Toolkit is here to simplify your workflow and enhance your enzyme engineering endeavors.
 
-Please refer to the [documentation(WIP)](link_to_documentation) for detailed instructions on how to use the toolkit and make the most of its features.
-
----
-
-## Dependencies wait list
-
-> [!NOTE]
-> These are the dependencies that are not yet implemented but will be added in the toolkit.
-
-### Designers
-
-- [ ] [SaProt](https://github.com/westlake-repl/SaProt)
-- [ ] [Prime](https://github.com/ai4protein/Pro-Prime)
-- [ ] [ProtSSN](https://github.com/tyang816/ProtSSN)
-- [ ] [Native Pythia-ddG](https://github.com/Wublab/Pythia)
-- [ ] [CarbonDesign](https://github.com/zhanghaicang/carbonmatrix_public)
-- [ ] [ProtMamba](https://github.com/Bitbol-Lab/ProtMamba-ssm)
-- [ ] [LigandMPNN](https://github.com/dauparas/LigandMPNN)
-- [ ] [UniKP](https://github.com/Luo-SynBioLab/UniKP)
-- [ ] [ByProt](https://github.com/BytedProtein/ByProt)
-
-### Sidechain Solvers
-
-- [ ] [AttnPacker](https://github.com/MattMcPartlon/AttnPacker)
-- [ ] [opus_rota4](https://github.com/OPUS-MaLab/opus_rota4)
-- [ ] [GeoPacker](https://github.com/PKUliujl/GeoPacker)
+Please refer to the [manual]([link_to_documentation](https://raw.githubusercontent.com/YaoYinYing/REvoDesignTutorial/refs/heads/main/manual-REvoDesign-%20English.demo_case.docx)) for detailed instructions on how to use the toolkit and make the most of its features.
 
 ---
 
@@ -168,6 +149,8 @@ The REvoDesign Package Manager simplifies the installation of the core **REvoDes
 
    ![Install with Extras](https://github-image-cache.yaoyy.moe/2024/11/aa5b50c6a603b20bcad614910bbbc440.png)
 
+The typical installation process will take several minutes, depending on your network speed, as well as the extras you choose.
+
 ---
 
 #### Uninstallation
@@ -206,11 +189,7 @@ You are now ready to use **REvoDesign** for your enzyme redesign projects!
 
 **Extras table**
 
-| extras tag and packages | references                                               |  explanations   |
-| :---------------------: | :------------------------------------------------------- | :-------------: |
-|      `ColabDesign`      | <https://github.com/sokrypton/ColabDesign.git@v1.1.1>    |    with JAX     |
-|       `DLPacker`        | <https://github.com/YaoYinYing/DLPacker@pip-installable> | with TensorFlow |
-|        `PIPPack`        | <https://github.com/YaoYinYing/PIPPack@pip-installable>  |  with PyTorch   |
+For detailed plugin, please refer to the [Extras table](jsons/REvoDesignExtrasTableRich.json).
 
 > [!WARNING]
 > ColabDesign uses Jax, which requires **Python >= 3.9**
@@ -233,10 +212,82 @@ You are now ready to use **REvoDesign** for your enzyme redesign projects!
 
 Happy enzyme redesigning with **REvoDesign**! If you encounter any issues during installation or usage, please consult the documentation or seek assistance from **REvoDesign** toolkit's support resources.
 
----
 
-[![CircleCI](https://dl.circleci.com/insights-snapshot/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/main/test/badge.svg?window=30d&circle-token=465c8a4e66021ab11dd31f920a60a452b09a4cb8)](https://app.circleci.com/insights/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/workflows/test/overview?branch=main&reporting-window=last-30-days&insights-snapshot=true) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=large&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_large&issueType=license)
+## Demo Cases
 
-## API Reference
+REvoDesign is tested on various test cases, which can be found in the `tests/cases/tabs` directory, with related test data under `tests/data` directory.
 
-See `docs/api/INDEX.md` for a browsable API reference with examples.
+A detailed tutorial of using REvoDesign can be found as [this manual](https://raw.githubusercontent.com/YaoYinYing/REvoDesignTutorial/refs/heads/main/manual-REvoDesign-%20English.demo_case.docx).
+
+### Expected demo results and runtime
+
+Please refer to the test cases and tutorial document.
+
+## Reproduce
+
+To reproduce our data, please refer to our manuscript as well as the input data section below. Note that during software development, results may fluctuate. This does not affect the results and conclusion in our manuscript.
+
+### T5aH
+
+#### Input Data
+
+1. Sequence: [`T5aH2.fasta`](https://github.com/YaoYinYing/REvoDesignTutorial/raw/refs/heads/main/T5aH2.fasta)
+
+2. docked structure: [`T5aH2-HEM-T31_initial_4263.pdb`](https://github.com/YaoYinYing/REvoDesignTutorial/raw/refs/heads/main/T5aH2-HEM-T31_initial_4263.pdb)
+
+3. PSSM: [`T5aH2_PSSM_ascii_mtx_file`](https://github.com/YaoYinYing/REvoDesignTutorial/raw/refs/heads/main/T5aH2_PSSM_ascii_mtx_file)
+4. Full PSSM GREMLIN archive: [`T5aH2_wt_PSSM_GREMLIN_results.zip`](https://github.com/YaoYinYing/REvoDesignTutorial/releases/download/T5aH2/T5aH2_wt_PSSM_GREMLIN_results.zip)
+5. Pythia ddG scan result: [`T5aH2-pythia-ddg.zip`](https://github.com/YaoYinYing/REvoDesignTutorial/releases/download/T5aH2/T5aH2-pythia-ddg.zip)
+
+### Online tools
+
+- [Pythia-ddG](https://biolib.com/YaoYinYing/pythia-wubianlab/)
+- [Caver PyMOL Plugin](https://github.com/YaoYinYing/caver-pymol-plugin)
+
+## Timings
+
+Most of the design tasks w/ REvoDesign will not take very long time, as the software is designed and optimized w/ the most common desktop machines. We recently added a thread pool management mechanism so that users can check and control the detailed wall time of their calculations.
+
+## Testing
+
+REvoDesign uses pytest for testing. These cases cover from unit to integration testing. Tests are classified into three categories:
+
+1. `make fast-test` fast tests: quick tests that run quickly and in parallel and can be run frequently.
+2. `make serial-test` serial tests: tests that should be run serially due to the resource consumption.
+3. `make slow-test` slow tests: tests that take a long time to run and should be run at very last order.
+
+To run the tests, use the following command:
+
+```bash
+make all-test
+```
+
+Keyword tests can be run with the following command:
+
+```bash
+make kw-test PYTEST_KW='test_menu_window_pops' # single keyword
+# or
+make kw-test PYTEST_KW='"citable or citation"' # multiple keywords, should be in double quotes
+```
+
+### Cleanup
+
+Use this one-liner command to clean up the test workspace.
+
+```bash
+make clean
+```
+
+For more testing options, please refer to the `Makefile` in the root directory.
+
+### Expected Full testing time
+
+Less than 35 minutes in total on GH Action runner, Ubuntu 24.04
+
+## Formatting
+
+REvoDesign uses several tools for formatting. To format the code, use the following command:
+
+```bash
+make black
+```
