@@ -225,7 +225,7 @@ Please refer to the test cases and tutorial document.
 
 ## Reproduce
 
-To reproduce our data, please refer to our manuscript as well as the input data section bellow. Note that during software development, results may fluctuate. This does not affect the results and conclusion in our manuscript.
+To reproduce our data, please refer to our manuscript as well as the input data section below. Note that during software development, results may fluctuate. This does not affect the results and conclusion in our manuscript.
 
 ### T5aH
 
@@ -246,7 +246,7 @@ To reproduce our data, please refer to our manuscript as well as the input data 
 
 ## Timings
 
-Most of the design tasks w/ REvoDesign will not take very long time, as the software is designed and optimized w/ the most common desktop machines. We recently added a thread pool management mechanism so users can check and control the detailed wall time of their calculations.
+Most of the design tasks w/ REvoDesign will not take very long time, as the software is designed and optimized w/ the most common desktop machines. We recently added a thread pool management mechanism so that users can check and control the detailed wall time of their calculations.
 
 ## Testing
 
@@ -270,13 +270,21 @@ make kw-test PYTEST_KW='test_menu_window_pops' # single keyword
 make kw-test PYTEST_KW='"citable or citation"' # multiple keywords, should be in double quotes
 ```
 
+### Cleanup
+
+Use this one-liner command to clean up the test workspace.
+
+```bash
+make clean
+```
+
 For more testing options, please refer to the `Makefile` in the root directory.
 
 ### Expected Full testing time
 
 Less than 35 minutes in total on GH Action runner, Ubuntu 24.04
 
-## Formating
+## Formatting
 
 REvoDesign uses several tools for formatting. To format the code, use the following command:
 

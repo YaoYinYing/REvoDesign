@@ -1,9 +1,5 @@
-# Copyright (c) 2023 The Revodesign Developers.
-# Distributed under the terms of the BSD 3-Clause License.
-# SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2018 The Pooch Developers.
-# Distributed under the terms of the BSD 3-Clause License.
-# SPDX-License-Identifier: BSD-3-Clause
+
+raise NotImplementedError('This script needs refactor before using.')
 
 """
 Add license notice to every source file if not present
