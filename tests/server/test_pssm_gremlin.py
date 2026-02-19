@@ -305,7 +305,8 @@ class DockerServerStack:
         for name in reversed(self.containers):
             _run_command(["docker", "rm", "-f", name], check=False)
         _run_command(["docker", "network", "rm", self.network], check=False)
-        shutil.rmtree(self.state_dir, ignore_errors=True)
+        # do not delete state directory
+        # shutil.rmtree(self.state_dir, ignore_errors=True)
 
 
 def _wait_for_server_ready(base_url: str, auth: tuple[str, str], timeout: float = 120.0) -> None:
@@ -398,3 +399,9 @@ def test_server_image_handles_authenticated_requests(
 
     finally:
         stack.cleanup()
+
+# TODO: add tests for:
+# 1. unauthenticated requests
+# 2. invalid uploads
+# 3. invalid task IDs
+# 4. failed tasks (stop codon '*' at the end)
