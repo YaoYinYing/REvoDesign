@@ -241,7 +241,6 @@ clean:
 	find . -name "*.orig" -exec rm -v {} \;
 	find . -name ".coverage.*" -exec rm -v {} \;
 	find . -name ".DS_Store" -exec rm -v {} \;
-	find . -name "*.fasta" -exec rm -v {} \;
 	find . -name "*.cif" -exec rm -v {} \;
 	rm -rvf build dist MANIFEST *.egg-info __pycache__ .coverage .cache .pytest_cache $(PROJECT)/_version.py tests/testdata/pssm/1nww_A_ascii_mtx_file.csv
 	rm -rvf $(TESTDIR) dask-worker-space
