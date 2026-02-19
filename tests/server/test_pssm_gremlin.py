@@ -13,7 +13,7 @@ from typing import Iterable
 import pytest
 import requests
 
-from tests.conftest import has_docker,REPO_DIR
+from tests.conftest import has_docker,REPO_DIR, TEST_ROOT
 
 MSA_ROOT = Path(REPO_DIR) / "tests" / "data" / "msa"
 
@@ -157,7 +157,7 @@ class DockerServerStack:
     workdir: Path
 
     def __post_init__(self):
-        self.network = f"pssm-gremlin-itest-{uuid.uuid4().hex[:8]}"
+        self.network = f"pssm-gremlin-server-test-{uuid.uuid4().hex[:8]}"
         self.redis_name = f"{self.network}-redis"
         self.worker_name = f"{self.network}-worker"
         self.web_name = f"{self.network}-web"
@@ -195,9 +195,9 @@ class DockerServerStack:
             "PSSM_GREMLIN_DB_UNIREF90": self.miniuc["uniref90_prefix"],
             "PSSM_GREMLIN_USERS_FILE": str(self.users_file),
             "PSSM_GREMLIN_LOG_DIR": str(self.log_dir),
-            "PSSM_GREMLIN_NPROC": "1",
-            "PSSM_GREMLIN_GUNICORN_WORKERS": "1",
-            "PSSM_GREMLIN_WORKER_CONCURRENCY": "1",
+            "PSSM_GREMLIN_NPROC": "4",
+            "PSSM_GREMLIN_GUNICORN_WORKERS": "2",
+            "PSSM_GREMLIN_WORKER_CONCURRENCY": "2",
             "PSSM_GREMLIN_RUNNER_IMAGE": self.runner_image_tag,
             "PSSM_GREMLIN_RUNNER_UID": str(getattr(os, "getuid", lambda: 0)()),
             "PSSM_GREMLIN_RUNNER_GID": str(getattr(os, "getgid", lambda: 0)()),
@@ -349,7 +349,7 @@ def test_server_image_handles_authenticated_requests(
         runner_image_tag=runner_image_tag,
         server_image_tag=server_image_tag,
         miniuc=miniuc_databases,
-        workdir=tmp_path,
+        workdir=Path(TEST_ROOT)/ "server"
     )
     try:
         stack.start()
