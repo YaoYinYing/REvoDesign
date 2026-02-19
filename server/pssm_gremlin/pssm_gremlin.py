@@ -10,7 +10,6 @@ import hashlib
 import os
 import shutil
 import signal
-import sqlite3
 import time
 from datetime import datetime
 from typing import Any
@@ -22,6 +21,8 @@ from celery.result import AsyncResult
 from docker import types
 from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
 from flask_httpauth import HTTPBasicAuth
+from sqlalchemy import Column, Float, Index, Integer, MetaData, String, Table, Text, create_engine, desc, select, update
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -31,7 +32,6 @@ THIS_DIR = os.path.dirname(THIS_FILE)
 app = Flask(__name__, template_folder="./templates")
 auth = HTTPBasicAuth()
 
-# TODO: refactor w/ sqlalchemy. guard potential injections from user input
 class TaskDatabase:
     """Minimal SQLite-based task tracker for GREMLIN jobs."""
 
@@ -40,44 +40,39 @@ class TaskDatabase:
     def __init__(self, path: str):
         self.path = os.path.abspath(path)
         os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
+        self.engine = create_engine(
+            f"sqlite:///{self.path}",
+            future=True,
+            connect_args={"check_same_thread": False},
+        )
+        self.metadata = MetaData()
+        self.tasks_table = Table(
+            "tasks",
+            self.metadata,
+            Column("md5sum", String(32), primary_key=True),
+            Column("filename", String, nullable=False),
+            Column("file_path", String, nullable=False),
+            Column("result_dir", String, nullable=False),
+            Column("uploaded_at", Float, nullable=False),
+            Column("started_at", Float),
+            Column("finished_at", Float),
+            Column("walltime", Float),
+            Column("status", String, nullable=False),
+            Column("is_binary", Integer, nullable=False),
+            Column("source_ip", String),
+            Column("user_agent", String),
+            Column("username", String),
+            Column("error", Text),
+            Column("celery_task_id", String),
+        )
+        Index("idx_tasks_uploaded_at", self.tasks_table.c.uploaded_at)
         self._initialize()
 
     def _initialize(self) -> None:
-        with self._connect() as conn:
-            conn.execute("PRAGMA journal_mode=WAL;")
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS tasks (
-                    md5sum TEXT PRIMARY KEY,
-                    filename TEXT NOT NULL,
-                    file_path TEXT NOT NULL,
-                    result_dir TEXT NOT NULL,
-                    uploaded_at REAL NOT NULL,
-                    started_at REAL,
-                    finished_at REAL,
-                    walltime REAL,
-                    status TEXT NOT NULL,
-                    is_binary INTEGER NOT NULL,
-                    source_ip TEXT,
-                    user_agent TEXT,
-                    username TEXT,
-                    error TEXT,
-                    celery_task_id TEXT
-                )
-                """
-            )
-            conn.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_tasks_uploaded_at
-                ON tasks(uploaded_at)
-                """
-            )
-
-    def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path, timeout=30, isolation_level=None)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA synchronous=NORMAL;")
-        return conn
+        with self.engine.begin() as conn:
+            conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
+            conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+            self.metadata.create_all(conn)
 
     def _ensure_status(self, status: str) -> None:
         if status not in self.VALID_STATUSES:
@@ -89,17 +84,13 @@ class TaskDatabase:
         status = fields.get("status")
         if status:
             self._ensure_status(status)
-        columns = ", ".join(fields.keys())
-        placeholders = ", ".join("?" for _ in fields)
-        assignments = ", ".join(f"{col}=excluded.{col}" for col in fields)
-        values = [md5sum, *fields.values()]
-        query = f"""
-            INSERT INTO tasks (md5sum, {columns})
-            VALUES (?, {placeholders})
-            ON CONFLICT(md5sum) DO UPDATE SET {assignments}
-        """
-        with self._connect() as conn:
-            conn.execute(query, values)
+        stmt = sqlite_insert(self.tasks_table).values(md5sum=md5sum, **fields)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[self.tasks_table.c.md5sum],
+            set_={col: getattr(stmt.excluded, col) for col in fields},
+        )
+        with self.engine.begin() as conn:
+            conn.execute(stmt)
 
     def update_task(self, md5sum: str, **fields) -> None:
         if not fields:
@@ -107,19 +98,24 @@ class TaskDatabase:
         status = fields.get("status")
         if status:
             self._ensure_status(status)
-        assignments = ", ".join(f"{col}=?" for col in fields.keys())
-        values = [*fields.values(), md5sum]
-        with self._connect() as conn:
-            conn.execute(f"UPDATE tasks SET {assignments} WHERE md5sum=?", values)
+        stmt = (
+            update(self.tasks_table)
+            .where(self.tasks_table.c.md5sum == md5sum)
+            .values(**fields)
+        )
+        with self.engine.begin() as conn:
+            conn.execute(stmt)
 
     def get_task(self, md5sum: str) -> dict | None:
-        with self._connect() as conn:
-            row = conn.execute("SELECT * FROM tasks WHERE md5sum=?", (md5sum,)).fetchone()
+        stmt = select(self.tasks_table).where(self.tasks_table.c.md5sum == md5sum)
+        with self.engine.connect() as conn:
+            row = conn.execute(stmt).mappings().first()
         return dict(row) if row else None
 
     def list_tasks(self) -> list[dict]:
-        with self._connect() as conn:
-            rows = conn.execute("SELECT * FROM tasks ORDER BY uploaded_at DESC").fetchall()
+        stmt = select(self.tasks_table).order_by(desc(self.tasks_table.c.uploaded_at))
+        with self.engine.connect() as conn:
+            rows = conn.execute(stmt).mappings().all()
         return [dict(row) for row in rows]
 
 
