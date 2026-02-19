@@ -23,16 +23,18 @@ jobs:
         echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         echo "DATE: ${{ env.DATE }}"
     
-    - name: Build Docker image
-      run: |
-        cd server/
-        docker build -f docker/Dockerfile -t revodesign-pssm-gremlin .
-        cd ..
+    - name: Build runner Docker image
+      run: docker build -f server/docker/runner/Dockerfile server -t revodesign-pssm-gremlin
+
+    - name: Build server Docker image
+      run: docker build -f server/docker/server/Dockerfile . -t revodesign-pssm-gremlin-server
 
     - name: Tag Docker image with date and latest
       run: |
         docker tag revodesign-pssm-gremlin yaoyinying/revodesign-pssm-gremlin:${{ env.DATE }}
         docker tag revodesign-pssm-gremlin yaoyinying/revodesign-pssm-gremlin:latest
+        docker tag revodesign-pssm-gremlin-server yaoyinying/revodesign-pssm-gremlin-server:${{ env.DATE }}
+        docker tag revodesign-pssm-gremlin-server yaoyinying/revodesign-pssm-gremlin-server:latest
 
     - name: Log in to Docker Hub
       run: echo "${{ secrets.DOCKER_GITHUB_REPO_SECRET }}" | docker login -u yaoyinying --password-stdin
@@ -42,6 +44,8 @@ jobs:
       run: |
         docker push yaoyinying/revodesign-pssm-gremlin:${{ env.DATE }}
         docker push yaoyinying/revodesign-pssm-gremlin:latest
+        docker push yaoyinying/revodesign-pssm-gremlin-server:${{ env.DATE }}
+        docker push yaoyinying/revodesign-pssm-gremlin-server:latest
 
     - name: Refresh Docker Hub Description
       uses: peter-evans/dockerhub-description@v3
