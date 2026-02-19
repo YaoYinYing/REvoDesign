@@ -5,6 +5,13 @@
 
 #! /mnt/data/envs/conda_env/envs/REvoDesign/bin/python
 
+# TODO: currently the server is running natively at production, with core functionality live inside a docker container.
+# The issue is clear: web server manager still need to configure the server manualy at production environment.
+# Plan: 
+# 1. make the entire server managed under docker compose, leaving several key fields (databases, ports, user table, nproc, directories) at .env or compose file,
+#    and lock redis, celery, gunicorn, flask and all server files (scripts, templates, etc.) into a new docker image named `revodesign-pssm-gremlin-server`
+# 2. fix file permission issue `root` from the docker to local. docker produces root-only files, which is not what we want to see.
+
 import glob
 import hashlib
 import os
