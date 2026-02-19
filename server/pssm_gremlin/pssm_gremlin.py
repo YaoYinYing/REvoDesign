@@ -5,12 +5,14 @@
 
 #! /mnt/data/envs/conda_env/envs/REvoDesign/bin/python
 
+from __future__ import annotations
 
 import hashlib
 import os
 import shutil
 import signal
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -161,6 +163,46 @@ def _ensure_directories(*paths: str) -> None:
         os.makedirs(path, exist_ok=True)
 
 
+@dataclass(frozen=True, slots=True)
+class GremlinConfig:
+    """Centralized configuration for GREMLIN server paths and runtime settings."""
+
+    server_dir: str
+    upload_folder: str
+    results_folder: str
+    db_path: str
+    docker_image: str
+    docker_user: str
+    uniref30_db: str
+    uniref90_db: str
+    nproc: int
+    port: int
+
+    @classmethod
+    def from_env(cls) -> "GremlinConfig":
+        server_dir = _env_path("PSSM_GREMLIN_SERVER_DIR", "/mnt/data/yinying/server/")
+        upload_folder = os.path.join(server_dir, "upload")
+        results_folder = os.path.join(server_dir, "results")
+        return cls(
+            server_dir=server_dir,
+            upload_folder=upload_folder,
+            results_folder=results_folder,
+            db_path=_env_path("PSSM_GREMLIN_DB_PATH", os.path.join(server_dir, "pssm_gremlin.sqlite3")),
+            docker_image=os.environ.get("PSSM_GREMLIN_RUNNER_IMAGE", "revodesign-pssm-gremlin"),
+            docker_user=_resolve_docker_user(),
+            uniref30_db=_env_path(
+                "PSSM_GREMLIN_DB_UNIREF30",
+                "/mnt/db/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02",
+            ),
+            uniref90_db=_env_path("PSSM_GREMLIN_DB_UNIREF90", "/mnt/db/uniref90/uniref90"),
+            nproc=_env_int("PSSM_GREMLIN_NPROC", 16),
+            port=_env_int("PSSM_GREMLIN_PORT", 8080),
+        )
+
+
+CONFIG = GremlinConfig.from_env()
+
+
 user_file = os.environ.get("PSSM_GREMLIN_USERS_FILE", os.path.join(THIS_DIR, "users.txt"))
 user_file = os.path.abspath(user_file)
 
@@ -192,39 +234,17 @@ celery = Celery(
     backend=celery_backend,
 )
 
-# Directory for server to save uploaded input and processed results.
-SERVER_DIR = _env_path("PSSM_GREMLIN_SERVER_DIR", "/mnt/data/yinying/server/")
-PORT = _env_int("PSSM_GREMLIN_PORT", 8080)
-
-DOCKER_IMAGE = os.environ.get("PSSM_GREMLIN_RUNNER_IMAGE", "revodesign-pssm-gremlin")
-DOCKER_USER = _resolve_docker_user()
-
-# DBs
-UNIREF_30_DB = _env_path(
-    "PSSM_GREMLIN_DB_UNIREF30",
-    "/mnt/db/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02",
-)
-UNIREF_90_DB = _env_path("PSSM_GREMLIN_DB_UNIREF90", "/mnt/db/uniref90/uniref90")
-
-# CPUS per job
-NPROC = _env_int("PSSM_GREMLIN_NPROC", 16)
-
 # number of processors for a run
-os.environ["GREMLIN_CALC_CPU_NUM"] = f"{NPROC}"
+os.environ["GREMLIN_CALC_CPU_NUM"] = f"{CONFIG.nproc}"
 
-# Define a directory for storing temporary files
-UPLOAD_FOLDER = f"{SERVER_DIR}/upload"
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
-# Define a directory for storing the results
-RESULTS_FOLDER = f"{SERVER_DIR}/results"
-app.config["RESULTS_FOLDER"] = RESULTS_FOLDER
+# Define directories for storing files
+app.config["UPLOAD_FOLDER"] = CONFIG.upload_folder
+app.config["RESULTS_FOLDER"] = CONFIG.results_folder
 
 # SQLite DB for tracking jobs
-DB_PATH = _env_path("PSSM_GREMLIN_DB_PATH", os.path.join(SERVER_DIR, "pssm_gremlin.sqlite3"))
-task_store = TaskDatabase(DB_PATH)
+task_store = TaskDatabase(CONFIG.db_path)
 
-_ensure_directories(UPLOAD_FOLDER, RESULTS_FOLDER)
+_ensure_directories(CONFIG.upload_folder, CONFIG.results_folder)
 
 
 def _is_binary_file(path: str) -> bool:
@@ -319,29 +339,29 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
     mounts.append(mount_output)
     command_args.append(f"-o {mounted_output}")
 
-    uniref30_db = os.path.abspath(UNIREF_30_DB)
+    uniref30_db = os.path.abspath(CONFIG.uniref30_db)
     mount_uniref30_db, mounted_uniref30_db = _create_mount(mount_name="uniref30_db", path=uniref30_db, read_only=True)
     mounts.append(mount_uniref30_db)
     command_args.append(f"-U {mounted_uniref30_db}")
 
-    uniref90_db = os.path.abspath(UNIREF_90_DB)
+    uniref90_db = os.path.abspath(CONFIG.uniref90_db)
     mount_uniref90_db, mounted_uniref90_db = _create_mount(mount_name="uniref90_db", path=uniref90_db, read_only=True)
     mounts.append(mount_uniref90_db)
     command_args.append(f"-u {mounted_uniref90_db}")
 
-    command_args.append(f"-j {NPROC}")
+    command_args.append(f"-j {CONFIG.nproc}")
 
     logging.info(command_args)
 
     client = docker_client or docker.from_env()
 
     container = client.containers.run(
-        image=DOCKER_IMAGE,
+        image=CONFIG.docker_image,
         command=command_args,
         remove=True,
         detach=True,
         mounts=mounts,
-        user=DOCKER_USER,
+        user=CONFIG.docker_user,
         stdout=True,
         stderr=True,
     )
@@ -672,4 +692,4 @@ def task_dashboard():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=PORT)
+    app.run(host="0.0.0.0", port=CONFIG.port)
