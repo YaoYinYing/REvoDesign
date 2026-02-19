@@ -1,0 +1,14 @@
+absl-py==2.1.0
+biopython==1.81
+celery[redis]==5.3.4
+click==8.1.7
+docker==7.0.0
+Flask==2.3.3
+Flask-HTTPAuth==4.8.0
+gunicorn==21.2.0
+matplotlib==3.7.2
+numpy==1.25.2
+pandas==2.0.3
+redis==4.6.0
+requests==2.31.0
+six==1.16.0

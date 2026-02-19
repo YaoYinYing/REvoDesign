@@ -1,0 +1,72 @@
+version: "3.9"
+
+x-common-env: &common-env
+  PSSM_GREMLIN_SERVER_DIR: ${PSSM_GREMLIN_SERVER_DIR}
+  PSSM_GREMLIN_DB_UNIREF30: ${PSSM_GREMLIN_DB_UNIREF30}
+  PSSM_GREMLIN_DB_UNIREF90: ${PSSM_GREMLIN_DB_UNIREF90}
+  PSSM_GREMLIN_REDIS_URL: ${PSSM_GREMLIN_REDIS_URL:-redis://redis:6379/0}
+  PSSM_GREMLIN_BROKER_URL: ${PSSM_GREMLIN_BROKER_URL:-redis://redis:6379/0}
+  PSSM_GREMLIN_RESULT_BACKEND: ${PSSM_GREMLIN_RESULT_BACKEND:-redis://redis:6379/0}
+  PSSM_GREMLIN_NPROC: ${PSSM_GREMLIN_NPROC:-8}
+  PSSM_GREMLIN_RUNNER_IMAGE: ${PSSM_GREMLIN_RUNNER_IMAGE:-revodesign-pssm-gremlin}
+  PSSM_GREMLIN_RUNNER_UID: ${PSSM_GREMLIN_RUNNER_UID:-1000}
+  PSSM_GREMLIN_RUNNER_GID: ${PSSM_GREMLIN_RUNNER_GID:-1000}
+  PSSM_GREMLIN_USERS_FILE: ${PSSM_GREMLIN_USERS_FILE}
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - redis-data:/data
+
+  web:
+    image: ${PSSM_GREMLIN_SERVER_IMAGE:-revodesign-pssm-gremlin-server}
+    build:
+      context: ..
+      dockerfile: server/docker/server/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - redis
+    environment:
+      <<: *common-env
+      PSSM_GREMLIN_PORT: ${PSSM_GREMLIN_PORT:-8080}
+    command: >-
+      gunicorn -w ${PSSM_GREMLIN_GUNICORN_WORKERS:-2} -b 0.0.0.0:${PSSM_GREMLIN_PORT:-8080} pssm_gremlin:app
+    ports:
+      - "${PSSM_GREMLIN_PORT:-8080}:${PSSM_GREMLIN_PORT:-8080}"
+    volumes:
+      - ${PSSM_GREMLIN_SERVER_DIR}:${PSSM_GREMLIN_SERVER_DIR}
+      - ${PSSM_GREMLIN_DB_UNIREF30}:${PSSM_GREMLIN_DB_UNIREF30}:ro
+      - ${PSSM_GREMLIN_DB_UNIREF90}:${PSSM_GREMLIN_DB_UNIREF90}:ro
+      - ${PSSM_GREMLIN_USERS_FILE}:${PSSM_GREMLIN_USERS_FILE}:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  worker:
+    image: ${PSSM_GREMLIN_SERVER_IMAGE:-revodesign-pssm-gremlin-server}
+    restart: unless-stopped
+    depends_on:
+      - redis
+    environment:
+      <<: *common-env
+    command: >-
+      celery -A pssm_gremlin.celery worker --loglevel=info --concurrency=${PSSM_GREMLIN_WORKER_CONCURRENCY:-2}
+    volumes:
+      - ${PSSM_GREMLIN_SERVER_DIR}:${PSSM_GREMLIN_SERVER_DIR}
+      - ${PSSM_GREMLIN_DB_UNIREF30}:${PSSM_GREMLIN_DB_UNIREF30}:ro
+      - ${PSSM_GREMLIN_DB_UNIREF90}:${PSSM_GREMLIN_DB_UNIREF90}:ro
+      - ${PSSM_GREMLIN_USERS_FILE}:${PSSM_GREMLIN_USERS_FILE}:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  runner:
+    profiles: ["runner"]
+    image: ${PSSM_GREMLIN_RUNNER_IMAGE:-revodesign-pssm-gremlin}
+    build:
+      context: .
+      dockerfile: docker/runner/Dockerfile
+    command: ["sleep", "infinity"]
+    restart: "no"
+
+volumes:
+  redis-data:

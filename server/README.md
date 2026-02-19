@@ -1,27 +1,89 @@
-# TODO
-
-currently the server is running natively at production, with core functionality live inside a docker container.
-The issue is clear: web server manager still need to configure the server manualy at production environment.
-Plan:
-
-1. move the runner `server/docker/Dockerfile` to `server/docker/runner/Dockerfile`
-2. create a Dockerfile for the server itself to a new docker image named `revodesign-pssm-gremlin-server`.
-   and lock redis, celery, gunicorn, flask and all server files (scripts, templates, etc.) into it. file at `server/docker/server/Dockerfile`
-3. fix file permission issue `root` from the docker to local machine, as currently docker produces root-only files, which is not what we want to see.
-4. make the entire server managed under docker compose, leaving several key fields (databases, ports, user table, nproc, directories) at .env or compose file. use docker-compose to setup and launch the server instead
-5. make the server testable at `tests/server`. mock output from container `revodesign-pssm-gremlin`
-6. update the server setup Readme file based on current changes
-7. security issue: a guideline to web master about how to configure this server to a `no-ssh-permission` server user role to run
-8. update management scripts under `server/run`
-
-
 # PSSM GREMLIN Flask Application
 
 This README provides an overview and documentation for the PSSM GREMLIN Flask application. This application is designed to facilitate the submission and management of tasks for the GREMLIN_PSSM protocol within the context of protein design and analysis. Users can upload FASTA files, which are processed in the background using Celery tasks, and the results can be downloaded when the tasks are completed.
 
 ![Server Design](./image/server.svg)
 
-## Installation
+## Containerized Deployment (Recommended)
+
+The GREMLIN server stack now runs entirely inside Docker. Redis, Celery, Gunicorn, and the Flask app are bundled in the `revodesign-pssm-gremlin-server` image, while the GREMLIN runner remains in the `revodesign-pssm-gremlin` image.
+
+### Quick start
+
+1. Install Docker Engine 24+ with the Compose plugin.
+2. Build the runner/profile images once:
+   ```bash
+   docker compose -f server/docker-compose.yml --profile runner build runner
+   docker compose -f server/docker-compose.yml build web worker
+   ```
+   The `server/run/restart_pssm_flask.sh` helper runs these commands for you.
+3. Copy `server/.env.example` to `server/.env` and edit the values. Every absolute path listed there (server directory, databases, `users.txt`) must exist on the host. The compose file bind-mounts those directories into the containers under the same paths, so the application code sees the exact same values that you configure.
+4. Ensure `users.txt` contains at least one `username:password` pair and is referenced by `PSSM_GREMLIN_USERS_FILE`.
+5. Start/refresh the stack:
+   ```bash
+   bash server/run/restart_pssm_flask.sh
+   ```
+   The script builds the images and runs `docker compose up -d redis web worker`.
+6. To trigger a zero-downtime Gunicorn reload after editing templates or configuration, run:
+   ```bash
+   bash server/run/hot_fix.sh
+   ```
+
+Both the `web` and `worker` containers need access to `/var/run/docker.sock` in order to launch the GREMLIN runner image on demand. Keep that socket protected and only allow trusted operators to run the stack.
+
+### Environment variables
+
+Key options are controlled from `server/.env`:
+
+| Variable | Purpose |
+| --- | --- |
+| `PSSM_GREMLIN_SERVER_DIR` | Host directory where uploads, states, and results are stored. Mounted into the containers at the same path and created automatically if missing. |
+| `PSSM_GREMLIN_DB_UNIREF30`, `PSSM_GREMLIN_DB_UNIREF90` | Absolute paths to the sequence databases. They are mounted read-only into both containers. |
+| `PSSM_GREMLIN_USERS_FILE` | Path to the HTTP Basic Auth credentials file. |
+| `PSSM_GREMLIN_RUNNER_UID`, `PSSM_GREMLIN_RUNNER_GID` | UID/GID that the GREMLIN runner container uses. Set these to match the host deploy user to avoid root-owned artifacts. |
+| `PSSM_GREMLIN_NPROC`, `PSSM_GREMLIN_WORKER_CONCURRENCY`, `PSSM_GREMLIN_GUNICORN_WORKERS` | Performance knobs for the runner, Celery worker, and Gunicorn respectively. |
+| `PSSM_GREMLIN_REDIS_URL` | Broker/backend URL used by Celery. Defaults to the bundled Redis service. |
+| `PSSM_GREMLIN_PORT` | External HTTP port exposed by the `web` service. |
+
+Every other variable shown in `.env.example` is optional and has a sensible default.
+
+### Runner / GREMLIN image
+
+The GREMLIN runner Dockerfile lives in `server/docker/runner/Dockerfile`. Build it with:
+
+```bash
+docker compose -f server/docker-compose.yml --profile runner build runner
+# or directly
+docker build -f server/docker/runner/Dockerfile server -t revodesign-pssm-gremlin
+```
+
+The `server/docker/run_docker.py` helper still works outside the Compose stack for ad-hoc validation, and it honours the same UID/GID environment variables when invoked from the Flask/Celery workers.
+
+### Security hardening
+
+For production deployments, create a dedicated system account without SSH access and only grant it Docker permissions. Example:
+
+```bash
+sudo adduser --system --group --no-create-home --shell /usr/sbin/nologin revodesign
+sudo usermod -aG docker revodesign
+sudo install -d -o revodesign -g revodesign /srv/revodesign
+```
+
+Run the helper scripts via `sudo -u revodesign` and keep the `.env` file readable only by that user. The Docker socket bind mount gives the containers runner-launch privileges, so add Linux firewall rules (e.g. UFW) and limit sudoers so that only trusted operators can restart the stack.
+
+### Testing
+
+The server module can be exercised without starting Docker using the new tests under `tests/server`:
+
+```bash
+pytest tests/server -k pssm_gremlin
+```
+
+These tests mock out the Docker client and validate the environment-driven configuration.
+
+## Manual Installation (Legacy)
+
+> Prefer the containerized deployment unless you have to run everything natively. The legacy notes below are kept for operators who already have a bare-metal setup in place.
 
 1. Clone the repository to your server and fetch the runner docker image:
 
@@ -89,11 +151,9 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
    sudo service redis-server start
    ```
 6. Modify the following configuration:
-- `server/pssm_gremlin/pssm_gremlin.py`: 
-  - `SERVER_DIR`: Directory where the uploaded files will be stored and processed
-- `server/run/restart_pssm_flask.sh`: 
-  - `WORK_DIR`: Directory where the uploaded files will be stored and processed
-  - `DOMAIN_NAME`: domain name the REvoDesign server uses to communicate.
+   - If you are using the Compose workflow described above, keep the Python defaults and update the relevant `PSSM_` variables in `server/.env` instead of editing the source.
+   - For a fully manual deployment, edit `server/pssm_gremlin/pssm_gremlin.py` (`SERVER_DIR`, Redis URL, database paths, port, CPU count).
+   - Legacy helper scripts live in `server/run`, but production deployments should use the Compose wrapper.
 7. Add `server/pssm_gremlin/users.txt` to allow limited user access (see `server/pssm_gremlin/users.template.txt`)
    **IMPORTANT**: Create at least one http user for basic authentication from accessing the server
    ```txt
@@ -106,9 +166,9 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
    ```shell
    lsof -i :8080
    ```
-   If `8080` is not ocuppied, this command returns nothing, otherwise the process name and PID will be shown. If so, you need to manually alter `PORT` configuration in `server/run/restart_pssm_flask.sh` and `server/pssm_gremlin/pssm_gremlin.py`, respectively.
+   If `8080` is not ocuppied, this command returns nothing, otherwise the process name and PID will be shown. When running under Docker Compose, update `PSSM_GREMLIN_PORT` inside `server/.env`. For a manual install edit the constants in `server/pssm_gremlin/pssm_gremlin.py`.
 
-   Now we start `Gunicorn` and `Flask` via port `8080`:
+   Now we start the stack (Gunicorn + Celery + Redis). Under Compose:
    ```shell
    bash /path/to/REvoDesign/server/run/restart_pssm_flask.sh
    ```

@@ -28,8 +28,57 @@ THIS_DIR = os.path.dirname(THIS_FILE)
 
 app = Flask(__name__, template_folder="./templates")
 auth = HTTPBasicAuth()
-user_file = os.path.join(THIS_DIR, "users.txt")
 
+
+def _env_path(var_name: str, default: str) -> str:
+    value = os.environ.get(var_name)
+    if value:
+        return os.path.abspath(os.path.expanduser(value))
+    return os.path.abspath(default)
+
+
+def _env_int(var_name: str, default: int) -> int:
+    raw = os.environ.get(var_name)
+    if raw is None or raw == "":
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ValueError(f"Environment variable {var_name} must be an integer, got {raw!r}") from exc
+
+
+def _resolve_docker_user() -> str:
+    env_user = os.environ.get("PSSM_GREMLIN_RUNNER_USER")
+    env_uid = os.environ.get("PSSM_GREMLIN_RUNNER_UID")
+    env_gid = os.environ.get("PSSM_GREMLIN_RUNNER_GID")
+
+    if env_user:
+        return env_user
+
+    if env_uid and env_gid:
+        return f"{env_uid}:{env_gid}"
+
+    if env_uid:
+        return env_uid
+
+    try:
+        return f"{os.geteuid()}:{os.getegid()}"
+    except AttributeError:
+        return "0:0"
+
+
+def _ensure_directories(*paths: str) -> None:
+    for path in paths:
+        os.makedirs(path, exist_ok=True)
+
+
+user_file = os.environ.get("PSSM_GREMLIN_USERS_FILE", os.path.join(THIS_DIR, "users.txt"))
+user_file = os.path.abspath(user_file)
+
+if not os.path.exists(user_file):
+    raise FileNotFoundError(
+        f"Unable to start GREMLIN server without user credentials. Expected file at {user_file}"
+    )
 
 # A dictionary of users and their hashed passwords
 users = {}
@@ -45,30 +94,34 @@ with open(user_file) as f:
 
 
 # Celery configurations
+redis_url = os.environ.get("PSSM_GREMLIN_REDIS_URL", "redis://localhost:6379/0")
+celery_backend = os.environ.get("PSSM_GREMLIN_RESULT_BACKEND", redis_url)
+celery_broker = os.environ.get("PSSM_GREMLIN_BROKER_URL", redis_url)
 celery = Celery(
     app.name,
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/0",
+    broker=celery_broker,
+    backend=celery_backend,
 )
 
 # Directory for server to save uploaded input and processed results.
-SERVER_DIR = "/mnt/data/yinying/server/"
-PORT = 8080
+SERVER_DIR = _env_path("PSSM_GREMLIN_SERVER_DIR", "/mnt/data/yinying/server/")
+PORT = _env_int("PSSM_GREMLIN_PORT", 8080)
 
-DOCKER_IMAGE = "revodesign-pssm-gremlin"
-DOCKER_USER = f"{os.geteuid()}:{os.getegid()}"
+DOCKER_IMAGE = os.environ.get("PSSM_GREMLIN_RUNNER_IMAGE", "revodesign-pssm-gremlin")
+DOCKER_USER = _resolve_docker_user()
 
 # DBs
-UNIREF_30_DB = "/mnt/db/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02"
-UNIREF_90_DB = "/mnt/db/uniref90/uniref90"
+UNIREF_30_DB = _env_path(
+    "PSSM_GREMLIN_DB_UNIREF30",
+    "/mnt/db/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02",
+)
+UNIREF_90_DB = _env_path("PSSM_GREMLIN_DB_UNIREF90", "/mnt/db/uniref90/uniref90")
 
 # CPUS per job
-NPROC = 16
+NPROC = _env_int("PSSM_GREMLIN_NPROC", 16)
 
 # number of processors for a run
 os.environ["GREMLIN_CALC_CPU_NUM"] = f"{NPROC}"
-
-RUN_SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 # Define a directory for storing temporary files
 UPLOAD_FOLDER = f"{SERVER_DIR}/upload"
@@ -81,6 +134,8 @@ app.config["RESULTS_FOLDER"] = RESULTS_FOLDER
 # Define a directory for storing state marker files
 STATE_FOLDER = f"{SERVER_DIR}/state"
 app.config["STATE_FOLDER"] = STATE_FOLDER
+
+_ensure_directories(UPLOAD_FOLDER, RESULTS_FOLDER, STATE_FOLDER)
 
 try:
     _ROOT_MOUNT_DIRECTORY = f"/home/{os.getlogin()}"
@@ -135,7 +190,7 @@ def get_file_time(file_path, modified=False):
         return None
 
 
-def run_pssm_gremlin_in_docker(fasta_path, output_dir):
+def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
     mounts = []
     command_args = []
 
@@ -165,7 +220,7 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir):
 
     logging.info(command_args)
 
-    client = docker.from_env()
+    client = docker_client or docker.from_env()
 
     container = client.containers.run(
         image=DOCKER_IMAGE,

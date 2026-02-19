@@ -1,38 +1,40 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-RUN_DIR=$(dirname "$0")
+set -euo pipefail
 
-# Replace these variables with your actual values
-FLASK_APP_DIR="${RUN_DIR}/../pssm_gremlin"
-CONDA_ENV_NAME="REvoDesign"
-DOMAIN_NAME="revodesign.your-domain.name"
-GUNICORN_WORKERS=2  # Number of Gunicorn worker processes
-CONCURRENCY=2
-PORT=8080
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SERVER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+COMPOSE_FILE="${SERVER_DIR}/docker-compose.yml"
+ENV_FILE="${SERVER_DIR}/.env"
 
-# Directory where the uploaded files will be stored and processed
-WORK_DIR="/path/to/PSSM_GREMLIN/run/dir/"
+if [[ ! -f "${ENV_FILE}" ]]; then
+  echo "Expected ${ENV_FILE} to exist. Copy server/.env.example and update it before restarting." >&2
+  exit 1
+fi
 
-# Activate the Conda environment
-source activate $CONDA_ENV_NAME
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker compose)
+elif docker-compose --version >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker-compose)
+else
+  echo "docker compose plugin was not found. Install Docker Compose v2 or docker-compose." >&2
+  exit 1
+fi
 
-# Change to the Flask app directory
-cd $FLASK_APP_DIR
+echo "Building server images (web/worker/redis dependencies)..."
+"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" build
 
-echo 'Restarting celery'
-ps auxww | grep 'celery worker' | awk '{print $2}' | xargs kill -9
-# start celery
-celery multi restart worker -A  pssm_gremlin.celery -l INFO  --pidfile="$WORK_DIR/run/celery/pid/%n.pid" --logfile="$WORK_DIR/logs/celery/%n%I.log" --concurrency=$CONCURRENCY
+echo "Restarting services via docker compose..."
+"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d redis web worker
 
+set +u
+set -a
+source "${ENV_FILE}"
+set +a
+set -u
 
-echo 'Kill all running processes'
-# Kill all previously running processes
-pkill -f ${CONDA_ENV_NAME}.*gunicorn
+DOMAIN="${PSSM_GREMLIN_DOMAIN:-localhost}"
+PORT="${PSSM_GREMLIN_PORT:-8080}"
 
-echo 'Restarting gunicorn'
-# Run your Flask app using Gunicorn
-gunicorn -w $GUNICORN_WORKERS -b 0.0.0.0:${PORT} pssm_gremlin:app --log-level=info --error-logfile ${WORK_DIR}/logs/gunicorn_errors.log --access-logfile ${WORK_DIR}/logs/gunicorn_access.log 2>&1 &
-
-# Provide instructions to the user
 echo "Deployment completed."
-echo "Your Flask app is now running at http://${DOMAIN_NAME}:${PORT}"
+echo "Your Flask app is now running at http://${DOMAIN}:${PORT}"
