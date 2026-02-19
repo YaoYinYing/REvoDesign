@@ -1,6 +1,7 @@
-# Copyright (c) 2023 The REvoDesign Developers.
+# Copyright (c) 2026 The REvoDesign Developers.
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
+
 
 
 """
@@ -13,13 +14,13 @@ from pathlib import Path
 from pathspec import PathSpec
 
 PROJECT = "REvoDesign"
-YEAR = "2023"
-NOTICE = f"""
-# Copyright (c) {YEAR} The {PROJECT} Developers.
+YEAR = "2026"
+
+NOTICE = f"""# Copyright (c) {YEAR} The {PROJECT} Developers.
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-""".strip()
+"""
 CHECK_HELP = """
 Don't write the files, just return the status. Return code 0 means
 nothing would change. Return code 1 means some files lacks the license notice.
