@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import secrets
 import socket
@@ -302,11 +303,25 @@ class DockerServerStack:
         self.containers.append(self.web_name)
 
     def cleanup(self):
-        for name in reversed(self.containers):
+        containers = list(dict.fromkeys([*self.containers, self.web_name, self.worker_name, self.redis_name]))
+        volumes_to_remove: set[str] = set()
+        for name in reversed(containers):
+            inspect = _run_command(["docker", "inspect", name], check=False, capture_output=True)
+            if inspect.returncode == 0 and inspect.stdout:
+                try:
+                    data = json.loads(inspect.stdout)
+                except json.JSONDecodeError:
+                    data = []
+                for entry in data:
+                    for mount in entry.get("Mounts", []):
+                        if mount.get("Type") == "volume" and mount.get("Name"):
+                            volumes_to_remove.add(mount["Name"])
             _run_command(["docker", "rm", "-f", name], check=False)
         _run_command(["docker", "network", "rm", self.network], check=False)
         # do not delete state directory
         # shutil.rmtree(self.state_dir, ignore_errors=True)
+        for volume in volumes_to_remove:
+            _run_command(["docker", "volume", "rm", volume], check=False)
 
 
 def _wait_for_server_ready(base_url: str, auth: tuple[str, str], timeout: float = 120.0) -> None:
@@ -344,6 +359,24 @@ def _wait_for_task(base_url: str, auth: tuple[str, str], md5sum: str, timeout: f
                 raise AssertionError(f"GREMLIN task failed: {payload}")
         time.sleep(10)
     raise AssertionError("Timed out waiting for GREMLIN task to finish")
+
+
+def _wait_for_failed_task(
+    base_url: str, auth: tuple[str, str], md5sum: str, timeout: float = 900.0
+) -> dict:
+    deadline = time.time() + timeout
+    with requests.Session() as session:
+        session.auth = auth
+        url = f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}"
+        while time.time() < deadline:
+            response = session.get(url, timeout=10)
+            payload = response.json() if response.headers.get("Content-Type", "").startswith("application/json") else {}
+            if response.status_code == 404 and payload.get("status") == "failed":
+                return payload
+            if payload.get("status") == "success":
+                raise AssertionError("GREMLIN task unexpectedly succeeded")
+            time.sleep(10)
+    raise AssertionError("Timed out waiting for GREMLIN task to fail")
 
 
 def test_server_image_handles_authenticated_requests(
@@ -400,8 +433,152 @@ def test_server_image_handles_authenticated_requests(
     finally:
         stack.cleanup()
 
-# TODO: add tests for:
-# 1. unauthenticated requests
-# 2. invalid uploads
-# 3. invalid task IDs
-# 4. failed tasks (stop codon '*' at the end)
+@pytest.fixture(scope="module")
+def running_gremlin_server(miniuc_databases, runner_image_tag, server_image_tag):
+    stack = DockerServerStack(
+        runner_image_tag=runner_image_tag,
+        server_image_tag=server_image_tag,
+        miniuc=miniuc_databases,
+        workdir=Path(TEST_ROOT) / "server",
+    )
+    stack.start()
+    base_url = f"http://127.0.0.1:{stack.port}"
+    auth = (stack.username, stack.password)
+    _wait_for_server_ready(base_url, auth)
+    try:
+        yield {"stack": stack, "base_url": base_url, "auth": auth}
+    finally:
+        stack.cleanup()
+
+def _create_invalid_residue_fasta(tmp_path: Path) -> Path:
+    fasta_path = MSA_ROOT / "2KL8.fasta"
+    _require_path(fasta_path, "Validation FASTA file")
+    lines = fasta_path.read_text(encoding="utf-8").splitlines()
+    mutated_lines: list[str] = []
+    mutated = False
+    for line in lines:
+        if line.startswith(">") or not line.strip() or mutated:
+            mutated_lines.append(line)
+            continue
+        mutated_lines.append(f"{line.strip()}J")
+        mutated = True
+    mutated_path = tmp_path / "invalid_residue.fasta"
+    mutated_path.write_text("\n".join(mutated_lines) + "\n", encoding="utf-8")
+    return mutated_path
+
+
+def test_server_rejects_unauthenticated_requests(running_gremlin_server):
+    base_url = running_gremlin_server["base_url"]
+    with requests.Session() as session:
+        create_resp = session.get(f"{base_url}/PSSM_GREMLIN/create_task", timeout=10)
+        assert create_resp.status_code == 401
+
+        upload_resp = session.post(
+            f"{base_url}/PSSM_GREMLIN/api/post",
+            files={"file": ("2KL8.fasta", b">fake\nAAA\n", "text/plain")},
+            allow_redirects=False,
+            timeout=10,
+        )
+        assert upload_resp.status_code == 401
+
+
+def test_server_rejects_invalid_uploads(running_gremlin_server):
+    base_url = running_gremlin_server["base_url"]
+    auth = running_gremlin_server["auth"]
+    with requests.Session() as session:
+        session.auth = auth
+        missing_resp = session.post(
+            f"{base_url}/PSSM_GREMLIN/api/post",
+            data={"foo": "bar"},
+            allow_redirects=False,
+            timeout=10,
+        )
+        assert missing_resp.status_code == 400
+        assert missing_resp.json()["error"] == "No file part"
+
+        bad_ext_resp = session.post(
+            f"{base_url}/PSSM_GREMLIN/api/post",
+            files={"file": ("invalid.txt", b">2KL8\nAAA\n", "text/plain")},
+            allow_redirects=False,
+            timeout=10,
+        )
+        assert bad_ext_resp.status_code == 400
+        assert "extension" in bad_ext_resp.json()["error"].lower()
+
+        binary_resp = session.post(
+            f"{base_url}/PSSM_GREMLIN/api/post",
+            files={"file": ("invalid.fasta", b"\x00\x01\x02", "application/octet-stream")},
+            allow_redirects=False,
+            timeout=10,
+        )
+        assert binary_resp.status_code == 400
+        assert "binary" in binary_resp.json()["error"].lower()
+
+
+def test_server_reports_invalid_task_ids(running_gremlin_server):
+    base_url = running_gremlin_server["base_url"]
+    auth = running_gremlin_server["auth"]
+    md5sum = secrets.token_hex(16)
+    with requests.Session() as session:
+        session.auth = auth
+        running_resp = session.get(
+            f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}",
+            timeout=10,
+        )
+        assert running_resp.status_code == 404
+        assert running_resp.json()["status"] == "not_found"
+
+        results_resp = session.get(
+            f"{base_url}/PSSM_GREMLIN/api/results/{md5sum}",
+            allow_redirects=False,
+            timeout=10,
+        )
+        assert results_resp.status_code == 404
+        assert results_resp.json()["status"] == "not_found"
+
+
+def test_server_handles_failed_tasks(running_gremlin_server, tmp_path):
+    base_url = running_gremlin_server["base_url"]
+    auth = running_gremlin_server["auth"]
+    failed_fasta = _create_invalid_residue_fasta(tmp_path)
+
+    with requests.Session() as session:
+        session.auth = auth
+        with open(failed_fasta, "rb") as handle:
+            response = session.post(
+                f"{base_url}/PSSM_GREMLIN/api/post",
+                files={"file": (failed_fasta.name, handle, "text/plain")},
+                allow_redirects=False,
+                timeout=30,
+            )
+        assert response.status_code == 302
+        md5sum = _extract_md5(response.headers["Location"])
+
+        failure_payload = _wait_for_failed_task(base_url, auth, md5sum)
+        assert failure_payload["status"] == "failed"
+        assert failure_payload["md5sum"] == md5sum
+        assert failure_payload.get("error")
+
+        running_resp = session.get(
+            f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}",
+            timeout=10,
+        )
+        assert running_resp.status_code == 404
+        assert running_resp.json()["status"] == "failed"
+
+        results_resp = session.get(
+            f"{base_url}/PSSM_GREMLIN/api/results/{md5sum}",
+            allow_redirects=False,
+            timeout=10,
+        )
+        assert results_resp.status_code == 302
+        assert results_resp.headers["Location"].endswith(f"/PSSM_GREMLIN/api/running/{md5sum}")
+
+        download_resp = session.get(
+            f"{base_url}/PSSM_GREMLIN/api/download/{md5sum}",
+            timeout=10,
+        )
+        assert download_resp.status_code == 400
+        download_payload = download_resp.json()
+        assert download_payload["status"] == "error"
+        assert download_payload["message"] == "results are not ready"
