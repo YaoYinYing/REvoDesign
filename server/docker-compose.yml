@@ -13,6 +13,7 @@ x-common-env: &common-env
   PSSM_GREMLIN_RUNNER_UID: ${PSSM_GREMLIN_RUNNER_UID:-1000}
   PSSM_GREMLIN_RUNNER_GID: ${PSSM_GREMLIN_RUNNER_GID:-1000}
   PSSM_GREMLIN_USERS_FILE: ${PSSM_GREMLIN_USERS_FILE}
+  PSSM_GREMLIN_LOG_DIR: ${PSSM_GREMLIN_LOG_DIR}
 
 services:
   redis:
@@ -34,7 +35,11 @@ services:
       <<: *common-env
       PSSM_GREMLIN_PORT: ${PSSM_GREMLIN_PORT:-8080}
     command: >-
-      gunicorn -w ${PSSM_GREMLIN_GUNICORN_WORKERS:-2} -b 0.0.0.0:${PSSM_GREMLIN_PORT:-8080} pssm_gremlin:app
+      gunicorn -w ${PSSM_GREMLIN_GUNICORN_WORKERS:-2}
+      -b 0.0.0.0:${PSSM_GREMLIN_PORT:-8080}
+      --access-logfile ${PSSM_GREMLIN_LOG_DIR}/gunicorn-access.log
+      --error-logfile ${PSSM_GREMLIN_LOG_DIR}/gunicorn-error.log
+      pssm_gremlin:app
     ports:
       - "${PSSM_GREMLIN_PORT:-8080}:${PSSM_GREMLIN_PORT:-8080}"
     volumes:
@@ -43,6 +48,7 @@ services:
       - ${PSSM_GREMLIN_DB_UNIREF30}:${PSSM_GREMLIN_DB_UNIREF30}:ro
       - ${PSSM_GREMLIN_DB_UNIREF90}:${PSSM_GREMLIN_DB_UNIREF90}:ro
       - ${PSSM_GREMLIN_USERS_FILE}:${PSSM_GREMLIN_USERS_FILE}:ro
+      - ${PSSM_GREMLIN_LOG_DIR}:${PSSM_GREMLIN_LOG_DIR}
       - /var/run/docker.sock:/var/run/docker.sock
 
   worker:
@@ -53,13 +59,17 @@ services:
     environment:
       <<: *common-env
     command: >-
-      celery -A pssm_gremlin.celery worker --loglevel=info --concurrency=${PSSM_GREMLIN_WORKER_CONCURRENCY:-2}
+      celery -A pssm_gremlin.celery worker
+      --loglevel=info
+      --concurrency=${PSSM_GREMLIN_WORKER_CONCURRENCY:-2}
+      --logfile ${PSSM_GREMLIN_LOG_DIR}/celery-worker.log
     volumes:
       - ${PSSM_GREMLIN_SERVER_DIR}:${PSSM_GREMLIN_SERVER_DIR}
       - ${PSSM_GREMLIN_DB_PATH}:${PSSM_GREMLIN_DB_PATH}
       - ${PSSM_GREMLIN_DB_UNIREF30}:${PSSM_GREMLIN_DB_UNIREF30}:ro
       - ${PSSM_GREMLIN_DB_UNIREF90}:${PSSM_GREMLIN_DB_UNIREF90}:ro
       - ${PSSM_GREMLIN_USERS_FILE}:${PSSM_GREMLIN_USERS_FILE}:ro
+      - ${PSSM_GREMLIN_LOG_DIR}:${PSSM_GREMLIN_LOG_DIR}
       - /var/run/docker.sock:/var/run/docker.sock
 
   runner:

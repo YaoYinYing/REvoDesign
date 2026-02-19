@@ -38,6 +38,7 @@ Key options are controlled from `server/.env`:
 | Variable | Purpose |
 | --- | --- |
 | `PSSM_GREMLIN_SERVER_DIR` | Host directory where uploads, states, and results are stored. Mounted into the containers at the same path and created automatically if missing. |
+| `PSSM_GREMLIN_LOG_DIR` | Host directory that stores persistent Gunicorn and Celery logs. Bind-mounted into the containers at the same path. |
 | `PSSM_GREMLIN_DB_PATH` | Absolute path to the SQLite job-tracking database file. Create the file or its parent directory on the host; Compose bind-mounts the file so the host retains ownership and backups. |
 | `PSSM_GREMLIN_DB_UNIREF30`, `PSSM_GREMLIN_DB_UNIREF90` | Absolute paths to the sequence databases. They are mounted read-only into both containers. |
 | `PSSM_GREMLIN_USERS_FILE` | Path to the HTTP Basic Auth credentials file. |

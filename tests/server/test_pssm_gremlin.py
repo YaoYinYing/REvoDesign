@@ -1,6 +1,12 @@
 import importlib
 import os
+import shutil
+import subprocess
 import sys
+import uuid
+from pathlib import Path
+
+import pytest
 
 MODULE_PATH = "server.pssm_gremlin.pssm_gremlin"
 
@@ -102,3 +108,29 @@ def test_run_pssm_gremlin_mounts_expected_directories(monkeypatch, tmp_path):
     assert kwargs["detach"] is True
     assert any("-i" in arg for arg in kwargs["command"])
     assert any(not mount.read_only for mount in kwargs["mounts"])  # writable output mount
+
+
+def _require_docker():
+    if shutil.which("docker") is None:
+        pytest.skip("Docker CLI not available")
+    try:
+        subprocess.run(["docker", "info"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    except (OSError, subprocess.CalledProcessError) as exc:  # pragma: no cover - best-effort check
+        pytest.skip(f"Docker daemon unavailable: {exc}")
+
+
+def test_server_docker_image_builds():
+    _require_docker()
+    repo_root = Path(__file__).resolve().parents[2]
+    tag = f"revodesign-pssm-gremlin-server-test:{uuid.uuid4().hex}"
+    build_cmd = ["docker", "build", "-f", "server/docker/server/Dockerfile", "-t", tag, "."]
+    try:
+        subprocess.run(build_cmd, cwd=repo_root, check=True)
+    finally:
+        subprocess.run(
+            ["docker", "rmi", "-f", tag],
+            cwd=repo_root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )

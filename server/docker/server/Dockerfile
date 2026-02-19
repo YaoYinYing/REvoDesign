@@ -1,11 +1,13 @@
 FROM python:3.10-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PSSM_GREMLIN_LOG_DIR=/var/log/pssm_gremlin
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential curl procps \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p "${PSSM_GREMLIN_LOG_DIR}"
 
 WORKDIR /app
 
