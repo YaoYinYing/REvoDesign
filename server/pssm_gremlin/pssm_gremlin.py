@@ -6,13 +6,14 @@
 #! /mnt/data/envs/conda_env/envs/REvoDesign/bin/python
 
 
-import glob
 import hashlib
 import os
 import shutil
 import signal
-import subprocess
+import sqlite3
+import time
 from datetime import datetime
+from typing import Any
 
 import docker
 from absl import app, logging
@@ -22,6 +23,7 @@ from docker import types
 from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
@@ -29,18 +31,96 @@ THIS_DIR = os.path.dirname(THIS_FILE)
 app = Flask(__name__, template_folder="./templates")
 auth = HTTPBasicAuth()
 
-# TODO: 
-# currently the server uses files and md5sums to manage tasks. its not as convinient as databases like sqlite. 
-# refactor the server file to use sqlite instead.
-# sqlite are expected to record
-# 1. upload file: path and md5sum
-# 2. validate the file: text or binary(like Microsoft Office Word docx?)? if binary mark it as negative
-# 3. times that: uploaded, start to process, end of processing, walltime (end - start)
-# 4. task status: pending(in queue), processing (running), success (finished) or failed (error)
-# 5. task source: submission IP (for cloudflare tunnel, it should be `CF-Connecting-IP` or `CF-Connecting-IPv6` at header), user-agent, user basic auth info, 
-# handle security issues and guard the server from dangers like injections or xss attacks
-# reduce the complicity of code structures
-# 
+# TODO: refactor w/ sqlalchemy. guard potential injections from user input
+class TaskDatabase:
+    """Minimal SQLite-based task tracker for GREMLIN jobs."""
+
+    VALID_STATUSES = {"pending", "processing", "success", "failed", "cancelled"}
+
+    def __init__(self, path: str):
+        self.path = os.path.abspath(path)
+        os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
+        self._initialize()
+
+    def _initialize(self) -> None:
+        with self._connect() as conn:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS tasks (
+                    md5sum TEXT PRIMARY KEY,
+                    filename TEXT NOT NULL,
+                    file_path TEXT NOT NULL,
+                    result_dir TEXT NOT NULL,
+                    uploaded_at REAL NOT NULL,
+                    started_at REAL,
+                    finished_at REAL,
+                    walltime REAL,
+                    status TEXT NOT NULL,
+                    is_binary INTEGER NOT NULL,
+                    source_ip TEXT,
+                    user_agent TEXT,
+                    username TEXT,
+                    error TEXT,
+                    celery_task_id TEXT
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_tasks_uploaded_at
+                ON tasks(uploaded_at)
+                """
+            )
+
+    def _connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.path, timeout=30, isolation_level=None)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        return conn
+
+    def _ensure_status(self, status: str) -> None:
+        if status not in self.VALID_STATUSES:
+            raise ValueError(f"Invalid GREMLIN task status {status}")
+
+    def upsert_task(self, md5sum: str, **fields) -> None:
+        if not fields:
+            return
+        status = fields.get("status")
+        if status:
+            self._ensure_status(status)
+        columns = ", ".join(fields.keys())
+        placeholders = ", ".join("?" for _ in fields)
+        assignments = ", ".join(f"{col}=excluded.{col}" for col in fields)
+        values = [md5sum, *fields.values()]
+        query = f"""
+            INSERT INTO tasks (md5sum, {columns})
+            VALUES (?, {placeholders})
+            ON CONFLICT(md5sum) DO UPDATE SET {assignments}
+        """
+        with self._connect() as conn:
+            conn.execute(query, values)
+
+    def update_task(self, md5sum: str, **fields) -> None:
+        if not fields:
+            return
+        status = fields.get("status")
+        if status:
+            self._ensure_status(status)
+        assignments = ", ".join(f"{col}=?" for col in fields.keys())
+        values = [*fields.values(), md5sum]
+        with self._connect() as conn:
+            conn.execute(f"UPDATE tasks SET {assignments} WHERE md5sum=?", values)
+
+    def get_task(self, md5sum: str) -> dict | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM tasks WHERE md5sum=?", (md5sum,)).fetchone()
+        return dict(row) if row else None
+
+    def list_tasks(self) -> list[dict]:
+        with self._connect() as conn:
+            rows = conn.execute("SELECT * FROM tasks ORDER BY uploaded_at DESC").fetchall()
+        return [dict(row) for row in rows]
 
 
 def _env_path(var_name: str, default: str) -> str:
@@ -144,11 +224,48 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 RESULTS_FOLDER = f"{SERVER_DIR}/results"
 app.config["RESULTS_FOLDER"] = RESULTS_FOLDER
 
-# Define a directory for storing state marker files
-STATE_FOLDER = f"{SERVER_DIR}/state"
-app.config["STATE_FOLDER"] = STATE_FOLDER
+# SQLite DB for tracking jobs
+DB_PATH = _env_path("PSSM_GREMLIN_DB_PATH", os.path.join(SERVER_DIR, "pssm_gremlin.sqlite3"))
+task_store = TaskDatabase(DB_PATH)
 
-_ensure_directories(UPLOAD_FOLDER, RESULTS_FOLDER, STATE_FOLDER)
+_ensure_directories(UPLOAD_FOLDER, RESULTS_FOLDER)
+
+
+def _is_binary_file(path: str) -> bool:
+    try:
+        with open(path, "rb") as f:
+            chunk = f.read(4096)
+    except OSError:
+        return True
+    if not chunk:
+        return False
+    if b"\0" in chunk:
+        return True
+    try:
+        chunk.decode("utf-8")
+    except UnicodeDecodeError:
+        return True
+    return False
+
+
+def _request_metadata() -> dict[str, str | None]:
+    ip = (
+        request.headers.get("CF-Connecting-IP")
+        or request.headers.get("CF-Connecting-IPv6")
+        or request.remote_addr
+    )
+    return {
+        "ip": ip,
+        "user_agent": request.headers.get("User-Agent", "unknown"),
+        "username": auth.current_user() or "anonymous",
+    }
+
+
+def _task_zip_path(task: Any) -> str:
+    filename = task if isinstance(task, str) else task["filename"]
+    base = os.path.splitext(filename)[0]
+    return os.path.join(app.config["RESULTS_FOLDER"], f"{base}_PSSM_GREMLIN_results.zip")
+
 
 try:
     _ROOT_MOUNT_DIRECTORY = f"/home/{os.getlogin()}"
@@ -188,19 +305,6 @@ def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mou
         read_only=read_only,
     )
     return mount, str(mounted_path)
-
-
-def get_file_time(file_path, modified=False):
-    if os.path.exists(file_path):
-        try:
-            if modified:
-                return os.path.getmtime(file_path)
-            else:
-                return os.path.getctime(file_path)
-        except OSError:
-            return None  # Handle file not found or other errors
-    else:
-        return None
 
 
 def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
@@ -255,13 +359,6 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
     return
 
 
-def get_task_walltime(submitted_time, finished_time):
-    if submitted_time and finished_time:
-        return finished_time - submitted_time
-    else:
-        return "-"
-
-
 def format_times(timestamp):
     if timestamp:
         return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
@@ -269,45 +366,66 @@ def format_times(timestamp):
         return None
 
 
-@celery.task
-def run_gremlin_task(md5sum, filename):
-    output_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
-    state_file = os.path.join(app.config["STATE_FOLDER"], md5sum + ".state")
-    uploaded_file = os.path.join(output_dir, filename)
-    with open(state_file) as f:
-        status = f.read().strip()
-
-    # early return if not in queue or in processing
-    if status not in ["queued", "running"]:
+@celery.task(name="run_gremlin_task")
+def run_gremlin_task(md5sum):
+    task = task_store.get_task(md5sum)
+    if not task:
+        logging.error("Task %s missing from database", md5sum)
         return
 
-    with open(state_file, "w") as f:
-        f.write("running")
+    if task["status"] not in {"pending", "processing"}:
+        return
+
+    output_dir = task["result_dir"]
+    uploaded_file = os.path.join(output_dir, task["filename"])
+    if not os.path.exists(uploaded_file):
+        task_store.update_task(
+            md5sum,
+            status="failed",
+            error="Uploaded FASTA file not found on disk",
+            finished_at=time.time(),
+        )
+        logging.error("Uploaded file missing for task %s", md5sum)
+        return
+
+    start_time = task.get("started_at") or time.time()
+    update_fields = {"status": "processing", "error": None}
+    if not task.get("started_at"):
+        update_fields["started_at"] = start_time
+    task_store.update_task(md5sum, **update_fields)
 
     try:
         run_pssm_gremlin_in_docker(
             fasta_path=uploaded_file,
             output_dir=output_dir,
         )
-
-        with open(
-            state_file,
-            "w",
-        ) as f:
-            f.write("finished")
-            return
-    except docker.errors.ContainerError as e:
-        print(e)
-        with open(
-            state_file,
-            "w",
-        ) as f:
-            f.write("failed: in docker")
-            return
-    except Exception as e:
-        with open(state_file, "w") as f:
-            f.write(f"failed: {e}")
-        return
+        finish_time = time.time()
+        task_store.update_task(
+            md5sum,
+            status="success",
+            finished_at=finish_time,
+            walltime=finish_time - start_time,
+            error=None,
+        )
+    except docker.errors.ContainerError as exc:
+        finish_time = time.time()
+        task_store.update_task(
+            md5sum,
+            status="failed",
+            finished_at=finish_time,
+            walltime=finish_time - start_time,
+            error=f"docker: {exc}",
+        )
+    except Exception as exc:  # pylint: disable=broad-except
+        finish_time = time.time()
+        task_store.update_task(
+            md5sum,
+            status="failed",
+            finished_at=finish_time,
+            walltime=finish_time - start_time,
+            error=str(exc),
+        )
+        logging.exception("Unexpected failure while running GREMLIN task %s", md5sum)
 
 
 @app.route("/PSSM_GREMLIN/create_task", methods=["GET"])
@@ -322,157 +440,159 @@ def upload_file():
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
 
-    file = request.files["file"]
-    if file.filename == "":
+    uploaded_file = request.files["file"]
+    if uploaded_file.filename == "":
         return jsonify({"error": "No selected file"}), 400
 
-    if file:
-        # Save the uploaded file with its original name
-        filename = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+    safe_filename = secure_filename(uploaded_file.filename)
+    if not safe_filename:
+        return jsonify({"error": "Invalid filename"}), 400
 
-        # Ensure the uploaded file has the correct extension
-        if not filename.endswith(".fasta"):
-            return (
-                jsonify({"error": "Uploaded file must have the .fasta extension"}),
-                400,
-            )
+    if not safe_filename.lower().endswith(".fasta"):
+        return (
+            jsonify({"error": "Uploaded file must have the .fasta extension"}),
+            400,
+        )
 
-        file.save(filename)
+    upload_path = os.path.abspath(os.path.join(app.config["UPLOAD_FOLDER"], safe_filename))
+    uploaded_file.save(upload_path)
 
-        # Calculate MD5sum for the uploaded file
-        md5sum = hashlib.md5(open(filename, "rb").read()).hexdigest()
+    hasher = hashlib.md5()
+    with open(upload_path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            hasher.update(chunk)
+    md5sum = hasher.hexdigest()
 
-        # Create a directory for the results using the MD5sum as the directory name
-        result_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
-
-        state_file = os.path.join(app.config["STATE_FOLDER"], md5sum + ".state")
-
-        # early return for finished tasks
-        if os.path.exists(os.path.join(result_dir, "log", "task_finished")):
-            return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
-
-        # early return for running tasks
-        if os.path.exists(state_file) and (
-            (job_state := open(state_file).read().strip()) == "running" or job_state == "queued"
-        ):
-            return (
-                jsonify(
-                    {
-                        "status": "still running, ingore repetative task",
-                        "md5sum": md5sum,
-                    }
-                ),
-                202,
-            )
-
-        # Check if the directory already exists
-        if os.path.exists(result_dir):
-            shutil.rmtree(result_dir)
-
-        # Create the result directory
-        os.makedirs(result_dir)
-        shutil.copy(filename, result_dir)
-
-        with open(state_file, "w") as f:
-            f.write("queued")
-
-        # Enqueue the task to run GREMLIN_PSSM
-        run_gremlin_task.apply_async(args=[md5sum, os.path.basename(filename)])
-
-        # Redirect to the running endpoint with the MD5sum and result directory
+    existing_task = task_store.get_task(md5sum)
+    if existing_task and existing_task["status"] == "success":
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
+
+    if existing_task and existing_task["status"] in {"pending", "processing"}:
+        return jsonify({"status": "Task already queued or running", "md5sum": md5sum}), 202
+
+    result_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
+    if os.path.exists(result_dir):
+        shutil.rmtree(result_dir)
+    os.makedirs(result_dir, exist_ok=True)
+    result_fasta_path = os.path.join(result_dir, safe_filename)
+    shutil.copy(upload_path, result_fasta_path)
+
+    zip_path = _task_zip_path(safe_filename)
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
+
+    metadata = _request_metadata()
+    is_binary = _is_binary_file(upload_path)
+    now = time.time()
+    base_record = {
+        "filename": safe_filename,
+        "file_path": upload_path,
+        "result_dir": result_dir,
+        "uploaded_at": now,
+        "started_at": None,
+        "finished_at": None,
+        "walltime": None,
+        "is_binary": int(is_binary),
+        "source_ip": metadata["ip"],
+        "user_agent": metadata["user_agent"],
+        "username": metadata["username"],
+        "celery_task_id": None,
+    }
+
+    if is_binary:
+        task_store.upsert_task(
+            md5sum,
+            **base_record,
+            status="failed",
+            error="Binary file uploads are not supported.",
+        )
+        return jsonify({"error": "Uploaded file contains binary content"}), 400
+
+    task_store.upsert_task(
+        md5sum,
+        **base_record,
+        status="pending",
+        error=None,
+    )
+
+    async_result = run_gremlin_task.apply_async(args=[md5sum])
+    task_store.update_task(md5sum, celery_task_id=async_result.id)
+
+    return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
 
 
 @app.route("/PSSM_GREMLIN/api/running/<md5sum>", methods=["GET"])
 @auth.login_required
 def run_gremlin(md5sum):
-    output_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
-    state_file = os.path.join(app.config["STATE_FOLDER"], md5sum + ".state")
+    task = task_store.get_task(md5sum)
+    if not task:
+        return jsonify({"status": "not_found", "md5sum": md5sum}), 404
 
-    # connect pipeline state marker to the server state
-    if os.path.exists(os.path.join(output_dir, "log", "task_finished")):
-        with open(state_file, "w") as f:
-            f.write("finished")
+    status = task["status"]
+    if status == "success":
+        return jsonify({"status": "success", "md5sum": md5sum}), 200
+    if status == "failed":
+        return (
+            jsonify({"status": "failed", "md5sum": md5sum, "error": task.get("error")}),
+            404,
+        )
+    if status == "processing":
+        return jsonify({"status": "processing", "md5sum": md5sum}), 202
+    if status == "pending":
+        return jsonify({"status": "pending", "md5sum": md5sum}), 202
+    if status == "cancelled":
+        return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
 
-    # Check the status in the state marker file
-    if os.path.exists(state_file):
-        with open(state_file) as f:
-            status = f.read().strip()
-        # early return if the status is not running
-        if status == "finished":
-            return jsonify({"status": status, "md5sum": md5sum}), 200
-        elif status.startswith("failed"):
-            return jsonify({"status": status, "md5sum": md5sum}), 404
-        elif status == "running":
-            return jsonify({"status": "still running", "md5sum": md5sum}), 202
-        elif status == "queued":
-            return jsonify({"status": "still in queue", "md5sum": md5sum}), 202
-        else:
-            return (
-                jsonify({"status": "unknow task state", "md5sum": md5sum}),
-                500,
-            )
-
-    else:
-        return jsonify({"status": "internal error", "md5sum": md5sum}), 500
+    return (
+        jsonify({"status": "unknown", "md5sum": md5sum, "error": "Invalid task status"}),
+        500,
+    )
 
 
 @app.route("/PSSM_GREMLIN/api/results/<md5sum>", methods=["GET"])
 @auth.login_required
 def get_results(md5sum):
-    result_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
-    state_file = os.path.join(app.config["STATE_FOLDER"], md5sum + ".state")
-    fasta_fn = os.path.basename(glob.glob(f"{result_dir}/*.fasta")[0])
+    task = task_store.get_task(md5sum)
+    if not task:
+        return jsonify({"status": "not_found", "md5sum": md5sum}), 404
 
-    # connect pipeline state marker to the server state
-    if os.path.exists(os.path.join(result_dir, "log", "task_finished")):
-        with open(state_file, "w") as f:
-            f.write("finished")
-
-    # Check if the task has finished
-    if os.path.exists(state_file):
-        with open(state_file) as f:
-            status = f.read().strip()
-
-        # Create a zip file with all the result files
-        zip_filename = os.path.join(
-            app.config["RESULTS_FOLDER"],
-            f'{fasta_fn.replace(".fasta", "")}_PSSM_GREMLIN_results.zip',
-        )
-        if status == "finished":
-            if not os.path.exists(zip_filename):
-                shutil.make_archive(os.path.splitext(zip_filename)[0], "zip", result_dir)
-                # Provide a link to download the zip file
-            return redirect(f"/PSSM_GREMLIN/api/download/{md5sum}", code=302)
-
-        else:
-            # If the task is not finished, return a waiting response
-            return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
-    else:
-        # If the task is not finished, return a waiting response
+    if task["status"] != "success":
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
+
+    zip_filename = _task_zip_path(task)
+    if not os.path.exists(zip_filename):
+        shutil.make_archive(os.path.splitext(zip_filename)[0], "zip", task["result_dir"])
+
+    return redirect(f"/PSSM_GREMLIN/api/download/{md5sum}", code=302)
 
 
 @app.route("/PSSM_GREMLIN/api/download/<md5sum>", methods=["GET"])
 @auth.login_required
 def download_results(md5sum):
-    result_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
-    fasta_fn = os.path.basename(glob.glob(f"{result_dir}/*.fasta")[0])
-    zip_filename = os.path.join(
-        app.config["RESULTS_FOLDER"],
-        f'{fasta_fn.replace(".fasta", "")}_PSSM_GREMLIN_results.zip',
-    )
+    task = task_store.get_task(md5sum)
+    if not task:
+        return jsonify({"status": "not_found", "md5sum": md5sum}), 404
 
-    # Check if the zip file exists
+    if task["status"] != "success":
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "md5sum": md5sum,
+                    "message": "results are not ready",
+                }
+            ),
+            400,
+        )
+
+    zip_filename = _task_zip_path(task)
     if os.path.exists(zip_filename):
-        # Send the zip file as an attachment
         return send_from_directory(
             app.config["RESULTS_FOLDER"],
-            f'{fasta_fn.replace(".fasta", "")}_PSSM_GREMLIN_results.zip',
+            os.path.basename(zip_filename),
             as_attachment=True,
         )
 
-    # If the zip file doesn't exist, return an error response
     return (
         jsonify(
             {
@@ -488,120 +608,71 @@ def download_results(md5sum):
 @app.route("/PSSM_GREMLIN/api/cancel/<md5sum>", methods=["POST", "GET"])
 @auth.login_required
 def cancel_task(md5sum):
-    # Check if the task with the specified MD5sum exists and is not finished
-    state_file = os.path.join(STATE_FOLDER, f"{md5sum}.state")
-
-    if os.path.exists(state_file):
-        with open(state_file) as f:
-            status = f.read().strip()
-
-        if status in ["queued", "running"]:
-            # Get the Celery task ID based on the MD5sum
-            task_id = f"run_gremlin_task-{md5sum}"
-
-            try:
-                # Remove the task from the Celery queue
-                result = AsyncResult(task_id)
-                result.revoke(terminate=True)  # Terminate and remove the task
-
-                if status == "queued":
-                    # After cancelling the task, update the task's status to 'cancelled'
-                    with open(state_file, "w") as f:
-                        f.write("cancelled")
-                    return (
-                        jsonify({"status": "cancelled", "md5sum": md5sum}),
-                        200,
-                    )
-
-                if status == "running":
-                    try:
-                        cmd = f"ps aux | grep {md5sum} | awk '{{system(\"kill \"$2)}}'"
-                        subprocess.run(cmd, shell=True)
-                        # After cancelling the task, update the task's status to 'cancelled'
-                        with open(state_file, "w") as f:
-                            f.write("cancelled")
-                        return (
-                            jsonify({"status": "killed", "md5sum": md5sum}),
-                            200,
-                        )
-                    except BaseException:
-                        return (
-                            jsonify(
-                                {
-                                    "status": "Failed to kill running task",
-                                    "md5sum": md5sum,
-                                }
-                            ),
-                            200,
-                        )
-
-            except Exception:
-                return jsonify({"error": "Failed to cancel the task"}), 500
-        else:
-            return (
-                jsonify({"error": "Task cannot be cancelled as it is not in the queue or running"}),
-                400,
-            )
-    else:
+    task = task_store.get_task(md5sum)
+    if not task:
         return jsonify({"error": "Task not found"}), 404
+
+    if task["status"] not in {"pending", "processing"}:
+        return (
+            jsonify({"error": "Task cannot be cancelled as it is not pending or running"}),
+            400,
+        )
+
+    celery_id = task.get("celery_task_id")
+    if celery_id:
+        try:
+            result = AsyncResult(celery_id)
+            result.revoke(terminate=True)
+        except Exception as exc:  # pylint: disable=broad-except
+            logging.warning("Failed to revoke Celery task %s: %s", celery_id, exc)
+
+    now = time.time()
+    started_at = task.get("started_at")
+    walltime = (now - started_at) if started_at else None
+    task_store.update_task(
+        md5sum,
+        status="cancelled",
+        finished_at=now,
+        walltime=walltime,
+        error="Task cancelled by user",
+    )
+    return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
 
 
 @app.route("/PSSM_GREMLIN/dashboard", methods=["GET"])
 @auth.login_required
 def task_dashboard():
-    # Query state marker files to gather task status information
-    state_folder = app.config["STATE_FOLDER"]
-    results_folder = app.config["RESULTS_FOLDER"]
     task_statuses = []
-    i = 0
-
-    for filename in os.listdir(state_folder):
-        if filename.endswith(".state"):
-            md5sum = filename.replace(".state", "")
-            with open(os.path.join(state_folder, filename)) as f:
-                status = f.read().strip()
-            fasta_fp = glob.glob(f"{results_folder}/{md5sum}/*.fasta")[0]
-            fasta_fn = os.path.basename(fasta_fp)
-            submitted_time = get_file_time(fasta_fp)
-            finished_time = get_file_time(os.path.join(state_folder, filename), modified=True)
-            walltime = get_task_walltime(submitted_time=submitted_time, finished_time=finished_time)
-            with open(os.path.join(UPLOAD_FOLDER, fasta_fn)) as f:
-                try:
+    for i, task in enumerate(task_store.list_tasks()):
+        submitted_time = task.get("uploaded_at")
+        finished_time = task.get("finished_at")
+        walltime = task.get("walltime")
+        if task.get("is_binary"):
+            fasta_seq = "Binary file rejected"
+        else:
+            try:
+                with open(task["file_path"]) as f:
                     fasta_seq = f.read().strip()
-                except UnicodeDecodeError as e:
-                    fasta_seq = f"Unable to decode sequence: {e}"
+            except (OSError, UnicodeDecodeError) as exc:
+                fasta_seq = f"Unable to read sequence: {exc}"
 
-            task_statuses.append(
-                {
-                    "id": i,
-                    "md5": md5sum,
-                    "status": status,
-                    "fasta_fn": fasta_fn,
-                    "submitted_time": format_times(submitted_time),
-                    "finished_time": format_times(finished_time) if status == "finished" else "-",
-                    "walltime": int(walltime) if status == "finished" else "-",
-                    "submitted_timestamp": submitted_time,
-                    "sequence": fasta_seq,
-                }
-            )
-            i += 1
-
-    # Sort the task_statuses dictionary by submitted_time (ascending order)
-    sorted_task_statuses = list(
-        sorted(
-            task_statuses,
-            key=lambda x: x["submitted_timestamp"],
-            reverse=True,
+        task_statuses.append(
+            {
+                "id": i,
+                "md5": task["md5sum"],
+                "status": task["status"],
+                "fasta_fn": task["filename"],
+                "submitted_time": format_times(submitted_time),
+                "finished_time": format_times(finished_time) if finished_time else "-",
+                "walltime": int(walltime) if walltime is not None else "-",
+                "submitted_timestamp": submitted_time or 0,
+                "sequence": fasta_seq,
+            }
         )
-    )
 
-    # return jsonify(sorted_task_statuses)
+    sorted_task_statuses = sorted(task_statuses, key=lambda x: x["submitted_timestamp"], reverse=True)
 
-    # Render the HTML template with sorted task status information
-    return render_template(
-        "pssm_gremlin_dashboard.html",
-        sorted_task_statuses=sorted_task_statuses,
-    )
+    return render_template("pssm_gremlin_dashboard.html", sorted_task_statuses=sorted_task_statuses)
 
 
 if __name__ == "__main__":
