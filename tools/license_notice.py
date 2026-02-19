@@ -1,5 +1,7 @@
+# Copyright (c) 2023 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
 
-raise NotImplementedError('This script needs refactor before using.')
 
 """
 Add license notice to every source file if not present
@@ -14,8 +16,8 @@ PROJECT = "REvoDesign"
 YEAR = "2023"
 NOTICE = f"""
 # Copyright (c) {YEAR} The {PROJECT} Developers.
-# Distributed under the terms of the BSD 3-Clause License.
-# SPDX-License-Identifier: BSD-3-Clause
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
 
 """.strip()
 CHECK_HELP = """
