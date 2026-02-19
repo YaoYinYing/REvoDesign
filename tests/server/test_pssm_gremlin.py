@@ -2,6 +2,7 @@ import io
 import os
 import secrets
 import socket
+import shutil
 import subprocess
 import time
 import uuid
@@ -163,9 +164,13 @@ class DockerServerStack:
         self.web_name = f"{self.network}-web"
         self.port = _find_free_port()
         self.state_dir = self.workdir / "server_state"
+        if self.state_dir.exists():
+            shutil.rmtree(self.state_dir, ignore_errors=True)
         self.state_dir.mkdir(parents=True, exist_ok=True)
         self.server_dir = self.state_dir / "server"
         self.server_dir.mkdir(parents=True, exist_ok=True)
+        for sub in ("upload", "results"):
+            (self.server_dir / sub).mkdir(parents=True, exist_ok=True)
         self.log_dir = self.state_dir / "logs"
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.users_dir = self.state_dir / "server_test"
@@ -179,12 +184,9 @@ class DockerServerStack:
         self.db_path.touch()
         self.containers: list[str] = []
         self.volumes = [
-            (str(self.server_dir), str(self.server_dir), "rw"),
-            (str(self.db_path), str(self.db_path), "rw"),
+            (str(self.state_dir), str(self.state_dir), "rw"),
             (self.miniuc["uniref30_mount"], self.miniuc["uniref30_mount"], "ro"),
             (self.miniuc["uniref90_mount"], self.miniuc["uniref90_mount"], "ro"),
-            (str(self.users_file), str(self.users_file), "ro"),
-            (str(self.log_dir), str(self.log_dir), "rw"),
             ("/var/run/docker.sock", "/var/run/docker.sock", "rw"),
         ]
         redis_url = f"redis://{self.redis_name}:6379/0"
@@ -303,6 +305,7 @@ class DockerServerStack:
         for name in reversed(self.containers):
             _run_command(["docker", "rm", "-f", name], check=False)
         _run_command(["docker", "network", "rm", self.network], check=False)
+        shutil.rmtree(self.state_dir, ignore_errors=True)
 
 
 def _wait_for_server_ready(base_url: str, auth: tuple[str, str], timeout: float = 120.0) -> None:
