@@ -114,7 +114,7 @@ fi
 
 uniref90_db_dir=$(dirname $uniref90_db)
 
-if [[ $(ls $uniref90_db_dir |grep .psi) ]];then
+if [[ $(ls $uniref90_db_dir |grep .phr) ]];then
   echo Uniref90 is already formatted as BLAST+ readable.
 else 
   if [[ $(ls $uniref90_db_dir |grep .fasta) ]];then 

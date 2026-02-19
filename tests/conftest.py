@@ -1013,11 +1013,14 @@ def _ensure_miniuc_databases_ready() -> None:
     for path in (uc30, uc90, test_uc30, test_uc90):
         path.mkdir(parents=True, exist_ok=True)
 
+    # copy `MSA_ROOT / "2KL8_blast.fasta"` as `uc90 / "uniref90.fasta"`
+    shutil.copy(MSA_ROOT / "2KL8_blast.fasta", uc90 / "uniref90.fasta")
+
     _run_build_command(
         [
             "makeblastdb",
             "-in",
-            str(MSA_ROOT / "2KL8_blast.fasta"),
+            str(uc90 / "uniref90.fasta"),
             "-dbtype",
             "prot",
             "-parse_seqids",
@@ -1109,7 +1112,7 @@ def _ensure_miniuc_databases_ready() -> None:
 
 
 def _find_hhsuite_prefix(root: Path) -> Path:
-    for ffdata in sorted(root.glob("*_cs219.ffdata")):
+    for ffdata in sorted(root.glob("*.ffdata")):
         return ffdata.with_suffix("")
     pytest.skip(f"Unable to locate HH-suite mock index under {root}")
 
@@ -1123,10 +1126,8 @@ def _find_blast_prefix(root: Path) -> Path:
 @pytest.fixture(scope="session")
 def miniuc_databases():
     _ensure_miniuc_databases_ready()
-    uc30_root = MINIUC_ROOT / "uc30"
-    uc90_root = MINIUC_ROOT / "uc90"
-    uniref30_prefix = _find_hhsuite_prefix(uc30_root)
-    uniref90_prefix = _find_blast_prefix(uc90_root)
+    uniref30_prefix = MINIUC_ROOT / "uc30" / "miniuc30"
+    uniref90_prefix = MINIUC_ROOT / "uc90" / "uniref90"
     return {
         "uniref30_prefix": str(uniref30_prefix),
         "uniref90_prefix": str(uniref90_prefix),
