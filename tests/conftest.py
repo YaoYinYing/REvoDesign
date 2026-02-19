@@ -1111,18 +1111,6 @@ def _ensure_miniuc_databases_ready() -> None:
         pytest.skip("miniuc mock databases are unavailable even after rebuild attempt.")
 
 
-def _find_hhsuite_prefix(root: Path) -> Path:
-    for ffdata in sorted(root.glob("*.ffdata")):
-        return ffdata.with_suffix("")
-    pytest.skip(f"Unable to locate HH-suite mock index under {root}")
-
-
-def _find_blast_prefix(root: Path) -> Path:
-    for psq in sorted(root.glob("*.psq")):
-        return root / psq.stem
-    pytest.skip(f"Unable to locate BLAST mock index under {root}")
-
-
 @pytest.fixture(scope="session")
 def miniuc_databases():
     _ensure_miniuc_databases_ready()
