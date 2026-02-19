@@ -29,6 +29,19 @@ THIS_DIR = os.path.dirname(THIS_FILE)
 app = Flask(__name__, template_folder="./templates")
 auth = HTTPBasicAuth()
 
+# TODO: 
+# currently the server uses files and md5sums to manage tasks. its not as convinient as databases like sqlite. 
+# refactor the server file to use sqlite instead.
+# sqlite are expected to record
+# 1. upload file: path and md5sum
+# 2. validate the file: text or binary(like Microsoft Office Word docx?)? if binary mark it as negative
+# 3. times that: uploaded, start to process, end of processing, walltime (end - start)
+# 4. task status: pending(in queue), processing (running), success (finished) or failed (error)
+# 5. task source: submission IP (for cloudflare tunnel, it should be `CF-Connecting-IP` or `CF-Connecting-IPv6` at header), user-agent, user basic auth info, 
+# handle security issues and guard the server from dangers like injections or xss attacks
+# reduce the complicity of code structures
+# 
+
 
 def _env_path(var_name: str, default: str) -> str:
     value = os.environ.get(var_name)
