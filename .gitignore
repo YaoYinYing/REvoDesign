@@ -113,3 +113,5 @@ src/REvoDesign/phylogenetics/.ipynb_checkpoints/validate-checkpoint.ipynb
 mock/
 /.venv_*
 T5aH2-HEM-T31_initial_GREMLIN_mtx_zscore.png
+/tests/data/msa/miniuc
+/tests/data/msa/testminiuc

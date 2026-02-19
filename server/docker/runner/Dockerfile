@@ -1,5 +1,5 @@
-# set ubuntu as backend OS
-FROM condaforge/mambaforge
+# set ubuntu as backend OS (force x86_64 for compatibility with GREMLIN stack)
+FROM --platform=linux/amd64 condaforge/mambaforge
 
 # Use bash to support string substitution.
 SHELL ["/bin/bash", "-c"]

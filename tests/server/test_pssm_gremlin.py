@@ -29,7 +29,7 @@ def _run_command(
 ) -> subprocess.CompletedProcess:
     return subprocess.run(
         command,
-        cwd=str(REPO_ROOT),
+        cwd=str(REPO_DIR),
         env=env,
         check=check,
         capture_output=capture_output,
