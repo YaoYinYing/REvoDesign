@@ -13,10 +13,9 @@ from typing import Iterable
 import pytest
 import requests
 
-from tests.conftest import has_docker
+from tests.conftest import has_docker,REPO_DIR
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-MSA_ROOT = REPO_ROOT / "tests" / "data" / "msa"
+MSA_ROOT = Path(REPO_DIR) / "tests" / "data" / "msa"
 
 pytestmark = pytest.mark.skipif(not has_docker, reason="Docker CLI is required for GREMLIN integration tests.")
 
