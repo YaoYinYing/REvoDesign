@@ -12,3 +12,4 @@ pandas==2.0.3
 redis==4.6.0
 requests==2.31.0
 six==1.16.0
+SQLAlchemy==2.0.29

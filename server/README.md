@@ -17,7 +17,7 @@ The GREMLIN server stack now runs entirely inside Docker. Redis, Celery, Gunicor
    docker compose -f server/docker-compose.yml build web worker
    ```
    The `server/run/restart_pssm_flask.sh` helper runs these commands for you.
-3. Copy `server/.env.example` to `server/.env` and edit the values. Every absolute path listed there (server directory, databases, `users.txt`) must exist on the host. The compose file bind-mounts those directories into the containers under the same paths, so the application code sees the exact same values that you configure.
+3. Copy `server/.env.example` to `server/.env` and edit the values. Every absolute path listed there (server directory, SQLite DB file, databases, `users.txt`) must exist on the host. The compose file bind-mounts those directories/files into the containers under the same paths, so the application code sees the exact same values that you configure.
 4. Ensure `users.txt` contains at least one `username:password` pair and is referenced by `PSSM_GREMLIN_USERS_FILE`.
 5. Start/refresh the stack:
    ```bash
@@ -38,6 +38,7 @@ Key options are controlled from `server/.env`:
 | Variable | Purpose |
 | --- | --- |
 | `PSSM_GREMLIN_SERVER_DIR` | Host directory where uploads, states, and results are stored. Mounted into the containers at the same path and created automatically if missing. |
+| `PSSM_GREMLIN_DB_PATH` | Absolute path to the SQLite job-tracking database file. Create the file or its parent directory on the host; Compose bind-mounts the file so the host retains ownership and backups. |
 | `PSSM_GREMLIN_DB_UNIREF30`, `PSSM_GREMLIN_DB_UNIREF90` | Absolute paths to the sequence databases. They are mounted read-only into both containers. |
 | `PSSM_GREMLIN_USERS_FILE` | Path to the HTTP Basic Auth credentials file. |
 | `PSSM_GREMLIN_RUNNER_UID`, `PSSM_GREMLIN_RUNNER_GID` | UID/GID that the GREMLIN runner container uses. Set these to match the host deploy user to avoid root-owned artifacts. |
