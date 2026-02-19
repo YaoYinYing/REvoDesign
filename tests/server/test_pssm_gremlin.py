@@ -17,7 +17,6 @@ from tests.conftest import has_docker
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 MSA_ROOT = REPO_ROOT / "tests" / "data" / "msa"
-MINIUC_ROOT = MSA_ROOT / "miniuc"
 
 pytestmark = pytest.mark.skipif(not has_docker, reason="Docker CLI is required for GREMLIN integration tests.")
 
@@ -49,38 +48,6 @@ def _current_docker_user() -> str:
 def _require_path(path: Path, description: str) -> None:
     if not path.exists():
         pytest.skip(f"{description} not found at {path}. Rebuild the mock databases via tests/data/msa/README.md")
-
-
-def _find_hhsuite_prefix(root: Path) -> Path:
-    for ffdata in sorted(root.glob("*_cs219.ffdata")):
-        prefix = ffdata.name[: -len("_cs219.ffdata")]
-        candidate = root / prefix
-        return candidate
-    pytest.skip(f"Unable to locate HH-suite mock index under {root}. Rebuild miniuc per tests/data/msa/README.md")
-
-
-def _find_blast_prefix(root: Path) -> Path:
-    for psq in sorted(root.glob("*.psq")):
-        return root / psq.stem
-    pytest.skip(f"Unable to locate BLAST mock index under {root}. Rebuild miniuc per tests/data/msa/README.md")
-
-
-@pytest.fixture(scope="session")
-def miniuc_databases() -> dict[str, str]:
-    uc30_root = MINIUC_ROOT / "uc30"
-    uc90_root = MINIUC_ROOT / "uc90"
-    _require_path(uc30_root, "Mock UniRef30 directory")
-    _require_path(uc90_root, "Mock UniRef90 directory")
-
-    uniref30_prefix = _find_hhsuite_prefix(uc30_root)
-    uniref90_prefix = _find_blast_prefix(uc90_root)
-
-    return {
-        "uniref30_prefix": str(uniref30_prefix),
-        "uniref90_prefix": str(uniref90_prefix),
-        "uniref30_mount": str(uniref30_prefix.parent),
-        "uniref90_mount": str(uniref90_prefix.parent),
-    }
 
 
 def _build_image(tag: str, dockerfile: str, context: str) -> None:
