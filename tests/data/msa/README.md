@@ -71,7 +71,7 @@ signal when tests read from the mock database.
 pushd miniuc/uc30
 
 # Convert alignment FASTA to HH-suite ffindex/ffdata pairs.
-ffindex_from_fasta -s miniuc30_a3m.ff{data,index} ../../tests/data/msa/2KL8.i90c75_aln.fa
+ffindex_from_fasta -s miniuc30_a3m.ff{data,index} ../../tests/data/msa/2KL8.i90c75_aln.fas
 
 # Translate A3M into the HH-suite compressed format.
 cstranslate \
