@@ -7,6 +7,8 @@ SERVER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${SERVER_DIR}/docker-compose.yml"
 ENV_FILE="${SERVER_DIR}/.env"
 
+pushd "${SERVER_DIR}"
+
 if [[ ! -f "${ENV_FILE}" ]]; then
   echo "Expected ${ENV_FILE} to exist. Copy server/.env.example and update it before restarting." >&2
   exit 1
@@ -23,11 +25,11 @@ fi
 
 echo "${ENV_FILE}"
 
-echo "Building server images (web/worker/redis dependencies)..."
-"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" build
 
 echo "Restarting services via docker compose..."
-"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" restart -d redis web worker
+"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" down
+"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" build
+"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" restart redis web worker
 
 set +u
 set -a
@@ -40,3 +42,5 @@ PORT="${PSSM_GREMLIN_PORT:-8080}"
 
 echo "Deployment completed."
 echo "Your Flask app is now running at http://${DOMAIN}:${PORT}"
+
+popd

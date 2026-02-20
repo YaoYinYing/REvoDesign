@@ -17,10 +17,10 @@ jobs:
         echo "DATE: ${{ env.DATE }}"
     
     - name: Build runner Docker image
-      run: docker build -f server/docker/runner/Dockerfile . -t revodesign-pssm-gremlin-non-root
+      run: docker build -f server/docker/runner/Dockerfile server -t revodesign-pssm-gremlin-non-root
 
     - name: Build server Docker image
-      run: docker build -f server/docker/server/Dockerfile . -t revodesign-pssm-gremlin-server-non-root
+      run: docker build -f server/docker/server/Dockerfile server -t revodesign-pssm-gremlin-server-non-root
 
     - name: Tag Docker image with date and latest
       run: |

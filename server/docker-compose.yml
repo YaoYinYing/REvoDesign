@@ -1,18 +1,4 @@
-version: "3.9"
-x-common-env: &common-env
-  SERVER_DIR: ${SERVER_DIR}
-  DB_PATH: ${DB_PATH}
-  DB_UNIREF30: ${DB_UNIREF30}
-  DB_UNIREF90: ${DB_UNIREF90}
-  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-  BROKER_URL: ${BROKER_URL:-redis://redis:6379/0}
-  RESULT_BACKEND: ${RESULT_BACKEND:-redis://redis:6379/0}
-  NPROC: ${NPROC:-8}
-  RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
-  RUNNER_UID: ${RUNNER_UID:-1000}
-  RUNNER_GID: ${RUNNER_GID:-1000}
-  USERS_FILE: ${USERS_FILE}
-  LOG_DIR: ${LOG_DIR}
+# version: "3.9"
 
 services:
   redis:
@@ -26,15 +12,17 @@ services:
   web:
     image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root:latest}
     build:
-      context: ..
-      dockerfile: server/docker/server/Dockerfile
+      context: .
+      dockerfile: docker/server/Dockerfile
+      args:
+        RUNNER_UID: ${RUNNER_UID}
+        RUNNER_GID: ${RUNNER_GID}
+        RUNNER_USERNAME: ${RUNNER_USERNAME}
+        RUNNER_GROUP: ${RUNNER_GROUP}
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
     depends_on:
       - redis
-    environment:
-      <<: *common-env
-      PORT: ${PORT:-8080}
     command: >-
       gunicorn -w ${GUNICORN_WORKERS:-2}
       -b 0.0.0.0:${PORT:-8080}
@@ -45,7 +33,6 @@ services:
       - "${PORT:-8080}:${PORT:-8080}"
     volumes:
       - ${SERVER_DIR}:${SERVER_DIR}
-      - ${DB_PATH}:${DB_PATH}
       - ${DB_UNIREF30}:${DB_UNIREF30}:ro
       - ${DB_UNIREF90}:${DB_UNIREF90}:ro
       - ${USERS_FILE}:${USERS_FILE}:ro
@@ -58,8 +45,6 @@ services:
     user: ${RUNNER_UID}:${RUNNER_GID}
     depends_on:
       - redis
-    environment:
-      <<: *common-env
     command: >-
       celery -A pssm_gremlin.celery worker
       --loglevel=info
@@ -67,7 +52,6 @@ services:
       --logfile ${LOG_DIR}/celery-worker.log
     volumes:
       - ${SERVER_DIR}:${SERVER_DIR}
-      - ${DB_PATH}:${DB_PATH}
       - ${DB_UNIREF30}:${DB_UNIREF30}:ro
       - ${DB_UNIREF90}:${DB_UNIREF90}:ro
       - ${USERS_FILE}:${USERS_FILE}:ro
@@ -76,13 +60,16 @@ services:
 
   runner:
     profiles: ["runner"]
-    environment:
-      <<: *common-env
     user: ${RUNNER_UID}:${RUNNER_GID}
     image: ${PSSM_GREMLIN_RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
     build:
       context: .
-      dockerfile: server/docker/runner/Dockerfile
+      dockerfile: docker/runner/Dockerfile
+      args:
+        RUNNER_UID: ${RUNNER_UID}
+        RUNNER_GID: ${RUNNER_GID}
+        RUNNER_USERNAME: ${RUNNER_USERNAME}
+        RUNNER_GROUP: ${RUNNER_GROUP}
     command: ["sleep", "infinity"]
     restart: "no"
 
