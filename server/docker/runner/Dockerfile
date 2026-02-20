@@ -7,8 +7,8 @@ ARG RUNNER_GID
 ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
-RUN groupadd -r ${RUNNER_GROUP} -g ${RUNNER_GID} && \
-    useradd -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
+RUN groupadd -o -r ${RUNNER_GROUP} -g ${RUNNER_GID} && \
+    useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
 # Use bash to support string substitution.
 SHELL ["/bin/bash", "-c"]
