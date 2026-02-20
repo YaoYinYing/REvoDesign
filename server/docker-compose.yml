@@ -17,7 +17,7 @@ x-common-env: &common-env
 services:
   redis:
     image: redis:7.2-alpine
-    user: ${RUNNER_UID:RUNNER_GID}
+    user: ${RUNNER_UID}:${RUNNER_GID}
     restart: unless-stopped
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     volumes:
@@ -26,7 +26,7 @@ services:
   web:
     image: ${SERVER_IMAGE:-yaoyinying/revodesign-pssm-gremlin-server-non-root:latest}
     restart: unless-stopped
-    user: ${RUNNER_UID:RUNNER_GID}
+    user: ${RUNNER_UID}:${RUNNER_GID}
     depends_on:
       - redis
     environment:
@@ -52,7 +52,7 @@ services:
   worker:
     image: ${SERVER_IMAGE:-yaoyinying/revodesign-pssm-gremlin-server-non-root:latest}
     restart: unless-stopped
-    user: ${RUNNER_UID:RUNNER_GID}
+    user: ${RUNNER_UID}:${RUNNER_GID}
     depends_on:
       - redis
     environment:
@@ -73,7 +73,7 @@ services:
 
   runner:
     profiles: ["runner"]
-    user: ${RUNNER_UID:RUNNER_GID}
+    user: ${RUNNER_UID}:${RUNNER_GID}
     image: ${RUNNER_IMAGE:-yaoyinying/revodesign-pssm-gremlin-non-root:latest}
     command: ["sleep", "infinity"]
     restart: "no"
