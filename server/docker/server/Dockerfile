@@ -10,8 +10,8 @@ ARG DOMAIN=0.0.0.0
 ARG PORT=8080
 
 
-RUN groupadd -o -r ${RUNNER_GROUP} -g ${RUNNER_GID} && \
-    useradd -o -r -g ${RUNNER_GROUP} -g docker -u ${RUNNER_UID} ${RUNNER_USERNAME}
+RUN groupadd -o -r ${RUNNER_GROUP} -g ${RUNNER_GID} && groupadd docker  && \
+    useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME} && usermod -a -G docker ${RUNNER_USERNAME}
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
