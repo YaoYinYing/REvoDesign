@@ -58,7 +58,7 @@ The GREMLIN runner Dockerfile lives in `server/docker/runner/Dockerfile`. Build 
 ```bash
 docker compose -f server/docker-compose.yml --profile runner build runner
 # or directly
-docker build -f server/docker/runner/Dockerfile server -t revodesign-pssm-gremlin
+docker build -f server/docker/runner/Dockerfile . -t revodesign-pssm-gremlin
 ```
 
 The `server/docker/run_docker.py` helper still works outside the Compose stack for ad-hoc validation, and it honours the same UID/GID environment variables when invoked from the Flask/Celery workers.

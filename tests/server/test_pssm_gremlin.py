@@ -24,6 +24,14 @@ MSA_ROOT = Path(REPO_DIR) / "tests" / "data" / "msa"
 REQUIRES_DOCKER = pytest.mark.skipif(not has_docker, reason="Docker CLI is required for GREMLIN integration tests.")
 
 
+def _determine_runner_identity() -> tuple[str, str, bool]:
+    uid = str(getattr(os, "getuid", lambda: 0)())
+    gid = str(getattr(os, "getgid", lambda: 0)())
+    if uid == "0" or gid == "0":
+        return "1000", "1000", True
+    return uid, gid, False
+
+
 def _configure_pssm_env(monkeypatch, tmp_path, extra_env: dict | None = None) -> None:
     env_root = tmp_path / "pssm_env"
     env_root.mkdir(parents=True, exist_ok=True)
@@ -149,7 +157,7 @@ def _build_image(tag: str, dockerfile: str, context: str) -> None:
 def runner_image_tag(miniuc_databases) -> str:
     _ = miniuc_databases
     tag = f"revodesign-pssm-gremlin-runner-test:{uuid.uuid4().hex[:12]}"
-    _build_image(tag, "server/docker/runner/Dockerfile", "server")
+    _build_image(tag, "server/docker/runner/Dockerfile", ".")
     yield tag
     _run_command(["docker", "rmi", "-f", tag], check=False)
 
@@ -260,6 +268,7 @@ class DockerServerStack:
         if self.state_dir.exists():
             shutil.rmtree(self.state_dir, ignore_errors=True)
         self.state_dir.mkdir(parents=True, exist_ok=True)
+        self.runner_uid, self.runner_gid, self._needs_relaxed_permissions = _determine_runner_identity()
         self.server_dir = self.state_dir / "server"
         self.server_dir.mkdir(parents=True, exist_ok=True)
         for sub in ("upload", "results"):
@@ -275,6 +284,8 @@ class DockerServerStack:
         self.users_file.write_text(f"{self.username}:{self.password}\n", encoding="utf-8")
         self.db_path = self.state_dir / "pssm_gremlin.sqlite3"
         self.db_path.touch()
+        if self._needs_relaxed_permissions:
+            self._relax_permissions()
         self.containers: list[str] = []
         self.volumes = [
             (str(self.state_dir), str(self.state_dir), "rw"),
@@ -294,8 +305,8 @@ class DockerServerStack:
             "GUNICORN_WORKERS": "2",
             "WORKER_CONCURRENCY": "2",
             "RUNNER_IMAGE": self.runner_image_tag,
-            "RUNNER_UID": str(getattr(os, "getuid", lambda: 0)()),
-            "RUNNER_GID": str(getattr(os, "getgid", lambda: 0)()),
+            "RUNNER_UID": self.runner_uid,
+            "RUNNER_GID": self.runner_gid,
             "PORT": str(self.port),
             "REDIS_URL": redis_url,
             "BROKER_URL": redis_url,
@@ -393,6 +404,27 @@ class DockerServerStack:
         ]
         _run_command(cmd)
         self.containers.append(self.web_name)
+
+    def _relax_permissions(self) -> None:
+        dirs = [
+            self.state_dir,
+            self.server_dir,
+            self.server_dir / "upload",
+            self.server_dir / "results",
+            self.log_dir,
+            self.users_dir,
+        ]
+        for directory in dirs:
+            self._safe_chmod(directory, 0o777)
+        for file_path in (self.db_path, self.users_file):
+            self._safe_chmod(file_path, 0o666)
+
+    @staticmethod
+    def _safe_chmod(path: Path, mode: int) -> None:
+        try:
+            path.chmod(mode)
+        except OSError:
+            pass
 
     def cleanup(self):
         containers = list(dict.fromkeys([*self.containers, self.web_name, self.worker_name, self.redis_name]))

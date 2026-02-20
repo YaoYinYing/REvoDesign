@@ -13,7 +13,7 @@ RUN groupadd -r ${RUNNER_GROUP} -g ${RUNNER_GID} && \
 # Use bash to support string substitution.
 SHELL ["/bin/bash", "-c"]
 
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/env/GREMLIN.yml /tmp/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} server/docker/env/GREMLIN.yml /tmp/
 RUN conda env create -f /tmp/GREMLIN.yml \
       && conda clean --all --force-pkgs-dirs --yes \
       && rm -f /tmp/GREMLIN.yml
