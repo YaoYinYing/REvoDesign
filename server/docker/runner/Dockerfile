@@ -4,8 +4,11 @@ FROM --platform=linux/amd64 condaforge/mambaforge
 ARG RUNNER_UID
 ARG RUNNER_GID
 
-RUN groupadd -r revodesign_appgroup -g ${RUNNER_GID} && \
-    useradd -r -g revodesign_appgroup -u ${RUNNER_UID} revodesign
+ARG RUNNER_USERNAME
+ARG RUNNER_GROUP
+
+RUN groupadd -r ${RUNNER_GROUP} -g ${RUNNER_GID} && \
+    useradd -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
 # Use bash to support string substitution.
 SHELL ["/bin/bash", "-c"]

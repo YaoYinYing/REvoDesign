@@ -3,11 +3,14 @@ FROM python:3.10-slim
 ARG RUNNER_UID
 ARG RUNNER_GID
 
+ARG RUNNER_USERNAME
+ARG RUNNER_GROUP
+
 ARG DOMAIN
 ARG PORT
 
-RUN groupadd -r revodesign_appgroup -g ${RUNNER_GID} && \
-    useradd -r -g revodesign_appgroup -u ${RUNNER_UID} revodesign
+RUN groupadd -r ${RUNNER_GROUP} -g ${RUNNER_GID} && \
+    useradd -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
