@@ -43,6 +43,7 @@ Key options are controlled from `server/.env`:
 | `PSSM_GREMLIN_DB_UNIREF30`, `PSSM_GREMLIN_DB_UNIREF90` | Absolute paths to the sequence databases. They are mounted read-only into both containers. |
 | `PSSM_GREMLIN_USERS_FILE` | Path to the HTTP Basic Auth credentials file. |
 | `PSSM_GREMLIN_RUNNER_UID`, `PSSM_GREMLIN_RUNNER_GID` | Required UID/GID pair for the GREMLIN runner container. Both must point to a dedicated non-root account; the server refuses to start if they are missing or set to `root` to avoid root-owned artifacts. |
+| `DOCKER_GID` | Supplementary group id injected into `web`/`worker` so they can access `/var/run/docker.sock` (for example `$(stat -Lc '%g' /var/run/docker.sock)` on Linux). |
 | `PSSM_GREMLIN_NPROC`, `PSSM_GREMLIN_WORKER_CONCURRENCY`, `PSSM_GREMLIN_GUNICORN_WORKERS` | Performance knobs for the runner, Celery worker, and Gunicorn respectively. |
 | `PSSM_GREMLIN_REDIS_URL` | Broker/backend URL used by Celery. Defaults to the bundled Redis service. |
 | `PSSM_GREMLIN_PORT` | External HTTP port exposed by the `web` service. |

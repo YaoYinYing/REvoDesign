@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+import docker
 import pytest
 import requests
 
@@ -129,6 +130,54 @@ def test_pssm_config_rejects_root_runner(monkeypatch, tmp_path):
                 "RUNNER_GID": "0",
             },
         )
+
+
+def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta") -> str:
+    result_dir.mkdir(parents=True, exist_ok=True)
+    fasta_path = result_dir / filename
+    fasta_path.write_text(">test\nACDE\n", encoding="utf-8")
+    md5sum = uuid.uuid4().hex
+    module.task_store.upsert_task(
+        md5sum,
+        filename=filename,
+        file_path=str(fasta_path),
+        result_dir=str(result_dir),
+        uploaded_at=time.time(),
+        status="pending",
+        is_binary=0,
+        source_ip="127.0.0.1",
+        user_agent="pytest",
+        username="tester",
+    )
+    return md5sum
+
+
+def test_run_gremlin_task_handles_docker_daemon_error(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    md5sum = _insert_pending_task(module, tmp_path / "result")
+
+    def _raise_docker_error(*, fasta_path, output_dir):
+        del fasta_path, output_dir
+        raise docker.errors.DockerException(
+            "Error while fetching server API version: ('Connection aborted.', PermissionError(13, 'Permission denied'))"
+        )
+
+    monkeypatch.setattr(module, "run_pssm_gremlin_in_docker", _raise_docker_error)
+
+    module.run_gremlin_task(md5sum)
+    task = module.task_store.get_task(md5sum)
+
+    assert task is not None
+    assert task["status"] == "failed"
+    assert task["error"].startswith("docker:")
+    assert "Permission denied" in task["error"]
 
 
 def _run_command(

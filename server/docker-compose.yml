@@ -14,6 +14,10 @@ x-common-env: &common-env
   USERS_FILE: ${USERS_FILE}
   LOG_DIR: ${LOG_DIR}
 
+x-docker-socket-access: &docker-socket-access
+  group_add:
+    - "${DOCKER_GID:-998}"
+
 services:
   redis:
     image: redis:7.2-alpine
@@ -39,6 +43,7 @@ services:
     user: ${RUNNER_UID}:${RUNNER_GID}
     depends_on:
       - redis
+    <<: *docker-socket-access
     command: >-
       gunicorn -w ${GUNICORN_WORKERS:-2}
       -b 0.0.0.0:${PORT:-8080}
@@ -59,6 +64,7 @@ services:
     image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root:latest}
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
+    <<: *docker-socket-access
 
     environment:
       <<: *common-env

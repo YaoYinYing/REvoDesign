@@ -260,6 +260,7 @@ celery = Celery(
     broker=celery_broker,
     backend=celery_backend,
 )
+celery.conf.broker_connection_retry_on_startup = True
 
 # number of processors for a run
 os.environ["GREMLIN_CALC_CPU_NUM"] = f"{CONFIG.nproc}"
@@ -459,6 +460,16 @@ def run_gremlin_task(md5sum):
             walltime=finish_time - start_time,
             error=f"docker: {exc}",
         )
+    except docker.errors.DockerException as exc:
+        finish_time = time.time()
+        task_store.update_task(
+            md5sum,
+            status="failed",
+            finished_at=finish_time,
+            walltime=finish_time - start_time,
+            error=f"docker: {exc}",
+        )
+        logging.error("Docker daemon unavailable for GREMLIN task %s: %s", md5sum, exc)
     except Exception as exc:  # pylint: disable=broad-except
         finish_time = time.time()
         task_store.update_task(

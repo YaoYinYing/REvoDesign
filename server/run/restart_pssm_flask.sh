@@ -23,6 +23,20 @@ else
   exit 1
 fi
 
+if [[ -z "${DOCKER_GID:-}" && -S /var/run/docker.sock ]]; then
+  DOCKER_GID="$(
+    stat -Lc '%g' /var/run/docker.sock 2>/dev/null ||
+      stat -Lf '%g' /var/run/docker.sock 2>/dev/null ||
+      stat -c '%g' /var/run/docker.sock 2>/dev/null ||
+      stat -f '%g' /var/run/docker.sock 2>/dev/null ||
+      true
+  )"
+  if [[ -n "${DOCKER_GID}" ]]; then
+    export DOCKER_GID
+    echo "Using Docker socket group id ${DOCKER_GID}."
+  fi
+fi
+
 echo "${ENV_FILE}"
 "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" build
 
