@@ -1,5 +1,19 @@
 # version: "3.9"
 
+x-common-env: &common-env
+  SERVER_DIR: ${SERVER_DIR}
+  DB_UNIREF30: ${DB_UNIREF30}
+  DB_UNIREF90: ${DB_UNIREF90}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  BROKER_URL: ${BROKER_URL:-redis://redis:6379/0}
+  RESULT_BACKEND: ${RESULT_BACKEND:-redis://redis:6379/0}
+  NPROC: ${NPROC:-8}
+  RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
+  RUNNER_UID: ${RUNNER_UID:-1000}
+  RUNNER_GID: ${RUNNER_GID:-1000}
+  USERS_FILE: ${USERS_FILE}
+  LOG_DIR: ${LOG_DIR}
+
 services:
   redis:
     image: redis:7.2-alpine
@@ -19,6 +33,8 @@ services:
         RUNNER_GID: ${RUNNER_GID}
         RUNNER_USERNAME: ${RUNNER_USERNAME}
         RUNNER_GROUP: ${RUNNER_GROUP}
+    environment:
+      <<: *common-env
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
     depends_on:
@@ -43,6 +59,9 @@ services:
     image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root:latest}
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
+
+    environment:
+      <<: *common-env
     depends_on:
       - redis
     command: >-
@@ -70,6 +89,8 @@ services:
         RUNNER_GID: ${RUNNER_GID}
         RUNNER_USERNAME: ${RUNNER_USERNAME}
         RUNNER_GROUP: ${RUNNER_GROUP}
+    environment:
+      <<: *common-env
     command: ["sleep", "infinity"]
     restart: "no"
 

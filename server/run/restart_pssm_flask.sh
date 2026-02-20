@@ -24,11 +24,10 @@ else
 fi
 
 echo "${ENV_FILE}"
+"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" build
 
 
 echo "Restarting services via docker compose..."
-"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" down
-"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" build
 "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" restart redis web worker
 
 set +u

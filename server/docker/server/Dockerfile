@@ -9,6 +9,7 @@ ARG RUNNER_GROUP
 ARG DOMAIN=0.0.0.0
 ARG PORT=8080
 
+
 RUN groupadd -o -r ${RUNNER_GROUP} -g ${RUNNER_GID} && \
     useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
