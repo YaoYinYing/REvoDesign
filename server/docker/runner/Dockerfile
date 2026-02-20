@@ -1,11 +1,11 @@
 # set ubuntu as backend OS (force x86_64 for compatibility with GREMLIN stack)
 FROM --platform=linux/amd64 condaforge/mambaforge
 
-ARG RUNNER_UID
-ARG RUNNER_GID
+ARG RUNNER_UID=1001
+ARG RUNNER_GID=1001
 
-ARG RUNNER_USERNAME
-ARG RUNNER_GROUP
+ARG RUNNER_USERNAME=revodesign
+ARG RUNNER_GROUP=revodesign_appgroup
 
 RUN groupadd -o -r ${RUNNER_GROUP} -g ${RUNNER_GID} && \
     useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}

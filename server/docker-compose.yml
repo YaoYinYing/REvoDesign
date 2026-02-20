@@ -1,4 +1,4 @@
-# version: "3.9"
+version: "3.9"
 x-common-env: &common-env
   SERVER_DIR: ${SERVER_DIR}
   DB_PATH: ${DB_PATH}
@@ -11,8 +11,6 @@ x-common-env: &common-env
   RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
   RUNNER_UID: ${RUNNER_UID:-1000}
   RUNNER_GID: ${RUNNER_GID:-1000}
-  RUNNER_USERNAME: ${RUNNER_USERNAME:-revodesign}
-  RUNNER_GROUP: ${RUNNER_GROUP:-revodesign_appgroup}
   USERS_FILE: ${USERS_FILE}
   LOG_DIR: ${LOG_DIR}
 
