@@ -25,7 +25,7 @@ echo "Building server images (web/worker/redis dependencies)..."
 "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" build
 
 echo "Restarting services via docker compose..."
-"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d redis web worker
+"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" restart -d redis web worker
 
 set +u
 set -a

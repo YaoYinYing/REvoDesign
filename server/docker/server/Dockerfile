@@ -1,5 +1,14 @@
 FROM python:3.10-slim
 
+ARG RUNNER_UID
+ARG RUNNER_GID
+
+ARG DOMAIN
+ARG PORT
+
+RUN groupadd -r revodesign_appgroup -g ${RUNNER_GID} && \
+    useradd -r -g revodesign_appgroup -u ${RUNNER_UID} revodesign
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PSSM_GREMLIN_LOG_DIR=/var/log/pssm_gremlin
@@ -11,13 +20,16 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY server/docker/server/requirements.txt /tmp/requirements.txt
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} server/docker/server/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt \
     && rm -f /tmp/requirements.txt
 
-COPY server /app/server
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} server /app/server
+
 
 ENV PYTHONPATH=/app/server
 WORKDIR /app/server/pssm_gremlin
 
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:8080", "pssm_gremlin:app"]
+USER ${RUNNER_UID}:${RUNNER_GID}
+
+CMD ["gunicorn", "-w", "2", "-b", "${DOMAIN}:${PORT}", "pssm_gremlin:app"]

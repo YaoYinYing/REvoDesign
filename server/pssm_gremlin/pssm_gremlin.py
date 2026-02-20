@@ -139,9 +139,9 @@ def _env_int(var_name: str, default: int) -> int:
 
 
 def _resolve_docker_user() -> str:
-    env_user = os.environ.get("PSSM_GREMLIN_RUNNER_USER")
-    env_uid = os.environ.get("PSSM_GREMLIN_RUNNER_UID")
-    env_gid = os.environ.get("PSSM_GREMLIN_RUNNER_GID")
+    env_user = os.environ.get("RUNNER_USER")
+    env_uid = os.environ.get("RUNNER_UID")
+    env_gid = os.environ.get("RUNNER_GID")
 
     if env_user:
         return env_user
@@ -180,30 +180,30 @@ class GremlinConfig:
 
     @classmethod
     def from_env(cls) -> "GremlinConfig":
-        server_dir = _env_path("PSSM_GREMLIN_SERVER_DIR", "/mnt/data/yinying/server/")
+        server_dir = _env_path("SERVER_DIR", "/mnt/data/yinying/server/")
         upload_folder = os.path.join(server_dir, "upload")
         results_folder = os.path.join(server_dir, "results")
         return cls(
             server_dir=server_dir,
             upload_folder=upload_folder,
             results_folder=results_folder,
-            db_path=_env_path("PSSM_GREMLIN_DB_PATH", os.path.join(server_dir, "pssm_gremlin.sqlite3")),
-            docker_image=os.environ.get("PSSM_GREMLIN_RUNNER_IMAGE", "revodesign-pssm-gremlin"),
+            db_path=_env_path("DB_PATH", os.path.join(server_dir, "pssm_gremlin.sqlite3")),
+            docker_image=os.environ.get("RUNNER_IMAGE", "revodesign-pssm-gremlin"),
             docker_user=_resolve_docker_user(),
             uniref30_db=_env_path(
-                "PSSM_GREMLIN_DB_UNIREF30",
+                "DB_UNIREF30",
                 "/mnt/db/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02",
             ),
-            uniref90_db=_env_path("PSSM_GREMLIN_DB_UNIREF90", "/mnt/db/uniref90/uniref90"),
-            nproc=_env_int("PSSM_GREMLIN_NPROC", 16),
-            port=_env_int("PSSM_GREMLIN_PORT", 8080),
+            uniref90_db=_env_path("DB_UNIREF90", "/mnt/db/uniref90/uniref90"),
+            nproc=_env_int("NPROC", 16),
+            port=_env_int("PORT", 8080),
         )
 
 
 CONFIG = GremlinConfig.from_env()
 
 
-user_file = os.environ.get("PSSM_GREMLIN_USERS_FILE", os.path.join(THIS_DIR, "users.txt"))
+user_file = os.environ.get("USERS_FILE", os.path.join(THIS_DIR, "users.txt"))
 user_file = os.path.abspath(user_file)
 
 if not os.path.exists(user_file):
@@ -225,9 +225,9 @@ with open(user_file) as f:
 
 
 # Celery configurations
-redis_url = os.environ.get("PSSM_GREMLIN_REDIS_URL", "redis://localhost:6379/0")
-celery_backend = os.environ.get("PSSM_GREMLIN_RESULT_BACKEND", redis_url)
-celery_broker = os.environ.get("PSSM_GREMLIN_BROKER_URL", redis_url)
+redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+celery_backend = os.environ.get("RESULT_BACKEND", redis_url)
+celery_broker = os.environ.get("BROKER_URL", redis_url)
 celery = Celery(
     app.name,
     broker=celery_broker,

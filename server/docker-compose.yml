@@ -1,59 +1,58 @@
-version: "3.9"
-
+# version: "3.9"
 x-common-env: &common-env
-  PSSM_GREMLIN_SERVER_DIR: ${PSSM_GREMLIN_SERVER_DIR}
-  PSSM_GREMLIN_DB_PATH: ${PSSM_GREMLIN_DB_PATH}
-  PSSM_GREMLIN_DB_UNIREF30: ${PSSM_GREMLIN_DB_UNIREF30}
-  PSSM_GREMLIN_DB_UNIREF90: ${PSSM_GREMLIN_DB_UNIREF90}
-  PSSM_GREMLIN_REDIS_URL: ${PSSM_GREMLIN_REDIS_URL:-redis://redis:6379/0}
-  PSSM_GREMLIN_BROKER_URL: ${PSSM_GREMLIN_BROKER_URL:-redis://redis:6379/0}
-  PSSM_GREMLIN_RESULT_BACKEND: ${PSSM_GREMLIN_RESULT_BACKEND:-redis://redis:6379/0}
-  PSSM_GREMLIN_NPROC: ${PSSM_GREMLIN_NPROC:-8}
-  PSSM_GREMLIN_RUNNER_IMAGE: ${PSSM_GREMLIN_RUNNER_IMAGE:-revodesign-pssm-gremlin}
-  PSSM_GREMLIN_RUNNER_UID: ${PSSM_GREMLIN_RUNNER_UID:-1000}
-  PSSM_GREMLIN_RUNNER_GID: ${PSSM_GREMLIN_RUNNER_GID:-1000}
-  PSSM_GREMLIN_USERS_FILE: ${PSSM_GREMLIN_USERS_FILE}
-  PSSM_GREMLIN_LOG_DIR: ${PSSM_GREMLIN_LOG_DIR}
+  SERVER_DIR: ${SERVER_DIR}
+  DB_PATH: ${DB_PATH}
+  DB_UNIREF30: ${DB_UNIREF30}
+  DB_UNIREF90: ${DB_UNIREF90}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  BROKER_URL: ${BROKER_URL:-redis://redis:6379/0}
+  RESULT_BACKEND: ${RESULT_BACKEND:-redis://redis:6379/0}
+  NPROC: ${NPROC:-8}
+  RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-pssm-gremlin}
+  RUNNER_UID: ${RUNNER_UID:-1000}
+  RUNNER_GID: ${RUNNER_GID:-1000}
+  USERS_FILE: ${USERS_FILE}
+  LOG_DIR: ${LOG_DIR}
 
 services:
   redis:
     image: redis:7.2-alpine
+    user: ${RUNNER_UID:RUNNER_GID}
     restart: unless-stopped
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     volumes:
       - redis-data:/data
 
   web:
-    image: ${PSSM_GREMLIN_SERVER_IMAGE:-revodesign-pssm-gremlin-server}
-    build:
-      context: ..
-      dockerfile: server/docker/server/Dockerfile
+    image: ${SERVER_IMAGE:-yaoyinying/revodesign-pssm-gremlin-server:latest}
     restart: unless-stopped
+    user: ${RUNNER_UID:RUNNER_GID}
     depends_on:
       - redis
     environment:
       <<: *common-env
-      PSSM_GREMLIN_PORT: ${PSSM_GREMLIN_PORT:-8080}
+      PORT: ${PORT:-8080}
     command: >-
-      gunicorn -w ${PSSM_GREMLIN_GUNICORN_WORKERS:-2}
-      -b 0.0.0.0:${PSSM_GREMLIN_PORT:-8080}
-      --access-logfile ${PSSM_GREMLIN_LOG_DIR}/gunicorn-access.log
-      --error-logfile ${PSSM_GREMLIN_LOG_DIR}/gunicorn-error.log
+      gunicorn -w ${GUNICORN_WORKERS:-2}
+      -b 0.0.0.0:${PORT:-8080}
+      --access-logfile ${LOG_DIR}/gunicorn-access.log
+      --error-logfile ${LOG_DIR}/gunicorn-error.log
       pssm_gremlin:app
     ports:
-      - "${PSSM_GREMLIN_PORT:-8080}:${PSSM_GREMLIN_PORT:-8080}"
+      - "${PORT:-8080}:${PORT:-8080}"
     volumes:
-      - ${PSSM_GREMLIN_SERVER_DIR}:${PSSM_GREMLIN_SERVER_DIR}
-      - ${PSSM_GREMLIN_DB_PATH}:${PSSM_GREMLIN_DB_PATH}
-      - ${PSSM_GREMLIN_DB_UNIREF30}:${PSSM_GREMLIN_DB_UNIREF30}:ro
-      - ${PSSM_GREMLIN_DB_UNIREF90}:${PSSM_GREMLIN_DB_UNIREF90}:ro
-      - ${PSSM_GREMLIN_USERS_FILE}:${PSSM_GREMLIN_USERS_FILE}:ro
-      - ${PSSM_GREMLIN_LOG_DIR}:${PSSM_GREMLIN_LOG_DIR}
+      - ${SERVER_DIR}:${SERVER_DIR}
+      - ${DB_PATH}:${DB_PATH}
+      - ${DB_UNIREF30}:${DB_UNIREF30}:ro
+      - ${DB_UNIREF90}:${DB_UNIREF90}:ro
+      - ${USERS_FILE}:${USERS_FILE}:ro
+      - ${LOG_DIR}:${LOG_DIR}
       - /var/run/docker.sock:/var/run/docker.sock
 
   worker:
-    image: ${PSSM_GREMLIN_SERVER_IMAGE:-revodesign-pssm-gremlin-server}
+    image: ${SERVER_IMAGE:-yaoyinying/revodesign-pssm-gremlin-server:latest}
     restart: unless-stopped
+    user: ${RUNNER_UID:RUNNER_GID}
     depends_on:
       - redis
     environment:
@@ -61,23 +60,21 @@ services:
     command: >-
       celery -A pssm_gremlin.celery worker
       --loglevel=info
-      --concurrency=${PSSM_GREMLIN_WORKER_CONCURRENCY:-2}
-      --logfile ${PSSM_GREMLIN_LOG_DIR}/celery-worker.log
+      --concurrency=${WORKER_CONCURRENCY:-2}
+      --logfile ${LOG_DIR}/celery-worker.log
     volumes:
-      - ${PSSM_GREMLIN_SERVER_DIR}:${PSSM_GREMLIN_SERVER_DIR}
-      - ${PSSM_GREMLIN_DB_PATH}:${PSSM_GREMLIN_DB_PATH}
-      - ${PSSM_GREMLIN_DB_UNIREF30}:${PSSM_GREMLIN_DB_UNIREF30}:ro
-      - ${PSSM_GREMLIN_DB_UNIREF90}:${PSSM_GREMLIN_DB_UNIREF90}:ro
-      - ${PSSM_GREMLIN_USERS_FILE}:${PSSM_GREMLIN_USERS_FILE}:ro
-      - ${PSSM_GREMLIN_LOG_DIR}:${PSSM_GREMLIN_LOG_DIR}
+      - ${SERVER_DIR}:${SERVER_DIR}
+      - ${DB_PATH}:${DB_PATH}
+      - ${DB_UNIREF30}:${DB_UNIREF30}:ro
+      - ${DB_UNIREF90}:${DB_UNIREF90}:ro
+      - ${USERS_FILE}:${USERS_FILE}:ro
+      - ${LOG_DIR}:${LOG_DIR}
       - /var/run/docker.sock:/var/run/docker.sock
 
   runner:
     profiles: ["runner"]
-    image: ${PSSM_GREMLIN_RUNNER_IMAGE:-revodesign-pssm-gremlin}
-    build:
-      context: .
-      dockerfile: docker/runner/Dockerfile
+    user: ${RUNNER_UID:RUNNER_GID}
+    image: ${RUNNER_IMAGE:-yaoyinying/revodesign-pssm-gremlin:latest}
     command: ["sleep", "infinity"]
     restart: "no"
 

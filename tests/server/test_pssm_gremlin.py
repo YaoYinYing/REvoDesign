@@ -192,22 +192,22 @@ class DockerServerStack:
         ]
         redis_url = f"redis://{self.redis_name}:6379/0"
         self.env = {
-            "PSSM_GREMLIN_SERVER_DIR": str(self.server_dir),
-            "PSSM_GREMLIN_DB_PATH": str(self.db_path),
-            "PSSM_GREMLIN_DB_UNIREF30": self.miniuc["uniref30_prefix"],
-            "PSSM_GREMLIN_DB_UNIREF90": self.miniuc["uniref90_prefix"],
-            "PSSM_GREMLIN_USERS_FILE": str(self.users_file),
-            "PSSM_GREMLIN_LOG_DIR": str(self.log_dir),
-            "PSSM_GREMLIN_NPROC": "4",
-            "PSSM_GREMLIN_GUNICORN_WORKERS": "2",
-            "PSSM_GREMLIN_WORKER_CONCURRENCY": "2",
-            "PSSM_GREMLIN_RUNNER_IMAGE": self.runner_image_tag,
-            "PSSM_GREMLIN_RUNNER_UID": str(getattr(os, "getuid", lambda: 0)()),
-            "PSSM_GREMLIN_RUNNER_GID": str(getattr(os, "getgid", lambda: 0)()),
-            "PSSM_GREMLIN_PORT": str(self.port),
-            "PSSM_GREMLIN_REDIS_URL": redis_url,
-            "PSSM_GREMLIN_BROKER_URL": redis_url,
-            "PSSM_GREMLIN_RESULT_BACKEND": redis_url,
+            "SERVER_DIR": str(self.server_dir),
+            "DB_PATH": str(self.db_path),
+            "DB_UNIREF30": self.miniuc["uniref30_prefix"],
+            "DB_UNIREF90": self.miniuc["uniref90_prefix"],
+            "USERS_FILE": str(self.users_file),
+            "LOG_DIR": str(self.log_dir),
+            "NPROC": "4",
+            "GUNICORN_WORKERS": "2",
+            "WORKER_CONCURRENCY": "2",
+            "RUNNER_IMAGE": self.runner_image_tag,
+            "RUNNER_UID": str(getattr(os, "getuid", lambda: 0)()),
+            "RUNNER_GID": str(getattr(os, "getgid", lambda: 0)()),
+            "PORT": str(self.port),
+            "REDIS_URL": redis_url,
+            "BROKER_URL": redis_url,
+            "RESULT_BACKEND": redis_url,
         }
 
     def start(self):
