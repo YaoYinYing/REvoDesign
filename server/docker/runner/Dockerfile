@@ -13,7 +13,7 @@ RUN groupadd -r ${RUNNER_GROUP} -g ${RUNNER_GID} && \
 # Use bash to support string substitution.
 SHELL ["/bin/bash", "-c"]
 
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} server/docker/env/GREMLIN.yml /tmp/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} server/env/GREMLIN.yml /tmp/
 RUN conda env create -f /tmp/GREMLIN.yml \
       && conda clean --all --force-pkgs-dirs --yes \
       && rm -f /tmp/GREMLIN.yml
@@ -21,7 +21,7 @@ RUN conda env create -f /tmp/GREMLIN.yml \
 RUN mkdir -p /app/pssm_gremlin
 RUN chown -R ${RUNNER_UID}:${RUNNER_GID} /app/pssm_gremlin
 
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} server/docker/scripts/ /app/pssm_gremlin/scripts/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} server/scripts/ /app/pssm_gremlin/scripts/
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} server/REvoDesign_PSSM_GREMLIN.sh /app/pssm_gremlin/
 
 # Add SETUID bit to the ldconfig binary so that non-root users can run it.

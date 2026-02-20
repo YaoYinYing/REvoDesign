@@ -32,6 +32,18 @@ def _determine_runner_identity() -> tuple[str, str, bool]:
     return uid, gid, False
 
 
+def _runner_build_args() -> dict[str, str]:
+    uid, gid, _ = _determine_runner_identity()
+    username = os.environ.get("RUNNER_USERNAME", "revodesign")
+    group = os.environ.get("RUNNER_GROUP", "revodesign_appgroup")
+    return {
+        "RUNNER_UID": uid,
+        "RUNNER_GID": gid,
+        "RUNNER_USERNAME": username,
+        "RUNNER_GROUP": group,
+    }
+
+
 def _configure_pssm_env(monkeypatch, tmp_path, extra_env: dict | None = None) -> None:
     env_root = tmp_path / "pssm_env"
     env_root.mkdir(parents=True, exist_ok=True)
@@ -148,8 +160,13 @@ def _require_path(path: Path, description: str) -> None:
         pytest.skip(f"{description} not found at {path}. Rebuild the mock databases via tests/data/msa/README.md")
 
 
-def _build_image(tag: str, dockerfile: str, context: str) -> None:
-    _run_command(["docker", "build", "-t", tag, "-f", dockerfile, context])
+def _build_image(tag: str, dockerfile: str, context: str, build_args: dict[str, str] | None = None) -> None:
+    command = ["docker", "build", "-t", tag, "-f", dockerfile]
+    if build_args:
+        for key, value in build_args.items():
+            command.extend(["--build-arg", f"{key}={value}"])
+    command.append(context)
+    _run_command(command)
 
 
 @pytest.fixture(scope="session")
@@ -157,7 +174,7 @@ def _build_image(tag: str, dockerfile: str, context: str) -> None:
 def runner_image_tag(miniuc_databases) -> str:
     _ = miniuc_databases
     tag = f"revodesign-pssm-gremlin-runner-test:{uuid.uuid4().hex[:12]}"
-    _build_image(tag, "server/docker/runner/Dockerfile", ".")
+    _build_image(tag, "server/docker/runner/Dockerfile", ".", build_args=_runner_build_args())
     yield tag
     _run_command(["docker", "rmi", "-f", tag], check=False)
 
@@ -167,7 +184,7 @@ def runner_image_tag(miniuc_databases) -> str:
 def server_image_tag(miniuc_databases) -> str:
     _ = miniuc_databases
     tag = f"revodesign-pssm-gremlin-server-test:{uuid.uuid4().hex[:12]}"
-    _build_image(tag, "server/docker/server/Dockerfile", ".")
+    _build_image(tag, "server/docker/server/Dockerfile", ".", build_args=_runner_build_args())
     yield tag
     _run_command(["docker", "rmi", "-f", tag], check=False)
 
