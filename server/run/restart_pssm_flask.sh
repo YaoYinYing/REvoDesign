@@ -21,6 +21,8 @@ else
   exit 1
 fi
 
+echo "${ENV_FILE}"
+
 echo "Building server images (web/worker/redis dependencies)..."
 "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" build
 

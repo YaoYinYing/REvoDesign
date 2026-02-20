@@ -11,6 +11,8 @@ x-common-env: &common-env
   RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
   RUNNER_UID: ${RUNNER_UID:-1000}
   RUNNER_GID: ${RUNNER_GID:-1000}
+  RUNNER_USERNAME: ${RUNNER_USERNAME:-revodesign}
+  RUNNER_GROUP: ${RUNNER_GROUP:-revodesign_appgroup}
   USERS_FILE: ${USERS_FILE}
   LOG_DIR: ${LOG_DIR}
 
@@ -24,7 +26,10 @@ services:
       - redis-data:/data
 
   web:
-    image: ${SERVER_IMAGE:-yaoyinying/revodesign-pssm-gremlin-server-non-root:latest}
+    image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root:latest}
+    build:
+      context: ..
+      dockerfile: server/docker/server/Dockerfile
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
     depends_on:
@@ -50,7 +55,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   worker:
-    image: ${SERVER_IMAGE:-yaoyinying/revodesign-pssm-gremlin-server-non-root:latest}
+    image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root:latest}
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
     depends_on:
@@ -73,8 +78,13 @@ services:
 
   runner:
     profiles: ["runner"]
+    environment:
+      <<: *common-env
     user: ${RUNNER_UID}:${RUNNER_GID}
-    image: ${RUNNER_IMAGE:-yaoyinying/revodesign-pssm-gremlin-non-root:latest}
+    image: ${PSSM_GREMLIN_RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
+    build:
+      context: .
+      dockerfile: server/docker/runner/Dockerfile
     command: ["sleep", "infinity"]
     restart: "no"
 
