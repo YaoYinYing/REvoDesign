@@ -1,3 +1,4 @@
+import importlib.util
 import io
 import json
 import os
@@ -5,6 +6,7 @@ import secrets
 import socket
 import shutil
 import subprocess
+import sys
 import time
 import uuid
 import zipfile
@@ -15,11 +17,98 @@ from typing import Iterable
 import pytest
 import requests
 
-from tests.conftest import has_docker,REPO_DIR, TEST_ROOT
+from tests.conftest import has_docker, REPO_DIR, TEST_ROOT
 
 MSA_ROOT = Path(REPO_DIR) / "tests" / "data" / "msa"
 
-pytestmark = pytest.mark.skipif(not has_docker, reason="Docker CLI is required for GREMLIN integration tests.")
+REQUIRES_DOCKER = pytest.mark.skipif(not has_docker, reason="Docker CLI is required for GREMLIN integration tests.")
+
+
+def _configure_pssm_env(monkeypatch, tmp_path, extra_env: dict | None = None) -> None:
+    env_root = tmp_path / "pssm_env"
+    env_root.mkdir(parents=True, exist_ok=True)
+    db_path = env_root / "pssm.sqlite3"
+    log_dir = env_root / "logs"
+    log_dir.mkdir(exist_ok=True)
+    for folder in ("uniref30", "uniref90"):
+        (env_root / folder).mkdir(exist_ok=True)
+    users_file = env_root / "users.txt"
+    users_file.write_text("tester:password\n", encoding="utf-8")
+
+    base_env = {
+        "SERVER_DIR": str(env_root),
+        "DB_PATH": str(db_path),
+        "DB_UNIREF30": str(env_root / "uniref30"),
+        "DB_UNIREF90": str(env_root / "uniref90"),
+        "USERS_FILE": str(users_file),
+        "LOG_DIR": str(log_dir),
+    }
+    for key, value in base_env.items():
+        monkeypatch.setenv(key, value)
+    for name in ("RUNNER_UID", "RUNNER_GID", "RUNNER_USERNAME", "RUNNER_GROUP", "RUNNER_USER"):
+        monkeypatch.delenv(name, raising=False)
+    if extra_env:
+        for key, value in extra_env.items():
+            if value is None:
+                monkeypatch.delenv(key, raising=False)
+            else:
+                monkeypatch.setenv(key, value)
+
+
+def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
+    _configure_pssm_env(monkeypatch, tmp_path, extra_env)
+    module_path = Path(REPO_DIR) / "server" / "pssm_gremlin" / "pssm_gremlin.py"
+    module_name = f"pssm_gremlin_config_test_{uuid.uuid4().hex}"
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec is not None and spec.loader is not None
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)  # type: ignore[attr-defined]
+        return module
+    finally:
+        sys.modules.pop(module_name, None)
+
+
+def test_pssm_config_uses_numeric_runner_identity(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    assert module.CONFIG.docker_user == "1234:5678"
+
+
+def test_pssm_config_uses_named_runner_identity(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_USERNAME": "revodesign",
+            "RUNNER_GROUP": "revodesign_appgroup",
+        },
+    )
+    assert module.CONFIG.docker_user == "revodesign:revodesign_appgroup"
+
+
+def test_pssm_config_requires_runner_identity(monkeypatch, tmp_path):
+    with pytest.raises(RuntimeError):
+        _load_pssm_module(monkeypatch, tmp_path)
+
+
+def test_pssm_config_rejects_root_runner(monkeypatch, tmp_path):
+    with pytest.raises(ValueError):
+        _load_pssm_module(
+            monkeypatch,
+            tmp_path,
+            extra_env={
+                "RUNNER_UID": "0",
+                "RUNNER_GID": "0",
+            },
+        )
 
 
 def _run_command(
@@ -56,6 +145,7 @@ def _build_image(tag: str, dockerfile: str, context: str) -> None:
 
 
 @pytest.fixture(scope="session")
+@REQUIRES_DOCKER
 def runner_image_tag(miniuc_databases) -> str:
     _ = miniuc_databases
     tag = f"revodesign-pssm-gremlin-runner-test:{uuid.uuid4().hex[:12]}"
@@ -65,6 +155,7 @@ def runner_image_tag(miniuc_databases) -> str:
 
 
 @pytest.fixture(scope="session")
+@REQUIRES_DOCKER
 def server_image_tag(miniuc_databases) -> str:
     _ = miniuc_databases
     tag = f"revodesign-pssm-gremlin-server-test:{uuid.uuid4().hex[:12]}"
@@ -80,6 +171,7 @@ def _volume_args(bindings: Iterable[tuple[str, str, str]]) -> list[str]:
     return args
 
 
+@REQUIRES_DOCKER
 def test_runner_image_executes_pipeline(miniuc_databases, runner_image_tag, tmp_path):
     fasta = MSA_ROOT / "2KL8.fasta"
     _require_path(fasta, "Validation FASTA file")
@@ -379,6 +471,7 @@ def _wait_for_failed_task(
     raise AssertionError("Timed out waiting for GREMLIN task to fail")
 
 
+@REQUIRES_DOCKER
 def test_server_image_handles_authenticated_requests(
     miniuc_databases, runner_image_tag, server_image_tag, tmp_path
 ):
@@ -434,6 +527,7 @@ def test_server_image_handles_authenticated_requests(
         stack.cleanup()
 
 @pytest.fixture(scope="module")
+@REQUIRES_DOCKER
 def running_gremlin_server(miniuc_databases, runner_image_tag, server_image_tag):
     stack = DockerServerStack(
         runner_image_tag=runner_image_tag,
@@ -467,6 +561,7 @@ def _create_invalid_residue_fasta(tmp_path: Path) -> Path:
     return mutated_path
 
 
+@REQUIRES_DOCKER
 def test_server_rejects_unauthenticated_requests(running_gremlin_server):
     base_url = running_gremlin_server["base_url"]
     with requests.Session() as session:
@@ -482,6 +577,7 @@ def test_server_rejects_unauthenticated_requests(running_gremlin_server):
         assert upload_resp.status_code == 401
 
 
+@REQUIRES_DOCKER
 def test_server_rejects_invalid_uploads(running_gremlin_server):
     base_url = running_gremlin_server["base_url"]
     auth = running_gremlin_server["auth"]
@@ -515,6 +611,7 @@ def test_server_rejects_invalid_uploads(running_gremlin_server):
         assert "binary" in binary_resp.json()["error"].lower()
 
 
+@REQUIRES_DOCKER
 def test_server_reports_invalid_task_ids(running_gremlin_server):
     base_url = running_gremlin_server["base_url"]
     auth = running_gremlin_server["auth"]

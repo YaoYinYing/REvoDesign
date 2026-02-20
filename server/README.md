@@ -42,12 +42,14 @@ Key options are controlled from `server/.env`:
 | `PSSM_GREMLIN_DB_PATH` | Absolute path to the SQLite job-tracking database file. Create the file or its parent directory on the host; Compose bind-mounts the file so the host retains ownership and backups. |
 | `PSSM_GREMLIN_DB_UNIREF30`, `PSSM_GREMLIN_DB_UNIREF90` | Absolute paths to the sequence databases. They are mounted read-only into both containers. |
 | `PSSM_GREMLIN_USERS_FILE` | Path to the HTTP Basic Auth credentials file. |
-| `PSSM_GREMLIN_RUNNER_UID`, `PSSM_GREMLIN_RUNNER_GID` | UID/GID that the GREMLIN runner container uses. Set these to match the host deploy user to avoid root-owned artifacts. |
+| `PSSM_GREMLIN_RUNNER_UID`, `PSSM_GREMLIN_RUNNER_GID` | Required UID/GID pair for the GREMLIN runner container. Both must point to a dedicated non-root account; the server refuses to start if they are missing or set to `root` to avoid root-owned artifacts. |
 | `PSSM_GREMLIN_NPROC`, `PSSM_GREMLIN_WORKER_CONCURRENCY`, `PSSM_GREMLIN_GUNICORN_WORKERS` | Performance knobs for the runner, Celery worker, and Gunicorn respectively. |
 | `PSSM_GREMLIN_REDIS_URL` | Broker/backend URL used by Celery. Defaults to the bundled Redis service. |
 | `PSSM_GREMLIN_PORT` | External HTTP port exposed by the `web` service. |
 
 Every other variable shown in `.env.example` is optional and has a sensible default.
+
+If you prefer naming the dedicated system account explicitly inside the containers, `RUNNER_USERNAME` and `RUNNER_GROUP` may be set instead of the UID/GID pair. As with the numeric identifiers, both must refer to non-root identities.
 
 ### Runner / GREMLIN image
 

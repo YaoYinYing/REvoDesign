@@ -147,24 +147,42 @@ def _env_int(var_name: str, default: int) -> int:
         raise ValueError(f"Environment variable {var_name} must be an integer, got {raw!r}") from exc
 
 
+def _format_runner_identity(user_value: str, group_value: str) -> str:
+    user = user_value.strip()
+    group = group_value.strip()
+    if not user or not group:
+        raise RuntimeError("Runner user and group must both be provided.")
+    if user in {"0", "root"} or group in {"0", "root"}:
+        raise ValueError("GREMLIN runner cannot run as root. Provide a non-root user and group.")
+    return f"{user}:{group}"
+
+
 def _resolve_docker_user() -> str:
-    env_user = os.environ.get("RUNNER_USER")
+    username = os.environ.get("RUNNER_USERNAME")
+    group = os.environ.get("RUNNER_GROUP")
+    if username or group:
+        if not username or not group:
+            raise RuntimeError("RUNNER_USERNAME and RUNNER_GROUP must be set together.")
+        return _format_runner_identity(username, group)
+
     env_uid = os.environ.get("RUNNER_UID")
     env_gid = os.environ.get("RUNNER_GID")
+    if env_uid or env_gid:
+        if not env_uid or not env_gid:
+            raise RuntimeError("RUNNER_UID and RUNNER_GID must both be defined.")
+        return _format_runner_identity(env_uid, env_gid)
 
+    env_user = os.environ.get("RUNNER_USER")
     if env_user:
-        return env_user
+        if ":" not in env_user:
+            raise RuntimeError("RUNNER_USER must be in the form '<user>:<group>'.")
+        user_part, group_part = env_user.split(":", 1)
+        return _format_runner_identity(user_part, group_part)
 
-    if env_uid and env_gid:
-        return f"{env_uid}:{env_gid}"
-
-    if env_uid:
-        return env_uid
-
-    try:
-        return f"{os.geteuid()}:{os.getegid()}"
-    except AttributeError:
-        return "0:0"
+    raise RuntimeError(
+        "Runner user configuration missing. Set RUNNER_UID/RUNNER_GID or RUNNER_USERNAME/RUNNER_GROUP "
+        "to a dedicated non-root account."
+    )
 
 
 def _ensure_directories(*paths: str) -> None:
