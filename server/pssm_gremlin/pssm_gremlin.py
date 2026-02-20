@@ -25,6 +25,7 @@ from flask import Flask, jsonify, redirect, render_template, request, send_from_
 from flask_httpauth import HTTPBasicAuth
 from sqlalchemy import Column, Float, Index, Integer, MetaData, String, Table, Text, create_engine, desc, select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.exc import OperationalError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -74,7 +75,15 @@ class TaskDatabase:
         with self.engine.begin() as conn:
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
-            self.metadata.create_all(conn)
+            try:
+                self.metadata.create_all(conn, checkfirst=True)
+            except OperationalError as exc:
+                # Gunicorn can spawn multiple workers simultaneously which may try to
+                # initialize the SQLite schema at the same time. The loser of that
+                # race observes an "already exists" error; we can safely ignore it.
+                if "already exists" not in str(exc).lower():
+                    raise
+                logging.warning("TaskDatabase metadata already present, skipping creation")
 
     def _ensure_status(self, status: str) -> None:
         if status not in self.VALID_STATUSES:
