@@ -21,8 +21,8 @@ RUN conda env create -f /tmp/GREMLIN.yml \
 RUN mkdir -p /app/pssm_gremlin
 RUN chown -R ${RUNNER_UID}:${RUNNER_GID} /app/pssm_gremlin
 
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/scripts/ /app/pssm_gremlin/scripts/
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/REvoDesign_PSSM_GREMLIN.sh /app/pssm_gremlin/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./server/docker/scripts/ /app/pssm_gremlin/scripts/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./server/REvoDesign_PSSM_GREMLIN.sh /app/pssm_gremlin/
 
 # Add SETUID bit to the ldconfig binary so that non-root users can run it.
 RUN chmod u+s /sbin/ldconfig.real
