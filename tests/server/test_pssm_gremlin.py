@@ -134,13 +134,14 @@ def test_pssm_config_rejects_root_runner(monkeypatch, tmp_path):
 def _run_command(
     command: list[str],
     *,
+    cwd: str | Path | None = None,
     env: dict | None = None,
     check: bool = True,
     capture_output: bool = False,
 ) -> subprocess.CompletedProcess:
     return subprocess.run(
         command,
-        cwd=str(REPO_DIR),
+        cwd=cwd or str(REPO_DIR),
         env=env,
         check=check,
         capture_output=capture_output,
@@ -174,7 +175,7 @@ def _build_image(tag: str, dockerfile: str, context: str, build_args: dict[str, 
 def runner_image_tag(miniuc_databases) -> str:
     _ = miniuc_databases
     tag = f"revodesign-pssm-gremlin-runner-test:{uuid.uuid4().hex[:12]}"
-    _build_image(tag, "server/docker/runner/Dockerfile", ".", build_args=_runner_build_args())
+    _build_image(tag, "server/docker/runner/Dockerfile", "server", build_args=_runner_build_args())
     yield tag
     _run_command(["docker", "rmi", "-f", tag], check=False)
 
@@ -184,7 +185,7 @@ def runner_image_tag(miniuc_databases) -> str:
 def server_image_tag(miniuc_databases) -> str:
     _ = miniuc_databases
     tag = f"revodesign-pssm-gremlin-server-test:{uuid.uuid4().hex[:12]}"
-    _build_image(tag, "server/docker/server/Dockerfile", ".", build_args=_runner_build_args())
+    _build_image(tag, "server/docker/server/Dockerfile", "server", build_args=_runner_build_args())
     yield tag
     _run_command(["docker", "rmi", "-f", tag], check=False)
 
@@ -233,7 +234,7 @@ def test_runner_image_executes_pipeline(miniuc_databases, runner_image_tag, tmp_
         "10",
     ]
 
-    _run_command(command)
+    _run_command(command,cwd=Path(REPO_DIR) / "server")
 
     task_file = output_dir / "log" / "task_finished"
     gremlin_checkpoint = output_dir / "gremlin_res" / "2KL8.i90c75_aln.GREMLIN.mrf.pkl"
@@ -391,7 +392,7 @@ class DockerServerStack:
             "--logfile",
             f"{self.log_dir}/celery-worker.log",
         ]
-        _run_command(cmd)
+        _run_command(cmd, cwd=Path(REPO_DIR) / "server")
         self.containers.append(self.worker_name)
 
     def _start_web(self):
@@ -419,7 +420,7 @@ class DockerServerStack:
             f"{self.log_dir}/gunicorn-error.log",
             "pssm_gremlin:app",
         ]
-        _run_command(cmd)
+        _run_command(cmd, cwd=Path(REPO_DIR) / "server")
         self.containers.append(self.web_name)
 
     def _relax_permissions(self) -> None:
