@@ -24,7 +24,6 @@ flags.DEFINE_string(
     "<uniref30_db> Path/prefix to Uniclust30 database.",
 )
 flags.DEFINE_string("uniref90_db", "/mnt/db/uniref90/uniref90", "Path/prefix to Uniref90")
-flags.DEFINE_boolean("make_uniref90_db", False, "Whether to use `makeblastdb` tool for formatting uniref90 database.")
 
 flags.DEFINE_string("docker_image_name", "revodesign-pssm-gremlin", "Name of the Docker image.")
 
@@ -98,7 +97,7 @@ def main(argv):
     if FLAGS.uniref90_db:
         uniref90_db = os.path.abspath(FLAGS.uniref90_db)
         mount_uniref90_db, mounted_uniref90_db = _create_mount(
-            mount_name="uniref90_db", path=uniref90_db, read_only=not FLAGS.make_uniref90_db
+            mount_name="uniref90_db", path=uniref90_db, read_only=True
         )
         mounts.append(mount_uniref90_db)
         command_args.append(f"-u {mounted_uniref90_db}")
