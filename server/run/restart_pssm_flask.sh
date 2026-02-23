@@ -173,7 +173,7 @@ cmd_restart() {
   DOMAIN="${DOMAIN:-0.0.0.0}"
   PORT="${PORT:-8080}"
   echo "Deployment completed."
-  echo "Flask app is now running at http://${DOMAIN}:${PORT}"
+  echo "Flask app is now running at http://${DOMAIN}:${PORT}/PSSM_GREMLIN/dashboard"
 }
 
 SUBCOMMAND="${1:-restart}"
