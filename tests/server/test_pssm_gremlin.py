@@ -174,8 +174,9 @@ def test_run_gremlin_task_handles_docker_daemon_error(monkeypatch, tmp_path):
     )
     md5sum = _insert_pending_task(module, tmp_path / "result")
 
-    def _raise_docker_error(*, fasta_path, output_dir):
+    def _raise_docker_error(*, fasta_path, output_dir, stage_callback=None):
         del fasta_path, output_dir
+        del stage_callback
         raise docker.errors.DockerException(
             "Error while fetching server API version: ('Connection aborted.', PermissionError(13, 'Permission denied'))"
         )
@@ -272,8 +273,13 @@ def test_run_gremlin_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
             observed_statuses.append(fields["status"])
         return original_update_task(md5_value, **fields)
 
-    def _fake_runner(*, fasta_path, output_dir):
+    def _fake_runner(*, fasta_path, output_dir, stage_callback=None):
         del fasta_path
+        if stage_callback:
+            stage_callback("hhblits")
+            stage_callback("hhfilter")
+            stage_callback("gremlin")
+            stage_callback("blast")
         output_path = Path(output_dir)
         (output_path / "log").mkdir(parents=True, exist_ok=True)
         (output_path / "log" / "task_finished").write_text("done\n", encoding="utf-8")
@@ -290,6 +296,7 @@ def test_run_gremlin_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
     assert task is not None
     assert task["status"] == "finished"
     assert task["local_user"] == "pytest:staff-1000:20"
+    assert task["run_stage"] == "blast"
     assert not Path(task["result_dir"]).exists()
 
     zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
@@ -360,6 +367,7 @@ def _upsert_task_for_user(
     result_dir: Path | str,
     username: str,
     status: str = "finished",
+    run_stage: str | None = None,
 ) -> None:
     module.task_store.upsert_task(
         md5sum,
@@ -375,6 +383,7 @@ def _upsert_task_for_user(
         source_ip="127.0.0.1",
         user_agent="pytest",
         username=username,
+        run_stage=run_stage,
     )
 
 
@@ -549,14 +558,9 @@ def test_dashboard_running_trace_reflects_log_progress(monkeypatch, tmp_path):
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "trace_result"
-    log_dir = result_dir / "log"
     result_dir.mkdir(parents=True, exist_ok=True)
-    log_dir.mkdir(parents=True, exist_ok=True)
     fasta_path = result_dir / "trace.fasta"
     fasta_path.write_text(">trace\nACDE\n", encoding="utf-8")
-
-    (log_dir / "trace_gremlin_hhblits.log").write_text("hhblits done\n", encoding="utf-8")
-    (log_dir / "trace_gremlin_hhfilter.log").write_text("hhfilter running\n", encoding="utf-8")
 
     _upsert_task_for_user(
         module,
@@ -566,6 +570,7 @@ def test_dashboard_running_trace_reflects_log_progress(monkeypatch, tmp_path):
         result_dir=result_dir,
         username="tester",
         status="running",
+        run_stage="hhfilter",
     )
 
     response = client.get("/PSSM_GREMLIN/dashboard", headers=auth_header)

@@ -18,7 +18,6 @@ import shutil
 import signal
 import subprocess
 import time
-from glob import glob
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -108,6 +107,8 @@ class TaskDatabase:
             conn.exec_driver_sql('ALTER TABLE tasks ADD COLUMN "local user" TEXT;')
         if "request_headers" not in existing_columns:
             conn.exec_driver_sql("ALTER TABLE tasks ADD COLUMN request_headers TEXT;")
+        if "run_stage" not in existing_columns:
+            conn.exec_driver_sql("ALTER TABLE tasks ADD COLUMN run_stage TEXT;")
 
     @staticmethod
     def _normalize_task_row(row: dict) -> dict:
@@ -434,55 +435,57 @@ def _sanitize_task_error(task: dict[str, Any], error: Any) -> str | None:
     return message
 
 
-_RUNNING_TRACE_STEPS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+_RUNNING_TRACE_STEPS: tuple[tuple[str, str], ...] = (
     (
         "hhblits",
         "hhblits: searching for co-evolutionary sequences",
-        ("*_gremlin_hhblits.log", "*_gremlin_hhblits.err"),
     ),
     (
         "hhfilter",
         "hhfilter: filtering co-evolutionary",
-        ("*_gremlin_hhfilter.log", "*_gremlin_hhfilter.err"),
     ),
     (
         "gremlin",
         "gremlin: calculating co-evolution signals",
-        ("*_gremlin_tfv1.log", "*_gremlin_tfv1.err"),
     ),
     (
         "blast",
         "blast: searching for consensus profile",
-        ("*_pssm_psiblast.log", "*_pssm_psiblast.err"),
     ),
 )
 
+_RUNNING_STAGE_INDEX = {stage: index for index, (stage, _) in enumerate(_RUNNING_TRACE_STEPS)}
+_RUNNER_STAGE_PREFIX = "REVODESIGN_STAGE:"
+_RUNNER_STAGE_ALIASES = {
+    "hhblits": "hhblits",
+    "hhfilter": "hhfilter",
+    "gremlin": "gremlin",
+    "blast": "blast",
+    "psiblast": "blast",
+    "psi-blast": "blast",
+}
 
-def _running_stage_started(log_dir: str, patterns: tuple[str, ...]) -> bool:
-    for pattern in patterns:
-        if glob(os.path.join(log_dir, pattern)):
-            return True
-    return False
+
+def _extract_stage_from_log_line(line: str) -> str | None:
+    marker_pos = line.find(_RUNNER_STAGE_PREFIX)
+    if marker_pos < 0:
+        return None
+    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX):].strip().lower()
+    if not raw_marker:
+        return None
+    token = raw_marker.split()[0]
+    return _RUNNER_STAGE_ALIASES.get(token)
 
 
 def _build_running_trace(task: dict[str, Any]) -> str:
     if task.get("status") != "running":
         return ""
 
-    default_lines = [label for _, label, _ in _RUNNING_TRACE_STEPS]
-    result_dir = str(task.get("result_dir") or "")
-    if not result_dir:
-        return "\n".join(default_lines)
-    log_dir = os.path.join(result_dir, "log")
-    if not os.path.isdir(log_dir):
-        return "\n".join(default_lines)
-
-    started_flags = [bool(_running_stage_started(log_dir, patterns)) for _, _, patterns in _RUNNING_TRACE_STEPS]
-    started_indices = [index for index, started in enumerate(started_flags) if started]
-    current_index = max(started_indices) if started_indices else 0
+    current_stage = str(task.get("run_stage") or "").strip().lower()
+    current_index = _RUNNING_STAGE_INDEX.get(current_stage, 0)
 
     traced_lines: list[str] = []
-    for index, (_, label, _) in enumerate(_RUNNING_TRACE_STEPS):
+    for index, (_, label) in enumerate(_RUNNING_TRACE_STEPS):
         if index < current_index:
             marker = "done"
         elif index == current_index:
@@ -611,7 +614,7 @@ def _runner_thread_env(nproc: int) -> dict[str, str]:
     }
 
 
-def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
+def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None, stage_callback=None):
     mounts = []
     command_args = []
 
@@ -659,13 +662,19 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
     )
 
     stderr_lines: list[str] = []
+    last_stage: str | None = None
     try:
         # Add signal handler to ensure CTRL+C also stops the running container.
         signal.signal(signal.SIGINT, lambda unused_sig, unused_frame: container.kill())
 
         for line in container.logs(stream=True):
-            decoded = line.strip().decode("utf-8")
+            decoded = line.strip().decode("utf-8", errors="replace")
             if decoded:
+                stage = _extract_stage_from_log_line(decoded)
+                if stage and stage != last_stage:
+                    last_stage = stage
+                    if stage_callback:
+                        stage_callback(stage)
                 stderr_lines.append(decoded)
                 logging.info(decoded)
 
@@ -728,10 +737,14 @@ def run_gremlin_task(md5sum):
         return
 
     start_time = task.get("started_at") or time.time()
+    current_stage = str(task.get("run_stage") or _RUNNING_TRACE_STEPS[0][0]).strip().lower()
+    if current_stage not in _RUNNING_STAGE_INDEX:
+        current_stage = _RUNNING_TRACE_STEPS[0][0]
     update_fields = {
         "status": "running",
         "error": None,
         "local_user": _local_user_identity(),
+        "run_stage": current_stage,
     }
     if not task.get("started_at"):
         update_fields["started_at"] = start_time
@@ -739,12 +752,22 @@ def run_gremlin_task(md5sum):
     if task.get("request_headers"):
         logging.info("Request headers for task %s: %s", md5sum, _sanitize_for_log(task["request_headers"]))
 
+    stage_state = {"current": current_stage}
+
+    def _on_stage_change(stage: str) -> None:
+        if stage == stage_state["current"]:
+            return
+        stage_state["current"] = stage
+        task_store.update_task(md5sum, run_stage=stage)
+
     try:
         run_pssm_gremlin_in_docker(
             fasta_path=uploaded_file,
             output_dir=output_dir,
+            stage_callback=_on_stage_change,
         )
-        task_store.update_task(md5sum, status="packing results")
+        final_stage = stage_state["current"] or _RUNNING_TRACE_STEPS[-1][0]
+        task_store.update_task(md5sum, status="packing results", run_stage=final_stage)
         refreshed_task = task_store.get_task(md5sum) or task
         _pack_results_archive(refreshed_task)
         finish_time = time.time()
@@ -754,6 +777,7 @@ def run_gremlin_task(md5sum):
             finished_at=finish_time,
             walltime=finish_time - start_time,
             error=None,
+            run_stage=final_stage,
         )
     except docker.errors.ContainerError as exc:
         finish_time = time.time()
@@ -763,6 +787,7 @@ def run_gremlin_task(md5sum):
             finished_at=finish_time,
             walltime=finish_time - start_time,
             error=f"docker: {exc}",
+            run_stage=stage_state["current"],
         )
     except docker.errors.DockerException as exc:
         finish_time = time.time()
@@ -772,6 +797,7 @@ def run_gremlin_task(md5sum):
             finished_at=finish_time,
             walltime=finish_time - start_time,
             error=f"docker: {exc}",
+            run_stage=stage_state["current"],
         )
         logging.error("Docker daemon unavailable for GREMLIN task %s: %s", md5sum, exc)
     except Exception as exc:  # pylint: disable=broad-except
@@ -782,6 +808,7 @@ def run_gremlin_task(md5sum):
             finished_at=finish_time,
             walltime=finish_time - start_time,
             error=str(exc),
+            run_stage=stage_state["current"],
         )
         logging.exception("Unexpected failure while running GREMLIN task %s", md5sum)
 
@@ -860,6 +887,7 @@ def upload_file():
         "request_headers": metadata["headers_json"],
         "local_user": _local_user_identity(),
         "celery_task_id": None,
+        "run_stage": None,
     }
 
     if is_binary:

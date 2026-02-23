@@ -163,6 +163,7 @@ RUN_GREMLIN() {
     mkdir -p $dst_gremlin
     
     pushd $dst_msa
+    echo "REVODESIGN_STAGE:hhblits"
     if [[ ! -f "${instance}.a3m" ]]; then
         local cmd="$(which hhblits) -i ${fasta} -oa3m ${instance}.a3m -o ${instance}.hhr -d ${uniref30_db} -n ${iter} -e ${evalue} \
                 -mact 0.35 -maxfilt 100000000 -neffmax 20 -cpu ${nproc} -nodiff -realign_max 10000000 -maxmem 64"
@@ -170,6 +171,7 @@ RUN_GREMLIN() {
         eval "$cmd" 1>${pipline_res_dir}/log/${instance}_gremlin_hhblits.log 2>${pipline_res_dir}/log/${instance}_gremlin_hhblits.err
     fi
 
+    echo "REVODESIGN_STAGE:hhfilter"
     local cmd="$(which hhfilter) -i ${instance}.a3m -id 90 -cov 75 -o ${instance}.i90c75.a3m"
     echo "$cmd"
     local expected_msa=${instance}.i90c75.a3m
@@ -186,6 +188,7 @@ RUN_GREMLIN() {
     popd
     echo Running GREMLIN ...
 
+    echo "REVODESIGN_STAGE:gremlin"
     pushd $dst_gremlin
     if [[ ! -f ${dst_gremlin}/${instance}.i90c75_aln.GREMLIN.mrf.pkl ]]; then
 
@@ -212,6 +215,7 @@ RUN_PSSM() {
     local instance=${fasta_fn%.fasta}
 
     echo Running BLAST sequence searching ...
+    echo "REVODESIGN_STAGE:blast"
     echo Processing $fasta ...
 
     local dst=$(readlink -f $(pwd))
