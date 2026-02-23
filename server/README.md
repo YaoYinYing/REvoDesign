@@ -66,6 +66,7 @@ Key options are controlled from `server/.env`:
 | `PSSM_GREMLIN_NPROC`, `PSSM_GREMLIN_WORKER_CONCURRENCY`, `PSSM_GREMLIN_GUNICORN_WORKERS` | Performance knobs for the runner, Celery worker, and Gunicorn respectively. |
 | `PSSM_GREMLIN_REDIS_URL` | Broker/backend URL used by Celery. Defaults to the bundled Redis service. |
 | `PSSM_GREMLIN_PORT` | External HTTP port exposed by the `web` service. |
+| `PUBLIC_DASHBOARD` | Optional dashboard visibility switch. Default `false` enforces per-user isolation (only task owner can list/view/download/cancel). Set `true` to expose all tasks to any authenticated user. |
 
 Every other variable shown in `.env.example` is optional and has a sensible default.
 

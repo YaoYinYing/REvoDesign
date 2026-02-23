@@ -46,7 +46,12 @@ def _runner_build_args() -> dict[str, str]:
     }
 
 
-def _configure_pssm_env(monkeypatch, tmp_path, extra_env: dict | None = None) -> None:
+def _configure_pssm_env(
+    monkeypatch,
+    tmp_path,
+    extra_env: dict | None = None,
+    users_text: str | None = None,
+) -> None:
     env_root = tmp_path / "pssm_env"
     env_root.mkdir(parents=True, exist_ok=True)
     db_path = env_root / "pssm.sqlite3"
@@ -55,7 +60,7 @@ def _configure_pssm_env(monkeypatch, tmp_path, extra_env: dict | None = None) ->
     for folder in ("uniref30", "uniref90"):
         (env_root / folder).mkdir(exist_ok=True)
     users_file = env_root / "users.txt"
-    users_file.write_text("tester:password\n", encoding="utf-8")
+    users_file.write_text(users_text or "tester:password\n", encoding="utf-8")
 
     base_env = {
         "SERVER_DIR": str(env_root),
@@ -77,8 +82,13 @@ def _configure_pssm_env(monkeypatch, tmp_path, extra_env: dict | None = None) ->
                 monkeypatch.setenv(key, value)
 
 
-def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
-    _configure_pssm_env(monkeypatch, tmp_path, extra_env)
+def _load_pssm_module(
+    monkeypatch,
+    tmp_path,
+    extra_env: dict | None = None,
+    users_text: str | None = None,
+):
+    _configure_pssm_env(monkeypatch, tmp_path, extra_env, users_text)
     module_path = Path(REPO_DIR) / "server" / "pssm_gremlin" / "pssm_gremlin.py"
     module_name = f"pssm_gremlin_config_test_{uuid.uuid4().hex}"
     spec = importlib.util.spec_from_file_location(module_name, module_path)
@@ -219,7 +229,7 @@ def test_run_gremlin_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
     assert task["local_user"] == "pytest:staff-1000:20"
     assert not Path(task["result_dir"]).exists()
 
-    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / "input_PSSM_GREMLIN_results.zip"
+    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
     assert zip_path.is_file()
     with zipfile.ZipFile(zip_path) as archive:
         names = set(archive.namelist())
@@ -271,6 +281,131 @@ def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
     assert headers["X-Test-Header"] == "abc def"
     assert "\n" not in task["request_headers"]
     assert "\r" not in task["request_headers"]
+
+
+def _basic_auth_header(username: str, password: str) -> dict[str, str]:
+    token = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode("ascii")
+    return {"Authorization": f"Basic {token}"}
+
+
+def test_private_dashboard_blocks_non_owner_access(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+        users_text="tester:password\nother:password2\n",
+    )
+
+    class _DummyAsyncResult:
+        id = "celery-test-id"
+
+    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
+
+    client = module.app.test_client()
+    owner_header = _basic_auth_header("tester", "password")
+    other_header = _basic_auth_header("other", "password2")
+
+    upload = client.post(
+        "/PSSM_GREMLIN/api/post",
+        data={"file": (io.BytesIO(b">test\nACDE\n"), "upload.fasta")},
+        headers=owner_header,
+    )
+    assert upload.status_code == 302
+    md5sum = _extract_md5(upload.headers["Location"])
+
+    owner_running = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=owner_header)
+    assert owner_running.status_code == 202
+    assert owner_running.json["status"] == "pending"
+
+    for route in ("running", "results", "download", "cancel"):
+        method = client.post if route == "cancel" else client.get
+        response = method(f"/PSSM_GREMLIN/api/{route}/{md5sum}", headers=other_header)
+        assert response.status_code == 403
+        assert response.json["status"] == "forbidden"
+
+    owner_dashboard = client.get("/PSSM_GREMLIN/dashboard", headers=owner_header)
+    other_dashboard = client.get("/PSSM_GREMLIN/dashboard", headers=other_header)
+    assert owner_dashboard.status_code == 200
+    assert other_dashboard.status_code == 200
+    assert md5sum in owner_dashboard.get_data(as_text=True)
+    assert md5sum not in other_dashboard.get_data(as_text=True)
+
+
+def test_public_dashboard_allows_cross_user_task_access(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "PUBLIC_DASHBOARD": "true",
+        },
+        users_text="tester:password\nother:password2\n",
+    )
+
+    class _DummyAsyncResult:
+        id = "celery-test-id"
+
+    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
+
+    client = module.app.test_client()
+    owner_header = _basic_auth_header("tester", "password")
+    other_header = _basic_auth_header("other", "password2")
+
+    upload = client.post(
+        "/PSSM_GREMLIN/api/post",
+        data={"file": (io.BytesIO(b">test\nACDE\n"), "upload.fasta")},
+        headers=owner_header,
+    )
+    assert upload.status_code == 302
+    md5sum = _extract_md5(upload.headers["Location"])
+
+    other_running = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=other_header)
+    assert other_running.status_code == 202
+    assert other_running.json["status"] == "pending"
+
+    other_dashboard = client.get("/PSSM_GREMLIN/dashboard", headers=other_header)
+    assert other_dashboard.status_code == 200
+    assert md5sum in other_dashboard.get_data(as_text=True)
+
+
+def test_private_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+        users_text="tester:password\nother:password2\n",
+    )
+
+    class _DummyAsyncResult:
+        id = "celery-test-id"
+
+    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
+
+    client = module.app.test_client()
+    owner_header = _basic_auth_header("tester", "password")
+    other_header = _basic_auth_header("other", "password2")
+
+    payload = {"file": (io.BytesIO(b">test\nACDE\n"), "same.fasta")}
+    owner_upload = client.post("/PSSM_GREMLIN/api/post", data=payload, headers=owner_header)
+    assert owner_upload.status_code == 302
+    owner_md5 = _extract_md5(owner_upload.headers["Location"])
+
+    other_upload = client.post(
+        "/PSSM_GREMLIN/api/post",
+        data={"file": (io.BytesIO(b">test\nACDE\n"), "same.fasta")},
+        headers=other_header,
+    )
+    assert other_upload.status_code == 302
+    other_md5 = _extract_md5(other_upload.headers["Location"])
+
+    assert owner_md5 != other_md5
 
 
 def _run_command(

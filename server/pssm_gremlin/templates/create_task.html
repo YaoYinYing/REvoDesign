@@ -1,125 +1,357 @@
 <!DOCTYPE html>
 <html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | Create PSSM_GREMLIN Task</title>
 <link rel="icon" type="image/svg+xml" href="https://revodesign.yaoyy.moe/images/logo.svg"/>
 <link rel="mask-icon" href="https://revodesign.yaoyy.moe/images/logo.svg" color="#000000"/>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<body class="bg-gray-50 text-gray-900 font-sans">
-<div class="container mx-auto px-4">
-<header class="flex justify-between items-center py-4">
-<div class="flex items-center">
-    <!-- <div class="mr-4"><svg href="https://revodesign.yaoyy.moe/images/logo.svg"></svg></div> -->
-    <strong>REvoDesign: Create a new task of PSSM_GREMLIN</strong>
-</div>
-<nav>
-    <ul class="flex space-x-4">
-    <li><a href="/PSSM_GREMLIN/dashboard" class="hover:text-blue-500">Dashboard</a></li>
-    <li><a href="#" class="hover:text-blue-500">Document</a></li>
-    <li><a href="https://github.com/YaoYinYing/REvoDesign" class="hover:text-blue-500">GitHub</a></li>
-    </ul>
-</nav>
-</header>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eef2ed;
+    --paper: #f8faf7;
+    --ink: #1d2a2f;
+    --muted: #5d6c72;
+    --line: #d4ddd8;
+    --accent: #0f4f63;
+    --accent-2: #0d6e66;
+    --warn: #b06c14;
+  }
 
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: "IBM Plex Sans", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 8% 6%, rgba(15, 79, 99, 0.12), transparent 28%),
+      radial-gradient(circle at 88% 14%, rgba(176, 108, 20, 0.12), transparent 24%),
+      radial-gradient(circle at 18% 85%, rgba(13, 110, 102, 0.12), transparent 24%),
+      linear-gradient(170deg, #f2f5f1 0%, #e8eee9 50%, #e1e9e3 100%);
+    min-height: 100vh;
+    line-height: 1.45;
+  }
+
+  .page {
+    width: min(980px, calc(100% - 2rem));
+    margin: 1.2rem auto 2.4rem;
+  }
+
+  .panel {
+    background: color-mix(in srgb, var(--paper) 92%, white 8%);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 12px 28px rgba(29, 42, 47, 0.08);
+    backdrop-filter: blur(5px);
+  }
+
+  .hero {
+    padding: 1.2rem;
+    animation: fadeRise 420ms ease-out;
+  }
+
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: start;
+    flex-wrap: wrap;
+  }
+
+  .headline {
+    margin: 0;
+    font-family: "Source Serif 4", serif;
+    font-size: clamp(1.4rem, 2.4vw, 2rem);
+    letter-spacing: 0.01em;
+  }
+
+  .subline {
+    margin: 0.4rem 0 0;
+    color: var(--muted);
+    font-size: 0.96rem;
+  }
+
+  .hero-actions {
+    display: inline-flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.48rem 0.95rem;
+    font-weight: 600;
+    font-size: 0.87rem;
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.32rem;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #f6fbff;
+    box-shadow: 0 10px 18px rgba(15, 79, 99, 0.25);
+  }
+
+  .btn-primary:hover {
+    background: #0c4657;
+  }
+
+  .btn-soft {
+    border-color: var(--line);
+    background: #ffffff;
+    color: var(--ink);
+  }
+
+  .card {
+    margin-top: 1rem;
+    padding: 1rem;
+    animation: fadeRise 540ms ease-out;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 0.9rem;
+  }
+
+  .input-zone {
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: #fbfdfb;
+    padding: 0.9rem;
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .field-label {
+    margin: 0;
+    font-size: 0.79rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .file-input {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--ink);
+    padding: 0.58rem;
+    font-size: 0.9rem;
+  }
+
+  .file-input:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--accent) 58%, white 42%);
+    box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
+  }
+
+  .muted {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.84rem;
+  }
+
+  .status {
+    border-radius: 12px;
+    border: 1px solid #d7e2dc;
+    background: #f4f8f5;
+    min-height: 3rem;
+    padding: 0.62rem 0.72rem;
+    font-size: 0.86rem;
+    color: #2f3f46;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .status.busy {
+    background: #e8f3fa;
+    border-color: #b8d6e7;
+    color: #17465f;
+  }
+
+  .status.ok {
+    background: #e8f5eb;
+    border-color: #bedfc6;
+    color: #1a582c;
+  }
+
+  .status.error {
+    background: #fceceb;
+    border-color: #edc0ba;
+    color: #7c2319;
+  }
+
+  .info-panel {
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, #ffffff 0%, #f3f8f5 100%);
+    padding: 0.85rem;
+  }
+
+  .info-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .info-list {
+    margin: 0.55rem 0 0;
+    padding-left: 1.05rem;
+    display: grid;
+    gap: 0.35rem;
+    color: #304048;
+    font-size: 0.84rem;
+  }
+
+  @keyframes fadeRise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 820px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+
+    .page {
+      width: calc(100% - 1rem);
+      margin-top: 0.8rem;
+    }
+
+    .hero,
+    .card {
+      border-radius: 14px;
+    }
+  }
+</style>
+</head>
 <body>
-    <style>
-        /* Additional CSS if needed */
-        .grid-cell {
-            width: 100px;
-            height: 100px;
-        }
-        .task:hover .task-details {
-            display: block;
-        }
-        .task-details {
-            display: none;
-        }
-        .d-flex {
-        display: flex;
-        justify-content: space-between; /* Adjusts spacing between items */
-        }
-        body {
-        font-family: Arial, sans-serif;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        background-color: #f4f4f4;
+  <main class="page">
+    <section class="panel hero">
+      <div class="hero-top">
+        <div>
+          <h1 class="headline">Create PSSM GREMLIN Task</h1>
+          <p class="subline">Upload a FASTA file and queue a secured compute job for downstream GREMLIN and PSSM analysis.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="btn btn-soft" href="/PSSM_GREMLIN/dashboard">Dashboard</a>
+          <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel card">
+      <div class="grid">
+        <div class="input-zone">
+          <p class="field-label">FASTA Upload</p>
+          <form id="uploadForm" enctype="multipart/form-data">
+            <input class="file-input" type="file" name="file" id="fileInput" accept=".fasta" required>
+            <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button class="btn btn-primary" id="uploadButton" type="submit">Submit Task</button>
+              <button class="btn btn-soft" type="button" id="clearButton">Clear</button>
+            </div>
+          </form>
+          <p class="muted">Only text FASTA files with a <code>.fasta</code> extension are accepted.</p>
+          <div id="uploadStatus" class="status" aria-live="polite">Ready for upload.</div>
+        </div>
+
+        <aside class="info-panel">
+          <p class="info-title">Submission Checklist</p>
+          <ul class="info-list">
+            <li>Single-sequence FASTA is recommended for stable queueing.</li>
+            <li>Upload identity is tracked from HTTP basic auth for data isolation.</li>
+            <li>Progress can be followed on the dashboard with live states.</li>
+            <li>Completed runs are packed to zip before entering <code>finished</code>.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+<script>
+  const form = document.getElementById("uploadForm");
+  const fileInput = document.getElementById("fileInput");
+  const statusDiv = document.getElementById("uploadStatus");
+  const clearButton = document.getElementById("clearButton");
+  const uploadButton = document.getElementById("uploadButton");
+
+  function setStatus(message, kind = "") {
+    statusDiv.className = "status" + (kind ? ` ${kind}` : "");
+    statusDiv.textContent = message;
+  }
+
+  clearButton.addEventListener("click", () => {
+    fileInput.value = "";
+    setStatus("Ready for upload.");
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+      setStatus("Please select a FASTA file before submitting.", "error");
+      return;
     }
 
-    .upload-container {
-        background-color: white;
-        padding: 20px;
-        border-radius: 5px;
-        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    const file = fileInput.files[0];
+    if (!file.name.toLowerCase().endsWith(".fasta")) {
+      setStatus("Only .fasta files are accepted.", "error");
+      return;
     }
 
-    #uploadForm {
-        margin-bottom: 15px;
+    const formData = new FormData();
+    formData.append("file", file);
+
+    uploadButton.disabled = true;
+    clearButton.disabled = true;
+    setStatus("Uploading and queueing task...", "busy");
+
+    try {
+      const response = await fetch("/PSSM_GREMLIN/api/post", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok || response.status === 202) {
+        setStatus("Task submitted. Redirecting to dashboard...", "ok");
+        window.location.assign("/PSSM_GREMLIN/dashboard");
+        return;
+      }
+
+      const isJson = (response.headers.get("Content-Type") || "").includes("application/json");
+      const payload = isJson ? await response.json() : null;
+      const message = payload?.error || payload?.message || `Upload failed (HTTP ${response.status})`;
+      setStatus(message, "error");
+    } catch (error) {
+      setStatus(`Network error: ${error.message}`, "error");
+    } finally {
+      uploadButton.disabled = false;
+      clearButton.disabled = false;
     }
-
-    #fileInput {
-        margin-bottom: 10px;
-    }
-
-    #uploadButton {
-        cursor: pointer;
-        background-color: #4CAF50;
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        font-size: 16px;
-    }
-
-    #uploadButton:hover {
-        background-color: #45a049;
-    }
-
-    #uploadStatus {
-        margin-top: 15px;
-    }
-
-    </style>
-
-    <div class="upload-container">
-        <h2>Upload a File</h2>
-        <form id="uploadForm" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" id="fileInput">
-            <button type="submit" id="uploadButton">Upload</button>
-        </form>
-        <div id="uploadStatus"></div>
-    </div>
-    <script>
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        var statusDiv = document.getElementById('uploadStatus');
-        var formData = new FormData();
-        var fileInput = document.getElementById('fileInput');
-        
-        if (fileInput.files.length === 0) {
-            statusDiv.innerHTML = 'Please select a file to upload.';
-            return;
-        }
-
-        formData.append('file', fileInput.files[0]);
-        statusDiv.innerHTML = 'Uploading...';
-
-        fetch('/PSSM_GREMLIN/api/post', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.text())  // assuming the server response is text
-        .then(data => {
-            // Update the inner HTML of the statusDiv with the server response
-            statusDiv.innerHTML = data;
-        })
-        .catch(error => {
-            // Handle any errors here and update the statusDiv
-            statusDiv.innerHTML = 'An error occurred: ' + error.message;
-        });
-    });
-
-    </script>
+  });
+</script>
 </body>
 </html>

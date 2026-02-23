@@ -13,6 +13,7 @@ x-common-env: &common-env
   RUNNER_GID: ${RUNNER_GID:-1000}
   USERS_FILE: ${USERS_FILE}
   LOG_DIR: ${LOG_DIR}
+  PUBLIC_DASHBOARD: ${PUBLIC_DASHBOARD:-false}
 
 x-docker-socket-access: &docker-socket-access
   group_add:

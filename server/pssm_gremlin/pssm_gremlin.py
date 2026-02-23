@@ -177,6 +177,21 @@ def _env_int(var_name: str, default: int) -> int:
         raise ValueError(f"Environment variable {var_name} must be an integer, got {raw!r}") from exc
 
 
+def _env_bool(var_name: str, default: bool) -> bool:
+    raw = os.environ.get(var_name)
+    if raw is None or raw == "":
+        return default
+    value = raw.strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(
+        f"Environment variable {var_name} must be a boolean value "
+        "(one of: true/false/1/0/yes/no/on/off)."
+    )
+
+
 def _format_runner_identity(user_value: str, group_value: str) -> str:
     user = user_value.strip()
     group = group_value.strip()
@@ -234,6 +249,7 @@ class GremlinConfig:
     uniref90_db: str
     nproc: int
     port: int
+    public_dashboard: bool
 
     @classmethod
     def from_env(cls) -> "GremlinConfig":
@@ -254,6 +270,7 @@ class GremlinConfig:
             uniref90_db=_env_path("DB_UNIREF90", "/mnt/db/uniref90/uniref90"),
             nproc=_env_int("NPROC", 16),
             port=_env_int("PORT", 8080),
+            public_dashboard=_env_bool("PUBLIC_DASHBOARD", False),
         )
 
 
@@ -384,9 +401,8 @@ def _local_user_identity() -> str:
 
 
 def _task_zip_path(task: Any) -> str:
-    filename = task if isinstance(task, str) else task["filename"]
-    base = os.path.splitext(filename)[0]
-    return os.path.join(app.config["RESULTS_FOLDER"], f"{base}_PSSM_GREMLIN_results.zip")
+    task_id = task if isinstance(task, str) else task["md5sum"]
+    return os.path.join(app.config["RESULTS_FOLDER"], f"{task_id}_PSSM_GREMLIN_results.zip")
 
 
 try:
@@ -401,6 +417,34 @@ def verify_password(username, password):
     if username in users and check_password_hash(users.get(username), password):
         return username
     return None
+
+
+def _task_access_allowed(task: dict[str, Any]) -> bool:
+    if CONFIG.public_dashboard:
+        return True
+    current_user = auth.current_user() or ""
+    return bool(current_user) and task.get("username") == current_user
+
+
+def _task_access_denied(md5sum: str):
+    return (
+        jsonify(
+            {
+                "status": "forbidden",
+                "md5sum": md5sum,
+                "message": "Task does not belong to the authenticated user",
+            }
+        ),
+        403,
+    )
+
+
+def _task_id_for_upload(content_md5: str, username: str | None) -> str:
+    if CONFIG.public_dashboard:
+        return content_md5
+    owner = username or "anonymous"
+    scoped_key = f"{owner}:{content_md5}"
+    return hashlib.md5(scoped_key.encode("utf-8")).hexdigest()
 
 
 def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mount, str]:
@@ -636,9 +680,13 @@ def upload_file():
     with open(upload_path, "rb") as f:
         for chunk in iter(lambda: f.read(65536), b""):
             hasher.update(chunk)
-    md5sum = hasher.hexdigest()
+    content_md5 = hasher.hexdigest()
+    metadata = _request_metadata()
+    md5sum = _task_id_for_upload(content_md5, metadata["username"])
 
     existing_task = task_store.get_task(md5sum)
+    if existing_task and not _task_access_allowed(existing_task):
+        return _task_access_denied(md5sum)
     if existing_task and existing_task["status"] == "finished":
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
 
@@ -652,11 +700,10 @@ def upload_file():
     result_fasta_path = os.path.join(result_dir, safe_filename)
     shutil.copy(upload_path, result_fasta_path)
 
-    zip_path = _task_zip_path(safe_filename)
+    zip_path = _task_zip_path(md5sum)
     if os.path.exists(zip_path):
         os.remove(zip_path)
 
-    metadata = _request_metadata()
     is_binary = _is_binary_file(upload_path)
     now = time.time()
     base_record = {
@@ -704,6 +751,8 @@ def run_gremlin(md5sum):
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
+    if not _task_access_allowed(task):
+        return _task_access_denied(md5sum)
 
     status = task["status"]
     if status == "finished":
@@ -734,6 +783,8 @@ def get_results(md5sum):
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
+    if not _task_access_allowed(task):
+        return _task_access_denied(md5sum)
 
     if task["status"] != "finished":
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
@@ -747,6 +798,8 @@ def download_results(md5sum):
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
+    if not _task_access_allowed(task):
+        return _task_access_denied(md5sum)
 
     if task["status"] != "finished":
         return (
@@ -786,6 +839,8 @@ def cancel_task(md5sum):
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"error": "Task not found"}), 404
+    if not _task_access_allowed(task):
+        return _task_access_denied(md5sum)
 
     if task["status"] not in {"pending", "running"}:
         return (
@@ -817,8 +872,15 @@ def cancel_task(md5sum):
 @app.route("/PSSM_GREMLIN/dashboard", methods=["GET"])
 @auth.login_required
 def task_dashboard():
+    current_user = auth.current_user() or ""
+    all_tasks = task_store.list_tasks()
+    if CONFIG.public_dashboard:
+        visible_tasks = all_tasks
+    else:
+        visible_tasks = [task for task in all_tasks if task.get("username") == current_user]
+
     task_statuses = []
-    for i, task in enumerate(task_store.list_tasks()):
+    for i, task in enumerate(visible_tasks):
         submitted_time = task.get("uploaded_at")
         finished_time = task.get("finished_at")
         walltime = task.get("walltime")
