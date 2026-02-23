@@ -341,7 +341,7 @@ def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mou
         mounted_path = os.path.join(target_path, os.path.basename(path))
     if not os.path.exists(source_path):
         os.makedirs(source_path)
-    logging.info("Mounting %s -> %s", source_path, target_path)
+    logging.info(f"Mounting {source_path} -> {target_path}" )
     mount = types.Mount(
         target=str(target_path),
         source=str(source_path),
@@ -367,15 +367,18 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
     mounts.append(mount_output)
     command_args.append(f"-o {mounted_output}")
 
+    # sequence databases use prefixes instead of real file path
+    # file prefix should be excluded before mounting the dir
     uniref30_db = os.path.abspath(CONFIG.uniref30_db)
-    mount_uniref30_db, mounted_uniref30_db = _create_mount(mount_name="uniref30_db", path=uniref30_db, read_only=True)
+    mount_uniref30_db, mounted_uniref30_db = _create_mount(mount_name="uniref30_db", path=os.path.dirname(uniref30_db), read_only=True)
     mounts.append(mount_uniref30_db)
-    command_args.append(f"-U {mounted_uniref30_db}")
+    command_args.append(f"-U {os.path.join(mounted_uniref30_db, os.path.basename(uniref30_db))}")
 
     uniref90_db = os.path.abspath(CONFIG.uniref90_db)
-    mount_uniref90_db, mounted_uniref90_db = _create_mount(mount_name="uniref90_db", path=uniref90_db, read_only=True)
+    
+    mount_uniref90_db, mounted_uniref90_db = _create_mount(mount_name="uniref90_db", path=os.path.dirname(uniref90_db), read_only=True)
     mounts.append(mount_uniref90_db)
-    command_args.append(f"-u {mounted_uniref90_db}")
+    command_args.append(f"-u {os.path.join(mounted_uniref90_db, os.path.basename(uniref90_db))}")
 
     command_args.append(f"-j {CONFIG.nproc}")
 
