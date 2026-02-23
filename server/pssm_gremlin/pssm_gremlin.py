@@ -594,6 +594,23 @@ def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mou
     return mount, str(mounted_path)
 
 
+def _runner_thread_env(nproc: int) -> dict[str, str]:
+    limited_nproc = max(1, int(nproc))
+    value = str(limited_nproc)
+    return {
+        "GREMLIN_CALC_CPU_NUM": value,
+        "OMP_NUM_THREADS": value,
+        "OPENBLAS_NUM_THREADS": value,
+        "MKL_NUM_THREADS": value,
+        "VECLIB_MAXIMUM_THREADS": value,
+        "NUMEXPR_NUM_THREADS": value,
+        "TF_NUM_INTRAOP_THREADS": value,
+        "TF_NUM_INTEROP_THREADS": value,
+        "OMP_DYNAMIC": "FALSE",
+        "MKL_DYNAMIC": "FALSE",
+    }
+
+
 def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
     mounts = []
     command_args = []
@@ -636,6 +653,7 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
         detach=True,
         mounts=mounts,
         user=CONFIG.docker_user,
+        environment=_runner_thread_env(CONFIG.nproc),
         stdout=True,
         stderr=True,
     )

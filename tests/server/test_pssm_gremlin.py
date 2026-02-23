@@ -191,6 +191,69 @@ def test_run_gremlin_task_handles_docker_daemon_error(monkeypatch, tmp_path):
     assert "Permission denied" in task["error"]
 
 
+def test_run_pssm_gremlin_in_docker_limits_thread_env(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "NPROC": "4",
+        },
+    )
+    input_fasta = tmp_path / "input.fasta"
+    input_fasta.write_text(">test\nACDE\n", encoding="utf-8")
+    output_dir = tmp_path / "result"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    captured_kwargs: dict[str, object] = {}
+
+    class _DummyContainer:
+        def logs(self, stream=False):
+            del stream
+            return []
+
+        def wait(self):
+            return {"StatusCode": 0}
+
+        def remove(self, force=False):
+            del force
+            return None
+
+    class _DummyContainers:
+        def run(self, **kwargs):
+            captured_kwargs.update(kwargs)
+            return _DummyContainer()
+
+    class _DummyDockerClient:
+        containers = _DummyContainers()
+
+    monkeypatch.setattr(module.docker, "from_env", lambda: _DummyDockerClient())
+    monkeypatch.setattr(module.signal, "signal", lambda *_args, **_kwargs: None)
+
+    module.run_pssm_gremlin_in_docker(
+        fasta_path=str(input_fasta),
+        output_dir=str(output_dir),
+    )
+
+    environment = captured_kwargs["environment"]
+    assert isinstance(environment, dict)
+    expected_values = {
+        "GREMLIN_CALC_CPU_NUM": "4",
+        "OMP_NUM_THREADS": "4",
+        "OPENBLAS_NUM_THREADS": "4",
+        "MKL_NUM_THREADS": "4",
+        "VECLIB_MAXIMUM_THREADS": "4",
+        "NUMEXPR_NUM_THREADS": "4",
+        "TF_NUM_INTRAOP_THREADS": "4",
+        "TF_NUM_INTEROP_THREADS": "4",
+        "OMP_DYNAMIC": "FALSE",
+        "MKL_DYNAMIC": "FALSE",
+    }
+    for key, value in expected_values.items():
+        assert environment.get(key) == value
+
+
 def test_run_gremlin_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,

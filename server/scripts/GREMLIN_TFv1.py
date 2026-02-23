@@ -36,7 +36,7 @@ gremlin_iter = int(sys.argv[3])
 # for HPC multi-processors in single node
 # edited by Yinying Yao
 
-cpu_num = int(os.environ.get("GREMLIN_CALC_CPU_NUM", 1))
+cpu_num = max(1, int(os.environ.get("GREMLIN_CALC_CPU_NUM", 1)))
 
 config = tf.ConfigProto(
     device_count={"CPU": cpu_num},

@@ -93,6 +93,15 @@ echo Using $nproc processors.
 
 # GREMLIN calc
 export GREMLIN_CALC_CPU_NUM=$nproc
+export OMP_NUM_THREADS=$nproc
+export OPENBLAS_NUM_THREADS=$nproc
+export MKL_NUM_THREADS=$nproc
+export VECLIB_MAXIMUM_THREADS=$nproc
+export NUMEXPR_NUM_THREADS=$nproc
+export TF_NUM_INTRAOP_THREADS=$nproc
+export TF_NUM_INTEROP_THREADS=$nproc
+export OMP_DYNAMIC=FALSE
+export MKL_DYNAMIC=FALSE
 
 
 fasta_fp=$(readlink -f $fasta)
