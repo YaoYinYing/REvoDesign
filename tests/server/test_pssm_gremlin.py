@@ -205,6 +205,23 @@ def _current_docker_user() -> str:
         return "0:0"
 
 
+def _docker_group_ids_for_socket() -> list[str]:
+    gids = {"0"}
+    socket_candidates: list[str] = []
+    docker_host = os.environ.get("DOCKER_HOST", "")
+    if docker_host.startswith("unix://"):
+        socket_candidates.append(docker_host[len("unix://") :])
+    socket_candidates.append("/var/run/docker.sock")
+    for candidate in socket_candidates:
+        if not candidate:
+            continue
+        try:
+            gids.add(str(os.stat(candidate).st_gid))
+        except OSError:
+            continue
+    return sorted(gids)
+
+
 def _require_path(path: Path, description: str) -> None:
     if not path.exists():
         pytest.skip(f"{description} not found at {path}. Rebuild the mock databases via tests/data/msa/README.md")
@@ -331,6 +348,7 @@ class DockerServerStack:
         self.worker_name = f"{self.network}-worker"
         self.web_name = f"{self.network}-web"
         self.port = _find_free_port()
+        self.docker_group_ids = _docker_group_ids_for_socket()
         self.state_dir = self.workdir / "server_state"
         if self.state_dir.exists():
             shutil.rmtree(self.state_dir, ignore_errors=True)
@@ -392,6 +410,12 @@ class DockerServerStack:
             args.extend(["-e", f"{key}={value}"])
         return args
 
+    def _docker_group_args(self) -> list[str]:
+        args: list[str] = []
+        for gid in self.docker_group_ids:
+            args.extend(["--group-add", gid])
+        return args
+
     def _start_redis(self):
         cmd = [
             "docker",
@@ -429,6 +453,7 @@ class DockerServerStack:
             self.worker_name,
             "--network",
             self.network,
+            *self._docker_group_args(),
             *_volume_args(self.volumes),
             *self._env_args(),
             self.server_image_tag,
@@ -455,6 +480,7 @@ class DockerServerStack:
             self.network,
             "-p",
             f"{self.port}:{self.port}",
+            *self._docker_group_args(),
             *_volume_args(self.volumes),
             *self._env_args(),
             self.server_image_tag,

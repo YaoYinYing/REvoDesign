@@ -17,6 +17,7 @@ x-common-env: &common-env
 x-docker-socket-access: &docker-socket-access
   group_add:
     - "${DOCKER_GID:-998}"
+    - "0"
 
 services:
   redis:
