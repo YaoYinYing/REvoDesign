@@ -50,9 +50,6 @@ class TaskDatabase:
         "finished",
         "failed",
         "cancelled",
-        # Backward-compat states from older releases.
-        "processing",
-        "success",
     }
 
     def __init__(self, path: str):
@@ -532,7 +529,7 @@ def run_gremlin_task(md5sum):
         logging.error("Task %s missing from database", md5sum)
         return
 
-    if task["status"] not in {"pending", "running", "processing", "packing results"}:
+    if task["status"] not in {"pending", "running", "packing results"}:
         return
 
     output_dir = task["result_dir"]
@@ -642,10 +639,10 @@ def upload_file():
     md5sum = hasher.hexdigest()
 
     existing_task = task_store.get_task(md5sum)
-    if existing_task and existing_task["status"] in {"finished", "success"}:
+    if existing_task and existing_task["status"] == "finished":
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
 
-    if existing_task and existing_task["status"] in {"pending", "running", "processing", "packing results"}:
+    if existing_task and existing_task["status"] in {"pending", "running", "packing results"}:
         return jsonify({"status": "Task already queued or running", "md5sum": md5sum}), 202
 
     result_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
@@ -709,14 +706,14 @@ def run_gremlin(md5sum):
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
 
     status = task["status"]
-    if status in {"finished", "success"}:
+    if status == "finished":
         return jsonify({"status": "finished", "md5sum": md5sum}), 200
     if status == "failed":
         return (
             jsonify({"status": "failed", "md5sum": md5sum, "error": task.get("error")}),
             404,
         )
-    if status in {"running", "processing"}:
+    if status == "running":
         return jsonify({"status": "running", "md5sum": md5sum}), 202
     if status == "pending":
         return jsonify({"status": "pending", "md5sum": md5sum}), 202
@@ -738,7 +735,7 @@ def get_results(md5sum):
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
 
-    if task["status"] not in {"finished", "success"}:
+    if task["status"] != "finished":
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
 
     return redirect(f"/PSSM_GREMLIN/api/download/{md5sum}", code=302)
@@ -751,7 +748,7 @@ def download_results(md5sum):
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
 
-    if task["status"] not in {"finished", "success"}:
+    if task["status"] != "finished":
         return (
             jsonify(
                 {
@@ -790,7 +787,7 @@ def cancel_task(md5sum):
     if not task:
         return jsonify({"error": "Task not found"}), 404
 
-    if task["status"] not in {"pending", "running", "processing"}:
+    if task["status"] not in {"pending", "running"}:
         return (
             jsonify({"error": "Task cannot be cancelled as it is not pending or running"}),
             400,
@@ -838,11 +835,7 @@ def task_dashboard():
             {
                 "id": i,
                 "md5": task["md5sum"],
-                "status": (
-                    "finished"
-                    if task["status"] == "success"
-                    else "running" if task["status"] == "processing" else task["status"]
-                ),
+                "status": task["status"],
                 "fasta_fn": task["filename"],
                 "submitted_time": format_times(submitted_time),
                 "finished_time": format_times(finished_time) if finished_time else "-",
