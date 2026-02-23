@@ -5,15 +5,47 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${SERVER_DIR}/docker-compose.yml"
-ENV_FILE="${SERVER_DIR}/.env"
 ENV_EXAMPLE_FILE="${SERVER_DIR}/.env.example"
+PRIMARY_ENV_FILE="${SERVER_DIR}/.env.production"
+FALLBACK_ENV_FILE="${SERVER_DIR}/.env"
+CALLER_DIR="$(pwd)"
+
+resolve_env_file() {
+  if [[ -n "${REVODESIGN_SERVER_ENV:-}" ]]; then
+    if [[ "${REVODESIGN_SERVER_ENV}" = /* ]]; then
+      printf '%s\n' "${REVODESIGN_SERVER_ENV}"
+    else
+      printf '%s/%s\n' "${CALLER_DIR}" "${REVODESIGN_SERVER_ENV}"
+    fi
+    return 0
+  fi
+
+  if [[ -f "${PRIMARY_ENV_FILE}" ]]; then
+    printf '%s\n' "${PRIMARY_ENV_FILE}"
+    return 0
+  fi
+  if [[ -f "${FALLBACK_ENV_FILE}" ]]; then
+    printf '%s\n' "${FALLBACK_ENV_FILE}"
+    return 0
+  fi
+
+  # For `setup`, default to creating .env.production when neither file exists.
+  printf '%s\n' "${PRIMARY_ENV_FILE}"
+}
+
+ENV_FILE="$(resolve_env_file)"
 
 usage() {
   cat <<'USAGE'
 Usage: bash server/run/restart_pssm_flask.sh [setup|build|up|down|restart]
 
+Environment:
+  REVODESIGN_SERVER_ENV
+          Optional path to env file (absolute or relative to current working directory).
+          Default behavior: use server/.env.production when present, otherwise server/.env.
+
 Subcommands:
-  setup    Prepare server/.env defaults (create from .env.example if missing) and auto-detect DOCKER_GID.
+  setup    Prepare the selected env file (create from .env.example if missing) and auto-detect DOCKER_GID.
   build    Build runner image and web/worker images.
   up       Start redis/web/worker with docker compose.
   down     Stop and remove the compose stack.
@@ -23,7 +55,7 @@ USAGE
 
 require_env_file() {
   if [[ ! -f "${ENV_FILE}" ]]; then
-    echo "Expected ${ENV_FILE} to exist. Run: bash server/run/restart_pssm_flask.sh setup" >&2
+    echo "Expected ${ENV_FILE} to exist. Run: REVODESIGN_SERVER_ENV=${ENV_FILE} bash server/run/restart_pssm_flask.sh setup" >&2
     exit 1
   fi
 }
@@ -127,7 +159,8 @@ cmd_setup() {
     echo "Unable to auto-detect Docker socket group id; set DOCKER_GID manually in ${ENV_FILE}." >&2
   fi
 
-  echo "Setup completed. Review ${ENV_FILE} before starting services."
+  echo "Setup completed. Using env file: ${ENV_FILE}"
+  echo "Review ${ENV_FILE} before starting services."
 }
 
 cmd_build() {
@@ -177,6 +210,8 @@ cmd_restart() {
 }
 
 SUBCOMMAND="${1:-restart}"
+
+echo "Using env file: ${ENV_FILE}"
 
 pushd "${SERVER_DIR}" >/dev/null
 
