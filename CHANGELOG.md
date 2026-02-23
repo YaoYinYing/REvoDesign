@@ -37,6 +37,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shared `run_worker_thread_in_pool` helper now backs Monaco bootstrap, EvoMutator, cluster runner, Qt socket client, and PyMOL plugin actions so every long-running workflow inherits the same cancellation/UI wiring.
 - `tests/tools/test_package_manager.py` gained regression coverage for the new worker helpers, subprocess execution, and gist download utilities.
 - Translation: Traditional Chinese (zh-tw)
+- Server (PSSM_GREMLIN):
+  - Task lifecycle state `packing results` between `running` and `finished`.
+  - Immediate result packing after successful runs, with zip artifacts generated before `finished`.
+  - Task deletion APIs:
+    - single-task delete for owner/admin.
+    - admin batch delete for multi-selection workflows.
+  - Dashboard UX updates for task management:
+    - delete actions, admin multiselect controls, owner labels, and status filters including `packing results`.
+  - Create-task UX updates:
+    - optional sequence editor that formats raw sequence input into FASTA with live preview.
+  - Security/audit metadata in server task records:
+    - `local user` (`username:groupname-uid:gid`).
+    - sanitized full request-header capture.
+  - Environment-driven admin controls with `ADMIN_USERS`.
+  - Server env-file isolation support via `REVODESIGN_SERVER_ENV` in restart/hot-fix scripts.
+  - Test env split: `server/.env.test` for test-only server runs.
 
 ### Changed
 - Multi-mutagenesis buttons and other UI triggers switched from the progress-bar specific helper to the shared thread-pool utility, preventing UI freezes while keeping abort buttons responsive.
@@ -45,6 +61,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - logger control of uvicorn server. can be completely silenced.
   - Server: logs now printed as debug messages.
 - Language switch: logs now printed as debug messages.
+- Server (PSSM_GREMLIN):
+  - Public/private dashboard behavior is now configurable with `PUBLIC_DASHBOARD` (`false` by default).
+  - Task visibility and API access are scoped to the authenticated upload owner when `PUBLIC_DASHBOARD=false`.
+  - Runner execution flow now enforces non-root container user/group configuration and composes docker permissions from env.
+  - Restart controls now provide explicit lifecycle subcommands:
+    - `setup`, `build`, `up`, `down`, `restart` (default).
+  - Env selection defaults updated for production-first use:
+    - prefer `server/.env.production`, fallback to `server/.env`.
+  - Server docs were rewritten as production-first Docker deployment instructions.
 
 ### Fixed
 - Abort overlays now disappear when the cursor leaves their trigger areas and cleanup runs even when PyMOL cannot service interrupts, removing stuck abort buttons.
@@ -52,8 +77,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - notify box and decide box now works under subthreads.
 - Tests:
   - `test_pm_dialog_extras_panel_expand_collapse` now waites for the dialog to fully expand before asserting.
+- Server (PSSM_GREMLIN):
+  - Docker daemon permission failure handling for non-root runtime users in server/worker execution paths.
+  - Real-server missing result artifacts by packing outputs at job completion rather than delaying zip creation until download request.
+  - UniRef90 mount/prefix mismatch that caused runner exits like `/tmp/uniref90_db.fasta not found`.
+  - Host absolute path leakage in dashboard/API error messages by masking to virtual server paths (`/srv/REvoDesign/PSSM_GREMLIN/upload/<filename>`).
+  - Cross-user data exposure/unauthorized access paths on dashboard and task APIs when private mode is enabled.
 
 ### Removed
+- Server (PSSM_GREMLIN):
+  - Backward-compatibility states from older releases.
+  - Legacy native/manual setup guidance from server deployment docs.
 
 
 
