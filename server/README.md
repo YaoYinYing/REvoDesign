@@ -150,6 +150,24 @@ REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
 ```
 
+### Troubleshooting
+
+If docker compose failed due to network issues, try this:
+
+1. add proxy settings to your `/etc/systemd/system/docker.service.d/http-proxy.conf` file
+2. reload systemd service: `sudo systemctl daemon-reload`
+3. restart docker: `sudo systemctl restart docker`
+
+A proper `http-proxy.conf` file might look like this:
+
+```text
+[Service]
+Environment="HTTP_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
+Environment="HTTPS_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
+Environment="ALL_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
+Environment="NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,localhost,127.0.0.1,10.96.0.0/12,192.168.59.0/24,192.168.49.0/24,192.168.39.0/24,192.168.67.0/24,172.17.0.0/24,192.168.0.0/16,100.87.0.0/16,192.168.75.0/24,192.168.194.0/24,192.168.67.2"
+```
+
 For local server test runs:
 
 ```bash
