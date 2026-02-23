@@ -453,6 +453,8 @@ def _is_admin_user(username: str | None = None) -> bool:
 
 
 def _task_access_allowed(task: dict[str, Any]) -> bool:
+    if _is_admin_user():
+        return True
     if CONFIG.public_dashboard:
         return True
     current_user = auth.current_user() or ""
@@ -473,8 +475,7 @@ def _task_access_denied(md5sum: str):
 
 
 def _task_id_for_upload(content_md5: str, username: str | None) -> str:
-    if CONFIG.public_dashboard:
-        return content_md5
+    # Keep task IDs owner-scoped so two users uploading the same FASTA never collide.
     owner = username or "anonymous"
     scoped_key = f"{owner}:{content_md5}"
     return hashlib.md5(scoped_key.encode("utf-8")).hexdigest()
@@ -935,7 +936,7 @@ def task_dashboard():
     current_user = auth.current_user() or ""
     is_admin = _is_admin_user(current_user)
     all_tasks = task_store.list_tasks()
-    if CONFIG.public_dashboard:
+    if is_admin or CONFIG.public_dashboard:
         visible_tasks = all_tasks
     else:
         visible_tasks = [task for task in all_tasks if task.get("username") == current_user]
@@ -1009,9 +1010,6 @@ def delete_task(md5sum):
 @app.route("/PSSM_GREMLIN/api/delete", methods=["POST"])
 @auth.login_required
 def delete_tasks_batch():
-    if not _is_admin_user():
-        return jsonify({"status": "forbidden", "message": "Batch deletion requires admin privileges"}), 403
-
     payload = request.get_json(silent=True) or {}
     md5sums = payload.get("md5sums")
     if not isinstance(md5sums, list):
@@ -1020,6 +1018,7 @@ def delete_tasks_batch():
     deleted: list[str] = []
     not_found: list[str] = []
     ignored: list[str] = []
+    forbidden: list[str] = []
     seen: set[str] = set()
 
     for raw_md5 in md5sums:
@@ -1035,6 +1034,9 @@ def delete_tasks_batch():
         if not task:
             not_found.append(md5sum)
             continue
+        if not _task_delete_allowed(task):
+            forbidden.append(md5sum)
+            continue
 
         if task["status"] in {"pending", "running", "packing results"}:
             _revoke_celery_task(task)
@@ -1049,6 +1051,7 @@ def delete_tasks_batch():
                 "deleted": deleted,
                 "not_found": not_found,
                 "ignored": ignored,
+                "forbidden": forbidden,
             }
         ),
         200,

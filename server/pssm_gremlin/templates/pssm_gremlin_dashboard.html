@@ -669,7 +669,8 @@
   function updateAdminTools() {
     const tools = document.getElementById("adminTools");
     if (!tools) return;
-    if (!isAdmin) {
+    const hasDeletableTasks = allTasks.some((task) => Boolean(task.can_delete));
+    if (!hasDeletableTasks) {
       tools.hidden = true;
       return;
     }
@@ -734,7 +735,7 @@
       card.innerHTML = `
         <header class="task-head">
           <div class="task-head-left">
-            ${isAdmin ? `
+            ${canDelete ? `
             <label class="task-select-wrap" title="Select task for batch delete">
               <input class="task-select" type="checkbox" data-action="toggle-select" data-md5="${escapeHtml(task.md5)}" ${selected ? "checked" : ""}>
             </label>
@@ -874,7 +875,6 @@
   }
 
   async function deleteSelectedTasks() {
-    if (!isAdmin) return;
     const md5sums = Array.from(state.selected);
     if (!md5sums.length) {
       showToast("No tasks selected.", "error");
@@ -914,13 +914,6 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    if (isAdmin) {
-      const tools = document.getElementById("adminTools");
-      if (tools) {
-        tools.hidden = false;
-      }
-    }
-
     updateSummary();
     renderTasks();
 
@@ -939,21 +932,21 @@
       window.location.reload();
     });
 
-    if (isAdmin) {
-      document.getElementById("selectVisibleBtn").addEventListener("click", () => {
-        getFilteredTasks().forEach((task) => state.selected.add(task.md5));
-        renderTasks();
-      });
+    document.getElementById("selectVisibleBtn").addEventListener("click", () => {
+      getFilteredTasks()
+        .filter((task) => Boolean(task.can_delete))
+        .forEach((task) => state.selected.add(task.md5));
+      renderTasks();
+    });
 
-      document.getElementById("clearSelectionBtn").addEventListener("click", () => {
-        state.selected.clear();
-        renderTasks();
-      });
+    document.getElementById("clearSelectionBtn").addEventListener("click", () => {
+      state.selected.clear();
+      renderTasks();
+    });
 
-      document.getElementById("deleteSelectedBtn").addEventListener("click", () => {
-        deleteSelectedTasks();
-      });
-    }
+    document.getElementById("deleteSelectedBtn").addEventListener("click", () => {
+      deleteSelectedTasks();
+    });
 
     document.getElementById("taskList").addEventListener("change", (event) => {
       const checkbox = event.target.closest("input[data-action='toggle-select']");

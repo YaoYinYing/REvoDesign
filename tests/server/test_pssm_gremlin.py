@@ -472,6 +472,85 @@ def test_public_dashboard_allows_cross_user_task_access(monkeypatch, tmp_path):
     assert md5sum in other_dashboard.get_data(as_text=True)
 
 
+def test_public_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "PUBLIC_DASHBOARD": "true",
+        },
+        users_text="tester:password\nother:password2\n",
+    )
+
+    class _DummyAsyncResult:
+        id = "celery-test-id"
+
+    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
+
+    client = module.app.test_client()
+    owner_header = _basic_auth_header("tester", "password")
+    other_header = _basic_auth_header("other", "password2")
+
+    owner_upload = client.post(
+        "/PSSM_GREMLIN/api/post",
+        data={"file": (io.BytesIO(b">test\nACDE\n"), "same.fasta")},
+        headers=owner_header,
+    )
+    assert owner_upload.status_code == 302
+    owner_md5 = _extract_md5(owner_upload.headers["Location"])
+
+    other_upload = client.post(
+        "/PSSM_GREMLIN/api/post",
+        data={"file": (io.BytesIO(b">test\nACDE\n"), "same.fasta")},
+        headers=other_header,
+    )
+    assert other_upload.status_code == 302
+    other_md5 = _extract_md5(other_upload.headers["Location"])
+
+    assert owner_md5 != other_md5
+
+
+def test_admin_can_manage_other_users_tasks_in_private_mode(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ADMIN_USERS": "admin",
+        },
+        users_text="tester:password\nadmin:admin_password\n",
+    )
+    client = module.app.test_client()
+    admin_header = _basic_auth_header("admin", "admin_password")
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "admin_manage_other_user"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="owner.fasta",
+        file_path=result_dir / "owner.fasta",
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+
+    running = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=admin_header)
+    assert running.status_code == 200
+    assert running.json["status"] == "finished"
+
+    results = client.get(f"/PSSM_GREMLIN/api/results/{md5sum}", headers=admin_header, follow_redirects=False)
+    assert results.status_code == 302
+
+    dashboard = client.get("/PSSM_GREMLIN/dashboard", headers=admin_header)
+    assert dashboard.status_code == 200
+    assert md5sum in dashboard.get_data(as_text=True)
+
+
 def test_private_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -633,11 +712,12 @@ def test_admin_can_batch_delete_tasks(monkeypatch, tmp_path):
     assert set(payload["deleted"]) == {md5_a, md5_b}
     assert payload["not_found"] == [missing_md5]
     assert payload["ignored"] == ["zz"]
+    assert payload["forbidden"] == []
     assert module.task_store.get_task(md5_a) is None
     assert module.task_store.get_task(md5_b) is None
 
 
-def test_non_admin_batch_delete_is_forbidden(monkeypatch, tmp_path):
+def test_non_admin_batch_delete_only_deletes_owned_tasks(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
         tmp_path,
@@ -651,13 +731,46 @@ def test_non_admin_batch_delete_is_forbidden(monkeypatch, tmp_path):
 
     client = module.app.test_client()
     user_header = _basic_auth_header("tester", "password")
+
+    own_md5 = uuid.uuid4().hex
+    other_md5 = uuid.uuid4().hex
+    own_result = tmp_path / "owned_batch_delete"
+    other_result = tmp_path / "foreign_batch_delete"
+    own_result.mkdir(parents=True, exist_ok=True)
+    other_result.mkdir(parents=True, exist_ok=True)
+    _upsert_task_for_user(
+        module,
+        own_md5,
+        filename="owned.fasta",
+        file_path=own_result / "owned.fasta",
+        result_dir=own_result,
+        username="tester",
+        status="finished",
+    )
+    _upsert_task_for_user(
+        module,
+        other_md5,
+        filename="foreign.fasta",
+        file_path=other_result / "foreign.fasta",
+        result_dir=other_result,
+        username="other",
+        status="finished",
+    )
+
     response = client.post(
         "/PSSM_GREMLIN/api/delete",
         headers=user_header,
-        json={"md5sums": [uuid.uuid4().hex]},
+        json={"md5sums": [own_md5, other_md5]},
     )
-    assert response.status_code == 403
-    assert response.json["status"] == "forbidden"
+    assert response.status_code == 200
+    payload = response.json
+    assert payload["status"] == "ok"
+    assert payload["deleted"] == [own_md5]
+    assert payload["forbidden"] == [other_md5]
+    assert payload["ignored"] == []
+    assert payload["not_found"] == []
+    assert module.task_store.get_task(own_md5) is None
+    assert module.task_store.get_task(other_md5) is not None
 
 
 def _run_command(
@@ -811,6 +924,13 @@ def _wait_for_health(container: str, timeout: float = 60.0) -> None:
         status = result.stdout.strip() if result.stdout else ""
         if status in {"healthy", "running"}:
             return
+        if status in {"exited", "dead"}:
+            logs = _run_command(["docker", "logs", "--tail", "200", container], check=False, capture_output=True)
+            raise AssertionError(
+                f"Container {container} exited while waiting for health.\n"
+                f"stdout:\n{logs.stdout}\n"
+                f"stderr:\n{logs.stderr}"
+            )
         time.sleep(2)
     raise AssertionError(f"Container {container} failed to become healthy")
 
@@ -881,8 +1001,8 @@ class DockerServerStack:
     def start(self):
         _run_command(["docker", "network", "create", self.network])
         self._start_redis()
-        self._start_worker()
         self._start_web()
+        self._start_worker()
 
     def _env_args(self) -> list[str]:
         args: list[str] = []
@@ -1021,20 +1141,49 @@ class DockerServerStack:
             _run_command(["docker", "volume", "rm", volume], check=False)
 
 
-def _wait_for_server_ready(base_url: str, auth: tuple[str, str], timeout: float = 120.0) -> None:
+def _wait_for_server_ready(
+    base_url: str, auth: tuple[str, str], timeout: float = 120.0, web_container: str | None = None
+) -> None:
     deadline = time.time() + timeout
     session = requests.Session()
     session.auth = auth
     url = f"{base_url}/PSSM_GREMLIN/create_task"
+    last_error = ""
     while time.time() < deadline:
         try:
             response = session.get(url, timeout=5)
             if response.status_code == 200:
                 return
+            if response.status_code == 401:
+                raise AssertionError("Server is reachable but returned 401 with provided test credentials.")
+            last_error = f"HTTP {response.status_code}"
         except requests.RequestException:
-            pass
+            last_error = "connection failed"
+
+        if web_container:
+            inspect = _run_command(
+                ["docker", "inspect", "--format", "{{.State.Status}}", web_container],
+                check=False,
+                capture_output=True,
+            )
+            status = inspect.stdout.strip() if inspect.stdout else ""
+            if status in {"exited", "dead"}:
+                logs = _run_command(["docker", "logs", "--tail", "200", web_container], check=False, capture_output=True)
+                raise AssertionError(
+                    f"PSSM GREMLIN web container {web_container} exited before readiness.\n"
+                    f"stdout:\n{logs.stdout}\n"
+                    f"stderr:\n{logs.stderr}"
+                )
         time.sleep(2)
-    raise AssertionError("PSSM GREMLIN server failed to start within timeout")
+    if web_container:
+        logs = _run_command(["docker", "logs", "--tail", "200", web_container], check=False, capture_output=True)
+        raise AssertionError(
+            f"PSSM GREMLIN server failed to start within timeout ({last_error}).\n"
+            f"web container: {web_container}\n"
+            f"stdout:\n{logs.stdout}\n"
+            f"stderr:\n{logs.stderr}"
+        )
+    raise AssertionError(f"PSSM GREMLIN server failed to start within timeout ({last_error})")
 
 
 def _extract_md5(location: str) -> str:
@@ -1090,7 +1239,7 @@ def test_server_image_handles_authenticated_requests(
         stack.start()
         base_url = f"http://127.0.0.1:{stack.port}"
         auth = (stack.username, stack.password)
-        _wait_for_server_ready(base_url, auth)
+        _wait_for_server_ready(base_url, auth, web_container=stack.web_name)
 
         fasta_path = MSA_ROOT / "2KL8.fasta"
         _require_path(fasta_path, "Validation FASTA file")
@@ -1143,7 +1292,7 @@ def running_gremlin_server(miniuc_databases, runner_image_tag, server_image_tag)
     stack.start()
     base_url = f"http://127.0.0.1:{stack.port}"
     auth = (stack.username, stack.password)
-    _wait_for_server_ready(base_url, auth)
+    _wait_for_server_ready(base_url, auth, web_container=stack.web_name)
     try:
         yield {"stack": stack, "base_url": base_url, "auth": auth}
     finally:
