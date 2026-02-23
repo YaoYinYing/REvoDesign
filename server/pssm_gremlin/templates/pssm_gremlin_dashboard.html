@@ -56,6 +56,7 @@
         <div>Total tasks: <span id="totalTasks">0</span></div>
         <div>In running: <span id="inRunning">0</span></div>
         <div>In queue: <span id="inQueue">0</span></div>
+        <div>Packing results: <span id="packingResults">0</span></div>
         <div>Finished: <span id="finished">0</span></div>
         <div>Cancelled: <span id="cancelled">0</span></div>
         <div>Failed: <span id="failed">0</span></div>
@@ -110,7 +111,7 @@
       if (task.status === 'finished') {
         var button_setting = `<button id="download-btn-${task.md5}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs mt-2" onclick="downloadFile('${task.md5}')"}>Download</button>`;
       }
-      else if ((task.status === 'queued' || task.status === 'running')) {
+      else if ((task.status === 'pending' || task.status === 'running')) {
         var button_setting = `<button id="cancel-btn-${task.md5}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs mt-2" onclick="cancelFile('${task.md5}')"}>Cancel</button>`;
       }
       else {
@@ -143,8 +144,9 @@
     // Update summary counts
     document.getElementById('totalTasks').textContent = tasks.length;
     // Update other summary counts as needed
-    document.getElementById('inRunning').textContent = tasks.filter(task => task.status.includes('running')).length
-    document.getElementById('inQueue').textContent = tasks.filter(task => task.status.includes('queue')).length
+    document.getElementById('inRunning').textContent = tasks.filter(task => task.status === 'running').length
+    document.getElementById('inQueue').textContent = tasks.filter(task => task.status === 'pending').length
+    document.getElementById('packingResults').textContent = tasks.filter(task => task.status === 'packing results').length
     document.getElementById('finished').textContent = tasks.filter(task => task.status === 'finished').length
     document.getElementById('cancelled').textContent = tasks.filter(task => task.status === 'cancelled').length
     document.getElementById('failed').textContent = tasks.filter(task => task.status === 'failed').length

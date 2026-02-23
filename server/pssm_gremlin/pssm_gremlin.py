@@ -8,9 +8,14 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
+import pwd
+import grp
+import re
 import shutil
 import signal
+import subprocess
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -38,7 +43,17 @@ auth = HTTPBasicAuth()
 class TaskDatabase:
     """Minimal SQLite-based task tracker for GREMLIN jobs."""
 
-    VALID_STATUSES = {"pending", "processing", "success", "failed", "cancelled"}
+    VALID_STATUSES = {
+        "pending",
+        "running",
+        "packing results",
+        "finished",
+        "failed",
+        "cancelled",
+        # Backward-compat states from older releases.
+        "processing",
+        "success",
+    }
 
     def __init__(self, path: str):
         self.path = os.path.abspath(path)
@@ -65,6 +80,8 @@ class TaskDatabase:
             Column("source_ip", String),
             Column("user_agent", String),
             Column("username", String),
+            Column("local user", String, key="local_user"),
+            Column("request_headers", Text),
             Column("error", Text),
             Column("celery_task_id", String),
         )
@@ -84,6 +101,22 @@ class TaskDatabase:
                 if "already exists" not in str(exc).lower():
                     raise
                 logging.warning("TaskDatabase metadata already present, skipping creation")
+            self._ensure_columns(conn)
+
+    @staticmethod
+    def _ensure_columns(conn) -> None:
+        existing_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(tasks);").fetchall()}
+        if "local user" not in existing_columns:
+            conn.exec_driver_sql('ALTER TABLE tasks ADD COLUMN "local user" TEXT;')
+        if "request_headers" not in existing_columns:
+            conn.exec_driver_sql("ALTER TABLE tasks ADD COLUMN request_headers TEXT;")
+
+    @staticmethod
+    def _normalize_task_row(row: dict) -> dict:
+        normalized = dict(row)
+        if "local user" in normalized and "local_user" not in normalized:
+            normalized["local_user"] = normalized["local user"]
+        return normalized
 
     def _ensure_status(self, status: str) -> None:
         if status not in self.VALID_STATUSES:
@@ -121,13 +154,13 @@ class TaskDatabase:
         stmt = select(self.tasks_table).where(self.tasks_table.c.md5sum == md5sum)
         with self.engine.connect() as conn:
             row = conn.execute(stmt).mappings().first()
-        return dict(row) if row else None
+        return self._normalize_task_row(row) if row else None
 
     def list_tasks(self) -> list[dict]:
         stmt = select(self.tasks_table).order_by(desc(self.tasks_table.c.uploaded_at))
         with self.engine.connect() as conn:
             rows = conn.execute(stmt).mappings().all()
-        return [dict(row) for row in rows]
+        return [self._normalize_task_row(row) for row in rows]
 
 
 def _env_path(var_name: str, default: str) -> str:
@@ -292,17 +325,65 @@ def _is_binary_file(path: str) -> bool:
     return False
 
 
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _sanitize_for_log(value: str, max_len: int = 4096) -> str:
+    cleaned = _CONTROL_CHARS.sub(" ", value)
+    cleaned = " ".join(cleaned.split())
+    if len(cleaned) > max_len:
+        return cleaned[: max_len - 3] + "..."
+    return cleaned
+
+
+def _sanitize_headers_for_log(raw_headers: dict[str, str]) -> str:
+    sanitized: dict[str, str] = {}
+    for key, value in raw_headers.items():
+        safe_key = _sanitize_for_log(str(key), max_len=256)
+        safe_value = _sanitize_for_log(str(value), max_len=2048)
+        if safe_key:
+            sanitized[safe_key] = safe_value
+    return json.dumps(sanitized, ensure_ascii=True, sort_keys=True)
+
+
 def _request_metadata() -> dict[str, str | None]:
     ip = (
         request.headers.get("CF-Connecting-IP")
         or request.headers.get("CF-Connecting-IPv6")
         or request.remote_addr
     )
+    headers = {str(k): str(v) for k, v in request.headers.items()}
     return {
         "ip": ip,
         "user_agent": request.headers.get("User-Agent", "unknown"),
         "username": auth.current_user() or "anonymous",
+        "headers_json": _sanitize_headers_for_log(headers),
     }
+
+
+def _local_user_identity() -> str:
+    """Return username/group and uid/gid from fresh commands."""
+    try:
+        username = subprocess.run(["id", "-un"], check=True, capture_output=True, text=True).stdout.strip()
+        groupname = subprocess.run(["id", "-gn"], check=True, capture_output=True, text=True).stdout.strip()
+        uid = subprocess.run(["id", "-u"], check=True, capture_output=True, text=True).stdout.strip()
+        gid = subprocess.run(["id", "-g"], check=True, capture_output=True, text=True).stdout.strip()
+        if username and groupname and uid and gid:
+            return _sanitize_for_log(f"{username}:{groupname}-{uid}:{gid}", max_len=256)
+    except Exception:  # pylint: disable=broad-except
+        pass
+
+    uid_num = os.getuid()
+    gid_num = os.getgid()
+    try:
+        username = pwd.getpwuid(uid_num).pw_name
+    except KeyError:
+        username = str(uid_num)
+    try:
+        groupname = grp.getgrgid(gid_num).gr_name
+    except KeyError:
+        groupname = str(gid_num)
+    return _sanitize_for_log(f"{username}:{groupname}-{uid_num}:{gid_num}", max_len=256)
 
 
 def _task_zip_path(task: Any) -> str:
@@ -359,28 +440,28 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
         fasta = os.path.abspath(fasta_path)
         mount_fasta, mounted_fasta = _create_mount(mount_name="fasta", path=fasta, read_only=True)
         mounts.append(mount_fasta)
-        command_args.append(f"-i {mounted_fasta}")
+        command_args.extend(["-i", mounted_fasta])
 
     os.makedirs(output_dir, exist_ok=True)
     output = os.path.abspath(output_dir)
     mount_output, mounted_output = _create_mount(mount_name="output", path=output, read_only=False)
     mounts.append(mount_output)
-    command_args.append(f"-o {mounted_output}")
+    command_args.extend(["-o", mounted_output])
 
     # sequence databases use prefixes instead of real file path
     # file prefix should be excluded before mounting the dir
     uniref30_db = os.path.abspath(CONFIG.uniref30_db)
     mount_uniref30_db, mounted_uniref30_db = _create_mount(mount_name="uniref30_db", path=os.path.dirname(uniref30_db), read_only=True)
     mounts.append(mount_uniref30_db)
-    command_args.append(f"-U {os.path.join(mounted_uniref30_db, os.path.basename(uniref30_db))}")
+    command_args.extend(["-U", os.path.join(mounted_uniref30_db, os.path.basename(uniref30_db))])
 
     uniref90_db = os.path.abspath(CONFIG.uniref90_db)
     
     mount_uniref90_db, mounted_uniref90_db = _create_mount(mount_name="uniref90_db", path=os.path.dirname(uniref90_db), read_only=True)
     mounts.append(mount_uniref90_db)
-    command_args.append(f"-u {os.path.join(mounted_uniref90_db, os.path.basename(uniref90_db))}")
+    command_args.extend(["-u", os.path.join(mounted_uniref90_db, os.path.basename(uniref90_db))])
 
-    command_args.append(f"-j {CONFIG.nproc}")
+    command_args.extend(["-j", str(CONFIG.nproc)])
 
     logging.info(command_args)
 
@@ -389,7 +470,7 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
     container = client.containers.run(
         image=CONFIG.docker_image,
         command=command_args,
-        remove=True,
+        remove=False,
         detach=True,
         mounts=mounts,
         user=CONFIG.docker_user,
@@ -397,13 +478,44 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None):
         stderr=True,
     )
 
-    # Add signal handler to ensure CTRL+C also stops the running container.
-    signal.signal(signal.SIGINT, lambda unused_sig, unused_frame: container.kill())
+    stderr_lines: list[str] = []
+    try:
+        # Add signal handler to ensure CTRL+C also stops the running container.
+        signal.signal(signal.SIGINT, lambda unused_sig, unused_frame: container.kill())
 
-    for line in container.logs(stream=True):
-        logging.info(line.strip().decode("utf-8"))
+        for line in container.logs(stream=True):
+            decoded = line.strip().decode("utf-8")
+            if decoded:
+                stderr_lines.append(decoded)
+                logging.info(decoded)
+
+        wait_result = container.wait()
+        status_code = wait_result.get("StatusCode", 1)
+        if status_code != 0:
+            raise docker.errors.ContainerError(
+                container=container,
+                exit_status=status_code,
+                command=command_args,
+                image=CONFIG.docker_image,
+                stderr="\n".join(stderr_lines[-200:]),
+            )
+    finally:
+        try:
+            container.remove(force=True)
+        except docker.errors.DockerException:
+            pass
 
     return
+
+
+def _pack_results_archive(task: dict) -> None:
+    zip_filename = _task_zip_path(task)
+    zip_base = os.path.splitext(zip_filename)[0]
+    if os.path.exists(zip_filename):
+        os.remove(zip_filename)
+    shutil.make_archive(zip_base, "zip", task["result_dir"])
+    if os.path.isdir(task["result_dir"]):
+        shutil.rmtree(task["result_dir"])
 
 
 def format_times(timestamp):
@@ -420,7 +532,7 @@ def run_gremlin_task(md5sum):
         logging.error("Task %s missing from database", md5sum)
         return
 
-    if task["status"] not in {"pending", "processing"}:
+    if task["status"] not in {"pending", "running", "processing", "packing results"}:
         return
 
     output_dir = task["result_dir"]
@@ -436,20 +548,29 @@ def run_gremlin_task(md5sum):
         return
 
     start_time = task.get("started_at") or time.time()
-    update_fields = {"status": "processing", "error": None}
+    update_fields = {
+        "status": "running",
+        "error": None,
+        "local_user": _local_user_identity(),
+    }
     if not task.get("started_at"):
         update_fields["started_at"] = start_time
     task_store.update_task(md5sum, **update_fields)
+    if task.get("request_headers"):
+        logging.info("Request headers for task %s: %s", md5sum, _sanitize_for_log(task["request_headers"]))
 
     try:
         run_pssm_gremlin_in_docker(
             fasta_path=uploaded_file,
             output_dir=output_dir,
         )
+        task_store.update_task(md5sum, status="packing results")
+        refreshed_task = task_store.get_task(md5sum) or task
+        _pack_results_archive(refreshed_task)
         finish_time = time.time()
         task_store.update_task(
             md5sum,
-            status="success",
+            status="finished",
             finished_at=finish_time,
             walltime=finish_time - start_time,
             error=None,
@@ -521,10 +642,10 @@ def upload_file():
     md5sum = hasher.hexdigest()
 
     existing_task = task_store.get_task(md5sum)
-    if existing_task and existing_task["status"] == "success":
+    if existing_task and existing_task["status"] in {"finished", "success"}:
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
 
-    if existing_task and existing_task["status"] in {"pending", "processing"}:
+    if existing_task and existing_task["status"] in {"pending", "running", "processing", "packing results"}:
         return jsonify({"status": "Task already queued or running", "md5sum": md5sum}), 202
 
     result_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
@@ -553,6 +674,8 @@ def upload_file():
         "source_ip": metadata["ip"],
         "user_agent": metadata["user_agent"],
         "username": metadata["username"],
+        "request_headers": metadata["headers_json"],
+        "local_user": _local_user_identity(),
         "celery_task_id": None,
     }
 
@@ -586,17 +709,19 @@ def run_gremlin(md5sum):
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
 
     status = task["status"]
-    if status == "success":
-        return jsonify({"status": "success", "md5sum": md5sum}), 200
+    if status in {"finished", "success"}:
+        return jsonify({"status": "finished", "md5sum": md5sum}), 200
     if status == "failed":
         return (
             jsonify({"status": "failed", "md5sum": md5sum, "error": task.get("error")}),
             404,
         )
-    if status == "processing":
-        return jsonify({"status": "processing", "md5sum": md5sum}), 202
+    if status in {"running", "processing"}:
+        return jsonify({"status": "running", "md5sum": md5sum}), 202
     if status == "pending":
         return jsonify({"status": "pending", "md5sum": md5sum}), 202
+    if status == "packing results":
+        return jsonify({"status": "packing results", "md5sum": md5sum}), 202
     if status == "cancelled":
         return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
 
@@ -613,12 +738,8 @@ def get_results(md5sum):
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
 
-    if task["status"] != "success":
+    if task["status"] not in {"finished", "success"}:
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
-
-    zip_filename = _task_zip_path(task)
-    if not os.path.exists(zip_filename):
-        shutil.make_archive(os.path.splitext(zip_filename)[0], "zip", task["result_dir"])
 
     return redirect(f"/PSSM_GREMLIN/api/download/{md5sum}", code=302)
 
@@ -630,7 +751,7 @@ def download_results(md5sum):
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
 
-    if task["status"] != "success":
+    if task["status"] not in {"finished", "success"}:
         return (
             jsonify(
                 {
@@ -669,7 +790,7 @@ def cancel_task(md5sum):
     if not task:
         return jsonify({"error": "Task not found"}), 404
 
-    if task["status"] not in {"pending", "processing"}:
+    if task["status"] not in {"pending", "running", "processing"}:
         return (
             jsonify({"error": "Task cannot be cancelled as it is not pending or running"}),
             400,
@@ -717,7 +838,11 @@ def task_dashboard():
             {
                 "id": i,
                 "md5": task["md5sum"],
-                "status": task["status"],
+                "status": (
+                    "finished"
+                    if task["status"] == "success"
+                    else "running" if task["status"] == "processing" else task["status"]
+                ),
                 "fasta_fn": task["filename"],
                 "submitted_time": format_times(submitted_time),
                 "finished_time": format_times(finished_time) if finished_time else "-",

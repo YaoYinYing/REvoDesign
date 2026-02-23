@@ -6,13 +6,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${SERVER_DIR}/docker-compose.yml"
 ENV_FILE="${SERVER_DIR}/.env"
+ENV_EXAMPLE_FILE="${SERVER_DIR}/.env.example"
 
-pushd "${SERVER_DIR}"
+usage() {
+  cat <<'USAGE'
+Usage: bash server/run/restart_pssm_flask.sh [setup|build|up|down|restart]
 
-if [[ ! -f "${ENV_FILE}" ]]; then
-  echo "Expected ${ENV_FILE} to exist. Copy server/.env.example and update it before restarting." >&2
-  exit 1
-fi
+Subcommands:
+  setup    Prepare server/.env defaults (create from .env.example if missing) and auto-detect DOCKER_GID.
+  build    Build runner image and web/worker images.
+  up       Start redis/web/worker with docker compose.
+  down     Stop and remove the compose stack.
+  restart  Run down + build + up. Default when no subcommand is provided.
+USAGE
+}
+
+require_env_file() {
+  if [[ ! -f "${ENV_FILE}" ]]; then
+    echo "Expected ${ENV_FILE} to exist. Run: bash server/run/restart_pssm_flask.sh setup" >&2
+    exit 1
+  fi
+}
 
 if docker compose version >/dev/null 2>&1; then
   COMPOSE_CMD=(docker compose)
@@ -82,37 +96,114 @@ detect_docker_gid() {
   return 1
 }
 
-if [[ -z "${DOCKER_GID:-}" ]]; then
-  DOCKER_GID="$(detect_docker_gid || true)"
-  if [[ -n "${DOCKER_GID}" ]]; then
-    export DOCKER_GID
-    echo "Using Docker socket group id ${DOCKER_GID}."
+set_env_var() {
+  local key="$1"
+  local value="$2"
+  if grep -Eq "^${key}=" "${ENV_FILE}"; then
+    sed -i.bak -E "s|^${key}=.*|${key}=${value}|" "${ENV_FILE}"
+    rm -f "${ENV_FILE}.bak"
   else
-    echo "Unable to auto-detect Docker socket group id; default DOCKER_GID from compose will be used." >&2
+    printf '\n%s=%s\n' "${key}" "${value}" >> "${ENV_FILE}"
   fi
-fi
+}
 
-echo "${ENV_FILE}"
-echo "Building GREMLIN runner image..."
-"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" --profile runner build runner
+cmd_setup() {
+  if [[ ! -f "${ENV_FILE}" ]]; then
+    if [[ ! -f "${ENV_EXAMPLE_FILE}" ]]; then
+      echo "Missing ${ENV_EXAMPLE_FILE}; cannot initialize ${ENV_FILE}." >&2
+      exit 1
+    fi
+    cp "${ENV_EXAMPLE_FILE}" "${ENV_FILE}"
+    echo "Created ${ENV_FILE} from ${ENV_EXAMPLE_FILE}."
+  fi
 
-echo "Building web/worker images..."
-"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" build web worker
+  if [[ -z "${DOCKER_GID:-}" ]]; then
+    DOCKER_GID="$(detect_docker_gid || true)"
+  fi
+  if [[ -n "${DOCKER_GID:-}" ]]; then
+    set_env_var "DOCKER_GID" "${DOCKER_GID}"
+    echo "Set DOCKER_GID=${DOCKER_GID} in ${ENV_FILE}."
+  else
+    echo "Unable to auto-detect Docker socket group id; set DOCKER_GID manually in ${ENV_FILE}." >&2
+  fi
 
+  echo "Setup completed. Review ${ENV_FILE} before starting services."
+}
 
-echo "Restarting services via docker compose..."
-"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d --build redis web worker
+cmd_build() {
+  require_env_file
+  if [[ -z "${DOCKER_GID:-}" ]]; then
+    DOCKER_GID="$(detect_docker_gid || true)"
+    if [[ -n "${DOCKER_GID}" ]]; then
+      export DOCKER_GID
+      echo "Using Docker socket group id ${DOCKER_GID}."
+    fi
+  fi
 
-set +u
-set -a
-source "${ENV_FILE}"
-set +a
-set -u
+  echo "Building GREMLIN runner image..."
+  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" --profile runner build runner
 
-DOMAIN="${PSSM_GREMLIN_DOMAIN:-localhost}"
-PORT="${PSSM_GREMLIN_PORT:-8080}"
+  echo "Building web/worker images..."
+  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" build web worker
+}
 
-echo "Deployment completed."
-echo "Your Flask app is now running at http://${DOMAIN}:${PORT}"
+cmd_up() {
+  require_env_file
+  echo "Starting services via docker compose..."
+  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d redis web worker
+}
 
-popd
+cmd_down() {
+  require_env_file
+  echo "Stopping services via docker compose..."
+  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" down
+}
+
+cmd_restart() {
+  cmd_down
+  cmd_build
+  cmd_up
+
+  set +u
+  set -a
+  source "${ENV_FILE}"
+  set +a
+  set -u
+
+  DOMAIN="${DOMAIN:-0.0.0.0}"
+  PORT="${PORT:-8080}"
+  echo "Deployment completed."
+  echo "Flask app is now running at http://${DOMAIN}:${PORT}"
+}
+
+SUBCOMMAND="${1:-restart}"
+
+pushd "${SERVER_DIR}" >/dev/null
+
+case "${SUBCOMMAND}" in
+  setup)
+    cmd_setup
+    ;;
+  build)
+    cmd_build
+    ;;
+  up)
+    cmd_up
+    ;;
+  down)
+    cmd_down
+    ;;
+  restart)
+    cmd_restart
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    echo "Unknown subcommand: ${SUBCOMMAND}" >&2
+    usage
+    exit 1
+    ;;
+esac
+
+popd >/dev/null

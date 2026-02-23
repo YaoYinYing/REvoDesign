@@ -19,17 +19,36 @@ The GREMLIN server stack now runs entirely inside Docker. Redis, Celery, Gunicor
    The `server/run/restart_pssm_flask.sh` helper runs these commands for you.
 3. Copy `server/.env.example` to `server/.env` and edit the values. Every absolute path listed there (server directory, SQLite DB file, databases, `users.txt`) must exist on the host. The compose file bind-mounts those directories/files into the containers under the same paths, so the application code sees the exact same values that you configure.
 4. Ensure `users.txt` contains at least one `username:password` pair and is referenced by `PSSM_GREMLIN_USERS_FILE`.
-5. Start/refresh the stack:
+5. Initialize `server/.env` and Docker socket group settings:
+   ```bash
+   bash server/run/restart_pssm_flask.sh setup
+   ```
+   `setup` creates `server/.env` from `.env.example` when missing and refreshes `DOCKER_GID` from the local Docker socket.
+6. Start/refresh the stack:
    ```bash
    bash server/run/restart_pssm_flask.sh
    ```
-   The script builds the images and runs `docker compose up -d redis web worker`.
-6. To trigger a zero-downtime Gunicorn reload after editing templates or configuration, run:
+   This defaults to `restart` (`down + build + up`) and starts `redis`, `web`, and `worker`.
+7. To trigger a zero-downtime Gunicorn reload after editing templates or configuration, run:
    ```bash
    bash server/run/hot_fix.sh
    ```
 
 Both the `web` and `worker` containers need access to `/var/run/docker.sock` in order to launch the GREMLIN runner image on demand. Keep that socket protected and only allow trusted operators to run the stack.
+
+### Server control and maintenance
+
+The restart helper accepts explicit subcommands:
+
+```bash
+bash server/run/restart_pssm_flask.sh setup
+bash server/run/restart_pssm_flask.sh build
+bash server/run/restart_pssm_flask.sh up
+bash server/run/restart_pssm_flask.sh down
+bash server/run/restart_pssm_flask.sh restart
+```
+
+`restart` is the default when no subcommand is provided.
 
 ### Environment variables
 
@@ -40,7 +59,7 @@ Key options are controlled from `server/.env`:
 | `PSSM_GREMLIN_SERVER_DIR` | Host directory where uploads, states, and results are stored. Mounted into the containers at the same path and created automatically if missing. |
 | `PSSM_GREMLIN_LOG_DIR` | Host directory that stores persistent Gunicorn and Celery logs. Bind-mounted into the containers at the same path. |
 | `PSSM_GREMLIN_DB_PATH` | Absolute path to the SQLite job-tracking database file. Create the file or its parent directory on the host; Compose bind-mounts the file so the host retains ownership and backups. |
-| `PSSM_GREMLIN_DB_UNIREF30`, `PSSM_GREMLIN_DB_UNIREF90` | Absolute paths to the sequence databases. They are mounted read-only into both containers. |
+| `PSSM_GREMLIN_DB_UNIREF30`, `PSSM_GREMLIN_DB_UNIREF90` | Absolute paths/prefixes to the sequence databases. They are mounted read-only into both containers and passed to the runner as `-U`/`-u`. |
 | `PSSM_GREMLIN_USERS_FILE` | Path to the HTTP Basic Auth credentials file. |
 | `PSSM_GREMLIN_RUNNER_UID`, `PSSM_GREMLIN_RUNNER_GID` | Required UID/GID pair for the GREMLIN runner container. Both must point to a dedicated non-root account; the server refuses to start if they are missing or set to `root` to avoid root-owned artifacts. |
 | `DOCKER_GID` | Supplementary group id injected into `web`/`worker` so they can access `/var/run/docker.sock` (for example `$(stat -Lc '%g' /var/run/docker.sock)` on Linux). |
@@ -264,7 +283,7 @@ The dashboard provides an overview of task statuses and processing times. It inc
 - Submitted At (time of submission)
 - Finished At (time of completion)
 - Wall Time (processing time)
-- Status (queued, running, finished, failed, or cancelled)
+- Status (`pending`, `running`, `packing results`, `finished`, `failed`, or `cancelled`)
 - Download Link (for completed tasks)
 
 Once a task is completed, you can download the results from this dashboard by clicking the "Download" link next to the task.
@@ -279,7 +298,16 @@ Access the dashboard to monitor tasks and download result files:
 
 ## Starting or restarting the Application
 
-To restart the Flask application completely, use
+The restart helper supports dedicated lifecycle commands:
+```shell
+bash /path/to/REvoDesign/server/run/restart_pssm_flask.sh setup
+bash /path/to/REvoDesign/server/run/restart_pssm_flask.sh build
+bash /path/to/REvoDesign/server/run/restart_pssm_flask.sh up
+bash /path/to/REvoDesign/server/run/restart_pssm_flask.sh down
+bash /path/to/REvoDesign/server/run/restart_pssm_flask.sh restart
+```
+
+If no subcommand is provided, `restart` is used:
 ```shell
 bash /path/to/REvoDesign/server/run/restart_pssm_flask.sh
 ```

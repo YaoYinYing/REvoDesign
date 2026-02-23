@@ -1,3 +1,4 @@
+import base64
 import importlib.util
 import io
 import json
@@ -178,6 +179,98 @@ def test_run_gremlin_task_handles_docker_daemon_error(monkeypatch, tmp_path):
     assert task["status"] == "failed"
     assert task["error"].startswith("docker:")
     assert "Permission denied" in task["error"]
+
+
+def test_run_gremlin_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    md5sum = _insert_pending_task(module, tmp_path / "result")
+    observed_statuses: list[str] = []
+    original_update_task = module.task_store.update_task
+
+    def _track_update(md5_value: str, **fields):
+        if "status" in fields:
+            observed_statuses.append(fields["status"])
+        return original_update_task(md5_value, **fields)
+
+    def _fake_runner(*, fasta_path, output_dir):
+        del fasta_path
+        output_path = Path(output_dir)
+        (output_path / "log").mkdir(parents=True, exist_ok=True)
+        (output_path / "log" / "task_finished").write_text("done\n", encoding="utf-8")
+        (output_path / "pssm_msa").mkdir(parents=True, exist_ok=True)
+        (output_path / "pssm_msa" / "input_ascii_mtx_file").write_text("pssm\n", encoding="utf-8")
+
+    monkeypatch.setattr(module.task_store, "update_task", _track_update)
+    monkeypatch.setattr(module, "run_pssm_gremlin_in_docker", _fake_runner)
+    monkeypatch.setattr(module, "_local_user_identity", lambda: "pytest:staff-1000:20")
+
+    module.run_gremlin_task(md5sum)
+
+    task = module.task_store.get_task(md5sum)
+    assert task is not None
+    assert task["status"] == "finished"
+    assert task["local_user"] == "pytest:staff-1000:20"
+    assert not Path(task["result_dir"]).exists()
+
+    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / "input_PSSM_GREMLIN_results.zip"
+    assert zip_path.is_file()
+    with zipfile.ZipFile(zip_path) as archive:
+        names = set(archive.namelist())
+    assert any(name.endswith("log/task_finished") for name in names)
+    assert any(name.endswith("pssm_msa/input_ascii_mtx_file") for name in names)
+
+    assert "running" in observed_statuses
+    assert "packing results" in observed_statuses
+    assert "finished" in observed_statuses
+    assert observed_statuses.index("running") < observed_statuses.index("packing results")
+    assert observed_statuses.index("packing results") < observed_statuses.index("finished")
+
+
+def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    monkeypatch.setattr(module, "_local_user_identity", lambda: "pytest:staff-1000:20")
+
+    class _DummyAsyncResult:
+        id = "celery-test-id"
+
+    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
+
+    client = module.app.test_client()
+    auth_header = base64.b64encode(b"tester:password").decode("ascii")
+    response = client.post(
+        "/PSSM_GREMLIN/api/post",
+        data={"file": (io.BytesIO(b">test\nACDE\n"), "upload.fasta")},
+        headers={
+            "Authorization": f"Basic {auth_header}",
+            "X-Test-Header": "abc\tdef",
+        },
+    )
+    assert response.status_code == 302
+    md5sum = _extract_md5(response.headers["Location"])
+    task = module.task_store.get_task(md5sum)
+    assert task is not None
+    assert task["status"] == "pending"
+    assert task["local_user"] == "pytest:staff-1000:20"
+    assert task["celery_task_id"] == "celery-test-id"
+
+    headers = json.loads(task["request_headers"])
+    assert headers["X-Test-Header"] == "abc def"
+    assert "\n" not in task["request_headers"]
+    assert "\r" not in task["request_headers"]
 
 
 def _run_command(
@@ -570,7 +663,7 @@ def _wait_for_task(base_url: str, auth: tuple[str, str], md5sum: str, timeout: f
         response = session.get(url, timeout=10)
         if response.status_code == 200:
             payload = response.json()
-            if payload["status"] == "success":
+            if payload["status"] == "finished":
                 return
             if payload["status"] == "failed":
                 raise AssertionError(f"GREMLIN task failed: {payload}")
@@ -590,7 +683,7 @@ def _wait_for_failed_task(
             payload = response.json() if response.headers.get("Content-Type", "").startswith("application/json") else {}
             if response.status_code == 404 and payload.get("status") == "failed":
                 return payload
-            if payload.get("status") == "success":
+            if payload.get("status") == "finished":
                 raise AssertionError("GREMLIN task unexpectedly succeeded")
             time.sleep(10)
     raise AssertionError("Timed out waiting for GREMLIN task to fail")
