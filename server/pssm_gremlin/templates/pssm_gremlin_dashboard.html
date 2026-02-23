@@ -337,42 +337,27 @@
 
   .status-pill.has-trace {
     cursor: help;
+    display: inline-flex;
+    align-items: center;
   }
 
-  .status-pill.has-trace::before {
-    content: "";
-    position: absolute;
-    right: 0.95rem;
-    top: calc(100% + 4px);
-    border-width: 6px;
-    border-style: solid;
-    border-color: transparent transparent #1a2c35 transparent;
-    opacity: 0;
-    transform: translateY(4px);
-    transition: opacity 150ms ease, transform 150ms ease;
-    pointer-events: none;
-    z-index: 5;
-  }
-
-  .status-pill.has-trace::after {
-    content: attr(data-trace);
+  .status-trace-popover {
     position: absolute;
     right: 0;
     top: calc(100% + 14px);
-    min-width: 260px;
-    max-width: min(76vw, 360px);
-    border-radius: 10px;
+    min-width: 280px;
+    max-width: min(80vw, 420px);
+    border-radius: 12px;
     background: #1a2c35;
     color: #f3faf8;
     border: 1px solid #33505c;
     box-shadow: 0 14px 22px rgba(19, 33, 39, 0.24);
-    padding: 0.52rem 0.64rem;
+    padding: 0.58rem 0.68rem;
     text-transform: none;
     letter-spacing: normal;
     font-size: 0.72rem;
     font-weight: 500;
     line-height: 1.42;
-    white-space: pre-line;
     opacity: 0;
     transform: translateY(4px);
     transition: opacity 150ms ease, transform 150ms ease;
@@ -380,12 +365,78 @@
     z-index: 5;
   }
 
-  .status-pill.has-trace:hover::before,
-  .status-pill.has-trace:hover::after,
-  .status-pill.has-trace:focus-visible::before,
-  .status-pill.has-trace:focus-visible::after {
+  .status-trace-popover::before {
+    content: "";
+    position: absolute;
+    right: 0.95rem;
+    bottom: 100%;
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent #1a2c35 transparent;
+  }
+
+  .status-pill.has-trace:hover .status-trace-popover,
+  .status-pill.has-trace:focus-visible .status-trace-popover {
     opacity: 1;
     transform: translateY(0);
+  }
+
+  .status-trace-list {
+    display: grid;
+    gap: 0.36rem;
+  }
+
+  .status-trace-stage {
+    display: grid;
+    grid-template-columns: 1rem 1fr;
+    column-gap: 0.5rem;
+    align-items: start;
+  }
+
+  .status-trace-track {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    min-height: 0.95rem;
+  }
+
+  .status-trace-track.has-next::after {
+    content: "";
+    position: absolute;
+    top: 0.62rem;
+    bottom: -0.48rem;
+    width: 2px;
+    background: #4c6772;
+  }
+
+  .status-trace-node {
+    width: 0.66rem;
+    height: 0.66rem;
+    margin-top: 0.05rem;
+    border-radius: 999px;
+    border: 2px solid #8f9ca2;
+    background: #77838a;
+  }
+
+  .status-trace-stage.stage-done .status-trace-node {
+    background: #29a95d;
+    border-color: #52cb83;
+  }
+
+  .status-trace-stage.stage-running .status-trace-node {
+    background: #d9a127;
+    border-color: #f2c35a;
+  }
+
+  .status-trace-stage.stage-pending .status-trace-node {
+    background: #7b858b;
+    border-color: #97a2a8;
+  }
+
+  .status-trace-text {
+    color: #e8f2f6;
+    font-size: 0.75rem;
+    line-height: 1.34;
   }
 
   .status-pending {
@@ -646,15 +697,19 @@
     border-color: #2f5166;
   }
 
-  html[data-theme="dark"] .status-pill.has-trace::before {
-    border-color: transparent transparent #17242d transparent;
-  }
-
-  html[data-theme="dark"] .status-pill.has-trace::after {
+  html[data-theme="dark"] .status-trace-popover {
     background: #17242d;
     color: #ecf5f8;
     border-color: #33505e;
     box-shadow: 0 14px 22px rgba(4, 12, 15, 0.38);
+  }
+
+  html[data-theme="dark"] .status-trace-popover::before {
+    border-color: transparent transparent #17242d transparent;
+  }
+
+  html[data-theme="dark"] .status-trace-track.has-next::after {
+    background: #5a7480;
   }
 
   html[data-theme="dark"] .status-pending {
@@ -863,10 +918,10 @@
   };
 
   const runningTraceFallback = [
-    "hhblits: searching for co-evolutionary sequences",
-    "hhfilter: filtering co-evolutionary",
-    "gremlin: calculating co-evolution signals",
-    "blast: searching for consensus profile",
+    "hhblits: searching for co-evolutionary sequences [running]",
+    "hhfilter: filtering co-evolutionary [pending]",
+    "GREMLIN: calculating co-evolution signals [pending]",
+    "PSI-Blast: searching for consensus profile [pending]",
   ].join("\n");
 
   function getStoredThemeMode() {
@@ -952,6 +1007,58 @@
       return task.running_trace;
     }
     return runningTraceFallback;
+  }
+
+  function normalizeTraceLabel(label) {
+    const raw = String(label || "").trim();
+    if (!raw) {
+      return "-";
+    }
+    if (/^gremlin\s*:/i.test(raw)) {
+      return raw.replace(/^gremlin\s*:/i, "GREMLIN:");
+    }
+    if (/^blast\s*:/i.test(raw)) {
+      return raw.replace(/^blast\s*:/i, "PSI-Blast:");
+    }
+    return raw;
+  }
+
+  function parseStatusTrace(traceText) {
+    const lines = String(traceText || "")
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const stages = lines.map((line) => {
+      const match = line.match(/^(.*?)(?:\s*\[(done|running|pending)\])?$/i);
+      const label = normalizeTraceLabel(match ? match[1] : line);
+      const marker = (match && match[2]) ? match[2].toLowerCase() : "pending";
+      return {
+        label,
+        marker: (marker === "done" || marker === "running" || marker === "pending") ? marker : "pending",
+      };
+    });
+    return stages;
+  }
+
+  function renderStatusTracePopover(traceText) {
+    const stages = parseStatusTrace(traceText);
+    if (!stages.length) {
+      return "";
+    }
+    const stageRows = stages
+      .map((stage, index) => {
+        const hasNext = index < stages.length - 1;
+        return `
+          <div class="status-trace-stage stage-${stage.marker}">
+            <span class="status-trace-track ${hasNext ? "has-next" : ""}">
+              <span class="status-trace-node" aria-hidden="true"></span>
+            </span>
+            <span class="status-trace-text">${escapeHtml(stage.label)}</span>
+          </div>
+        `;
+      })
+      .join("");
+    return `<span class="status-trace-popover" role="tooltip"><span class="status-trace-list">${stageRows}</span></span>`;
   }
 
   function showToast(message, type = "info") {
@@ -1058,9 +1165,8 @@
       const selected = state.selected.has(task.md5);
       const statusTrace = getStatusTrace(task);
       const statusTraceClass = statusTrace ? "has-trace" : "";
-      const statusTraceAttr = statusTrace
-        ? ` data-trace="${escapeHtml(statusTrace)}" title="${escapeHtml(statusTrace)}"`
-        : "";
+      const statusTraceAttr = statusTrace ? ' tabindex="0" aria-haspopup="true" aria-label="Show running stage trace"' : "";
+      const statusTracePopover = statusTrace ? renderStatusTracePopover(statusTrace) : "";
 
       card.innerHTML = `
         <header class="task-head">
@@ -1076,7 +1182,7 @@
               ${isAdmin ? `<span class="owner-chip">Owner: ${escapeHtml(task.owner || "-")}</span>` : ""}
             </div>
           </div>
-          <span class="status-pill ${meta.css} ${statusTraceClass}"${statusTraceAttr}>${escapeHtml(meta.label)}</span>
+          <span class="status-pill ${meta.css} ${statusTraceClass}"${statusTraceAttr}>${escapeHtml(meta.label)}${statusTracePopover}</span>
         </header>
 
         <div class="meta-grid">
