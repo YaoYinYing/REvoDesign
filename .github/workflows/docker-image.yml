@@ -6,6 +6,11 @@ on:
 jobs:
   build-docker-image:
     runs-on: ubuntu-latest
+    env:
+      RUNNER_UID: "1000"
+      RUNNER_GID: "1000"
+      RUNNER_USERNAME: "revodesign"
+      RUNNER_GROUP: "revodesign_appgroup"
     
     steps:
     - name: Checkout code
@@ -17,16 +22,30 @@ jobs:
         echo "DATE: ${{ env.DATE }}"
     
     - name: Build runner Docker image
-      run: docker build -f server/docker/runner/Dockerfile server -t revodesign-pssm-gremlin-non-root
+      run: |
+        docker build \
+          --build-arg RUNNER_UID="${RUNNER_UID}" \
+          --build-arg RUNNER_GID="${RUNNER_GID}" \
+          --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
+          --build-arg RUNNER_GROUP="${RUNNER_GROUP}" \
+          -f server/docker/runner/Dockerfile server \
+          -t revodesign-pssm-gremlin-non-root
 
     - name: Build server Docker image
-      run: docker build -f server/docker/server/Dockerfile server -t revodesign-pssm-gremlin-server-non-root
+      run: |
+        docker build \
+          --build-arg RUNNER_UID="${RUNNER_UID}" \
+          --build-arg RUNNER_GID="${RUNNER_GID}" \
+          --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
+          --build-arg RUNNER_GROUP="${RUNNER_GROUP}" \
+          -f server/docker/server/Dockerfile server \
+          -t revodesign-pssm-gremlin-server-non-root
 
     - name: Tag Docker image with date and latest
       run: |
         docker tag revodesign-pssm-gremlin-non-root yaoyinying/revodesign-pssm-gremlin-non-root:${{ env.DATE }}
         docker tag revodesign-pssm-gremlin-non-root yaoyinying/revodesign-pssm-gremlin-non-root:latest
-        docker tag revodesign-pssm-gremlin-server-non-root yaoyinying/revodesign-pssm-gremlin-server:${{ env.DATE }}
+        docker tag revodesign-pssm-gremlin-server-non-root yaoyinying/revodesign-pssm-gremlin-server-non-root:${{ env.DATE }}
         docker tag revodesign-pssm-gremlin-server-non-root yaoyinying/revodesign-pssm-gremlin-server-non-root:latest
 
     - name: Log in to Docker Hub

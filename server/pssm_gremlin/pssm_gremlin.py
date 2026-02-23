@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import pwd
 import grp
@@ -22,7 +23,6 @@ from datetime import datetime
 from typing import Any
 
 import docker
-from absl import app, logging
 from celery import Celery
 from celery.result import AsyncResult
 from docker import types

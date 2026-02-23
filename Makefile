@@ -48,7 +48,7 @@ help:
 	@echo "  reinstall              Reinstall after code changes"
 	@echo "  compile-ui             Compile UI to Python code"
 	@echo "  translate              Translate UI translation into binaries"
-	@echo "  prepare-test           Run pip to install pytest-related packages"
+	@echo "  prepare-test           Run pip to install pytest-related packages and server-test deps"
 	@echo "  test                   Run the UnitTest suite"
 	@echo "  all-test               Run all tests (firstly the parallel(also the fastest), secondly the serial(also the slower), finally the slowest) "
 	@echo "  fast-test              Run all fast tests (first order)"
@@ -120,7 +120,8 @@ translate:
 	stage=release bash tools/translate.sh
 
 prepare-test:
-	python -m pip install pytest pytest-cov pytest-order coverage -q --no-cache-dir  
+	python -m pip install pytest pytest-cov pytest-order coverage -q --no-cache-dir
+	python -m pip install "celery[redis]==5.3.4" docker==7.1.0 Flask==3.1.3 Flask-HTTPAuth==4.8.0 SQLAlchemy==2.0.46 -q --no-cache-dir
 
 # unit test
 test:
