@@ -472,6 +472,48 @@ def test_public_dashboard_allows_cross_user_task_access(monkeypatch, tmp_path):
     assert md5sum in other_dashboard.get_data(as_text=True)
 
 
+def test_dashboard_running_trace_reflects_log_progress(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    client = module.app.test_client()
+    auth_header = _basic_auth_header("tester", "password")
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "trace_result"
+    log_dir = result_dir / "log"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    fasta_path = result_dir / "trace.fasta"
+    fasta_path.write_text(">trace\nACDE\n", encoding="utf-8")
+
+    (log_dir / "trace_gremlin_hhblits.log").write_text("hhblits done\n", encoding="utf-8")
+    (log_dir / "trace_gremlin_hhfilter.log").write_text("hhfilter running\n", encoding="utf-8")
+
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="trace.fasta",
+        file_path=fasta_path,
+        result_dir=result_dir,
+        username="tester",
+        status="running",
+    )
+
+    response = client.get("/PSSM_GREMLIN/dashboard", headers=auth_header)
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert "hhblits: searching for co-evolutionary sequences [done]" in body
+    assert "hhfilter: filtering co-evolutionary [running]" in body
+    assert "gremlin: calculating co-evolution signals [pending]" in body
+    assert "blast: searching for consensus profile [pending]" in body
+
+
 def test_public_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,

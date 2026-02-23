@@ -18,6 +18,7 @@ import shutil
 import signal
 import subprocess
 import time
+from glob import glob
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -431,6 +432,65 @@ def _sanitize_task_error(task: dict[str, Any], error: Any) -> str | None:
     if file_path:
         message = message.replace(file_path, _virtual_upload_path(task.get("filename", "unknown.fasta")))
     return message
+
+
+_RUNNING_TRACE_STEPS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    (
+        "hhblits",
+        "hhblits: searching for co-evolutionary sequences",
+        ("*_gremlin_hhblits.log", "*_gremlin_hhblits.err"),
+    ),
+    (
+        "hhfilter",
+        "hhfilter: filtering co-evolutionary",
+        ("*_gremlin_hhfilter.log", "*_gremlin_hhfilter.err"),
+    ),
+    (
+        "gremlin",
+        "gremlin: calculating co-evolution signals",
+        ("*_gremlin_tfv1.log", "*_gremlin_tfv1.err"),
+    ),
+    (
+        "blast",
+        "blast: searching for consensus profile",
+        ("*_pssm_psiblast.log", "*_pssm_psiblast.err"),
+    ),
+)
+
+
+def _running_stage_started(log_dir: str, patterns: tuple[str, ...]) -> bool:
+    for pattern in patterns:
+        if glob(os.path.join(log_dir, pattern)):
+            return True
+    return False
+
+
+def _build_running_trace(task: dict[str, Any]) -> str:
+    if task.get("status") != "running":
+        return ""
+
+    default_lines = [label for _, label, _ in _RUNNING_TRACE_STEPS]
+    result_dir = str(task.get("result_dir") or "")
+    if not result_dir:
+        return "\n".join(default_lines)
+    log_dir = os.path.join(result_dir, "log")
+    if not os.path.isdir(log_dir):
+        return "\n".join(default_lines)
+
+    started_flags = [bool(_running_stage_started(log_dir, patterns)) for _, _, patterns in _RUNNING_TRACE_STEPS]
+    started_indices = [index for index, started in enumerate(started_flags) if started]
+    current_index = max(started_indices) if started_indices else 0
+
+    traced_lines: list[str] = []
+    for index, (_, label, _) in enumerate(_RUNNING_TRACE_STEPS):
+        if index < current_index:
+            marker = "done"
+        elif index == current_index:
+            marker = "running"
+        else:
+            marker = "pending"
+        traced_lines.append(f"{label} [{marker}]")
+    return "\n".join(traced_lines)
 
 
 try:
@@ -977,6 +1037,7 @@ def task_dashboard():
                 "sequence": fasta_seq,
                 "owner": task.get("username") or "-",
                 "can_delete": is_admin or (task.get("username") == current_user),
+                "running_trace": _build_running_trace(task),
             }
         )
 

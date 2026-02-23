@@ -293,6 +293,7 @@
   }
 
   .status-pill {
+    position: relative;
     border-radius: 999px;
     padding: 0.28rem 0.58rem;
     font-size: 0.74rem;
@@ -301,6 +302,59 @@
     letter-spacing: 0.06em;
     border: 1px solid transparent;
     white-space: nowrap;
+  }
+
+  .status-pill.has-trace {
+    cursor: help;
+  }
+
+  .status-pill.has-trace::before {
+    content: "";
+    position: absolute;
+    right: 0.95rem;
+    top: calc(100% + 4px);
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent #1a2c35 transparent;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 150ms ease, transform 150ms ease;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .status-pill.has-trace::after {
+    content: attr(data-trace);
+    position: absolute;
+    right: 0;
+    top: calc(100% + 14px);
+    min-width: 260px;
+    max-width: min(76vw, 360px);
+    border-radius: 10px;
+    background: #1a2c35;
+    color: #f3faf8;
+    border: 1px solid #33505c;
+    box-shadow: 0 14px 22px rgba(19, 33, 39, 0.24);
+    padding: 0.52rem 0.64rem;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.42;
+    white-space: pre-line;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 150ms ease, transform 150ms ease;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .status-pill.has-trace:hover::before,
+  .status-pill.has-trace:hover::after,
+  .status-pill.has-trace:focus-visible::before,
+  .status-pill.has-trace:focus-visible::after {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .status-pending {
@@ -612,6 +666,13 @@
     "cancelled": { label: "Cancelled", css: "status-cancelled", accent: "var(--cancelled)" },
   };
 
+  const runningTraceFallback = [
+    "hhblits: searching for co-evolutionary sequences",
+    "hhfilter: filtering co-evolutionary",
+    "gremlin: calculating co-evolution signals",
+    "blast: searching for consensus profile",
+  ].join("\n");
+
   function escapeHtml(input) {
     return String(input ?? "")
       .replaceAll("&", "&amp;")
@@ -627,6 +688,16 @@
       css: "status-cancelled",
       accent: "var(--cancelled)",
     };
+  }
+
+  function getStatusTrace(task) {
+    if (task.status !== "running") {
+      return "";
+    }
+    if (task.running_trace) {
+      return task.running_trace;
+    }
+    return runningTraceFallback;
   }
 
   function showToast(message, type = "info") {
@@ -731,6 +802,11 @@
       const canCancel = task.status === "pending" || task.status === "running";
       const canDelete = Boolean(task.can_delete);
       const selected = state.selected.has(task.md5);
+      const statusTrace = getStatusTrace(task);
+      const statusTraceClass = statusTrace ? "has-trace" : "";
+      const statusTraceAttr = statusTrace
+        ? ` data-trace="${escapeHtml(statusTrace)}" title="${escapeHtml(statusTrace)}"`
+        : "";
 
       card.innerHTML = `
         <header class="task-head">
@@ -746,7 +822,7 @@
               ${isAdmin ? `<span class="owner-chip">Owner: ${escapeHtml(task.owner || "-")}</span>` : ""}
             </div>
           </div>
-          <span class="status-pill ${meta.css}">${escapeHtml(meta.label)}</span>
+          <span class="status-pill ${meta.css} ${statusTraceClass}"${statusTraceAttr}>${escapeHtml(meta.label)}</span>
         </header>
 
         <div class="meta-grid">
