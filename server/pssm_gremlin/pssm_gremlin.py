@@ -79,6 +79,7 @@ class TaskDatabase:
             Column("username", String),
             Column("local user", String, key="local_user"),
             Column("request_headers", Text),
+            Column("run_stage", String),
             Column("error", Text),
             Column("celery_task_id", String),
         )
