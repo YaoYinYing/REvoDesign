@@ -3,153 +3,785 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>REvoDesign: PSSM_GREMLIN Task Submission Panel</title>
+<title>REvoDesign | PSSM_GREMLIN Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="https://revodesign.yaoyy.moe/images/logo.svg"/>
 <link rel="mask-icon" href="https://revodesign.yaoyy.moe/images/logo.svg" color="#000000"/>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* Additional CSS if needed */
-  .grid-cell {
-    width: 100px;
-    height: 100px;
+  :root {
+    --bg: #eef2ed;
+    --paper: #f8faf7;
+    --ink: #1d2a2f;
+    --muted: #5d6c72;
+    --line: #d4ddd8;
+    --accent: #0f4f63;
+    --pending: #b06c14;
+    --running: #0d5f87;
+    --packing: #0d6e66;
+    --finished: #1c6b2f;
+    --failed: #9d2d1f;
+    --cancelled: #6d747c;
   }
-  .task:hover .task-details {
-    display: block;
+
+  * {
+    box-sizing: border-box;
   }
-  .task-details {
+
+  body {
+    margin: 0;
+    font-family: "IBM Plex Sans", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 8% 6%, rgba(15, 79, 99, 0.12), transparent 28%),
+      radial-gradient(circle at 88% 14%, rgba(176, 108, 20, 0.12), transparent 24%),
+      radial-gradient(circle at 18% 85%, rgba(13, 110, 102, 0.12), transparent 24%),
+      linear-gradient(170deg, #f2f5f1 0%, #e8eee9 50%, #e1e9e3 100%);
+    min-height: 100vh;
+    line-height: 1.45;
+  }
+
+  .page {
+    width: min(1200px, calc(100% - 2rem));
+    margin: 1.2rem auto 2.4rem;
+  }
+
+  .panel {
+    background: color-mix(in srgb, var(--paper) 92%, white 8%);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 12px 28px rgba(29, 42, 47, 0.08);
+    backdrop-filter: blur(5px);
+  }
+
+  .hero {
+    padding: 1.2rem 1.2rem 1rem;
+    animation: fadeRise 420ms ease-out;
+  }
+
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: start;
+    flex-wrap: wrap;
+  }
+
+  .headline {
+    margin: 0;
+    font-family: "Source Serif 4", serif;
+    font-size: clamp(1.4rem, 2.4vw, 2rem);
+    letter-spacing: 0.01em;
+  }
+
+  .subline {
+    margin: 0.4rem 0 0;
+    color: var(--muted);
+    font-size: 0.96rem;
+  }
+
+  .hero-actions {
+    display: inline-flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.48rem 0.95rem;
+    font-weight: 600;
+    font-size: 0.87rem;
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #f6fbff;
+    box-shadow: 0 10px 18px rgba(15, 79, 99, 0.25);
+  }
+
+  .btn-primary:hover {
+    background: #0c4657;
+  }
+
+  .btn-soft {
+    border-color: var(--line);
+    background: #ffffff;
+    color: var(--ink);
+  }
+
+  .stats {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(130px, 1fr));
+    gap: 0.65rem;
+  }
+
+  .stat {
+    background: linear-gradient(180deg, #ffffff 0%, #f3f8f5 100%);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .stat-label {
+    font-size: 0.73rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .stat-value {
+    margin: 0.2rem 0 0;
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .controls {
+    margin-top: 1rem;
+    padding: 0.95rem;
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    flex-wrap: wrap;
+    animation: fadeRise 550ms ease-out;
+  }
+
+  .search-wrap {
+    flex: 1 1 280px;
+    min-width: 240px;
+    position: relative;
+  }
+
+  .search-input {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: #ffffff;
+    border-radius: 999px;
+    padding: 0.56rem 0.95rem;
+    font-size: 0.92rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .search-input:focus {
+    border-color: color-mix(in srgb, var(--accent) 58%, white 42%);
+    box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .chip {
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: #ffffff;
+    color: var(--muted);
+    padding: 0.38rem 0.7rem;
+    font-size: 0.79rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 160ms ease;
+  }
+
+  .chip:hover {
+    color: var(--ink);
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--line) 60%);
+  }
+
+  .chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #f6fbff;
+  }
+
+  .board {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .task-card {
+    --accent-stripe: var(--accent);
+    position: relative;
+    overflow: hidden;
+    padding: 1rem 1rem 0.92rem;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: #fbfdfb;
+    box-shadow: 0 10px 22px rgba(29, 42, 47, 0.06);
+    animation: fadeRise 320ms ease-out both;
+  }
+
+  .task-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--accent-stripe);
+  }
+
+  .task-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .task-title {
+    margin: 0;
+    font-size: 1.01rem;
+    font-weight: 700;
+    word-break: break-word;
+  }
+
+  .task-id {
+    margin: 0.16rem 0 0;
+    color: var(--muted);
+    font-size: 0.79rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  .status-pill {
+    border-radius: 999px;
+    padding: 0.28rem 0.58rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+
+  .status-pending {
+    color: #6b3f0d;
+    background: #fdf2e1;
+    border-color: #f4d2a2;
+  }
+
+  .status-running {
+    color: #0b3f59;
+    background: #e4f2fa;
+    border-color: #b9dced;
+  }
+
+  .status-packing {
+    color: #0a4f4a;
+    background: #e3f3ef;
+    border-color: #b8ddd3;
+  }
+
+  .status-finished {
+    color: #12481f;
+    background: #e7f6ea;
+    border-color: #b7dcbf;
+  }
+
+  .status-failed {
+    color: #6f2016;
+    background: #fde9e7;
+    border-color: #f4c1ba;
+  }
+
+  .status-cancelled {
+    color: #495259;
+    background: #eef1f3;
+    border-color: #d4dbe0;
+  }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(140px, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.85rem;
+  }
+
+  .meta-box {
+    border-radius: 12px;
+    background: #f6faf7;
+    border: 1px solid #dde5e0;
+    padding: 0.52rem 0.6rem;
+  }
+
+  .meta-label {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .meta-value {
+    margin: 0.1rem 0 0;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  details.sequence {
+    margin-top: 0.7rem;
+    border: 1px solid #dde5e0;
+    border-radius: 12px;
+    background: #f3f7f4;
+    overflow: hidden;
+  }
+
+  details.sequence summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.5rem 0.65rem;
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: #304048;
+  }
+
+  details.sequence summary::-webkit-details-marker {
     display: none;
   }
-  .d-flex {
-  display: flex;
-  justify-content: space-between; /* Adjusts spacing between items */
-}
 
-  
+  .sequence pre {
+    margin: 0;
+    border-top: 1px solid #d8e1dc;
+    padding: 0.55rem 0.65rem 0.7rem;
+    max-height: 150px;
+    overflow: auto;
+    font-size: 0.74rem;
+    line-height: 1.38;
+    color: #28353b;
+    background: #fbfdfb;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.72rem;
+    gap: 0.52rem;
+  }
+
+  .task-btn {
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 0.43rem 0.82rem;
+    font-weight: 700;
+    font-size: 0.77rem;
+    cursor: pointer;
+  }
+
+  .task-btn.download {
+    background: #0f4f63;
+    color: #f6fbff;
+  }
+
+  .task-btn.cancel {
+    background: #ffffff;
+    border-color: #d8e1dc;
+    color: #6b2f24;
+  }
+
+  .task-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .empty {
+    border: 1px dashed #c4d0c9;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.62);
+    padding: 1.6rem 1rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.93rem;
+    animation: fadeRise 420ms ease-out;
+  }
+
+  .toast-wrap {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    display: grid;
+    gap: 0.45rem;
+    z-index: 40;
+  }
+
+  .toast {
+    border-radius: 12px;
+    border: 1px solid;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.84rem;
+    box-shadow: 0 10px 18px rgba(29, 42, 47, 0.12);
+    animation: fadeRise 240ms ease-out;
+    max-width: 320px;
+  }
+
+  .toast.info {
+    background: #e8f3fa;
+    border-color: #b8d6e7;
+    color: #17465f;
+  }
+
+  .toast.error {
+    background: #fceceb;
+    border-color: #edc0ba;
+    color: #7c2319;
+  }
+
+  @keyframes fadeRise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 980px) {
+    .stats {
+      grid-template-columns: repeat(3, minmax(120px, 1fr));
+    }
+
+    .meta-grid {
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+    }
+  }
+
+  @media (max-width: 640px) {
+    .page {
+      width: calc(100% - 1rem);
+      margin-top: 0.8rem;
+    }
+
+    .hero,
+    .controls,
+    .task-card {
+      border-radius: 14px;
+    }
+
+    .stats {
+      grid-template-columns: repeat(2, minmax(110px, 1fr));
+    }
+
+    .meta-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .actions {
+      justify-content: stretch;
+    }
+
+    .task-btn {
+      flex: 1;
+    }
+  }
 </style>
 </head>
-<body class="bg-gray-50 text-gray-900 font-sans">
-<div class="container mx-auto px-4">
-  <header class="flex justify-between items-center py-4">
-    <div class="flex items-center">
-      <!-- <div class="mr-4"><svg href="https://revodesign.yaoyy.moe/images/logo.svg"></svg></div> -->
-      <strong>REvoDesign: PSSM_GREMLIN Task Submission Panel</strong>
-    </div>
-    <nav>
-      <ul class="flex space-x-4">
-        <li><a href="/PSSM_GREMLIN/create_task" class="hover:text-blue-500">Create New Task</a></li>
-        <li><a href="#" class="hover:text-blue-500">Document</a></li>
-        <li><a href="https://github.com/YaoYinYing/REvoDesign" class="hover:text-blue-500">GitHub</a></li>
-      </ul>
-    </nav>
-  </header>
+<body>
+  <main class="page">
+    <section class="panel hero">
+      <div class="hero-top">
+        <div>
+          <h1 class="headline">PSSM GREMLIN Task Dashboard</h1>
+          <p class="subline">Track computational progress with explicit runtime states, packaging lifecycle, and downloadable result archives.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="/PSSM_GREMLIN/create_task">New Task</a>
+          <button class="btn btn-soft" type="button" id="refreshBtn">Refresh</button>
+          <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
+      </div>
 
-  <div class="flex">
-    <div class="flex-auto overflow-auto">
-      <div class="taskboard">
-        <!-- Task items will be generated by JavaScript -->
+      <div class="stats" aria-live="polite">
+        <article class="stat"><p class="stat-label">Total</p><p class="stat-value" id="totalTasks">0</p></article>
+        <article class="stat"><p class="stat-label">Pending</p><p class="stat-value" id="inQueue">0</p></article>
+        <article class="stat"><p class="stat-label">Running</p><p class="stat-value" id="inRunning">0</p></article>
+        <article class="stat"><p class="stat-label">Packing</p><p class="stat-value" id="packingResults">0</p></article>
+        <article class="stat"><p class="stat-label">Finished</p><p class="stat-value" id="finished">0</p></article>
+        <article class="stat"><p class="stat-label">Failed / Cancelled</p><p class="stat-value" id="issues">0</p></article>
       </div>
-    </div>
-    <div class="w-64 bg-white p-4 shadow-lg">
-      <div class="mb-4">
-        <h2 class="font-bold mb-2">Task Summary</h2>
-        <div>Total tasks: <span id="totalTasks">0</span></div>
-        <div>In running: <span id="inRunning">0</span></div>
-        <div>In queue: <span id="inQueue">0</span></div>
-        <div>Packing results: <span id="packingResults">0</span></div>
-        <div>Finished: <span id="finished">0</span></div>
-        <div>Cancelled: <span id="cancelled">0</span></div>
-        <div>Failed: <span id="failed">0</span></div>
+    </section>
+
+    <section class="panel controls" aria-label="Task filters">
+      <div class="search-wrap">
+        <input id="taskSearch" class="search-input" type="search" placeholder="Search by file name, md5, status, or sequence" autocomplete="off">
       </div>
-    </div>
-  </div>
-</div>
+      <div class="filters" id="statusFilters">
+        <button class="chip active" data-filter="all" type="button">All</button>
+        <button class="chip" data-filter="pending" type="button">Pending</button>
+        <button class="chip" data-filter="running" type="button">Running</button>
+        <button class="chip" data-filter="packing results" type="button">Packing</button>
+        <button class="chip" data-filter="finished" type="button">Finished</button>
+        <button class="chip" data-filter="failed" type="button">Failed</button>
+        <button class="chip" data-filter="cancelled" type="button">Cancelled</button>
+      </div>
+    </section>
+
+    <section class="board" id="taskList" aria-live="polite"></section>
+  </main>
+
+  <aside class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></aside>
 
 <script>
-    
-  const tasks = {{ sorted_task_statuses | tojson }};
-  function downloadFile(md5sum) {
-    // Extract md5sum from the button ID
+  const allTasks = {{ sorted_task_statuses | tojson }};
 
-    // Find the task with the matching md5sum
-    var task = tasks.find(t => t.md5 === md5sum);
+  const state = {
+    query: "",
+    filter: "all",
+  };
 
-    // Initiate download
-    window.location.href = `/PSSM_GREMLIN/api/results/${md5sum}`;
+  const statusMap = {
+    "pending": { label: "Pending", css: "status-pending", accent: "var(--pending)" },
+    "running": { label: "Running", css: "status-running", accent: "var(--running)" },
+    "packing results": { label: "Packing Results", css: "status-packing", accent: "var(--packing)" },
+    "finished": { label: "Finished", css: "status-finished", accent: "var(--finished)" },
+    "failed": { label: "Failed", css: "status-failed", accent: "var(--failed)" },
+    "cancelled": { label: "Cancelled", css: "status-cancelled", accent: "var(--cancelled)" },
+  };
 
-
-}
-  function cancelFile(md5sum) {
-      // Extract md5sum from the button ID
-
-      // Find the task with the matching md5sum
-      var task = tasks.find(t => t.md5 === md5sum);
-
-      fetch(`/PSSM_GREMLIN/api/cancel/${md5sum}`, {
-      method: 'GET',
-      })
-      .then(response => response.text())  // assuming the server response is text
-      .then(data => {
-          // Update the inner HTML of the statusDiv with the server response
-          alert(data);
-      })
-      .catch(error => {
-          // Handle any errors here and update the statusDiv
-          alert('An error occurred: ' + error.message);
-      });
-      
-
+  function escapeHtml(input) {
+    return String(input ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
   }
-  // JavaScript to handle task interactions and summary updates
-  document.addEventListener('DOMContentLoaded', function() {
-    const taskboard = document.querySelector('.taskboard');
 
-    // Function to create task elements
-    function createTaskElement(task) {
-      const taskEl = document.createElement('div');
-      taskEl.classList.add('task', 'bg-white', 'p-4', 'mb-4', 'shadow', 'cursor-pointer');
-      if (task.status === 'finished') {
-        var button_setting = `<button id="download-btn-${task.md5}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs mt-2" onclick="downloadFile('${task.md5}')"}>Download</button>`;
-      }
-      else if ((task.status === 'pending' || task.status === 'running')) {
-        var button_setting = `<button id="cancel-btn-${task.md5}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs mt-2" onclick="cancelFile('${task.md5}')"}>Cancel</button>`;
-      }
-      else {
-        var button_setting = '';
-      }
-      taskEl.innerHTML = `
-        <div class="task-info d-flex">
-          <div><strong>Task file:</strong> ${task.fasta_fn}</div>
-          <div><strong>Task MD5:</strong> ${task.md5}</div>
-          <div><strong>Status:</strong> ${task.status}</div>
-          <div><strong>Submited:</strong> ${task.submitted_time}</div>
-          <div><strong>Finished:</strong> ${task.finished_time}</div>
-        </div>
-        <div class="task-details bg-gray-100 p-4 mt-2">
-          <div><strong>Sequence:</strong> ${task.sequence}</div>
-          <div><strong>Wall time:</strong> ${task.walltime}</div>
-          ${button_setting}
-          </div>
-      `;
-      
-      return taskEl;
+  function getStatusMeta(status) {
+    return statusMap[status] || {
+      label: status || "Unknown",
+      css: "status-cancelled",
+      accent: "var(--cancelled)",
+    };
+  }
+
+  function showToast(message, type = "info") {
+    const wrap = document.getElementById("toastWrap");
+    const node = document.createElement("div");
+    node.className = `toast ${type}`;
+    node.textContent = message;
+    wrap.appendChild(node);
+    setTimeout(() => node.remove(), 3600);
+  }
+
+  function updateSummary() {
+    const counts = {
+      total: allTasks.length,
+      pending: 0,
+      running: 0,
+      packing: 0,
+      finished: 0,
+      failed: 0,
+      cancelled: 0,
+    };
+
+    for (const task of allTasks) {
+      if (task.status === "pending") counts.pending += 1;
+      if (task.status === "running") counts.running += 1;
+      if (task.status === "packing results") counts.packing += 1;
+      if (task.status === "finished") counts.finished += 1;
+      if (task.status === "failed") counts.failed += 1;
+      if (task.status === "cancelled") counts.cancelled += 1;
     }
-    
 
-    // Append tasks to the taskboard
-    tasks.forEach(task => {
-      taskboard.appendChild(createTaskElement(task));
+    document.getElementById("totalTasks").textContent = counts.total;
+    document.getElementById("inQueue").textContent = counts.pending;
+    document.getElementById("inRunning").textContent = counts.running;
+    document.getElementById("packingResults").textContent = counts.packing;
+    document.getElementById("finished").textContent = counts.finished;
+    document.getElementById("issues").textContent = counts.failed + counts.cancelled;
+  }
+
+  function getFilteredTasks() {
+    const query = state.query.trim().toLowerCase();
+
+    return allTasks.filter((task) => {
+      if (state.filter !== "all" && task.status !== state.filter) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const haystack = [
+        task.fasta_fn,
+        task.md5,
+        task.status,
+        task.sequence,
+        task.submitted_time,
+        task.finished_time,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }
+
+  function renderTasks() {
+    const list = document.getElementById("taskList");
+    const tasks = getFilteredTasks();
+
+    if (!tasks.length) {
+      list.innerHTML = '<div class="empty">No tasks match the current search/filter criteria.</div>';
+      return;
+    }
+
+    list.innerHTML = "";
+
+    tasks.forEach((task, index) => {
+      const meta = getStatusMeta(task.status);
+      const card = document.createElement("article");
+      card.className = "task-card";
+      card.style.setProperty("--accent-stripe", meta.accent);
+      card.style.animationDelay = `${Math.min(index * 35, 260)}ms`;
+
+      const canDownload = task.status === "finished";
+      const canCancel = task.status === "pending" || task.status === "running";
+
+      card.innerHTML = `
+        <header class="task-head">
+          <div>
+            <h2 class="task-title">${escapeHtml(task.fasta_fn || "Unknown FASTA")}</h2>
+            <p class="task-id">${escapeHtml(task.md5)}</p>
+          </div>
+          <span class="status-pill ${meta.css}">${escapeHtml(meta.label)}</span>
+        </header>
+
+        <div class="meta-grid">
+          <div class="meta-box">
+            <p class="meta-label">Submitted</p>
+            <p class="meta-value">${escapeHtml(task.submitted_time || "-")}</p>
+          </div>
+          <div class="meta-box">
+            <p class="meta-label">Finished</p>
+            <p class="meta-value">${escapeHtml(task.finished_time || "-")}</p>
+          </div>
+          <div class="meta-box">
+            <p class="meta-label">Wall Time</p>
+            <p class="meta-value">${escapeHtml(String(task.walltime ?? "-"))}</p>
+          </div>
+        </div>
+
+        <details class="sequence">
+          <summary>Sequence Snapshot</summary>
+          <pre>${escapeHtml(task.sequence || "-")}</pre>
+        </details>
+
+        <div class="actions">
+          ${canDownload ? `<button class="task-btn download" data-action="download" data-md5="${escapeHtml(task.md5)}">Download</button>` : ""}
+          ${canCancel ? `<button class="task-btn cancel" data-action="cancel" data-md5="${escapeHtml(task.md5)}">Cancel</button>` : ""}
+        </div>
+      `;
+
+      list.appendChild(card);
+    });
+  }
+
+  function setActiveFilter(nextFilter) {
+    state.filter = nextFilter;
+    const chips = document.querySelectorAll("#statusFilters .chip");
+    chips.forEach((chip) => {
+      chip.classList.toggle("active", chip.dataset.filter === nextFilter);
+    });
+    renderTasks();
+  }
+
+  function downloadFile(md5sum) {
+    window.location.href = `/PSSM_GREMLIN/api/results/${encodeURIComponent(md5sum)}`;
+  }
+
+  async function cancelFile(md5sum, triggerButton) {
+    if (!md5sum) return;
+
+    try {
+      if (triggerButton) {
+        triggerButton.disabled = true;
+        triggerButton.textContent = "Cancelling...";
+      }
+
+      const response = await fetch(`/PSSM_GREMLIN/api/cancel/${encodeURIComponent(md5sum)}`, {
+        method: "POST",
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err = payload.error || "Failed to cancel task.";
+        throw new Error(err);
+      }
+
+      const target = allTasks.find((task) => task.md5 === md5sum);
+      if (target) {
+        target.status = "cancelled";
+        target.finished_time = target.finished_time === "-" ? new Date().toLocaleString() : target.finished_time;
+      }
+
+      updateSummary();
+      renderTasks();
+      showToast(`Task ${md5sum.slice(0, 8)}... cancelled.`, "info");
+    } catch (error) {
+      if (triggerButton) {
+        triggerButton.disabled = false;
+        triggerButton.textContent = "Cancel";
+      }
+      showToast(error.message || "Cancel request failed.", "error");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    updateSummary();
+    renderTasks();
+
+    document.getElementById("taskSearch").addEventListener("input", (event) => {
+      state.query = event.target.value || "";
+      renderTasks();
     });
 
-    // Update summary counts
-    document.getElementById('totalTasks').textContent = tasks.length;
-    // Update other summary counts as needed
-    document.getElementById('inRunning').textContent = tasks.filter(task => task.status === 'running').length
-    document.getElementById('inQueue').textContent = tasks.filter(task => task.status === 'pending').length
-    document.getElementById('packingResults').textContent = tasks.filter(task => task.status === 'packing results').length
-    document.getElementById('finished').textContent = tasks.filter(task => task.status === 'finished').length
-    document.getElementById('cancelled').textContent = tasks.filter(task => task.status === 'cancelled').length
-    document.getElementById('failed').textContent = tasks.filter(task => task.status === 'failed').length
+    document.getElementById("statusFilters").addEventListener("click", (event) => {
+      const chip = event.target.closest(".chip");
+      if (!chip) return;
+      setActiveFilter(chip.dataset.filter || "all");
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", () => {
+      window.location.reload();
+    });
+
+    document.getElementById("taskList").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+
+      const action = button.dataset.action;
+      const md5sum = button.dataset.md5;
+
+      if (action === "download") {
+        downloadFile(md5sum);
+      } else if (action === "cancel") {
+        cancelFile(md5sum, button);
+      }
+    });
   });
 </script>
 </body>
