@@ -246,6 +246,24 @@
     flex-wrap: wrap;
   }
 
+  .task-head-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.58rem;
+    min-width: 0;
+  }
+
+  .task-select-wrap {
+    padding-top: 0.1rem;
+  }
+
+  .task-select {
+    width: 1.02rem;
+    height: 1.02rem;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
   .task-title {
     margin: 0;
     font-size: 1.01rem;
@@ -258,6 +276,20 @@
     color: var(--muted);
     font-size: 0.79rem;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  .owner-chip {
+    margin: 0.25rem 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    color: #27424c;
+    background: #eaf2f7;
+    border: 1px solid #c8dbe7;
+    border-radius: 999px;
+    padding: 0.16rem 0.5rem;
+    font-weight: 600;
   }
 
   .status-pill {
@@ -399,9 +431,22 @@
     color: #6b2f24;
   }
 
+  .task-btn.delete {
+    background: #ffffff;
+    border-color: #e9c1bc;
+    color: #8b2519;
+  }
+
   .task-btn:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+  }
+
+  .admin-tools {
+    display: inline-flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    align-items: center;
   }
 
   .empty {
@@ -535,6 +580,11 @@
         <button class="chip" data-filter="failed" type="button">Failed</button>
         <button class="chip" data-filter="cancelled" type="button">Cancelled</button>
       </div>
+      <div class="admin-tools" id="adminTools" hidden>
+        <button class="chip" id="selectVisibleBtn" type="button">Select Visible</button>
+        <button class="chip" id="clearSelectionBtn" type="button">Clear Selection</button>
+        <button class="chip" id="deleteSelectedBtn" type="button" disabled>Delete Selected (0)</button>
+      </div>
     </section>
 
     <section class="board" id="taskList" aria-live="polite"></section>
@@ -544,10 +594,13 @@
 
 <script>
   const allTasks = {{ sorted_task_statuses | tojson }};
+  const isAdmin = {{ is_admin_user | tojson }};
+  const currentUser = {{ current_username | tojson }};
 
   const state = {
     query: "",
     filter: "all",
+    selected: new Set(),
   };
 
   const statusMap = {
@@ -613,6 +666,20 @@
     document.getElementById("issues").textContent = counts.failed + counts.cancelled;
   }
 
+  function updateAdminTools() {
+    const tools = document.getElementById("adminTools");
+    if (!tools) return;
+    if (!isAdmin) {
+      tools.hidden = true;
+      return;
+    }
+    tools.hidden = false;
+    const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+    const selectedCount = state.selected.size;
+    deleteSelectedBtn.textContent = `Delete Selected (${selectedCount})`;
+    deleteSelectedBtn.disabled = selectedCount === 0;
+  }
+
   function getFilteredTasks() {
     const query = state.query.trim().toLowerCase();
 
@@ -643,6 +710,7 @@
   function renderTasks() {
     const list = document.getElementById("taskList");
     const tasks = getFilteredTasks();
+    updateAdminTools();
 
     if (!tasks.length) {
       list.innerHTML = '<div class="empty">No tasks match the current search/filter criteria.</div>';
@@ -660,12 +728,22 @@
 
       const canDownload = task.status === "finished";
       const canCancel = task.status === "pending" || task.status === "running";
+      const canDelete = Boolean(task.can_delete);
+      const selected = state.selected.has(task.md5);
 
       card.innerHTML = `
         <header class="task-head">
-          <div>
-            <h2 class="task-title">${escapeHtml(task.fasta_fn || "Unknown FASTA")}</h2>
-            <p class="task-id">${escapeHtml(task.md5)}</p>
+          <div class="task-head-left">
+            ${isAdmin ? `
+            <label class="task-select-wrap" title="Select task for batch delete">
+              <input class="task-select" type="checkbox" data-action="toggle-select" data-md5="${escapeHtml(task.md5)}" ${selected ? "checked" : ""}>
+            </label>
+            ` : ""}
+            <div>
+              <h2 class="task-title">${escapeHtml(task.fasta_fn || "Unknown FASTA")}</h2>
+              <p class="task-id">${escapeHtml(task.md5)}</p>
+              ${isAdmin ? `<span class="owner-chip">Owner: ${escapeHtml(task.owner || "-")}</span>` : ""}
+            </div>
           </div>
           <span class="status-pill ${meta.css}">${escapeHtml(meta.label)}</span>
         </header>
@@ -693,6 +771,7 @@
         <div class="actions">
           ${canDownload ? `<button class="task-btn download" data-action="download" data-md5="${escapeHtml(task.md5)}">Download</button>` : ""}
           ${canCancel ? `<button class="task-btn cancel" data-action="cancel" data-md5="${escapeHtml(task.md5)}">Cancel</button>` : ""}
+          ${canDelete ? `<button class="task-btn delete" data-action="delete" data-md5="${escapeHtml(task.md5)}">Delete</button>` : ""}
         </div>
       `;
 
@@ -711,6 +790,14 @@
 
   function downloadFile(md5sum) {
     window.location.href = `/PSSM_GREMLIN/api/results/${encodeURIComponent(md5sum)}`;
+  }
+
+  function removeTaskFromClientState(md5sum) {
+    const index = allTasks.findIndex((task) => task.md5 === md5sum);
+    if (index >= 0) {
+      allTasks.splice(index, 1);
+    }
+    state.selected.delete(md5sum);
   }
 
   async function cancelFile(md5sum, triggerButton) {
@@ -750,7 +837,90 @@
     }
   }
 
+  async function deleteFile(md5sum, triggerButton) {
+    if (!md5sum) return;
+
+    if (!window.confirm(`Delete task ${md5sum.slice(0, 8)}... and its result artifacts?`)) {
+      return;
+    }
+
+    try {
+      if (triggerButton) {
+        triggerButton.disabled = true;
+        triggerButton.textContent = "Deleting...";
+      }
+
+      const response = await fetch(`/PSSM_GREMLIN/api/delete/${encodeURIComponent(md5sum)}`, {
+        method: "POST",
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err = payload.message || payload.error || "Failed to delete task.";
+        throw new Error(err);
+      }
+
+      removeTaskFromClientState(md5sum);
+      updateSummary();
+      renderTasks();
+      showToast(`Task ${md5sum.slice(0, 8)}... deleted.`, "info");
+    } catch (error) {
+      if (triggerButton) {
+        triggerButton.disabled = false;
+        triggerButton.textContent = "Delete";
+      }
+      showToast(error.message || "Delete request failed.", "error");
+    }
+  }
+
+  async function deleteSelectedTasks() {
+    if (!isAdmin) return;
+    const md5sums = Array.from(state.selected);
+    if (!md5sums.length) {
+      showToast("No tasks selected.", "error");
+      return;
+    }
+
+    if (!window.confirm(`Delete ${md5sums.length} selected task(s) and their artifacts?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/PSSM_GREMLIN/api/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ md5sums }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err = payload.message || payload.error || "Batch delete failed.";
+        throw new Error(err);
+      }
+
+      const deleted = Array.isArray(payload.deleted) ? payload.deleted : [];
+      deleted.forEach((md5sum) => removeTaskFromClientState(md5sum));
+      updateSummary();
+      renderTasks();
+
+      if (deleted.length) {
+        showToast(`Deleted ${deleted.length} task(s).`, "info");
+      } else {
+        showToast("No tasks were deleted.", "error");
+      }
+    } catch (error) {
+      showToast(error.message || "Batch delete failed.", "error");
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
+    if (isAdmin) {
+      const tools = document.getElementById("adminTools");
+      if (tools) {
+        tools.hidden = false;
+      }
+    }
+
     updateSummary();
     renderTasks();
 
@@ -769,6 +939,35 @@
       window.location.reload();
     });
 
+    if (isAdmin) {
+      document.getElementById("selectVisibleBtn").addEventListener("click", () => {
+        getFilteredTasks().forEach((task) => state.selected.add(task.md5));
+        renderTasks();
+      });
+
+      document.getElementById("clearSelectionBtn").addEventListener("click", () => {
+        state.selected.clear();
+        renderTasks();
+      });
+
+      document.getElementById("deleteSelectedBtn").addEventListener("click", () => {
+        deleteSelectedTasks();
+      });
+    }
+
+    document.getElementById("taskList").addEventListener("change", (event) => {
+      const checkbox = event.target.closest("input[data-action='toggle-select']");
+      if (!checkbox) return;
+      const md5sum = checkbox.dataset.md5;
+      if (!md5sum) return;
+      if (checkbox.checked) {
+        state.selected.add(md5sum);
+      } else {
+        state.selected.delete(md5sum);
+      }
+      updateAdminTools();
+    });
+
     document.getElementById("taskList").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-action]");
       if (!button) return;
@@ -780,6 +979,8 @@
         downloadFile(md5sum);
       } else if (action === "cancel") {
         cancelFile(md5sum, button);
+      } else if (action === "delete") {
+        deleteFile(md5sum, button);
       }
     });
   });

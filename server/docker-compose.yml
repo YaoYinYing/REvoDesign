@@ -14,6 +14,7 @@ x-common-env: &common-env
   USERS_FILE: ${USERS_FILE}
   LOG_DIR: ${LOG_DIR}
   PUBLIC_DASHBOARD: ${PUBLIC_DASHBOARD:-false}
+  ADMIN_USERS: ${ADMIN_USERS:-admin}
 
 x-docker-socket-access: &docker-socket-access
   group_add:

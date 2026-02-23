@@ -288,6 +288,106 @@ def _basic_auth_header(username: str, password: str) -> dict[str, str]:
     return {"Authorization": f"Basic {token}"}
 
 
+def _upsert_task_for_user(
+    module,
+    md5sum: str,
+    *,
+    filename: str,
+    file_path: Path | str,
+    result_dir: Path | str,
+    username: str,
+    status: str = "finished",
+) -> None:
+    module.task_store.upsert_task(
+        md5sum,
+        filename=filename,
+        file_path=str(file_path),
+        result_dir=str(result_dir),
+        uploaded_at=time.time(),
+        started_at=time.time(),
+        finished_at=time.time(),
+        walltime=1.0,
+        status=status,
+        is_binary=0,
+        source_ip="127.0.0.1",
+        user_agent="pytest",
+        username=username,
+    )
+
+
+def test_dashboard_masks_host_file_paths_on_read_errors(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    client = module.app.test_client()
+    auth_header = _basic_auth_header("tester", "password")
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "result"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    leaked_host_path = "/Users/yyy/Documents/protein_design/REvoDesign/playground/server_test/upload/2KL8.fasta"
+
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="2KL8.fasta",
+        file_path=leaked_host_path,
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+
+    response = client.get("/PSSM_GREMLIN/dashboard", headers=auth_header)
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert "/srv/REvoDesign/PSSM_GREMLIN/upload/2KL8.fasta" in body
+    assert "/Users/yyy/Documents/protein_design/REvoDesign" not in body
+
+
+def test_failed_status_masks_host_paths_in_api_error(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    client = module.app.test_client()
+    auth_header = _basic_auth_header("tester", "password")
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "result"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    leaked_host_path = "/Users/yyy/Documents/protein_design/REvoDesign/playground/server_test/upload/2KL8.fasta"
+
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="2KL8.fasta",
+        file_path=leaked_host_path,
+        result_dir=result_dir,
+        username="tester",
+        status="failed",
+    )
+    module.task_store.update_task(
+        md5sum,
+        error=f"Unable to read sequence: [Errno 2] No such file or directory: '{leaked_host_path}'",
+    )
+
+    response = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=auth_header)
+    assert response.status_code == 404
+    payload = response.get_json()
+    assert payload["status"] == "failed"
+    assert "/srv/REvoDesign/PSSM_GREMLIN/upload/2KL8.fasta" in payload["error"]
+    assert "/Users/yyy/Documents/protein_design/REvoDesign" not in payload["error"]
+
+
 def test_private_dashboard_blocks_non_owner_access(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -406,6 +506,158 @@ def test_private_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
     other_md5 = _extract_md5(other_upload.headers["Location"])
 
     assert owner_md5 != other_md5
+
+
+def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+        users_text="tester:password\nother:password2\nadmin:admin_password\n",
+    )
+
+    client = module.app.test_client()
+    owner_header = _basic_auth_header("tester", "password")
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "delete_owner"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    (result_dir / "artifact.txt").write_text("payload\n", encoding="utf-8")
+    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
+    zip_path.write_bytes(b"zip")
+
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="owner.fasta",
+        file_path=result_dir / "owner.fasta",
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+
+    response = client.post(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=owner_header)
+    assert response.status_code == 200
+    assert response.json["status"] == "deleted"
+    assert module.task_store.get_task(md5sum) is None
+    assert not result_dir.exists()
+    assert not zip_path.exists()
+
+
+def test_non_owner_cannot_delete_task_results(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+        users_text="tester:password\nother:password2\nadmin:admin_password\n",
+    )
+
+    client = module.app.test_client()
+    other_header = _basic_auth_header("other", "password2")
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "delete_denied"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="owner.fasta",
+        file_path=result_dir / "owner.fasta",
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+
+    response = client.post(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=other_header)
+    assert response.status_code == 403
+    assert response.json["status"] == "forbidden"
+    assert module.task_store.get_task(md5sum) is not None
+
+
+def test_admin_can_batch_delete_tasks(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ADMIN_USERS": "admin",
+        },
+        users_text="tester:password\nother:password2\nadmin:admin_password\n",
+    )
+
+    client = module.app.test_client()
+    admin_header = _basic_auth_header("admin", "admin_password")
+
+    md5_a = uuid.uuid4().hex
+    md5_b = uuid.uuid4().hex
+    missing_md5 = "0" * 32
+
+    result_a = tmp_path / "batch_a"
+    result_b = tmp_path / "batch_b"
+    result_a.mkdir(parents=True, exist_ok=True)
+    result_b.mkdir(parents=True, exist_ok=True)
+
+    _upsert_task_for_user(
+        module,
+        md5_a,
+        filename="a.fasta",
+        file_path=result_a / "a.fasta",
+        result_dir=result_a,
+        username="tester",
+        status="finished",
+    )
+    _upsert_task_for_user(
+        module,
+        md5_b,
+        filename="b.fasta",
+        file_path=result_b / "b.fasta",
+        result_dir=result_b,
+        username="other",
+        status="finished",
+    )
+
+    response = client.post(
+        "/PSSM_GREMLIN/api/delete",
+        headers=admin_header,
+        json={"md5sums": [md5_a, md5_b, "zz", missing_md5]},
+    )
+    assert response.status_code == 200
+    payload = response.json
+    assert set(payload["deleted"]) == {md5_a, md5_b}
+    assert payload["not_found"] == [missing_md5]
+    assert payload["ignored"] == ["zz"]
+    assert module.task_store.get_task(md5_a) is None
+    assert module.task_store.get_task(md5_b) is None
+
+
+def test_non_admin_batch_delete_is_forbidden(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ADMIN_USERS": "admin",
+        },
+        users_text="tester:password\nother:password2\nadmin:admin_password\n",
+    )
+
+    client = module.app.test_client()
+    user_header = _basic_auth_header("tester", "password")
+    response = client.post(
+        "/PSSM_GREMLIN/api/delete",
+        headers=user_header,
+        json={"md5sums": [uuid.uuid4().hex]},
+    )
+    assert response.status_code == 403
+    assert response.json["status"] == "forbidden"
 
 
 def _run_command(

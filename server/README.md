@@ -67,6 +67,7 @@ Key options are controlled from `server/.env`:
 | `PSSM_GREMLIN_REDIS_URL` | Broker/backend URL used by Celery. Defaults to the bundled Redis service. |
 | `PSSM_GREMLIN_PORT` | External HTTP port exposed by the `web` service. |
 | `PUBLIC_DASHBOARD` | Optional dashboard visibility switch. Default `false` enforces per-user isolation (only task owner can list/view/download/cancel). Set `true` to expose all tasks to any authenticated user. |
+| `ADMIN_USERS` | Comma-separated Basic Auth usernames treated as server admins (default `admin`). Admins can batch-delete tasks and can delete any task regardless of owner. |
 
 Every other variable shown in `.env.example` is optional and has a sensible default.
 

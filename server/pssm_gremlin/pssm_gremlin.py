@@ -159,6 +159,11 @@ class TaskDatabase:
             rows = conn.execute(stmt).mappings().all()
         return [self._normalize_task_row(row) for row in rows]
 
+    def delete_task(self, md5sum: str) -> None:
+        stmt = self.tasks_table.delete().where(self.tasks_table.c.md5sum == md5sum)
+        with self.engine.begin() as conn:
+            conn.execute(stmt)
+
 
 def _env_path(var_name: str, default: str) -> str:
     value = os.environ.get(var_name)
@@ -175,6 +180,12 @@ def _env_int(var_name: str, default: int) -> int:
         return int(raw)
     except ValueError as exc:
         raise ValueError(f"Environment variable {var_name} must be an integer, got {raw!r}") from exc
+
+
+def _env_csv(var_name: str, default: str) -> list[str]:
+    raw = os.environ.get(var_name, default)
+    values = [value.strip() for value in raw.split(",")]
+    return [value for value in values if value]
 
 
 def _env_bool(var_name: str, default: bool) -> bool:
@@ -297,6 +308,8 @@ with open(user_file) as f:
         username, password = line.strip().split(":")
         users[username] = generate_password_hash(password)
 
+ADMIN_USERS = set(_env_csv("ADMIN_USERS", "admin"))
+
 
 # Celery configurations
 redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
@@ -405,6 +418,21 @@ def _task_zip_path(task: Any) -> str:
     return os.path.join(app.config["RESULTS_FOLDER"], f"{task_id}_PSSM_GREMLIN_results.zip")
 
 
+def _virtual_upload_path(filename: str) -> str:
+    safe_name = os.path.basename(filename or "unknown.fasta")
+    return f"/srv/REvoDesign/PSSM_GREMLIN/upload/{safe_name}"
+
+
+def _sanitize_task_error(task: dict[str, Any], error: Any) -> str | None:
+    if error is None:
+        return None
+    message = str(error)
+    file_path = str(task.get("file_path") or "")
+    if file_path:
+        message = message.replace(file_path, _virtual_upload_path(task.get("filename", "unknown.fasta")))
+    return message
+
+
 try:
     _ROOT_MOUNT_DIRECTORY = f"/home/{os.getlogin()}"
 except BaseException:
@@ -417,6 +445,11 @@ def verify_password(username, password):
     if username in users and check_password_hash(users.get(username), password):
         return username
     return None
+
+
+def _is_admin_user(username: str | None = None) -> bool:
+    target = (username if username is not None else auth.current_user()) or ""
+    return target in ADMIN_USERS
 
 
 def _task_access_allowed(task: dict[str, Any]) -> bool:
@@ -445,6 +478,33 @@ def _task_id_for_upload(content_md5: str, username: str | None) -> str:
     owner = username or "anonymous"
     scoped_key = f"{owner}:{content_md5}"
     return hashlib.md5(scoped_key.encode("utf-8")).hexdigest()
+
+
+def _task_delete_allowed(task: dict[str, Any]) -> bool:
+    current_user = auth.current_user() or ""
+    if _is_admin_user(current_user):
+        return True
+    return bool(current_user) and task.get("username") == current_user
+
+
+def _delete_task_artifacts(task: dict[str, Any]) -> None:
+    result_dir = task.get("result_dir")
+    if result_dir and os.path.isdir(result_dir):
+        shutil.rmtree(result_dir, ignore_errors=True)
+    zip_path = _task_zip_path(task)
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
+
+
+def _revoke_celery_task(task: dict[str, Any]) -> None:
+    celery_id = task.get("celery_task_id")
+    if not celery_id:
+        return
+    try:
+        result = AsyncResult(celery_id)
+        result.revoke(terminate=True)
+    except Exception as exc:  # pylint: disable=broad-except
+        logging.warning("Failed to revoke Celery task %s: %s", celery_id, exc)
 
 
 def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mount, str]:
@@ -759,7 +819,7 @@ def run_gremlin(md5sum):
         return jsonify({"status": "finished", "md5sum": md5sum}), 200
     if status == "failed":
         return (
-            jsonify({"status": "failed", "md5sum": md5sum, "error": task.get("error")}),
+            jsonify({"status": "failed", "md5sum": md5sum, "error": _sanitize_task_error(task, task.get("error"))}),
             404,
         )
     if status == "running":
@@ -873,6 +933,7 @@ def cancel_task(md5sum):
 @auth.login_required
 def task_dashboard():
     current_user = auth.current_user() or ""
+    is_admin = _is_admin_user(current_user)
     all_tasks = task_store.list_tasks()
     if CONFIG.public_dashboard:
         visible_tasks = all_tasks
@@ -891,7 +952,16 @@ def task_dashboard():
                 with open(task["file_path"]) as f:
                     fasta_seq = f.read().strip()
             except (OSError, UnicodeDecodeError) as exc:
-                fasta_seq = f"Unable to read sequence: {exc}"
+                if isinstance(exc, FileNotFoundError):
+                    fasta_seq = (
+                        "Unable to read sequence: "
+                        f"file not found at {_virtual_upload_path(task.get('filename', 'unknown.fasta'))}"
+                    )
+                else:
+                    fasta_seq = (
+                        "Unable to read sequence: "
+                        f"file unavailable at {_virtual_upload_path(task.get('filename', 'unknown.fasta'))}"
+                    )
 
         task_statuses.append(
             {
@@ -904,12 +974,85 @@ def task_dashboard():
                 "walltime": int(walltime) if walltime is not None else "-",
                 "submitted_timestamp": submitted_time or 0,
                 "sequence": fasta_seq,
+                "owner": task.get("username") or "-",
+                "can_delete": is_admin or (task.get("username") == current_user),
             }
         )
 
     sorted_task_statuses = sorted(task_statuses, key=lambda x: x["submitted_timestamp"], reverse=True)
 
-    return render_template("pssm_gremlin_dashboard.html", sorted_task_statuses=sorted_task_statuses)
+    return render_template(
+        "pssm_gremlin_dashboard.html",
+        sorted_task_statuses=sorted_task_statuses,
+        current_username=current_user,
+        is_admin_user=is_admin,
+    )
+
+
+@app.route("/PSSM_GREMLIN/api/delete/<md5sum>", methods=["POST", "DELETE"])
+@auth.login_required
+def delete_task(md5sum):
+    task = task_store.get_task(md5sum)
+    if not task:
+        return jsonify({"status": "not_found", "md5sum": md5sum}), 404
+    if not _task_delete_allowed(task):
+        return _task_access_denied(md5sum)
+
+    if task["status"] in {"pending", "running", "packing results"}:
+        _revoke_celery_task(task)
+
+    _delete_task_artifacts(task)
+    task_store.delete_task(md5sum)
+    return jsonify({"status": "deleted", "md5sum": md5sum}), 200
+
+
+@app.route("/PSSM_GREMLIN/api/delete", methods=["POST"])
+@auth.login_required
+def delete_tasks_batch():
+    if not _is_admin_user():
+        return jsonify({"status": "forbidden", "message": "Batch deletion requires admin privileges"}), 403
+
+    payload = request.get_json(silent=True) or {}
+    md5sums = payload.get("md5sums")
+    if not isinstance(md5sums, list):
+        return jsonify({"error": "md5sums must be a JSON list"}), 400
+
+    deleted: list[str] = []
+    not_found: list[str] = []
+    ignored: list[str] = []
+    seen: set[str] = set()
+
+    for raw_md5 in md5sums:
+        md5sum = str(raw_md5).strip()
+        if not md5sum or md5sum in seen:
+            continue
+        seen.add(md5sum)
+        if not re.fullmatch(r"[a-fA-F0-9]{32}", md5sum):
+            ignored.append(md5sum)
+            continue
+
+        task = task_store.get_task(md5sum)
+        if not task:
+            not_found.append(md5sum)
+            continue
+
+        if task["status"] in {"pending", "running", "packing results"}:
+            _revoke_celery_task(task)
+        _delete_task_artifacts(task)
+        task_store.delete_task(md5sum)
+        deleted.append(md5sum)
+
+    return (
+        jsonify(
+            {
+                "status": "ok",
+                "deleted": deleted,
+                "not_found": not_found,
+                "ignored": ignored,
+            }
+        ),
+        200,
+    )
 
 
 if __name__ == "__main__":

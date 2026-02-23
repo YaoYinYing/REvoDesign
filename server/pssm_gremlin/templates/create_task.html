@@ -162,6 +162,54 @@
     box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
   }
 
+  .text-input,
+  .sequence-input {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--ink);
+    padding: 0.58rem 0.64rem;
+    font-size: 0.92rem;
+    font-family: inherit;
+  }
+
+  .sequence-input {
+    min-height: 140px;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    line-height: 1.35;
+  }
+
+  .text-input:focus,
+  .sequence-input:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--accent) 58%, white 42%);
+    box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
+  }
+
+  .editor-zone {
+    border-radius: 14px;
+    border: 1px solid #d9e3de;
+    background: #f5f9f6;
+    padding: 0.78rem;
+    display: grid;
+    gap: 0.56rem;
+  }
+
+  .preview {
+    border-radius: 12px;
+    border: 1px solid #cfdad4;
+    background: #f1f5f2;
+    padding: 0.6rem 0.66rem;
+    white-space: pre-wrap;
+    font-size: 0.84rem;
+    color: #2f3f46;
+    line-height: 1.36;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    min-height: 110px;
+  }
+
   .muted {
     margin: 0;
     color: var(--muted);
@@ -268,13 +316,23 @@
         <div class="input-zone">
           <p class="field-label">FASTA Upload</p>
           <form id="uploadForm" enctype="multipart/form-data">
-            <input class="file-input" type="file" name="file" id="fileInput" accept=".fasta" required>
+            <input class="file-input" type="file" name="file" id="fileInput" accept=".fasta">
+            <p class="muted">Upload a <code>.fasta</code> file, or use the optional editor below.</p>
+
+            <div class="editor-zone">
+              <p class="field-label">Optional Sequence Editor</p>
+              <input class="text-input" type="text" id="taskNameInput" placeholder="Task name (used as FASTA header)">
+              <textarea class="sequence-input" id="sequenceInput" placeholder="Paste protein sequence letters (A-Z)"></textarea>
+              <div id="sequencePreview" class="preview">Sequence: -
+Length: 0 residues</div>
+            </div>
+
             <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
               <button class="btn btn-primary" id="uploadButton" type="submit">Submit Task</button>
               <button class="btn btn-soft" type="button" id="clearButton">Clear</button>
             </div>
           </form>
-          <p class="muted">Only text FASTA files with a <code>.fasta</code> extension are accepted.</p>
+          <p class="muted">Only text FASTA content is accepted. Editor input is auto-formatted to FASTA.</p>
           <div id="uploadStatus" class="status" aria-live="polite">Ready for upload.</div>
         </div>
 
@@ -282,6 +340,7 @@
           <p class="info-title">Submission Checklist</p>
           <ul class="info-list">
             <li>Single-sequence FASTA is recommended for stable queueing.</li>
+            <li>Sequence editor can convert raw letters into FASTA format before upload.</li>
             <li>Upload identity is tracked from HTTP basic auth for data isolation.</li>
             <li>Progress can be followed on the dashboard with live states.</li>
             <li>Completed runs are packed to zip before entering <code>finished</code>.</li>
@@ -294,6 +353,9 @@
 <script>
   const form = document.getElementById("uploadForm");
   const fileInput = document.getElementById("fileInput");
+  const taskNameInput = document.getElementById("taskNameInput");
+  const sequenceInput = document.getElementById("sequenceInput");
+  const sequencePreview = document.getElementById("sequencePreview");
   const statusDiv = document.getElementById("uploadStatus");
   const clearButton = document.getElementById("clearButton");
   const uploadButton = document.getElementById("uploadButton");
@@ -303,27 +365,101 @@
     statusDiv.textContent = message;
   }
 
+  function normalizeSequence(raw) {
+    return String(raw || "").toUpperCase().replace(/[^A-Z]/g, "");
+  }
+
+  function wrapSequence(seq, width = 80) {
+    const lines = [];
+    for (let i = 0; i < seq.length; i += width) {
+      lines.push(seq.slice(i, i + width));
+    }
+    return lines.join("\n");
+  }
+
+  function formatPreview(seq) {
+    if (!seq.length) {
+      return "Sequence: -\nLength: 0 residues";
+    }
+
+    const chunks = [];
+    for (let i = 0; i < seq.length; i += 10) {
+      chunks.push({
+        index: i + 1,
+        chunk: seq.slice(i, i + 10),
+      });
+    }
+
+    const groups = [];
+    for (let i = 0; i < chunks.length; i += 5) {
+      groups.push(chunks.slice(i, i + 5));
+    }
+
+    const lines = ["Sequence:"];
+    for (const group of groups) {
+      const indexLine = group.map((item) => String(item.index).padEnd(11, " ")).join("").trimEnd();
+      const chunkLine = group.map((item) => item.chunk.padEnd(11, " ")).join("").trimEnd();
+      lines.push(indexLine);
+      lines.push(chunkLine);
+    }
+    lines.push(`Length: ${seq.length} residues`);
+    return lines.join("\n");
+  }
+
+  function refreshSequencePreview() {
+    const normalized = normalizeSequence(sequenceInput.value);
+    sequencePreview.textContent = formatPreview(normalized);
+  }
+
+  function sanitizeHeader(name) {
+    const fallback = "sequence";
+    const cleaned = String(name || "")
+      .trim()
+      .replace(/\s+/g, "_")
+      .replace(/[^A-Za-z0-9_.-]/g, "");
+    return cleaned || fallback;
+  }
+
   clearButton.addEventListener("click", () => {
     fileInput.value = "";
+    taskNameInput.value = "";
+    sequenceInput.value = "";
+    refreshSequencePreview();
     setStatus("Ready for upload.");
   });
 
+  sequenceInput.addEventListener("input", () => {
+    refreshSequencePreview();
+  });
+
+  refreshSequencePreview();
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const selectedFile = (fileInput.files && fileInput.files.length > 0) ? fileInput.files[0] : null;
+    const normalizedSequence = normalizeSequence(sequenceInput.value);
+    let fileToUpload = selectedFile;
 
-    if (!fileInput.files || fileInput.files.length === 0) {
-      setStatus("Please select a FASTA file before submitting.", "error");
-      return;
-    }
-
-    const file = fileInput.files[0];
-    if (!file.name.toLowerCase().endsWith(".fasta")) {
+    if (selectedFile && !selectedFile.name.toLowerCase().endsWith(".fasta")) {
       setStatus("Only .fasta files are accepted.", "error");
       return;
     }
 
+    if (!fileToUpload && !normalizedSequence.length) {
+      setStatus("Please upload a .fasta file or provide a sequence in the editor.", "error");
+      return;
+    }
+
+    if (!fileToUpload) {
+      const header = sanitizeHeader(taskNameInput.value);
+      const fastaContent = `>${header}\n${wrapSequence(normalizedSequence, 80)}\n`;
+      fileToUpload = new File([fastaContent], `${header}.fasta`, {
+        type: "text/plain",
+      });
+    }
+
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", fileToUpload);
 
     uploadButton.disabled = true;
     clearButton.disabled = true;
