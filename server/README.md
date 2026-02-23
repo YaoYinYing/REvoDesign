@@ -198,6 +198,59 @@ High-level flow:
 
 `server/nginx_sites/REvoDesign_PSSM_GREMLIN.app` can be used as a starting point.
 
+
+## Usage
+
+### Submit FASTA File via webpage
+
+Use the following webpage to submit FASTA files:
+
+http://your-server-ip:8080/PSSM_GREMLIN/create_task
+
+A successful submission will return a task ID and the task status.
+
+### Submit FASTA Files via commandline tools
+
+Use the following cURL command to batch submit FASTA files:
+
+```shell
+for i in *.fasta; do
+    curl -X POST -F "file=@$i" 'http://your-server-ip:8080/PSSM_GREMLIN/api/post'
+done
+```
+
+### Batch Canceling with cURL (macOS)
+
+Use the following cURL command to batch cancel tasks based on MD5sum:
+
+```shell
+for i in *.fasta; do
+    curl -X POST "http://your-server-ip:8080/PSSM_GREMLIN/api/cancel/$(md5 -q $i)"
+done
+```
+
+### Dashboard
+
+The dashboard provides an overview of task statuses and processing times. It includes the following information for each task:
+
+- FASTA file name
+- MD5sum
+- Submitted At (time of submission)
+- Finished At (time of completion)
+- Wall Time (processing time)
+- Status (`pending`, `running`, `packing results`, `finished`, `failed`, or `cancelled`)
+- Download Link (for completed tasks)
+
+Once a task is completed, you can download the results from this dashboard by clicking the "Download" link next to the task.
+
+### Accessing the Dashboard
+
+Access the dashboard to monitor tasks and download result files:
+
+`http://your-server-ip:8080/PSSM_GREMLIN/dashboard` or
+`https://revodesign.your-domain.name/PSSM_GREMLIN/dashboard`
+
+
 ## Operations notes
 
 - The web and worker containers require Docker socket access to launch runner containers.
