@@ -151,8 +151,8 @@ jobs:
       - name: Setup PyMOL - (${{ matrix.pymol-tag }})-(${{ matrix.os }}-py${{ matrix.python-version }})
         run: |
           conda install ${{ matrix.conda-channel}} '${{ matrix.pymol-version}}' pyqt=5 -n ${{ env.conda_env }} -y
-          # for server testings on x86_64 linux and macos. M1 mac uses blast=2.16.0
-          conda install -c conda-forge -c bioconda blast=2.13.0 hhsuite=3.3.0 -y -n ${{ env.conda_env }}
+          # for server testings on x86_64 linux and macos
+          conda install -c conda-forge -c bioconda blast hhsuite -y -n ${{ env.conda_env }}
           conda info
           conda list
           which python
