@@ -159,13 +159,7 @@ These tests mock out the Docker client and validate the environment-driven confi
    rm "${ROOT_DIR}/${BASENAME}"
    ```
 
-4. After that, you should test this with `server/docker/run_docker.py`:
-   ```bash
-   python /path/to/REvoDesign/server/docker/run_docker.py --fasta /path/to/REvoDesign/tests/testdata/1SUO_A.fasta --output ./test --uniref90_db ${DOWNLOAD_DIR}/uniref90/uniref90 --make_uniref90_db --uniref30_db ${DOWNLOAD_DIR}/uniref30/UniRef30_2023_02
-   ```
-   `--make_uniref90_db` is called to mount the uniref90 db and format it with `makeblastdb` tool.
-
-   alternatively, you can call the installed `makeblastdb` tool on machine:
+4. After that, you should format blast database this with calling the installed `makeblastdb` tool on machine:
    
    ```bash
    makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids -out uniref90
