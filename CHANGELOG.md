@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Server (PSSM_GREMLIN):
   - Public/private dashboard behavior is now configurable with `PUBLIC_DASHBOARD` (`false` by default).
   - Task visibility and API access are scoped to the authenticated upload owner when `PUBLIC_DASHBOARD=false`.
+  - Running-stage tracking now uses sqlite-backed `run_stage` persistence (single task stage tracker), replacing dashboard refresh reconstruction from file-based traces.
   - Runner execution flow now enforces non-root container user/group configuration and composes docker permissions from env.
   - Restart controls now provide explicit lifecycle subcommands:
     - `setup`, `build`, `up`, `down`, `restart` (default).
@@ -79,6 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `test_pm_dialog_extras_panel_expand_collapse` now waites for the dialog to fully expand before asserting.
 - Server (PSSM_GREMLIN):
   - Docker daemon permission failure handling for non-root runtime users in server/worker execution paths.
+  - `run_stage` ORM/schema mismatch that caused sqlite update/compile failures and prevented task execution in server-image integration tests.
   - Real-server missing result artifacts by packing outputs at job completion rather than delaying zip creation until download request.
   - UniRef90 mount/prefix mismatch that caused runner exits like `/tmp/uniref90_db.fasta not found`.
   - Host absolute path leakage in dashboard/API error messages by masking to virtual server paths (`/srv/REvoDesign/PSSM_GREMLIN/upload/<filename>`).
