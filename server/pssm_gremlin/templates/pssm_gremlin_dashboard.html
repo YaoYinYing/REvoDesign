@@ -7,7 +7,33 @@
 <link rel="icon" type="image/svg+xml" href="https://revodesign.yaoyy.moe/images/logo.svg"/>
 <link rel="mask-icon" href="https://revodesign.yaoyy.moe/images/logo.svg" color="#000000"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<script>
+  (function() {
+    const storageKey = "revodesign-theme";
+    let themeMode = "auto";
+    try {
+      const storedTheme = window.localStorage.getItem(storageKey);
+      if (storedTheme === "light" || storedTheme === "dark") {
+        themeMode = storedTheme;
+      }
+    } catch (error) {
+      // Keep light theme when browser storage is unavailable.
+    }
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const resolvedTheme = themeMode === "auto" ? (prefersDark ? "dark" : "light") : themeMode;
+    document.documentElement.dataset.themeMode = themeMode;
+    document.documentElement.dataset.theme = resolvedTheme;
+  })();
+</script>
 <style>
+  html {
+    color-scheme: light;
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
   :root {
     --bg: #eef2ed;
     --paper: #f8faf7;
@@ -83,6 +109,11 @@
     display: inline-flex;
     gap: 0.6rem;
     flex-wrap: wrap;
+  }
+
+  .theme-toggle {
+    min-width: 7.75rem;
+    justify-content: center;
   }
 
   .btn {
@@ -545,6 +576,169 @@
     color: #7c2319;
   }
 
+  html[data-theme="dark"] body {
+    color: #e4edf1;
+    background:
+      radial-gradient(circle at 10% 8%, rgba(53, 117, 138, 0.24), transparent 30%),
+      radial-gradient(circle at 86% 15%, rgba(156, 100, 31, 0.24), transparent 26%),
+      radial-gradient(circle at 18% 84%, rgba(18, 116, 108, 0.24), transparent 26%),
+      linear-gradient(165deg, #0f171c 0%, #101b20 52%, #0f1a1f 100%);
+  }
+
+  html[data-theme="dark"] .panel {
+    background: color-mix(in srgb, #132127 92%, #0f171c 8%);
+    border-color: #2d424d;
+    box-shadow: 0 14px 30px rgba(3, 9, 12, 0.4);
+  }
+
+  html[data-theme="dark"] .subline,
+  html[data-theme="dark"] .stat-label,
+  html[data-theme="dark"] .meta-label,
+  html[data-theme="dark"] .task-id,
+  html[data-theme="dark"] .empty {
+    color: #9fb0b8;
+  }
+
+  html[data-theme="dark"] .btn-soft {
+    border-color: #33505d;
+    background: #18262d;
+    color: #dce7eb;
+  }
+
+  html[data-theme="dark"] .btn-soft:hover {
+    background: #1c2d35;
+  }
+
+  html[data-theme="dark"] .stat {
+    background: linear-gradient(180deg, #1a2930 0%, #152228 100%);
+    border-color: #314650;
+  }
+
+  html[data-theme="dark"] .search-input,
+  html[data-theme="dark"] .chip,
+  html[data-theme="dark"] .task-btn.cancel,
+  html[data-theme="dark"] .task-btn.delete {
+    background: #17252c;
+    border-color: #324751;
+    color: #d0dce1;
+  }
+
+  html[data-theme="dark"] .chip:hover {
+    color: #e7eff2;
+    border-color: #456474;
+  }
+
+  html[data-theme="dark"] .chip.active {
+    background: #146987;
+    border-color: #146987;
+    color: #ebf7fc;
+  }
+
+  html[data-theme="dark"] .task-card {
+    background: #132128;
+    border-color: #30454f;
+    box-shadow: 0 14px 24px rgba(2, 9, 12, 0.34);
+  }
+
+  html[data-theme="dark"] .owner-chip {
+    color: #b7d7eb;
+    background: #163042;
+    border-color: #2f5166;
+  }
+
+  html[data-theme="dark"] .status-pill.has-trace::before {
+    border-color: transparent transparent #17242d transparent;
+  }
+
+  html[data-theme="dark"] .status-pill.has-trace::after {
+    background: #17242d;
+    color: #ecf5f8;
+    border-color: #33505e;
+    box-shadow: 0 14px 22px rgba(4, 12, 15, 0.38);
+  }
+
+  html[data-theme="dark"] .status-pending {
+    color: #e4c188;
+    background: #3f2e15;
+    border-color: #765324;
+  }
+
+  html[data-theme="dark"] .status-running {
+    color: #a9d8ef;
+    background: #173243;
+    border-color: #2f5870;
+  }
+
+  html[data-theme="dark"] .status-packing {
+    color: #93d9cd;
+    background: #17352f;
+    border-color: #31625a;
+  }
+
+  html[data-theme="dark"] .status-finished {
+    color: #9fd8aa;
+    background: #1d3524;
+    border-color: #386644;
+  }
+
+  html[data-theme="dark"] .status-failed {
+    color: #e8ada7;
+    background: #3c211d;
+    border-color: #724039;
+  }
+
+  html[data-theme="dark"] .status-cancelled {
+    color: #c4ccd3;
+    background: #2a3238;
+    border-color: #48545f;
+  }
+
+  html[data-theme="dark"] .meta-box {
+    background: #16242b;
+    border-color: #30444f;
+  }
+
+  html[data-theme="dark"] details.sequence {
+    border-color: #30444f;
+    background: #152329;
+  }
+
+  html[data-theme="dark"] details.sequence summary {
+    color: #bacbd2;
+  }
+
+  html[data-theme="dark"] .sequence pre {
+    border-top-color: #2b3f49;
+    color: #c6d5db;
+    background: #122028;
+  }
+
+  html[data-theme="dark"] .task-btn.cancel {
+    color: #f2bab4;
+  }
+
+  html[data-theme="dark"] .task-btn.delete {
+    color: #ffbcb4;
+    border-color: #7f413a;
+  }
+
+  html[data-theme="dark"] .empty {
+    border-color: #37505b;
+    background: rgba(18, 33, 40, 0.84);
+  }
+
+  html[data-theme="dark"] .toast.info {
+    background: #173446;
+    border-color: #2e6077;
+    color: #b8deef;
+  }
+
+  html[data-theme="dark"] .toast.error {
+    background: #41241f;
+    border-color: #754239;
+    color: #f2b4ac;
+  }
+
   @keyframes fadeRise {
     from {
       opacity: 0;
@@ -606,6 +800,7 @@
         </div>
         <div class="hero-actions">
           <a class="btn btn-primary" href="/PSSM_GREMLIN/create_task">New Task</a>
+          <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light">Theme: Auto</button>
           <button class="btn btn-soft" type="button" id="refreshBtn">Refresh</button>
           <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
@@ -650,6 +845,7 @@
   const allTasks = {{ sorted_task_statuses | tojson }};
   const isAdmin = {{ is_admin_user | tojson }};
   const currentUser = {{ current_username | tojson }};
+  const themeStorageKey = "revodesign-theme";
 
   const state = {
     query: "",
@@ -672,6 +868,64 @@
     "gremlin: calculating co-evolution signals",
     "blast: searching for consensus profile",
   ].join("\n");
+
+  function getStoredThemeMode() {
+    try {
+      const storedTheme = window.localStorage.getItem(themeStorageKey);
+      if (storedTheme === "light" || storedTheme === "dark") {
+        return storedTheme;
+      }
+    } catch (error) {
+      // Ignore localStorage failures.
+    }
+    return "auto";
+  }
+
+  function resolveThemeMode(mode) {
+    if (mode === "light" || mode === "dark") {
+      return mode;
+    }
+    if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      return "dark";
+    }
+    return "light";
+  }
+
+  function persistThemeMode(mode) {
+    try {
+      if (mode === "auto") {
+        window.localStorage.removeItem(themeStorageKey);
+      } else {
+        window.localStorage.setItem(themeStorageKey, mode);
+      }
+    } catch (error) {
+      // Ignore localStorage failures.
+    }
+  }
+
+  function applyThemeMode(mode, persist = false) {
+    const normalizedMode = mode === "light" || mode === "dark" ? mode : "auto";
+    document.documentElement.dataset.themeMode = normalizedMode;
+    document.documentElement.dataset.theme = resolveThemeMode(normalizedMode);
+    if (persist) {
+      persistThemeMode(normalizedMode);
+    }
+    syncThemeToggle();
+  }
+
+  function syncThemeToggle() {
+    const button = document.getElementById("themeToggle");
+    if (!button) return;
+    const mode = document.documentElement.dataset.themeMode || getStoredThemeMode();
+    const effectiveTheme = document.documentElement.dataset.theme || resolveThemeMode(mode);
+    button.textContent = `Theme: ${mode.charAt(0).toUpperCase()}${mode.slice(1)}`;
+    button.setAttribute("aria-pressed", mode === "auto" ? "mixed" : String(mode === "dark"));
+    button.setAttribute(
+      "title",
+      `Theme mode ${mode}. Effective ${effectiveTheme}. Click to cycle Auto, Dark, Light.`
+    );
+    button.setAttribute("aria-label", "Cycle theme mode between auto, dark, and light");
+  }
 
   function escapeHtml(input) {
     return String(input ?? "")
@@ -990,6 +1244,33 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+    applyThemeMode(document.documentElement.dataset.themeMode || getStoredThemeMode());
+
+    const themeToggle = document.getElementById("themeToggle");
+    if (themeToggle) {
+      themeToggle.addEventListener("click", () => {
+        const currentMode = document.documentElement.dataset.themeMode || "auto";
+        const nextMode = currentMode === "auto" ? "dark" : (currentMode === "dark" ? "light" : "auto");
+        applyThemeMode(nextMode, true);
+      });
+    }
+
+    if (window.matchMedia) {
+      const darkMedia = window.matchMedia("(prefers-color-scheme: dark)");
+      const syncToSystemTheme = (event) => {
+        if ((document.documentElement.dataset.themeMode || getStoredThemeMode()) !== "auto") {
+          return;
+        }
+        document.documentElement.dataset.theme = event.matches ? "dark" : "light";
+        syncThemeToggle();
+      };
+      if (darkMedia.addEventListener) {
+        darkMedia.addEventListener("change", syncToSystemTheme);
+      } else if (darkMedia.addListener) {
+        darkMedia.addListener(syncToSystemTheme);
+      }
+    }
+
     updateSummary();
     renderTasks();
 

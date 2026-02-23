@@ -7,7 +7,33 @@
 <link rel="icon" type="image/svg+xml" href="https://revodesign.yaoyy.moe/images/logo.svg"/>
 <link rel="mask-icon" href="https://revodesign.yaoyy.moe/images/logo.svg" color="#000000"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<script>
+  (function() {
+    const storageKey = "revodesign-theme";
+    let themeMode = "auto";
+    try {
+      const storedTheme = window.localStorage.getItem(storageKey);
+      if (storedTheme === "light" || storedTheme === "dark") {
+        themeMode = storedTheme;
+      }
+    } catch (error) {
+      // Keep light theme when browser storage is unavailable.
+    }
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const resolvedTheme = themeMode === "auto" ? (prefersDark ? "dark" : "light") : themeMode;
+    document.documentElement.dataset.themeMode = themeMode;
+    document.documentElement.dataset.theme = resolvedTheme;
+  })();
+</script>
 <style>
+  html {
+    color-scheme: light;
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
   :root {
     --bg: #eef2ed;
     --paper: #f8faf7;
@@ -79,6 +105,11 @@
     display: inline-flex;
     gap: 0.6rem;
     flex-wrap: wrap;
+  }
+
+  .theme-toggle {
+    min-width: 7.75rem;
+    justify-content: center;
   }
 
   .btn {
@@ -268,6 +299,91 @@
     font-size: 0.84rem;
   }
 
+  html[data-theme="dark"] body {
+    color: #e4edf1;
+    background:
+      radial-gradient(circle at 10% 8%, rgba(53, 117, 138, 0.24), transparent 30%),
+      radial-gradient(circle at 86% 15%, rgba(156, 100, 31, 0.24), transparent 26%),
+      radial-gradient(circle at 18% 84%, rgba(18, 116, 108, 0.24), transparent 26%),
+      linear-gradient(165deg, #0f171c 0%, #101b20 52%, #0f1a1f 100%);
+  }
+
+  html[data-theme="dark"] .panel {
+    background: color-mix(in srgb, #132127 92%, #0f171c 8%);
+    border-color: #2d424d;
+    box-shadow: 0 14px 30px rgba(3, 9, 12, 0.4);
+  }
+
+  html[data-theme="dark"] .subline,
+  html[data-theme="dark"] .field-label,
+  html[data-theme="dark"] .muted,
+  html[data-theme="dark"] .info-list {
+    color: #a2b4bc;
+  }
+
+  html[data-theme="dark"] .btn-soft {
+    border-color: #33505d;
+    background: #18262d;
+    color: #dce7eb;
+  }
+
+  html[data-theme="dark"] .btn-soft:hover {
+    background: #1c2d35;
+  }
+
+  html[data-theme="dark"] .input-zone {
+    border-color: #30444f;
+    background: #132128;
+  }
+
+  html[data-theme="dark"] .file-input,
+  html[data-theme="dark"] .text-input,
+  html[data-theme="dark"] .sequence-input {
+    border-color: #324751;
+    background: #17252c;
+    color: #d8e4e9;
+  }
+
+  html[data-theme="dark"] .editor-zone {
+    border-color: #30444f;
+    background: #152329;
+  }
+
+  html[data-theme="dark"] .preview {
+    border-color: #30444f;
+    background: #132127;
+    color: #c5d5db;
+  }
+
+  html[data-theme="dark"] .status {
+    border-color: #30444f;
+    background: #15242b;
+    color: #c0d0d7;
+  }
+
+  html[data-theme="dark"] .status.busy {
+    background: #163446;
+    border-color: #2e6077;
+    color: #b8deef;
+  }
+
+  html[data-theme="dark"] .status.ok {
+    background: #173427;
+    border-color: #35634a;
+    color: #b6e1c1;
+  }
+
+  html[data-theme="dark"] .status.error {
+    background: #41241f;
+    border-color: #754239;
+    color: #f2b4ac;
+  }
+
+  html[data-theme="dark"] .info-panel {
+    border-color: #30444f;
+    background: linear-gradient(180deg, #1a2930 0%, #152228 100%);
+  }
+
   @keyframes fadeRise {
     from {
       opacity: 0;
@@ -305,6 +421,7 @@
           <p class="subline">Upload a FASTA file and queue a secured compute job for downstream GREMLIN and PSSM analysis.</p>
         </div>
         <div class="hero-actions">
+          <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light">Theme: Auto</button>
           <a class="btn btn-soft" href="/PSSM_GREMLIN/dashboard">Dashboard</a>
           <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
@@ -359,6 +476,65 @@ Length: 0 residues</div>
   const statusDiv = document.getElementById("uploadStatus");
   const clearButton = document.getElementById("clearButton");
   const uploadButton = document.getElementById("uploadButton");
+  const themeStorageKey = "revodesign-theme";
+
+  function getStoredThemeMode() {
+    try {
+      const storedTheme = window.localStorage.getItem(themeStorageKey);
+      if (storedTheme === "light" || storedTheme === "dark") {
+        return storedTheme;
+      }
+    } catch (error) {
+      // Ignore localStorage failures.
+    }
+    return "auto";
+  }
+
+  function resolveThemeMode(mode) {
+    if (mode === "light" || mode === "dark") {
+      return mode;
+    }
+    if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      return "dark";
+    }
+    return "light";
+  }
+
+  function persistThemeMode(mode) {
+    try {
+      if (mode === "auto") {
+        window.localStorage.removeItem(themeStorageKey);
+      } else {
+        window.localStorage.setItem(themeStorageKey, mode);
+      }
+    } catch (error) {
+      // Ignore localStorage failures.
+    }
+  }
+
+  function applyThemeMode(mode, persist = false) {
+    const normalizedMode = mode === "light" || mode === "dark" ? mode : "auto";
+    document.documentElement.dataset.themeMode = normalizedMode;
+    document.documentElement.dataset.theme = resolveThemeMode(normalizedMode);
+    if (persist) {
+      persistThemeMode(normalizedMode);
+    }
+    syncThemeToggle();
+  }
+
+  function syncThemeToggle() {
+    const button = document.getElementById("themeToggle");
+    if (!button) return;
+    const mode = document.documentElement.dataset.themeMode || getStoredThemeMode();
+    const effectiveTheme = document.documentElement.dataset.theme || resolveThemeMode(mode);
+    button.textContent = `Theme: ${mode.charAt(0).toUpperCase()}${mode.slice(1)}`;
+    button.setAttribute("aria-pressed", mode === "auto" ? "mixed" : String(mode === "dark"));
+    button.setAttribute(
+      "title",
+      `Theme mode ${mode}. Effective ${effectiveTheme}. Click to cycle Auto, Dark, Light.`
+    );
+    button.setAttribute("aria-label", "Cycle theme mode between auto, dark, and light");
+  }
 
   function setStatus(message, kind = "") {
     statusDiv.className = "status" + (kind ? ` ${kind}` : "");
@@ -431,6 +607,32 @@ Length: 0 residues</div>
   sequenceInput.addEventListener("input", () => {
     refreshSequencePreview();
   });
+
+  applyThemeMode(document.documentElement.dataset.themeMode || getStoredThemeMode());
+  const themeToggle = document.getElementById("themeToggle");
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      const currentMode = document.documentElement.dataset.themeMode || "auto";
+      const nextMode = currentMode === "auto" ? "dark" : (currentMode === "dark" ? "light" : "auto");
+      applyThemeMode(nextMode, true);
+    });
+  }
+
+  if (window.matchMedia) {
+    const darkMedia = window.matchMedia("(prefers-color-scheme: dark)");
+    const syncToSystemTheme = (event) => {
+      if ((document.documentElement.dataset.themeMode || getStoredThemeMode()) !== "auto") {
+        return;
+      }
+      document.documentElement.dataset.theme = event.matches ? "dark" : "light";
+      syncThemeToggle();
+    };
+    if (darkMedia.addEventListener) {
+      darkMedia.addEventListener("change", syncToSystemTheme);
+    } else if (darkMedia.addListener) {
+      darkMedia.addListener(syncToSystemTheme);
+    }
+  }
 
   refreshSequencePreview();
 
