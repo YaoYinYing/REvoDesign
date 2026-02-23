@@ -48,7 +48,7 @@ help:
 	@echo "  reinstall              Reinstall after code changes"
 	@echo "  compile-ui             Compile UI to Python code"
 	@echo "  translate              Translate UI translation into binaries"
-	@echo "  prepare-test           Run pip to install pytest-related packages"
+	@echo "  prepare-test           Run pip to install pytest-related packages and server-test deps"
 	@echo "  test                   Run the UnitTest suite"
 	@echo "  all-test               Run all tests (firstly the parallel(also the fastest), secondly the serial(also the slower), finally the slowest) "
 	@echo "  fast-test              Run all fast tests (first order)"
@@ -120,7 +120,8 @@ translate:
 	stage=release bash tools/translate.sh
 
 prepare-test:
-	python -m pip install pytest pytest-cov pytest-order coverage -q --no-cache-dir  
+	python -m pip install pytest pytest-cov pytest-order coverage -q --no-cache-dir
+	python -m pip install "celery[redis]==5.3.4" docker==7.1.0 Flask==3.1.3 Flask-HTTPAuth==4.8.0 SQLAlchemy==2.0.46 -q --no-cache-dir
 
 # unit test
 test:
@@ -183,7 +184,7 @@ kw-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)  -k $(PYTEST_KW) -vvv -x
+	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH) -k  $(PYTEST_KW) -vvv
 	cp $(TESTDIR)/.coverage* .
 
 # all test with keyword, under pdb
@@ -241,10 +242,9 @@ clean:
 	find . -name "*.orig" -exec rm -v {} \;
 	find . -name ".coverage.*" -exec rm -v {} \;
 	find . -name ".DS_Store" -exec rm -v {} \;
-	find . -name "*.fasta" -exec rm -v {} \;
 	find . -name "*.cif" -exec rm -v {} \;
 	rm -rvf build dist MANIFEST *.egg-info __pycache__ .coverage .cache .pytest_cache $(PROJECT)/_version.py tests/testdata/pssm/1nww_A_ascii_mtx_file.csv
 	rm -rvf $(TESTDIR) dask-worker-space
 	rm -rvf logs surface_residue_records mutations_design_profile pockets temperal_pdb analysis screenshots
-	rm -rvf tests/logs tests/surface_residue_records tests/mutations_design_profile tests/pockets tests/temperal_pdb tests/analysis/ gremlin_co_evolved_pairs/ seg_chain_resn_sel/ seg_chainA_resn_sel/ mutant_pdbs/
+	rm -rvf tests/logs tests/surface_residue_records tests/mutations_design_profile tests/pockets tests/temperal_pdb tests/analysis/ gremlin_co_evolved_pairs/ seg_chain_resn_sel/ seg_chainA_resn_sel/ mutant_pdbs/ playground/server_test
 	# git clean -ffdx

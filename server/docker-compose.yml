@@ -1,0 +1,107 @@
+# version: "3.9"
+
+x-common-env: &common-env
+  SERVER_DIR: ${SERVER_DIR}
+  DB_UNIREF30: ${DB_UNIREF30}
+  DB_UNIREF90: ${DB_UNIREF90}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  BROKER_URL: ${BROKER_URL:-redis://redis:6379/0}
+  RESULT_BACKEND: ${RESULT_BACKEND:-redis://redis:6379/0}
+  NPROC: ${NPROC:-8}
+  RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
+  RUNNER_UID: ${RUNNER_UID:-1000}
+  RUNNER_GID: ${RUNNER_GID:-1000}
+  USERS_FILE: ${USERS_FILE}
+  LOG_DIR: ${LOG_DIR}
+  PUBLIC_DASHBOARD: ${PUBLIC_DASHBOARD:-false}
+  ADMIN_USERS: ${ADMIN_USERS:-admin}
+
+x-docker-socket-access: &docker-socket-access
+  group_add:
+    - "${DOCKER_GID:-998}"
+    - "0"
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    user: ${RUNNER_UID}:${RUNNER_GID}
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - redis-data:/data
+
+  web:
+    image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root:latest}
+    build:
+      context: .
+      dockerfile: docker/server/Dockerfile
+      args:
+        RUNNER_UID: ${RUNNER_UID}
+        RUNNER_GID: ${RUNNER_GID}
+        RUNNER_USERNAME: ${RUNNER_USERNAME}
+        RUNNER_GROUP: ${RUNNER_GROUP}
+    environment:
+      <<: *common-env
+    restart: unless-stopped
+    user: ${RUNNER_UID}:${RUNNER_GID}
+    depends_on:
+      - redis
+    <<: *docker-socket-access
+    command: >-
+      gunicorn -w ${GUNICORN_WORKERS:-2}
+      -b 0.0.0.0:${PORT:-8080}
+      --access-logfile ${LOG_DIR}/gunicorn-access.log
+      --error-logfile ${LOG_DIR}/gunicorn-error.log
+      pssm_gremlin:app
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    volumes:
+      - ${SERVER_DIR}:${SERVER_DIR}
+      - ${DB_UNIREF30}:${DB_UNIREF30}:ro
+      - ${DB_UNIREF90}:${DB_UNIREF90}:ro
+      - ${USERS_FILE}:${USERS_FILE}:ro
+      - ${LOG_DIR}:${LOG_DIR}
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  worker:
+    image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root:latest}
+    restart: unless-stopped
+    user: ${RUNNER_UID}:${RUNNER_GID}
+    <<: *docker-socket-access
+
+    environment:
+      <<: *common-env
+    depends_on:
+      - redis
+    command: >-
+      celery -A pssm_gremlin.celery worker
+      --loglevel=info
+      --concurrency=${WORKER_CONCURRENCY:-2}
+      --logfile ${LOG_DIR}/celery-worker.log
+    volumes:
+      - ${SERVER_DIR}:${SERVER_DIR}
+      - ${DB_UNIREF30}:${DB_UNIREF30}:ro
+      - ${DB_UNIREF90}:${DB_UNIREF90}:ro
+      - ${USERS_FILE}:${USERS_FILE}:ro
+      - ${LOG_DIR}:${LOG_DIR}
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  runner:
+    profiles: ["runner"]
+    user: ${RUNNER_UID}:${RUNNER_GID}
+    image: ${PSSM_GREMLIN_RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
+    build:
+      context: .
+      dockerfile: docker/runner/Dockerfile
+      args:
+        RUNNER_UID: ${RUNNER_UID}
+        RUNNER_GID: ${RUNNER_GID}
+        RUNNER_USERNAME: ${RUNNER_USERNAME}
+        RUNNER_GROUP: ${RUNNER_GROUP}
+    environment:
+      <<: *common-env
+    command: ["sleep", "infinity"]
+    restart: "no"
+
+volumes:
+  redis-data:

@@ -1,3 +1,8 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+
 import plotly.graph_objects as go
 from PyQt5.QtCore import QObject, QUrl, pyqtSlot
 from PyQt5.QtWebEngineWidgets import QWebEngineView

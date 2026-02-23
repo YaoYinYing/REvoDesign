@@ -1,3 +1,8 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+
 #!/usr/bin/env python
 
 # # GREMLIN_TF
@@ -31,7 +36,7 @@ gremlin_iter = int(sys.argv[3])
 # for HPC multi-processors in single node
 # edited by Yinying Yao
 
-cpu_num = int(os.environ.get("GREMLIN_CALC_CPU_NUM", 1))
+cpu_num = max(1, int(os.environ.get("GREMLIN_CALC_CPU_NUM", 1)))
 
 config = tf.ConfigProto(
     device_count={"CPU": cpu_num},

@@ -26,7 +26,7 @@ coverage.xml
 *.pdf
 draws/DALL·E 2024-01-15 23.45.31 - Create a simplified website logo with high contrast and bold hook lines, based on the image of a human pilot and a robot co-pilot standing side by sid.ai
 logs/*.jsonl
-*.fasta
+./*.fasta
 *.cif
 pockets/*
 mutations_design_profile/*
@@ -113,3 +113,9 @@ src/REvoDesign/phylogenetics/.ipynb_checkpoints/validate-checkpoint.ipynb
 mock/
 /.venv_*
 T5aH2-HEM-T31_initial_GREMLIN_mtx_zscore.png
+/tests/data/msa/miniuc
+/tests/data/msa/testminiuc
+server/.env.production
+server/.env
+/playground/miniuc
+/playground/server_test

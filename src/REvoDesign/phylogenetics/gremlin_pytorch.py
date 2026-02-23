@@ -1,3 +1,8 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+
 """
 GREMLIN (PyTorch version, with a custom "opt_adam" replicating the original)
 Yinying Yao rewrite this PyTorch version with the help of ChatGPT o1

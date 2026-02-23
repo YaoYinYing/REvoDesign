@@ -1,3 +1,8 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+
 """
 pytest configuration
 """
@@ -9,9 +14,11 @@ import json
 import os
 import platform
 import shutil
+import subprocess
 import time
 import warnings
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 from unittest.mock import MagicMock, patch
 
@@ -39,6 +46,11 @@ from .data import TestData
 from .data.test_data import KeyData
 
 REPO_DIR = os.path.join(os.path.dirname(__file__), "..")
+TESTS_DIR = Path(__file__).resolve().parent
+REPO_ROOT_PATH = TESTS_DIR.parent
+MSA_ROOT = TESTS_DIR / "data" / "msa"
+MINIUC_ROOT = MSA_ROOT / "miniuc"
+TESTMINIUC_ROOT = MSA_ROOT / "testminiuc"
 
 # mostly mock on data and cache to isolated from user's production system
 TEST_ROOT = os.path.abspath(".")
@@ -931,8 +943,6 @@ def test_tmp_dir():
 
 
 def has_native_rosetta():
-    import subprocess
-
     result = subprocess.run(["whichrosetta", "rosetta_scripts"], capture_output=True, text=True)
     # Check that the command was successful
     has_rosetta_installed = "rosetta_scripts" in result.stdout
@@ -956,6 +966,162 @@ has_docker = shutil.which("docker") is not None
 ENABLE_ROSETTA_CONTAINER_NODE_TEST = os.environ.get("ENABLE_ROSETTA_CONTAINER_NODE_TEST", "NO") == "YES"
 
 WINDOWS_WITH_WSL = platform.system() == "Windows" and shutil.which("wsl") is not None
+
+
+def _miniuc_ready() -> bool:
+    uc30 = MINIUC_ROOT / "uc30"
+    uc90 = MINIUC_ROOT / "uc90"
+    uc30_ready = uc30.exists() and any(uc30.glob("*_cs219.ffdata"))
+    uc90_ready = uc90.exists() and any(uc90.glob("*.psq"))
+    return uc30_ready and uc90_ready
+
+
+def _missing_miniuc_tools() -> list[str]:
+    required = ("makeblastdb", "psiblast", "hhblits", "cstranslate", "ffindex_from_fasta")
+    return [cmd for cmd in required if shutil.which(cmd) is None]
+
+
+def _run_build_command(cmd: list[str] | str, *, cwd: Path) -> None:
+    try:
+        subprocess.run(
+            cmd,
+            cwd=str(cwd),
+            check=True,
+            shell=isinstance(cmd, str),
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        pytest.skip(f"Failed to rebuild miniuc test databases via {cmd!r}: {exc}")
+
+
+def _ensure_miniuc_databases_ready() -> None:
+    if _miniuc_ready():
+        return
+
+    missing = _missing_miniuc_tools()
+    if missing:
+        pytest.skip(f"miniuc mock databases require the following binaries: {', '.join(missing)}")
+
+    conda_prefix = os.environ.get("CONDA_PREFIX")
+    if not conda_prefix:
+        pytest.skip("CONDA_PREFIX is not set. Unable to locate HH-suite data to rebuild miniuc mock databases.")
+
+    uc30 = MINIUC_ROOT / "uc30"
+    uc90 = MINIUC_ROOT / "uc90"
+    test_uc30 = TESTMINIUC_ROOT / "uc30"
+    test_uc90 = TESTMINIUC_ROOT / "uc90"
+
+    for path in (uc30, uc90, test_uc30, test_uc90):
+        path.mkdir(parents=True, exist_ok=True)
+
+    # copy `MSA_ROOT / "2KL8_blast.fasta"` as `uc90 / "uniref90.fasta"`
+    shutil.copy(MSA_ROOT / "2KL8_blast.fasta", uc90 / "uniref90.fasta")
+
+    _run_build_command(
+        [
+            "makeblastdb",
+            "-in",
+            str(uc90 / "uniref90.fasta"),
+            "-dbtype",
+            "prot",
+            "-parse_seqids",
+            "-out",
+            str(uc90 / "uniref90"),
+        ],
+        cwd=REPO_ROOT_PATH,
+    )
+    _run_build_command(
+        [
+            "psiblast",
+            "-query",
+            str(MSA_ROOT / "2KL8.fasta"),
+            "-db",
+            str(uc90 / "uniref90"),
+            "-out_pssm",
+            str(test_uc90 / "2KL8.ckp"),
+            "-out_ascii_pssm",
+            str(test_uc90 / "2KL8_ascii.mtx"),
+            "-out",
+            str(test_uc90 / "2KL8.out"),
+            "-evalue",
+            "0.01",
+            "-num_iterations",
+            "3",
+            "-num_threads",
+            "2",
+        ],
+        cwd=REPO_ROOT_PATH,
+    )
+    ffindex_cmd = "ffindex_from_fasta -s miniuc30_a3m.ff{data,index} "+f"{REPO_DIR}/tests/data/msa/2KL8.i90c75_aln.fas"
+    _run_build_command(["bash", "-lc", ffindex_cmd], cwd=uc30)
+    _run_build_command(
+        [
+            "cstranslate",
+            "-A",
+            str(Path(conda_prefix) / "data" / "cs219.lib"),
+            "-D",
+            str(Path(conda_prefix) / "data" / "context_data.crf"),
+            "-x",
+            "0.3",
+            "-c",
+            "4",
+            "-f",
+            "-i",
+            "miniuc30_a3m",
+            "-o",
+            "miniuc30_cs219",
+            "-I",
+            "a3m",
+            "-b",
+        ],
+        cwd=uc30,
+    )
+    _run_build_command(
+        [
+            "hhblits",
+            "-i",
+            str(MSA_ROOT / "2KL8.fasta"),
+            "-oa3m",
+            str(test_uc30 / "2KL8.a3m"),
+            "-o",
+            str(test_uc30 / "2KL8.hhr"),
+            "-d",
+            str(uc30 / "miniuc30"),
+            "-n",
+            "4",
+            "-e",
+            "1e-10",
+            "-mact",
+            "0.35",
+            "-maxfilt",
+            "100000000",
+            "-neffmax",
+            "20",
+            "-cpu",
+            "2",
+            "-nodiff",
+            "-realign_max",
+            "10000000",
+            "-maxmem",
+            "1",
+        ],
+        cwd=REPO_ROOT_PATH,
+    )
+
+    if not _miniuc_ready():
+        pytest.skip("miniuc mock databases are unavailable even after rebuild attempt.")
+
+
+@pytest.fixture(scope="session")
+def miniuc_databases():
+    _ensure_miniuc_databases_ready()
+    uniref30_prefix = MINIUC_ROOT / "uc30" / "miniuc30"
+    uniref90_prefix = MINIUC_ROOT / "uc90" / "uniref90"
+    return {
+        "uniref30_prefix": str(uniref30_prefix),
+        "uniref90_prefix": str(uniref90_prefix),
+        "uniref30_mount": str(uniref30_prefix.parent),
+        "uniref90_mount": str(uniref90_prefix.parent),
+    }
 
 
 @pytest.fixture(

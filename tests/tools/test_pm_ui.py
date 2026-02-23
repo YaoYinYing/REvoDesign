@@ -1,3 +1,8 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+
 from unittest.mock import patch
 
 import pytest
@@ -24,37 +29,32 @@ def test_pm_dialog_refresh_extras_table_empty(pm_test_worker: PmTestWorker):
         assert len(pm_test_worker.plugin.extra_checkbox.items.entities) == 1
         patched_fetch.assert_called_once()
 
-
 @pytest.mark.parametrize(
-    "size_before, size_after, preset, triger",
+    "size_change, preset, triger",
     [
         [
-            (490, 547),
-            (652, 534),
+            "increase",
             None,
             "radioButton_extra_customized",
         ],
         [
-            (652, 534),
-            (490, 534),
+            "decrease",
             "radioButton_extra_customized",
             "radioButton_extra_none",
         ],
         [
-            (652, 534),
-            (490, 534),
+            "decrease",
             "radioButton_extra_customized",
             "radioButton_extra_everything",
         ],
         [
-            (490, 534),
-            (652, 534),
+            "increase",
             "radioButton_extra_everything",
             "radioButton_extra_customized",
         ],
     ],
 )
-def test_pm_dialog_extras_panel_expand_collapse(size_before, size_after, preset, triger, pm_test_worker: PmTestWorker):
+def test_pm_dialog_extras_panel_expand_collapse(size_change, preset, triger, pm_test_worker: PmTestWorker):
 
     with patch.object(pm_test_worker.plugin, "resize_extra_widget") as patched_resize:
         if preset:
@@ -79,11 +79,8 @@ def test_pm_dialog_extras_panel_expand_collapse(size_before, size_after, preset,
             pm_test_worker.qtbot.waitUntil(_changed, timeout=2000)
             return dialog.size().width()
 
-        expected_direction = 0
-        if size_after[0] > size_before[0]:
-            expected_direction = 1
-        elif size_after[0] < size_before[0]:
-            expected_direction = -1
+        direction_map = {"increase": 1, "decrease": -1}
+        expected_direction = direction_map.get(size_change, 0)
 
         if expected_direction:
             final_width = wait_for_width_change(before_size.width(), expected_direction)

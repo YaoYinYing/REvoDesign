@@ -2,17 +2,15 @@ name: Docker Image for Server
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'server/docker/Dockerfile' # Monitor the entire 'docker' directory
-      - '.github/workflows/docker-image.yml' # monitor the main workflow script. enable it again if in necessary maintainances.
-
-    branches:
-      - main
 
 jobs:
   build-docker-image:
     runs-on: ubuntu-latest
+    env:
+      RUNNER_UID: "1000"
+      RUNNER_GID: "1000"
+      RUNNER_USERNAME: "revodesign"
+      RUNNER_GROUP: "revodesign_appgroup"
     
     steps:
     - name: Checkout code
@@ -23,16 +21,32 @@ jobs:
         echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         echo "DATE: ${{ env.DATE }}"
     
-    - name: Build Docker image
+    - name: Build runner Docker image
       run: |
-        cd server/
-        docker build -f docker/Dockerfile -t revodesign-pssm-gremlin .
-        cd ..
+        docker build \
+          --build-arg RUNNER_UID="${RUNNER_UID}" \
+          --build-arg RUNNER_GID="${RUNNER_GID}" \
+          --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
+          --build-arg RUNNER_GROUP="${RUNNER_GROUP}" \
+          -f server/docker/runner/Dockerfile server \
+          -t revodesign-pssm-gremlin-non-root
+
+    - name: Build server Docker image
+      run: |
+        docker build \
+          --build-arg RUNNER_UID="${RUNNER_UID}" \
+          --build-arg RUNNER_GID="${RUNNER_GID}" \
+          --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
+          --build-arg RUNNER_GROUP="${RUNNER_GROUP}" \
+          -f server/docker/server/Dockerfile server \
+          -t revodesign-pssm-gremlin-server-non-root
 
     - name: Tag Docker image with date and latest
       run: |
-        docker tag revodesign-pssm-gremlin yaoyinying/revodesign-pssm-gremlin:${{ env.DATE }}
-        docker tag revodesign-pssm-gremlin yaoyinying/revodesign-pssm-gremlin:latest
+        docker tag revodesign-pssm-gremlin-non-root yaoyinying/revodesign-pssm-gremlin-non-root:${{ env.DATE }}
+        docker tag revodesign-pssm-gremlin-non-root yaoyinying/revodesign-pssm-gremlin-non-root:latest
+        docker tag revodesign-pssm-gremlin-server-non-root yaoyinying/revodesign-pssm-gremlin-server-non-root:${{ env.DATE }}
+        docker tag revodesign-pssm-gremlin-server-non-root yaoyinying/revodesign-pssm-gremlin-server-non-root:latest
 
     - name: Log in to Docker Hub
       run: echo "${{ secrets.DOCKER_GITHUB_REPO_SECRET }}" | docker login -u yaoyinying --password-stdin
@@ -40,14 +54,16 @@ jobs:
         
     - name: Push Docker image
       run: |
-        docker push yaoyinying/revodesign-pssm-gremlin:${{ env.DATE }}
-        docker push yaoyinying/revodesign-pssm-gremlin:latest
+        docker push yaoyinying/revodesign-pssm-gremlin-non-root:${{ env.DATE }}
+        docker push yaoyinying/revodesign-pssm-gremlin-non-root:latest
+        docker push yaoyinying/revodesign-pssm-gremlin-server-non-root:${{ env.DATE }}
+        docker push yaoyinying/revodesign-pssm-gremlin-server-non-root:latest
 
     - name: Refresh Docker Hub Description
       uses: peter-evans/dockerhub-description@v3
       with:
         username: yaoyinying
         password: ${{ secrets.DOCKER_GITHUB_REPO_SECRET }}
-        repository: yaoyinying/revodesign-pssm-gremlin
+        repository: yaoyinying/revodesign-pssm-gremlin-non-root
         readme-filepath: ./server/README.md
         enable-url-completion: true

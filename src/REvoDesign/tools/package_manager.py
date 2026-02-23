@@ -1,3 +1,8 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+
 # pylint: disable=too-many-lines
 # pylint: disable=import-outside-toplevel
 # pylint: disable=unused-argument

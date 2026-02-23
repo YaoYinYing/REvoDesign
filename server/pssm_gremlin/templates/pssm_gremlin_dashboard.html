@@ -3,151 +3,1442 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>REvoDesign: PSSM_GREMLIN Task Submission Panel</title>
+<title>REvoDesign | PSSM_GREMLIN Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="https://revodesign.yaoyy.moe/images/logo.svg"/>
 <link rel="mask-icon" href="https://revodesign.yaoyy.moe/images/logo.svg" color="#000000"/>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<script>
+  (function() {
+    const storageKey = "revodesign-theme";
+    let themeMode = "auto";
+    try {
+      const storedTheme = window.localStorage.getItem(storageKey);
+      if (storedTheme === "light" || storedTheme === "dark") {
+        themeMode = storedTheme;
+      }
+    } catch (error) {
+      // Keep light theme when browser storage is unavailable.
+    }
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const resolvedTheme = themeMode === "auto" ? (prefersDark ? "dark" : "light") : themeMode;
+    document.documentElement.dataset.themeMode = themeMode;
+    document.documentElement.dataset.theme = resolvedTheme;
+  })();
+</script>
 <style>
-  /* Additional CSS if needed */
-  .grid-cell {
-    width: 100px;
-    height: 100px;
+  html {
+    color-scheme: light;
   }
-  .task:hover .task-details {
-    display: block;
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
   }
-  .task-details {
+
+  :root {
+    --bg: #eef2ed;
+    --paper: #f8faf7;
+    --ink: #1d2a2f;
+    --muted: #5d6c72;
+    --line: #d4ddd8;
+    --accent: #0f4f63;
+    --pending: #b06c14;
+    --running: #0d5f87;
+    --packing: #0d6e66;
+    --finished: #1c6b2f;
+    --failed: #9d2d1f;
+    --cancelled: #6d747c;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: "IBM Plex Sans", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 8% 6%, rgba(15, 79, 99, 0.12), transparent 28%),
+      radial-gradient(circle at 88% 14%, rgba(176, 108, 20, 0.12), transparent 24%),
+      radial-gradient(circle at 18% 85%, rgba(13, 110, 102, 0.12), transparent 24%),
+      linear-gradient(170deg, #f2f5f1 0%, #e8eee9 50%, #e1e9e3 100%);
+    min-height: 100vh;
+    line-height: 1.45;
+  }
+
+  .page {
+    width: min(1200px, calc(100% - 2rem));
+    margin: 1.2rem auto 2.4rem;
+  }
+
+  .panel {
+    background: color-mix(in srgb, var(--paper) 92%, white 8%);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 12px 28px rgba(29, 42, 47, 0.08);
+    backdrop-filter: blur(5px);
+  }
+
+  .hero {
+    padding: 1.2rem 1.2rem 1rem;
+    animation: fadeRise 420ms ease-out;
+  }
+
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: start;
+    flex-wrap: wrap;
+  }
+
+  .headline {
+    margin: 0;
+    font-family: "Source Serif 4", serif;
+    font-size: clamp(1.4rem, 2.4vw, 2rem);
+    letter-spacing: 0.01em;
+  }
+
+  .subline {
+    margin: 0.4rem 0 0;
+    color: var(--muted);
+    font-size: 0.96rem;
+  }
+
+  .hero-actions {
+    display: inline-flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .theme-toggle {
+    min-width: 7.75rem;
+    justify-content: center;
+  }
+
+  .btn {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.48rem 0.95rem;
+    font-weight: 600;
+    font-size: 0.87rem;
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #f6fbff;
+    box-shadow: 0 10px 18px rgba(15, 79, 99, 0.25);
+  }
+
+  .btn-primary:hover {
+    background: #0c4657;
+  }
+
+  .btn-soft {
+    border-color: var(--line);
+    background: #ffffff;
+    color: var(--ink);
+  }
+
+  .stats {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(130px, 1fr));
+    gap: 0.65rem;
+  }
+
+  .stat {
+    background: linear-gradient(180deg, #ffffff 0%, #f3f8f5 100%);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .stat-label {
+    font-size: 0.73rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .stat-value {
+    margin: 0.2rem 0 0;
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .controls {
+    margin-top: 1rem;
+    padding: 0.95rem;
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    flex-wrap: wrap;
+    animation: fadeRise 550ms ease-out;
+  }
+
+  .search-wrap {
+    flex: 1 1 280px;
+    min-width: 240px;
+    position: relative;
+  }
+
+  .search-input {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: #ffffff;
+    border-radius: 999px;
+    padding: 0.56rem 0.95rem;
+    font-size: 0.92rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .search-input:focus {
+    border-color: color-mix(in srgb, var(--accent) 58%, white 42%);
+    box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .chip {
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: #ffffff;
+    color: var(--muted);
+    padding: 0.38rem 0.7rem;
+    font-size: 0.79rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 160ms ease;
+  }
+
+  .chip:hover {
+    color: var(--ink);
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--line) 60%);
+  }
+
+  .chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #f6fbff;
+  }
+
+  .board {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .task-card {
+    --accent-stripe: var(--accent);
+    position: relative;
+    overflow: hidden;
+    padding: 1rem 1rem 0.92rem;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: #fbfdfb;
+    box-shadow: 0 10px 22px rgba(29, 42, 47, 0.06);
+    animation: fadeRise 320ms ease-out both;
+  }
+
+  .task-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--accent-stripe);
+  }
+
+  .task-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .task-head-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.58rem;
+    min-width: 0;
+  }
+
+  .task-select-wrap {
+    padding-top: 0.1rem;
+  }
+
+  .task-select {
+    width: 1.02rem;
+    height: 1.02rem;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .task-title {
+    margin: 0;
+    font-size: 1.01rem;
+    font-weight: 700;
+    word-break: break-word;
+  }
+
+  .task-id {
+    margin: 0.16rem 0 0;
+    color: var(--muted);
+    font-size: 0.79rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  .owner-chip {
+    margin: 0.25rem 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    color: #27424c;
+    background: #eaf2f7;
+    border: 1px solid #c8dbe7;
+    border-radius: 999px;
+    padding: 0.16rem 0.5rem;
+    font-weight: 600;
+  }
+
+  .status-pill {
+    position: relative;
+    border-radius: 999px;
+    padding: 0.28rem 0.58rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+
+  .status-pill.has-trace {
+    cursor: help;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .status-trace-popover {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 14px);
+    min-width: 280px;
+    max-width: min(80vw, 420px);
+    border-radius: 12px;
+    background: #1a2c35;
+    color: #f3faf8;
+    border: 1px solid #33505c;
+    box-shadow: 0 14px 22px rgba(19, 33, 39, 0.24);
+    padding: 0.58rem 0.68rem;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.42;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 150ms ease, transform 150ms ease;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .status-trace-popover::before {
+    content: "";
+    position: absolute;
+    right: 0.95rem;
+    bottom: 100%;
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent #1a2c35 transparent;
+  }
+
+  .status-pill.has-trace:hover .status-trace-popover,
+  .status-pill.has-trace:focus-visible .status-trace-popover {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .status-trace-list {
+    display: grid;
+    gap: 0.36rem;
+  }
+
+  .status-trace-stage {
+    display: grid;
+    grid-template-columns: 1rem 1fr;
+    column-gap: 0.5rem;
+    align-items: start;
+  }
+
+  .status-trace-track {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    min-height: 0.95rem;
+  }
+
+  .status-trace-track.has-next::after {
+    content: "";
+    position: absolute;
+    top: 0.62rem;
+    bottom: -0.48rem;
+    width: 2px;
+    background: #4c6772;
+  }
+
+  .status-trace-node {
+    width: 0.66rem;
+    height: 0.66rem;
+    margin-top: 0.05rem;
+    border-radius: 999px;
+    border: 2px solid #8f9ca2;
+    background: #77838a;
+  }
+
+  .status-trace-stage.stage-done .status-trace-node {
+    background: #29a95d;
+    border-color: #52cb83;
+  }
+
+  .status-trace-stage.stage-running .status-trace-node {
+    background: #d9a127;
+    border-color: #f2c35a;
+  }
+
+  .status-trace-stage.stage-pending .status-trace-node {
+    background: #7b858b;
+    border-color: #97a2a8;
+  }
+
+  .status-trace-text {
+    color: #e8f2f6;
+    font-size: 0.75rem;
+    line-height: 1.34;
+  }
+
+  .status-pending {
+    color: #6b3f0d;
+    background: #fdf2e1;
+    border-color: #f4d2a2;
+  }
+
+  .status-running {
+    color: #0b3f59;
+    background: #e4f2fa;
+    border-color: #b9dced;
+  }
+
+  .status-packing {
+    color: #0a4f4a;
+    background: #e3f3ef;
+    border-color: #b8ddd3;
+  }
+
+  .status-finished {
+    color: #12481f;
+    background: #e7f6ea;
+    border-color: #b7dcbf;
+  }
+
+  .status-failed {
+    color: #6f2016;
+    background: #fde9e7;
+    border-color: #f4c1ba;
+  }
+
+  .status-cancelled {
+    color: #495259;
+    background: #eef1f3;
+    border-color: #d4dbe0;
+  }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(140px, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.85rem;
+  }
+
+  .meta-box {
+    border-radius: 12px;
+    background: #f6faf7;
+    border: 1px solid #dde5e0;
+    padding: 0.52rem 0.6rem;
+  }
+
+  .meta-label {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .meta-value {
+    margin: 0.1rem 0 0;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  details.sequence {
+    margin-top: 0.7rem;
+    border: 1px solid #dde5e0;
+    border-radius: 12px;
+    background: #f3f7f4;
+    overflow: hidden;
+  }
+
+  details.sequence summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.5rem 0.65rem;
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: #304048;
+  }
+
+  details.sequence summary::-webkit-details-marker {
     display: none;
   }
-  .d-flex {
-  display: flex;
-  justify-content: space-between; /* Adjusts spacing between items */
-}
 
-  
+  .sequence pre {
+    margin: 0;
+    border-top: 1px solid #d8e1dc;
+    padding: 0.55rem 0.65rem 0.7rem;
+    max-height: 150px;
+    overflow: auto;
+    font-size: 0.74rem;
+    line-height: 1.38;
+    color: #28353b;
+    background: #fbfdfb;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.72rem;
+    gap: 0.52rem;
+  }
+
+  .task-btn {
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 0.43rem 0.82rem;
+    font-weight: 700;
+    font-size: 0.77rem;
+    cursor: pointer;
+  }
+
+  .task-btn.download {
+    background: #0f4f63;
+    color: #f6fbff;
+  }
+
+  .task-btn.cancel {
+    background: #ffffff;
+    border-color: #d8e1dc;
+    color: #6b2f24;
+  }
+
+  .task-btn.delete {
+    background: #ffffff;
+    border-color: #e9c1bc;
+    color: #8b2519;
+  }
+
+  .task-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .admin-tools {
+    display: inline-flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .empty {
+    border: 1px dashed #c4d0c9;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.62);
+    padding: 1.6rem 1rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.93rem;
+    animation: fadeRise 420ms ease-out;
+  }
+
+  .toast-wrap {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    display: grid;
+    gap: 0.45rem;
+    z-index: 40;
+  }
+
+  .toast {
+    border-radius: 12px;
+    border: 1px solid;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.84rem;
+    box-shadow: 0 10px 18px rgba(29, 42, 47, 0.12);
+    animation: fadeRise 240ms ease-out;
+    max-width: 320px;
+  }
+
+  .toast.info {
+    background: #e8f3fa;
+    border-color: #b8d6e7;
+    color: #17465f;
+  }
+
+  .toast.error {
+    background: #fceceb;
+    border-color: #edc0ba;
+    color: #7c2319;
+  }
+
+  html[data-theme="dark"] body {
+    color: #e4edf1;
+    background:
+      radial-gradient(circle at 10% 8%, rgba(53, 117, 138, 0.24), transparent 30%),
+      radial-gradient(circle at 86% 15%, rgba(156, 100, 31, 0.24), transparent 26%),
+      radial-gradient(circle at 18% 84%, rgba(18, 116, 108, 0.24), transparent 26%),
+      linear-gradient(165deg, #0f171c 0%, #101b20 52%, #0f1a1f 100%);
+  }
+
+  html[data-theme="dark"] .panel {
+    background: color-mix(in srgb, #132127 92%, #0f171c 8%);
+    border-color: #2d424d;
+    box-shadow: 0 14px 30px rgba(3, 9, 12, 0.4);
+  }
+
+  html[data-theme="dark"] .subline,
+  html[data-theme="dark"] .stat-label,
+  html[data-theme="dark"] .meta-label,
+  html[data-theme="dark"] .task-id,
+  html[data-theme="dark"] .empty {
+    color: #9fb0b8;
+  }
+
+  html[data-theme="dark"] .btn-soft {
+    border-color: #33505d;
+    background: #18262d;
+    color: #dce7eb;
+  }
+
+  html[data-theme="dark"] .btn-soft:hover {
+    background: #1c2d35;
+  }
+
+  html[data-theme="dark"] .stat {
+    background: linear-gradient(180deg, #1a2930 0%, #152228 100%);
+    border-color: #314650;
+  }
+
+  html[data-theme="dark"] .search-input,
+  html[data-theme="dark"] .chip,
+  html[data-theme="dark"] .task-btn.cancel,
+  html[data-theme="dark"] .task-btn.delete {
+    background: #17252c;
+    border-color: #324751;
+    color: #d0dce1;
+  }
+
+  html[data-theme="dark"] .chip:hover {
+    color: #e7eff2;
+    border-color: #456474;
+  }
+
+  html[data-theme="dark"] .chip.active {
+    background: #146987;
+    border-color: #146987;
+    color: #ebf7fc;
+  }
+
+  html[data-theme="dark"] .task-card {
+    background: #132128;
+    border-color: #30454f;
+    box-shadow: 0 14px 24px rgba(2, 9, 12, 0.34);
+  }
+
+  html[data-theme="dark"] .owner-chip {
+    color: #b7d7eb;
+    background: #163042;
+    border-color: #2f5166;
+  }
+
+  html[data-theme="dark"] .status-trace-popover {
+    background: #17242d;
+    color: #ecf5f8;
+    border-color: #33505e;
+    box-shadow: 0 14px 22px rgba(4, 12, 15, 0.38);
+  }
+
+  html[data-theme="dark"] .status-trace-popover::before {
+    border-color: transparent transparent #17242d transparent;
+  }
+
+  html[data-theme="dark"] .status-trace-track.has-next::after {
+    background: #5a7480;
+  }
+
+  html[data-theme="dark"] .status-pending {
+    color: #e4c188;
+    background: #3f2e15;
+    border-color: #765324;
+  }
+
+  html[data-theme="dark"] .status-running {
+    color: #a9d8ef;
+    background: #173243;
+    border-color: #2f5870;
+  }
+
+  html[data-theme="dark"] .status-packing {
+    color: #93d9cd;
+    background: #17352f;
+    border-color: #31625a;
+  }
+
+  html[data-theme="dark"] .status-finished {
+    color: #9fd8aa;
+    background: #1d3524;
+    border-color: #386644;
+  }
+
+  html[data-theme="dark"] .status-failed {
+    color: #e8ada7;
+    background: #3c211d;
+    border-color: #724039;
+  }
+
+  html[data-theme="dark"] .status-cancelled {
+    color: #c4ccd3;
+    background: #2a3238;
+    border-color: #48545f;
+  }
+
+  html[data-theme="dark"] .meta-box {
+    background: #16242b;
+    border-color: #30444f;
+  }
+
+  html[data-theme="dark"] details.sequence {
+    border-color: #30444f;
+    background: #152329;
+  }
+
+  html[data-theme="dark"] details.sequence summary {
+    color: #bacbd2;
+  }
+
+  html[data-theme="dark"] .sequence pre {
+    border-top-color: #2b3f49;
+    color: #c6d5db;
+    background: #122028;
+  }
+
+  html[data-theme="dark"] .task-btn.cancel {
+    color: #f2bab4;
+  }
+
+  html[data-theme="dark"] .task-btn.delete {
+    color: #ffbcb4;
+    border-color: #7f413a;
+  }
+
+  html[data-theme="dark"] .empty {
+    border-color: #37505b;
+    background: rgba(18, 33, 40, 0.84);
+  }
+
+  html[data-theme="dark"] .toast.info {
+    background: #173446;
+    border-color: #2e6077;
+    color: #b8deef;
+  }
+
+  html[data-theme="dark"] .toast.error {
+    background: #41241f;
+    border-color: #754239;
+    color: #f2b4ac;
+  }
+
+  @keyframes fadeRise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 980px) {
+    .stats {
+      grid-template-columns: repeat(3, minmax(120px, 1fr));
+    }
+
+    .meta-grid {
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+    }
+  }
+
+  @media (max-width: 640px) {
+    .page {
+      width: calc(100% - 1rem);
+      margin-top: 0.8rem;
+    }
+
+    .hero,
+    .controls,
+    .task-card {
+      border-radius: 14px;
+    }
+
+    .stats {
+      grid-template-columns: repeat(2, minmax(110px, 1fr));
+    }
+
+    .meta-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .actions {
+      justify-content: stretch;
+    }
+
+    .task-btn {
+      flex: 1;
+    }
+  }
 </style>
 </head>
-<body class="bg-gray-50 text-gray-900 font-sans">
-<div class="container mx-auto px-4">
-  <header class="flex justify-between items-center py-4">
-    <div class="flex items-center">
-      <!-- <div class="mr-4"><svg href="https://revodesign.yaoyy.moe/images/logo.svg"></svg></div> -->
-      <strong>REvoDesign: PSSM_GREMLIN Task Submission Panel</strong>
-    </div>
-    <nav>
-      <ul class="flex space-x-4">
-        <li><a href="/PSSM_GREMLIN/create_task" class="hover:text-blue-500">Create New Task</a></li>
-        <li><a href="#" class="hover:text-blue-500">Document</a></li>
-        <li><a href="https://github.com/YaoYinYing/REvoDesign" class="hover:text-blue-500">GitHub</a></li>
-      </ul>
-    </nav>
-  </header>
+<body>
+  <main class="page">
+    <section class="panel hero">
+      <div class="hero-top">
+        <div>
+          <h1 class="headline">PSSM GREMLIN Task Dashboard</h1>
+          <p class="subline">Track computational progress with explicit runtime states, packaging lifecycle, and downloadable result archives.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="/PSSM_GREMLIN/create_task">New Task</a>
+          <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light">Theme: Auto</button>
+          <button class="btn btn-soft" type="button" id="refreshBtn">Refresh</button>
+          <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
+      </div>
 
-  <div class="flex">
-    <div class="flex-auto overflow-auto">
-      <div class="taskboard">
-        <!-- Task items will be generated by JavaScript -->
+      <div class="stats" aria-live="polite">
+        <article class="stat"><p class="stat-label">Total</p><p class="stat-value" id="totalTasks">0</p></article>
+        <article class="stat"><p class="stat-label">Pending</p><p class="stat-value" id="inQueue">0</p></article>
+        <article class="stat"><p class="stat-label">Running</p><p class="stat-value" id="inRunning">0</p></article>
+        <article class="stat"><p class="stat-label">Packing</p><p class="stat-value" id="packingResults">0</p></article>
+        <article class="stat"><p class="stat-label">Finished</p><p class="stat-value" id="finished">0</p></article>
+        <article class="stat"><p class="stat-label">Failed / Cancelled</p><p class="stat-value" id="issues">0</p></article>
       </div>
-    </div>
-    <div class="w-64 bg-white p-4 shadow-lg">
-      <div class="mb-4">
-        <h2 class="font-bold mb-2">Task Summary</h2>
-        <div>Total tasks: <span id="totalTasks">0</span></div>
-        <div>In running: <span id="inRunning">0</span></div>
-        <div>In queue: <span id="inQueue">0</span></div>
-        <div>Finished: <span id="finished">0</span></div>
-        <div>Cancelled: <span id="cancelled">0</span></div>
-        <div>Failed: <span id="failed">0</span></div>
+    </section>
+
+    <section class="panel controls" aria-label="Task filters">
+      <div class="search-wrap">
+        <input id="taskSearch" class="search-input" type="search" placeholder="Search by file name, md5, status, or sequence" autocomplete="off">
       </div>
-    </div>
-  </div>
-</div>
+      <div class="filters" id="statusFilters">
+        <button class="chip active" data-filter="all" type="button">All</button>
+        <button class="chip" data-filter="pending" type="button">Pending</button>
+        <button class="chip" data-filter="running" type="button">Running</button>
+        <button class="chip" data-filter="packing results" type="button">Packing</button>
+        <button class="chip" data-filter="finished" type="button">Finished</button>
+        <button class="chip" data-filter="failed" type="button">Failed</button>
+        <button class="chip" data-filter="cancelled" type="button">Cancelled</button>
+      </div>
+      <div class="admin-tools" id="adminTools" hidden>
+        <button class="chip" id="selectVisibleBtn" type="button">Select Visible</button>
+        <button class="chip" id="clearSelectionBtn" type="button">Clear Selection</button>
+        <button class="chip" id="deleteSelectedBtn" type="button" disabled>Delete Selected (0)</button>
+      </div>
+    </section>
+
+    <section class="board" id="taskList" aria-live="polite"></section>
+  </main>
+
+  <aside class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></aside>
 
 <script>
-    
-  const tasks = {{ sorted_task_statuses | tojson }};
-  function downloadFile(md5sum) {
-    // Extract md5sum from the button ID
+  const allTasks = {{ sorted_task_statuses | tojson }};
+  const isAdmin = {{ is_admin_user | tojson }};
+  const currentUser = {{ current_username | tojson }};
+  const themeStorageKey = "revodesign-theme";
 
-    // Find the task with the matching md5sum
-    var task = tasks.find(t => t.md5 === md5sum);
+  const state = {
+    query: "",
+    filter: "all",
+    selected: new Set(),
+  };
 
-    // Initiate download
-    window.location.href = `/PSSM_GREMLIN/api/results/${md5sum}`;
+  const statusMap = {
+    "pending": { label: "Pending", css: "status-pending", accent: "var(--pending)" },
+    "running": { label: "Running", css: "status-running", accent: "var(--running)" },
+    "packing results": { label: "Packing Results", css: "status-packing", accent: "var(--packing)" },
+    "finished": { label: "Finished", css: "status-finished", accent: "var(--finished)" },
+    "failed": { label: "Failed", css: "status-failed", accent: "var(--failed)" },
+    "cancelled": { label: "Cancelled", css: "status-cancelled", accent: "var(--cancelled)" },
+  };
 
+  const runningTraceFallback = [
+    "hhblits: searching for co-evolutionary sequences [running]",
+    "hhfilter: filtering co-evolutionary [pending]",
+    "GREMLIN: calculating co-evolution signals [pending]",
+    "PSI-Blast: searching for consensus profile [pending]",
+  ].join("\n");
 
-}
-  function cancelFile(md5sum) {
-      // Extract md5sum from the button ID
-
-      // Find the task with the matching md5sum
-      var task = tasks.find(t => t.md5 === md5sum);
-
-      fetch(`/PSSM_GREMLIN/api/cancel/${md5sum}`, {
-      method: 'GET',
-      })
-      .then(response => response.text())  // assuming the server response is text
-      .then(data => {
-          // Update the inner HTML of the statusDiv with the server response
-          alert(data);
-      })
-      .catch(error => {
-          // Handle any errors here and update the statusDiv
-          alert('An error occurred: ' + error.message);
-      });
-      
-
-  }
-  // JavaScript to handle task interactions and summary updates
-  document.addEventListener('DOMContentLoaded', function() {
-    const taskboard = document.querySelector('.taskboard');
-
-    // Function to create task elements
-    function createTaskElement(task) {
-      const taskEl = document.createElement('div');
-      taskEl.classList.add('task', 'bg-white', 'p-4', 'mb-4', 'shadow', 'cursor-pointer');
-      if (task.status === 'finished') {
-        var button_setting = `<button id="download-btn-${task.md5}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs mt-2" onclick="downloadFile('${task.md5}')"}>Download</button>`;
+  function getStoredThemeMode() {
+    try {
+      const storedTheme = window.localStorage.getItem(themeStorageKey);
+      if (storedTheme === "light" || storedTheme === "dark") {
+        return storedTheme;
       }
-      else if ((task.status === 'queued' || task.status === 'running')) {
-        var button_setting = `<button id="cancel-btn-${task.md5}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs mt-2" onclick="cancelFile('${task.md5}')"}>Cancel</button>`;
-      }
-      else {
-        var button_setting = '';
-      }
-      taskEl.innerHTML = `
-        <div class="task-info d-flex">
-          <div><strong>Task file:</strong> ${task.fasta_fn}</div>
-          <div><strong>Task MD5:</strong> ${task.md5}</div>
-          <div><strong>Status:</strong> ${task.status}</div>
-          <div><strong>Submited:</strong> ${task.submitted_time}</div>
-          <div><strong>Finished:</strong> ${task.finished_time}</div>
-        </div>
-        <div class="task-details bg-gray-100 p-4 mt-2">
-          <div><strong>Sequence:</strong> ${task.sequence}</div>
-          <div><strong>Wall time:</strong> ${task.walltime}</div>
-          ${button_setting}
-          </div>
-      `;
-      
-      return taskEl;
+    } catch (error) {
+      // Ignore localStorage failures.
     }
-    
+    return "auto";
+  }
 
-    // Append tasks to the taskboard
-    tasks.forEach(task => {
-      taskboard.appendChild(createTaskElement(task));
+  function resolveThemeMode(mode) {
+    if (mode === "light" || mode === "dark") {
+      return mode;
+    }
+    if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      return "dark";
+    }
+    return "light";
+  }
+
+  function persistThemeMode(mode) {
+    try {
+      if (mode === "auto") {
+        window.localStorage.removeItem(themeStorageKey);
+      } else {
+        window.localStorage.setItem(themeStorageKey, mode);
+      }
+    } catch (error) {
+      // Ignore localStorage failures.
+    }
+  }
+
+  function applyThemeMode(mode, persist = false) {
+    const normalizedMode = mode === "light" || mode === "dark" ? mode : "auto";
+    document.documentElement.dataset.themeMode = normalizedMode;
+    document.documentElement.dataset.theme = resolveThemeMode(normalizedMode);
+    if (persist) {
+      persistThemeMode(normalizedMode);
+    }
+    syncThemeToggle();
+  }
+
+  function syncThemeToggle() {
+    const button = document.getElementById("themeToggle");
+    if (!button) return;
+    const mode = document.documentElement.dataset.themeMode || getStoredThemeMode();
+    const effectiveTheme = document.documentElement.dataset.theme || resolveThemeMode(mode);
+    button.textContent = `Theme: ${mode.charAt(0).toUpperCase()}${mode.slice(1)}`;
+    button.setAttribute("aria-pressed", mode === "auto" ? "mixed" : String(mode === "dark"));
+    button.setAttribute(
+      "title",
+      `Theme mode ${mode}. Effective ${effectiveTheme}. Click to cycle Auto, Dark, Light.`
+    );
+    button.setAttribute("aria-label", "Cycle theme mode between auto, dark, and light");
+  }
+
+  function escapeHtml(input) {
+    return String(input ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function getStatusMeta(status) {
+    return statusMap[status] || {
+      label: status || "Unknown",
+      css: "status-cancelled",
+      accent: "var(--cancelled)",
+    };
+  }
+
+  function getStatusTrace(task) {
+    if (task.status !== "running") {
+      return "";
+    }
+    if (task.running_trace) {
+      return task.running_trace;
+    }
+    return runningTraceFallback;
+  }
+
+  function normalizeTraceLabel(label) {
+    const raw = String(label || "").trim();
+    if (!raw) {
+      return "-";
+    }
+    if (/^gremlin\s*:/i.test(raw)) {
+      return raw.replace(/^gremlin\s*:/i, "GREMLIN:");
+    }
+    if (/^blast\s*:/i.test(raw)) {
+      return raw.replace(/^blast\s*:/i, "PSI-Blast:");
+    }
+    return raw;
+  }
+
+  function parseStatusTrace(traceText) {
+    const lines = String(traceText || "")
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const stages = lines.map((line) => {
+      const match = line.match(/^(.*?)(?:\s*\[(done|running|pending)\])?$/i);
+      const label = normalizeTraceLabel(match ? match[1] : line);
+      const marker = (match && match[2]) ? match[2].toLowerCase() : "pending";
+      return {
+        label,
+        marker: (marker === "done" || marker === "running" || marker === "pending") ? marker : "pending",
+      };
+    });
+    return stages;
+  }
+
+  function renderStatusTracePopover(traceText) {
+    const stages = parseStatusTrace(traceText);
+    if (!stages.length) {
+      return "";
+    }
+    const stageRows = stages
+      .map((stage, index) => {
+        const hasNext = index < stages.length - 1;
+        return `
+          <div class="status-trace-stage stage-${stage.marker}">
+            <span class="status-trace-track ${hasNext ? "has-next" : ""}">
+              <span class="status-trace-node" aria-hidden="true"></span>
+            </span>
+            <span class="status-trace-text">${escapeHtml(stage.label)}</span>
+          </div>
+        `;
+      })
+      .join("");
+    return `<span class="status-trace-popover" role="tooltip"><span class="status-trace-list">${stageRows}</span></span>`;
+  }
+
+  function showToast(message, type = "info") {
+    const wrap = document.getElementById("toastWrap");
+    const node = document.createElement("div");
+    node.className = `toast ${type}`;
+    node.textContent = message;
+    wrap.appendChild(node);
+    setTimeout(() => node.remove(), 3600);
+  }
+
+  function updateSummary() {
+    const counts = {
+      total: allTasks.length,
+      pending: 0,
+      running: 0,
+      packing: 0,
+      finished: 0,
+      failed: 0,
+      cancelled: 0,
+    };
+
+    for (const task of allTasks) {
+      if (task.status === "pending") counts.pending += 1;
+      if (task.status === "running") counts.running += 1;
+      if (task.status === "packing results") counts.packing += 1;
+      if (task.status === "finished") counts.finished += 1;
+      if (task.status === "failed") counts.failed += 1;
+      if (task.status === "cancelled") counts.cancelled += 1;
+    }
+
+    document.getElementById("totalTasks").textContent = counts.total;
+    document.getElementById("inQueue").textContent = counts.pending;
+    document.getElementById("inRunning").textContent = counts.running;
+    document.getElementById("packingResults").textContent = counts.packing;
+    document.getElementById("finished").textContent = counts.finished;
+    document.getElementById("issues").textContent = counts.failed + counts.cancelled;
+  }
+
+  function updateAdminTools() {
+    const tools = document.getElementById("adminTools");
+    if (!tools) return;
+    const hasDeletableTasks = allTasks.some((task) => Boolean(task.can_delete));
+    if (!hasDeletableTasks) {
+      tools.hidden = true;
+      return;
+    }
+    tools.hidden = false;
+    const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+    const selectedCount = state.selected.size;
+    deleteSelectedBtn.textContent = `Delete Selected (${selectedCount})`;
+    deleteSelectedBtn.disabled = selectedCount === 0;
+  }
+
+  function getFilteredTasks() {
+    const query = state.query.trim().toLowerCase();
+
+    return allTasks.filter((task) => {
+      if (state.filter !== "all" && task.status !== state.filter) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const haystack = [
+        task.fasta_fn,
+        task.md5,
+        task.status,
+        task.sequence,
+        task.submitted_time,
+        task.finished_time,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }
+
+  function renderTasks() {
+    const list = document.getElementById("taskList");
+    const tasks = getFilteredTasks();
+    updateAdminTools();
+
+    if (!tasks.length) {
+      list.innerHTML = '<div class="empty">No tasks match the current search/filter criteria.</div>';
+      return;
+    }
+
+    list.innerHTML = "";
+
+    tasks.forEach((task, index) => {
+      const meta = getStatusMeta(task.status);
+      const card = document.createElement("article");
+      card.className = "task-card";
+      card.style.setProperty("--accent-stripe", meta.accent);
+      card.style.animationDelay = `${Math.min(index * 35, 260)}ms`;
+
+      const canDownload = task.status === "finished";
+      const canCancel = task.status === "pending" || task.status === "running";
+      const canDelete = Boolean(task.can_delete);
+      const selected = state.selected.has(task.md5);
+      const statusTrace = getStatusTrace(task);
+      const statusTraceClass = statusTrace ? "has-trace" : "";
+      const statusTraceAttr = statusTrace ? ' tabindex="0" aria-haspopup="true" aria-label="Show running stage trace"' : "";
+      const statusTracePopover = statusTrace ? renderStatusTracePopover(statusTrace) : "";
+
+      card.innerHTML = `
+        <header class="task-head">
+          <div class="task-head-left">
+            ${canDelete ? `
+            <label class="task-select-wrap" title="Select task for batch delete">
+              <input class="task-select" type="checkbox" data-action="toggle-select" data-md5="${escapeHtml(task.md5)}" ${selected ? "checked" : ""}>
+            </label>
+            ` : ""}
+            <div>
+              <h2 class="task-title">${escapeHtml(task.fasta_fn || "Unknown FASTA")}</h2>
+              <p class="task-id">${escapeHtml(task.md5)}</p>
+              ${isAdmin ? `<span class="owner-chip">Owner: ${escapeHtml(task.owner || "-")}</span>` : ""}
+            </div>
+          </div>
+          <span class="status-pill ${meta.css} ${statusTraceClass}"${statusTraceAttr}>${escapeHtml(meta.label)}${statusTracePopover}</span>
+        </header>
+
+        <div class="meta-grid">
+          <div class="meta-box">
+            <p class="meta-label">Submitted</p>
+            <p class="meta-value">${escapeHtml(task.submitted_time || "-")}</p>
+          </div>
+          <div class="meta-box">
+            <p class="meta-label">Finished</p>
+            <p class="meta-value">${escapeHtml(task.finished_time || "-")}</p>
+          </div>
+          <div class="meta-box">
+            <p class="meta-label">Wall Time</p>
+            <p class="meta-value">${escapeHtml(String(task.walltime ?? "-"))}</p>
+          </div>
+        </div>
+
+        <details class="sequence">
+          <summary>Sequence Snapshot</summary>
+          <pre>${escapeHtml(task.sequence || "-")}</pre>
+        </details>
+
+        <div class="actions">
+          ${canDownload ? `<button class="task-btn download" data-action="download" data-md5="${escapeHtml(task.md5)}">Download</button>` : ""}
+          ${canCancel ? `<button class="task-btn cancel" data-action="cancel" data-md5="${escapeHtml(task.md5)}">Cancel</button>` : ""}
+          ${canDelete ? `<button class="task-btn delete" data-action="delete" data-md5="${escapeHtml(task.md5)}">Delete</button>` : ""}
+        </div>
+      `;
+
+      list.appendChild(card);
+    });
+  }
+
+  function setActiveFilter(nextFilter) {
+    state.filter = nextFilter;
+    const chips = document.querySelectorAll("#statusFilters .chip");
+    chips.forEach((chip) => {
+      chip.classList.toggle("active", chip.dataset.filter === nextFilter);
+    });
+    renderTasks();
+  }
+
+  function downloadFile(md5sum) {
+    window.location.href = `/PSSM_GREMLIN/api/results/${encodeURIComponent(md5sum)}`;
+  }
+
+  function removeTaskFromClientState(md5sum) {
+    const index = allTasks.findIndex((task) => task.md5 === md5sum);
+    if (index >= 0) {
+      allTasks.splice(index, 1);
+    }
+    state.selected.delete(md5sum);
+  }
+
+  async function cancelFile(md5sum, triggerButton) {
+    if (!md5sum) return;
+
+    try {
+      if (triggerButton) {
+        triggerButton.disabled = true;
+        triggerButton.textContent = "Cancelling...";
+      }
+
+      const response = await fetch(`/PSSM_GREMLIN/api/cancel/${encodeURIComponent(md5sum)}`, {
+        method: "POST",
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err = payload.error || "Failed to cancel task.";
+        throw new Error(err);
+      }
+
+      const target = allTasks.find((task) => task.md5 === md5sum);
+      if (target) {
+        target.status = "cancelled";
+        target.finished_time = target.finished_time === "-" ? new Date().toLocaleString() : target.finished_time;
+      }
+
+      updateSummary();
+      renderTasks();
+      showToast(`Task ${md5sum.slice(0, 8)}... cancelled.`, "info");
+    } catch (error) {
+      if (triggerButton) {
+        triggerButton.disabled = false;
+        triggerButton.textContent = "Cancel";
+      }
+      showToast(error.message || "Cancel request failed.", "error");
+    }
+  }
+
+  async function deleteFile(md5sum, triggerButton) {
+    if (!md5sum) return;
+
+    if (!window.confirm(`Delete task ${md5sum.slice(0, 8)}... and its result artifacts?`)) {
+      return;
+    }
+
+    try {
+      if (triggerButton) {
+        triggerButton.disabled = true;
+        triggerButton.textContent = "Deleting...";
+      }
+
+      const response = await fetch(`/PSSM_GREMLIN/api/delete/${encodeURIComponent(md5sum)}`, {
+        method: "POST",
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err = payload.message || payload.error || "Failed to delete task.";
+        throw new Error(err);
+      }
+
+      removeTaskFromClientState(md5sum);
+      updateSummary();
+      renderTasks();
+      showToast(`Task ${md5sum.slice(0, 8)}... deleted.`, "info");
+    } catch (error) {
+      if (triggerButton) {
+        triggerButton.disabled = false;
+        triggerButton.textContent = "Delete";
+      }
+      showToast(error.message || "Delete request failed.", "error");
+    }
+  }
+
+  async function deleteSelectedTasks() {
+    const md5sums = Array.from(state.selected);
+    if (!md5sums.length) {
+      showToast("No tasks selected.", "error");
+      return;
+    }
+
+    if (!window.confirm(`Delete ${md5sums.length} selected task(s) and their artifacts?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/PSSM_GREMLIN/api/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ md5sums }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err = payload.message || payload.error || "Batch delete failed.";
+        throw new Error(err);
+      }
+
+      const deleted = Array.isArray(payload.deleted) ? payload.deleted : [];
+      deleted.forEach((md5sum) => removeTaskFromClientState(md5sum));
+      updateSummary();
+      renderTasks();
+
+      if (deleted.length) {
+        showToast(`Deleted ${deleted.length} task(s).`, "info");
+      } else {
+        showToast("No tasks were deleted.", "error");
+      }
+    } catch (error) {
+      showToast(error.message || "Batch delete failed.", "error");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    applyThemeMode(document.documentElement.dataset.themeMode || getStoredThemeMode());
+
+    const themeToggle = document.getElementById("themeToggle");
+    if (themeToggle) {
+      themeToggle.addEventListener("click", () => {
+        const currentMode = document.documentElement.dataset.themeMode || "auto";
+        const nextMode = currentMode === "auto" ? "dark" : (currentMode === "dark" ? "light" : "auto");
+        applyThemeMode(nextMode, true);
+      });
+    }
+
+    if (window.matchMedia) {
+      const darkMedia = window.matchMedia("(prefers-color-scheme: dark)");
+      const syncToSystemTheme = (event) => {
+        if ((document.documentElement.dataset.themeMode || getStoredThemeMode()) !== "auto") {
+          return;
+        }
+        document.documentElement.dataset.theme = event.matches ? "dark" : "light";
+        syncThemeToggle();
+      };
+      if (darkMedia.addEventListener) {
+        darkMedia.addEventListener("change", syncToSystemTheme);
+      } else if (darkMedia.addListener) {
+        darkMedia.addListener(syncToSystemTheme);
+      }
+    }
+
+    updateSummary();
+    renderTasks();
+
+    document.getElementById("taskSearch").addEventListener("input", (event) => {
+      state.query = event.target.value || "";
+      renderTasks();
     });
 
-    // Update summary counts
-    document.getElementById('totalTasks').textContent = tasks.length;
-    // Update other summary counts as needed
-    document.getElementById('inRunning').textContent = tasks.filter(task => task.status.includes('running')).length
-    document.getElementById('inQueue').textContent = tasks.filter(task => task.status.includes('queue')).length
-    document.getElementById('finished').textContent = tasks.filter(task => task.status === 'finished').length
-    document.getElementById('cancelled').textContent = tasks.filter(task => task.status === 'cancelled').length
-    document.getElementById('failed').textContent = tasks.filter(task => task.status === 'failed').length
+    document.getElementById("statusFilters").addEventListener("click", (event) => {
+      const chip = event.target.closest(".chip");
+      if (!chip) return;
+      setActiveFilter(chip.dataset.filter || "all");
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", () => {
+      window.location.reload();
+    });
+
+    document.getElementById("selectVisibleBtn").addEventListener("click", () => {
+      getFilteredTasks()
+        .filter((task) => Boolean(task.can_delete))
+        .forEach((task) => state.selected.add(task.md5));
+      renderTasks();
+    });
+
+    document.getElementById("clearSelectionBtn").addEventListener("click", () => {
+      state.selected.clear();
+      renderTasks();
+    });
+
+    document.getElementById("deleteSelectedBtn").addEventListener("click", () => {
+      deleteSelectedTasks();
+    });
+
+    document.getElementById("taskList").addEventListener("change", (event) => {
+      const checkbox = event.target.closest("input[data-action='toggle-select']");
+      if (!checkbox) return;
+      const md5sum = checkbox.dataset.md5;
+      if (!md5sum) return;
+      if (checkbox.checked) {
+        state.selected.add(md5sum);
+      } else {
+        state.selected.delete(md5sum);
+      }
+      updateAdminTools();
+    });
+
+    document.getElementById("taskList").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+
+      const action = button.dataset.action;
+      const md5sum = button.dataset.md5;
+
+      if (action === "download") {
+        downloadFile(md5sum);
+      } else if (action === "cancel") {
+        cancelFile(md5sum, button);
+      } else if (action === "delete") {
+        deleteFile(md5sum, button);
+      }
+    });
   });
 </script>
 </body>

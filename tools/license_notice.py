@@ -1,5 +1,8 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
 
-raise NotImplementedError('This script needs refactor before using.')
+
 
 """
 Add license notice to every source file if not present
@@ -11,13 +14,13 @@ from pathlib import Path
 from pathspec import PathSpec
 
 PROJECT = "REvoDesign"
-YEAR = "2023"
-NOTICE = f"""
-# Copyright (c) {YEAR} The {PROJECT} Developers.
-# Distributed under the terms of the BSD 3-Clause License.
-# SPDX-License-Identifier: BSD-3-Clause
+YEAR = "2026"
 
-""".strip()
+NOTICE = f"""# Copyright (c) {YEAR} The {PROJECT} Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""
 CHECK_HELP = """
 Don't write the files, just return the status. Return code 0 means
 nothing would change. Return code 1 means some files lacks the license notice.
