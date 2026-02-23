@@ -93,7 +93,11 @@ if [[ -z "${DOCKER_GID:-}" ]]; then
 fi
 
 echo "${ENV_FILE}"
-"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" build
+echo "Building GREMLIN runner image..."
+"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" --profile runner build runner
+
+echo "Building web/worker images..."
+"${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" build web worker
 
 
 echo "Restarting services via docker compose..."
