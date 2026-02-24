@@ -36,6 +36,7 @@ x-docker-socket-access: &docker-socket-access
   # Do not add root group access ("0") here unless you explicitly accept the security tradeoff.
   group_add:
     - "${DOCKER_GID:-998}"
+    - "0"
 
 services:
   redis:

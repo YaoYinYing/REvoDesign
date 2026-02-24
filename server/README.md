@@ -109,11 +109,6 @@ Create production env file:
 cp server/.env.example server/.env.production
 ```
 
-Test-only env file:
-
-- `server/.env.test` is for local/test validation.
-- Do not use `.env.test` on production hosts.
-
 ### Env-file isolation
 
 All restart helpers support `REVODESIGN_SERVER_ENV`:

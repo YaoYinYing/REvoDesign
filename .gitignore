@@ -119,3 +119,4 @@ server/.env.production
 server/.env
 /playground/miniuc
 /playground/server_test
+server/.env.local
