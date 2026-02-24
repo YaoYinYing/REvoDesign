@@ -170,6 +170,9 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     html = page.get_data(as_text=True)
     assert 'href="/favicon.ico"' in html
     assert 'href="/PSSM_GREMLIN/logo.svg"' in html
+    assert 'class="btn btn-soft theme-toggle mode-auto"' in html
+    assert 'class="theme-icon" aria-hidden="true">◐</span>' in html
+    assert "applyThemeMode(nextMode, true, true);" in html
 
 
 def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta") -> str:

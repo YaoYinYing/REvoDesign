@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Running-stage tracking now uses sqlite-backed `run_stage` persistence (single task stage tracker), replacing dashboard refresh reconstruction from file-based traces.
   - Dashboard theme toggle icon now uses a gradient transition animation when cycling auto/dark/light modes.
   - Dashboard logout now redirects to a dedicated server endpoint (`/PSSM_GREMLIN/logout`) that forces a new auth challenge.
+  - Create-task page theme toggle now matches dashboard gradient icon animation for dark/light/auto mode switching.
   - Docker Compose `runner` image selection now uses `RUNNER_IMAGE` consistently with shared env wiring.
   - Docker socket access defaults were tightened by removing unconditional root group (`group_add: ["0"]`).
   - `server/.env.test` now uses portable repo-relative placeholders with guidance to keep machine-local absolute paths in `.env.local`.
@@ -100,9 +101,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Monaco editor tarball setup now reuses the hardened archive extractor instead of raw `tar.extractall`.
 - Tooling:
   - `tools/release_tag.sh` now escapes dotted versions before passing them to regex-based `sed` range extraction.
+  - `tools/copyright.js` fixed shell pipeline redirection syntax for `spawnSync("bash", ["-lc", ...])`.
 - Server (PSSM_GREMLIN):
   - task-id/content digest md5 calls now explicitly use `usedforsecurity=False` because they are non-cryptographic identifiers.
 - Server (PSSM_GREMLIN):
+  - server image Dockerfile now uses `exec gunicorn ...` so Gunicorn is PID 1 and receives shutdown signals directly.
   - dashboard running-trace badge popover text contrast/readability under dark mode.
   - runner script now validates required `-i` input before invoking `readlink -f` under `set -e`.
   - task artifact deletion now skips directories outside configured `RESULTS_FOLDER` instead of deleting them by default.
