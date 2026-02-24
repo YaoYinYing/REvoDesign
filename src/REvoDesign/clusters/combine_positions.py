@@ -61,7 +61,7 @@ class GenerateVariantsinFastafile:
                 # print("WT,POS,AA: ",self.fastaseq[aa],aa,native,self.fastaseq[aa] == native)
                 if aa != native:
                     raise ValueError(f"WT mismatch at position {position}: expected {native}, found {aa}")
-                newfasta = newfasta[0: position - 1] + newmutation + newfasta[position:]
+                newfasta = newfasta[0 : position - 1] + newmutation + newfasta[position:]
 
         return newfasta
 
@@ -80,7 +80,7 @@ class GenerateVariantsinFastafile:
                 # print("Native,Pos,Design",native,position,fastasequence[aa],fastasequence[aa] == native)
                 if aa != native:
                     raise ValueError(f"WT mismatch at position {position}: expected {native}, found {aa}")
-                newfasta = newfasta[0: position - 1] + newmutation + newfasta[position:]
+                newfasta = newfasta[0 : position - 1] + newmutation + newfasta[position:]
 
         return newfasta
 
