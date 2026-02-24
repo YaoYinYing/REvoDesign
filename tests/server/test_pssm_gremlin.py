@@ -981,6 +981,25 @@ def test_non_owner_cannot_delete_task_results(monkeypatch, tmp_path):
     assert module.task_store.get_task(md5sum) is not None
 
 
+def test_single_delete_rejects_invalid_task_id(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+        users_text="tester:password\n",
+    )
+
+    client = module.app.test_client()
+    auth_header = _basic_auth_header("tester", "password")
+
+    response = client.delete("/PSSM_GREMLIN/api/delete/not-a-md5", headers=auth_header)
+    assert response.status_code == 400
+    assert response.json["status"] == "bad_request"
+
+
 def test_admin_can_batch_delete_tasks(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -1039,6 +1058,51 @@ def test_admin_can_batch_delete_tasks(monkeypatch, tmp_path):
     task_b = module.task_store.get_task(md5_b)
     assert task_a is not None and task_a["status"] == "deleted:finshed"
     assert task_b is not None and task_b["status"] == "deleted:finshed"
+
+
+def test_batch_delete_guards_and_normalizes_each_md5sum(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ADMIN_USERS": "admin",
+        },
+        users_text="tester:password\nadmin:admin_password\n",
+    )
+
+    client = module.app.test_client()
+    admin_header = _basic_auth_header("admin", "admin_password")
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "batch_guard_normalize"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="guard.fasta",
+        file_path=result_dir / "guard.fasta",
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+
+    response = client.post(
+        "/PSSM_GREMLIN/api/delete",
+        headers=admin_header,
+        json={"md5sums": [md5sum.upper(), f"  {md5sum}  ", "zz", "", md5sum]},
+    )
+    assert response.status_code == 200
+    payload = response.json
+    assert payload["status"] == "ok"
+    assert payload["deleted"] == [md5sum]
+    assert payload["ignored"] == ["zz"]
+    assert payload["not_found"] == []
+    assert payload["forbidden"] == []
+    task = module.task_store.get_task(md5sum)
+    assert task is not None
+    assert task["status"] == "deleted:finshed"
 
 
 def test_non_admin_batch_delete_only_deletes_owned_tasks(monkeypatch, tmp_path):

@@ -1273,13 +1273,15 @@ def delete_tasks_batch():
     seen: set[str] = set()
 
     for raw_md5 in md5sums:
-        md5sum = str(raw_md5).strip()
-        if not md5sum or md5sum in seen:
+        raw_md5_text = str(raw_md5).strip()
+        md5sum = _normalize_task_id(raw_md5_text)
+        if md5sum is None:
+            if raw_md5_text:
+                ignored.append(raw_md5_text)
+            continue
+        if md5sum in seen:
             continue
         seen.add(md5sum)
-        if not re.fullmatch(r"[a-fA-F0-9]{32}", md5sum):
-            ignored.append(md5sum)
-            continue
 
         task = task_store.get_task(md5sum)
         if not task:
