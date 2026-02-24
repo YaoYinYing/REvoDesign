@@ -14,6 +14,7 @@ import zipfile
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 
 import docker
 import pytest
@@ -1625,16 +1626,21 @@ def _wait_for_server_ready(
 ) -> None:
     deadline = time.time() + timeout
     session = requests.Session()
-    session.auth = auth
     url = f"{base_url}/PSSM_GREMLIN/create_task"
     last_error = ""
+    unauthorized_count = 0
     while time.time() < deadline:
         try:
-            response = session.get(url, timeout=5)
+            response = session.get(url, timeout=5, auth=auth)
             if response.status_code == 200:
                 return
             if response.status_code == 401:
-                raise AssertionError("Server is reachable but returned 401 with provided test credentials.")
+                # CI can occasionally observe an early auth race while Gunicorn workers
+                # finish initialization; retry until timeout before declaring bad creds.
+                unauthorized_count += 1
+                last_error = f"HTTP 401 ({unauthorized_count} unauthorized responses)"
+                time.sleep(2)
+                continue
             last_error = f"HTTP {response.status_code}"
         except requests.RequestException:
             last_error = "connection failed"
@@ -1656,6 +1662,11 @@ def _wait_for_server_ready(
                     f"stderr:\n{logs.stderr}"
                 )
         time.sleep(2)
+    if unauthorized_count:
+        raise AssertionError(
+            "PSSM GREMLIN server remained unauthorized for provided test credentials "
+            f"({unauthorized_count} HTTP 401 responses)."
+        )
     if web_container:
         logs = _run_command(["docker", "logs", "--tail", "200", web_container], check=False, capture_output=True)
         raise AssertionError(
@@ -1665,6 +1676,22 @@ def _wait_for_server_ready(
             f"stderr:\n{logs.stderr}"
         )
     raise AssertionError(f"PSSM GREMLIN server failed to start within timeout ({last_error})")
+
+
+def test_wait_for_server_ready_retries_transient_401(monkeypatch):
+    responses = [SimpleNamespace(status_code=401), SimpleNamespace(status_code=200)]
+
+    class _StubSession:
+        def get(self, url, timeout=5, auth=None):
+            del url, timeout, auth
+            if responses:
+                return responses.pop(0)
+            return SimpleNamespace(status_code=200)
+
+    monkeypatch.setattr(requests, "Session", lambda: _StubSession())
+    monkeypatch.setattr(time, "sleep", lambda *_args, **_kwargs: None)
+
+    _wait_for_server_ready("http://127.0.0.1:9999", ("tester", "password"), timeout=5.0)
 
 
 def _extract_md5(location: str) -> str:
