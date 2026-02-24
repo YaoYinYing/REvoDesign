@@ -165,25 +165,39 @@ RUN_GREMLIN() {
     pushd "$dst_msa"
     echo "REVODESIGN_STAGE:hhblits"
     if [[ ! -f "${instance}.a3m" ]]; then
-        local cmd="$(which hhblits) -i ${fasta} -oa3m ${instance}.a3m -o ${instance}.hhr -d ${uniref30_db} -n ${iter} -e ${evalue} \
-                -mact 0.35 -maxfilt 100000000 -neffmax 20 -cpu ${nproc} -nodiff -realign_max 10000000 -maxmem 64"
-        echo "$cmd"
-        eval "$cmd" 1>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhblits.log 2>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhblits.err
+        local -a cmd=(
+            hhblits
+            -i "$fasta"
+            -oa3m "${instance}.a3m"
+            -o "${instance}.hhr"
+            -d "$uniref30_db"
+            -n "$iter"
+            -e "$evalue"
+            -mact 0.35
+            -maxfilt 100000000
+            -neffmax 20
+            -cpu "$nproc"
+            -nodiff
+            -realign_max 10000000
+            -maxmem 64
+        )
+        echo "${cmd[*]}"
+        "${cmd[@]}" 1>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhblits.log 2>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhblits.err
     fi
 
     echo "REVODESIGN_STAGE:hhfilter"
-    local cmd="$(which hhfilter) -i ${instance}.a3m -id 90 -cov 75 -o ${instance}.i90c75.a3m"
-    echo "$cmd"
+    local -a cmd=(hhfilter -i "${instance}.a3m" -id 90 -cov 75 -o "${instance}.i90c75.a3m")
+    echo "${cmd[*]}"
     local expected_msa=${instance}.i90c75.a3m
     if [[ ! -f $expected_msa ]]; then
-      eval "$cmd" 1>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhfilter.log 2>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhfilter.err
+      "${cmd[@]}" 1>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhfilter.log 2>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhfilter.err
     fi
 
     # post-processing
     # remove lower case
-    local cmd="python ${REVODESIGN_RUNSCRIPT_PATH}/${SCRIPT_PATH}/fasta_lower_char_rm.py ${expected_msa}"
-    echo "$cmd"
-    eval "$cmd" 1>"${pipline_res_dir}"/log/"${instance}"_gremlin_remove_inserts.log 2>"${pipline_res_dir}"/log/"${instance}"_gremlin_remove_inserts.err
+    local -a cmd=(python "${REVODESIGN_RUNSCRIPT_PATH}/${SCRIPT_PATH}/fasta_lower_char_rm.py" "$expected_msa")
+    echo "${cmd[*]}"
+    "${cmd[@]}" 1>"${pipline_res_dir}"/log/"${instance}"_gremlin_remove_inserts.log 2>"${pipline_res_dir}"/log/"${instance}"_gremlin_remove_inserts.err
     # expected output is "$dst_msa/${expected_msa%.a3m}_aln.fas"
     popd
     echo Running GREMLIN ...
@@ -192,10 +206,15 @@ RUN_GREMLIN() {
     pushd "$dst_gremlin"
     if [[ ! -f ${dst_gremlin}/${instance}.i90c75_aln.GREMLIN.mrf.pkl ]]; then
 
-      local cmd="python ${REVODESIGN_RUNSCRIPT_PATH}/${SCRIPT_PATH}/GREMLIN_TFv1.py \
-              ${dst_msa}/${expected_msa%.a3m}_aln.fas ${dst_gremlin} ${gremlin_iter}"
-      echo "$cmd"
-      eval "$cmd" 1>"${pipline_res_dir}"/log/"${instance}"_gremlin_tfv1.log 2>"${pipline_res_dir}"/log/"${instance}"_gremlin_tfv1.err
+      local -a cmd=(
+          python
+          "${REVODESIGN_RUNSCRIPT_PATH}/${SCRIPT_PATH}/GREMLIN_TFv1.py"
+          "${dst_msa}/${expected_msa%.a3m}_aln.fas"
+          "$dst_gremlin"
+          "$gremlin_iter"
+      )
+      echo "${cmd[*]}"
+      "${cmd[@]}" 1>"${pipline_res_dir}"/log/"${instance}"_gremlin_tfv1.log 2>"${pipline_res_dir}"/log/"${instance}"_gremlin_tfv1.err
       
   else
     echo "Checkpoint file exists: ${dst_gremlin}/${instance}.i90c75_aln.GREMLIN.mrf.pkl skip GREMLIN_TFv1"
@@ -226,11 +245,19 @@ RUN_PSSM() {
     #cp $fasta $dst;
     pushd "$dst_msa"
     if [[ ! -f "${instance}_ascii_mtx_file" ]]; then
-        local cmd="${blast_bin}/psiblast -query ${fasta} -db ${uniref90_db} -out_pssm ${instance}.ckp \
-                -evalue 0.01 -out_ascii_pssm ${instance}_ascii_mtx_file -out ${instance}_output_file \
-                -num_iterations 3 -num_threads ${nproc}"
-        echo "$cmd"
-        eval "$cmd" 1>"${pipline_res_dir}"/log/"${instance}"_pssm_psiblast.log 2>"${pipline_res_dir}"/log/"${instance}"_pssm_psiblast.err
+        local -a cmd=(
+            "${blast_bin}/psiblast"
+            -query "$fasta"
+            -db "$uniref90_db"
+            -out_pssm "${instance}.ckp"
+            -evalue 0.01
+            -out_ascii_pssm "${instance}_ascii_mtx_file"
+            -out "${instance}_output_file"
+            -num_iterations 3
+            -num_threads "$nproc"
+        )
+        echo "${cmd[*]}"
+        "${cmd[@]}" 1>"${pipline_res_dir}"/log/"${instance}"_pssm_psiblast.log 2>"${pipline_res_dir}"/log/"${instance}"_pssm_psiblast.err
     fi
     wait
     
