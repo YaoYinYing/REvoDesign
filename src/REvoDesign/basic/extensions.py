@@ -161,8 +161,8 @@ class FileExtensionCollection:
 
         if len(matched) > 1:
             # the longest win
-            matched_ext = sorted(matched, key=lambda x: len(x), reverse=True)[0]
-            return fname[: -len(matched_ext[0])]
+            matched_ext = sorted(matched, key=len, reverse=True)[0]
+            return fname[: -len(matched_ext)]
 
         # otherwise, raise no match error
         raise issues.InternalError(

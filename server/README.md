@@ -109,11 +109,6 @@ Create production env file:
 cp server/.env.example server/.env.production
 ```
 
-Test-only env file:
-
-- `server/.env.test` is for local/test validation.
-- Do not use `.env.test` on production hosts.
-
 ### Env-file isolation
 
 All restart helpers support `REVODESIGN_SERVER_ENV`:
@@ -139,6 +134,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID (non-root required). |
 | `DOCKER_GID` | Group ID of Docker socket on host. |
 | `NPROC` | CPU threads passed to runner. |
+| `MAXMEM` | Memory cap (GB) passed to hhblits (`-maxmem`) inside runner script. |
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `PORT` | Public HTTP port. |
@@ -219,6 +215,23 @@ for f in *.fasta; do
   curl -u "username:password" -X POST -F "file=@${f}" \
     "http://<server-ip>:<port>/PSSM_GREMLIN/api/post"
 done
+```
+
+### Delete one task (single-task API)
+
+```bash
+TASK_MD5="<task-md5>"
+curl -u "username:password" -X DELETE \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/delete/${TASK_MD5}"
+```
+
+### Delete multiple tasks (batch API)
+
+```bash
+curl -u "username:password" -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"md5sums":["<task-md5-a>","<task-md5-b>"]}' \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/delete"
 ```
 
 ## 7. Task States

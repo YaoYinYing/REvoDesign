@@ -33,9 +33,20 @@ from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
 
 from ..bootstrap.set_config import is_package_installed
-from .package_manager import run_command, run_worker_thread_in_pool
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+
+def run_command(*args, **kwargs):
+    from .package_manager import run_command as _run_command
+
+    return _run_command(*args, **kwargs)
+
+
+def run_worker_thread_in_pool(*args, **kwargs):
+    from .package_manager import run_worker_thread_in_pool as _run_worker_thread_in_pool
+
+    return _run_worker_thread_in_pool(*args, **kwargs)
 
 
 def resolve_dotted_expression(dotted_str: str) -> Any:

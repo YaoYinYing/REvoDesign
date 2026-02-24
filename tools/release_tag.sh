@@ -1,15 +1,15 @@
-#! bash
+#!/usr/bin/env bash
 set -e
 
-if [[ $(uname -s) == 'Darwin' ]];then 
-    SED=gsed;
-    echo In Darwin, using gsed: GNU-sed
-    if ! command -v gsed; then 
+if [[ $(uname -s) == "Darwin" ]]; then
+    SED="gsed"
+    echo "In Darwin, using gsed: GNU-sed"
+    if ! command -v gsed >/dev/null 2>&1; then
         echo GNU-sed is not found, fetching via homebrew...
-        brew install gnu-sed;
+        brew install gnu-sed
     fi
 else
-    SED=sed;
+    SED="sed"
 fi
 
 echo 'Bumping version from `src/REvoDesign/__init__.py` ...'
@@ -24,26 +24,28 @@ echo "New Version: ${new_version}, Old Version: ${old_version}, tagged date: ${n
 
 echo 'Checking version ...'
 # exit if any of the variables are missing.
-if [[ ! $new_version || ! $old_version || ! $new_date  ]];then 
+if [[ ! $new_version || ! $old_version || ! $new_date  ]]; then
     echo "Error: $new_version , $old_version, $new_date"
     exit 1;
 fi
-if [[ $new_version == $old_version ]];then 
-    echo Same version number: $new_version == $old_version;
+if [[ $new_version == "$old_version" ]]; then
+    echo "Same version number: ${new_version} == ${old_version}"
     exit 1;
 fi
 echo 'Done.'
 
+escaped_new_version=${new_version//./\\.}
+escaped_old_version=${old_version//./\\.}
 
 echo set new tag to changelog
-$SED -i 's/## \[Unreleased\]/## [Unreleased]\n\n## \['"$new_version"'\] - '"$new_date"'/' ./CHANGELOG.md 
+"${SED}" -i 's/## \[Unreleased\]/## [Unreleased]\n\n## \['"$new_version"'\] - '"$new_date"'/' ./CHANGELOG.md
 echo fetching changelog bwt two versions:
 rm -f changelog_tag.md
 echo 'Bump version: '"$old_version"' -> '"$new_version" > changelog_tag.md
 echo >> changelog_tag.md
 echo '## Change log:' >> changelog_tag.md
 echo >> changelog_tag.md
-$SED -n '/## \['"$new_version"'\]/,/## \['"$old_version"'\]/p' ./CHANGELOG.md |grep -v '^## \|^$' >> changelog_tag.md
+"${SED}" -n '/## \['"$escaped_new_version"'\]/,/## \['"$escaped_old_version"'\]/p' ./CHANGELOG.md |grep -v '^## \|^$' >> changelog_tag.md
 
 cat changelog_tag.md 
 
@@ -54,7 +56,7 @@ git commit -m 'Bump version: '"$old_version"' -> '"$new_version"'' -m '[ci skip]
 
 echo pushing new version
 echo set git tag ..
-git tag -F changelog_tag.md v$new_version 
+git tag -F changelog_tag.md "v${new_version}"
 
 git push 
 git push origin --tags

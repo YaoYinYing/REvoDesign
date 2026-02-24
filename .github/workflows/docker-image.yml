@@ -14,7 +14,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       
     - name: Set environment variable with current date
       run: |
@@ -60,7 +60,7 @@ jobs:
         docker push yaoyinying/revodesign-pssm-gremlin-server-non-root:latest
 
     - name: Refresh Docker Hub Description
-      uses: peter-evans/dockerhub-description@v3
+      uses: peter-evans/dockerhub-description@dc67fad7001ef9e8e3c124cb7a64e16d0a63d864 # v3
       with:
         username: yaoyinying
         password: ${{ secrets.DOCKER_GITHUB_REPO_SECRET }}

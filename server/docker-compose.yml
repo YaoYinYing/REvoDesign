@@ -1,22 +1,40 @@
 # version: "3.9"
 
 x-common-env: &common-env
+  SERVER_IMAGE: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root}
+  RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
+
   SERVER_DIR: ${SERVER_DIR}
+  LOG_DIR: ${LOG_DIR}
+
   DB_UNIREF30: ${DB_UNIREF30}
   DB_UNIREF90: ${DB_UNIREF90}
+
+  USERS_FILE: ${USERS_FILE}
+
   REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
   BROKER_URL: ${BROKER_URL:-redis://redis:6379/0}
   RESULT_BACKEND: ${RESULT_BACKEND:-redis://redis:6379/0}
+
   NPROC: ${NPROC:-8}
-  RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
+  MAXMEM: ${MAXMEM:-64}
+  GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+  WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+  
   RUNNER_UID: ${RUNNER_UID:-1000}
   RUNNER_GID: ${RUNNER_GID:-1000}
-  USERS_FILE: ${USERS_FILE}
-  LOG_DIR: ${LOG_DIR}
+  DOCKER_GID: ${DOCKER_GID:-998}
+  RUNNER_USERNAME: ${RUNNER_USERNAME:-revodesign}
+  RUNNER_GROUP: ${RUNNER_GROUP:-revodesign}
+
+  PORT: ${PORT:-8080}
+
   PUBLIC_DASHBOARD: ${PUBLIC_DASHBOARD:-false}
   ADMIN_USERS: ${ADMIN_USERS:-admin}
 
 x-docker-socket-access: &docker-socket-access
+  # Least privilege by default: only grant Docker socket group access.
+  # Add root to group access ("0") to allow correct permission for now. TODO: remove this root if fix is possible.
   group_add:
     - "${DOCKER_GID:-998}"
     - "0"
@@ -40,6 +58,7 @@ services:
         RUNNER_GID: ${RUNNER_GID}
         RUNNER_USERNAME: ${RUNNER_USERNAME}
         RUNNER_GROUP: ${RUNNER_GROUP}
+        PORT: ${PORT:-8080}
     environment:
       <<: *common-env
     restart: unless-stopped
@@ -64,7 +83,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   worker:
-    image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root:latest}
+    image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root}
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
     <<: *docker-socket-access
@@ -89,7 +108,7 @@ services:
   runner:
     profiles: ["runner"]
     user: ${RUNNER_UID}:${RUNNER_GID}
-    image: ${PSSM_GREMLIN_RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
+    image: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
     build:
       context: .
       dockerfile: docker/runner/Dockerfile

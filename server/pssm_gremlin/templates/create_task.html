@@ -114,8 +114,70 @@
     height: 2.35rem;
     padding: 0;
     justify-content: center;
-    font-size: 1.15rem;
     line-height: 1;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .theme-toggle::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border-radius: 999px;
+    background: linear-gradient(130deg, #ffd76a 0%, #f9a85b 34%, #63b6ff 68%, #8a7cff 100%);
+    background-size: 220% 220%;
+    opacity: 0.26;
+    transform: translateX(-8%) scale(1.02);
+    transition: opacity 220ms ease, transform 280ms ease, filter 260ms ease;
+    z-index: 0;
+  }
+
+  .theme-toggle .theme-icon {
+    position: relative;
+    z-index: 1;
+    width: 1.2rem;
+    height: 1.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: #23343d;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.52);
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 220ms ease, filter 260ms ease;
+  }
+
+  @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+    .theme-toggle .theme-icon {
+      background: linear-gradient(130deg, #ffd86f 0%, #f6a95d 32%, #56a8f2 68%, #8f7fff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      text-shadow: none;
+    }
+  }
+
+  .theme-toggle.mode-light::before {
+    opacity: 0.26;
+    transform: translateX(-10%) scale(1.01);
+    filter: saturate(1.05);
+  }
+
+  .theme-toggle.mode-dark::before {
+    opacity: 0.42;
+    transform: translateX(9%) scale(1.06);
+    filter: saturate(1.28) brightness(0.88);
+  }
+
+  .theme-toggle.mode-auto::before {
+    opacity: 0.34;
+    transform: translateX(0) scale(1.04);
+    filter: saturate(1.14);
+  }
+
+  .theme-toggle.is-animating .theme-icon {
+    animation: themeIconFlip 380ms cubic-bezier(0.22, 0.92, 0.32, 1);
   }
 
   .btn {
@@ -333,6 +395,16 @@
     color: #dce7eb;
   }
 
+  html[data-theme="dark"] .theme-toggle {
+    border-color: #355261;
+    background: #18262d;
+  }
+
+  html[data-theme="dark"] .theme-toggle .theme-icon {
+    color: #e6f3f9;
+    text-shadow: 0 1px 1px rgba(3, 10, 14, 0.5);
+  }
+
   html[data-theme="dark"] .btn-soft:hover {
     background: #1c2d35;
   }
@@ -390,6 +462,24 @@
     background: linear-gradient(180deg, #1a2930 0%, #152228 100%);
   }
 
+  @keyframes themeIconFlip {
+    0% {
+      transform: rotate(0deg) scale(1);
+      opacity: 0.75;
+      filter: saturate(0.95);
+    }
+    50% {
+      transform: rotate(14deg) scale(1.17);
+      opacity: 1;
+      filter: saturate(1.25);
+    }
+    100% {
+      transform: rotate(0deg) scale(1);
+      opacity: 1;
+      filter: saturate(1);
+    }
+  }
+
   @keyframes fadeRise {
     from {
       opacity: 0;
@@ -427,7 +517,7 @@
           <p class="subline">Upload a FASTA file and queue a secured compute job for downstream GREMLIN and PSSM analysis.</p>
         </div>
         <div class="hero-actions">
-          <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light">🌓</button>
+          <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
           <a class="btn btn-soft" href="/PSSM_GREMLIN/dashboard">Dashboard</a>
           <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
@@ -484,9 +574,9 @@ Length: 0 residues</div>
   const uploadButton = document.getElementById("uploadButton");
   const themeStorageKey = "revodesign-theme";
   const themeModeIcon = {
-    light: "🌔",
-    dark: "🌒",
-    auto: "🌓",
+    light: "☀",
+    dark: "☾",
+    auto: "◐",
   };
 
   function getStoredThemeMode() {
@@ -523,23 +613,45 @@ Length: 0 residues</div>
     }
   }
 
-  function applyThemeMode(mode, persist = false) {
+  function applyThemeMode(mode, persist = false, animate = false) {
     const normalizedMode = mode === "light" || mode === "dark" ? mode : "auto";
     document.documentElement.dataset.themeMode = normalizedMode;
     document.documentElement.dataset.theme = resolveThemeMode(normalizedMode);
     if (persist) {
       persistThemeMode(normalizedMode);
     }
-    syncThemeToggle();
+    syncThemeToggle(animate);
   }
 
-  function syncThemeToggle() {
+  function syncThemeToggle(animate = false) {
     const button = document.getElementById("themeToggle");
     if (!button) return;
     const mode = document.documentElement.dataset.themeMode || getStoredThemeMode();
     const effectiveTheme = document.documentElement.dataset.theme || resolveThemeMode(mode);
     const icon = themeModeIcon[mode] || themeModeIcon.auto;
-    button.textContent = icon;
+    const iconNode = button.querySelector(".theme-icon");
+    if (iconNode) {
+      iconNode.textContent = icon;
+    } else {
+      button.textContent = icon;
+    }
+    const modeClass = mode === "dark" || mode === "light" ? mode : "auto";
+    button.classList.remove("mode-auto", "mode-dark", "mode-light");
+    button.classList.add(`mode-${modeClass}`);
+    if (animate) {
+      button.classList.remove("is-animating");
+      void button.offsetWidth;
+      button.classList.add("is-animating");
+      const existingTimer = Number(button.dataset.animTimer || "0");
+      if (existingTimer) {
+        window.clearTimeout(existingTimer);
+      }
+      const timerId = window.setTimeout(() => {
+        button.classList.remove("is-animating");
+        button.dataset.animTimer = "";
+      }, 390);
+      button.dataset.animTimer = String(timerId);
+    }
     button.setAttribute("aria-pressed", mode === "auto" ? "mixed" : String(mode === "dark"));
     const label = `Theme mode ${mode}. Effective ${effectiveTheme}. Click to cycle auto, dark, and light.`;
     button.setAttribute(
@@ -621,13 +733,13 @@ Length: 0 residues</div>
     refreshSequencePreview();
   });
 
-  applyThemeMode(document.documentElement.dataset.themeMode || getStoredThemeMode());
+  applyThemeMode(document.documentElement.dataset.themeMode || getStoredThemeMode(), false, false);
   const themeToggle = document.getElementById("themeToggle");
   if (themeToggle) {
     themeToggle.addEventListener("click", () => {
       const currentMode = document.documentElement.dataset.themeMode || "auto";
       const nextMode = currentMode === "auto" ? "dark" : (currentMode === "dark" ? "light" : "auto");
-      applyThemeMode(nextMode, true);
+      applyThemeMode(nextMode, true, true);
     });
   }
 

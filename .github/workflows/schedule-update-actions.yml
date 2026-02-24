@@ -12,13 +12,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           # [Required] Access token with `workflow` scope.
           token: ${{ secrets.PAT }}
 
       - name: Run GitHub Actions Version Updater
-        uses: saadmk11/github-actions-version-updater@v0.8.1
+        uses: saadmk11/github-actions-version-updater@64be81ba69383f81f2be476703ea6570c4c8686e # v0.8.1
         with:
           # [Required] Access token with `workflow` scope.
           token: ${{ secrets.PAT }}
