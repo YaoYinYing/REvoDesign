@@ -5,7 +5,6 @@
 
 import os
 import shutil
-import tarfile
 from urllib.parse import urlencode
 
 from platformdirs import user_data_dir
@@ -16,7 +15,7 @@ from ...driver.ui_driver import ConfigBus, StoresWidget
 from ...logger import ROOT_LOGGER
 from ...tools.download_registry import DownloadedFile, FileDownloadRegistry
 from ...tools.package_manager import get_github_repo_tags, notify_box
-from ...tools.utils import run_worker_thread_in_pool
+from ...tools.utils import extract_archive, run_worker_thread_in_pool
 from .config import ConfigStore
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -124,8 +123,7 @@ class MonacoEditorManager:
 
         # Extract tarball
         logging.info(f"Extracting tarball to {extract_path}")
-        with tarfile.open(downloaded_file.downloaded, "r:gz") as tar_ref:
-            tar_ref.extractall(extract_path)
+        extract_archive(downloaded_file.downloaded, extract_path)
 
         # Move the `vs` directory to the expected location
         shutil.move(os.path.join(extract_path, "package", "min", "vs"), os.path.join(extract_path, "vs"))

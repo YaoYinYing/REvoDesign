@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+import io
 import inspect
 import os
 import string
@@ -216,6 +217,33 @@ def test_unsupported_archive(temp_extract_dir):
 
     with pytest.raises(ValueError, match="Unsupported archive format"):
         extract_archive(unsupported_archive_path, temp_extract_dir)
+
+
+def test_extract_zip_rejects_path_traversal(temp_extract_dir):
+    archive_path = os.path.join(temp_extract_dir, "unsafe.zip")
+    with zipfile.ZipFile(archive_path, "w") as zipf:
+        zipf.writestr("../evil.txt", "malicious")
+
+    with pytest.raises(ValueError, match="Unsafe archive member path"):
+        extract_archive(archive_path, temp_extract_dir)
+
+    outside_path = os.path.abspath(os.path.join(temp_extract_dir, "..", "evil.txt"))
+    assert not os.path.exists(outside_path)
+
+
+def test_extract_tar_rejects_path_traversal(temp_extract_dir):
+    archive_path = os.path.join(temp_extract_dir, "unsafe.tar.gz")
+    payload = b"malicious"
+    info = tarfile.TarInfo(name="../evil.txt")
+    info.size = len(payload)
+    with tarfile.open(archive_path, "w:gz") as tar:
+        tar.addfile(info, io.BytesIO(payload))
+
+    with pytest.raises(ValueError, match="Unsafe archive member path"):
+        extract_archive(archive_path, temp_extract_dir)
+
+    outside_path = os.path.abspath(os.path.join(temp_extract_dir, "..", "evil.txt"))
+    assert not os.path.exists(outside_path)
 
 
 def test_get_color_uniform_range():

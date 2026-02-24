@@ -84,6 +84,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - notify box and decide box now works under subthreads.
 - Tests:
   - `test_pm_dialog_extras_panel_expand_collapse` now waites for the dialog to fully expand before asserting.
+  - `test_utils` archive extraction now covers zip/tar path traversal rejection.
+- Security hardening:
+  - archive extraction in `tools.utils.extract_archive` now validates member paths and rejects traversal entries before writing files.
+  - Monaco editor tarball setup now reuses the hardened archive extractor instead of raw `tar.extractall`.
+- Server (PSSM_GREMLIN):
+  - task-id/content digest md5 calls now explicitly use `usedforsecurity=False` because they are non-cryptographic identifiers.
 - Server (PSSM_GREMLIN):
   - Docker daemon permission failure handling for non-root runtime users in server/worker execution paths.
   - `run_stage` ORM/schema mismatch that caused sqlite update/compile failures and prevented task execution in server-image integration tests.

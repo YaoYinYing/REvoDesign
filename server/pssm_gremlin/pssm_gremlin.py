@@ -557,7 +557,7 @@ def _task_id_for_upload(content_md5: str, username: str | None) -> str:
     # Keep task IDs owner-scoped so two users uploading the same FASTA never collide.
     owner = username or "anonymous"
     scoped_key = f"{owner}:{content_md5}"
-    return hashlib.md5(scoped_key.encode("utf-8")).hexdigest()
+    return hashlib.md5(scoped_key.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 
 def _task_delete_allowed(task: dict[str, Any]) -> bool:
@@ -895,7 +895,7 @@ def upload_file():
     upload_path = os.path.abspath(os.path.join(app.config["UPLOAD_FOLDER"], safe_filename))
     uploaded_file.save(upload_path)
 
-    hasher = hashlib.md5()
+    hasher = hashlib.md5(usedforsecurity=False)
     with open(upload_path, "rb") as f:
         for chunk in iter(lambda: f.read(65536), b""):
             hasher.update(chunk)
