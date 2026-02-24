@@ -1514,20 +1514,7 @@
   }
 
   function triggerLogout() {
-    const targetPath = "/PSSM_GREMLIN/create_task";
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", targetPath, true, "logout", "logout");
-    xhr.onload = () => {
-      window.location.href = targetPath;
-    };
-    xhr.onerror = () => {
-      window.location.href = targetPath;
-    };
-    try {
-      xhr.send();
-    } catch (error) {
-      window.location.href = targetPath;
-    }
+    window.location.href = "/PSSM_GREMLIN/logout";
   }
 
   async function deleteSelectedTasks() {
@@ -1615,9 +1602,12 @@
       window.location.reload();
     });
 
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      triggerLogout();
-    });
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", () => {
+        triggerLogout();
+      });
+    }
 
     document.getElementById("selectVisibleBtn").addEventListener("click", () => {
       getFilteredTasks()

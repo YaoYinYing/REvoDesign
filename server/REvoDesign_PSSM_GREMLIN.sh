@@ -72,6 +72,11 @@ while getopts ":i:o:j:r:U:u:B:h:" opt; do
     esac
 done
 
+if [[ -z "${fasta:-}" ]]; then
+  echo "Missing required option: -i <fasta>"
+  usage
+fi
+
 if [[ "$blast_bin" == "" ]]; then
   blast_bin="$(dirname "$(command -v psiblast)")"
 fi

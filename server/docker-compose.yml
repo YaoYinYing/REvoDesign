@@ -32,9 +32,10 @@ x-common-env: &common-env
   ADMIN_USERS: ${ADMIN_USERS:-admin}
 
 x-docker-socket-access: &docker-socket-access
+  # Least privilege by default: only grant Docker socket group access.
+  # Do not add root group access ("0") here unless you explicitly accept the security tradeoff.
   group_add:
     - "${DOCKER_GID:-998}"
-    - "0"
 
 services:
   redis:
@@ -105,7 +106,7 @@ services:
   runner:
     profiles: ["runner"]
     user: ${RUNNER_UID}:${RUNNER_GID}
-    image: ${PSSM_GREMLIN_RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
+    image: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
     build:
       context: .
       dockerfile: docker/runner/Dockerfile

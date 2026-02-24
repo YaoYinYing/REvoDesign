@@ -26,7 +26,7 @@ import docker
 from celery import Celery
 from celery.result import AsyncResult
 from docker import types
-from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
+from flask import Flask, Response, jsonify, redirect, render_template, request, send_from_directory
 from flask_httpauth import HTTPBasicAuth
 from sqlalchemy import Column, Float, Index, Integer, MetaData, String, Table, Text, create_engine, desc, select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -590,13 +590,12 @@ def _delete_task_artifacts(task: dict[str, Any]) -> None:
     result_dir = task.get("result_dir")
     if result_dir:
         safe_result_dir = os.path.abspath(str(result_dir))
-        # Prefer scoped server result paths, but keep compatibility for legacy rows.
         if os.path.isdir(safe_result_dir):
             if safe_result_dir in {os.path.abspath(os.sep), os.path.abspath(os.path.expanduser("~"))}:
                 logging.warning("Refusing to delete unsafe root-like directory: %s", safe_result_dir)
+            elif not _path_is_within(app.config["RESULTS_FOLDER"], safe_result_dir):
+                logging.warning("Refusing to delete result directory outside RESULTS_FOLDER: %s", safe_result_dir)
             else:
-                if not _path_is_within(app.config["RESULTS_FOLDER"], safe_result_dir):
-                    logging.warning("Deleting legacy result directory outside RESULTS_FOLDER: %s", safe_result_dir)
                 shutil.rmtree(safe_result_dir, ignore_errors=True)
     try:
         zip_path = _task_zip_path(task)
@@ -914,6 +913,20 @@ def run_gremlin_task(md5sum):
 @auth.login_required
 def create_task():
     return render_template("create_task.html")
+
+
+@app.route("/PSSM_GREMLIN/logout", methods=["GET"])
+def logout():
+    response = Response(
+        "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Logged Out</title></head>"
+        "<body><h1>You are logged out</h1><p>Authentication cache has been cleared. "
+        "<a href='/PSSM_GREMLIN/create_task'>Log in again</a>.</p></body></html>",
+        status=401,
+        mimetype="text/html",
+    )
+    response.headers["WWW-Authenticate"] = 'Basic realm="PSSM_GREMLIN", charset="UTF-8"'
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
 
 
 @app.route("/favicon.ico", methods=["GET"])

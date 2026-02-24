@@ -423,6 +423,31 @@ def test_run_gremlin_task_does_not_resurrect_deleted_task(monkeypatch, tmp_path)
     assert not zip_path.exists()
 
 
+def test_delete_task_artifacts_skips_paths_outside_results_folder(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+
+    md5sum = uuid.uuid4().hex
+    external_result_dir = tmp_path / "legacy_external_results"
+    external_result_dir.mkdir(parents=True, exist_ok=True)
+    (external_result_dir / "artifact.txt").write_text("payload\n", encoding="utf-8")
+
+    module._delete_task_artifacts(
+        {
+            "md5sum": md5sum,
+            "result_dir": str(external_result_dir),
+        }
+    )
+
+    assert external_result_dir.exists()
+
+
 def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -531,6 +556,28 @@ def test_dashboard_masks_host_file_paths_on_read_errors(monkeypatch, tmp_path):
     assert "/srv/REvoDesign/PSSM_GREMLIN/upload/2KL8.fasta" in body
     assert "/Users/yyy/Documents/protein_design/REvoDesign" not in body
     assert 'id="logoutBtn"' in body
+    assert 'window.location.href = "/PSSM_GREMLIN/logout"' in body
+    assert 'const logoutBtn = document.getElementById("logoutBtn");' in body
+
+
+def test_logout_endpoint_returns_auth_challenge(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    client = module.app.test_client()
+
+    response = client.get("/PSSM_GREMLIN/logout")
+    assert response.status_code == 401
+    auth_header = response.headers.get("WWW-Authenticate", "")
+    assert "Basic" in auth_header
+    assert "PSSM_GREMLIN" in auth_header
+    body = response.get_data(as_text=True)
+    assert "You are logged out" in body
 
 
 def test_failed_status_masks_host_paths_in_api_error(monkeypatch, tmp_path):
@@ -828,7 +875,7 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
     upload_dir.mkdir(parents=True, exist_ok=True)
     upload_file = upload_dir / "owner.fasta"
     upload_file.write_text(">owner\nACDE\n", encoding="utf-8")
-    result_dir = tmp_path / "delete_owner"
+    result_dir = Path(module.app.config["RESULTS_FOLDER"]) / "delete_owner"
     result_dir.mkdir(parents=True, exist_ok=True)
     (result_dir / "artifact.txt").write_text("payload\n", encoding="utf-8")
     zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
@@ -925,7 +972,7 @@ def test_delete_pending_task_marks_deleted_cancel(monkeypatch, tmp_path):
     md5sum = uuid.uuid4().hex
     upload_file = tmp_path / "upload_pending.fasta"
     upload_file.write_text(">pending\nACDE\n", encoding="utf-8")
-    result_dir = tmp_path / "delete_pending"
+    result_dir = Path(module.app.config["RESULTS_FOLDER"]) / "delete_pending"
     result_dir.mkdir(parents=True, exist_ok=True)
     (result_dir / "artifact.txt").write_text("payload\n", encoding="utf-8")
 

@@ -34,6 +34,8 @@ if [[ $new_version == "$old_version" ]]; then
 fi
 echo 'Done.'
 
+escaped_new_version=${new_version//./\\.}
+escaped_old_version=${old_version//./\\.}
 
 echo set new tag to changelog
 "${SED}" -i 's/## \[Unreleased\]/## [Unreleased]\n\n## \['"$new_version"'\] - '"$new_date"'/' ./CHANGELOG.md
@@ -43,7 +45,7 @@ echo 'Bump version: '"$old_version"' -> '"$new_version" > changelog_tag.md
 echo >> changelog_tag.md
 echo '## Change log:' >> changelog_tag.md
 echo >> changelog_tag.md
-"${SED}" -n '/## \['"$new_version"'\]/,/## \['"$old_version"'\]/p' ./CHANGELOG.md |grep -v '^## \|^$' >> changelog_tag.md
+"${SED}" -n '/## \['"$escaped_new_version"'\]/,/## \['"$escaped_old_version"'\]/p' ./CHANGELOG.md |grep -v '^## \|^$' >> changelog_tag.md
 
 cat changelog_tag.md 
 
