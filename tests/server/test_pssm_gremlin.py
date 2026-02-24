@@ -1631,12 +1631,20 @@ def _wait_for_server_ready(
 ) -> None:
     deadline = time.time() + timeout
     session = requests.Session()
-    url = f"{base_url}/PSSM_GREMLIN/create_task"
+    readiness_url = f"{base_url}/favicon.ico"
+    auth_url = f"{base_url}/PSSM_GREMLIN/create_task"
+    auth_headers = _basic_auth_header(auth[0], auth[1])
     last_error = ""
     unauthorized_count = 0
     while time.time() < deadline:
         try:
-            response = session.get(url, timeout=5, auth=auth)
+            readiness = session.get(readiness_url, timeout=5, allow_redirects=False)
+            if readiness.status_code not in {200, 304}:
+                last_error = f"readiness probe returned HTTP {readiness.status_code}"
+                time.sleep(2)
+                continue
+
+            response = session.get(auth_url, timeout=5, headers=auth_headers, allow_redirects=False)
             if response.status_code == 200:
                 return
             if response.status_code == 401:
@@ -1647,8 +1655,8 @@ def _wait_for_server_ready(
                 time.sleep(2)
                 continue
             last_error = f"HTTP {response.status_code}"
-        except requests.RequestException:
-            last_error = "connection failed"
+        except requests.RequestException as exc:
+            last_error = f"connection failed ({exc.__class__.__name__})"
 
         if web_container:
             inspect = _run_command(
@@ -1667,31 +1675,47 @@ def _wait_for_server_ready(
                     f"stderr:\n{logs.stderr}"
                 )
         time.sleep(2)
-    if unauthorized_count:
-        raise AssertionError(
-            "PSSM GREMLIN server remained unauthorized for provided test credentials "
-            f"({unauthorized_count} HTTP 401 responses)."
-        )
     if web_container:
         logs = _run_command(["docker", "logs", "--tail", "200", web_container], check=False, capture_output=True)
+        if unauthorized_count:
+            raise AssertionError(
+                "PSSM GREMLIN server remained unauthorized for provided test credentials "
+                f"({unauthorized_count} HTTP 401 responses).\n"
+                f"web container: {web_container}\n"
+                f"stdout:\n{logs.stdout}\n"
+                f"stderr:\n{logs.stderr}"
+            )
         raise AssertionError(
             f"PSSM GREMLIN server failed to start within timeout ({last_error}).\n"
             f"web container: {web_container}\n"
             f"stdout:\n{logs.stdout}\n"
             f"stderr:\n{logs.stderr}"
         )
+    if unauthorized_count:
+        raise AssertionError(
+            "PSSM GREMLIN server remained unauthorized for provided test credentials "
+            f"({unauthorized_count} HTTP 401 responses)."
+        )
     raise AssertionError(f"PSSM GREMLIN server failed to start within timeout ({last_error})")
 
 
 def test_wait_for_server_ready_retries_transient_401(monkeypatch):
-    responses = [SimpleNamespace(status_code=401), SimpleNamespace(status_code=200)]
+    auth_attempts = {"count": 0}
+    expected_auth = _basic_auth_header("tester", "password")["Authorization"]
 
     class _StubSession:
-        def get(self, url, timeout=5, auth=None):
-            del url, timeout, auth
-            if responses:
-                return responses.pop(0)
-            return SimpleNamespace(status_code=200)
+        def get(self, url, timeout=5, headers=None, allow_redirects=False):
+            del timeout, allow_redirects
+            if url.endswith("/favicon.ico"):
+                return SimpleNamespace(status_code=200)
+            if url.endswith("/PSSM_GREMLIN/create_task"):
+                if not headers or headers.get("Authorization") != expected_auth:
+                    return SimpleNamespace(status_code=401)
+                if auth_attempts["count"] == 0:
+                    auth_attempts["count"] += 1
+                    return SimpleNamespace(status_code=401)
+                return SimpleNamespace(status_code=200)
+            return SimpleNamespace(status_code=404)
 
     monkeypatch.setattr(requests, "Session", lambda: _StubSession())
     monkeypatch.setattr(time, "sleep", lambda *_args, **_kwargs: None)

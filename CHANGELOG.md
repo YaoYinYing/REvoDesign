@@ -96,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `test_utils` archive extraction now covers zip/tar path traversal rejection.
   - tab bootstrap dependencies are now session-scoped and `test_pick_design_from_profile` now depends on `tabs_prepare_pocket_session`, so CI runs pocket-session preparation before shortcut profile-picking tests.
   - `make serial-test` now includes dependency-root `bootstrap` cases so dependency-selected child tests do not emit unresolved-marker warnings when roots were excluded by marker filters.
+  - GREMLIN server-image readiness checks now use a public liveness probe plus explicit Basic auth headers, reducing CI flakes where valid credentials were repeatedly treated as unauthorized during startup.
 - Security hardening:
   - archive extraction in `tools.utils.extract_archive` now validates member paths and rejects traversal entries before writing files.
   - Monaco editor tarball setup now reuses the hardened archive extractor instead of raw `tar.extractall`.
