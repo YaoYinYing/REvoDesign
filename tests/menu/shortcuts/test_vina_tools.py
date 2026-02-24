@@ -5,15 +5,7 @@
 
 from pymol import cmd
 
-from REvoDesign.shortcuts.tools.vina_tools import (
-    enlargebox,
-    get_oriented_bounding_box,
-    get_pca_box,
-    getbox,
-    movebox,
-    rmhet,
-    showaxes,
-)
+from REvoDesign.shortcuts.tools.vina_tools import enlargebox, get_pca_box, getbox, movebox, rmhet, showaxes
 
 
 def test_rmhet():

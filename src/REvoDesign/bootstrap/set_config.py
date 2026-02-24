@@ -101,7 +101,7 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     else:
         print(f"Config file is already located at `{config_dir}`, do nothing.")
 
-        print(f"Verifying the structure of the configuration directory...")
+        print("Verifying the structure of the configuration directory...")
         verify_config_tree_structure(config_dir, template_config_dir)
         print("Enforcing the key structure of the configuration directory...")
 

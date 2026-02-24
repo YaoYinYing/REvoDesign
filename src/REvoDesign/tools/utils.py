@@ -12,7 +12,9 @@ from __future__ import annotations
 import contextlib
 import importlib
 import inspect
+import os
 import random
+import shutil
 import string
 import sys
 import tarfile
@@ -603,27 +605,67 @@ def extract_archive(archive_file: str, extract_to: str):
         extract_to (str): Directory where the contents will be extracted.
     """
 
+    def _safe_member_target(base_dir: str, member_name: str) -> str:
+        normalized = member_name.replace("\\", "/")
+        if normalized.startswith("/") or normalized.startswith("../") or "/../" in f"/{normalized}":
+            raise ValueError(f"Unsafe archive member path: {member_name}")
+        target_path = os.path.realpath(os.path.join(base_dir, member_name))
+        base_path = os.path.realpath(base_dir)
+        try:
+            if os.path.commonpath([base_path, target_path]) != base_path:
+                raise ValueError(f"Unsafe archive member path: {member_name}")
+        except ValueError as exc:
+            raise ValueError(f"Unsafe archive member path: {member_name}") from exc
+        return target_path
+
+    def _extract_zip_safely(zip_ref: zipfile.ZipFile, base_dir: str) -> None:
+        for member in zip_ref.infolist():
+            target_path = _safe_member_target(base_dir, member.filename)
+            if member.is_dir():
+                os.makedirs(target_path, exist_ok=True)
+                continue
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+            with zip_ref.open(member, "r") as source, open(target_path, "wb") as dest:
+                shutil.copyfileobj(source, dest)
+
+    def _extract_tar_safely(tar_ref: tarfile.TarFile, base_dir: str) -> None:
+        for member in tar_ref.getmembers():
+            target_path = _safe_member_target(base_dir, member.name)
+            if member.isdir():
+                os.makedirs(target_path, exist_ok=True)
+                continue
+            if not member.isfile():
+                logging.warning("Skipping non-regular archive member: %s", member.name)
+                continue
+            stream = tar_ref.extractfile(member)
+            if stream is None:
+                raise ValueError(f"Failed to read archive member: {member.name}")
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+            with contextlib.closing(stream) as source, open(target_path, "wb") as dest:
+                shutil.copyfileobj(source, dest)
+
     try:
         with timing(f"extracting {archive_file} to {extract_to}"):
+            os.makedirs(extract_to, exist_ok=True)
             if archive_file.endswith(".zip"):
                 with zipfile.ZipFile(archive_file, "r") as zip_ref:
-                    zip_ref.extractall(extract_to)
+                    _extract_zip_safely(zip_ref, extract_to)
 
             elif archive_file.endswith(".tar"):
                 with tarfile.open(archive_file, "r:") as tar_ref:
-                    tar_ref.extractall(extract_to)
+                    _extract_tar_safely(tar_ref, extract_to)
 
             elif archive_file.endswith((".tar.gz", ".tgz")):
                 with tarfile.open(archive_file, "r:*") as tar_ref:
-                    tar_ref.extractall(extract_to)
+                    _extract_tar_safely(tar_ref, extract_to)
 
             elif archive_file.endswith((".tar.bz2", ".tbz")):
                 with tarfile.open(archive_file, "r:bz2") as tar_ref:
-                    tar_ref.extractall(extract_to)
+                    _extract_tar_safely(tar_ref, extract_to)
 
             elif archive_file.endswith(".tar.xz"):
                 with tarfile.open(archive_file, "r:xz") as tar_ref:
-                    tar_ref.extractall(extract_to)
+                    _extract_tar_safely(tar_ref, extract_to)
 
             else:
                 raise ValueError(f"Unsupported archive format: {archive_file}")

@@ -61,6 +61,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - logger control of uvicorn server. can be completely silenced.
   - Server: logs now printed as debug messages.
 - Language switch: logs now printed as debug messages.
+- Tests:
+  - refactored tabs-case dependency flow to `pytest-dependency`:
+    - `TestREvoDesignPlugin` -> `TestREvoDesignPlugin_TabPrepare` -> downstream tab/action case classes.
+  - dropped active `pytest.mark.order` coupling in tabs bootstrap cases and enabled dependency-aware ordering with `--order-dependencies`.
+- Test env/bootstrap:
+  - test dependencies and `make prepare-test` now include `pytest-dependency`.
 - Server (PSSM_GREMLIN):
   - Public/private dashboard behavior is now configurable with `PUBLIC_DASHBOARD` (`false` by default).
   - Task visibility and API access are scoped to the authenticated upload owner when `PUBLIC_DASHBOARD=false`.
@@ -78,13 +84,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - notify box and decide box now works under subthreads.
 - Tests:
   - `test_pm_dialog_extras_panel_expand_collapse` now waites for the dialog to fully expand before asserting.
+  - `test_utils` archive extraction now covers zip/tar path traversal rejection.
+  - tab bootstrap dependencies are now session-scoped and `test_pick_design_from_profile` now depends on `tabs_prepare_pocket_session`, so CI runs pocket-session preparation before shortcut profile-picking tests.
+  - `make serial-test` now includes dependency-root `bootstrap` cases so dependency-selected child tests do not emit unresolved-marker warnings when roots were excluded by marker filters.
+- Security hardening:
+  - archive extraction in `tools.utils.extract_archive` now validates member paths and rejects traversal entries before writing files.
+  - Monaco editor tarball setup now reuses the hardened archive extractor instead of raw `tar.extractall`.
 - Server (PSSM_GREMLIN):
+  - task-id/content digest md5 calls now explicitly use `usedforsecurity=False` because they are non-cryptographic identifiers.
+- Server (PSSM_GREMLIN):
+  - deleted task states are now terminal in sqlite update flow, preventing late worker writes (`packing results` / `finished`) from resurrecting tasks after user deletion.
+  - background GREMLIN runner now skips result packing/finalization when a task is deleted mid-execution, avoiding inconsistent post-delete artifacts/state.
   - Docker daemon permission failure handling for non-root runtime users in server/worker execution paths.
   - `run_stage` ORM/schema mismatch that caused sqlite update/compile failures and prevented task execution in server-image integration tests.
   - Real-server missing result artifacts by packing outputs at job completion rather than delaying zip creation until download request.
   - UniRef90 mount/prefix mismatch that caused runner exits like `/tmp/uniref90_db.fasta not found`.
   - Host absolute path leakage in dashboard/API error messages by masking to virtual server paths (`/srv/REvoDesign/PSSM_GREMLIN/upload/<filename>`).
   - Cross-user data exposure/unauthorized access paths on dashboard and task APIs when private mode is enabled.
+  - command execution hardening in `REvoDesign_PSSM_GREMLIN.sh`: replaced `eval`-based hhblits/hhfilter/remove-inserts/GREMLIN/psiblast invocations with array-based execution and preserved stdout/stderr log routing.
 
 ### Removed
 - Server (PSSM_GREMLIN):

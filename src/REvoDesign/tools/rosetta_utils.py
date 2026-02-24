@@ -251,7 +251,7 @@ def read_rosetta_node_config() -> dict[str, Any]:
         node_config: DictConfig = reload_config_file(f"rosetta-node/{rosetta_node_hint}")["rosetta-node"]["node_config"]
     except hydra_errors.MissingConfigException as e:
         raise issues.ConfigureOutofDateError(
-            f"Rosetta node config not found. Please check your configuration files."
+            "Rosetta node config not found. Please check your configuration files."
         ) from e
 
     logging.info(f"Using node config: {node_config}")

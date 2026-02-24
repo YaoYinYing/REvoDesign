@@ -176,6 +176,7 @@ test = [
     "pytest-xdist>=3.6.1",
     "pytest<=8.3.3",
     "pytest-order",
+    "pytest-dependency",
     "pytest-emoji",
     "pytest-github-actions-annotate-failures",
     "shellcheck-py==0.10.0.1",
@@ -260,6 +261,7 @@ executionEnvironments = [
 ]
 
 [tool.pytest.ini_options]
+addopts = "--order-dependencies"
 pythonpath = [
   "src"
 ]
@@ -273,7 +275,9 @@ markers = [
     "slow: marks tests as slow",
     "unit: fast offline tests",
     "serial: mark as serial tests that can not be run in parallel with xdist",
+    "bootstrap: dependency root tests that must be included with dependent test subsets",
     "very_slow: marks tests as very slow that should be run only in a independent run",
+    "dependency: marks tests with explicit inter-test dependencies",
 ]
 filterwarnings = [
     "ignore::Bio.PDB.PDBExceptions.PDBConstructionWarning",

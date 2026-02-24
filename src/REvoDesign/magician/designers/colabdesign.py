@@ -32,6 +32,7 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
     def __init__(self, molecule, *args, **kwargs):
         from colabdesign.mpnn import mk_mpnn_model
 
+        super().__init__(molecule)
         self.molecule = molecule
 
         # internal variables
@@ -56,7 +57,8 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         self.pdb_filename = make_temperal_input_pdb(molecule=self.molecule, reload=self.reload)
 
         self.mpnn_model = mk_mpnn_model()
-        assert os.path.exists(self.pdb_filename)
+        if not os.path.exists(self.pdb_filename):
+            raise FileNotFoundError(f"Input pdb file does not exist: {self.pdb_filename}")
         self.mpnn_model.prep_inputs(
             pdb_filename=self.pdb_filename,
             *args,

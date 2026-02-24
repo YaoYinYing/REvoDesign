@@ -4,8 +4,8 @@
 
 
 import plotly.graph_objects as go
-from PyQt5.QtCore import QObject, QUrl, pyqtSlot
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtCore import QObject, pyqtSlot
+from PyQt5.QtWebEngineWidgets import QWebEngineProfile, QWebEngineView
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
 

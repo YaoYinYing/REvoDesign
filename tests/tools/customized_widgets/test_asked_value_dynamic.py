@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 
 # Import target module
-from REvoDesign.tools.customized_widgets import AskedValue, AskedValueCollection, AskedValueDynamic, dialog_wrapper
+from REvoDesign.tools.customized_widgets import AskedValue, AskedValueDynamic
 
 # -----------------------------
 # Fixtures and Helpers

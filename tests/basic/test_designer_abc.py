@@ -5,8 +5,6 @@
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from REvoDesign.basic.designer import ExternalDesignerAbstract
 
 

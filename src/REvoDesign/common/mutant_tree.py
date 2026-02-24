@@ -36,7 +36,7 @@ class MutantTree:
     A class representing a mutant tree.
     """
 
-    def __init__(self, mutant_tree: dict[str, dict[str, Mutant]] = {}):
+    def __init__(self, mutant_tree: dict[str, dict[str, Mutant]] | None = None):
         """
         Initialize MutantTree object with a mutant tree dictionary.
 
@@ -49,7 +49,10 @@ class MutantTree:
         self.current_branch_id = ""
         self.current_mutant_id = ""
 
-        self.mutant_tree = mutant_tree
+        if mutant_tree is None:
+            self.mutant_tree = {}
+        else:
+            self.mutant_tree = mutant_tree
 
         self.refresh_mutants()
 
@@ -121,8 +124,7 @@ class MutantTree:
         """
         return MutantTree(self.mutant_tree.copy())
 
-    @property
-    def __deepcopy__(self) -> "MutantTree":
+    def __deepcopy__(self, memo=None) -> "MutantTree":
         """
         Returns a deep copy of the MutantTree object.
 
@@ -131,7 +133,9 @@ class MutantTree:
         """
         import copy
 
-        return MutantTree(copy.deepcopy(self.mutant_tree))
+        if memo is None:
+            memo = {}
+        return MutantTree(copy.deepcopy(self.mutant_tree, memo))
 
     def get_branch_index(self, branch_id) -> int:
         """

@@ -20,18 +20,18 @@ echo Formatted UI code ...
 $black_path src/REvoDesign/UI/Ui_REvoDesign.py
 echo Done formatting UI code.
 
-if [ $stage == 'compile' ]; then echo Done with $stage;exit 0; fi
+if [ "$stage" == 'compile' ]; then echo Done with "$stage";exit 0; fi
 
 # update translation files
 for i in $(ls src/REvoDesign/UI/language/*.ts); do
     echo "Updating $i"
-    lupdate  src/REvoDesign/UI/REvoDesign.ui -ts $i
+    lupdate  src/REvoDesign/UI/REvoDesign.ui -ts "$i"
 done
 echo "Translation files updated."
-if [ $stage == 'translate' ]; then echo Done with $stage;exit 0; fi
+if [ "$stage" == 'translate' ]; then echo Done with "$stage";exit 0; fi
 
 
 # release translation file to binarys
 echo Releasing translation files to binarys...
-cd src/REvoDesign/UI/;lrelease liguist.pro;cd ../../..
+cd src/REvoDesign/UI/ || exit;lrelease liguist.pro;cd ../../..
 echo Done.

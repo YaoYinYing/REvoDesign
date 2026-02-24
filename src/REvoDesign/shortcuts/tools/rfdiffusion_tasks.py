@@ -227,6 +227,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 The overrides to use. Defaults to None.
         """
         self.ensure_dgl()
+        TorchModuleAbstract.__init__(self, device="cpu")
 
         try:
             config: DictConfig = reload_config_file(f"rfdiffusion/{config_preset}", overrides=overrides)["rfdiffusion"]

@@ -19,7 +19,7 @@ from pymol import cgo, cmd
 from pymol.vfont import plain
 
 from REvoDesign.logger import ROOT_LOGGER
-from REvoDesign.Qt import QtCore, QtGui, QtWidgets
+from REvoDesign.Qt import QtCore, QtWidgets
 from REvoDesign.tools.customized_widgets import REvoDesignWidget
 
 from ...tools.cgo_utils import Cone, Cube, Cylinder, GraphicObject
@@ -717,9 +717,6 @@ def box_helper(box_name: str):
 
     :param box_name: The name or identifier of the box to move/resize.
     """
-    from REvoDesign import ConfigBus
-
-    bus = ConfigBus()
 
     # Default direction is set to 'x', with a default distance of 1.0.
     direction: Literal["x", "y", "z"] = "x"

@@ -7,12 +7,12 @@
 
 from __future__ import annotations
 
+import grp
 import hashlib
 import json
 import logging
 import os
 import pwd
-import grp
 import re
 import shutil
 import signal
@@ -36,12 +36,16 @@ from werkzeug.utils import secure_filename
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
+TEMPLATE_IMAGE_DIR = os.path.join(THIS_DIR, "templates", "images")
 
 app = Flask(__name__, template_folder="./templates")
 auth = HTTPBasicAuth()
 
+
 class TaskDatabase:
     """Minimal SQLite-based task tracker for GREMLIN jobs."""
+
+    DELETED_STATUSES = {"deleted:finshed", "deleted:cancel"}
 
     VALID_STATUSES = {
         "pending",
@@ -50,6 +54,8 @@ class TaskDatabase:
         "finished",
         "failed",
         "cancelled",
+        "deleted:finshed",
+        "deleted:cancel",
     }
 
     def __init__(self, path: str):
@@ -122,6 +128,10 @@ class TaskDatabase:
         if status not in self.VALID_STATUSES:
             raise ValueError(f"Invalid GREMLIN task status {status}")
 
+    @classmethod
+    def _is_deleted_status(cls, status: Any) -> bool:
+        return str(status or "").strip().lower() in cls.DELETED_STATUSES
+
     def upsert_task(self, md5sum: str, **fields) -> None:
         if not fields:
             return
@@ -142,11 +152,12 @@ class TaskDatabase:
         status = fields.get("status")
         if status:
             self._ensure_status(status)
-        stmt = (
-            update(self.tasks_table)
-            .where(self.tasks_table.c.md5sum == md5sum)
-            .values(**fields)
-        )
+        stmt = update(self.tasks_table).where(self.tasks_table.c.md5sum == md5sum).values(**fields)
+        # Deleted tasks are terminal in the runtime state machine.
+        # Ignore late worker writes (running/packing/finished/run_stage, etc.)
+        # that would otherwise resurrect tasks after user deletion.
+        if status is None or (not self._is_deleted_status(status)):
+            stmt = stmt.where(self.tasks_table.c.status.notin_(tuple(self.DELETED_STATUSES)))
         with self.engine.begin() as conn:
             conn.execute(stmt)
 
@@ -201,8 +212,7 @@ def _env_bool(var_name: str, default: bool) -> bool:
     if value in {"0", "false", "no", "off"}:
         return False
     raise ValueError(
-        f"Environment variable {var_name} must be a boolean value "
-        "(one of: true/false/1/0/yes/no/on/off)."
+        f"Environment variable {var_name} must be a boolean value " "(one of: true/false/1/0/yes/no/on/off)."
     )
 
 
@@ -266,7 +276,7 @@ class GremlinConfig:
     public_dashboard: bool
 
     @classmethod
-    def from_env(cls) -> "GremlinConfig":
+    def from_env(cls) -> GremlinConfig:
         server_dir = _env_path("SERVER_DIR", "/mnt/data/yinying/server/")
         upload_folder = os.path.join(server_dir, "upload")
         results_folder = os.path.join(server_dir, "results")
@@ -295,9 +305,7 @@ user_file = os.environ.get("USERS_FILE", os.path.join(THIS_DIR, "users.txt"))
 user_file = os.path.abspath(user_file)
 
 if not os.path.exists(user_file):
-    raise FileNotFoundError(
-        f"Unable to start GREMLIN server without user credentials. Expected file at {user_file}"
-    )
+    raise FileNotFoundError(f"Unable to start GREMLIN server without user credentials. Expected file at {user_file}")
 
 # A dictionary of users and their hashed passwords
 users = {}
@@ -377,11 +385,7 @@ def _sanitize_headers_for_log(raw_headers: dict[str, str]) -> str:
 
 
 def _request_metadata() -> dict[str, str | None]:
-    ip = (
-        request.headers.get("CF-Connecting-IP")
-        or request.headers.get("CF-Connecting-IPv6")
-        or request.remote_addr
-    )
+    ip = request.headers.get("CF-Connecting-IP") or request.headers.get("CF-Connecting-IPv6") or request.remote_addr
     headers = {str(k): str(v) for k, v in request.headers.items()}
     return {
         "ip": ip,
@@ -419,6 +423,18 @@ def _local_user_identity() -> str:
 def _task_zip_path(task: Any) -> str:
     task_id = task if isinstance(task, str) else task["md5sum"]
     return os.path.join(app.config["RESULTS_FOLDER"], f"{task_id}_PSSM_GREMLIN_results.zip")
+
+
+def _safe_fasta_prefix(filename: str) -> str:
+    base = os.path.basename(str(filename or "result.fasta"))
+    stem = os.path.splitext(base)[0]
+    safe = secure_filename(stem)
+    return safe or "result"
+
+
+def _task_zip_download_name(task: dict[str, Any]) -> str:
+    prefix = _safe_fasta_prefix(str(task.get("filename") or "result.fasta"))
+    return f"{prefix}_{task['md5sum']}_PSSM_GREMLIN_results.zip"
 
 
 def _virtual_upload_path(filename: str) -> str:
@@ -471,7 +487,7 @@ def _extract_stage_from_log_line(line: str) -> str | None:
     marker_pos = line.find(_RUNNER_STAGE_PREFIX)
     if marker_pos < 0:
         return None
-    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX):].strip().lower()
+    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX) :].strip().lower()
     if not raw_marker:
         return None
     token = raw_marker.split()[0]
@@ -542,7 +558,7 @@ def _task_id_for_upload(content_md5: str, username: str | None) -> str:
     # Keep task IDs owner-scoped so two users uploading the same FASTA never collide.
     owner = username or "anonymous"
     scoped_key = f"{owner}:{content_md5}"
-    return hashlib.md5(scoped_key.encode("utf-8")).hexdigest()
+    return hashlib.md5(scoped_key.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 
 def _task_delete_allowed(task: dict[str, Any]) -> bool:
@@ -572,6 +588,27 @@ def _revoke_celery_task(task: dict[str, Any]) -> None:
         logging.warning("Failed to revoke Celery task %s: %s", celery_id, exc)
 
 
+def _deleted_status_from_task(task: dict[str, Any]) -> str:
+    current_status = str(task.get("status") or "").strip().lower()
+    if current_status in {"deleted:finshed", "deleted:cancel"}:
+        return current_status
+    if current_status == "finished":
+        return "deleted:finshed"
+    return "deleted:cancel"
+
+
+def _is_deleted_status(status: Any) -> bool:
+    normalized = str(status or "").strip().lower()
+    return normalized in {"deleted:finshed", "deleted:cancel"}
+
+
+def _task_is_deleted(md5sum: str) -> bool:
+    task = task_store.get_task(md5sum)
+    if not task:
+        return False
+    return _is_deleted_status(task.get("status"))
+
+
 def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mount, str]:
     """Create a mount point for each file and directory used by the model."""
     path = os.path.abspath(path)
@@ -588,7 +625,7 @@ def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mou
         mounted_path = os.path.join(target_path, os.path.basename(path))
     if not os.path.exists(source_path):
         os.makedirs(source_path)
-    logging.info(f"Mounting {source_path} -> {target_path}" )
+    logging.info(f"Mounting {source_path} -> {target_path}")
     mount = types.Mount(
         target=str(target_path),
         source=str(source_path),
@@ -634,13 +671,17 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None, stage
     # sequence databases use prefixes instead of real file path
     # file prefix should be excluded before mounting the dir
     uniref30_db = os.path.abspath(CONFIG.uniref30_db)
-    mount_uniref30_db, mounted_uniref30_db = _create_mount(mount_name="uniref30_db", path=os.path.dirname(uniref30_db), read_only=True)
+    mount_uniref30_db, mounted_uniref30_db = _create_mount(
+        mount_name="uniref30_db", path=os.path.dirname(uniref30_db), read_only=True
+    )
     mounts.append(mount_uniref30_db)
     command_args.extend(["-U", os.path.join(mounted_uniref30_db, os.path.basename(uniref30_db))])
 
     uniref90_db = os.path.abspath(CONFIG.uniref90_db)
-    
-    mount_uniref90_db, mounted_uniref90_db = _create_mount(mount_name="uniref90_db", path=os.path.dirname(uniref90_db), read_only=True)
+
+    mount_uniref90_db, mounted_uniref90_db = _create_mount(
+        mount_name="uniref90_db", path=os.path.dirname(uniref90_db), read_only=True
+    )
     mounts.append(mount_uniref90_db)
     command_args.extend(["-u", os.path.join(mounted_uniref90_db, os.path.basename(uniref90_db))])
 
@@ -715,6 +756,19 @@ def format_times(timestamp):
         return None
 
 
+def format_walltime(seconds: Any) -> str:
+    if seconds is None:
+        return "-"
+    try:
+        total_seconds = max(int(float(seconds)), 0)
+    except (TypeError, ValueError):
+        return "-"
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    secs = total_seconds % 60
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+
 @celery.task(name="run_gremlin_task")
 def run_gremlin_task(md5sum):
     task = task_store.get_task(md5sum)
@@ -758,6 +812,8 @@ def run_gremlin_task(md5sum):
     def _on_stage_change(stage: str) -> None:
         if stage == stage_state["current"]:
             return
+        if _task_is_deleted(md5sum):
+            return
         stage_state["current"] = stage
         task_store.update_task(md5sum, run_stage=stage)
 
@@ -767,10 +823,20 @@ def run_gremlin_task(md5sum):
             output_dir=output_dir,
             stage_callback=_on_stage_change,
         )
+        if _task_is_deleted(md5sum):
+            logging.info("Task %s was deleted during execution; skipping result packing and finalization.", md5sum)
+            return
         final_stage = stage_state["current"] or _RUNNING_TRACE_STEPS[-1][0]
         task_store.update_task(md5sum, status="packing results", run_stage=final_stage)
         refreshed_task = task_store.get_task(md5sum) or task
+        if _is_deleted_status(refreshed_task.get("status")):
+            logging.info("Task %s was deleted before archive packing; skipping artifact packaging.", md5sum)
+            return
         _pack_results_archive(refreshed_task)
+        refreshed_task = task_store.get_task(md5sum) or refreshed_task
+        if _is_deleted_status(refreshed_task.get("status")):
+            logging.info("Task %s was deleted during archive packing; skipping final status update.", md5sum)
+            return
         finish_time = time.time()
         task_store.update_task(
             md5sum,
@@ -820,6 +886,16 @@ def create_task():
     return render_template("create_task.html")
 
 
+@app.route("/favicon.ico", methods=["GET"])
+def favicon():
+    return send_from_directory(TEMPLATE_IMAGE_DIR, "logo.ico", mimetype="image/vnd.microsoft.icon")
+
+
+@app.route("/PSSM_GREMLIN/logo.svg", methods=["GET"])
+def logo_svg():
+    return send_from_directory(TEMPLATE_IMAGE_DIR, "logo.svg", mimetype="image/svg+xml")
+
+
 @app.route("/PSSM_GREMLIN/api/post", methods=["POST"])
 @auth.login_required
 def upload_file():
@@ -843,7 +919,7 @@ def upload_file():
     upload_path = os.path.abspath(os.path.join(app.config["UPLOAD_FOLDER"], safe_filename))
     uploaded_file.save(upload_path)
 
-    hasher = hashlib.md5()
+    hasher = hashlib.md5(usedforsecurity=False)
     with open(upload_path, "rb") as f:
         for chunk in iter(lambda: f.read(65536), b""):
             hasher.update(chunk)
@@ -938,6 +1014,10 @@ def run_gremlin(md5sum):
         return jsonify({"status": "packing results", "md5sum": md5sum}), 202
     if status == "cancelled":
         return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
+    if status == "deleted:finshed":
+        return jsonify({"status": "deleted:finshed", "md5sum": md5sum}), 200
+    if status == "deleted:cancel":
+        return jsonify({"status": "deleted:cancel", "md5sum": md5sum}), 200
 
     return (
         jsonify({"status": "unknown", "md5sum": md5sum, "error": "Invalid task status"}),
@@ -987,6 +1067,7 @@ def download_results(md5sum):
             app.config["RESULTS_FOLDER"],
             os.path.basename(zip_filename),
             as_attachment=True,
+            download_name=_task_zip_download_name(task),
         )
 
     return (
@@ -1044,9 +1125,10 @@ def task_dashboard():
     is_admin = _is_admin_user(current_user)
     all_tasks = task_store.list_tasks()
     if is_admin or CONFIG.public_dashboard:
-        visible_tasks = all_tasks
+        scoped_tasks = all_tasks
     else:
-        visible_tasks = [task for task in all_tasks if task.get("username") == current_user]
+        scoped_tasks = [task for task in all_tasks if task.get("username") == current_user]
+    visible_tasks = [task for task in scoped_tasks if not _is_deleted_status(task.get("status"))]
 
     task_statuses = []
     for i, task in enumerate(visible_tasks):
@@ -1079,7 +1161,7 @@ def task_dashboard():
                 "fasta_fn": task["filename"],
                 "submitted_time": format_times(submitted_time),
                 "finished_time": format_times(finished_time) if finished_time else "-",
-                "walltime": int(walltime) if walltime is not None else "-",
+                "walltime": format_walltime(walltime),
                 "submitted_timestamp": submitted_time or 0,
                 "sequence": fasta_seq,
                 "owner": task.get("username") or "-",
@@ -1111,7 +1193,23 @@ def delete_task(md5sum):
         _revoke_celery_task(task)
 
     _delete_task_artifacts(task)
-    task_store.delete_task(md5sum)
+    now = time.time()
+    deleted_status = _deleted_status_from_task(task)
+    started_at = task.get("started_at")
+    walltime = task.get("walltime")
+    if walltime is None and started_at:
+        walltime = now - started_at
+    finished_at = task.get("finished_at")
+    if deleted_status == "deleted:cancel" or not finished_at:
+        finished_at = now
+    task_store.update_task(
+        md5sum,
+        status=deleted_status,
+        finished_at=finished_at,
+        walltime=walltime,
+        error="Task deleted by user",
+        celery_task_id=None,
+    )
     return jsonify({"status": "deleted", "md5sum": md5sum}), 200
 
 
@@ -1149,7 +1247,23 @@ def delete_tasks_batch():
         if task["status"] in {"pending", "running", "packing results"}:
             _revoke_celery_task(task)
         _delete_task_artifacts(task)
-        task_store.delete_task(md5sum)
+        now = time.time()
+        deleted_status = _deleted_status_from_task(task)
+        started_at = task.get("started_at")
+        walltime = task.get("walltime")
+        if walltime is None and started_at:
+            walltime = now - started_at
+        finished_at = task.get("finished_at")
+        if deleted_status == "deleted:cancel" or not finished_at:
+            finished_at = now
+        task_store.update_task(
+            md5sum,
+            status=deleted_status,
+            finished_at=finished_at,
+            walltime=walltime,
+            error="Task deleted by user",
+            celery_task_id=None,
+        )
         deleted.append(md5sum)
 
     return (

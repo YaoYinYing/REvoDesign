@@ -34,6 +34,7 @@ from datetime import datetime, timezone
 from functools import cached_property, partial
 from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypedDict, TypeVar, cast, overload
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 
 from packaging.version import InvalidVersion, Version
 from pymol import cmd, get_version_message
@@ -66,19 +67,24 @@ REvoDesign -- Makes enzyme redesign tasks easier to all."""
 
     class MockLogger:
 
-        def debug(self, msg: str, *args, **kwargs):
+        @staticmethod
+        def debug(msg: str, *args, **kwargs):
             print(f"[DEBUG]: {msg}") if LOGGER_LEVEL < 10 else None
 
-        def info(self, msg: str, *args, **kwargs):
+        @staticmethod
+        def info(msg: str, *args, **kwargs):
             print(f"[INFO]: {msg}") if LOGGER_LEVEL < 20 else None
 
-        def warning(self, msg: str, *args, **kwargs):
+        @staticmethod
+        def warning(msg: str, *args, **kwargs):
             print(f"[WARNING]: {msg}") if LOGGER_LEVEL < 30 else None
 
-        def error(self, msg: str, *args, **kwargs):
+        @staticmethod
+        def error(msg: str, *args, **kwargs):
             print(f"[ERROR]: {msg}") if LOGGER_LEVEL < 40 else None
 
-        def critical(self, msg: str, *args, **kwargs):
+        @staticmethod
+        def critical(msg: str, *args, **kwargs):
             print(f"[CRITICAL]: {msg}") if LOGGER_LEVEL < 50 else None
 
     logging = MockLogger()
@@ -145,6 +151,15 @@ def _safe_parse_version(value: str) -> Version | None:
     except InvalidVersion:
         logging.debug("Invalid python version spec: %s", value)
         return None
+
+
+def _read_https_url(url: str, timeout: float = 10.0) -> bytes:
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise ValueError(f"Only https URLs are allowed: {url}")
+    request = urllib.request.Request(url, headers={"User-Agent": "REvoDesign-PackageManager"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:  # nosec B310
+        return response.read()
 
 
 def _python_version_matches(spec: str | None, current_version: str | None) -> bool:
@@ -377,8 +392,8 @@ def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
 
     try:
         # Fetch the file content and write it to the temporary file
-        with urllib.request.urlopen(ui_file_url) as response, open(save_to_file, "w") as ui_handle:
-            ui_data = response.read().decode("utf-8")
+        ui_data = _read_https_url(ui_file_url).decode("utf-8")
+        with open(save_to_file, "w") as ui_handle:
             ui_handle.write(ui_data)
 
     except (URLError, HTTPError) as e:
@@ -401,15 +416,15 @@ def fetch_gist_json(url: str) -> dict[str, Any]:
     Dict[str, str]: The fetched and validated JSON data, or an empty dictionary if an error occurs.
     """
     try:
-        with urllib.request.urlopen(url, timeout=10) as response:  # Set a timeout for safety
-            data = response.read().decode("utf-8")
-            json_data = json.loads(data)
-            logging.debug("Extras table is fetched and parsed: \n" f"{json_data}")
+        data = _read_https_url(url, timeout=10).decode("utf-8")
+        json_data = json.loads(data)
+        logging.debug("Extras table is fetched and parsed: \n" f"{json_data}")
 
-            # Validate the structure of the fetched data
-            if not isinstance(json_data, dict):
-                raise ValueError("Fetched data is not a dictionary.")
-            return json_data
+        # Validate the structure of the fetched data
+        if not isinstance(json_data, dict):
+            logging.error("Error fetching or validating the JSON data: Fetched data is not a dictionary.")
+            return {}
+        return json_data
     except Exception as e:
         logging.error(f"Error fetching or validating the JSON data: {e}: ")
         return {}
@@ -1221,7 +1236,8 @@ class REvoDesignPackageManager:
             self.installer_ui.listView_extras, self.remote_extra_group_data, filter=PLATFORM_INFO
         )
 
-    def notification_channel(self, d: dict):
+    @staticmethod
+    def notification_channel(d: dict):
         """
         Process notification messages and send them to the notification box
 
@@ -1239,7 +1255,8 @@ class REvoDesignPackageManager:
         for n in d["notification"]:
             notify_box(message=f'[{n.get("level", "unknown")}]: {n.get("message")}')
 
-    def collect_diagnostic_data(self, collect_dummy: bool = False, drop_sensitives=True):
+    @staticmethod
+    def collect_diagnostic_data(collect_dummy: bool = False, drop_sensitives=True):
         """
         Collects diagnostic data and copies it to the clipboard.
 
@@ -1477,12 +1494,10 @@ class REvoDesignPackageManager:
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
 
-    def get_existing_directory(self):
+    @staticmethod
+    def get_existing_directory():
         """
         Opens a dialog for the user to select an existing directory.
-
-        Parameters:
-        - self: The instance of the class this method is called on.
 
         Returns:
         - str: The path of the selected directory.
@@ -1496,7 +1511,8 @@ class REvoDesignPackageManager:
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
     # an open file version of pymol.Qt.utils.getSaveFileNameWithExt ;-)
-    def get_open_file_name_with_ext(self, *args, **kwargs):
+    @staticmethod
+    def get_open_file_name_with_ext(*args, **kwargs):
         """
         Return a file name, append extension from filter if no extension provided.
         """
@@ -1836,7 +1852,8 @@ class REvoDesignPackageManager:
                 error_type=RuntimeError,
             )
 
-    def reinitialize_config(self):
+    @staticmethod
+    def reinitialize_config():
         comfirmed = decide(
             "Reinitialize REvoDesign configuration?", "[WARNING] This will delete your current configuration files."
         )
@@ -1848,7 +1865,8 @@ class REvoDesignPackageManager:
 
         set_REvoDesign_config_file(delete_user_config_tree=True)
 
-    def _open_thread_dashboard(self, event=None):
+    @staticmethod
+    def _open_thread_dashboard(event=None):
         dashboard = ThreadDashboard.instance()
         if dashboard is None:
             return
@@ -2376,14 +2394,19 @@ def get_github_repo_tags(repo_url) -> list[str]:
 
     try:
         # Send a GET request to the GitHub API
-        with urllib.request.urlopen(api_url) as response:
-            # Read the response and decode from bytes to string
-            response_data = response.read().decode()
-            # Parse JSON response data
-            tags = json.loads(response_data)
-            # Extract the name of each tag
+        response_data = _read_https_url(api_url).decode()
+        # Parse JSON response data
+        tags = json.loads(response_data)
+        if not isinstance(tags, list):
+            logging.error("Failed to parse GitHub tags response: expected a list.")
+            return []
+        # Extract the name of each tag
+        try:
             tag_names = [tag["name"] for tag in tags]
-            return tag_names
+        except (KeyError, TypeError) as e:
+            logging.error(f"Failed to extract tag names from GitHub response: {e}")
+            return []
+        return tag_names
     except HTTPError as e:
         # Handle HTTP errors (e.g., repository not found, rate limit exceeded)
         logging.warning(f"GitHub API returned status code {e.code}")
@@ -2391,6 +2414,12 @@ def get_github_repo_tags(repo_url) -> list[str]:
     except URLError as e:
         # Handle URL errors (e.g., network issues)
         logging.error(f"Failed to reach the server. Reason: {e.reason}")
+        return []
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to decode GitHub tags response as JSON: {e}")
+        return []
+    except TypeError as e:
+        logging.error(f"Failed to parse GitHub tags response: {e}")
         return []
 
 
@@ -2789,7 +2818,8 @@ def issue_collection(
 
     def _gather_platform() -> dict[str, Any]:
         try:
-            locale_value = ".".join(filter(None, locale.getdefaultlocale()))
+            locale_lang, locale_encoding = locale.getlocale()
+            locale_value = ".".join(filter(None, (locale_lang, locale_encoding)))
         except ValueError:
             locale_value = None
 

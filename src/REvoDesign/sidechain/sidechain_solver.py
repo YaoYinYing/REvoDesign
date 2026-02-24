@@ -53,7 +53,8 @@ class MutateRunnerManager:
     # create list of installed runners here
     installed_worker: list[str] = field(default_factory=lambda: [c.name for c in ALL_RUNNER_CLASSES if c.installed])
 
-    def get(self, sidechain_solver_name: str, **kwargs) -> MutateRunnerAbstract:
+    @staticmethod
+    def get(sidechain_solver_name: str, **kwargs) -> MutateRunnerAbstract:
         runner_class = IMPLEMENTED_RUNNER[sidechain_solver_name]
         return runner_class(**kwargs)
 

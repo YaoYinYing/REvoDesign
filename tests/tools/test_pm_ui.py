@@ -29,6 +29,7 @@ def test_pm_dialog_refresh_extras_table_empty(pm_test_worker: PmTestWorker):
         assert len(pm_test_worker.plugin.extra_checkbox.items.entities) == 1
         patched_fetch.assert_called_once()
 
+
 @pytest.mark.parametrize(
     "size_change, preset, triger",
     [

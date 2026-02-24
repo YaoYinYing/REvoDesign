@@ -10,7 +10,6 @@ import pytest
 from pymol import cmd
 
 from REvoDesign.shortcuts.tools.represents import _load_b_factors, shortcut_color_by_mutation
-from REvoDesign.tools.pymol_utils import get_molecule_sequence
 from tests.conftest import TestWorker
 
 

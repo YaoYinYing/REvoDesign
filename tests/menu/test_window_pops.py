@@ -43,7 +43,6 @@ from REvoDesign.shortcuts.wrappers.utils import (
     wrapped_logger_level_setter,
     wrapped_short_range,
 )
-from REvoDesign.shortcuts.wrappers.vina_tools import wrapped_alter_box, wrapped_get_pca_box, wrapped_getbox
 from REvoDesign.tools.customized_widgets import ValueDialog
 from tests.conftest import TestWorker
 

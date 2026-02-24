@@ -8,6 +8,7 @@ Running Randomized Multi-Design
 
 """
 
+import copy
 import os
 import random
 import warnings
@@ -204,7 +205,7 @@ class MultiMutantDesigner:
             self.terminate_picking()
 
         self.in_design_multi_design_case = MutantTree({})
-        self.design_pool_tree_copy = self.design_pool_tree.__deepcopy__
+        self.design_pool_tree_copy = copy.deepcopy(self.design_pool_tree)
         self.design_case_id_in_pymol = cmd.get_unused_name("multi_design_variant")
         cmd.create(
             self.design_case_id_in_pymol,
@@ -356,7 +357,7 @@ class MultiMutantDesigner:
         ) = self.in_design_multi_design_case.pop()
 
         # recover the whole mutant tree, as the deleted branch might be used in the future.
-        self.design_pool_tree_copy = self.design_pool_tree.__deepcopy__
+        self.design_pool_tree_copy = copy.deepcopy(self.design_pool_tree)
         resi_undo_mutant = undo_mutant_obj.mutations[0].position
 
         cmd.hide(

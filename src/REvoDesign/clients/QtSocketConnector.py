@@ -12,6 +12,7 @@ Team work module
 """
 
 import base64
+import copy
 import pickle
 import socket
 import time
@@ -31,6 +32,7 @@ from REvoDesign import ConfigBus, SingletonAbstract, issues
 from REvoDesign.common.mutant_tree import MutantTree
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.customized_widgets import refresh_tree_widget
+from REvoDesign.tools.safe_pickle import restricted_loads
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
 from REvoDesign.tools.utils import run_worker_thread_in_pool
 
@@ -170,7 +172,7 @@ class Broadcaster:
     @staticmethod
     def decode(serialized_data: str) -> Any:
         decoded_data: bytes = base64.b64decode(serialized_data)
-        return pickle.loads(decoded_data)
+        return restricted_loads(decoded_data)
 
     def compose_dict(
         self, obj: Any, datatype: supported_datatypes, final: bool = True
@@ -269,7 +271,8 @@ class Broadcaster:
         if datatype != "MessageStack":
             return datatype, obj
 
-        assert isinstance(obj, list)
+        if not isinstance(obj, list):
+            raise issues.FobbidenDataTypeError(f"MessageStack payload must be a list, got {type(obj)}")
         stacked_data = [{_t: _o for _t, _o in self.digest_dict(unpacked_msg_dict=d)} for d in obj]
 
         if not self.is_nestedstack(stacked_data=stacked_data):
@@ -344,7 +347,8 @@ class REvoDesignWebSocketServer(SingletonAbstract):
     def is_running(self):
         return self.server is not None and self.server.isListening()
 
-    def onAcceptError(self, accept_error):
+    @staticmethod
+    def onAcceptError(accept_error):
         """
         Handles accept errors when setting up the server.
 
@@ -389,7 +393,8 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         return
 
     def get_client_uuid(self, client):
-        assert self.meetingroom.is_logged_in(client=client)
+        if not self.meetingroom.is_logged_in(client=client):
+            raise issues.SocketError(f"Client is not logged in: {client}")
         return self.meetingroom.get_user_uuid(client)
 
     def processTextMessage(self, client: QtWebSockets.QWebSocket, message: str | Any):
@@ -406,7 +411,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         username, node, user_id = self.client_name_and_node(client=client)
         logging.info(f">>> {username}@{node}({user_id}): [TextMessage] {str(message)}")
 
-        self.messageDispatcher(self, client, msg_type="Text", message=message)
+        self.messageDispatcher(client=client, msg_type="Text", msg_content=message)
 
     def messageDispatcher(self, client: QtWebSockets.QWebSocket, msg_type: str, msg_content: Any):
         # matching msg_type
@@ -703,7 +708,8 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
             self.bc_worker.broadcast(self.meetingroom, obj_type="ViewUpdate", obj=view_data)
 
-    def is_port_available(self, port):
+    @staticmethod
+    def is_port_available(port):
         """
         Check if the specified port is available for use.
 
@@ -831,7 +837,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             return
         from REvoDesign.tools.mutant_tools import existed_mutant_tree
 
-        received_mutant_tree = mutant_tree.__deepcopy__
+        received_mutant_tree = copy.deepcopy(mutant_tree)
         diff_mutant_tree = received_mutant_tree.diff_tree_from(
             existed_mutant_tree(sequences=self.bus.get_value("designable_sequences", dict, cfg="runtime"))
         )
@@ -856,7 +862,8 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         cmd.set_view(view)
         return
 
-    def handleTextMessage(self, message):
+    @staticmethod
+    def handleTextMessage(message):
         logging.info(f">>> Host: {message}")
 
     def messageDispatcher(self, msg_type: str, msg_content: Any):
@@ -940,7 +947,8 @@ class REvoDesignWebSocketClient(SingletonAbstract):
 
         self.messageDispatcher(msg_type=msg_type, msg_content=msg_content)
 
-    def mutagenesis_from_mutant_tree(self, mutant_tree: MutantTree):
+    @staticmethod
+    def mutagenesis_from_mutant_tree(mutant_tree: MutantTree):
         from REvoDesign.tools.mutant_tools import quick_mutagenesis
 
         quick_mutagenesis(mutant_tree=mutant_tree)

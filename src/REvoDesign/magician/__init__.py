@@ -45,7 +45,8 @@ class MagicianAssistant:
 
     installed_worker: list[str] = field(default_factory=lambda: [c.name for c in ALL_DESIGNER_CLASSES if c.installed])
 
-    def get(self, name, **kwargs) -> ExternalDesignerAbstract:
+    @staticmethod
+    def get(name: str, **kwargs) -> ExternalDesignerAbstract:
         designer_class = IMPLEMENTED_DESIGNERS[name]
         return designer_class(**kwargs)
 

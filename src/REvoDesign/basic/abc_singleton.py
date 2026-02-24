@@ -241,9 +241,7 @@ class SingletonAbstract(ABC):
                     *args: Positional arguments for initialization.
                     **kwargs: Keyword arguments for initialization.
                 """
-                if not hasattr(self, "initialized"):
-                    self.singleton_init(*args, **kwargs)
-                    self.initialized = True
+                super().__init__(*args, **kwargs)
 
         DerivedSingleton.__name__ = name
         return cast(type[T], DerivedSingleton)

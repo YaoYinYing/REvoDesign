@@ -21,7 +21,6 @@ from REvoDesign.bootstrap.set_config import (
     set_REvoDesign_config_file,
     verify_config_tree_structure,
 )
-from tests.conftest import DATA_DIRNAME
 
 # from tests.conftest import check_real_config_dir
 

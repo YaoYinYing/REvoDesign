@@ -7,7 +7,7 @@ import pytest
 from pymol import cmd
 
 from REvoDesign.common.mutant import Mutant
-from REvoDesign.sidechain.mutate_runner import DLPacker_worker, MutateRelax_worker, PIPPack_worker, PyMOL_mutate
+from REvoDesign.sidechain.mutate_runner import MutateRelax_worker, PIPPack_worker, PyMOL_mutate
 
 WT_PDB = "../tests/data/3fap_hf3_A_short.pdb"
 MUT_PDB = "../tests/data/3fap_hf3_A_RFD.pdb"

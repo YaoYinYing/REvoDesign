@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>REvoDesign | PSSM_GREMLIN Dashboard</title>
-<link rel="icon" type="image/svg+xml" href="https://revodesign.yaoyy.moe/images/logo.svg"/>
-<link rel="mask-icon" href="https://revodesign.yaoyy.moe/images/logo.svg" color="#000000"/>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/PSSM_GREMLIN/logo.svg"/>
+<link rel="mask-icon" href="/PSSM_GREMLIN/logo.svg" color="#000000"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
 <script>
   (function() {
@@ -32,6 +33,12 @@
 
   html[data-theme="dark"] {
     color-scheme: dark;
+    --bg: #0f171c;
+    --paper: #132127;
+    --ink: #e4edf1;
+    --muted: #9fb0b8;
+    --line: #2d424d;
+    --accent: #1b7fa1;
   }
 
   :root {
@@ -47,6 +54,7 @@
     --finished: #1c6b2f;
     --failed: #9d2d1f;
     --cancelled: #6d747c;
+    --deleted: #3e4b57;
   }
 
   * {
@@ -112,8 +120,13 @@
   }
 
   .theme-toggle {
-    min-width: 7.75rem;
+    width: 2.35rem;
+    min-width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
     justify-content: center;
+    font-size: 1.15rem;
+    line-height: 1;
   }
 
   .btn {
@@ -348,10 +361,10 @@
     min-width: 280px;
     max-width: min(80vw, 420px);
     border-radius: 12px;
-    background: #1a2c35;
-    color: #f3faf8;
-    border: 1px solid #33505c;
-    box-shadow: 0 14px 22px rgba(19, 33, 39, 0.24);
+    background: #f6fbfd;
+    color: #1f3642;
+    border: 1px solid #b5ceda;
+    box-shadow: 0 14px 22px rgba(19, 33, 39, 0.18);
     padding: 0.58rem 0.68rem;
     text-transform: none;
     letter-spacing: normal;
@@ -372,7 +385,7 @@
     bottom: 100%;
     border-width: 6px;
     border-style: solid;
-    border-color: transparent transparent #1a2c35 transparent;
+    border-color: transparent transparent #f6fbfd transparent;
   }
 
   .status-pill.has-trace:hover .status-trace-popover,
@@ -406,7 +419,7 @@
     top: 0.62rem;
     bottom: -0.48rem;
     width: 2px;
-    background: #4c6772;
+    background: #9cb2bc;
   }
 
   .status-trace-node {
@@ -414,8 +427,8 @@
     height: 0.66rem;
     margin-top: 0.05rem;
     border-radius: 999px;
-    border: 2px solid #8f9ca2;
-    background: #77838a;
+    border: 2px solid #8fa0a8;
+    background: #7f8f97;
   }
 
   .status-trace-stage.stage-done .status-trace-node {
@@ -429,12 +442,12 @@
   }
 
   .status-trace-stage.stage-pending .status-trace-node {
-    background: #7b858b;
-    border-color: #97a2a8;
+    background: #9ba8ae;
+    border-color: #bdc9cf;
   }
 
   .status-trace-text {
-    color: #e8f2f6;
+    color: #203944;
     font-size: 0.75rem;
     line-height: 1.34;
   }
@@ -473,6 +486,12 @@
     color: #495259;
     background: #eef1f3;
     border-color: #d4dbe0;
+  }
+
+  .status-deleted {
+    color: #2f3a44;
+    background: #e5eaee;
+    border-color: #c4cdd4;
   }
 
   .meta-grid {
@@ -647,7 +666,14 @@
   html[data-theme="dark"] .meta-label,
   html[data-theme="dark"] .task-id,
   html[data-theme="dark"] .empty {
-    color: #9fb0b8;
+    color: var(--muted);
+  }
+
+  html[data-theme="dark"] .headline,
+  html[data-theme="dark"] .task-title,
+  html[data-theme="dark"] .stat-value,
+  html[data-theme="dark"] .meta-value {
+    color: var(--ink);
   }
 
   html[data-theme="dark"] .btn-soft {
@@ -671,7 +697,12 @@
   html[data-theme="dark"] .task-btn.delete {
     background: #17252c;
     border-color: #324751;
-    color: #d0dce1;
+    color: #d7e3e8;
+  }
+
+  html[data-theme="dark"] .search-input::placeholder {
+    color: #93a8b2;
+    opacity: 1;
   }
 
   html[data-theme="dark"] .chip:hover {
@@ -748,6 +779,12 @@
     border-color: #48545f;
   }
 
+  html[data-theme="dark"] .status-deleted {
+    color: #c0ccd6;
+    background: #232d36;
+    border-color: #42505d;
+  }
+
   html[data-theme="dark"] .meta-box {
     background: #16242b;
     border-color: #30444f;
@@ -769,11 +806,11 @@
   }
 
   html[data-theme="dark"] .task-btn.cancel {
-    color: #f2bab4;
+    color: #f5c9c3;
   }
 
   html[data-theme="dark"] .task-btn.delete {
-    color: #ffbcb4;
+    color: #ffd1ca;
     border-color: #7f413a;
   }
 
@@ -855,7 +892,7 @@
         </div>
         <div class="hero-actions">
           <a class="btn btn-primary" href="/PSSM_GREMLIN/create_task">New Task</a>
-          <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light">Theme: Auto</button>
+          <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light">🌓</button>
           <button class="btn btn-soft" type="button" id="refreshBtn">Refresh</button>
           <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
@@ -867,7 +904,7 @@
         <article class="stat"><p class="stat-label">Running</p><p class="stat-value" id="inRunning">0</p></article>
         <article class="stat"><p class="stat-label">Packing</p><p class="stat-value" id="packingResults">0</p></article>
         <article class="stat"><p class="stat-label">Finished</p><p class="stat-value" id="finished">0</p></article>
-        <article class="stat"><p class="stat-label">Failed / Cancelled</p><p class="stat-value" id="issues">0</p></article>
+        <article class="stat"><p class="stat-label">Failed / Cancelled / Deleted</p><p class="stat-value" id="issues">0</p></article>
       </div>
     </section>
 
@@ -883,6 +920,8 @@
         <button class="chip" data-filter="finished" type="button">Finished</button>
         <button class="chip" data-filter="failed" type="button">Failed</button>
         <button class="chip" data-filter="cancelled" type="button">Cancelled</button>
+        <button class="chip" data-filter="deleted:finshed" type="button">Deleted (Finished)</button>
+        <button class="chip" data-filter="deleted:cancel" type="button">Deleted (Cancel)</button>
       </div>
       <div class="admin-tools" id="adminTools" hidden>
         <button class="chip" id="selectVisibleBtn" type="button">Select Visible</button>
@@ -901,6 +940,11 @@
   const isAdmin = {{ is_admin_user | tojson }};
   const currentUser = {{ current_username | tojson }};
   const themeStorageKey = "revodesign-theme";
+  const themeModeIcon = {
+    light: "🌔",
+    dark: "🌒",
+    auto: "🌓",
+  };
 
   const state = {
     query: "",
@@ -915,6 +959,8 @@
     "finished": { label: "Finished", css: "status-finished", accent: "var(--finished)" },
     "failed": { label: "Failed", css: "status-failed", accent: "var(--failed)" },
     "cancelled": { label: "Cancelled", css: "status-cancelled", accent: "var(--cancelled)" },
+    "deleted:finshed": { label: "Deleted (Finished)", css: "status-deleted", accent: "var(--deleted)" },
+    "deleted:cancel": { label: "Deleted (Cancel)", css: "status-deleted", accent: "var(--deleted)" },
   };
 
   const runningTraceFallback = [
@@ -973,13 +1019,15 @@
     if (!button) return;
     const mode = document.documentElement.dataset.themeMode || getStoredThemeMode();
     const effectiveTheme = document.documentElement.dataset.theme || resolveThemeMode(mode);
-    button.textContent = `Theme: ${mode.charAt(0).toUpperCase()}${mode.slice(1)}`;
+    const icon = themeModeIcon[mode] || themeModeIcon.auto;
+    button.textContent = icon;
     button.setAttribute("aria-pressed", mode === "auto" ? "mixed" : String(mode === "dark"));
+    const label = `Theme mode ${mode}. Effective ${effectiveTheme}. Click to cycle auto, dark, and light.`;
     button.setAttribute(
       "title",
-      `Theme mode ${mode}. Effective ${effectiveTheme}. Click to cycle Auto, Dark, Light.`
+      label
     );
-    button.setAttribute("aria-label", "Cycle theme mode between auto, dark, and light");
+    button.setAttribute("aria-label", label);
   }
 
   function escapeHtml(input) {
@@ -1079,6 +1127,7 @@
       finished: 0,
       failed: 0,
       cancelled: 0,
+      deleted: 0,
     };
 
     for (const task of allTasks) {
@@ -1088,6 +1137,7 @@
       if (task.status === "finished") counts.finished += 1;
       if (task.status === "failed") counts.failed += 1;
       if (task.status === "cancelled") counts.cancelled += 1;
+      if (task.status === "deleted:finshed" || task.status === "deleted:cancel") counts.deleted += 1;
     }
 
     document.getElementById("totalTasks").textContent = counts.total;
@@ -1095,7 +1145,7 @@
     document.getElementById("inRunning").textContent = counts.running;
     document.getElementById("packingResults").textContent = counts.packing;
     document.getElementById("finished").textContent = counts.finished;
-    document.getElementById("issues").textContent = counts.failed + counts.cancelled;
+    document.getElementById("issues").textContent = counts.failed + counts.cancelled + counts.deleted;
   }
 
   function updateAdminTools() {

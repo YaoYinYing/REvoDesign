@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>REvoDesign | Create PSSM_GREMLIN Task</title>
-<link rel="icon" type="image/svg+xml" href="https://revodesign.yaoyy.moe/images/logo.svg"/>
-<link rel="mask-icon" href="https://revodesign.yaoyy.moe/images/logo.svg" color="#000000"/>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/PSSM_GREMLIN/logo.svg"/>
+<link rel="mask-icon" href="/PSSM_GREMLIN/logo.svg" color="#000000"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
 <script>
   (function() {
@@ -108,8 +109,13 @@
   }
 
   .theme-toggle {
-    min-width: 7.75rem;
+    width: 2.35rem;
+    min-width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
     justify-content: center;
+    font-size: 1.15rem;
+    line-height: 1;
   }
 
   .btn {
@@ -421,7 +427,7 @@
           <p class="subline">Upload a FASTA file and queue a secured compute job for downstream GREMLIN and PSSM analysis.</p>
         </div>
         <div class="hero-actions">
-          <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light">Theme: Auto</button>
+          <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light">🌓</button>
           <a class="btn btn-soft" href="/PSSM_GREMLIN/dashboard">Dashboard</a>
           <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
@@ -477,6 +483,11 @@ Length: 0 residues</div>
   const clearButton = document.getElementById("clearButton");
   const uploadButton = document.getElementById("uploadButton");
   const themeStorageKey = "revodesign-theme";
+  const themeModeIcon = {
+    light: "🌔",
+    dark: "🌒",
+    auto: "🌓",
+  };
 
   function getStoredThemeMode() {
     try {
@@ -527,13 +538,15 @@ Length: 0 residues</div>
     if (!button) return;
     const mode = document.documentElement.dataset.themeMode || getStoredThemeMode();
     const effectiveTheme = document.documentElement.dataset.theme || resolveThemeMode(mode);
-    button.textContent = `Theme: ${mode.charAt(0).toUpperCase()}${mode.slice(1)}`;
+    const icon = themeModeIcon[mode] || themeModeIcon.auto;
+    button.textContent = icon;
     button.setAttribute("aria-pressed", mode === "auto" ? "mixed" : String(mode === "dark"));
+    const label = `Theme mode ${mode}. Effective ${effectiveTheme}. Click to cycle auto, dark, and light.`;
     button.setAttribute(
       "title",
-      `Theme mode ${mode}. Effective ${effectiveTheme}. Click to cycle Auto, Dark, Light.`
+      label
     );
-    button.setAttribute("aria-label", "Cycle theme mode between auto, dark, and light");
+    button.setAttribute("aria-label", label);
   }
 
   function setStatus(message, kind = "") {

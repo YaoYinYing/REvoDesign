@@ -4,22 +4,23 @@ import io
 import json
 import os
 import secrets
-import socket
 import shutil
+import socket
 import subprocess
 import sys
 import time
 import uuid
 import zipfile
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 import docker
 import pytest
 import requests
+from werkzeug.utils import secure_filename
 
-from tests.conftest import has_docker, REPO_DIR, TEST_ROOT
+from tests.conftest import REPO_DIR, TEST_ROOT, has_docker
 
 MSA_ROOT = Path(REPO_DIR) / "tests" / "data" / "msa"
 
@@ -141,6 +142,33 @@ def test_pssm_config_rejects_root_runner(monkeypatch, tmp_path):
                 "RUNNER_GID": "0",
             },
         )
+
+
+def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    client = module.app.test_client()
+    auth_header = _basic_auth_header("tester", "password")
+
+    favicon = client.get("/favicon.ico")
+    assert favicon.status_code == 200
+    assert "image" in (favicon.content_type or "")
+
+    logo_svg = client.get("/PSSM_GREMLIN/logo.svg")
+    assert logo_svg.status_code == 200
+    assert "svg" in (logo_svg.content_type or "")
+
+    page = client.get("/PSSM_GREMLIN/create_task", headers=auth_header)
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert 'href="/favicon.ico"' in html
+    assert 'href="/PSSM_GREMLIN/logo.svg"' in html
 
 
 def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta") -> str:
@@ -313,6 +341,88 @@ def test_run_gremlin_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
     assert observed_statuses.index("packing results") < observed_statuses.index("finished")
 
 
+def test_task_store_update_ignores_late_non_deleted_updates(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    md5sum = _insert_pending_task(module, tmp_path / "result")
+    deleted_at = time.time()
+    module.task_store.update_task(
+        md5sum,
+        status="deleted:cancel",
+        finished_at=deleted_at,
+        error="Task deleted by user",
+    )
+
+    # Simulate stale worker writes arriving after a delete request.
+    module.task_store.update_task(md5sum, status="packing results", run_stage="blast")
+    module.task_store.update_task(md5sum, status="finished", walltime=12.3, error=None)
+    module.task_store.update_task(md5sum, run_stage="hhblits")
+
+    task = module.task_store.get_task(md5sum)
+    assert task is not None
+    assert task["status"] == "deleted:cancel"
+    assert task["error"] == "Task deleted by user"
+    assert task["finished_at"] == deleted_at
+
+
+def test_run_gremlin_task_does_not_resurrect_deleted_task(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    md5sum = _insert_pending_task(module, tmp_path / "result")
+    observed_statuses: list[str] = []
+    original_update_task = module.task_store.update_task
+
+    def _track_update(md5_value: str, **fields):
+        if "status" in fields:
+            observed_statuses.append(fields["status"])
+        return original_update_task(md5_value, **fields)
+
+    def _fake_runner(*, fasta_path, output_dir, stage_callback=None):
+        del fasta_path
+        if stage_callback:
+            stage_callback("blast")
+        output_path = Path(output_dir)
+        (output_path / "log").mkdir(parents=True, exist_ok=True)
+        (output_path / "log" / "task_finished").write_text("done\n", encoding="utf-8")
+        original_update_task(
+            md5sum,
+            status="deleted:cancel",
+            finished_at=time.time(),
+            walltime=0.1,
+            error="Task deleted by user",
+            celery_task_id=None,
+        )
+        task = module.task_store.get_task(md5sum)
+        assert task is not None
+        module._delete_task_artifacts(task)
+
+    monkeypatch.setattr(module.task_store, "update_task", _track_update)
+    monkeypatch.setattr(module, "run_pssm_gremlin_in_docker", _fake_runner)
+    monkeypatch.setattr(module, "_local_user_identity", lambda: "pytest:staff-1000:20")
+
+    module.run_gremlin_task(md5sum)
+
+    task = module.task_store.get_task(md5sum)
+    assert task is not None
+    assert task["status"] == "deleted:cancel"
+    assert "packing results" not in observed_statuses
+    assert "finished" not in observed_statuses
+    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
+    assert not zip_path.exists()
+
+
 def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -354,7 +464,7 @@ def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
 
 
 def _basic_auth_header(username: str, password: str) -> dict[str, str]:
-    token = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode("ascii")
+    token = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
     return {"Authorization": f"Basic {token}"}
 
 
@@ -417,6 +527,7 @@ def test_dashboard_masks_host_file_paths_on_read_errors(monkeypatch, tmp_path):
     response = client.get("/PSSM_GREMLIN/dashboard", headers=auth_header)
     assert response.status_code == 200
     body = response.get_data(as_text=True)
+    assert "00:00:01" in body
     assert "/srv/REvoDesign/PSSM_GREMLIN/upload/2KL8.fasta" in body
     assert "/Users/yyy/Documents/protein_design/REvoDesign" not in body
 
@@ -712,6 +823,10 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
     owner_header = _basic_auth_header("tester", "password")
 
     md5sum = uuid.uuid4().hex
+    upload_dir = tmp_path / "upload_owner"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    upload_file = upload_dir / "owner.fasta"
+    upload_file.write_text(">owner\nACDE\n", encoding="utf-8")
     result_dir = tmp_path / "delete_owner"
     result_dir.mkdir(parents=True, exist_ok=True)
     (result_dir / "artifact.txt").write_text("payload\n", encoding="utf-8")
@@ -722,7 +837,7 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
         module,
         md5sum,
         filename="owner.fasta",
-        file_path=result_dir / "owner.fasta",
+        file_path=upload_file,
         result_dir=result_dir,
         username="tester",
         status="finished",
@@ -731,9 +846,105 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
     response = client.post(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=owner_header)
     assert response.status_code == 200
     assert response.json["status"] == "deleted"
-    assert module.task_store.get_task(md5sum) is None
+    task = module.task_store.get_task(md5sum)
+    assert task is not None
+    assert task["status"] == "deleted:finshed"
     assert not result_dir.exists()
     assert not zip_path.exists()
+    assert upload_file.exists()
+
+    running = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=owner_header)
+    assert running.status_code == 200
+    assert running.json["status"] == "deleted:finshed"
+
+
+def test_dashboard_hides_deleted_tasks_until_resubmitted(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+        users_text="tester:password\n",
+    )
+
+    client = module.app.test_client()
+    auth_header = _basic_auth_header("tester", "password")
+
+    md5sum = uuid.uuid4().hex
+    upload_file = tmp_path / "deleted_hidden.fasta"
+    upload_file.write_text(">hidden\nACDE\n", encoding="utf-8")
+    result_dir = tmp_path / "deleted_hidden"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    (result_dir / "artifact.txt").write_text("payload\n", encoding="utf-8")
+
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="hidden.fasta",
+        file_path=upload_file,
+        result_dir=result_dir,
+        username="tester",
+        status="deleted:finshed",
+    )
+
+    hidden_dashboard = client.get("/PSSM_GREMLIN/dashboard", headers=auth_header)
+    assert hidden_dashboard.status_code == 200
+    assert md5sum not in hidden_dashboard.get_data(as_text=True)
+
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="hidden.fasta",
+        file_path=upload_file,
+        result_dir=result_dir,
+        username="tester",
+        status="pending",
+    )
+
+    visible_dashboard = client.get("/PSSM_GREMLIN/dashboard", headers=auth_header)
+    assert visible_dashboard.status_code == 200
+    assert md5sum in visible_dashboard.get_data(as_text=True)
+
+
+def test_delete_pending_task_marks_deleted_cancel(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+        users_text="tester:password\n",
+    )
+    client = module.app.test_client()
+    owner_header = _basic_auth_header("tester", "password")
+
+    md5sum = uuid.uuid4().hex
+    upload_file = tmp_path / "upload_pending.fasta"
+    upload_file.write_text(">pending\nACDE\n", encoding="utf-8")
+    result_dir = tmp_path / "delete_pending"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    (result_dir / "artifact.txt").write_text("payload\n", encoding="utf-8")
+
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="pending.fasta",
+        file_path=upload_file,
+        result_dir=result_dir,
+        username="tester",
+        status="pending",
+    )
+
+    response = client.post(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=owner_header)
+    assert response.status_code == 200
+    task = module.task_store.get_task(md5sum)
+    assert task is not None
+    assert task["status"] == "deleted:cancel"
+    assert not result_dir.exists()
+    assert upload_file.exists()
 
 
 def test_non_owner_cannot_delete_task_results(monkeypatch, tmp_path):
@@ -823,8 +1034,10 @@ def test_admin_can_batch_delete_tasks(monkeypatch, tmp_path):
     assert payload["not_found"] == [missing_md5]
     assert payload["ignored"] == ["zz"]
     assert payload["forbidden"] == []
-    assert module.task_store.get_task(md5_a) is None
-    assert module.task_store.get_task(md5_b) is None
+    task_a = module.task_store.get_task(md5_a)
+    task_b = module.task_store.get_task(md5_b)
+    assert task_a is not None and task_a["status"] == "deleted:finshed"
+    assert task_b is not None and task_b["status"] == "deleted:finshed"
 
 
 def test_non_admin_batch_delete_only_deletes_owned_tasks(monkeypatch, tmp_path):
@@ -879,8 +1092,52 @@ def test_non_admin_batch_delete_only_deletes_owned_tasks(monkeypatch, tmp_path):
     assert payload["forbidden"] == [other_md5]
     assert payload["ignored"] == []
     assert payload["not_found"] == []
-    assert module.task_store.get_task(own_md5) is None
-    assert module.task_store.get_task(other_md5) is not None
+    own_task = module.task_store.get_task(own_md5)
+    other_task = module.task_store.get_task(other_md5)
+    assert own_task is not None and own_task["status"] == "deleted:finshed"
+    assert other_task is not None and other_task["status"] == "finished"
+
+
+def test_download_uses_safe_fasta_prefix_filename(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+        users_text="tester:password\n",
+    )
+    client = module.app.test_client()
+    auth_header = _basic_auth_header("tester", "password")
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "download_safe_name"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    upload_file = tmp_path / "unsafe_upload.fasta"
+    upload_file.write_text(">x\nACDE\n", encoding="utf-8")
+    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
+    zip_path.write_bytes(b"zip")
+
+    original_filename = "../unsafe name;\r\nX-Test:1.fasta"
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename=original_filename,
+        file_path=upload_file,
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+
+    response = client.get(f"/PSSM_GREMLIN/api/download/{md5sum}", headers=auth_header)
+    assert response.status_code == 200
+    disposition = response.headers.get("Content-Disposition", "")
+    expected_prefix = secure_filename(os.path.splitext(os.path.basename(original_filename))[0]) or "result"
+    assert "attachment" in disposition
+    assert expected_prefix in disposition
+    assert "\r" not in disposition
+    assert "\n" not in disposition
 
 
 def _run_command(
@@ -1003,7 +1260,7 @@ def test_runner_image_executes_pipeline(miniuc_databases, runner_image_tag, tmp_
         "10",
     ]
 
-    _run_command(command,cwd=Path(REPO_DIR) / "server")
+    _run_command(command, cwd=Path(REPO_DIR) / "server")
 
     task_file = output_dir / "log" / "task_finished"
     gremlin_checkpoint = output_dir / "gremlin_res" / "2KL8.i90c75_aln.GREMLIN.mrf.pkl"
@@ -1278,7 +1535,9 @@ def _wait_for_server_ready(
             )
             status = inspect.stdout.strip() if inspect.stdout else ""
             if status in {"exited", "dead"}:
-                logs = _run_command(["docker", "logs", "--tail", "200", web_container], check=False, capture_output=True)
+                logs = _run_command(
+                    ["docker", "logs", "--tail", "200", web_container], check=False, capture_output=True
+                )
                 raise AssertionError(
                     f"PSSM GREMLIN web container {web_container} exited before readiness.\n"
                     f"stdout:\n{logs.stdout}\n"
@@ -1317,9 +1576,7 @@ def _wait_for_task(base_url: str, auth: tuple[str, str], md5sum: str, timeout: f
     raise AssertionError("Timed out waiting for GREMLIN task to finish")
 
 
-def _wait_for_failed_task(
-    base_url: str, auth: tuple[str, str], md5sum: str, timeout: float = 900.0
-) -> dict:
+def _wait_for_failed_task(base_url: str, auth: tuple[str, str], md5sum: str, timeout: float = 900.0) -> dict:
     deadline = time.time() + timeout
     with requests.Session() as session:
         session.auth = auth
@@ -1336,14 +1593,12 @@ def _wait_for_failed_task(
 
 
 @REQUIRES_DOCKER
-def test_server_image_handles_authenticated_requests(
-    miniuc_databases, runner_image_tag, server_image_tag, tmp_path
-):
+def test_server_image_handles_authenticated_requests(miniuc_databases, runner_image_tag, server_image_tag, tmp_path):
     stack = DockerServerStack(
         runner_image_tag=runner_image_tag,
         server_image_tag=server_image_tag,
         miniuc=miniuc_databases,
-        workdir=Path(TEST_ROOT)/ "server"
+        workdir=Path(TEST_ROOT) / "server",
     )
     try:
         stack.start()
@@ -1390,6 +1645,7 @@ def test_server_image_handles_authenticated_requests(
     finally:
         stack.cleanup()
 
+
 @pytest.fixture(scope="module")
 @REQUIRES_DOCKER
 def running_gremlin_server(miniuc_databases, runner_image_tag, server_image_tag):
@@ -1407,6 +1663,7 @@ def running_gremlin_server(miniuc_databases, runner_image_tag, server_image_tag)
         yield {"stack": stack, "base_url": base_url, "auth": auth}
     finally:
         stack.cleanup()
+
 
 def _create_invalid_residue_fasta(tmp_path: Path) -> Path:
     fasta_path = MSA_ROOT / "2KL8.fasta"

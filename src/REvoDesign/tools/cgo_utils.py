@@ -78,7 +78,7 @@ from matplotlib import _color_data as _cdata
 from pymol import cgo, cmd
 from pymol.vfont import plain
 
-from REvoDesign.tools.utils import pairwise, pairwise_loop, timing
+from REvoDesign.tools.utils import pairwise_loop
 
 DEBUG = True
 

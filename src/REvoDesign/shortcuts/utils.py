@@ -207,7 +207,8 @@ class DialogWrapperRegistry:
         self.config = self._load_yaml(yaml_path)
         self.funcs: dict[str, Callable] = {}
 
-    def _load_yaml(self, path: Path) -> dict:
+    @staticmethod
+    def _load_yaml(path: Path) -> dict:
         """
         Load YAML file.
 
@@ -335,7 +336,6 @@ def run_wrapped_func_in_thread(func, use_progressbar: bool = True, **kwargs):
         func: The wrapped process to run.
         **kwargs: Parameters collected from the dialog.
     """
-    from REvoDesign.driver.ui_driver import ConfigBus
 
     with timing(f"performing {func.__name__}"):
         logging.info(kwargs)
