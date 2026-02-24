@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-import io
 import inspect
+import io
 import os
 import string
 import tarfile

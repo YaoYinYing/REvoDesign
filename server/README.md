@@ -26,7 +26,7 @@ Ubuntu example:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y docker.io docker-compose-plugin ncbi-blast+
+sudo apt-get install -y docker.io docker-compose-plugin ncbi-blast+ aria2
 makeblastdb -version
 ```
 

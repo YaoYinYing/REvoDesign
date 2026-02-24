@@ -72,61 +72,61 @@ Github Copilot was prompted to generate all the contents below based on the code
 """
 
 
+from pymol import cmd
+from typing import Any, Optional
+from dataclasses import dataclass, field
 import math
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass, field
-from typing import Any, Optional
 
-from pymol import cmd
 
 """
 A proper measure object looks like this:
 
 
 m=[
-    'measure1', 0, 1, None, 4, 
+    'measure1', 0, 1, None, 4,
     [
         [
-            4, 
-            'measure1', 
-            7, 
-            2060287, 
+            4,
+            'measure1',
+            7,
+            2060287,
             [-25.08300018310547, 68.54199981689453, -9.894000053405762], # a2 coords
             [-8.956000328063965, 78.06800079345703, -7.281000137329102], # a1 coords
-            1, 0, None, 1, 0, 
+            1, 0, None, 1, 0,
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
             , 0, None
-        ], 1, 
+        ], 1,
         [
             [
-                4, 
+                4,
                 [
-                    -8.956000328063965, 
-                    68.54199981689453, 
-                    -7.281000137329102, 
-                    
-                    -25.08300018310547, 
-                    78.06800079345703, 
-                    -9.894000053405762, 
+                    -8.956000328063965,
+                    68.54199981689453,
+                    -7.281000137329102,
 
-                    -8.956000328063965, 
-                    68.54199981689453, 
-                    -7.281000137329102, 
-                    
-                    -25.08300018310547, 
-                    78.06800079345703, 
+                    -25.08300018310547,
+                    78.06800079345703,
+                    -9.894000053405762,
+
+                    -8.956000328063965,
+                    68.54199981689453,
+                    -7.281000137329102,
+
+                    -25.08300018310547,
+                    78.06800079345703,
                     -9.894000053405762
-                ], 
-                None, 0, None, 0, None, None, None, 
+                ],
+                None, 0, None, 0, None, None, None,
                 [
-                    [2, [1, 2], [0, 0]], 
+                    [2, [1, 2], [0, 0]],
                     [0, [1, 2], [0, 0]]
                 ]
             ]
         ], 0
-    ], 
+    ],
     ''
-] 
+]
 
 """
 
@@ -152,14 +152,14 @@ class MeasureInfo:
 @dataclass
 class DistSet:
     nindex: int
-    coord: Optional[list[float]] = None
-    labcoord: Optional[Any] = None
+    coord: list[float] | None = None
+    labcoord: Any | None = None
     nangleindex: int = 0
-    anglecoord: Optional[list[float]] = None
+    anglecoord: list[float] | None = None
     ndihedralindex: int = 0
-    dihedralcoord: Optional[list[float]] = None
-    setting: Optional[Any] = None
-    labpos: Optional[list[Any]] = None
+    dihedralcoord: list[float] | None = None
+    setting: Any | None = None
+    labpos: list[Any] | None = None
     measure_info: list[MeasureInfo] = field(default_factory=list)
 
     @classmethod
@@ -227,13 +227,13 @@ class DistSet:
 class AtomDescriptor:
     obj: str
     atom_index: int  # index of atom within object (0-based)
-    chain: Optional[str]
-    segi: Optional[str]
-    resi: Optional[str]
-    resn: Optional[str]
-    name: Optional[str]
-    unique_id: Optional[int]
-    coord: Optional[tuple[float, float, float]]
+    chain: str | None
+    segi: str | None
+    resi: str | None
+    resn: str | None
+    name: str | None
+    unique_id: int | None
+    coord: tuple[float, float, float] | None
 
 
 # --- helper to build global atom list once ---
@@ -329,12 +329,12 @@ def _nearest_atom_by_coord(target: tuple[float, float, float], atom_list: list[A
 @dataclass
 class Measurement:
     name: str
-    header: Optional[Any] = None
+    header: Any | None = None
     dsets: list[DistSet] = field(default_factory=list)
-    raw_obj_pylist: Optional[list[Any]] = None
-    extra: Optional[Any] = None
+    raw_obj_pylist: list[Any] | None = None
+    extra: Any | None = None
 
-    _atoms_cache: Optional[list[AtomDescriptor]] = None
+    _atoms_cache: list[AtomDescriptor] | None = None
 
     def _collect_unique_ids(self) -> list[int]:
         unique_ids = []
@@ -567,7 +567,7 @@ class Measurement:
 
     def _resolve_by_coords(
         self, uid: int, target_coord: tuple[float, float, float], cmd_module
-    ) -> Optional[AtomDescriptor]:
+    ) -> AtomDescriptor | None:
         """
         Fallback: find the nearest atom in the entire scene to target_coord.
         Returns AtomDescriptor or None.

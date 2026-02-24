@@ -4,23 +4,23 @@ import io
 import json
 import os
 import secrets
-import socket
 import shutil
+import socket
 import subprocess
 import sys
 import time
 import uuid
 import zipfile
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 import docker
 import pytest
 import requests
 from werkzeug.utils import secure_filename
 
-from tests.conftest import has_docker, REPO_DIR, TEST_ROOT
+from tests.conftest import REPO_DIR, TEST_ROOT, has_docker
 
 MSA_ROOT = Path(REPO_DIR) / "tests" / "data" / "msa"
 
@@ -341,6 +341,88 @@ def test_run_gremlin_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
     assert observed_statuses.index("packing results") < observed_statuses.index("finished")
 
 
+def test_task_store_update_ignores_late_non_deleted_updates(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    md5sum = _insert_pending_task(module, tmp_path / "result")
+    deleted_at = time.time()
+    module.task_store.update_task(
+        md5sum,
+        status="deleted:cancel",
+        finished_at=deleted_at,
+        error="Task deleted by user",
+    )
+
+    # Simulate stale worker writes arriving after a delete request.
+    module.task_store.update_task(md5sum, status="packing results", run_stage="blast")
+    module.task_store.update_task(md5sum, status="finished", walltime=12.3, error=None)
+    module.task_store.update_task(md5sum, run_stage="hhblits")
+
+    task = module.task_store.get_task(md5sum)
+    assert task is not None
+    assert task["status"] == "deleted:cancel"
+    assert task["error"] == "Task deleted by user"
+    assert task["finished_at"] == deleted_at
+
+
+def test_run_gremlin_task_does_not_resurrect_deleted_task(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    md5sum = _insert_pending_task(module, tmp_path / "result")
+    observed_statuses: list[str] = []
+    original_update_task = module.task_store.update_task
+
+    def _track_update(md5_value: str, **fields):
+        if "status" in fields:
+            observed_statuses.append(fields["status"])
+        return original_update_task(md5_value, **fields)
+
+    def _fake_runner(*, fasta_path, output_dir, stage_callback=None):
+        del fasta_path
+        if stage_callback:
+            stage_callback("blast")
+        output_path = Path(output_dir)
+        (output_path / "log").mkdir(parents=True, exist_ok=True)
+        (output_path / "log" / "task_finished").write_text("done\n", encoding="utf-8")
+        original_update_task(
+            md5sum,
+            status="deleted:cancel",
+            finished_at=time.time(),
+            walltime=0.1,
+            error="Task deleted by user",
+            celery_task_id=None,
+        )
+        task = module.task_store.get_task(md5sum)
+        assert task is not None
+        module._delete_task_artifacts(task)
+
+    monkeypatch.setattr(module.task_store, "update_task", _track_update)
+    monkeypatch.setattr(module, "run_pssm_gremlin_in_docker", _fake_runner)
+    monkeypatch.setattr(module, "_local_user_identity", lambda: "pytest:staff-1000:20")
+
+    module.run_gremlin_task(md5sum)
+
+    task = module.task_store.get_task(md5sum)
+    assert task is not None
+    assert task["status"] == "deleted:cancel"
+    assert "packing results" not in observed_statuses
+    assert "finished" not in observed_statuses
+    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
+    assert not zip_path.exists()
+
+
 def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -382,7 +464,7 @@ def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
 
 
 def _basic_auth_header(username: str, password: str) -> dict[str, str]:
-    token = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode("ascii")
+    token = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
     return {"Authorization": f"Basic {token}"}
 
 
@@ -1178,7 +1260,7 @@ def test_runner_image_executes_pipeline(miniuc_databases, runner_image_tag, tmp_
         "10",
     ]
 
-    _run_command(command,cwd=Path(REPO_DIR) / "server")
+    _run_command(command, cwd=Path(REPO_DIR) / "server")
 
     task_file = output_dir / "log" / "task_finished"
     gremlin_checkpoint = output_dir / "gremlin_res" / "2KL8.i90c75_aln.GREMLIN.mrf.pkl"
@@ -1453,7 +1535,9 @@ def _wait_for_server_ready(
             )
             status = inspect.stdout.strip() if inspect.stdout else ""
             if status in {"exited", "dead"}:
-                logs = _run_command(["docker", "logs", "--tail", "200", web_container], check=False, capture_output=True)
+                logs = _run_command(
+                    ["docker", "logs", "--tail", "200", web_container], check=False, capture_output=True
+                )
                 raise AssertionError(
                     f"PSSM GREMLIN web container {web_container} exited before readiness.\n"
                     f"stdout:\n{logs.stdout}\n"
@@ -1492,9 +1576,7 @@ def _wait_for_task(base_url: str, auth: tuple[str, str], md5sum: str, timeout: f
     raise AssertionError("Timed out waiting for GREMLIN task to finish")
 
 
-def _wait_for_failed_task(
-    base_url: str, auth: tuple[str, str], md5sum: str, timeout: float = 900.0
-) -> dict:
+def _wait_for_failed_task(base_url: str, auth: tuple[str, str], md5sum: str, timeout: float = 900.0) -> dict:
     deadline = time.time() + timeout
     with requests.Session() as session:
         session.auth = auth
@@ -1511,14 +1593,12 @@ def _wait_for_failed_task(
 
 
 @REQUIRES_DOCKER
-def test_server_image_handles_authenticated_requests(
-    miniuc_databases, runner_image_tag, server_image_tag, tmp_path
-):
+def test_server_image_handles_authenticated_requests(miniuc_databases, runner_image_tag, server_image_tag, tmp_path):
     stack = DockerServerStack(
         runner_image_tag=runner_image_tag,
         server_image_tag=server_image_tag,
         miniuc=miniuc_databases,
-        workdir=Path(TEST_ROOT)/ "server"
+        workdir=Path(TEST_ROOT) / "server",
     )
     try:
         stack.start()
@@ -1565,6 +1645,7 @@ def test_server_image_handles_authenticated_requests(
     finally:
         stack.cleanup()
 
+
 @pytest.fixture(scope="module")
 @REQUIRES_DOCKER
 def running_gremlin_server(miniuc_databases, runner_image_tag, server_image_tag):
@@ -1582,6 +1663,7 @@ def running_gremlin_server(miniuc_databases, runner_image_tag, server_image_tag)
         yield {"stack": stack, "base_url": base_url, "auth": auth}
     finally:
         stack.cleanup()
+
 
 def _create_invalid_residue_fasta(tmp_path: Path) -> Path:
     fasta_path = MSA_ROOT / "2KL8.fasta"

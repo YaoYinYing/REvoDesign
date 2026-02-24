@@ -88,6 +88,7 @@ class ddg(ExternalDesignerAbstract):
 
         # skip relax if it has been done
         if isinstance(self.relaxed_pdb, str) and os.path.isfile(self.relaxed_pdb) and not self.reload:
+            self.initialized = True
             return
         logging.info(f"Relaxing {self.molecule} ...")
         self.relaxed_pdb = self.ddg_runner.relax(nstruct_relax=self.relax_nstruct)

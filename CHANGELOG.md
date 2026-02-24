@@ -93,6 +93,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Server (PSSM_GREMLIN):
   - task-id/content digest md5 calls now explicitly use `usedforsecurity=False` because they are non-cryptographic identifiers.
 - Server (PSSM_GREMLIN):
+  - deleted task states are now terminal in sqlite update flow, preventing late worker writes (`packing results` / `finished`) from resurrecting tasks after user deletion.
+  - background GREMLIN runner now skips result packing/finalization when a task is deleted mid-execution, avoiding inconsistent post-delete artifacts/state.
   - Docker daemon permission failure handling for non-root runtime users in server/worker execution paths.
   - `run_stage` ORM/schema mismatch that caused sqlite update/compile failures and prevented task execution in server-image integration tests.
   - Real-server missing result artifacts by packing outputs at job completion rather than delaying zip creation until download request.

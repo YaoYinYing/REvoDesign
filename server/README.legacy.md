@@ -186,7 +186,7 @@ These tests mock out the Docker client and validate the environment-driven confi
    ```shell
    lsof -i :8080
    ```
-   If `8080` is not ocuppied, this command returns nothing, otherwise the process name and PID will be shown. When running under Docker Compose, update `PORT` inside `server/.env`. For a manual install edit the constants in `server/pssm_gremlin/pssm_gremlin.py`.
+   If `8080` is not occupied, this command returns nothing, otherwise the process name and PID will be shown. When running under Docker Compose, update `PORT` inside `server/.env`. For a manual install edit the constants in `server/pssm_gremlin/pssm_gremlin.py`.
 
    Now we start the stack (Gunicorn + Celery + Redis). Under Compose:
    ```shell

@@ -6,7 +6,8 @@ import importlib
 import io
 import pickle
 from collections import OrderedDict, defaultdict, deque
-from typing import BinaryIO, Iterable
+from collections.abc import Iterable
+from typing import BinaryIO
 
 SAFE_BUILTINS = {
     "bool": bool,

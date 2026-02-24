@@ -1051,7 +1051,9 @@ def _ensure_miniuc_databases_ready() -> None:
         ],
         cwd=REPO_ROOT_PATH,
     )
-    ffindex_cmd = "ffindex_from_fasta -s miniuc30_a3m.ff{data,index} "+f"{REPO_DIR}/tests/data/msa/2KL8.i90c75_aln.fas"
+    ffindex_cmd = (
+        "ffindex_from_fasta -s miniuc30_a3m.ff{data,index} " + f"{REPO_DIR}/tests/data/msa/2KL8.i90c75_aln.fas"
+    )
     _run_build_command(["bash", "-lc", ffindex_cmd], cwd=uc30)
     _run_build_command(
         [

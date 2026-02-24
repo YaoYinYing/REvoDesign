@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-
 """
 Add license notice to every source file if not present
 """

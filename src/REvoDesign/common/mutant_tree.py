@@ -49,7 +49,10 @@ class MutantTree:
         self.current_branch_id = ""
         self.current_mutant_id = ""
 
-        self.mutant_tree = mutant_tree or {}
+        if mutant_tree is None:
+            self.mutant_tree = {}
+        else:
+            self.mutant_tree = mutant_tree
 
         self.refresh_mutants()
 
