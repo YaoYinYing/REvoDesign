@@ -133,7 +133,6 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | --- | --- |
 | `SERVER_DIR` | Host root for uploads, sqlite, and result folders. |
 | `LOG_DIR` | Host directory for Gunicorn/Celery logs. |
-| `DB_PATH` | SQLite path for task tracking. |
 | `DB_UNIREF30` | UniRef30 prefix path. |
 | `DB_UNIREF90` | UniRef90 BLAST prefix path. |
 | `USERS_FILE` | Basic-auth credential file path. |
