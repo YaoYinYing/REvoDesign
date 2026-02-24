@@ -596,6 +596,11 @@ def _deleted_status_from_task(task: dict[str, Any]) -> str:
     return "deleted:cancel"
 
 
+def _is_deleted_status(status: Any) -> bool:
+    normalized = str(status or "").strip().lower()
+    return normalized in {"deleted:finshed", "deleted:cancel"}
+
+
 def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mount, str]:
     """Create a mount point for each file and directory used by the model."""
     path = os.path.abspath(path)
@@ -1096,9 +1101,10 @@ def task_dashboard():
     is_admin = _is_admin_user(current_user)
     all_tasks = task_store.list_tasks()
     if is_admin or CONFIG.public_dashboard:
-        visible_tasks = all_tasks
+        scoped_tasks = all_tasks
     else:
-        visible_tasks = [task for task in all_tasks if task.get("username") == current_user]
+        scoped_tasks = [task for task in all_tasks if task.get("username") == current_user]
+    visible_tasks = [task for task in scoped_tasks if not _is_deleted_status(task.get("status"))]
 
     task_statuses = []
     for i, task in enumerate(visible_tasks):

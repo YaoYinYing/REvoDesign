@@ -776,6 +776,56 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
     assert running.json["status"] == "deleted:finshed"
 
 
+def test_dashboard_hides_deleted_tasks_until_resubmitted(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+        users_text="tester:password\n",
+    )
+
+    client = module.app.test_client()
+    auth_header = _basic_auth_header("tester", "password")
+
+    md5sum = uuid.uuid4().hex
+    upload_file = tmp_path / "deleted_hidden.fasta"
+    upload_file.write_text(">hidden\nACDE\n", encoding="utf-8")
+    result_dir = tmp_path / "deleted_hidden"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    (result_dir / "artifact.txt").write_text("payload\n", encoding="utf-8")
+
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="hidden.fasta",
+        file_path=upload_file,
+        result_dir=result_dir,
+        username="tester",
+        status="deleted:finshed",
+    )
+
+    hidden_dashboard = client.get("/PSSM_GREMLIN/dashboard", headers=auth_header)
+    assert hidden_dashboard.status_code == 200
+    assert md5sum not in hidden_dashboard.get_data(as_text=True)
+
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="hidden.fasta",
+        file_path=upload_file,
+        result_dir=result_dir,
+        username="tester",
+        status="pending",
+    )
+
+    visible_dashboard = client.get("/PSSM_GREMLIN/dashboard", headers=auth_header)
+    assert visible_dashboard.status_code == 200
+    assert md5sum in visible_dashboard.get_data(as_text=True)
+
+
 def test_delete_pending_task_marks_deleted_cancel(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
