@@ -51,6 +51,8 @@ class TaskDatabase:
         "finished",
         "failed",
         "cancelled",
+        "deleted:finshed",
+        "deleted:cancel",
     }
 
     def __init__(self, path: str):
@@ -422,6 +424,18 @@ def _task_zip_path(task: Any) -> str:
     return os.path.join(app.config["RESULTS_FOLDER"], f"{task_id}_PSSM_GREMLIN_results.zip")
 
 
+def _safe_fasta_prefix(filename: str) -> str:
+    base = os.path.basename(str(filename or "result.fasta"))
+    stem = os.path.splitext(base)[0]
+    safe = secure_filename(stem)
+    return safe or "result"
+
+
+def _task_zip_download_name(task: dict[str, Any]) -> str:
+    prefix = _safe_fasta_prefix(str(task.get("filename") or "result.fasta"))
+    return f"{prefix}_{task['md5sum']}_PSSM_GREMLIN_results.zip"
+
+
 def _virtual_upload_path(filename: str) -> str:
     safe_name = os.path.basename(filename or "unknown.fasta")
     return f"/srv/REvoDesign/PSSM_GREMLIN/upload/{safe_name}"
@@ -571,6 +585,15 @@ def _revoke_celery_task(task: dict[str, Any]) -> None:
         result.revoke(terminate=True)
     except Exception as exc:  # pylint: disable=broad-except
         logging.warning("Failed to revoke Celery task %s: %s", celery_id, exc)
+
+
+def _deleted_status_from_task(task: dict[str, Any]) -> str:
+    current_status = str(task.get("status") or "").strip().lower()
+    if current_status in {"deleted:finshed", "deleted:cancel"}:
+        return current_status
+    if current_status == "finished":
+        return "deleted:finshed"
+    return "deleted:cancel"
 
 
 def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mount, str]:
@@ -949,6 +972,10 @@ def run_gremlin(md5sum):
         return jsonify({"status": "packing results", "md5sum": md5sum}), 202
     if status == "cancelled":
         return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
+    if status == "deleted:finshed":
+        return jsonify({"status": "deleted:finshed", "md5sum": md5sum}), 200
+    if status == "deleted:cancel":
+        return jsonify({"status": "deleted:cancel", "md5sum": md5sum}), 200
 
     return (
         jsonify({"status": "unknown", "md5sum": md5sum, "error": "Invalid task status"}),
@@ -998,6 +1025,7 @@ def download_results(md5sum):
             app.config["RESULTS_FOLDER"],
             os.path.basename(zip_filename),
             as_attachment=True,
+            download_name=_task_zip_download_name(task),
         )
 
     return (
@@ -1122,7 +1150,23 @@ def delete_task(md5sum):
         _revoke_celery_task(task)
 
     _delete_task_artifacts(task)
-    task_store.delete_task(md5sum)
+    now = time.time()
+    deleted_status = _deleted_status_from_task(task)
+    started_at = task.get("started_at")
+    walltime = task.get("walltime")
+    if walltime is None and started_at:
+        walltime = now - started_at
+    finished_at = task.get("finished_at")
+    if deleted_status == "deleted:cancel" or not finished_at:
+        finished_at = now
+    task_store.update_task(
+        md5sum,
+        status=deleted_status,
+        finished_at=finished_at,
+        walltime=walltime,
+        error="Task deleted by user",
+        celery_task_id=None,
+    )
     return jsonify({"status": "deleted", "md5sum": md5sum}), 200
 
 
@@ -1160,7 +1204,23 @@ def delete_tasks_batch():
         if task["status"] in {"pending", "running", "packing results"}:
             _revoke_celery_task(task)
         _delete_task_artifacts(task)
-        task_store.delete_task(md5sum)
+        now = time.time()
+        deleted_status = _deleted_status_from_task(task)
+        started_at = task.get("started_at")
+        walltime = task.get("walltime")
+        if walltime is None and started_at:
+            walltime = now - started_at
+        finished_at = task.get("finished_at")
+        if deleted_status == "deleted:cancel" or not finished_at:
+            finished_at = now
+        task_store.update_task(
+            md5sum,
+            status=deleted_status,
+            finished_at=finished_at,
+            walltime=walltime,
+            error="Task deleted by user",
+            celery_task_id=None,
+        )
         deleted.append(md5sum)
 
     return (

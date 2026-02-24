@@ -1,111 +1,82 @@
-# PSSM GREMLIN Server (Production-First Guide)
+# PSSM GREMLIN Server (Production Guide)
 
-This server is intended to run with Docker Compose in production. Native/manual deployment is intentionally not documented here.
+This document describes the production Docker deployment for the PSSM GREMLIN server.
+Native/manual deployment is intentionally excluded.
 
-## Sequence database
+## Overview
 
-1. Prepare the sequence databases required by the run script :
+The server stack contains:
 
-   **UniRef90**
+- `web`: Flask + Gunicorn API/UI service
+- `worker`: Celery worker for background jobs
+- `redis`: Celery broker/backend
+- `runner` image: GREMLIN/PSSM execution container launched by `web`/`worker` through Docker socket access
 
-   ```shell
-   # stole from alphafold, DeepMind
-   ROOT_DIR="${DOWNLOAD_DIR}/uniref90"
-   SOURCE_URL="https://ftp.ebi.ac.uk/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz"
-   BASENAME=$(basename "${SOURCE_URL}")
+Both `web` and `worker` must access `/var/run/docker.sock` to start runner containers.
 
-   mkdir --parents "${ROOT_DIR}"
-   aria2c "${SOURCE_URL}" --dir="${ROOT_DIR}"
-   pushd "${ROOT_DIR}"
-   gunzip "${ROOT_DIR}/${BASENAME}"
-   popd
+## 0. Prerequisites
 
-   ```
+Install the following on the production host:
 
-   **Note** that for `psiblast`, the `uniref90` database should be formated using the `makeblastdb` tool from BLAST+. this can be done by whether the `run_docker.py` (see bellow) or call your own `makeblastdb` command`.
-
-   **UniRef30**
-
-   ```shell
-   # stole from alphafold, DeepMind
-   ROOT_DIR="${DOWNLOAD_DIR}/uniref30"
-   SOURCE_URL="https://wwwuser.gwdg.de/~compbiol/uniclust/2023_02/UniRef30_2023_02_hhsuite.tar.gz"
-   BASENAME=$(basename "${SOURCE_URL}")
-
-   mkdir --parents "${ROOT_DIR}"
-   aria2c "${SOURCE_URL}" --dir="${ROOT_DIR}"
-   tar --extract --verbose --file="${ROOT_DIR}/${BASENAME}" \
-   --directory="${ROOT_DIR}"
-   rm "${ROOT_DIR}/${BASENAME}"
-   ```
-
-2. After that, you should format blast database this with calling the installed `makeblastdb` tool on machine:
-
-   ```bash
-   makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids -out uniref90
-   ```
-
-### Environment variables
-
-Key options are controlled from `server/.env`:
-
-| Variable | Purpose |
-| --- | --- |
-| `PSSM_GREMLIN_SERVER_DIR` | Host directory where uploads, states, and results are stored. Mounted into the containers at the same path and created automatically if missing. |
-| `PSSM_GREMLIN_LOG_DIR` | Host directory that stores persistent Gunicorn and Celery logs. Bind-mounted into the containers at the same path. |
-| `PSSM_GREMLIN_DB_PATH` | Absolute path to the SQLite job-tracking database file. Create the file or its parent directory on the host; Compose bind-mounts the file so the host retains ownership and backups. |
-| `PSSM_GREMLIN_DB_UNIREF30`, `PSSM_GREMLIN_DB_UNIREF90` | Absolute paths/prefixes to the sequence databases. They are mounted read-only into both containers and passed to the runner as `-U`/`-u`. |
-| `PSSM_GREMLIN_USERS_FILE` | Path to the HTTP Basic Auth credentials file. |
-| `PSSM_GREMLIN_RUNNER_UID`, `PSSM_GREMLIN_RUNNER_GID` | Required UID/GID pair for the GREMLIN runner container. Both must point to a dedicated non-root account; the server refuses to start if they are missing or set to `root` to avoid root-owned artifacts. |
-| `DOCKER_GID` | Supplementary group id injected into `web`/`worker` so they can access `/var/run/docker.sock` (for example `$(stat -Lc '%g' /var/run/docker.sock)` on Linux). |
-| `PSSM_GREMLIN_NPROC`, `PSSM_GREMLIN_WORKER_CONCURRENCY`, `PSSM_GREMLIN_GUNICORN_WORKERS` | Performance knobs for the runner, Celery worker, and Gunicorn respectively. |
-| `PSSM_GREMLIN_REDIS_URL` | Broker/backend URL used by Celery. Defaults to the bundled Redis service. |
-| `PSSM_GREMLIN_PORT` | External HTTP port exposed by the `web` service. |
-| `PUBLIC_DASHBOARD` | Optional dashboard visibility switch. Default `false` enforces per-user isolation (only task owner can list/view/download/cancel). Set `true` to expose all tasks to any authenticated user. |
-| `ADMIN_USERS` | Comma-separated Basic Auth usernames treated as server admins (default `admin`). Admins can batch-delete tasks and can delete any task regardless of owner. |
-
-Every other variable shown in `.env.example` is optional and has a sensible default.
-
-If you prefer naming the dedicated system account explicitly inside the containers, `RUNNER_USERNAME` and `RUNNER_GROUP` may be set instead of the UID/GID pair. As with the numeric identifiers, both must refer to non-root identities.
-
-## Runtime env-file isolation
-
-The restart helpers support isolated env files:
-
-```bash
-# explicit env file (recommended)
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh
-
-# fallback behavior when REVODESIGN_SERVER_ENV is not set:
-# 1) use server/.env.production if it exists
-# 2) otherwise use server/.env
-```
-
-`server/.env.test` is kept for test-only/local validation.
-
-## 0. Prepare BLAST+ binary (for database formatting)
-
-Install NCBI BLAST+ so `makeblastdb` is available.
+- Docker Engine 24+ with Compose plugin
+- NCBI BLAST+ (`makeblastdb`)
+- Enough disk space for UniRef databases, logs, and result archives
 
 Ubuntu example:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y ncbi-blast+
+sudo apt-get install -y docker.io docker-compose-plugin ncbi-blast+
 makeblastdb -version
 ```
 
-## 1. Prepare sequence databases
+## 1. Prepare Sequence Databases
 
-Create database folders and format UniRef90 for PSI-BLAST.
+You need UniRef90 (for PSI-BLAST) and UniRef30 (for HH-suite workflow).
 
+### 1.1 UniRef90 download and extraction
 
-Set `DB_UNIREF90` to the formatted DB prefix (`.../uniref90`, without extension).
-Set `DB_UNIREF30` to your UniRef30 prefix path.
+```bash
+DOWNLOAD_DIR=/srv/revodesign/databases
+ROOT_DIR="${DOWNLOAD_DIR}/uniref90"
+SOURCE_URL="https://ftp.ebi.ac.uk/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz"
+BASENAME=$(basename "${SOURCE_URL}")
 
-## 2. Create production server-role user (Ubuntu example)
+mkdir -p "${ROOT_DIR}"
+aria2c "${SOURCE_URL}" --dir="${ROOT_DIR}"
+gunzip "${ROOT_DIR}/${BASENAME}"
+```
 
-Create a dedicated non-root account for server operations.
+### 1.2 Build BLAST database for UniRef90
+
+```bash
+cd "${ROOT_DIR}"
+makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids -out uniref90
+```
+
+Use the BLAST prefix path (`.../uniref90`) as `DB_UNIREF90`.
+
+### 1.3 UniRef30 download and extraction
+
+```bash
+DOWNLOAD_DIR=/srv/revodesign/databases
+ROOT_DIR="${DOWNLOAD_DIR}/uniref30"
+SOURCE_URL="https://wwwuser.gwdg.de/~compbiol/uniclust/2023_02/UniRef30_2023_02_hhsuite.tar.gz"
+BASENAME=$(basename "${SOURCE_URL}")
+
+mkdir -p "${ROOT_DIR}"
+aria2c "${SOURCE_URL}" --dir="${ROOT_DIR}"
+tar -xvf "${ROOT_DIR}/${BASENAME}" -C "${ROOT_DIR}"
+rm -f "${ROOT_DIR}/${BASENAME}"
+```
+
+Set `DB_UNIREF30` to the UniRef30 prefix path.
+
+## 2. Create a Dedicated Server User (Recommended)
+
+Use a dedicated non-root account for operations.
+
+Ubuntu example:
 
 ```bash
 sudo adduser --system --group --no-create-home --shell /usr/sbin/nologin revodesign
@@ -116,62 +87,85 @@ sudo mkdir -p /srv/revodesign/logs
 sudo chown -R revodesign:revodesign /srv/revodesign
 ```
 
-Use a non-root UID/GID in `.env.production` for `RUNNER_UID` and `RUNNER_GID`.
+Notes:
 
-## 3. Configure `.env`
+- Do not run the GREMLIN runner as root.
+- Configure non-root runner identity via `RUNNER_UID`/`RUNNER_GID` or `RUNNER_USERNAME`/`RUNNER_GROUP`.
 
-Create production env file from template:
+## 3. Configure Environment Files
+
+Create production env file:
 
 ```bash
 cp server/.env.example server/.env.production
 ```
 
-Update required values in `server/.env.production`:
+Test-only env file:
 
-Test env file:
-
-- `server/.env.test` is for local/test stack only.
+- `server/.env.test` is for local/test validation.
 - Do not use `.env.test` on production hosts.
 
-## 4. Build/start using Docker Compose and restart scripts
+### Env-file isolation
+
+All restart helpers support `REVODESIGN_SERVER_ENV`:
+
+```bash
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart
+```
+
+Fallback when `REVODESIGN_SERVER_ENV` is unset:
+
+1. `server/.env.production` (if present)
+2. `server/.env`
+
+### Required/important variables
+
+| Variable | Purpose |
+| --- | --- |
+| `SERVER_DIR` | Host root for uploads, sqlite, and result folders. |
+| `LOG_DIR` | Host directory for Gunicorn/Celery logs. |
+| `DB_PATH` | SQLite path for task tracking. |
+| `DB_UNIREF30` | UniRef30 prefix path. |
+| `DB_UNIREF90` | UniRef90 BLAST prefix path. |
+| `USERS_FILE` | Basic-auth credential file path. |
+| `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID (non-root required). |
+| `DOCKER_GID` | Group ID of Docker socket on host. |
+| `NPROC` | CPU threads passed to runner. |
+| `WORKER_CONCURRENCY` | Celery worker concurrency. |
+| `GUNICORN_WORKERS` | Gunicorn worker count. |
+| `PORT` | Public HTTP port. |
+| `PUBLIC_DASHBOARD` | `false` by default; scopes task visibility to owner unless admin. |
+| `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
+
+## 4. Configure Basic Auth Users
+
+Create the users file referenced by `USERS_FILE`.
+
+Format:
+
+```text
+# comment lines are allowed
+username:password
+admin:strong_admin_password
+```
+
+Protect this file with strict permissions.
+
+## 5. Build and Run
 
 ### Recommended helper script
 
 ```bash
-# create/patch env file values like DOCKER_GID
+# initialize env values (for example DOCKER_GID)
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh setup
 
-# full cycle (down + build + up)
+# full restart cycle (down + build + up)
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart
 
-# lifecycle subcommands
+# subcommands
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh build
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh up
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
-```
-
-### Troubleshooting
-
-If docker compose failed due to network issues, try this:
-
-1. add proxy settings to your `/etc/systemd/system/docker.service.d/http-proxy.conf` file
-2. reload systemd service: `sudo systemctl daemon-reload`
-3. restart docker: `sudo systemctl restart docker`
-
-A proper `http-proxy.conf` file might look like this:
-
-```text
-[Service]
-Environment="HTTP_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
-Environment="HTTPS_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
-Environment="ALL_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
-Environment="NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,localhost,127.0.0.1,10.96.0.0/12,192.168.59.0/24,192.168.49.0/24,192.168.39.0/24,192.168.67.0/24,172.17.0.0/24,192.168.0.0/16,100.87.0.0/16,192.168.75.0/24,192.168.194.0/24,192.168.67.2"
-```
-
-For local server test runs:
-
-```bash
-REVODESIGN_SERVER_ENV=server/.env.test bash server/run/restart_pssm_flask.sh restart
 ```
 
 ### Equivalent Docker Compose commands
@@ -183,95 +177,75 @@ docker compose -f server/docker-compose.yml --env-file server/.env.production bu
 docker compose -f server/docker-compose.yml --env-file server/.env.production up -d redis web worker
 ```
 
-### Zero-downtime gunicorn reload
+### Zero-downtime Gunicorn reload
 
 ```bash
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/hot_fix.sh
 ```
 
-## 5. Optional public access setup
+## 6. Usage
 
-### Option A (simple): Cloudflare Tunnel
+### Create task page
 
-Use Cloudflare Tunnel to expose the private service without opening inbound ports on the host.
-
-High-level flow:
-
-1. Install and authenticate `cloudflared`.
-2. Create a tunnel and bind DNS record.
-3. Route external host to `http://127.0.0.1:<PORT>`.
-
-Reference: [Cloudflare Tunnel docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/).
-
-### Option B (advanced): NGINX reverse proxy
-
-Use NGINX when you need full reverse-proxy control (TLS termination, rate limiting, custom headers, etc.).
-
-High-level flow:
-
-1. Install NGINX and certificates.
-2. Configure upstream to `127.0.0.1:<PORT>`.
-3. Enforce HTTPS and preserve `Authorization` header.
-4. Reload NGINX and validate authenticated routes.
-
-`server/nginx_sites/REvoDesign_PSSM_GREMLIN.app` can be used as a starting point.
-
-
-## Usage
-
-### Submit FASTA File via webpage
-
-Use the following webpage to submit FASTA files:
-
-http://your-server-ip:8080/PSSM_GREMLIN/create_task
-
-A successful submission will return a task ID and the task status.
-
-### Submit FASTA Files via commandline tools
-
-Use the following cURL command to batch submit FASTA files:
-
-```shell
-for i in *.fasta; do
-    curl -X POST -F "file=@$i" 'http://your-server-ip:8080/PSSM_GREMLIN/api/post'
-done
-```
-
-### Batch Canceling with cURL (macOS)
-
-Use the following cURL command to batch cancel tasks based on MD5sum:
-
-```shell
-for i in *.fasta; do
-    curl -X POST "http://your-server-ip:8080/PSSM_GREMLIN/api/cancel/$(md5 -q $i)"
-done
-```
+- `http://<server-ip>:<port>/PSSM_GREMLIN/create_task`
 
 ### Dashboard
 
-The dashboard provides an overview of task statuses and processing times. It includes the following information for each task:
+- `http://<server-ip>:<port>/PSSM_GREMLIN/dashboard`
 
-- FASTA file name
-- MD5sum
-- Submitted At (time of submission)
-- Finished At (time of completion)
-- Wall Time (processing time)
-- Status (`pending`, `running`, `packing results`, `finished`, `failed`, or `cancelled`)
-- Download Link (for completed tasks)
+### Upload via curl (with basic auth)
 
-Once a task is completed, you can download the results from this dashboard by clicking the "Download" link next to the task.
+```bash
+curl -u "username:password" \
+  -X POST \
+  -F "file=@/path/to/input.fasta" \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/post"
+```
 
-### Accessing the Dashboard
+### Batch upload via curl
 
-Access the dashboard to monitor tasks and download result files:
+```bash
+for f in *.fasta; do
+  curl -u "username:password" -X POST -F "file=@${f}" \
+    "http://<server-ip>:<port>/PSSM_GREMLIN/api/post"
+done
+```
 
-`http://your-server-ip:8080/PSSM_GREMLIN/dashboard` or
-`https://revodesign.your-domain.name/PSSM_GREMLIN/dashboard`
+## 7. Task States
 
+Current server states:
 
-## Operations notes
+- `pending`
+- `running`
+- `packing results`
+- `finished`
+- `failed`
+- `cancelled`
+- `deleted:finshed`
+- `deleted:cancel`
 
-- The web and worker containers require Docker socket access to launch runner containers.
-- Keep Docker socket permissions restricted.
-- Keep `users.txt` protected; Basic Auth credentials are security-critical.
-- For production isolation, keep `PUBLIC_DASHBOARD=false` unless cross-user visibility is explicitly required.
+Deletion is tracked in sqlite (soft-delete). Task records remain for audit/debug.
+The `deleted:finshed` spelling is intentionally preserved for runtime compatibility.
+
+## 8. Optional Public Access
+
+### Option A (simple): Cloudflare Tunnel
+
+Use Cloudflare Tunnel to expose the internal service without opening inbound ports.
+
+Reference: [Cloudflare Tunnel Documentation](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+
+### Option B (advanced): NGINX reverse proxy
+
+Use NGINX when you need custom TLS termination, routing, and rate limits.
+
+You can start from:
+
+- `server/nginx_sites/REvoDesign_PSSM_GREMLIN.app`
+
+## 9. Operations Notes
+
+- Restrict Docker socket access to trusted operators only.
+- Keep `PUBLIC_DASHBOARD=false` for private per-user isolation.
+- Regularly back up sqlite and result archives.
+- If a task is deleted, result artifacts are removed, but sqlite record and uploaded source file remain for debugging.

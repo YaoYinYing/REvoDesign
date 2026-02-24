@@ -18,7 +18,7 @@ The GREMLIN server stack now runs entirely inside Docker. Redis, Celery, Gunicor
    ```
    The `server/run/restart_pssm_flask.sh` helper runs these commands for you.
 3. Copy `server/.env.example` to `server/.env` and edit the values. Every absolute path listed there (server directory, SQLite DB file, databases, `users.txt`) must exist on the host. The compose file bind-mounts those directories/files into the containers under the same paths, so the application code sees the exact same values that you configure.
-4. Ensure `users.txt` contains at least one `username:password` pair and is referenced by `PSSM_GREMLIN_USERS_FILE`.
+4. Ensure `users.txt` contains at least one `username:password` pair and is referenced by `USERS_FILE`.
 5. Initialize `server/.env` and Docker socket group settings:
    ```bash
    bash server/run/restart_pssm_flask.sh setup
@@ -56,16 +56,16 @@ Key options are controlled from `server/.env`:
 
 | Variable | Purpose |
 | --- | --- |
-| `PSSM_GREMLIN_SERVER_DIR` | Host directory where uploads, states, and results are stored. Mounted into the containers at the same path and created automatically if missing. |
-| `PSSM_GREMLIN_LOG_DIR` | Host directory that stores persistent Gunicorn and Celery logs. Bind-mounted into the containers at the same path. |
-| `PSSM_GREMLIN_DB_PATH` | Absolute path to the SQLite job-tracking database file. Create the file or its parent directory on the host; Compose bind-mounts the file so the host retains ownership and backups. |
-| `PSSM_GREMLIN_DB_UNIREF30`, `PSSM_GREMLIN_DB_UNIREF90` | Absolute paths/prefixes to the sequence databases. They are mounted read-only into both containers and passed to the runner as `-U`/`-u`. |
-| `PSSM_GREMLIN_USERS_FILE` | Path to the HTTP Basic Auth credentials file. |
-| `PSSM_GREMLIN_RUNNER_UID`, `PSSM_GREMLIN_RUNNER_GID` | Required UID/GID pair for the GREMLIN runner container. Both must point to a dedicated non-root account; the server refuses to start if they are missing or set to `root` to avoid root-owned artifacts. |
+| `SERVER_DIR` | Host directory where uploads, states, and results are stored. Mounted into the containers at the same path and created automatically if missing. |
+| `LOG_DIR` | Host directory that stores persistent Gunicorn and Celery logs. Bind-mounted into the containers at the same path. |
+| `DB_PATH` | Absolute path to the SQLite job-tracking database file. Create the file or its parent directory on the host; Compose bind-mounts the file so the host retains ownership and backups. |
+| `DB_UNIREF30`, `DB_UNIREF90` | Absolute paths/prefixes to the sequence databases. They are mounted read-only into both containers and passed to the runner as `-U`/`-u`. |
+| `USERS_FILE` | Path to the HTTP Basic Auth credentials file. |
+| `RUNNER_UID`, `RUNNER_GID` | Required UID/GID pair for the GREMLIN runner container. Both must point to a dedicated non-root account; the server refuses to start if they are missing or set to `root` to avoid root-owned artifacts. |
 | `DOCKER_GID` | Supplementary group id injected into `web`/`worker` so they can access `/var/run/docker.sock` (for example `$(stat -Lc '%g' /var/run/docker.sock)` on Linux). |
-| `PSSM_GREMLIN_NPROC`, `PSSM_GREMLIN_WORKER_CONCURRENCY`, `PSSM_GREMLIN_GUNICORN_WORKERS` | Performance knobs for the runner, Celery worker, and Gunicorn respectively. |
-| `PSSM_GREMLIN_REDIS_URL` | Broker/backend URL used by Celery. Defaults to the bundled Redis service. |
-| `PSSM_GREMLIN_PORT` | External HTTP port exposed by the `web` service. |
+| `NPROC`, `WORKER_CONCURRENCY`, `GUNICORN_WORKERS` | Performance knobs for the runner, Celery worker, and Gunicorn respectively. |
+| `REDIS_URL` | Broker/backend URL used by Celery. Defaults to the bundled Redis service. |
+| `PORT` | External HTTP port exposed by the `web` service. |
 | `PUBLIC_DASHBOARD` | Optional dashboard visibility switch. Default `false` enforces per-user isolation (only task owner can list/view/download/cancel). Set `true` to expose all tasks to any authenticated user. |
 | `ADMIN_USERS` | Comma-separated Basic Auth usernames treated as server admins (default `admin`). Admins can batch-delete tasks and can delete any task regardless of owner. |
 
@@ -186,7 +186,7 @@ These tests mock out the Docker client and validate the environment-driven confi
    ```shell
    lsof -i :8080
    ```
-   If `8080` is not ocuppied, this command returns nothing, otherwise the process name and PID will be shown. When running under Docker Compose, update `PSSM_GREMLIN_PORT` inside `server/.env`. For a manual install edit the constants in `server/pssm_gremlin/pssm_gremlin.py`.
+   If `8080` is not ocuppied, this command returns nothing, otherwise the process name and PID will be shown. When running under Docker Compose, update `PORT` inside `server/.env`. For a manual install edit the constants in `server/pssm_gremlin/pssm_gremlin.py`.
 
    Now we start the stack (Gunicorn + Celery + Redis). Under Compose:
    ```shell

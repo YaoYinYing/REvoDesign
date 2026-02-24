@@ -18,6 +18,7 @@ from typing import Iterable
 import docker
 import pytest
 import requests
+from werkzeug.utils import secure_filename
 
 from tests.conftest import has_docker, REPO_DIR, TEST_ROOT
 
@@ -739,6 +740,10 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
     owner_header = _basic_auth_header("tester", "password")
 
     md5sum = uuid.uuid4().hex
+    upload_dir = tmp_path / "upload_owner"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    upload_file = upload_dir / "owner.fasta"
+    upload_file.write_text(">owner\nACDE\n", encoding="utf-8")
     result_dir = tmp_path / "delete_owner"
     result_dir.mkdir(parents=True, exist_ok=True)
     (result_dir / "artifact.txt").write_text("payload\n", encoding="utf-8")
@@ -749,7 +754,7 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
         module,
         md5sum,
         filename="owner.fasta",
-        file_path=result_dir / "owner.fasta",
+        file_path=upload_file,
         result_dir=result_dir,
         username="tester",
         status="finished",
@@ -758,9 +763,55 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
     response = client.post(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=owner_header)
     assert response.status_code == 200
     assert response.json["status"] == "deleted"
-    assert module.task_store.get_task(md5sum) is None
+    task = module.task_store.get_task(md5sum)
+    assert task is not None
+    assert task["status"] == "deleted:finshed"
     assert not result_dir.exists()
     assert not zip_path.exists()
+    assert upload_file.exists()
+
+    running = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=owner_header)
+    assert running.status_code == 200
+    assert running.json["status"] == "deleted:finshed"
+
+
+def test_delete_pending_task_marks_deleted_cancel(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+        users_text="tester:password\n",
+    )
+    client = module.app.test_client()
+    owner_header = _basic_auth_header("tester", "password")
+
+    md5sum = uuid.uuid4().hex
+    upload_file = tmp_path / "upload_pending.fasta"
+    upload_file.write_text(">pending\nACDE\n", encoding="utf-8")
+    result_dir = tmp_path / "delete_pending"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    (result_dir / "artifact.txt").write_text("payload\n", encoding="utf-8")
+
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="pending.fasta",
+        file_path=upload_file,
+        result_dir=result_dir,
+        username="tester",
+        status="pending",
+    )
+
+    response = client.post(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=owner_header)
+    assert response.status_code == 200
+    task = module.task_store.get_task(md5sum)
+    assert task is not None
+    assert task["status"] == "deleted:cancel"
+    assert not result_dir.exists()
+    assert upload_file.exists()
 
 
 def test_non_owner_cannot_delete_task_results(monkeypatch, tmp_path):
@@ -850,8 +901,10 @@ def test_admin_can_batch_delete_tasks(monkeypatch, tmp_path):
     assert payload["not_found"] == [missing_md5]
     assert payload["ignored"] == ["zz"]
     assert payload["forbidden"] == []
-    assert module.task_store.get_task(md5_a) is None
-    assert module.task_store.get_task(md5_b) is None
+    task_a = module.task_store.get_task(md5_a)
+    task_b = module.task_store.get_task(md5_b)
+    assert task_a is not None and task_a["status"] == "deleted:finshed"
+    assert task_b is not None and task_b["status"] == "deleted:finshed"
 
 
 def test_non_admin_batch_delete_only_deletes_owned_tasks(monkeypatch, tmp_path):
@@ -906,8 +959,52 @@ def test_non_admin_batch_delete_only_deletes_owned_tasks(monkeypatch, tmp_path):
     assert payload["forbidden"] == [other_md5]
     assert payload["ignored"] == []
     assert payload["not_found"] == []
-    assert module.task_store.get_task(own_md5) is None
-    assert module.task_store.get_task(other_md5) is not None
+    own_task = module.task_store.get_task(own_md5)
+    other_task = module.task_store.get_task(other_md5)
+    assert own_task is not None and own_task["status"] == "deleted:finshed"
+    assert other_task is not None and other_task["status"] == "finished"
+
+
+def test_download_uses_safe_fasta_prefix_filename(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+        users_text="tester:password\n",
+    )
+    client = module.app.test_client()
+    auth_header = _basic_auth_header("tester", "password")
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "download_safe_name"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    upload_file = tmp_path / "unsafe_upload.fasta"
+    upload_file.write_text(">x\nACDE\n", encoding="utf-8")
+    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
+    zip_path.write_bytes(b"zip")
+
+    original_filename = "../unsafe name;\r\nX-Test:1.fasta"
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename=original_filename,
+        file_path=upload_file,
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+
+    response = client.get(f"/PSSM_GREMLIN/api/download/{md5sum}", headers=auth_header)
+    assert response.status_code == 200
+    disposition = response.headers.get("Content-Disposition", "")
+    expected_prefix = secure_filename(os.path.splitext(os.path.basename(original_filename))[0]) or "result"
+    assert "attachment" in disposition
+    assert expected_prefix in disposition
+    assert "\r" not in disposition
+    assert "\n" not in disposition
 
 
 def _run_command(

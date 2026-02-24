@@ -48,6 +48,7 @@
     --finished: #1c6b2f;
     --failed: #9d2d1f;
     --cancelled: #6d747c;
+    --deleted: #3e4b57;
   }
 
   * {
@@ -476,6 +477,12 @@
     border-color: #d4dbe0;
   }
 
+  .status-deleted {
+    color: #2f3a44;
+    background: #e5eaee;
+    border-color: #c4cdd4;
+  }
+
   .meta-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(140px, 1fr));
@@ -749,6 +756,12 @@
     border-color: #48545f;
   }
 
+  html[data-theme="dark"] .status-deleted {
+    color: #c0ccd6;
+    background: #232d36;
+    border-color: #42505d;
+  }
+
   html[data-theme="dark"] .meta-box {
     background: #16242b;
     border-color: #30444f;
@@ -868,7 +881,7 @@
         <article class="stat"><p class="stat-label">Running</p><p class="stat-value" id="inRunning">0</p></article>
         <article class="stat"><p class="stat-label">Packing</p><p class="stat-value" id="packingResults">0</p></article>
         <article class="stat"><p class="stat-label">Finished</p><p class="stat-value" id="finished">0</p></article>
-        <article class="stat"><p class="stat-label">Failed / Cancelled</p><p class="stat-value" id="issues">0</p></article>
+        <article class="stat"><p class="stat-label">Failed / Cancelled / Deleted</p><p class="stat-value" id="issues">0</p></article>
       </div>
     </section>
 
@@ -884,6 +897,8 @@
         <button class="chip" data-filter="finished" type="button">Finished</button>
         <button class="chip" data-filter="failed" type="button">Failed</button>
         <button class="chip" data-filter="cancelled" type="button">Cancelled</button>
+        <button class="chip" data-filter="deleted:finshed" type="button">Deleted (Finished)</button>
+        <button class="chip" data-filter="deleted:cancel" type="button">Deleted (Cancel)</button>
       </div>
       <div class="admin-tools" id="adminTools" hidden>
         <button class="chip" id="selectVisibleBtn" type="button">Select Visible</button>
@@ -916,6 +931,8 @@
     "finished": { label: "Finished", css: "status-finished", accent: "var(--finished)" },
     "failed": { label: "Failed", css: "status-failed", accent: "var(--failed)" },
     "cancelled": { label: "Cancelled", css: "status-cancelled", accent: "var(--cancelled)" },
+    "deleted:finshed": { label: "Deleted (Finished)", css: "status-deleted", accent: "var(--deleted)" },
+    "deleted:cancel": { label: "Deleted (Cancel)", css: "status-deleted", accent: "var(--deleted)" },
   };
 
   const runningTraceFallback = [
@@ -1080,6 +1097,7 @@
       finished: 0,
       failed: 0,
       cancelled: 0,
+      deleted: 0,
     };
 
     for (const task of allTasks) {
@@ -1089,6 +1107,7 @@
       if (task.status === "finished") counts.finished += 1;
       if (task.status === "failed") counts.failed += 1;
       if (task.status === "cancelled") counts.cancelled += 1;
+      if (task.status === "deleted:finshed" || task.status === "deleted:cancel") counts.deleted += 1;
     }
 
     document.getElementById("totalTasks").textContent = counts.total;
@@ -1096,7 +1115,7 @@
     document.getElementById("inRunning").textContent = counts.running;
     document.getElementById("packingResults").textContent = counts.packing;
     document.getElementById("finished").textContent = counts.finished;
-    document.getElementById("issues").textContent = counts.failed + counts.cancelled;
+    document.getElementById("issues").textContent = counts.failed + counts.cancelled + counts.deleted;
   }
 
   function updateAdminTools() {
