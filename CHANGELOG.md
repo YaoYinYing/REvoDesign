@@ -61,6 +61,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - logger control of uvicorn server. can be completely silenced.
   - Server: logs now printed as debug messages.
 - Language switch: logs now printed as debug messages.
+- Tests:
+  - refactored tabs-case dependency flow to `pytest-dependency`:
+    - `TestREvoDesignPlugin` -> `TestREvoDesignPlugin_TabPrepare` -> downstream tab/action case classes.
+  - dropped active `pytest.mark.order` coupling in tabs bootstrap cases and enabled dependency-aware ordering with `--order-dependencies`.
+- Test env/bootstrap:
+  - test dependencies and `make prepare-test` now include `pytest-dependency`.
 - Server (PSSM_GREMLIN):
   - Public/private dashboard behavior is now configurable with `PUBLIC_DASHBOARD` (`false` by default).
   - Task visibility and API access are scoped to the authenticated upload owner when `PUBLIC_DASHBOARD=false`.
