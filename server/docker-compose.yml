@@ -34,7 +34,7 @@ x-common-env: &common-env
 
 x-docker-socket-access: &docker-socket-access
   # Least privilege by default: only grant Docker socket group access.
-  # Do not add root group access ("0") here unless you explicitly accept the security tradeoff.
+  # Add root to group access ("0") to allow correct permission for now. TODO: remove this root if fix is possible.
   group_add:
     - "${DOCKER_GID:-998}"
     - "0"
