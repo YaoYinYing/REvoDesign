@@ -56,6 +56,8 @@ services:
         RUNNER_GID: ${RUNNER_GID}
         RUNNER_USERNAME: ${RUNNER_USERNAME}
         RUNNER_GROUP: ${RUNNER_GROUP}
+        HOST: ${HOST}
+        PORT: ${PORT:-8080}
     environment:
       <<: *common-env
     restart: unless-stopped
