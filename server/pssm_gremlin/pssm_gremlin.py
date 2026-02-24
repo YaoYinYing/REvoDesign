@@ -739,6 +739,19 @@ def format_times(timestamp):
         return None
 
 
+def format_walltime(seconds: Any) -> str:
+    if seconds is None:
+        return "-"
+    try:
+        total_seconds = max(int(float(seconds)), 0)
+    except (TypeError, ValueError):
+        return "-"
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    secs = total_seconds % 60
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+
 @celery.task(name="run_gremlin_task")
 def run_gremlin_task(md5sum):
     task = task_store.get_task(md5sum)
@@ -1118,7 +1131,7 @@ def task_dashboard():
                 "fasta_fn": task["filename"],
                 "submitted_time": format_times(submitted_time),
                 "finished_time": format_times(finished_time) if finished_time else "-",
-                "walltime": int(walltime) if walltime is not None else "-",
+                "walltime": format_walltime(walltime),
                 "submitted_timestamp": submitted_time or 0,
                 "sequence": fasta_seq,
                 "owner": task.get("username") or "-",

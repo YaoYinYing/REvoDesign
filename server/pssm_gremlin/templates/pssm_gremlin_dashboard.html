@@ -120,8 +120,13 @@
   }
 
   .theme-toggle {
-    min-width: 7.75rem;
+    width: 2.35rem;
+    min-width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
     justify-content: center;
+    font-size: 1.15rem;
+    line-height: 1;
   }
 
   .btn {
@@ -887,7 +892,7 @@
         </div>
         <div class="hero-actions">
           <a class="btn btn-primary" href="/PSSM_GREMLIN/create_task">New Task</a>
-          <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light">Theme: Auto</button>
+          <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light">🌓</button>
           <button class="btn btn-soft" type="button" id="refreshBtn">Refresh</button>
           <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
@@ -935,6 +940,11 @@
   const isAdmin = {{ is_admin_user | tojson }};
   const currentUser = {{ current_username | tojson }};
   const themeStorageKey = "revodesign-theme";
+  const themeModeIcon = {
+    light: "🌔",
+    dark: "🌒",
+    auto: "🌓",
+  };
 
   const state = {
     query: "",
@@ -1009,13 +1019,15 @@
     if (!button) return;
     const mode = document.documentElement.dataset.themeMode || getStoredThemeMode();
     const effectiveTheme = document.documentElement.dataset.theme || resolveThemeMode(mode);
-    button.textContent = `Theme: ${mode.charAt(0).toUpperCase()}${mode.slice(1)}`;
+    const icon = themeModeIcon[mode] || themeModeIcon.auto;
+    button.textContent = icon;
     button.setAttribute("aria-pressed", mode === "auto" ? "mixed" : String(mode === "dark"));
+    const label = `Theme mode ${mode}. Effective ${effectiveTheme}. Click to cycle auto, dark, and light.`;
     button.setAttribute(
       "title",
-      `Theme mode ${mode}. Effective ${effectiveTheme}. Click to cycle Auto, Dark, Light.`
+      label
     );
-    button.setAttribute("aria-label", "Cycle theme mode between auto, dark, and light");
+    button.setAttribute("aria-label", label);
   }
 
   function escapeHtml(input) {

@@ -445,6 +445,7 @@ def test_dashboard_masks_host_file_paths_on_read_errors(monkeypatch, tmp_path):
     response = client.get("/PSSM_GREMLIN/dashboard", headers=auth_header)
     assert response.status_code == 200
     body = response.get_data(as_text=True)
+    assert "00:00:01" in body
     assert "/srv/REvoDesign/PSSM_GREMLIN/upload/2KL8.fasta" in body
     assert "/Users/yyy/Documents/protein_design/REvoDesign" not in body
 
