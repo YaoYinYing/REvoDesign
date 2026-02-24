@@ -76,7 +76,7 @@ def test_dialog_wrapper_registry_window_wrapper_dynamic_values(mock_load_yaml, m
     def dummy_function(dynamic_values=None):
         return dynamic_values
 
-    dynamic_value = {
+    {
         "value": AskedValue(
             "sele",
             val="(all)",

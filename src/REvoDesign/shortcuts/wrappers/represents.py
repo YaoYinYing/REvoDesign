@@ -15,7 +15,6 @@ from REvoDesign.shortcuts.tools.represents import (
     shortcut_real_sc,
 )
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
-from REvoDesign.tools.package_manager import notify_box
 
 # Category registry: represents
 registry = DialogWrapperRegistry("represents")

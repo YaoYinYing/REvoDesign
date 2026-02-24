@@ -336,7 +336,6 @@ def run_wrapped_func_in_thread(func, use_progressbar: bool = True, **kwargs):
         func: The wrapped process to run.
         **kwargs: Parameters collected from the dialog.
     """
-    from REvoDesign.driver.ui_driver import ConfigBus
 
     with timing(f"performing {func.__name__}"):
         logging.info(kwargs)

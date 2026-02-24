@@ -18,7 +18,7 @@ def test_run_gremlin():
 
     # 2KL8, 2.67 s in apple m1 pro 10c
     msa = f"../tests/data/msa/2KL8.i90c75_aln.fas"
-    save_to = f"./evol/gremlin/2KL8.i90c75_aln.mrf.pkl"
+    save_to = "./evol/gremlin/2KL8.i90c75_aln.mrf.pkl"
 
     os.makedirs(os.path.dirname(save_to), exist_ok=True)
     assert os.path.isfile(msa)

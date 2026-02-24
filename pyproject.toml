@@ -275,6 +275,7 @@ markers = [
     "slow: marks tests as slow",
     "unit: fast offline tests",
     "serial: mark as serial tests that can not be run in parallel with xdist",
+    "bootstrap: dependency root tests that must be included with dependent test subsets",
     "very_slow: marks tests as very slow that should be run only in a independent run",
     "dependency: marks tests with explicit inter-test dependencies",
 ]

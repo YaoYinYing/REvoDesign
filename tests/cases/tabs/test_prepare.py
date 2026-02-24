@@ -19,6 +19,7 @@ os.environ["PYTEST_QT_API"] = "pyqt5"
 
 @pytest.mark.dependency(depends=["tabs_bootstrap_ui"], scope="session")
 class TestREvoDesignPlugin_TabPrepare:
+    @pytest.mark.bootstrap
     @pytest.mark.dependency(name="tabs_bootstrap_prepare", depends=["tabs_bootstrap_ui"], scope="session")
     def test_load_molecule(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
@@ -32,6 +33,7 @@ class TestREvoDesignPlugin_TabPrepare:
         test_worker.save_pymol_png(basename=test_worker.test_id)
         test_worker.save_new_experiment()
 
+    @pytest.mark.bootstrap
     @pytest.mark.dependency(name="tabs_prepare_pocket_session", depends=["tabs_bootstrap_prepare"], scope="session")
     def test_pocket(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()

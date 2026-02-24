@@ -163,7 +163,7 @@ def ensure_monaco() -> bool:
         logging.info("Ensuring Monaco Editor is set up...")
         monaco_manager.ensure_editor_downloaded()
         return True
-    except issues.NetworkError as e:
+    except issues.NetworkError:
         # Log the network error and return False
         logging.error("Network error occurred while setting up Monaco Editor. Please check your network connection.")
         return False

@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from immutabledict import immutabledict
 
-from REvoDesign.Qt import QtCore, QtGui, QtWidgets
+from REvoDesign.Qt import QtGui, QtWidgets
 
 DEFAULT_FONT: QtGui.QFont = None  # type: ignore
 CURRENT_FONT: QtGui.QFont = None  # type: ignore

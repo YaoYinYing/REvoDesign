@@ -34,8 +34,6 @@ from REvoDesign.tools.cgo_utils import (
     Sphere,
     Square,
     TextBoard,
-    TextCharPolygon,
-    Triangle,
     TriangleSimple,
     __easter_egg,
     not_none_float,

@@ -75,7 +75,7 @@ Github Copilot was prompted to generate all the contents below based on the code
 import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from pymol import cmd
 

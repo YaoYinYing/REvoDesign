@@ -11,8 +11,8 @@ TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv --emoji
 PYTEST_CASES_PATH=../tests
 PYTEST_XDIST_ARGS=-n 4 -m "not serial"
-PYTEST_NON_DIST_SERIAL_ARGS=-m "serial and not very_slow" --cov-append
-PYTEST_NON_DIST_SLOW_SERIAL_ARGS=-m "serial and very_slow" --cov-append
+PYTEST_NON_DIST_SERIAL_ARGS=-m "(serial and not very_slow) or bootstrap" --cov-append
+PYTEST_NON_DIST_SLOW_SERIAL_ARGS=-m "(serial and very_slow) or bootstrap" --cov-append
 
 # default keyword test keyword for all tests
 PYTEST_KW=all
