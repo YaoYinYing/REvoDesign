@@ -134,6 +134,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID (non-root required). |
 | `DOCKER_GID` | Group ID of Docker socket on host. |
 | `NPROC` | CPU threads passed to runner. |
+| `MAXMEM` | Memory cap (GB) passed to hhblits (`-maxmem`) inside runner script. |
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `PORT` | Public HTTP port. |

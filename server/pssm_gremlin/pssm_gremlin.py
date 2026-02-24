@@ -272,6 +272,7 @@ class GremlinConfig:
     uniref30_db: str
     uniref90_db: str
     nproc: int
+    maxmem: int
     port: int
     public_dashboard: bool
 
@@ -293,6 +294,7 @@ class GremlinConfig:
             ),
             uniref90_db=_env_path("DB_UNIREF90", "/mnt/db/uniref90/uniref90"),
             nproc=_env_int("NPROC", 16),
+            maxmem=_env_int("MAXMEM", 64),
             port=_env_int("PORT", 8080),
             public_dashboard=_env_bool("PUBLIC_DASHBOARD", False),
         )
@@ -664,8 +666,9 @@ def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mou
     return mount, str(mounted_path)
 
 
-def _runner_thread_env(nproc: int) -> dict[str, str]:
+def _runner_thread_env(nproc: int, maxmem: int) -> dict[str, str]:
     limited_nproc = max(1, int(nproc))
+    limited_maxmem = max(1, int(maxmem))
     value = str(limited_nproc)
     return {
         "GREMLIN_CALC_CPU_NUM": value,
@@ -678,6 +681,7 @@ def _runner_thread_env(nproc: int) -> dict[str, str]:
         "TF_NUM_INTEROP_THREADS": value,
         "OMP_DYNAMIC": "FALSE",
         "MKL_DYNAMIC": "FALSE",
+        "MAXMEM": str(limited_maxmem),
     }
 
 
@@ -727,7 +731,7 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None, stage
         detach=True,
         mounts=mounts,
         user=CONFIG.docker_user,
-        environment=_runner_thread_env(CONFIG.nproc),
+        environment=_runner_thread_env(CONFIG.nproc, CONFIG.maxmem),
         stdout=True,
         stderr=True,
     )

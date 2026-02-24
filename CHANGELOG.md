@@ -76,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Docker Compose `runner` image selection now uses `RUNNER_IMAGE` consistently with shared env wiring.
   - Docker socket access defaults were tightened by removing unconditional root group (`group_add: ["0"]`).
   - `server/.env.test` now uses portable repo-relative placeholders with guidance to keep machine-local absolute paths in `.env.local`.
+  - Runner memory tuning now supports `MAXMEM` from env files and forwards it into runner containers/scripts.
   - Runner execution flow now enforces non-root container user/group configuration and composes docker permissions from env.
   - Restart controls now provide explicit lifecycle subcommands:
     - `setup`, `build`, `up`, `down`, `restart` (default).

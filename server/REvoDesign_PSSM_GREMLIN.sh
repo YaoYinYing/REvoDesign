@@ -37,6 +37,7 @@ REVODESIGN_RUNSCRIPT_PATH=$(readlink -f "$(dirname "$0")")
 
 evalue=1E-10
 iter=4
+maxmem=${MAXMEM:-64}
 
 # make it stop if error occurs.
 set -e
@@ -94,7 +95,13 @@ if [[ "$nproc" == "" ]]; then
     nproc=$(nproc)
 fi
 
+if ! [[ "$maxmem" =~ ^[0-9]+$ ]] || [[ "$maxmem" -le 0 ]]; then
+    echo "Invalid MAXMEM value: ${maxmem}"
+    exit 1
+fi
+
 echo "Using $nproc processors."
+echo "Using MAXMEM=${maxmem} for hhblits."
 
 # GREMLIN calc
 export GREMLIN_CALC_CPU_NUM="$nproc"
@@ -186,7 +193,7 @@ RUN_GREMLIN() {
             -cpu "$nproc"
             -nodiff
             -realign_max 10000000
-            -maxmem 64
+            -maxmem "$maxmem"
         )
         echo "${cmd[*]}"
         "${cmd[@]}" 1>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhblits.log 2>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhblits.err

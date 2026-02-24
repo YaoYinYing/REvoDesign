@@ -229,6 +229,7 @@ def test_run_pssm_gremlin_in_docker_limits_thread_env(monkeypatch, tmp_path):
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
             "NPROC": "4",
+            "MAXMEM": "96",
         },
     )
     input_fasta = tmp_path / "input.fasta"
@@ -279,6 +280,7 @@ def test_run_pssm_gremlin_in_docker_limits_thread_env(monkeypatch, tmp_path):
         "TF_NUM_INTEROP_THREADS": "4",
         "OMP_DYNAMIC": "FALSE",
         "MKL_DYNAMIC": "FALSE",
+        "MAXMEM": "96",
     }
     for key, value in expected_values.items():
         assert environment.get(key) == value
