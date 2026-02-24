@@ -102,8 +102,7 @@ for i, fn in enumerate(sys.argv[1:]):
 
 # wrt = '> query\n'
 # wrt += '/'.join([query[i] for i in tags])+'\n'
-paired_data = []
-paired_data.append((9999, "query", "/".join([query[i] for i in tags])))
+paired_data = [(9999, "query", "/".join([query[i] for i in tags]))]
 
 
 marked = {}

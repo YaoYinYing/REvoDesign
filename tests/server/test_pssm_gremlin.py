@@ -530,6 +530,7 @@ def test_dashboard_masks_host_file_paths_on_read_errors(monkeypatch, tmp_path):
     assert "00:00:01" in body
     assert "/srv/REvoDesign/PSSM_GREMLIN/upload/2KL8.fasta" in body
     assert "/Users/yyy/Documents/protein_design/REvoDesign" not in body
+    assert 'id="logoutBtn"' in body
 
 
 def test_failed_status_masks_host_paths_in_api_error(monkeypatch, tmp_path):
@@ -843,7 +844,7 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
         status="finished",
     )
 
-    response = client.post(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=owner_header)
+    response = client.delete(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=owner_header)
     assert response.status_code == 200
     assert response.json["status"] == "deleted"
     task = module.task_store.get_task(md5sum)
@@ -938,7 +939,7 @@ def test_delete_pending_task_marks_deleted_cancel(monkeypatch, tmp_path):
         status="pending",
     )
 
-    response = client.post(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=owner_header)
+    response = client.delete(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=owner_header)
     assert response.status_code == 200
     task = module.task_store.get_task(md5sum)
     assert task is not None
@@ -974,7 +975,7 @@ def test_non_owner_cannot_delete_task_results(monkeypatch, tmp_path):
         status="finished",
     )
 
-    response = client.post(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=other_header)
+    response = client.delete(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=other_header)
     assert response.status_code == 403
     assert response.json["status"] == "forbidden"
     assert module.task_store.get_task(md5sum) is not None

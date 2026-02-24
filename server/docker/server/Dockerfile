@@ -7,7 +7,6 @@ ARG RUNNER_GID
 ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
-ARG HOST
 ARG PORT
 
 RUN groupadd -o -r ${RUNNER_GROUP} -g ${RUNNER_GID} && groupadd docker  && \
@@ -36,4 +35,4 @@ WORKDIR /app/server/pssm_gremlin
 
 USER ${RUNNER_UID}:${RUNNER_GID}
 
-CMD ["gunicorn", "-w", "2", "-b", "${HOST}:${PORT}", "pssm_gremlin:app"]
+CMD ["sh", "-c", "gunicorn -w 2 -b 0.0.0.0:${PORT:-8080} pssm_gremlin:app"]

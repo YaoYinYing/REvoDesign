@@ -26,7 +26,6 @@ x-common-env: &common-env
   RUNNER_USERNAME: ${RUNNER_USERNAME:-revodesign}
   RUNNER_GROUP: ${RUNNER_GROUP:-revodesign}
 
-  HOST: ${HOST:-0.0.0.0}
   PORT: ${PORT:-8080}
 
   PUBLIC_DASHBOARD: ${PUBLIC_DASHBOARD:-false}
@@ -56,7 +55,6 @@ services:
         RUNNER_GID: ${RUNNER_GID}
         RUNNER_USERNAME: ${RUNNER_USERNAME}
         RUNNER_GROUP: ${RUNNER_GROUP}
-        HOST: ${HOST}
         PORT: ${PORT:-8080}
     environment:
       <<: *common-env

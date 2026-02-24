@@ -163,6 +163,11 @@
     color: var(--ink);
   }
 
+  .btn-logout {
+    border-color: #e5c5bf;
+    color: #7b2b20;
+  }
+
   .stats {
     margin-top: 1rem;
     display: grid;
@@ -682,6 +687,11 @@
     color: #dce7eb;
   }
 
+  html[data-theme="dark"] .btn-logout {
+    border-color: #7c433b;
+    color: #ffcac2;
+  }
+
   html[data-theme="dark"] .btn-soft:hover {
     background: #1c2d35;
   }
@@ -895,6 +905,7 @@
           <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light">🌓</button>
           <button class="btn btn-soft" type="button" id="refreshBtn">Refresh</button>
           <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <button class="btn btn-soft btn-logout" type="button" id="logoutBtn" title="Force re-authentication">Logout</button>
         </div>
       </div>
 
@@ -1338,7 +1349,7 @@
       }
 
       const response = await fetch(`/PSSM_GREMLIN/api/delete/${encodeURIComponent(md5sum)}`, {
-        method: "POST",
+        method: "DELETE",
       });
 
       const payload = await response.json().catch(() => ({}));
@@ -1357,6 +1368,23 @@
         triggerButton.textContent = "Delete";
       }
       showToast(error.message || "Delete request failed.", "error");
+    }
+  }
+
+  function triggerLogout() {
+    const targetPath = "/PSSM_GREMLIN/create_task";
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", targetPath, true, "logout", "logout");
+    xhr.onload = () => {
+      window.location.href = targetPath;
+    };
+    xhr.onerror = () => {
+      window.location.href = targetPath;
+    };
+    try {
+      xhr.send();
+    } catch (error) {
+      window.location.href = targetPath;
     }
   }
 
@@ -1443,6 +1471,10 @@
 
     document.getElementById("refreshBtn").addEventListener("click", () => {
       window.location.reload();
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      triggerLogout();
     });
 
     document.getElementById("selectVisibleBtn").addEventListener("click", () => {

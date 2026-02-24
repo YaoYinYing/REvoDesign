@@ -270,6 +270,15 @@ for i in *.fasta; do
 done
 ```
 
+### Delete a Task with cURL
+
+Use `DELETE` for single-task removal:
+
+```shell
+curl -u "username:password" -X DELETE \
+  "http://your-server-ip:8080/PSSM_GREMLIN/api/delete/<task-md5>"
+```
+
 ### Dashboard
 
 The dashboard provides an overview of task statuses and processing times. It includes the following information for each task:

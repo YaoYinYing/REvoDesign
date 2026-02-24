@@ -558,7 +558,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             return
 
         if client in self.meetingroom.current_clients:
-            pass
+            logging.debug("Client already authenticated; skip duplicate auth flow.")
 
     def synchronize_usertable(self):
         if self.meetingroom.empty:

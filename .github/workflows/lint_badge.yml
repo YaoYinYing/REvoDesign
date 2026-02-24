@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Linting
         uses: YaoYinYing/pylint-github-action@6196ac476a3fcb6559d78624bab427556a8b75ea

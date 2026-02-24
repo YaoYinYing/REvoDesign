@@ -221,6 +221,23 @@ for f in *.fasta; do
 done
 ```
 
+### Delete one task (single-task API)
+
+```bash
+TASK_MD5="<task-md5>"
+curl -u "username:password" -X DELETE \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/delete/${TASK_MD5}"
+```
+
+### Delete multiple tasks (batch API)
+
+```bash
+curl -u "username:password" -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"md5sums":["<task-md5-a>","<task-md5-b>"]}' \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/delete"
+```
+
 ## 7. Task States
 
 Current server states:

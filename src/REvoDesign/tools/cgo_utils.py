@@ -2591,11 +2591,6 @@ def _dec25tree():
     A Christmas tree to celebrate the holiday season!
     """
 
-    def make_bulb(x, y, color):
-        # calculate z coordinate on the cone surface
-        z = 5 - (5 / 2) * math.sqrt(x**2 + y**2)
-        return Sphere(center=Point(x, y, z), radius=0.2, color=color)
-
     tree = GraphicObjectCollection(
         [
             # tree leaves

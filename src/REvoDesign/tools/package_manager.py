@@ -2366,7 +2366,7 @@ class WorkerThread(QtCore.QThread):
         self.interrupt_signal.emit()
 
     def _handle_interrupt(self) -> None:
-        pass
+        logging.debug("WorkerThread interrupt signal handled.")
 
 
 def get_github_repo_tags(repo_url) -> list[str]:
