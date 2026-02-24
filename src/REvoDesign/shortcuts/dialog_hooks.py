@@ -19,27 +19,39 @@ from ..logger import ROOT_LOGGER
 
 logging = ROOT_LOGGER.getChild(__name__)
 
-get_fasta_writer_choices = lambda: list(filter(lambda x: x.startswith("fas"), SeqIO._FormatToWriter.keys()))
+
+def get_fasta_writer_choices() -> list[str]:
+    return [fmt for fmt in SeqIO._FormatToWriter.keys() if fmt.startswith("fas")]
 
 
-get_designable_chain_ids = lambda: list(
-    ConfigBus().get_value("designable_sequences", dict, reject_none=True, cfg="runtime").keys()
-)
-get_selections = lambda: [""] + list(cmd.get_names("selections"))
+def get_designable_chain_ids() -> list[str]:
+    designable = ConfigBus().get_value("designable_sequences", dict, reject_none=True, cfg="runtime")
+    return list(designable.keys())
 
 
-find_all_small_molecules_in_protein = lambda: find_small_molecules_in_protein("(all)") or None
+def get_selections() -> list[str]:
+    return [""] + list(cmd.get_names("selections"))
 
 
-get_all_chain_ids = lambda: list(
-    ConfigBus().get_value("designable_sequences", dict, reject_none=True, cfg="runtime").keys()
-)
-
-get_all_object_names = lambda: cmd.get_names("objects")
+def find_all_small_molecules_in_protein():
+    return find_small_molecules_in_protein("(all)") or None
 
 
-get_all_selections = lambda: cmd.get_names("selections")
-get_all_objects = lambda: cmd.get_names("objects")
+def get_all_chain_ids() -> list[str]:
+    designable = ConfigBus().get_value("designable_sequences", dict, reject_none=True, cfg="runtime")
+    return list(designable.keys())
+
+
+def get_all_object_names():
+    return cmd.get_names("objects")
+
+
+def get_all_selections():
+    return cmd.get_names("selections")
+
+
+def get_all_objects():
+    return cmd.get_names("objects")
 
 
 def get_pymol_plugin_paths():

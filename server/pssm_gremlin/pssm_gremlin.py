@@ -1326,7 +1326,4 @@ def delete_tasks_batch():
 
 
 if __name__ == "__main__":
-    default_host = "127.0.0.1"
-    if os.path.exists("/.dockerenv"):
-        default_host = "0.0.0.0"
-    app.run(host=os.environ.get("GREMLIN_HOST", default_host), port=CONFIG.port)
+    app.run(host=os.environ.get("GREMLIN_HOST", "127.0.0.1"), port=CONFIG.port)

@@ -285,8 +285,17 @@ def get_current_logger_level(channel: str = "root"):
         raise e
 
 
-list_all_logger_levels = lambda: ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-list_all_logger_channels = lambda: ["stdout", "stderr", "file", "notebook", "root"]
-list_all_logger_formatters_non_json = lambda: ["simple", "complex", "detailed"]
+def list_all_logger_levels():
+    return ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
-get_current_channel_level = lambda channel: get_current_logger_level(channel)
+
+def list_all_logger_channels():
+    return ["stdout", "stderr", "file", "notebook", "root"]
+
+
+def list_all_logger_formatters_non_json():
+    return ["simple", "complex", "detailed"]
+
+
+def get_current_channel_level(channel):
+    return get_current_logger_level(channel)

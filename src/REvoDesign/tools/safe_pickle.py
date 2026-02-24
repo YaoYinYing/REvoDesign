@@ -40,10 +40,7 @@ DEFAULT_ALLOWED_MODULE_PREFIXES: tuple[str, ...] = (
 
 
 def _module_is_allowed(module_name: str, allowed_module_prefixes: Iterable[str]) -> bool:
-    for prefix in allowed_module_prefixes:
-        if module_name == prefix or module_name.startswith(f"{prefix}."):
-            return True
-    return False
+    return any(module_name == prefix or module_name.startswith(f"{prefix}.") for prefix in allowed_module_prefixes)
 
 
 class _RestrictedUnpickler(pickle.Unpickler):
@@ -70,7 +67,7 @@ class _RestrictedUnpickler(pickle.Unpickler):
 
         try:
             imported_module = importlib.import_module(module)
-        except (ModuleNotFoundError, ImportError) as exc:
+        except ImportError as exc:
             raise pickle.UnpicklingError(f"Missing module in pickle payload: {module}") from exc
         try:
             return getattr(imported_module, name)
