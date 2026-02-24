@@ -8,7 +8,7 @@ PIP_EXTRAS_OPTIONAL=rfdiffusion_cpu,esm2
 
 
 TESTDIR=tmp-test-dir-with-unique-name
-PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 --durations-min=5 -vv --emoji
+PYTEST_ARGS=--cov-config=../.coveragerc --cov-report= --cov=$(PROJECT) -v --pyargs --durations-min=5 -vv --emoji
 PYTEST_CASES_PATH=../tests
 PYTEST_XDIST_ARGS=-n 4 -m "not serial"
 PYTEST_NON_DIST_SERIAL_ARGS=-m "(serial and not very_slow) or bootstrap" --cov-append
