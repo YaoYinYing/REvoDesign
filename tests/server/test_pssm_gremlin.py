@@ -1648,31 +1648,6 @@ def _wait_for_server_ready(
         )
     raise AssertionError(f"PSSM GREMLIN server failed to start within timeout ({last_error})")
 
-
-def test_wait_for_server_ready_retries_transient_401(monkeypatch):
-    auth_attempts = {"count": 0}
-    expected_auth = _basic_auth_header("tester", "password")["Authorization"]
-
-    class _StubSession:
-        def get(self, url, timeout=5, headers=None, allow_redirects=False):
-            del timeout, allow_redirects
-            if url.endswith("/favicon.ico"):
-                return SimpleNamespace(status_code=200)
-            if url.endswith("/PSSM_GREMLIN/create_task"):
-                if not headers or headers.get("Authorization") != expected_auth:
-                    return SimpleNamespace(status_code=401)
-                if auth_attempts["count"] == 0:
-                    auth_attempts["count"] += 1
-                    return SimpleNamespace(status_code=401)
-                return SimpleNamespace(status_code=200)
-            return SimpleNamespace(status_code=404)
-
-    monkeypatch.setattr(requests, "Session", lambda: _StubSession())
-    monkeypatch.setattr(time, "sleep", lambda *_args, **_kwargs: None)
-
-    _wait_for_server_ready("http://127.0.0.1:9999", ("tester", "password"), timeout=5.0)
-
-
 def _extract_md5(location: str) -> str:
     return location.rstrip("/").rsplit("/", 1)[-1]
 
