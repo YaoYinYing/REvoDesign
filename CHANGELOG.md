@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Public/private dashboard behavior is now configurable with `PUBLIC_DASHBOARD` (`false` by default).
   - Task visibility and API access are scoped to the authenticated upload owner when `PUBLIC_DASHBOARD=false`.
   - Running-stage tracking now uses sqlite-backed `run_stage` persistence (single task stage tracker), replacing dashboard refresh reconstruction from file-based traces.
+  - Dashboard theme toggle icon now uses a gradient transition animation when cycling auto/dark/light modes.
   - Runner execution flow now enforces non-root container user/group configuration and composes docker permissions from env.
   - Restart controls now provide explicit lifecycle subcommands:
     - `setup`, `build`, `up`, `down`, `restart` (default).
@@ -93,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Server (PSSM_GREMLIN):
   - task-id/content digest md5 calls now explicitly use `usedforsecurity=False` because they are non-cryptographic identifiers.
 - Server (PSSM_GREMLIN):
+  - dashboard running-trace badge popover text contrast/readability under dark mode.
   - deleted task states are now terminal in sqlite update flow, preventing late worker writes (`packing results` / `finished`) from resurrecting tasks after user deletion.
   - background GREMLIN runner now skips result packing/finalization when a task is deleted mid-execution, avoiding inconsistent post-delete artifacts/state.
   - Docker daemon permission failure handling for non-root runtime users in server/worker execution paths.
