@@ -101,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - UniRef90 mount/prefix mismatch that caused runner exits like `/tmp/uniref90_db.fasta not found`.
   - Host absolute path leakage in dashboard/API error messages by masking to virtual server paths (`/srv/REvoDesign/PSSM_GREMLIN/upload/<filename>`).
   - Cross-user data exposure/unauthorized access paths on dashboard and task APIs when private mode is enabled.
+  - command execution hardening in `REvoDesign_PSSM_GREMLIN.sh`: replaced `eval`-based hhblits/hhfilter/remove-inserts/GREMLIN/psiblast invocations with array-based execution and preserved stdout/stderr log routing.
 
 ### Removed
 - Server (PSSM_GREMLIN):
