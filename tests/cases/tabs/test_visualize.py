@@ -17,7 +17,7 @@ os.environ["PYTEST_QT_API"] = "pyqt5"
 
 
 # move to fast tests
-@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"])
+@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"], scope="session")
 class TestREvoDesignPlugin_TabVisualize:
 
     def test_visualize_pssm_ddg(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):

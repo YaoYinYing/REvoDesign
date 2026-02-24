@@ -11,6 +11,9 @@ from tests.conftest import KeyData, TestWorker
 
 
 @pytest.mark.serial
+@pytest.mark.dependency(
+    depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare", "tabs_prepare_pocket_session"], scope="session"
+)
 def test_pick_design_from_profile(test_worker: TestWorker, KeyDataDuringTests: KeyData):
     test_worker.test_id = test_worker.method_name()
     test_worker.load_session_and_check()

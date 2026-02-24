@@ -16,7 +16,7 @@ os.environ["PYTEST_QT_API"] = "pyqt5"
 
 
 @pytest.mark.serial
-@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"])
+@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"], scope="session")
 class TestREvoDesignPlugin_TabMutate:
     def test_pssm_ent_surf(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()

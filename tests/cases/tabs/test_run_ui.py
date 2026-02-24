@@ -16,7 +16,7 @@ os.environ["PYTEST_QT_API"] = "pyqt5"
 
 
 class TestREvoDesignPlugin:
-    @pytest.mark.dependency(name="tabs_bootstrap_ui")
+    @pytest.mark.dependency(name="tabs_bootstrap_ui", scope="session")
     def test_plugin_gui_visibility(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
         # Check if the main window of the plugin is visible
@@ -33,7 +33,7 @@ class TestREvoDesignPlugin:
             )
 
 
-@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"])
+@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"], scope="session")
 class TestNonEnglishInput:
     @pytest.mark.parametrize(
         "filename",

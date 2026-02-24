@@ -12,7 +12,7 @@ from tests.conftest import TestWorker
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
 
-@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"])
+@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"], scope="session")
 class TestREvoDesignPlugin_ActionTranslate:
     def test_chinese(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
