@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import grp
 import hashlib
+import ipaddress
 import json
 import logging
 import os
@@ -214,6 +215,21 @@ def _env_bool(var_name: str, default: bool) -> bool:
     raise ValueError(
         f"Environment variable {var_name} must be a boolean value " "(one of: true/false/1/0/yes/no/on/off)."
     )
+
+
+def _default_bind_host() -> str:
+    """Use loopback locally and INADDR_ANY when running in a container."""
+    configured = os.environ.get("HOST")
+    if configured:
+        logging.info(f"Using Configureed HOST={configured} from environment")
+        return configured
+
+    if os.path.exists("/.dockerenv"):
+        ip=str(ipaddress.IPv4Address(0))
+        logging.info(f"Using INADDR_ANY={ip}")
+        return ip
+    logging.warning(f"Using 0.0.0.0 by default")
+    return "0.0.0.0"
 
 
 def _format_runner_identity(user_value: str, group_value: str) -> str:
@@ -1326,4 +1342,4 @@ def delete_tasks_batch():
 
 
 if __name__ == "__main__":
-    app.run(host=os.environ.get("GREMLIN_HOST", "127.0.0.1"), port=CONFIG.port)
+    app.run(host=_default_bind_host(), port=CONFIG.port)
