@@ -16,7 +16,7 @@ import pwd
 import re
 import shutil
 import signal
-import subprocess
+import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -364,6 +364,31 @@ def _is_binary_file(path: str) -> bool:
 
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+_TASK_ID_PATTERN = re.compile(r"[a-fA-F0-9]{32}$")
+
+
+def _path_is_within(base_dir: str, candidate: str) -> bool:
+    base_abs = os.path.abspath(base_dir)
+    target_abs = os.path.abspath(candidate)
+    try:
+        common = os.path.commonpath([base_abs, target_abs])
+    except ValueError:
+        return False
+    return common == base_abs
+
+
+def _safe_join(base_dir: str, *parts: str) -> str:
+    candidate = os.path.abspath(os.path.join(base_dir, *parts))
+    if not _path_is_within(base_dir, candidate):
+        raise ValueError(f"Path escapes configured base directory: {candidate}")
+    return candidate
+
+
+def _normalize_task_id(raw_task_id: Any) -> str | None:
+    task_id = str(raw_task_id or "").strip().lower()
+    if not _TASK_ID_PATTERN.fullmatch(task_id):
+        return None
+    return task_id
 
 
 def _sanitize_for_log(value: str, max_len: int = 4096) -> str:
@@ -396,17 +421,7 @@ def _request_metadata() -> dict[str, str | None]:
 
 
 def _local_user_identity() -> str:
-    """Return username/group and uid/gid from fresh commands."""
-    try:
-        username = subprocess.run(["id", "-un"], check=True, capture_output=True, text=True).stdout.strip()
-        groupname = subprocess.run(["id", "-gn"], check=True, capture_output=True, text=True).stdout.strip()
-        uid = subprocess.run(["id", "-u"], check=True, capture_output=True, text=True).stdout.strip()
-        gid = subprocess.run(["id", "-g"], check=True, capture_output=True, text=True).stdout.strip()
-        if username and groupname and uid and gid:
-            return _sanitize_for_log(f"{username}:{groupname}-{uid}:{gid}", max_len=256)
-    except Exception:  # pylint: disable=broad-except
-        pass
-
+    """Return username/group and uid/gid using in-process identity APIs."""
     uid_num = os.getuid()
     gid_num = os.getgid()
     try:
@@ -421,8 +436,11 @@ def _local_user_identity() -> str:
 
 
 def _task_zip_path(task: Any) -> str:
-    task_id = task if isinstance(task, str) else task["md5sum"]
-    return os.path.join(app.config["RESULTS_FOLDER"], f"{task_id}_PSSM_GREMLIN_results.zip")
+    raw_task_id = task if isinstance(task, str) else task["md5sum"]
+    task_id = _normalize_task_id(raw_task_id)
+    if task_id is None:
+        raise ValueError(f"Invalid task id for result archive: {raw_task_id!r}")
+    return _safe_join(app.config["RESULTS_FOLDER"], f"{task_id}_PSSM_GREMLIN_results.zip")
 
 
 def _safe_fasta_prefix(filename: str) -> str:
@@ -516,7 +534,7 @@ def _build_running_trace(task: dict[str, Any]) -> str:
 try:
     _ROOT_MOUNT_DIRECTORY = f"/home/{os.getlogin()}"
 except BaseException:
-    _ROOT_MOUNT_DIRECTORY = os.path.abspath("/tmp/")
+    _ROOT_MOUNT_DIRECTORY = os.path.abspath(tempfile.gettempdir())
     os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 
 
@@ -570,9 +588,21 @@ def _task_delete_allowed(task: dict[str, Any]) -> bool:
 
 def _delete_task_artifacts(task: dict[str, Any]) -> None:
     result_dir = task.get("result_dir")
-    if result_dir and os.path.isdir(result_dir):
-        shutil.rmtree(result_dir, ignore_errors=True)
-    zip_path = _task_zip_path(task)
+    if result_dir:
+        safe_result_dir = os.path.abspath(str(result_dir))
+        # Prefer scoped server result paths, but keep compatibility for legacy rows.
+        if os.path.isdir(safe_result_dir):
+            if safe_result_dir in {os.path.abspath(os.sep), os.path.abspath(os.path.expanduser("~"))}:
+                logging.warning("Refusing to delete unsafe root-like directory: %s", safe_result_dir)
+            else:
+                if not _path_is_within(app.config["RESULTS_FOLDER"], safe_result_dir):
+                    logging.warning("Deleting legacy result directory outside RESULTS_FOLDER: %s", safe_result_dir)
+                shutil.rmtree(safe_result_dir, ignore_errors=True)
+    try:
+        zip_path = _task_zip_path(task)
+    except ValueError:
+        logging.warning("Refusing to delete zip for invalid task id: %s", task.get("md5sum"))
+        return
     if os.path.exists(zip_path):
         os.remove(zip_path)
 
@@ -916,7 +946,7 @@ def upload_file():
             400,
         )
 
-    upload_path = os.path.abspath(os.path.join(app.config["UPLOAD_FOLDER"], safe_filename))
+    upload_path = _safe_join(app.config["UPLOAD_FOLDER"], safe_filename)
     uploaded_file.save(upload_path)
 
     hasher = hashlib.md5(usedforsecurity=False)
@@ -936,11 +966,11 @@ def upload_file():
     if existing_task and existing_task["status"] in {"pending", "running", "packing results"}:
         return jsonify({"status": "Task already queued or running", "md5sum": md5sum}), 202
 
-    result_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
+    result_dir = _safe_join(app.config["RESULTS_FOLDER"], md5sum)
     if os.path.exists(result_dir):
         shutil.rmtree(result_dir)
     os.makedirs(result_dir, exist_ok=True)
-    result_fasta_path = os.path.join(result_dir, safe_filename)
+    result_fasta_path = _safe_join(result_dir, safe_filename)
     shutil.copy(upload_path, result_fasta_path)
 
     zip_path = _task_zip_path(md5sum)
@@ -992,6 +1022,9 @@ def upload_file():
 @app.route("/PSSM_GREMLIN/api/running/<md5sum>", methods=["GET"])
 @auth.login_required
 def run_gremlin(md5sum):
+    md5sum = _normalize_task_id(md5sum)
+    if md5sum is None:
+        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
@@ -1028,6 +1061,9 @@ def run_gremlin(md5sum):
 @app.route("/PSSM_GREMLIN/api/results/<md5sum>", methods=["GET"])
 @auth.login_required
 def get_results(md5sum):
+    md5sum = _normalize_task_id(md5sum)
+    if md5sum is None:
+        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
@@ -1043,6 +1079,9 @@ def get_results(md5sum):
 @app.route("/PSSM_GREMLIN/api/download/<md5sum>", methods=["GET"])
 @auth.login_required
 def download_results(md5sum):
+    md5sum = _normalize_task_id(md5sum)
+    if md5sum is None:
+        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
@@ -1082,9 +1121,12 @@ def download_results(md5sum):
     )
 
 
-@app.route("/PSSM_GREMLIN/api/cancel/<md5sum>", methods=["POST", "GET"])
+@app.route("/PSSM_GREMLIN/api/cancel/<md5sum>", methods=["POST"])
 @auth.login_required
 def cancel_task(md5sum):
+    md5sum = _normalize_task_id(md5sum)
+    if md5sum is None:
+        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"error": "Task not found"}), 404
@@ -1183,6 +1225,9 @@ def task_dashboard():
 @app.route("/PSSM_GREMLIN/api/delete/<md5sum>", methods=["POST", "DELETE"])
 @auth.login_required
 def delete_task(md5sum):
+    md5sum = _normalize_task_id(md5sum)
+    if md5sum is None:
+        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
@@ -1281,4 +1326,7 @@ def delete_tasks_batch():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=CONFIG.port)
+    default_host = "127.0.0.1"
+    if os.path.exists("/.dockerenv"):
+        default_host = "0.0.0.0"
+    app.run(host=os.environ.get("GREMLIN_HOST", default_host), port=CONFIG.port)

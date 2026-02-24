@@ -4,7 +4,7 @@
 
 import importlib
 import io
-import pickle
+import pickle  # nosec B403 - this module provides a restricted unpickler wrapper
 from collections import OrderedDict, defaultdict, deque
 from collections.abc import Iterable
 from typing import BinaryIO

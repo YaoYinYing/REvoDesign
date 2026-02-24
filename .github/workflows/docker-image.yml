@@ -60,7 +60,7 @@ jobs:
         docker push yaoyinying/revodesign-pssm-gremlin-server-non-root:latest
 
     - name: Refresh Docker Hub Description
-      uses: peter-evans/dockerhub-description@v3
+      uses: peter-evans/dockerhub-description@dc67fad7001ef9e8e3c124cb7a64e16d0a63d864 # v3
       with:
         username: yaoyinying
         password: ${{ secrets.DOCKER_GITHUB_REPO_SECRET }}

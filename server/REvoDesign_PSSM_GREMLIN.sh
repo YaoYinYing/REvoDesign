@@ -8,7 +8,7 @@
 ############################################################
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
-if command -v conda;then 
+if command -v conda >/dev/null 2>&1; then
   __conda_setup="$('conda' 'shell.bash' 'hook' 2>/dev/null)"
   eval "$__conda_setup"
   unset __conda_setup
@@ -17,23 +17,23 @@ if command -v conda;then
 
   # detect the conda env
   possible_conda_env_names=("GREMLIN" "tensorflow1.13")
-  existed_conda_env_names=$(conda info --envs | awk '{print $1}')
+  readarray -t existed_conda_env_names < <(conda info --envs | awk '{print $1}')
 
-  for env_1 in ${possible_conda_env_names[@]}; do
-  for env_2 in ${existed_conda_env_names[@]}; do 
+  for env_1 in "${possible_conda_env_names[@]}"; do
+  for env_2 in "${existed_conda_env_names[@]}"; do
       if [[ "$env_1" == "$env_2" ]]; then
-        echo find ${env_1} env
-        conda activate ${env_1}
+        echo "find ${env_1} env"
+        conda activate "${env_1}"
         break
       fi
     done
   done
 else
- echo expected in docker image.
+ echo "expected in docker image."
 fi
 
 # run dir
-REVODESIGN_RUNSCRIPT_PATH=$(readlink -f $(dirname $0))
+REVODESIGN_RUNSCRIPT_PATH=$(readlink -f "$(dirname "$0")")
 
 evalue=1E-10
 iter=4
@@ -43,7 +43,7 @@ set -e
 
 usage() {
     echo ""
-    echo "Usage: $0<OPTIONS>"
+    echo "Usage: $0 <OPTIONS>"
     echo "Optional Parameters:"
     echo "      -i                  <fasta> input fasta file"
     echo "      -j                  <nproc> Number of threads used in this run. All processors will be used by default."
@@ -51,7 +51,7 @@ usage() {
     echo "      -r                  <gremlin_iter> Iteration of GREMLIN, 100 by default"
     echo "      -U                  <uniref30_db> Path/prefix to Uniclust30 database, default for JAPS sever."
     echo "      -u                  <uniref90_db> Path/prefix to Uniref90, default for JAPS sever. "
-    echo "      -B                  <blast_bin> Path/prefix to NCBI BLAST, default as $(dirname $(which psiblast))"
+    echo "      -B                  <blast_bin> Path/prefix to NCBI BLAST, default as $(dirname "$(command -v psiblast)")"
     echo "      -h                  print help message and exit."
     echo ""
     exit 1
@@ -73,44 +73,44 @@ while getopts ":i:o:j:r:U:u:B:h:" opt; do
 done
 
 if [[ "$blast_bin" == "" ]]; then
-  blast_bin=$(dirname $(which psiblast))
+  blast_bin="$(dirname "$(command -v psiblast)")"
 fi
 
-echo "Checking blast version: $(${blast_bin}/psiblast -version)"
+echo "Checking blast version: $("${blast_bin}/psiblast" -version)"
 
 SCRIPT_PATH='scripts'
 echo "${REVODESIGN_RUNSCRIPT_PATH}/${SCRIPT_PATH}"
 
 pth=$(pwd)
-pth=$(readlink -f $pth)
-echo We are now in $pth.
+pth=$(readlink -f "$pth")
+echo "We are now in $pth."
 
 if [[ "$nproc" == "" ]]; then
     nproc=$(nproc)
 fi
 
-echo Using $nproc processors.
+echo "Using $nproc processors."
 
 # GREMLIN calc
-export GREMLIN_CALC_CPU_NUM=$nproc
-export OMP_NUM_THREADS=$nproc
-export OPENBLAS_NUM_THREADS=$nproc
-export MKL_NUM_THREADS=$nproc
-export VECLIB_MAXIMUM_THREADS=$nproc
-export NUMEXPR_NUM_THREADS=$nproc
-export TF_NUM_INTRAOP_THREADS=$nproc
-export TF_NUM_INTEROP_THREADS=$nproc
+export GREMLIN_CALC_CPU_NUM="$nproc"
+export OMP_NUM_THREADS="$nproc"
+export OPENBLAS_NUM_THREADS="$nproc"
+export MKL_NUM_THREADS="$nproc"
+export VECLIB_MAXIMUM_THREADS="$nproc"
+export NUMEXPR_NUM_THREADS="$nproc"
+export TF_NUM_INTRAOP_THREADS="$nproc"
+export TF_NUM_INTEROP_THREADS="$nproc"
 export OMP_DYNAMIC=FALSE
 export MKL_DYNAMIC=FALSE
 
 
-fasta_fp=$(readlink -f $fasta)
+fasta_fp=$(readlink -f "$fasta")
 
 if [[ "$gremlin_iter" == "" ]]; then
     gremlin_iter=100
 fi
 
-echo Run GREMLIN w/ iteration: $gremlin_iter
+echo "Run GREMLIN w/ iteration: $gremlin_iter"
 
 if [[ "$uniref30_db" == "" ]]; then
     uniref30_db=/mnt/db/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02
@@ -121,32 +121,34 @@ if [[ "$uniref90_db" == "" ]]; then
     
 fi
 
-uniref90_db_dir=$(dirname $uniref90_db)
+uniref90_db_dir=$(dirname "$uniref90_db")
 
-if [[ $(ls $uniref90_db_dir |grep .phr) ]];then
-  echo Uniref90 is already formatted as BLAST+ readable.
+if compgen -G "${uniref90_db_dir}"/*.phr > /dev/null; then
+  echo "Uniref90 is already formatted as BLAST+ readable."
 else 
-  if [[ $(ls $uniref90_db_dir |grep .fasta) ]];then 
-    echo find ${uniref90_db}.fasta;
+  if compgen -G "${uniref90_db_dir}"/*.fasta > /dev/null; then 
+    echo "find ${uniref90_db}.fasta"
   else
-    echo ${uniref90_db}.fasta not found, exit.
+    echo "${uniref90_db}.fasta not found, exit."
     exit 1
   fi
-  echo Making BLAST DB Uniref90 for the first time use... this will take a long time.
-  pushd ${uniref90_db_dir};
-  makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids -out uniref90;
+  echo "Making BLAST DB Uniref90 for the first time use... this will take a long time."
+  pushd "${uniref90_db_dir}"
+  makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids -out uniref90
   popd
-  echo Uniref90 is now formatted.
+  echo "Uniref90 is now formatted."
 fi
 
 # into workingdir
-cd $pth
+cd "$pth"
 
 RUN_GREMLIN() {
-    local fasta=$(readlink -f $1)
-    local fasta_fn=$(basename $1)
-    if [[ ! -f $fasta ]]; then
-        echo FASTA not exist: $fasta
+    local fasta
+    fasta=$(readlink -f "$1")
+    local fasta_fn
+    fasta_fn=$(basename "$1")
+    if [[ ! -f "$fasta" ]]; then
+        echo "FASTA not exist: $fasta"
         exit 1
     fi
 
@@ -154,12 +156,12 @@ RUN_GREMLIN() {
 
     echo Running GREMLIN sequence searching ...
 
-    local dst=$(readlink -f $(pwd))
-    local dst_msa=$dst/gremlin_msa
-    local dst_gremlin=$dst/gremlin_res
-    local dst_mut=$dst/mutations
+    local dst
+    dst=$(readlink -f "$(pwd)")
+    local dst_msa="${dst}/gremlin_msa"
+    local dst_gremlin="${dst}/gremlin_res"
 
-    mkdir -p $dst_msa
+    mkdir -p "$dst_msa"
     mkdir -p "$dst_gremlin"
     
     pushd "$dst_msa"
@@ -189,7 +191,7 @@ RUN_GREMLIN() {
     local -a cmd=(hhfilter -i "${instance}.a3m" -id 90 -cov 75 -o "${instance}.i90c75.a3m")
     echo "${cmd[*]}"
     local expected_msa=${instance}.i90c75.a3m
-    if [[ ! -f $expected_msa ]]; then
+    if [[ ! -f "$expected_msa" ]]; then
       "${cmd[@]}" 1>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhfilter.log 2>"${pipline_res_dir}"/log/"${instance}"_gremlin_hhfilter.err
     fi
 
@@ -204,7 +206,7 @@ RUN_GREMLIN() {
 
     echo "REVODESIGN_STAGE:gremlin"
     pushd "$dst_gremlin"
-    if [[ ! -f ${dst_gremlin}/${instance}.i90c75_aln.GREMLIN.mrf.pkl ]]; then
+    if [[ ! -f "${dst_gremlin}/${instance}.i90c75_aln.GREMLIN.mrf.pkl" ]]; then
 
       local -a cmd=(
           python
@@ -216,17 +218,19 @@ RUN_GREMLIN() {
       echo "${cmd[*]}"
       "${cmd[@]}" 1>"${pipline_res_dir}"/log/"${instance}"_gremlin_tfv1.log 2>"${pipline_res_dir}"/log/"${instance}"_gremlin_tfv1.err
       
-  else
-    echo "Checkpoint file exists: ${dst_gremlin}/${instance}.i90c75_aln.GREMLIN.mrf.pkl skip GREMLIN_TFv1"
-  fi
+    else
+      echo "Checkpoint file exists: ${dst_gremlin}/${instance}.i90c75_aln.GREMLIN.mrf.pkl skip GREMLIN_TFv1"
+    fi
 
     popd
 }
 
 RUN_PSSM() {
-    local fasta=$(readlink -f "$1")
-    local fasta_fn=$(basename "$1")
-    if [[ ! -f $fasta ]]; then
+    local fasta
+    fasta=$(readlink -f "$1")
+    local fasta_fn
+    fasta_fn=$(basename "$1")
+    if [[ ! -f "$fasta" ]]; then
         echo FASTA not exist: "$fasta"
         exit 1
     fi
@@ -237,8 +241,9 @@ RUN_PSSM() {
     echo "REVODESIGN_STAGE:blast"
     echo Processing "$fasta" ...
 
-    local dst=$(readlink -f $(pwd))
-    local dst_msa=$dst/pssm_msa
+    local dst
+    dst=$(readlink -f "$(pwd)")
+    local dst_msa="${dst}/pssm_msa"
     
     mkdir -p "$dst_msa"
     
@@ -265,10 +270,7 @@ RUN_PSSM() {
 
 }
 
-# output
-dir=$PWD
-
-if [[ $output_dir == "" ]]; then
+if [[ -z "${output_dir:-}" ]]; then
   fasta_fn=$(basename "${fasta_fp}")
   instance=${fasta_fn%.fasta}
   pipline_res_dir=$(readlink -f "${instance}"_GREMLIN_PSSM_output)
@@ -287,4 +289,4 @@ pushd "$pipline_res_dir"
 RUN_PSSM "$fasta_fp"
 popd
 
-touch "$pipline_res_dir"/log/task_finished
+touch "${pipline_res_dir}/log/task_finished"
