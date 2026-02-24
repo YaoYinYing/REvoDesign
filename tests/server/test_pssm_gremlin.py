@@ -1607,32 +1607,19 @@ def _wait_for_server_ready(
 ) -> None:
     deadline = time.time() + timeout
     session = requests.Session()
-    readiness_url = f"{base_url}/favicon.ico"
-    auth_url = f"{base_url}/PSSM_GREMLIN/create_task"
-    auth_headers = _basic_auth_header(auth[0], auth[1])
+    session.auth = auth
+    url = f"{base_url}/PSSM_GREMLIN/create_task"
     last_error = ""
-    unauthorized_count = 0
     while time.time() < deadline:
         try:
-            readiness = session.get(readiness_url, timeout=5, allow_redirects=False)
-            if readiness.status_code not in {200, 304}:
-                last_error = f"readiness probe returned HTTP {readiness.status_code}"
-                time.sleep(2)
-                continue
-
-            response = session.get(auth_url, timeout=5, headers=auth_headers, allow_redirects=False)
+            response = session.get(url, timeout=5)
             if response.status_code == 200:
                 return
             if response.status_code == 401:
-                # CI can occasionally observe an early auth race while Gunicorn workers
-                # finish initialization; retry until timeout before declaring bad creds.
-                unauthorized_count += 1
-                last_error = f"HTTP 401 ({unauthorized_count} unauthorized responses)"
-                time.sleep(2)
-                continue
+                raise AssertionError("Server is reachable but returned 401 with provided test credentials.")
             last_error = f"HTTP {response.status_code}"
-        except requests.RequestException as exc:
-            last_error = f"connection failed ({exc.__class__.__name__})"
+        except requests.RequestException:
+            last_error = "connection failed"
 
         if web_container:
             inspect = _run_command(
@@ -1653,24 +1640,11 @@ def _wait_for_server_ready(
         time.sleep(2)
     if web_container:
         logs = _run_command(["docker", "logs", "--tail", "200", web_container], check=False, capture_output=True)
-        if unauthorized_count:
-            raise AssertionError(
-                "PSSM GREMLIN server remained unauthorized for provided test credentials "
-                f"({unauthorized_count} HTTP 401 responses).\n"
-                f"web container: {web_container}\n"
-                f"stdout:\n{logs.stdout}\n"
-                f"stderr:\n{logs.stderr}"
-            )
         raise AssertionError(
             f"PSSM GREMLIN server failed to start within timeout ({last_error}).\n"
             f"web container: {web_container}\n"
             f"stdout:\n{logs.stdout}\n"
             f"stderr:\n{logs.stderr}"
-        )
-    if unauthorized_count:
-        raise AssertionError(
-            "PSSM GREMLIN server remained unauthorized for provided test credentials "
-            f"({unauthorized_count} HTTP 401 responses)."
         )
     raise AssertionError(f"PSSM GREMLIN server failed to start within timeout ({last_error})")
 
