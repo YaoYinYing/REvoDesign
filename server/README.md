@@ -84,6 +84,8 @@ sudo usermod -aG docker revodesign
 
 sudo mkdir -p /srv/revodesign/server
 sudo mkdir -p /srv/revodesign/logs
+
+# grant full and recurse access to this user
 sudo chown -R revodesign:revodesign /srv/revodesign
 ```
 
@@ -91,6 +93,13 @@ Notes:
 
 - Do not run the GREMLIN runner as root.
 - Configure non-root runner identity via `RUNNER_UID`/`RUNNER_GID` or `RUNNER_USERNAME`/`RUNNER_GROUP`.
+  
+User IDs can be found with `id <username>`. eg:
+
+```bash
+id revodesign
+> uid=129(revodesign) gid=137(revodesign) groups=137(revodesign),998(docker)
+```
 
 ## 3. Configure Environment Files
 
@@ -154,6 +163,8 @@ Protect this file with strict permissions.
 ## 5. Build and Run
 
 ### Recommended helper script
+
+No sudo required.
 
 ```bash
 # initialize env values (for example DOCKER_GID)
@@ -249,3 +260,24 @@ You can start from:
 - Keep `PUBLIC_DASHBOARD=false` for private per-user isolation.
 - Regularly back up sqlite and result archives.
 - If a task is deleted, result artifacts are removed, but sqlite record and uploaded source file remain for debugging.
+
+## 10. Troubleshooting
+
+### Network issues
+
+If `docker compose` failed due to network issues, try this:
+
+1. Add proxy settings to your `/etc/systemd/system/docker.service.d/http-proxy.conf` file
+2. Reload systemd service: `sudo systemctl daemon-reload`
+3. Restart docker: `sudo systemctl restart docker`
+4. Rerun restart scripts or `docker compose` commands under non-root user
+
+A proper `http-proxy.conf` file might look like this:
+
+```text
+[Service]
+Environment="HTTP_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
+Environment="HTTPS_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
+Environment="ALL_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
+Environment="NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,localhost,127.0.0.1,10.96.0.0/12,192.168.59.0/24,192.168.49.0/24,192.168.39.0/24,192.168.67.0/24,172.17.0.0/24,192.168.0.0/16,100.87.0.0/16,192.168.75.0/24,192.168.194.0/24,192.168.67.2"
+```
