@@ -15,6 +15,7 @@ os.environ["PYTEST_QT_API"] = "pyqt5"
 
 
 @pytest.mark.serial
+@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"])
 class TestREvoDesignPlugin_TabConfig:
 
     @pytest.mark.skipif(not PIPPack_worker.installed, reason="PIPPack not installed")

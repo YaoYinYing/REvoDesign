@@ -17,8 +17,9 @@ os.environ["PYTEST_QT_API"] = "pyqt5"
 # move to the fast
 
 
-@pytest.mark.order(2)
+@pytest.mark.dependency(depends=["tabs_bootstrap_ui"])
 class TestREvoDesignPlugin_TabPrepare:
+    @pytest.mark.dependency(name="tabs_bootstrap_prepare", depends=["tabs_bootstrap_ui"])
     def test_load_molecule(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check(from_rcsb=True)

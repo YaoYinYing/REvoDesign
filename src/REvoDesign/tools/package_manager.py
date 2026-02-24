@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 import difflib
-import http.client
 import importlib
 import importlib.util
 import io
@@ -25,6 +24,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 import uuid
 import warnings
 from collections.abc import Callable, Iterable, Mapping
@@ -157,23 +157,9 @@ def _read_https_url(url: str, timeout: float = 10.0) -> bytes:
     parsed = urlparse(url)
     if parsed.scheme != "https" or not parsed.netloc:
         raise ValueError(f"Only https URLs are allowed: {url}")
-
-    request_path = parsed.path or "/"
-    if parsed.query:
-        request_path = f"{request_path}?{parsed.query}"
-
-    connection = http.client.HTTPSConnection(parsed.netloc, timeout=timeout)
-    try:
-        connection.request("GET", request_path, headers={"User-Agent": "REvoDesign-PackageManager"})
-        response = connection.getresponse()
-        payload = response.read()
-        if response.status >= 400:
-            raise HTTPError(url, response.status, response.reason, response.headers, None)
-        return payload
-    except OSError as exc:
-        raise URLError(exc) from exc
-    finally:
-        connection.close()
+    request = urllib.request.Request(url, headers={"User-Agent": "REvoDesign-PackageManager"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:  # nosec B310
+        return response.read()
 
 
 def _python_version_matches(spec: str | None, current_version: str | None) -> bool:

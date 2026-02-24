@@ -18,6 +18,7 @@ os.environ["PYTEST_QT_API"] = "pyqt5"
 
 @pytest.mark.serial
 @pytest.mark.very_slow
+@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"])
 class TestREvoDesignPlugin_TabInteract:
     def test_gremlin_homomer_all2all(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
