@@ -230,7 +230,6 @@ def reload_logging_config():
 def logger_level_setter_ng(settings: dict[str, str]):
     from REvoDesign.driver.ui_driver import ConfigBus
 
-    global ROOT_LOGGER
     logging.info(f"Setting logger level")
 
     all_logger_channels = list_all_logger_channels()

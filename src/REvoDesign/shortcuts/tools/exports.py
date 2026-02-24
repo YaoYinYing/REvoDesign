@@ -101,7 +101,7 @@ def shortcut_dump_sidechains(
 
 def shortcut_dump_fasta_from_struct(
     format: str = "fasta",
-    chain_ids: list[str] = [],
+    chain_ids: list[str] | None = None,
     output_dir: str = "dumped_sequences",
     drop_missing_residue: bool = False,
     suffix: str = "",

@@ -690,15 +690,11 @@ def pick_design_from_profile(
     view_highlight: str = "orient",
     view_highlight_nbr: int = 6,
 ):
-    from RosettaPy.common.mutation import Mutation
-
     from REvoDesign.Qt import QtCore, QtWidgets
 
     from ..bootstrap.set_config import ConfigConverter
-    from ..common.mutant import Mutant
     from ..common.mutant_visualise import MutantVisualizer
     from ..phylogenetics.revo_designer import REvoDesigner
-    from ..sidechain.sidechain_solver import SidechainSolver
     from ..tools.utils import cmap_reverser, get_color, run_worker_thread_in_pool
 
     bus = ConfigBus()

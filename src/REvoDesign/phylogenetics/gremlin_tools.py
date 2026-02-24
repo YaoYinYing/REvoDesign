@@ -21,7 +21,6 @@ from:
 """
 
 import os
-import pickle
 import traceback
 import warnings
 from dataclasses import dataclass, field
@@ -37,6 +36,7 @@ from scipy.spatial.distance import pdist, squareform
 from REvoDesign import ConfigBus, issues
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.tools.safe_pickle import restricted_load
 
 logging = ROOT_LOGGER.getChild(__name__)
 matplotlib.use("Agg")
@@ -135,7 +135,8 @@ class CoevolvedPair:
         if chain_pair not in self.homochains_dist:
             raise ValueError(f"No such {chain_pair=} in {self.homochains_dist=}")
 
-        assert len(chain_pair) == 2, f"{len(chain_pair)=} != 2"
+        if len(chain_pair) != 2:
+            raise ValueError(f"{len(chain_pair)=} != 2")
         res_pair = (
             f"(c. {chain_pair[0]} and i. {self.i_1})",
             f"(c. {chain_pair[1]} and i. {self.j_1})",
@@ -219,8 +220,8 @@ class GREMLIN_Tools(CitableModuleAbstract):
 
     @staticmethod
     def load_mrf(mrf_fp):
-        mrf = pickle.load(open(mrf_fp, "rb"))
-        return mrf
+        with open(mrf_fp, "rb") as mrf_handle:
+            return restricted_load(mrf_handle, allowed_module_prefixes=("numpy",))
 
     ###################
 

@@ -71,7 +71,8 @@ class ServerControlAbstract(SingletonAbstract):
         if self.server:
             self.server.run()
 
-    def _on_server_result(self, result):
+    @staticmethod
+    def _on_server_result(result):
         """
         Handle results from the WorkerThread.
         """

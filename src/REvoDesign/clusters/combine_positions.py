@@ -32,7 +32,8 @@ class GenerateVariantsinFastafile:
                 else:
                     self.fastaseq = self.fastaseq + line.strip()
 
-    def get_fastasequence_from_file(self, inputfile):
+    @staticmethod
+    def get_fastasequence_from_file(inputfile):
         fasta_seq = ""
         with open(inputfile) as f:
             for line in f:
@@ -58,12 +59,16 @@ class GenerateVariantsinFastafile:
                 # print newmutation
                 # print self.fastaseq[position:]
                 # print("WT,POS,AA: ",self.fastaseq[aa],aa,native,self.fastaseq[aa] == native)
-                assert aa == native
+                if aa != native:
+                    raise ValueError(
+                        f"WT mismatch at position {position}: expected {native}, found {aa}"
+                    )
                 newfasta = newfasta[0 : position - 1] + newmutation + newfasta[position:]
 
         return newfasta
 
-    def get_mutated_fasta_string(self, position, native, newmutation, fastasequence):
+    @staticmethod
+    def get_mutated_fasta_string(position, native, newmutation, fastasequence):
         """
         :param position:
         :param native:
@@ -75,7 +80,10 @@ class GenerateVariantsinFastafile:
         for aa_idx, aa in enumerate(fastasequence):
             if aa_idx == position - 1:
                 # print("Native,Pos,Design",native,position,fastasequence[aa],fastasequence[aa] == native)
-                assert aa == native
+                if aa != native:
+                    raise ValueError(
+                        f"WT mismatch at position {position}: expected {native}, found {aa}"
+                    )
                 newfasta = newfasta[0 : position - 1] + newmutation + newfasta[position:]
 
         return newfasta
@@ -227,17 +235,23 @@ class Combinations:
             # count from 0 in python
             pos = int(eval_wt[1:-1]) - 1
             aa = eval_wt[0]
-            assert aa == self.fastasequence[pos], (
-                "WT =  "
-                + self.fastasequence[pos]
-                + str(pos + 1)
-                + " input AA: "
-                + aa
-                + " mut file contains: "
-                + eval_wt
-            )
+            if aa != self.fastasequence[pos]:
+                raise ValueError(
+                    "WT =  "
+                    + self.fastasequence[pos]
+                    + str(pos + 1)
+                    + " input AA: "
+                    + aa
+                    + " mut file contains: "
+                    + eval_wt
+                )
 
     def run_combinations(self):
-        assert os.path.exists(self.inputfile) and os.path.exists(self.fastafile) and self.combi >= 1
+        if not os.path.exists(self.inputfile):
+            raise FileNotFoundError(f"Input mutation file does not exist: {self.inputfile}")
+        if not os.path.exists(self.fastafile):
+            raise FileNotFoundError(f"Input fasta file does not exist: {self.fastafile}")
+        if self.combi < 1:
+            raise ValueError(f"Invalid combination size: {self.combi}. Expected >= 1.")
 
         self.setup(self.inputfile, self.combi, self.fastafile)

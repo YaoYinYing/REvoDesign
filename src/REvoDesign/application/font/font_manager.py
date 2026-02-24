@@ -140,8 +140,6 @@ def set_font(font: QtGui.QFont | str | None = None):
 
 
 def set_font_dialog():
-    from REvoDesign.application.font.font_manager import DEFAULT_FONT, set_font
-
     fq = QtWidgets.QFontDialog()
     if fq.exec():
         set_font(fq.currentFont())

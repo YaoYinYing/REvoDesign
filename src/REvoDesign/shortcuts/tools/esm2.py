@@ -248,7 +248,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                     all_token_probs.append(token_probs[:, 0, i])  # vocab size
                 token_probs = torch.cat(all_token_probs, dim=0).unsqueeze(0)
                 df[model_name] = df.apply(
-                    lambda row: label_row(
+                    lambda row, token_probs=token_probs, alphabet=alphabet: label_row(
                         row[self.mutation_col], self.sequence, token_probs, alphabet, self.offset_idx
                     ),
                     axis=1,
@@ -264,7 +264,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                     with torch.no_grad():
                         token_probs = torch.log_softmax(model(batch_tokens.to(self.device))["logits"], dim=-1)
                     df[model_name] = df.apply(
-                        lambda row: label_row(
+                        lambda row, token_probs=token_probs, alphabet=alphabet: label_row(
                             row[self.mutation_col],
                             self.sequence,
                             token_probs,
@@ -285,7 +285,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                         all_token_probs.append(token_probs[:, i])  # vocab size
                     token_probs = torch.cat(all_token_probs, dim=0).unsqueeze(0)
                     df[model_name] = df.apply(
-                        lambda row: label_row(
+                        lambda row, token_probs=token_probs, alphabet=alphabet: label_row(
                             row[self.mutation_col],
                             self.sequence,
                             token_probs,
@@ -297,7 +297,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 elif self.scoring_strategy == "pseudo-ppl":
                     tqdm.pandas()
                     df[model_name] = df.progress_apply(
-                        lambda row: self.compute_pppl(
+                        lambda row, model=model, alphabet=alphabet: self.compute_pppl(
                             row[self.mutation_col], self.sequence, model, alphabet, self.offset_idx
                         ),
                         axis=1,

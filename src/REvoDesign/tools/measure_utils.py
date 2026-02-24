@@ -483,7 +483,8 @@ class Measurement:
                 out.append(m)
         return out
 
-    def _build_uniqueid_to_atom_map(self, cmd_module) -> dict[int, AtomDescriptor]:
+    @staticmethod
+    def _build_uniqueid_to_atom_map(cmd_module) -> dict[int, AtomDescriptor]:
         """
         Build mapping unique_id -> AtomDescriptor by iterating over all objects & atoms.
         Uses cmd.get_model(obj, state=-1) to collect object atoms.
@@ -665,8 +666,6 @@ def read_measurement(start: str | int, debug: int = 0) -> Measurement:
     DEBUG = bool(int(debug))
 
     start = int(start)
-    from pymol import cmd
-
     atoms: dict[int, str] = {}
     pairs: dict = {}
 

@@ -207,7 +207,8 @@ class DialogWrapperRegistry:
         self.config = self._load_yaml(yaml_path)
         self.funcs: dict[str, Callable] = {}
 
-    def _load_yaml(self, path: Path) -> dict:
+    @staticmethod
+    def _load_yaml(path: Path) -> dict:
         """
         Load YAML file.
 

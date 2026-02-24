@@ -44,6 +44,7 @@ class ddg(ExternalDesignerAbstract):
     prefer_lower = True
 
     def __init__(self, molecule: str, **kwargs):
+        super().__init__(molecule)
 
         self.molecule = molecule
         self.reload = False

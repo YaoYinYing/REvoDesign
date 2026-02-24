@@ -68,6 +68,7 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             ss_penalty (bool): Whether to apply secondary structure penalty. Defaults to False.
             device (str): Device to run the model on, either 'cpu' or 'gpu'. Defaults to 'cpu'.
         """
+        TorchModuleAbstract.__init__(self, device=device)
         self.prefix = prefix
         self.mode = mode
         self.device = device

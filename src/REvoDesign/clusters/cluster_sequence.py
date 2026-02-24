@@ -100,7 +100,8 @@ class Clustering(CitableModuleAbstract):
         self.cluster_output_fp["score"] = img_fp
         plt.close()
 
-    def handle_calculation_result(self, results):
+    @staticmethod
+    def handle_calculation_result(results):
         # Handle the results of the calculation as needed
         logging.debug(f"Recieving results in length: {len(results)}")
         return results  # Store the results for further processing

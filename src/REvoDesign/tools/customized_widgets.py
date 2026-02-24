@@ -611,7 +611,8 @@ class QButtonMatrix(QtWidgets.QWidget):
         """
         return row_name == self.sequence[int(col_name) - 1 + self.zero_index_offset]
 
-    def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
+    @staticmethod
+    def get_WT_label(row_name: str, col_name: str, row: int, col: int) -> str:
         return row_name
 
     @property
@@ -1938,7 +1939,8 @@ class ValueDialog(REvoDesignWidget):
 
             self.table.setCellWidget(row, 3, container_widget)
 
-    def _browse_file(self, widget, exts: FExCol | None = None, multiple: bool = False, mode: Literal["r", "w"] = "r"):
+    @staticmethod
+    def _browse_file(widget, exts: FExCol | None = None, multiple: bool = False, mode: Literal["r", "w"] = "r"):
         """
         Opens a file dialog to select a file and updates the input field.
 

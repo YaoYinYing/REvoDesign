@@ -1233,7 +1233,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         toggled = self.bus.get_widget_value("ui.socket.server_mode", bool)
 
         try:
-            if not self.ws_server.initialized:
+            if self.ws_server is None:
+                from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
+
                 self.ws_server = REvoDesignWebSocketServer()
 
             if toggled:
