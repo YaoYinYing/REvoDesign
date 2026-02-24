@@ -34,7 +34,8 @@ def get_selections() -> list[str]:
 
 
 def find_all_small_molecules_in_protein():
-    return find_small_molecules_in_protein("(all)")
+    # empty list should be None
+    return find_small_molecules_in_protein("(all)") or None
 
 
 def get_all_chain_ids() -> list[str]:
