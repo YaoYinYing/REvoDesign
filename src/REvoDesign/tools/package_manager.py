@@ -422,7 +422,8 @@ def fetch_gist_json(url: str) -> dict[str, Any]:
 
         # Validate the structure of the fetched data
         if not isinstance(json_data, dict):
-            raise ValueError("Fetched data is not a dictionary.")
+            logging.error("Error fetching or validating the JSON data: Fetched data is not a dictionary.")
+            return {}
         return json_data
     except Exception as e:
         logging.error(f"Error fetching or validating the JSON data: {e}: ")
@@ -1498,9 +1499,6 @@ class REvoDesignPackageManager:
         """
         Opens a dialog for the user to select an existing directory.
 
-        Parameters:
-        - self: The instance of the class this method is called on.
-
         Returns:
         - str: The path of the selected directory.
         """
@@ -2399,8 +2397,15 @@ def get_github_repo_tags(repo_url) -> list[str]:
         response_data = _read_https_url(api_url).decode()
         # Parse JSON response data
         tags = json.loads(response_data)
+        if not isinstance(tags, list):
+            logging.error("Failed to parse GitHub tags response: expected a list.")
+            return []
         # Extract the name of each tag
-        tag_names = [tag["name"] for tag in tags]
+        try:
+            tag_names = [tag["name"] for tag in tags]
+        except (KeyError, TypeError) as e:
+            logging.error(f"Failed to extract tag names from GitHub response: {e}")
+            return []
         return tag_names
     except HTTPError as e:
         # Handle HTTP errors (e.g., repository not found, rate limit exceeded)
@@ -2409,6 +2414,12 @@ def get_github_repo_tags(repo_url) -> list[str]:
     except URLError as e:
         # Handle URL errors (e.g., network issues)
         logging.error(f"Failed to reach the server. Reason: {e.reason}")
+        return []
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to decode GitHub tags response as JSON: {e}")
+        return []
+    except TypeError as e:
+        logging.error(f"Failed to parse GitHub tags response: {e}")
         return []
 
 

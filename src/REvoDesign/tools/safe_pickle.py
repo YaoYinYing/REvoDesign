@@ -68,7 +68,10 @@ class _RestrictedUnpickler(pickle.Unpickler):
         if not _module_is_allowed(module, self.allowed_module_prefixes):
             raise pickle.UnpicklingError(f"Disallowed module in pickle payload: {module}.{name}")
 
-        imported_module = importlib.import_module(module)
+        try:
+            imported_module = importlib.import_module(module)
+        except (ModuleNotFoundError, ImportError) as exc:
+            raise pickle.UnpicklingError(f"Missing module in pickle payload: {module}") from exc
         try:
             return getattr(imported_module, name)
         except AttributeError as exc:
