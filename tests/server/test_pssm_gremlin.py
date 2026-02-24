@@ -143,6 +143,33 @@ def test_pssm_config_rejects_root_runner(monkeypatch, tmp_path):
         )
 
 
+def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    client = module.app.test_client()
+    auth_header = _basic_auth_header("tester", "password")
+
+    favicon = client.get("/favicon.ico")
+    assert favicon.status_code == 200
+    assert "image" in (favicon.content_type or "")
+
+    logo_svg = client.get("/PSSM_GREMLIN/logo.svg")
+    assert logo_svg.status_code == 200
+    assert "svg" in (logo_svg.content_type or "")
+
+    page = client.get("/PSSM_GREMLIN/create_task", headers=auth_header)
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert 'href="/favicon.ico"' in html
+    assert 'href="/PSSM_GREMLIN/logo.svg"' in html
+
+
 def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta") -> str:
     result_dir.mkdir(parents=True, exist_ok=True)
     fasta_path = result_dir / filename

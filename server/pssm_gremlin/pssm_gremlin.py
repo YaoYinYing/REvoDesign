@@ -36,6 +36,7 @@ from werkzeug.utils import secure_filename
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
+TEMPLATE_IMAGE_DIR = os.path.join(THIS_DIR, "templates", "images")
 
 app = Flask(__name__, template_folder="./templates")
 auth = HTTPBasicAuth()
@@ -818,6 +819,16 @@ def run_gremlin_task(md5sum):
 @auth.login_required
 def create_task():
     return render_template("create_task.html")
+
+
+@app.route("/favicon.ico", methods=["GET"])
+def favicon():
+    return send_from_directory(TEMPLATE_IMAGE_DIR, "logo.ico", mimetype="image/vnd.microsoft.icon")
+
+
+@app.route("/PSSM_GREMLIN/logo.svg", methods=["GET"])
+def logo_svg():
+    return send_from_directory(TEMPLATE_IMAGE_DIR, "logo.svg", mimetype="image/svg+xml")
 
 
 @app.route("/PSSM_GREMLIN/api/post", methods=["POST"])
