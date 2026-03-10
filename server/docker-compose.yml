@@ -32,6 +32,8 @@ x-common-env: &common-env
   PUBLIC_DASHBOARD: ${PUBLIC_DASHBOARD:-false}
   ADMIN_USERS: ${ADMIN_USERS:-admin}
 
+  TZ: ${TZ:-Europe/London}
+
 x-docker-socket-access: &docker-socket-access
   # Least privilege by default: only grant Docker socket group access.
   # Add root to group access ("0") to allow correct permission for now. TODO: remove this root if fix is possible.
@@ -71,6 +73,7 @@ services:
       -b 0.0.0.0:${PORT:-8080}
       --access-logfile ${LOG_DIR}/gunicorn-access.log
       --error-logfile ${LOG_DIR}/gunicorn-error.log
+      --access-logformat '%({CF-Connecting-IP}i)s (%({Cf-Ipcountry}i)s) - %(u)s %(t)s "%(r)s" %(s)s %(B)s "%(a)s"' 
       pssm_gremlin:app
     ports:
       - "${PORT:-8080}:${PORT:-8080}"

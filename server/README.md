@@ -140,6 +140,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `PORT` | Public HTTP port. |
 | `PUBLIC_DASHBOARD` | `false` by default; scopes task visibility to owner unless admin. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
+| `TZ` | Timezone for logs. |
 
 ## 4. Configure Basic Auth Users
 
