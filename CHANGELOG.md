@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added tests:
     - `tests/basic/test_plugin_registry.py`
     - `tests/basic/test_plugin_registry_integration.py`
+- docs:
+  - Added `docs/cluster_methods_guide.md` with detailed guidance on cluster method tradeoffs, method selection, and how to implement/register custom methods.
 - ci:
   - PyPI publish workflow now also supports `push` tag trigger `v*` for release-by-tag publishing.
   - TestPyPI branch-testing trigger: push any branch commit with `[testpypi]` in commit message to run a TestPyPI upload flow.
@@ -34,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Sidechain solvers now use scoped auto-discovery registry in `sidechain_solver.py` while keeping compatibility symbols (`ALL_RUNNER_CLASSES`, `IMPLEMENTED_RUNNER`) and manager API.
   - Magician designers now use scoped auto-discovery registry in `magician/__init__.py` while keeping compatibility symbols (`ALL_DESIGNER_CLASSES`, `IMPLEMENTED_DESIGNERS`) and assistant API.
   - Cluster methods now use scoped auto-discovery registry in `cluster_sequence.py` while keeping compatibility symbols (`ALL_CLUSTER_METHOD_CLASSES`, `IMPLEMENTED_CLUSTER_METHOD`) and `ClusterMethodManager` API.
+- clusters:
+  - Moved concrete cluster method implementations out of `cluster_sequence.py` into per-method modules under `src/REvoDesign/clusters/methods/` (`legacy.py`, `agglomerative.py`, `kmeans.py`, `evo.py`), while preserving public compatibility exports from `cluster_sequence.py`.
+- docs:
+  - Linked the cluster methods guide from `README.md` for easier user discovery.
 - ci:
   - Replaced external reusable publish workflow with in-repo publish steps (`build` + `twine check` + upload), making release behavior explicit and auditable in this repository.
   - Manual `workflow_dispatch` publish now supports target selection (`pypi` or `testpypi`).

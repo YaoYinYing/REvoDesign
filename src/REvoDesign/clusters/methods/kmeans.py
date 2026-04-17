@@ -6,7 +6,18 @@
 KMeans cluster method entry.
 """
 
-from REvoDesign.clusters.cluster_sequence import KMeansCluster
+import numpy as np
+
+from REvoDesign.clusters.cluster_sequence import ClusterMethodAbstract
+
+
+class KMeansCluster(ClusterMethodAbstract):
+    name = "KMeansCluster"
+
+    def predict_labels(self, score_matrix: np.ndarray) -> np.ndarray:
+        from sklearn.cluster import KMeans
+
+        return KMeans(n_clusters=self.num_clusters, n_init="auto", random_state=0).fit_predict(score_matrix)
+
 
 __all__ = ["KMeansCluster"]
-

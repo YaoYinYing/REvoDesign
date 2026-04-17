@@ -62,6 +62,10 @@ In brief, the **REvoDesign** PyMOL plugin provides a set of essential tools to h
 
 Please refer to the [manual]([link_to_documentation](https://raw.githubusercontent.com/YaoYinYing/REvoDesignTutorial/refs/heads/main/manual-REvoDesign-%20English.demo_case.docx)) for detailed instructions on how to use the toolkit and make the most of its features.
 
+For clustering method selection and extension details, see:
+
+- [docs/cluster_methods_guide.md](docs/cluster_methods_guide.md)
+
 ---
 
 ## Installation
