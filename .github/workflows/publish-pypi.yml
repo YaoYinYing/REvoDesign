@@ -117,6 +117,7 @@ jobs:
                   "twine",
                   "upload",
                   "--non-interactive",
+                  "--skip-existing",
                   "--verbose",
                   "--repository-url",
                   "https://test.pypi.org/legacy/",
