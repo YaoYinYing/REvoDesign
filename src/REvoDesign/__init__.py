@@ -45,7 +45,9 @@ from REvoDesign.shortcuts import __all__ as all_shortcuts
 
 # 8. Set version info
 # version number checker: https://regex101.com/r/6AoOI9/1
-__version__ = "1.8.5"
+__version__ = "1.8.6"
+# To bump a new version tag, change __version__, use the checker to ensure no syntax error. 
+# then use `make tag` at repository root to complete the committing.
 
 
 # 9. enable garbage collection

@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 
+## [1.8.6] - 2026-04-17
+
 ### Added
 - Thread Pool Dashboard can be launched from `Runtime → Thread Pool Dashboard`, making it easy to inspect live worker threads and kill stuck installers/jobs without digging through logs.
 - Package manager:
