@@ -52,7 +52,7 @@ cat changelog_tag.md
 echo  collect version files and creating new commit...
 git add ./CHANGELOG.md src/REvoDesign/__init__.py
 # version commit
-git commit -m 'Bump version: '"$old_version"' -> '"$new_version"'' -m '[ci skip]'
+git commit -m 'Bump version: '"$old_version"' -> '"$new_version"''
 
 echo pushing new version
 echo set git tag ..
