@@ -56,4 +56,58 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_PASSWORD }}
-        run: python -m twine upload --non-interactive --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*
+        run: |
+          python - <<'PY'
+          import glob
+          import json
+          import os
+          import subprocess
+          import sys
+          import urllib.error
+          import urllib.request
+
+          project_candidates = ("REvoDesign", "revodesign")
+          existing_filenames = set()
+
+          for project in project_candidates:
+              url = f"https://test.pypi.org/pypi/{project}/json"
+              try:
+                  with urllib.request.urlopen(url, timeout=20) as resp:
+                      payload = json.load(resp)
+                  for files in payload.get("releases", {}).values():
+                      for file_info in files:
+                          name = file_info.get("filename")
+                          if name:
+                              existing_filenames.add(name)
+              except urllib.error.HTTPError as exc:
+                  if exc.code != 404:
+                      raise
+
+          dist_files = sorted(glob.glob("dist/*"))
+          if not dist_files:
+              raise SystemExit("No files found under dist/.")
+
+          to_upload = [f for f in dist_files if os.path.basename(f) not in existing_filenames]
+          print("All dist files:", [os.path.basename(f) for f in dist_files])
+          print("Existing on TestPyPI:", sorted(existing_filenames))
+          print("Will upload:", [os.path.basename(f) for f in to_upload])
+
+          if not to_upload:
+              print("Nothing to upload: all artifacts already exist on TestPyPI.")
+              raise SystemExit(0)
+
+          for artifact in to_upload:
+              cmd = [
+                  sys.executable,
+                  "-m",
+                  "twine",
+                  "upload",
+                  "--non-interactive",
+                  "--verbose",
+                  "--repository-url",
+                  "https://test.pypi.org/legacy/",
+                  artifact,
+              ]
+              print("Running:", " ".join(cmd))
+              subprocess.check_call(cmd)
+          PY
