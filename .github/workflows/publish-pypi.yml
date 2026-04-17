@@ -38,7 +38,8 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install build twine
           rm -rf _publish_src
-          cp -R . _publish_src
+          mkdir -p _publish_src
+          git archive --format=tar HEAD | tar -x -C _publish_src
           python - <<'PY'
           import re
           from pathlib import Path
