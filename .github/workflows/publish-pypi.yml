@@ -37,15 +37,28 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install build twine
-          python -m build
-          python -m twine check dist/*
+          rm -rf _publish_src
+          cp -R . _publish_src
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          pyproject = Path("_publish_src/pyproject.toml")
+          text = pyproject.read_text(encoding="utf-8")
+          # PyPI/TestPyPI reject direct URL dependencies in uploaded metadata.
+          # Keep git+ refs in repo metadata, but sanitize only the CI publish copy.
+          text = re.sub(r'"([^"\n]+)\s+@\s+git\+[^"\n]+"', r'"\1"', text)
+          pyproject.write_text(text, encoding="utf-8")
+          PY
+          python -m build _publish_src
+          python -m twine check _publish_src/dist/*
 
       - name: Upload to PyPI
         if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v') || github.event.inputs.repository == 'pypi'
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: python -m twine upload --non-interactive --skip-existing dist/*
+        run: python -m twine upload --non-interactive --skip-existing _publish_src/dist/*
 
       - name: Upload to TestPyPI
         if: |
@@ -83,9 +96,9 @@ jobs:
                   if exc.code != 404:
                       raise
 
-          dist_files = sorted(glob.glob("dist/*"))
+          dist_files = sorted(glob.glob("_publish_src/dist/*"))
           if not dist_files:
-              raise SystemExit("No files found under dist/.")
+              raise SystemExit("No files found under _publish_src/dist/.")
 
           to_upload = [f for f in dist_files if os.path.basename(f) not in existing_filenames]
           print("All dist files:", [os.path.basename(f) for f in dist_files])

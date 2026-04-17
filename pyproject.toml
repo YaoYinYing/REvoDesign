@@ -43,7 +43,7 @@ dependencies = [
     "rdkit>=2023.9.4",
     "msgpack",
     "RosettaPy==0.2.15",
-    "bibtexparser",
+    "bibtexparser @ git+https://github.com/sciunto-org/python-bibtexparser.git@v2.0.0b7#egg=bibtexparser",
     "platformdirs",
     "fastapi",
     "uvicorn",
@@ -58,36 +58,36 @@ dependencies = [
 
 [project.optional-dependencies]
 colabdesign = [
-    "colabdesign",
+    "colabdesign @ git+https://github.com/sokrypton/ColabDesign.git@v1.1.3#egg=colabdesign",
     "jax<0.6.0,>=0.4.25",
     "dm_haiku<=0.0.14",
 ]
 
 pippack = [
     "torch<=2.3.0",
-    "PIPPack",
+    "PIPPack @ git+https://github.com/YaoYinYing/PIPPack.git@pip-installable-cpu#egg=PIPPack",
 ]
 
 dlpacker = [
-    "DLPacker",
+    "DLPacker @ git+https://github.com/YaoYinYing/DLPacker.git@pip-installable-cpu#egg=DLPacker",
 ]
 
 
 thermompnn = [
-    "thermompnn",
+    "thermompnn @ git+https://github.com/YaoYinYing/ThermoMPNN-D#egg=thermompnn",
     "pytorch_lightning<=2.5.3"
 ]
 
 esm2=[
-    "fair-esm2",
+    "fair-esm2 @ git+https://github.com/YaoYinYing/esm2.git#egg=fair-esm2",
 ]
 
 
 openmm=[
     "openmm>=8.1.1",
     "asgiref>=3.8.1",
-    "pdbfixer",
-    "openmm-setup",
+    "pdbfixer @ git+https://github.com/openmm/pdbfixer.git#egg=pdbfixer",
+    "openmm-setup @ git+https://github.com/openmm/openmm-setup.git#egg=openmm-setup",
 ]
 
 rfdiffusion_cuda=[
@@ -100,10 +100,10 @@ rfdiffusion_cuda=[
     "torchaudio",
     "cudatoolkit>=11.1",
     "nvtx",
-    "dllogger",
+    "dllogger @ git+https://github.com/NVIDIA/dllogger#egg=dllogger",
     "pydantic",
-    "se3-transformer",
-    "rfdiffusion"
+    "se3-transformer @ git+https://github.com/YaoYinYing/SE3Transformer.git@rfdiffusion-cuda",
+    "rfdiffusion @ git+https://github.com/YaoYinYing/RFdiffusion.git@cuda"
 
 ]
 
@@ -117,10 +117,10 @@ rfdiffusion_mps=[
     "torchaudio",
     "nvtx-mock", # we now have a real package!!!!!
     "nvtx",
-    "se3-transformer",
-    "dllogger",
+    "se3-transformer @ git+https://github.com/YaoYinYing/SE3Transformer.git@rfdiffusion-mps-test",
+    "dllogger @ git+https://github.com/NVIDIA/dllogger#egg=dllogger",
     "pydantic",
-    "rfdiffusion",
+    "rfdiffusion @ git+https://github.com/YaoYinYing/RFdiffusion.git@mps-test",
     "wandb==0.16.0"
 
 ]
@@ -135,10 +135,10 @@ rfdiffusion_cpu=[
     "torchaudio",
     "nvtx-mock",
     "nvtx",
-    "se3-transformer",
-    "dllogger",
+    "se3-transformer @ git+https://github.com/YaoYinYing/SE3Transformer.git",
+    "dllogger @ git+https://github.com/NVIDIA/dllogger#egg=dllogger",
     "pydantic",
-    "rfdiffusion",
+    "rfdiffusion @ git+https://github.com/YaoYinYing/RFdiffusion.git",
 
 ]
 
