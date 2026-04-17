@@ -18,6 +18,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```
 ## [Unreleased]
+### Added
+- ci:
+  - PyPI publish workflow now also supports `push` tag trigger `v*` for release-by-tag publishing.
+  - TestPyPI branch-testing trigger: push any branch commit with `[testpypi]` in commit message to run a TestPyPI upload flow.
+
+### Changed
+- ci:
+  - Replaced external reusable publish workflow with in-repo publish steps (`build` + `twine check` + upload), making release behavior explicit and auditable in this repository.
+  - Manual `workflow_dispatch` publish now supports target selection (`pypi` or `testpypi`).
+
+### Fixed
+- ci:
+  - Twine uploads now use `--skip-existing` for both PyPI and TestPyPI to avoid hard failures on reruns of the same version artifacts.
+  - Removed legacy `pypirc` file from repository to prevent confusion with CI-secret based publishing.
 
 ## [1.8.6] - 2026-04-17
 
