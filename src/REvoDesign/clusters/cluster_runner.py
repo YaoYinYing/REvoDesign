@@ -11,6 +11,7 @@ from RosettaPy.node import NodeHintT
 
 from REvoDesign import ConfigBus
 from REvoDesign.citations import CitationManager
+from REvoDesign.clusters.cluster_sequence import ClusterMethodManager
 from REvoDesign.clusters.score_clusters import score_clusters
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.customized_widgets import set_widget_value
@@ -40,13 +41,25 @@ class ClusterRunner:
 
         self.shuffle_variant = bus.get_value("ui.cluster.shuffle")
         self.run_mutate_relax = bus.get_value("ui.cluster.mutate_relax")
+        self.cluster_method = bus.get_value("ui.cluster.method.use", default_value="AgglomerativeCluster")
+
+        self.evo_pssm_profile = bus.get_value("ui.cluster.evo.inputs.pssm_profile", default_value="")
+        self.evo_esm1v_table = bus.get_value("ui.cluster.evo.inputs.esm1v_table", default_value="")
+        self.evo_structure_pdb = bus.get_value("ui.cluster.evo.inputs.structure_pdb", default_value="")
+        self.evo_esm_mutation_col = bus.get_value("ui.cluster.evo.esm.mutation_col", default_value="mutation")
+        self.evo_weights = {
+            "seq": float(bus.get_value("ui.cluster.evo.weights.seq", default_value=1.0)),
+            "physchem": float(bus.get_value("ui.cluster.evo.weights.physchem", default_value=0.0)),
+            "spatial": float(bus.get_value("ui.cluster.evo.weights.spatial", default_value=0.0)),
+            "pssm": float(bus.get_value("ui.cluster.evo.weights.pssm", default_value=0.0)),
+            "esm": float(bus.get_value("ui.cluster.evo.weights.esm", default_value=0.0)),
+        }
 
         self.nproc = bus.get_value("ui.header_panel.nproc", int)
 
     # combination and clustering
     def run_clustering(self):
         # lazy module loading to fasten plugin initializing
-        from .cluster_sequence import Clustering
         from .combine_positions import Combinations
 
         bus: ConfigBus = ConfigBus()
@@ -81,13 +94,30 @@ class ClusterRunner:
 
             # clustering
 
-            clustering = Clustering(fastafile=expected_design_combinations)
+            clustering = ClusterMethodManager.get(
+                cluster_method_name=self.cluster_method,
+                fastafile=expected_design_combinations,
+            )
             clustering.batch_size = self.cluster_batch_size
             clustering.num_proc = self.nproc
             clustering.num_clusters = self.cluster_number
             clustering.shuffle_variant = self.shuffle_variant
             clustering.substitution_matrix = self.cluster_substitution_matrix
             clustering._save_dir = self.PWD
+            clustering.chain_id = self.design_chain_id
+            clustering.wt_sequence = self.design_sequence
+            clustering.evo_pssm_profile = self.evo_pssm_profile
+            clustering.evo_esm1v_table = self.evo_esm1v_table
+            clustering.evo_esm_mutation_col = self.evo_esm_mutation_col
+            clustering.evo_weights = dict(self.evo_weights)
+            clustering.structure_pdb = self.evo_structure_pdb
+            if clustering.name == "EvoCluster" and not clustering.structure_pdb:
+                clustering.structure_pdb = make_temperal_input_pdb(
+                    molecule=self.design_molecule,
+                    chain_id=self.design_chain_id,
+                    selection="not hetatm",
+                    reload=False,
+                )
 
             clustering.initialize_aligner()
 
@@ -104,13 +134,15 @@ class ClusterRunner:
 
                 node_hint: NodeHintT | None = bus.get_value("rosetta.node_hint", default_value="native")  # type: ignore
 
-                run_worker_thread_in_pool(
+                rosetta_results = run_worker_thread_in_pool(
                     worker_function=score_clusters,
                     pdb=pdb_file,
                     chain_id=self.design_chain_id,
                     node_hint=node_hint,
                     tasks_dir=str(clustering.save_dir),
                 )
+                if rosetta_results:
+                    clustering.override_cluster_centers_with_rosetta(rosetta_results)
 
             clustering.cite()
 

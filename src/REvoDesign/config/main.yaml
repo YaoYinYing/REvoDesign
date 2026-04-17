@@ -62,6 +62,8 @@ ui:
   cluster:
     input:
       from_mutant_txt: ''
+    method:
+      use: AgglomerativeCluster
     mut_num_min: 1
     mut_num_max: 1
     num_cluster: 15
@@ -70,6 +72,19 @@ ui:
     batch_size: 100
     shuffle: True
     mutate_relax: False
+    evo:
+      inputs:
+        pssm_profile: ''
+        esm1v_table: ''
+        structure_pdb: ''
+      esm:
+        mutation_col: mutation
+      weights:
+        seq: 1.0
+        physchem: 0.0
+        spatial: 0.0
+        pssm: 0.0
+        esm: 0.0
     
   
   visualize:

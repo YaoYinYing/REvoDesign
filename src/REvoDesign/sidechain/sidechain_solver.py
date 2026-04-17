@@ -9,11 +9,11 @@ Module for sidechain solvers manipulation and management.
 
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
-from types import MappingProxyType
 
 from RosettaPy.utils.escape import print_diff
 
 from REvoDesign import ConfigBus, SingletonAbstract, issues
+from REvoDesign.basic import build_plugin_registry
 from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.logger import ROOT_LOGGER
 
@@ -24,18 +24,12 @@ from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)
 
-# 2. collect all the runners here
-# TODO: automatically register the runner class
-ALL_RUNNER_CLASSES: list[type[MutateRunnerAbstract]] = [
-    PyMOL_mutate,
-    DLPacker_worker,
-    PIPPack_worker,
-    MutateRelax_worker,
-]
-
-
-# create table of implemented runners
-IMPLEMENTED_RUNNER: Mapping[str, type[MutateRunnerAbstract]] = MappingProxyType({c.name: c for c in ALL_RUNNER_CLASSES})
+RUNNER_REGISTRY = build_plugin_registry(
+    base_class=MutateRunnerAbstract,
+    package="REvoDesign.sidechain.mutate_runner",
+)
+ALL_RUNNER_CLASSES: list[type[MutateRunnerAbstract]] = list(RUNNER_REGISTRY.all_classes)
+IMPLEMENTED_RUNNER: Mapping[str, type[MutateRunnerAbstract]] = RUNNER_REGISTRY.implemented_map
 
 __all__ = [
     "MutateRunnerAbstract",
@@ -50,13 +44,11 @@ __all__ = [
 
 @dataclass(frozen=True)
 class MutateRunnerManager:
-    # create list of installed runners here
-    installed_worker: list[str] = field(default_factory=lambda: [c.name for c in ALL_RUNNER_CLASSES if c.installed])
+    installed_worker: list[str] = field(default_factory=lambda: RUNNER_REGISTRY.installed_names)
 
     @staticmethod
     def get(sidechain_solver_name: str, **kwargs) -> MutateRunnerAbstract:
-        runner_class = IMPLEMENTED_RUNNER[sidechain_solver_name]
-        return runner_class(**kwargs)
+        return RUNNER_REGISTRY.get(sidechain_solver_name, **kwargs)
 
 
 @dataclass(frozen=True)

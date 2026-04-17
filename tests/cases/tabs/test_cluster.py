@@ -74,4 +74,5 @@ class TestREvoDesignPlugin_TabCluster:
             assert all(
                 [os.path.exists(os.path.join(dir, f"c.{c}.fasta")) for c in range(test_worker.test_data.cluster_num)]
             )
+            assert os.path.exists(os.path.join(dir, "cluster_centers_nearest_centroid.fasta"))
             assert os.path.exists(os.path.join(dir, "cluster_centers_stochastic.fasta"))
