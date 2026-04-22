@@ -76,6 +76,10 @@ dlpacker_pytorch = [
     "dlpacker_pytorch @ git+https://github.com/YaoYinYing/DLPacker.git@pytorch#subdirectory=.",
 ]
 
+diffpack = [
+    "diffpack @ git+https://github.com/YaoYinYing/DiffPack.git#egg=diffpack",
+]
+
 
 thermompnn = [
     "thermompnn @ git+https://github.com/YaoYinYing/ThermoMPNN-D#egg=thermompnn",

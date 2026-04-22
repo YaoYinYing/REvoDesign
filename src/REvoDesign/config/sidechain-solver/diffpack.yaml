@@ -1,0 +1,22 @@
+# Default configuration for DiffPack inference.
+
+inference:
+  # One of: native, torchdrug, pyg
+  backend: native
+
+  # One of: cpu, cuda
+  device: cpu
+
+  # DiffPack config name/path.
+  # Empty means use default inference_confidence.yaml from installed diffpack package.
+  config: inference_confidence.yaml
+
+  # HETATM handling policy
+  hetero_policy: exclude
+
+  # Runtime toggles
+  fast: false
+  memory_mode: quality
+
+  # Optional cache root override; empty means DiffPack default cache root.
+  cache_root: ""

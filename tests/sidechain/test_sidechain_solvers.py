@@ -7,7 +7,13 @@ import pytest
 from pymol import cmd
 
 from REvoDesign.common.mutant import Mutant
-from REvoDesign.sidechain.mutate_runner import DLPackerPytorch_worker, MutateRelax_worker, PIPPack_worker, PyMOL_mutate
+from REvoDesign.sidechain.mutate_runner import (
+    DLPackerPytorch_worker,
+    DiffPack_worker,
+    MutateRelax_worker,
+    PIPPack_worker,
+    PyMOL_mutate,
+)
 
 WT_PDB = "../tests/data/3fap_hf3_A_short.pdb"
 MUT_PDB = "../tests/data/3fap_hf3_A_RFD.pdb"
@@ -54,6 +60,7 @@ class TestSidechainSolver:
             # ['DLpacker', DLPacker_worker, {'pdb_file': WT_PDB}, ],  # disabled dure to segfault on CI
             # ['DLpacker-range', DLPacker_worker, {'pdb_file': WT_PDB, 'radius': 3.5}, ],  # disabled dure to segfault on CI
             ["DLpacker-pytorch", DLPackerPytorch_worker, {"pdb_file": WT_PDB}],
+            ["DiffPack", DiffPack_worker, {"pdb_file": WT_PDB}],
             ["PIPPack-model_1", PIPPack_worker, {"pdb_file": WT_PDB, "use_model": "pippack_model_1"}],
             [
                 "PIPPack-ensumble",

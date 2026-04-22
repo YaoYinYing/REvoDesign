@@ -27,6 +27,13 @@
                     "extras_id":"pippack",
                     "depts": ["PIPPack"],
                     "python_version": ">=3.10,<3.13"
+                },
+                {
+                    "name": "DiffPack",
+                    "extras_id":"diffpack",
+                    "description": "DiffPack torsional diffusion sidechain solver",
+                    "depts": ["diffpack"],
+                    "python_version": ">=3.10,<3.15"
                 }
             ]
         },

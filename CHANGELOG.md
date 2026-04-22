@@ -30,6 +30,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ci:
   - PyPI publish workflow now also supports `push` tag trigger `v*` for release-by-tag publishing.
   - TestPyPI branch-testing trigger: push any branch commit with `[testpypi]` in commit message to run a TestPyPI upload flow.
+- sidechain:
+  - added `DLPackerPytorch_worker` at `src/REvoDesign/sidechain/mutate_runner/DLPackerPytorch.py`.
+  - added detailed config at `src/REvoDesign/config/sidechain-solver/dlpacker_pytorch.yaml` (device, rotamer policy, optional weights prefix).
+  - exposed `DLPackerPytorch` via sidechain solver registry/export wiring.
+  - added `DiffPack_worker` at `src/REvoDesign/sidechain/mutate_runner/DiffPack.py`.
+  - added detailed config at `src/REvoDesign/config/sidechain-solver/diffpack.yaml` (backend/device/cache and runtime toggles).
+  - exposed `DiffPack` via sidechain solver registry/export wiring.
+- installer/extras:
+  - added `dlpacker_pytorch` optional dependency in `pyproject.toml` using GitHub URL on `DLPacker` `pytorch` branch.
+  - added `DLPacker (PyTorch)` entry in `jsons/REvoDesignExtrasTableRich.json`.
+  - added `diffpack` optional dependency in `pyproject.toml` using GitHub URL.
+  - added `DiffPack` entry in `jsons/REvoDesignExtrasTableRich.json`.
+- tests:
+  - added sidechain config/wiring test `tests/sidechain/test_dlpacker_pytorch_runner_config.py`.
+  - added `DLPackerPytorch_worker` into sidechain solver mutate test matrix.
+  - added sidechain config/wiring test `tests/sidechain/test_diffpack_runner_config.py`.
+  - added `DiffPack_worker` into sidechain solver mutate test matrix.
+- docs:
+  - added modular integration guide `docs/modular/add_new_sidechain_solver.md` for adding and validating new sidechain solvers.
 
 ### Changed
 - Plugins/registries:
@@ -48,6 +67,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ci:
   - Twine uploads now use `--skip-existing` for both PyPI and TestPyPI to avoid hard failures on reruns of the same version artifacts.
   - Removed legacy `pypirc` file from repository to prevent confusion with CI-secret based publishing.
+- sidechain:
+  - fixed DLPacker radius-based reconstruct target selection in
+    `src/REvoDesign/sidechain/mutate_runner/DLPacker.py` to prevent rename-only mutate outputs:
+    - radius path now queries neighborhood with WT residue label.
+    - mutated center target is always included for guaranteed rebuild.
+    - `reconstruct_area` dedup and radius<=0 behavior stay unchanged.
+  - DiffPack runner now guarantees:
+    - pre-repack cache auto-prepare on cache miss/invalid.
+    - output rename safety to REvoDesign pattern `<short_mutant_id>.pdb`.
+    - one-mutant-one-core parallel cap to avoid CPU over-commit.
 
 ## [1.8.6] - 2026-04-17
 

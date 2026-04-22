@@ -21,6 +21,7 @@ from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.sidechain.mutate_runner import (
     DLPacker_worker,
     DLPackerPytorch_worker,
+    DiffPack_worker,
     MutateRelax_worker,
     PIPPack_worker,
     PyMOL_mutate,
@@ -43,6 +44,7 @@ __all__ = [
     "PyMOL_mutate",
     "DLPacker_worker",
     "DLPackerPytorch_worker",
+    "DiffPack_worker",
     "PIPPack_worker",
     "ALL_RUNNER_CLASSES",
     "IMPLEMENTED_RUNNER",
