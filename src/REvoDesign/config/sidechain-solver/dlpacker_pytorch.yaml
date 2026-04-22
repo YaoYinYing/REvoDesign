@@ -1,0 +1,14 @@
+# Default configuration for DLPackerPyTorch inference.
+
+inference:
+  # Runtime device for dlpacker_pytorch.DLPModel.
+  # Accepted values depend on runtime: cpu, cuda, mps.
+  device: cpu
+
+  # Rotamer selection policy used by DLPacker.
+  # Available: hybrid, tf, steric
+  rotamer_policy: hybrid
+
+  # Optional weights prefix without extension.
+  # If empty, REvoDesign uses <cache_dir>/weights/DLPacker/DLPacker_weights
+  weights_prefix: ""

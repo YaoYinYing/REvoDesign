@@ -43,7 +43,7 @@ dependencies = [
     "rdkit>=2023.9.4",
     "msgpack",
     "RosettaPy==0.2.15",
-    "bibtexparser @ git+https://github.com/sciunto-org/python-bibtexparser.git@v2.0.0b7#egg=bibtexparser",
+    "bibtexparser==2.0.0b9",
     "platformdirs",
     "fastapi",
     "uvicorn",
@@ -70,6 +70,10 @@ pippack = [
 
 dlpacker = [
     "DLPacker @ git+https://github.com/YaoYinYing/DLPacker.git@pip-installable-cpu#egg=DLPacker",
+]
+
+dlpacker_pytorch = [
+    "dlpacker_pytorch @ git+https://github.com/YaoYinYing/DLPacker.git@pytorch#subdirectory=.",
 ]
 
 

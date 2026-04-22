@@ -18,7 +18,13 @@ from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.logger import ROOT_LOGGER
 
 # 1. implement the mutate runner and import then here
-from REvoDesign.sidechain.mutate_runner import DLPacker_worker, MutateRelax_worker, PIPPack_worker, PyMOL_mutate
+from REvoDesign.sidechain.mutate_runner import (
+    DLPacker_worker,
+    DLPackerPytorch_worker,
+    MutateRelax_worker,
+    PIPPack_worker,
+    PyMOL_mutate,
+)
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 from REvoDesign.tools.utils import timing
 
@@ -36,6 +42,7 @@ __all__ = [
     "SidechainSolver",
     "PyMOL_mutate",
     "DLPacker_worker",
+    "DLPackerPytorch_worker",
     "PIPPack_worker",
     "ALL_RUNNER_CLASSES",
     "IMPLEMENTED_RUNNER",

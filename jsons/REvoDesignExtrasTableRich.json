@@ -16,6 +16,13 @@
                     "python_version": ">=3.10,<3.13"
                 },
                 {
+                    "name": "DLPacker (PyTorch)",
+                    "extras_id":"dlpacker_pytorch",
+                    "description": "DLPacker PyTorch implementation",
+                    "depts": ["dlpacker_pytorch"],
+                    "python_version": ">=3.10,<3.14"
+                },
+                {
                     "name": "PIPPack",
                     "extras_id":"pippack",
                     "depts": ["PIPPack"],
