@@ -158,20 +158,27 @@ class DLPacker_worker(MutateRunnerAbstract):
         for mut_info in mutant_obj.mutations:
 
             new_residue_3 = IUPACData.protein_letters_1to3[mut_info.mut_res].upper()
+            wt_residue_3 = IUPACData.protein_letters_1to3[mut_info.wt_res].upper()
             if reconstruct_area_radius <= 0:
                 logging.debug(f"Adding {(mut_info.position, mut_info.chain_id, new_residue_3)} for reconstruction ...")
                 reconstruct_area.append((mut_info.position, mut_info.chain_id, new_residue_3))
             else:
-                _ = dlpacker_worker.get_targets(
+                # Query neighborhood on the pristine structure using WT residue id.
+                # This avoids empty target lists when the mutated residue label does
+                # not exist yet in this helper DLPacker instance.
+                nearby_targets = dlpacker_worker.get_targets(
                     target=(
                         mut_info.position,
                         mut_info.chain_id,
-                        new_residue_3,
+                        wt_residue_3,
                     ),
                     radius=reconstruct_area_radius,
                 )
-                print(f"Adding {_} for relax...")
-                reconstruct_area.extend(_)
+                # Always include the mutated center residue to guarantee it gets rebuilt.
+                center_target = (mut_info.position, mut_info.chain_id, new_residue_3)
+                logging.debug(f"Adding {nearby_targets} + center {center_target} for relax...")
+                reconstruct_area.extend(nearby_targets)
+                reconstruct_area.append(center_target)
 
         if reconstruct_area:
             reconstruct_area = list(set(reconstruct_area))
