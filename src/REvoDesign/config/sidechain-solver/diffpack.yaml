@@ -2,7 +2,7 @@
 
 inference:
   # One of: native, torchdrug, pyg
-  backend: native
+  backend: torchdrug
 
   # One of: cpu, cuda
   device: cpu

@@ -62,6 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ci:
   - Replaced external reusable publish workflow with in-repo publish steps (`build` + `twine check` + upload), making release behavior explicit and auditable in this repository.
   - Manual `workflow_dispatch` publish now supports target selection (`pypi` or `testpypi`).
+- sidechain:
+  - DiffPack default backend is now `torchdrug` for better paper-level reproducibility alignment.
+- installer/extras:
+  - REvoDesign `diffpack` extra now installs `diffpack[torchdrug]` from GitHub URL.
 
 ### Fixed
 - ci:

@@ -77,7 +77,7 @@ dlpacker_pytorch = [
 ]
 
 diffpack = [
-    "diffpack @ git+https://github.com/YaoYinYing/DiffPack.git#egg=diffpack",
+    "diffpack[torchdrug] @ git+https://github.com/YaoYinYing/DiffPack.git#egg=diffpack",
 ]
 
 
