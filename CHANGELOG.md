@@ -71,6 +71,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ci:
   - Twine uploads now use `--skip-existing` for both PyPI and TestPyPI to avoid hard failures on reruns of the same version artifacts.
   - Removed legacy `pypirc` file from repository to prevent confusion with CI-secret based publishing.
+- server/dependencies:
+  - bumped `Flask-HTTPAuth` from `4.8.0` to `4.8.1` across test/runtime env definitions to close dependabot alert `#10` (`GHSA-p44q-vqpr-4xmg` / `CVE-2026-34531`).
+  - bumped runtime `requests` from `2.32.5` to `2.33.0` and raised the base dependency floor to `>=2.33.0` to close dependabot alert `#9` (`GHSA-gc5v-m9x4-r6x2` / `CVE-2026-25645`).
 - sidechain:
   - fixed DLPacker radius-based reconstruct target selection in
     `src/REvoDesign/sidechain/mutate_runner/DLPacker.py` to prevent rename-only mutate outputs:
@@ -81,6 +84,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - pre-repack cache auto-prepare on cache miss/invalid.
     - output rename safety to REvoDesign pattern `<short_mutant_id>.pdb`.
     - one-mutant-one-core parallel cap to avoid CPU over-commit.
+
+### Removed
+- server:
+  - removed legacy/manual server deployment artifacts (`server/README.legacy.md`, `server/env/REvoDesign.yml`) now that the maintained server path is Docker-only.
 
 ## [1.8.6] - 2026-04-17
 
