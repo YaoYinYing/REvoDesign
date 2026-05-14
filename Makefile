@@ -121,7 +121,7 @@ translate:
 
 prepare-test:
 	python -m pip install pytest pytest-cov pytest-order pytest-dependency coverage -q --no-cache-dir
-	python -m pip install "celery[redis]==5.3.4" docker==7.1.0 Flask==3.1.3 Flask-HTTPAuth==4.8.0 SQLAlchemy==2.0.46 -q --no-cache-dir
+	python -m pip install "celery[redis]==5.3.4" docker==7.1.0 Flask==3.1.3 Flask-HTTPAuth==4.8.1 SQLAlchemy==2.0.46 -q --no-cache-dir
 
 # unit test
 test:

@@ -120,3 +120,4 @@ server/.env
 /playground/miniuc
 /playground/server_test
 server/.env.local
+/presentation_revodesign
