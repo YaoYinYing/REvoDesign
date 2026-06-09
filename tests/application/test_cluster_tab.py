@@ -1,0 +1,88 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+from pathlib import Path
+import subprocess
+import sys
+
+import pytest
+
+from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
+from REvoDesign.application.cluster_tab import ClusterTabController
+from REvoDesign.Qt import QtWidgets
+
+
+def _normalize_pyuic_output(text: str) -> str:
+    return "\n".join(
+        (
+            "# Form implementation generated from reading ui file 'src/REvoDesign/UI/REvoDesign.ui'"
+            if line.startswith("# Form implementation generated from reading ui file ")
+            else line
+        )
+        for line in text.splitlines()
+    )
+
+
+class _FakeBus:
+    def __init__(self, values=None):
+        self.values = values or {}
+
+    def get_value(self, key, _type=None, cfg=None, default_value=None, reject_none=False):
+        del _type, cfg, reject_none
+        return self.values.get(key, default_value)
+
+
+@pytest.fixture
+def cluster_ui(app):
+    window = QtWidgets.QMainWindow()
+    ui = Ui_REvoDesignPyMOL_UI()
+    ui.setupUi(window)
+    return window, ui
+
+
+def test_cluster_tab_controller_switches_pages(cluster_ui):
+    _window, ui = cluster_ui
+    controller = ClusterTabController(
+        ui,
+        _FakeBus({"ui.cluster.method.use": "EvoCluster"}),
+    )
+
+    controller.install()
+    assert ui.stackedWidget_cluster_method_settings.currentWidget() is ui.page_cluster_evo
+
+    ui.comboBox_cluster_method.setCurrentText("KMeansCluster")
+    assert ui.stackedWidget_cluster_method_settings.currentWidget() is ui.page_cluster_kmeans
+
+    ui.comboBox_cluster_method.setCurrentText("LegacyCluster")
+    assert ui.stackedWidget_cluster_method_settings.currentWidget() is ui.page_cluster_legacy
+    assert "deprecated" in ui.comboBox_cluster_method.toolTip().lower()
+
+
+def test_cluster_tab_controller_disables_rosetta_override_until_scoring_enabled(cluster_ui):
+    _window, ui = cluster_ui
+    ui.checkBox_cluster_mutate_and_relax.setChecked(False)
+    ui.checkBox_cluster_rosetta_override_representatives.setChecked(True)
+
+    controller = ClusterTabController(ui, _FakeBus())
+    controller.install()
+
+    assert ui.checkBox_cluster_rosetta_override_representatives.isEnabled() is False
+    assert ui.checkBox_cluster_rosetta_override_representatives.isChecked() is False
+
+    ui.checkBox_cluster_mutate_and_relax.setChecked(True)
+    assert ui.checkBox_cluster_rosetta_override_representatives.isEnabled() is True
+
+
+def test_ui_regeneration_matches_committed_output(tmp_path):
+    ui_path = Path(__file__).resolve().parents[2] / "src/REvoDesign/UI/REvoDesign.ui"
+    generated_path = tmp_path / "Ui_REvoDesign.py"
+    committed_path = Path(__file__).resolve().parents[2] / "src/REvoDesign/UI/Ui_REvoDesign.py"
+
+    subprocess.run(
+        [sys.executable, "-m", "PyQt5.uic.pyuic", str(ui_path), "-o", str(generated_path)],
+        check=True,
+    )
+    assert _normalize_pyuic_output(generated_path.read_text(encoding="utf-8")) == _normalize_pyuic_output(
+        committed_path.read_text(encoding="utf-8")
+    )

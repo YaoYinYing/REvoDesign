@@ -91,6 +91,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         logging = ROOT_LOGGER.getChild(self.__class__.__name__)
 
         self.multi_designer: MultiMutantDesigner = None  # type: ignore
+        self.cluster_tab_controller = None
 
         try:
             # if QtWebsockets is available, teamwork is activated.
@@ -205,6 +206,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         from REvoDesign.application.font import FontSetter
         from REvoDesign.application.i18n import LanguageSwitch
         from REvoDesign.application.icon import IconSetter
+        from REvoDesign.application.cluster_tab import ClusterTabController
         from REvoDesign.application.menu import MENU_LINKS
         from REvoDesign.basic.menu_item import MenuCollection, MenuItem
         from REvoDesign.basic.server_monitor import MenuActionServerMonitor
@@ -232,7 +234,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # create a bus btw cfg<---> ui
         self.reload_configurations()
-        self.setup_cluster_tab_behavior()
+        self.cluster_tab_controller = ClusterTabController(self.ui, self.bus)
+        self.cluster_tab_controller.install()
         # all ConfigBus related method calls must follow this
         # since the bus is initialized here
 
@@ -436,8 +439,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.lineEdit_input_mut_table.textChanged.connect(
             partial(self.bus.fp_lock, ("ui.cluster.input.from_mutant_txt",), ("run_cluster",))
         )
-        self.bus.ui.comboBox_cluster_method.currentTextChanged.connect(self.sync_cluster_method_ui)
-        self.bus.ui.checkBox_cluster_mutate_and_relax.stateChanged.connect(self.sync_cluster_rosetta_controls)
 
         self.bus.button("run_cluster").clicked.connect(self.run_clustering)
 
@@ -861,70 +862,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.evaluator.find_all_best_mutants()
 
-    # combination and clustering
-    def setup_cluster_tab_behavior(self):
-        self.sync_cluster_method_ui()
-        self.sync_cluster_rosetta_controls()
-
-    def _cluster_method_page_map(self) -> dict[str, int]:
-        return {
-            "AgglomerativeCluster": self.bus.ui.stackedWidget_cluster_method_settings.indexOf(
-                self.bus.ui.page_cluster_agglomerative
-            ),
-            "EvoCluster": self.bus.ui.stackedWidget_cluster_method_settings.indexOf(self.bus.ui.page_cluster_evo),
-            "KMeansCluster": self.bus.ui.stackedWidget_cluster_method_settings.indexOf(self.bus.ui.page_cluster_kmeans),
-            "LegacyCluster": self.bus.ui.stackedWidget_cluster_method_settings.indexOf(self.bus.ui.page_cluster_legacy),
-        }
-
-    def _cluster_method_summary(self, method_name: str) -> str:
-        try:
-            from REvoDesign.clusters.cluster_sequence import IMPLEMENTED_CLUSTER_METHOD
-
-            method_cls = IMPLEMENTED_CLUSTER_METHOD.get(method_name)
-            if method_cls is not None:
-                return method_cls.get_method_spec().description
-        except Exception:
-            pass
-
-        fallback = {
-            "AgglomerativeCluster": "Average-linkage agglomerative clustering on a precomputed sequence distance matrix.",
-            "EvoCluster": "Weighted clustering across sequence and optional Evo-derived components with provenance output.",
-            "KMeansCluster": "K-means clustering on score-profile feature vectors.",
-            "LegacyCluster": "Compatibility-only Ward-linkage clustering on the score matrix.",
-        }
-        return fallback.get(method_name, f"{method_name} clustering method.")
-
-    def sync_cluster_method_ui(self):
-        method_name = self.bus.get_widget_value("ui.cluster.method.use", str)
-        page_index = self._cluster_method_page_map().get(method_name, 0)
-        self.bus.ui.stackedWidget_cluster_method_settings.setCurrentIndex(page_index)
-        self.bus.ui.label_cluster_method_summary.setText(self._cluster_method_summary(method_name))
-
-    def sync_cluster_rosetta_controls(self):
-        enabled = self.bus.get_widget_value("ui.cluster.mutate_relax", bool)
-        self.bus.ui.checkBox_cluster_rosetta_override_representatives.setEnabled(enabled)
-        if not enabled:
-            self.bus.ui.checkBox_cluster_rosetta_override_representatives.setChecked(False)
-
     def run_clustering(self):
         """
         The function `run_clustering` initializes a `ClusterRunner`
         object and runs the clustering process upon triggering a button press.
         """
         trigger_button = self.bus.button("run_cluster")
-        method_name = self.bus.get_widget_value("ui.cluster.method.use", str)
-
-        if method_name == "LegacyCluster":
-            proceed = decide(
-                "LegacyCluster confirmation",
-                (
-                    "LegacyCluster is compatibility-only and uses Ward linkage on the score matrix. "
-                    "Continue only if you need historical behavior."
-                ),
-            )
-            if not proceed:
-                logging.info("LegacyCluster run cancelled by user.")
-                return
+        if self.cluster_tab_controller and not self.cluster_tab_controller.confirm_cluster_run():
+            return
 
         # lazy module loading to fasten plugin initializing
 
@@ -1439,9 +1384,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         ) in self.bus.w2c.widget_id2config_dict.items():
             widget = self.bus.get_widget_from_id(widget_id=widget_id)
             set_widget_value(widget, OmegaConf.select(self.bus.cfg_group["main"].cfg, config_item))
-        if hasattr(self.bus.ui, "stackedWidget_cluster_method_settings"):
-            self.sync_cluster_method_ui()
-            self.sync_cluster_rosetta_controls()
+        if self.cluster_tab_controller is not None:
+            self.cluster_tab_controller.install()
 
     def load_and_save_experiment(self, mode: IO_MODE = "r", do_backup: bool = True):
         """Loads and saves experiment configurations, copying files

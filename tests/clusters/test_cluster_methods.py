@@ -514,6 +514,19 @@ def test_main_yaml_contains_cluster_method_defaults():
     assert cluster_cfg["mutate_relax"] is False
 
 
+def test_widget_link_contains_cluster_method_mappings():
+    from REvoDesign.driver.widget_link import Config2WidgetIds
+
+    c2wi = Config2WidgetIds().c2wi
+
+    assert c2wi["ui.cluster.method.use"] == "comboBox_cluster_method"
+    assert c2wi["ui.cluster.random_seed"] == "spinBox_cluster_random_seed"
+    assert (
+        c2wi["ui.cluster.rosetta.override_representatives"]
+        == "checkBox_cluster_rosetta_override_representatives"
+    )
+
+
 def test_batch_size_adjustment_never_becomes_zero(tmp_path):
     cluster = AgglomerativeCluster(str(tmp_path / "dummy.fasta"))
     assert cluster._normalize_batch_size(1, 8) == 8

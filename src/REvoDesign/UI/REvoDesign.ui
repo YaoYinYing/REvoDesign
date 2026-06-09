@@ -1828,10 +1828,10 @@
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="geometry">
        <rect>
-        <x>290</x>
-        <y>0</y>
-        <width>341</width>
-        <height>181</height>
+        <x>220</x>
+        <y>290</y>
+        <width>61</width>
+        <height>61</height>
        </rect>
       </property>
       <property name="frameShape">
@@ -1852,7 +1852,7 @@
         <x>10</x>
         <y>0</y>
         <width>271</width>
-        <height>181</height>
+        <height>271</height>
        </rect>
       </property>
       <property name="title">
@@ -1864,7 +1864,7 @@
          <x>10</x>
          <y>30</y>
          <width>251</width>
-         <height>141</height>
+         <height>231</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_cluster_general">
@@ -2049,17 +2049,13 @@
             </property>
            </widget>
           </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_63">
           <item>
            <widget class="QCheckBox" name="checkBox_shuffle_clustering">
             <property name="statusTip">
              <string>Shuffle variants before clustering.</string>
             </property>
             <property name="text">
-             <string>Shuffle variants</string>
+             <string>Shuffle</string>
             </property>
             <property name="checked">
              <bool>true</bool>
@@ -2067,16 +2063,6 @@
            </widget>
           </item>
          </layout>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_cluster_method_summary">
-          <property name="text">
-           <string>AgglomerativeCluster is the default. LegacyCluster is available only for compatibility checks.</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-         </widget>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_22">
@@ -2098,353 +2084,347 @@
      <widget class="QGroupBox" name="groupBox_cluster_method_settings">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>190</y>
-        <width>421</width>
-        <height>201</height>
+        <x>290</x>
+        <y>0</y>
+        <width>371</width>
+        <height>361</height>
        </rect>
       </property>
       <property name="title">
        <string>Method-specific settings</string>
       </property>
-      <widget class="QWidget" name="verticalLayoutWidget_cluster_method">
+      <widget class="QStackedWidget" name="stackedWidget_cluster_method_settings">
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>30</y>
-         <width>401</width>
-         <height>161</height>
+         <y>20</y>
+         <width>331</width>
+         <height>331</height>
         </rect>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_cluster_method">
-        <property name="spacing">
-         <number>4</number>
+       <widget class="QWidget" name="page_cluster_agglomerative">
+        <property name="statusTip">
+         <string>Agglomerative clustering uses the sequence distance matrix with average linkage and precomputed metric.</string>
         </property>
-        <item>
-         <widget class="QStackedWidget" name="stackedWidget_cluster_method_settings">
-          <widget class="QWidget" name="page_cluster_agglomerative">
-           <layout class="QFormLayout" name="formLayout_cluster_agglomerative">
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_cluster_agglomerative_matrix">
-              <property name="text">
-               <string>Substitution matrix</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QComboBox" name="comboBox_cluster_matrix">
-              <property name="statusTip">
-               <string>Sequence alignment matrix</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_cluster_agglomerative_linkage">
-              <property name="text">
-               <string>Linkage</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QLabel" name="label_cluster_agglomerative_linkage_value">
-              <property name="text">
-               <string>average</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_cluster_agglomerative_metric">
-              <property name="text">
-               <string>Metric</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QLabel" name="label_cluster_agglomerative_metric_value">
-              <property name="text">
-               <string>precomputed</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="label_cluster_agglomerative_representative">
-              <property name="text">
-               <string>Representatives</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="1">
-             <widget class="QLabel" name="label_cluster_agglomerative_representative_value">
-              <property name="text">
-               <string>Nearest centroid among clustered variants. This is not a medoid selection.</string>
-              </property>
-              <property name="wordWrap">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
+        <layout class="QFormLayout" name="formLayout_cluster_agglomerative">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_cluster_agglomerative_matrix">
+           <property name="text">
+            <string>Substitution matrix</string>
+           </property>
           </widget>
-          <widget class="QWidget" name="page_cluster_evo">
-           <layout class="QGridLayout" name="gridLayout_cluster_evo">
-            <item row="0" column="0" colspan="4">
-             <widget class="QLabel" name="label_cluster_evo_help">
-              <property name="text">
-               <string>Missing optional Evo inputs are skipped. The backend renormalizes the remaining positive-weight components and records the active set in cluster_method_report.json.</string>
-              </property>
-              <property name="wordWrap">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_cluster_evo_pssm">
-              <property name="text">
-               <string>PSSM profile</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1" colspan="3">
-             <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_pssm">
-              <item>
-               <widget class="QLineEdit" name="lineEdit_cluster_evo_pssm_profile"/>
-              </item>
-              <item>
-               <widget class="QPushButton" name="pushButton_open_cluster_evo_pssm_profile">
-                <property name="maximumSize">
-                 <size>
-                  <width>32</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>...</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_cluster_evo_esm">
-              <property name="text">
-               <string>ESM-1v table</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1" colspan="3">
-             <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_esm">
-              <item>
-               <widget class="QLineEdit" name="lineEdit_cluster_evo_esm1v_table"/>
-              </item>
-              <item>
-               <widget class="QPushButton" name="pushButton_open_cluster_evo_esm1v_table">
-                <property name="maximumSize">
-                 <size>
-                  <width>32</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>...</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="label_cluster_evo_structure">
-              <property name="text">
-               <string>Structure PDB</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="1" colspan="3">
-             <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_structure">
-              <item>
-               <widget class="QLineEdit" name="lineEdit_cluster_evo_structure_pdb"/>
-              </item>
-              <item>
-               <widget class="QPushButton" name="pushButton_open_cluster_evo_structure_pdb">
-                <property name="maximumSize">
-                 <size>
-                  <width>32</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>...</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_cluster_evo_mutation_col">
-              <property name="text">
-               <string>ESM mutation column</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="1">
-             <widget class="QLineEdit" name="lineEdit_cluster_evo_esm_mutation_col">
-              <property name="text">
-               <string>mutation</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="0">
-             <widget class="QLabel" name="label_cluster_evo_weight_seq">
-              <property name="text">
-               <string>Sequence weight</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="1">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_seq">
-              <property name="decimals">
-               <number>3</number>
-              </property>
-              <property name="maximum">
-               <double>1000.000000000000000</double>
-              </property>
-              <property name="value">
-               <double>1.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="2">
-             <widget class="QLabel" name="label_cluster_evo_weight_physchem">
-              <property name="text">
-               <string>Physchem weight</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="3">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_physchem">
-              <property name="decimals">
-               <number>3</number>
-              </property>
-              <property name="maximum">
-               <double>1000.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="0">
-             <widget class="QLabel" name="label_cluster_evo_weight_spatial">
-              <property name="text">
-               <string>Spatial weight</string>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="1">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_spatial">
-              <property name="decimals">
-               <number>3</number>
-              </property>
-              <property name="maximum">
-               <double>1000.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="2">
-             <widget class="QLabel" name="label_cluster_evo_weight_pssm">
-              <property name="text">
-               <string>PSSM weight</string>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="3">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_pssm">
-              <property name="decimals">
-               <number>3</number>
-              </property>
-              <property name="maximum">
-               <double>1000.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="7" column="0">
-             <widget class="QLabel" name="label_cluster_evo_weight_esm">
-              <property name="text">
-               <string>ESM weight</string>
-              </property>
-             </widget>
-            </item>
-            <item row="7" column="1">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_esm">
-              <property name="decimals">
-               <number>3</number>
-              </property>
-              <property name="maximum">
-               <double>1000.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-           </layout>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="comboBox_cluster_matrix">
+           <property name="statusTip">
+            <string>Sequence alignment matrix</string>
+           </property>
           </widget>
-          <widget class="QWidget" name="page_cluster_kmeans">
-           <layout class="QVBoxLayout" name="verticalLayout_cluster_kmeans">
-            <item>
-             <widget class="QLabel" name="label_cluster_kmeans_summary">
-              <property name="text">
-               <string>KMeansCluster operates on score-profile feature vectors instead of a precomputed distance matrix. Keep it available for comparison, not as the default recommendation.</string>
-              </property>
-              <property name="wordWrap">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_cluster_kmeans_representative">
-              <property name="text">
-               <string>Representatives are selected by nearest centroid in score-profile space.</string>
-              </property>
-              <property name="wordWrap">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_cluster_agglomerative_linkage">
+           <property name="text">
+            <string>Linkage</string>
+           </property>
           </widget>
-          <widget class="QWidget" name="page_cluster_legacy">
-           <layout class="QVBoxLayout" name="verticalLayout_cluster_legacy">
-            <item>
-             <widget class="QLabel" name="label_cluster_legacy_warning">
-              <property name="styleSheet">
-               <string notr="true">color: rgb(170, 70, 0); font-weight: bold;</string>
-              </property>
-              <property name="text">
-               <string>LegacyCluster is compatibility-only. It uses Ward linkage on the score matrix and should not be used for new analyses.</string>
-              </property>
-              <property name="wordWrap">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_cluster_legacy_summary">
-              <property name="text">
-               <string>Use this only to reproduce historical behavior. Prefer AgglomerativeCluster or EvoCluster for new runs.</string>
-              </property>
-              <property name="wordWrap">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="label_cluster_agglomerative_linkage_value">
+           <property name="text">
+            <string>average</string>
+           </property>
           </widget>
-         </widget>
-        </item>
-       </layout>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_cluster_agglomerative_metric">
+           <property name="text">
+            <string>Metric</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLabel" name="label_cluster_agglomerative_metric_value">
+           <property name="text">
+            <string>precomputed</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_cluster_agglomerative_representative">
+           <property name="text">
+            <string>Representatives</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLabel" name="label_cluster_agglomerative_representative_value">
+           <property name="toolTip">
+            <string>Representatives are selected as the nearest centroid among clustered variants. This is not a medoid policy.</string>
+           </property>
+           <property name="text">
+            <string>Nearest centroid</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="page_cluster_evo">
+        <property name="statusTip">
+         <string>Optional Evo inputs with positive weights are used when available; missing optional inputs are skipped and remaining weights are renormalized.</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_cluster_evo">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_cluster_evo_pssm">
+           <property name="text">
+            <string>PSSM profile</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1" colspan="3">
+          <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_pssm">
+           <item>
+            <widget class="QLineEdit" name="lineEdit_cluster_evo_pssm_profile"/>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_open_cluster_evo_pssm_profile">
+             <property name="maximumSize">
+              <size>
+               <width>32</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_cluster_evo_esm">
+           <property name="text">
+            <string>ESM-1v table</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="3">
+          <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_esm">
+           <item>
+            <widget class="QLineEdit" name="lineEdit_cluster_evo_esm1v_table"/>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_open_cluster_evo_esm1v_table">
+             <property name="maximumSize">
+              <size>
+               <width>32</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_cluster_evo_structure">
+           <property name="text">
+            <string>Structure PDB</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1" colspan="3">
+          <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_structure">
+           <item>
+            <widget class="QLineEdit" name="lineEdit_cluster_evo_structure_pdb"/>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_open_cluster_evo_structure_pdb">
+             <property name="maximumSize">
+              <size>
+               <width>32</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_cluster_evo_mutation_col">
+           <property name="text">
+            <string>ESM mutation column</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="lineEdit_cluster_evo_esm_mutation_col">
+           <property name="text">
+            <string>mutation</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_cluster_evo_weight_seq">
+           <property name="text">
+            <string>Sequence weight</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_seq">
+           <property name="decimals">
+            <number>3</number>
+           </property>
+           <property name="maximum">
+            <double>1000.000000000000000</double>
+           </property>
+           <property name="value">
+            <double>1.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QLabel" name="label_cluster_evo_weight_physchem">
+           <property name="text">
+            <string>Physchem weight</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="3">
+          <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_physchem">
+           <property name="decimals">
+            <number>3</number>
+           </property>
+           <property name="maximum">
+            <double>1000.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_cluster_evo_weight_spatial">
+           <property name="text">
+            <string>Spatial weight</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_spatial">
+           <property name="decimals">
+            <number>3</number>
+           </property>
+           <property name="maximum">
+            <double>1000.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="2">
+          <widget class="QLabel" name="label_cluster_evo_weight_pssm">
+           <property name="text">
+            <string>PSSM weight</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="3">
+          <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_pssm">
+           <property name="decimals">
+            <number>3</number>
+           </property>
+           <property name="maximum">
+            <double>1000.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="label_cluster_evo_weight_esm">
+           <property name="text">
+            <string>ESM weight</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="1">
+          <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_esm">
+           <property name="decimals">
+            <number>3</number>
+           </property>
+           <property name="maximum">
+            <double>1000.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="page_cluster_kmeans">
+        <property name="statusTip">
+         <string>KMeansCluster uses score-profile feature vectors instead of a precomputed distance matrix.</string>
+        </property>
+        <layout class="QFormLayout" name="formLayout_cluster_kmeans">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_cluster_kmeans_feature_space">
+           <property name="text">
+            <string>Feature space</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="label_cluster_kmeans_feature_space_value">
+           <property name="text">
+            <string>Score profile</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_cluster_kmeans_representative">
+           <property name="text">
+            <string>Representatives</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="label_cluster_kmeans_representative_value">
+           <property name="toolTip">
+            <string>Representatives are selected by nearest centroid in score-profile feature space.</string>
+           </property>
+           <property name="text">
+            <string>Nearest centroid</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="page_cluster_legacy">
+        <property name="statusTip">
+         <string>LegacyCluster is a deprecated compatibility mode that uses Ward linkage on the score matrix.</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_cluster_legacy">
+         <item>
+          <widget class="QLabel" name="label_cluster_legacy_warning">
+           <property name="toolTip">
+            <string>Use this only to reproduce historical behavior. Prefer AgglomerativeCluster or EvoCluster for new analyses.</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: rgb(170, 70, 0); font-weight: bold;</string>
+           </property>
+           <property name="text">
+            <string>Deprecated compatibility mode</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </widget>
      </widget>
      <widget class="QGroupBox" name="groupBox_cluster_post">
       <property name="geometry">
        <rect>
-        <x>440</x>
-        <y>190</y>
-        <width>191</width>
-        <height>201</height>
+        <x>10</x>
+        <y>270</y>
+        <width>201</width>
+        <height>91</height>
        </rect>
       </property>
       <property name="title">
@@ -2454,9 +2434,9 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>30</y>
-         <width>171</width>
-         <height>161</height>
+         <y>20</y>
+         <width>181</width>
+         <height>61</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_cluster_post">
@@ -2469,7 +2449,7 @@
            <string>Run Mutate'n'Relax scoring after clustering.</string>
           </property>
           <property name="text">
-           <string>Run Rosetta Mutate/Relax scoring after clustering</string>
+           <string>Mutate/Relax</string>
           </property>
           <property name="checked">
            <bool>false</bool>
@@ -2478,21 +2458,14 @@
         </item>
         <item>
          <widget class="QCheckBox" name="checkBox_cluster_rosetta_override_representatives">
+          <property name="toolTip">
+           <string>Rosetta scoring normally exports score tables only. Representative FASTA files are rewritten only when this explicit override option is enabled.</string>
+          </property>
           <property name="text">
-           <string>Use Rosetta results to override cluster representatives</string>
+           <string>Rosetta representatives</string>
           </property>
           <property name="checked">
            <bool>false</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_cluster_rosetta_note">
-          <property name="text">
-           <string>Representative override is opt-in and disabled by default. Without it, Rosetta writes scoring outputs without rewriting representative FASTA files.</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
           </property>
          </widget>
         </item>

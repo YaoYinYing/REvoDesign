@@ -137,6 +137,11 @@ class ClusterRunner:
     def _log_method_configuration(self, clustering):
         logging.info("Selected clustering method: %s", clustering.name)
         logging.info("Representative selection policy: %s", self._representative_policy(clustering))
+        logging.info(
+            "Rosetta post-clustering scoring enabled: %s; representative override enabled: %s",
+            bool(self.run_mutate_relax),
+            bool(self.run_mutate_relax and self.rosetta_override_representatives),
+        )
         if clustering.name == "EvoCluster":
             logging.info(
                 "EvoCluster inputs: pssm=%s esm=%s structure=%s esm_mutation_col=%s",
