@@ -1829,9 +1829,9 @@
       <property name="geometry">
        <rect>
         <x>290</x>
-        <y>20</y>
+        <y>0</y>
         <width>341</width>
-        <height>331</height>
+        <height>181</height>
        </rect>
       </property>
       <property name="frameShape">
@@ -1843,43 +1843,40 @@
       <property name="lineWidth">
        <number>1</number>
       </property>
-      <property name="currentIndex">
-       <number>1</number>
-      </property>
       <widget class="QWidget" name="page"/>
       <widget class="QWidget" name="page_2"/>
      </widget>
-     <widget class="QGroupBox" name="groupBox_14">
+     <widget class="QGroupBox" name="groupBox_cluster_general">
       <property name="geometry">
        <rect>
         <x>10</x>
         <y>0</y>
-        <width>261</width>
-        <height>271</height>
+        <width>271</width>
+        <height>181</height>
        </rect>
       </property>
       <property name="title">
-       <string>Calculating options</string>
+       <string>General clustering inputs</string>
       </property>
-      <widget class="QWidget" name="verticalLayoutWidget_3">
+      <widget class="QWidget" name="verticalLayoutWidget_cluster_general">
        <property name="geometry">
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>241</width>
-         <height>231</height>
+         <width>251</width>
+         <height>141</height>
         </rect>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_5">
+       <layout class="QVBoxLayout" name="verticalLayout_cluster_general">
         <property name="spacing">
-         <number>-1</number>
+         <number>4</number>
         </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_39">
           <item>
            <widget class="QLabel" name="label_input_mut_table">
             <property name="text">
-             <string>Mutants: </string>
+             <string>Mutants:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1891,13 +1888,16 @@
             <property name="statusTip">
              <string>Input mutant table [*.mut.txt] path</string>
             </property>
-            <property name="text">
-             <string/>
-            </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_open_mut_table_2">
+            <property name="maximumSize">
+             <size>
+              <width>32</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
              <string>...</string>
             </property>
@@ -1909,20 +1909,14 @@
          <layout class="QHBoxLayout" name="horizontalLayout_40">
           <item>
            <widget class="QSpinBox" name="spinBox_num_mut_minimun">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
             <property name="maximumSize">
              <size>
-              <width>40</width>
+              <width>48</width>
               <height>16777215</height>
              </size>
             </property>
             <property name="statusTip">
-             <string>MInimun number of mutations for each variant.</string>
+             <string>Minimum number of mutations for each variant.</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1931,23 +1925,14 @@
              <number>1</number>
             </property>
             <property name="maximum">
-             <number>3</number>
+             <number>20</number>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QLabel" name="label_28">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="layoutDirection">
-             <enum>Qt::LeftToRight</enum>
-            </property>
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ Num &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;MUT&lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;/&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ Num &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;MUT&lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt; ≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -1956,15 +1941,9 @@
           </item>
           <item>
            <widget class="QSpinBox" name="spinBox_num_mut_maximum">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
             <property name="maximumSize">
              <size>
-              <width>40</width>
+              <width>48</width>
               <height>16777215</height>
              </size>
             </property>
@@ -1975,46 +1954,28 @@
              <number>1</number>
             </property>
             <property name="maximum">
-             <number>3</number>
+             <number>20</number>
             </property>
            </widget>
           </item>
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_41">
-          <item>
+         <layout class="QGridLayout" name="gridLayout_cluster_general_numbers">
+          <item row="0" column="0">
            <widget class="QLabel" name="label_41">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="layoutDirection">
-             <enum>Qt::LeftToRight</enum>
-            </property>
             <property name="text">
              <string>Clusters:</string>
             </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
            </widget>
           </item>
-          <item>
+          <item row="0" column="1">
            <widget class="QSpinBox" name="spinBox_num_cluster">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
             <property name="statusTip">
              <string>Number of clusters to generate.</string>
             </property>
             <property name="minimum">
-             <number>2</number>
+             <number>1</number>
             </property>
             <property name="maximum">
              <number>150</number>
@@ -2024,89 +1985,67 @@
             </property>
            </widget>
           </item>
-          <item>
+          <item row="1" column="0">
            <widget class="QLabel" name="label_40">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="layoutDirection">
-             <enum>Qt::LeftToRight</enum>
-            </property>
             <property name="text">
-             <string>Batch:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             <string>Batch size:</string>
             </property>
            </widget>
           </item>
-          <item>
+          <item row="1" column="1">
            <widget class="QSpinBox" name="spinBox_cluster_batchsize">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
             <property name="statusTip">
-             <string>Batch number used in clustering.</string>
+             <string>Alignment workload per clustering minibatch.</string>
             </property>
             <property name="minimum">
-             <number>100</number>
+             <number>1</number>
             </property>
             <property name="maximum">
              <number>10000</number>
             </property>
             <property name="singleStep">
-             <number>100</number>
+             <number>25</number>
             </property>
             <property name="value">
              <number>100</number>
             </property>
            </widget>
           </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_cluster_random_seed">
+            <property name="text">
+             <string>Random seed:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QSpinBox" name="spinBox_cluster_random_seed">
+            <property name="statusTip">
+             <string>Seed used when variant shuffling is enabled.</string>
+            </property>
+            <property name="maximum">
+             <number>999999</number>
+            </property>
+            <property name="value">
+             <number>0</number>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_38">
+         <layout class="QHBoxLayout" name="horizontalLayout_cluster_method">
           <item>
-           <widget class="QLabel" name="label_30">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="layoutDirection">
-             <enum>Qt::LeftToRight</enum>
-            </property>
+           <widget class="QLabel" name="label_cluster_method">
             <property name="text">
-             <string>Matrix: </string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             <string>Method:</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBox_cluster_matrix">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>16777215</height>
-             </size>
-            </property>
+           <widget class="QComboBox" name="comboBox_cluster_method">
             <property name="statusTip">
-             <string>Sequence alignment matrix</string>
+             <string>Select the clustering backend to use for this run.</string>
             </property>
            </widget>
           </item>
@@ -2116,36 +2055,11 @@
          <layout class="QHBoxLayout" name="horizontalLayout_63">
           <item>
            <widget class="QCheckBox" name="checkBox_shuffle_clustering">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
             <property name="statusTip">
-             <string>Shuffle the sequence.</string>
+             <string>Shuffle variants before clustering.</string>
             </property>
             <property name="text">
-             <string>Shuffle</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="checkBox_cluster_mutate_and_relax">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="statusTip">
-             <string>Run Mutate'n'Relax scoring via Rosetta</string>
-            </property>
-            <property name="text">
-             <string>Mutate &amp; Relax</string>
+             <string>Shuffle variants</string>
             </property>
             <property name="checked">
              <bool>true</bool>
@@ -2155,20 +2069,21 @@
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_22">
-          <property name="spacing">
-           <number>0</number>
+         <widget class="QLabel" name="label_cluster_method_summary">
+          <property name="text">
+           <string>AgglomerativeCluster is the default. LegacyCluster is available only for compatibility checks.</string>
           </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_22">
           <item>
            <widget class="QPushButton" name="pushButton_run_cluster">
             <property name="enabled">
              <bool>false</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
             </property>
             <property name="text">
              <string>Run !</string>
@@ -2176,6 +2091,410 @@
            </widget>
           </item>
          </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_cluster_method_settings">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>190</y>
+        <width>421</width>
+        <height>201</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Method-specific settings</string>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_cluster_method">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>401</width>
+         <height>161</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_cluster_method">
+        <property name="spacing">
+         <number>4</number>
+        </property>
+        <item>
+         <widget class="QStackedWidget" name="stackedWidget_cluster_method_settings">
+          <widget class="QWidget" name="page_cluster_agglomerative">
+           <layout class="QFormLayout" name="formLayout_cluster_agglomerative">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_cluster_agglomerative_matrix">
+              <property name="text">
+               <string>Substitution matrix</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="comboBox_cluster_matrix">
+              <property name="statusTip">
+               <string>Sequence alignment matrix</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_cluster_agglomerative_linkage">
+              <property name="text">
+               <string>Linkage</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLabel" name="label_cluster_agglomerative_linkage_value">
+              <property name="text">
+               <string>average</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_cluster_agglomerative_metric">
+              <property name="text">
+               <string>Metric</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLabel" name="label_cluster_agglomerative_metric_value">
+              <property name="text">
+               <string>precomputed</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_cluster_agglomerative_representative">
+              <property name="text">
+               <string>Representatives</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QLabel" name="label_cluster_agglomerative_representative_value">
+              <property name="text">
+               <string>Nearest centroid among clustered variants. This is not a medoid selection.</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="page_cluster_evo">
+           <layout class="QGridLayout" name="gridLayout_cluster_evo">
+            <item row="0" column="0" colspan="4">
+             <widget class="QLabel" name="label_cluster_evo_help">
+              <property name="text">
+               <string>Missing optional Evo inputs are skipped. The backend renormalizes the remaining positive-weight components and records the active set in cluster_method_report.json.</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_cluster_evo_pssm">
+              <property name="text">
+               <string>PSSM profile</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1" colspan="3">
+             <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_pssm">
+              <item>
+               <widget class="QLineEdit" name="lineEdit_cluster_evo_pssm_profile"/>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_open_cluster_evo_pssm_profile">
+                <property name="maximumSize">
+                 <size>
+                  <width>32</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>...</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_cluster_evo_esm">
+              <property name="text">
+               <string>ESM-1v table</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1" colspan="3">
+             <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_esm">
+              <item>
+               <widget class="QLineEdit" name="lineEdit_cluster_evo_esm1v_table"/>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_open_cluster_evo_esm1v_table">
+                <property name="maximumSize">
+                 <size>
+                  <width>32</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>...</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_cluster_evo_structure">
+              <property name="text">
+               <string>Structure PDB</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1" colspan="3">
+             <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_structure">
+              <item>
+               <widget class="QLineEdit" name="lineEdit_cluster_evo_structure_pdb"/>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_open_cluster_evo_structure_pdb">
+                <property name="maximumSize">
+                 <size>
+                  <width>32</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>...</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_cluster_evo_mutation_col">
+              <property name="text">
+               <string>ESM mutation column</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QLineEdit" name="lineEdit_cluster_evo_esm_mutation_col">
+              <property name="text">
+               <string>mutation</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QLabel" name="label_cluster_evo_weight_seq">
+              <property name="text">
+               <string>Sequence weight</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_seq">
+              <property name="decimals">
+               <number>3</number>
+              </property>
+              <property name="maximum">
+               <double>1000.000000000000000</double>
+              </property>
+              <property name="value">
+               <double>1.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="2">
+             <widget class="QLabel" name="label_cluster_evo_weight_physchem">
+              <property name="text">
+               <string>Physchem weight</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="3">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_physchem">
+              <property name="decimals">
+               <number>3</number>
+              </property>
+              <property name="maximum">
+               <double>1000.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="0">
+             <widget class="QLabel" name="label_cluster_evo_weight_spatial">
+              <property name="text">
+               <string>Spatial weight</string>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="1">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_spatial">
+              <property name="decimals">
+               <number>3</number>
+              </property>
+              <property name="maximum">
+               <double>1000.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="2">
+             <widget class="QLabel" name="label_cluster_evo_weight_pssm">
+              <property name="text">
+               <string>PSSM weight</string>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="3">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_pssm">
+              <property name="decimals">
+               <number>3</number>
+              </property>
+              <property name="maximum">
+               <double>1000.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="0">
+             <widget class="QLabel" name="label_cluster_evo_weight_esm">
+              <property name="text">
+               <string>ESM weight</string>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="1">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_cluster_evo_weight_esm">
+              <property name="decimals">
+               <number>3</number>
+              </property>
+              <property name="maximum">
+               <double>1000.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="page_cluster_kmeans">
+           <layout class="QVBoxLayout" name="verticalLayout_cluster_kmeans">
+            <item>
+             <widget class="QLabel" name="label_cluster_kmeans_summary">
+              <property name="text">
+               <string>KMeansCluster operates on score-profile feature vectors instead of a precomputed distance matrix. Keep it available for comparison, not as the default recommendation.</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_cluster_kmeans_representative">
+              <property name="text">
+               <string>Representatives are selected by nearest centroid in score-profile space.</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="page_cluster_legacy">
+           <layout class="QVBoxLayout" name="verticalLayout_cluster_legacy">
+            <item>
+             <widget class="QLabel" name="label_cluster_legacy_warning">
+              <property name="styleSheet">
+               <string notr="true">color: rgb(170, 70, 0); font-weight: bold;</string>
+              </property>
+              <property name="text">
+               <string>LegacyCluster is compatibility-only. It uses Ward linkage on the score matrix and should not be used for new analyses.</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_cluster_legacy_summary">
+              <property name="text">
+               <string>Use this only to reproduce historical behavior. Prefer AgglomerativeCluster or EvoCluster for new runs.</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_cluster_post">
+      <property name="geometry">
+       <rect>
+        <x>440</x>
+        <y>190</y>
+        <width>191</width>
+        <height>201</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Post-clustering Rosetta scoring</string>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_cluster_post">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>171</width>
+         <height>161</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_cluster_post">
+        <property name="spacing">
+         <number>4</number>
+        </property>
+        <item>
+         <widget class="QCheckBox" name="checkBox_cluster_mutate_and_relax">
+          <property name="statusTip">
+           <string>Run Mutate'n'Relax scoring after clustering.</string>
+          </property>
+          <property name="text">
+           <string>Run Rosetta Mutate/Relax scoring after clustering</string>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBox_cluster_rosetta_override_representatives">
+          <property name="text">
+           <string>Use Rosetta results to override cluster representatives</string>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_cluster_rosetta_note">
+          <property name="text">
+           <string>Representative override is opt-in and disabled by default. Without it, Rosetta writes scoring outputs without rewriting representative FASTA files.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>

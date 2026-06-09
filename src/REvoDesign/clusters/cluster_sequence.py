@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import decimal
 import itertools
+import json
 import os
 import pathlib
 import random
 import time
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 import matplotlib
 import numpy as np
@@ -33,9 +35,31 @@ logging = ROOT_LOGGER.getChild(__name__)
 matplotlib.use("Agg")
 
 
+@dataclass(frozen=True)
+class ClusterInputSpec:
+    key: str
+    label: str
+    value_type: type
+    default: object
+    required: bool = False
+    file_filter: str | None = None
+    help_text: str = ""
+
+
+@dataclass(frozen=True)
+class ClusterMethodSpec:
+    name: str
+    display_name: str
+    description: str
+    inputs: tuple[ClusterInputSpec, ...] = ()
+    deprecated: bool = False
+    representative_policy: str = "Nearest centroid among clustered variants."
+
+
 class ClusterMethodAbstract(CitableModuleAbstract, ABC):
     name: str = ""
     installed: bool = True
+    spec: ClusterMethodSpec | None = None
 
     def __init__(self, fastafile: str):
         self.fastafile = fastafile
@@ -64,6 +88,7 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         self.chain_id = "A"
         self.wt_sequence = ""
         self.structure_pdb = ""
+        self.random_seed = 0
         self.evo_pssm_profile = ""
         self.evo_esm1v_table = ""
         self.evo_esm_mutation_col = "mutation"
@@ -74,6 +99,17 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
             "pssm": 0.0,
             "esm": 0.0,
         }
+        self.method_report: dict[str, object] = {}
+
+    @classmethod
+    def get_method_spec(cls) -> ClusterMethodSpec:
+        if cls.spec is not None:
+            return cls.spec
+        return ClusterMethodSpec(
+            name=cls.name,
+            display_name=cls.name,
+            description=f"{cls.name} clustering method.",
+        )
 
     def initialize_aligner(self):
         self.aligner = PairwiseAligner(
@@ -171,6 +207,8 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
                     f.write(str(record.seq) + "\n")
         self.cluster_output_fp["cluster_centers"] = primary_fp
         self._current_centers = dict(centers_by_cluster)
+        logging.info("Representative selection policy: %s", self.get_method_spec().representative_policy)
+        logging.info("Deprecated compatibility output retained: %s", compat_fp)
 
     @staticmethod
     def _match_record_by_decoy(records, decoy_name):
@@ -208,7 +246,8 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         handle = open(self.fastafile)
         self.records = list(SeqIO.parse(handle, "fasta"))
         if self.shuffle_variant:
-            self.records = random.sample(self.records, len(self.records))
+            rng = random.Random(self.random_seed)
+            self.records = rng.sample(self.records, len(self.records))
 
         nm_seqs = len(self.records)
         self.records_seqs = [r.seq for r in self.records]
@@ -246,7 +285,11 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
                     start_time = time.perf_counter()
                     args_list = [(sub_param, sub_index) for sub_param, sub_index in zip(sub_paramlist, sub_indexlist)]
 
-                    parallel_executor = QtParallelExecutor(self.global_alignment, args_list, self.num_proc - 1)
+                    parallel_executor = QtParallelExecutor(
+                        self.global_alignment,
+                        args_list,
+                        max(1, self.num_proc - 1),
+                    )
                     parallel_executor.result_signal.connect(self.handle_calculation_result)
                     parallel_executor.start()
                     logging.debug("Starting parallel execution...")
@@ -292,6 +335,13 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         from sklearn.neighbors import NearestCentroid
 
         score_matrix = self._calculate_pairwise_scores(progressbar)
+        if not self.records:
+            raise ValueError("No variants were loaded for clustering.")
+        if self.num_clusters > len(self.records):
+            raise ValueError(
+                f"Requested {self.num_clusters} clusters for only {len(self.records)} variants. "
+                "Reduce the cluster count or generate more variants."
+            )
 
         with parallel_backend("threading", n_jobs=self.num_proc):
             logging.info("Clustering in progress ...")
@@ -338,6 +388,33 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
             vmax=max(df_flat["Score"].tolist()),
         )
 
+    @staticmethod
+    def _normalize_batch_size(batch_size: int, num_proc: int) -> int:
+        requested = max(1, int(batch_size))
+        workers = max(1, int(num_proc))
+        if requested < workers:
+            return workers
+        return max(workers, (requested // workers) * workers)
+
+    def build_method_report(self) -> dict[str, object]:
+        spec = self.get_method_spec()
+        return {
+            "method": spec.name,
+            "display_name": spec.display_name,
+            "description": spec.description,
+            "deprecated": spec.deprecated,
+            "representative_selection_policy": spec.representative_policy,
+            "compatibility_outputs": {
+                "cluster_centers_stochastic.fasta": "Deprecated compatibility alias of nearest-centroid representatives."
+            },
+        }
+
+    def write_method_report(self):
+        self.method_report = self.build_method_report()
+        report_fp = pathlib.Path(self.save_dir) / "cluster_method_report.json"
+        report_fp.write_text(json.dumps(self.method_report, indent=2), encoding="utf-8")
+        logging.info("Cluster method report saved to %s", report_fp)
+
     def run_clustering(self, progressbar):
         fastafile = pathlib.Path(self.fastafile).resolve()
         self.fasta_instance = fastafile.stem
@@ -346,9 +423,11 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         os.makedirs(self.save_dir, exist_ok=True)
 
         self._batch_size = self.batch_size
-        self.batch_size = self._batch_size // self.num_proc * self.num_proc
+        self.num_proc = max(1, int(self.num_proc))
+        self.batch_size = self._normalize_batch_size(self._batch_size, self.num_proc)
         logging.info(f"fix batch_size {self._batch_size} to {self.batch_size}")
         self.set_and_write_clusters(progressbar)
+        self.write_method_report()
 
 
 from REvoDesign.clusters.methods.agglomerative import AgglomerativeCluster
@@ -374,6 +453,8 @@ class ClusterMethodManager:
 Clustering = AgglomerativeCluster
 
 __all__ = [
+    "ClusterInputSpec",
+    "ClusterMethodSpec",
     "ClusterMethodAbstract",
     "LegacyCluster",
     "AgglomerativeCluster",

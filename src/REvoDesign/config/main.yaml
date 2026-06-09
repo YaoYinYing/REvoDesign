@@ -70,8 +70,11 @@ ui:
     score_matrix: 
       default: PAM30
     batch_size: 100
+    random_seed: 0
     shuffle: True
     mutate_relax: False
+    rosetta:
+      override_representatives: False
     evo:
       inputs:
         pssm_profile: ''

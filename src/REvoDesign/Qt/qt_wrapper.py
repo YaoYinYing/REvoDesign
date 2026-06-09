@@ -31,7 +31,16 @@ else:
 
         QtSource = "pymol.Qt"
     except ImportError as e:
-        raise ImportError(f"PyMOL is not installed or does not have Qt support: {e}") from e
+        try:
+            from PyQt5 import QtCore as _QtCore
+            from PyQt5 import QtGui as _QtGui
+            from PyQt5 import QtWidgets as _QtWidgets
+
+            QtSource = "PyQt5"
+        except ImportError as pyqt_error:
+            raise ImportError(
+                f"PyMOL Qt is unavailable ({e}) and PyQt5 fallback could not be imported: {pyqt_error}"
+            ) from pyqt_error
 
 # ** Explicit Type Aliases for Static Analysis (Fixes Type Checkers)**
 QtCore = _QtCore

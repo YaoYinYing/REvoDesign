@@ -8,11 +8,17 @@ Agglomerative cluster method entry.
 
 import numpy as np
 
-from REvoDesign.clusters.cluster_sequence import ClusterMethodAbstract
+from REvoDesign.clusters.cluster_sequence import ClusterMethodAbstract, ClusterMethodSpec
 
 
 class AgglomerativeCluster(ClusterMethodAbstract):
     name = "AgglomerativeCluster"
+    spec = ClusterMethodSpec(
+        name=name,
+        display_name="AgglomerativeCluster",
+        description="Average-linkage agglomerative clustering on the precomputed sequence distance matrix.",
+        representative_policy="Nearest centroid among clustered variants; not a medoid selection.",
+    )
 
     def predict_labels(self, score_matrix: np.ndarray) -> np.ndarray:
         from sklearn.cluster import AgglomerativeClustering

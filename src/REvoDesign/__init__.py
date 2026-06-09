@@ -36,22 +36,27 @@ from REvoDesign.driver.ui_driver import ConfigBus
 # import it here so that the logger can be seen everywhere
 from REvoDesign.logger import ROOT_LOGGER, setup_logging
 
-# 6. import the major plugin for PyMOL
-from REvoDesign.REvoDesign import REvoDesignPlugin
-
-# 7. add shortcuts to PyMOL commandline prompt
-# follow alphabeitical order of imports and prevent cyclic import
-from REvoDesign.shortcuts import __all__ as all_shortcuts
-
-# 8. Set version info
+# 6. Set version info
 # version number checker: https://regex101.com/r/6AoOI9/1
 __version__ = "1.8.6"
 # To bump a new version tag, change __version__, use the checker to ensure no syntax error. 
 # then use `make tag` at repository root to complete the committing.
 
 
-# 9. enable garbage collection
+# 7. enable garbage collection
 gc.enable()
+
+
+def __getattr__(name: str):
+    if name == "REvoDesignPlugin":
+        from REvoDesign.REvoDesign import REvoDesignPlugin
+
+        return REvoDesignPlugin
+    if name == "all_shortcuts":
+        from REvoDesign.shortcuts import __all__ as all_shortcuts
+
+        return all_shortcuts
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
     "REvoDesignPlugin",

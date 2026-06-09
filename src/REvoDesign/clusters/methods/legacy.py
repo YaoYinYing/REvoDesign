@@ -10,11 +10,18 @@ import warnings
 
 import numpy as np
 
-from REvoDesign.clusters.cluster_sequence import ClusterMethodAbstract, logging
+from REvoDesign.clusters.cluster_sequence import ClusterMethodAbstract, ClusterMethodSpec, logging
 
 
 class LegacyCluster(ClusterMethodAbstract):
     name = "LegacyCluster"
+    spec = ClusterMethodSpec(
+        name=name,
+        display_name="LegacyCluster",
+        description="Compatibility-only Ward-linkage clustering on the score matrix for legacy workflows.",
+        deprecated=True,
+        representative_policy="Nearest centroid among clustered variants in the compatibility score space.",
+    )
 
     def predict_labels(self, score_matrix: np.ndarray) -> np.ndarray:
         from sklearn.cluster import AgglomerativeClustering

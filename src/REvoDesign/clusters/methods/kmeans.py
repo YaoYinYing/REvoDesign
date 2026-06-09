@@ -8,11 +8,17 @@ KMeans cluster method entry.
 
 import numpy as np
 
-from REvoDesign.clusters.cluster_sequence import ClusterMethodAbstract
+from REvoDesign.clusters.cluster_sequence import ClusterMethodAbstract, ClusterMethodSpec
 
 
 class KMeansCluster(ClusterMethodAbstract):
     name = "KMeansCluster"
+    spec = ClusterMethodSpec(
+        name=name,
+        display_name="KMeansCluster",
+        description="K-means clustering on score-profile feature vectors instead of a precomputed distance matrix.",
+        representative_policy="Nearest centroid among clustered variants in score-profile space.",
+    )
 
     def predict_labels(self, score_matrix: np.ndarray) -> np.ndarray:
         from sklearn.cluster import KMeans

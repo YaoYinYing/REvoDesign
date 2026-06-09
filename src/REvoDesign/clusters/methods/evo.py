@@ -15,13 +15,22 @@ import numpy as np
 import pandas as pd
 from Bio.PDB import PDBParser
 
-from REvoDesign.clusters.cluster_sequence import ClusterMethodAbstract
+from REvoDesign.clusters.cluster_sequence import ClusterMethodAbstract, ClusterMethodSpec, logging
 from REvoDesign.common.profile_parsers import ProfileManager
 from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id
 
 
 class EvoCluster(ClusterMethodAbstract):
     name = "EvoCluster"
+    spec = ClusterMethodSpec(
+        name=name,
+        display_name="EvoCluster",
+        description=(
+            "Average-linkage clustering on a renormalized weighted distance model combining sequence, "
+            "physicochemical, spatial, PSSM, and ESM components when available."
+        ),
+        representative_policy="Nearest centroid among clustered variants; not a medoid selection.",
+    )
 
     aa_physchem_group = {
         "A": 0,
@@ -45,6 +54,10 @@ class EvoCluster(ClusterMethodAbstract):
         "D": 5,
         "E": 5,
     }
+
+    def __init__(self, fastafile: str):
+        super().__init__(fastafile)
+        self.last_component_report: dict[str, object] = {}
 
     def _normalize_mutation_token(self, token: str) -> str:
         token = str(token).strip().replace(":", "")
@@ -237,34 +250,92 @@ class EvoCluster(ClusterMethodAbstract):
         mutations_per_record = self._get_mutations_per_record()
 
         components = []
+        component_status: dict[str, dict[str, object]] = {}
         seq_matrix = self.normalize_distance_matrix(self.build_distance_matrix_from_scores(score_matrix))
         components.append(("seq", seq_matrix))
+        component_status["seq"] = {
+            "requested_weight": float(self.evo_weights.get("seq", 0.0)),
+            "available": True,
+            "reason": "sequence_distance",
+        }
 
         physchem = self._build_physchem_distance_matrix(mutations_per_record)
         if physchem is not None:
             components.append(("physchem", self.normalize_distance_matrix(physchem)))
+        component_status["physchem"] = {
+            "requested_weight": float(self.evo_weights.get("physchem", 0.0)),
+            "available": physchem is not None,
+            "reason": "physicochemical_signal_available" if physchem is not None else "no_physicochemical_signal",
+        }
 
         spatial = self._build_spatial_distance_matrix(mutations_per_record)
         if spatial is not None:
             components.append(("spatial", self.normalize_distance_matrix(spatial)))
+        component_status["spatial"] = {
+            "requested_weight": float(self.evo_weights.get("spatial", 0.0)),
+            "available": spatial is not None,
+            "reason": "structure_signal_available" if spatial is not None else "missing_or_unusable_structure",
+        }
 
         pssm = self._build_pssm_distance_matrix(mutations_per_record)
         if pssm is not None:
             components.append(("pssm", self.normalize_distance_matrix(pssm)))
+        component_status["pssm"] = {
+            "requested_weight": float(self.evo_weights.get("pssm", 0.0)),
+            "available": pssm is not None,
+            "reason": "pssm_signal_available" if pssm is not None else "missing_or_unusable_pssm_profile",
+        }
 
         esm = self._build_esm_distance_matrix(mutations_per_record)
         if esm is not None:
             components.append(("esm", self.normalize_distance_matrix(esm)))
+        component_status["esm"] = {
+            "requested_weight": float(self.evo_weights.get("esm", 0.0)),
+            "available": esm is not None,
+            "reason": "esm_signal_available" if esm is not None else "missing_or_unusable_esm_table",
+        }
 
         weighted_components = self._renormalize_weights(components)
         if not weighted_components:
-            return seq_matrix
+            raise ValueError(
+                "EvoCluster has no active distance components after applying the configured weights. "
+                "Provide at least one available component with a positive weight."
+            )
 
         total_distance = np.zeros_like(seq_matrix, dtype=float)
         for _, norm_weight, matrix in weighted_components:
             total_distance += norm_weight * matrix
 
+        normalized_weights = {name: norm_weight for name, norm_weight, _ in weighted_components}
+        active_components = [name for name in normalized_weights]
+        skipped_components = {
+            name: details
+            for name, details in component_status.items()
+            if name not in active_components
+        }
+        self.last_component_report = {
+            "component_status": component_status,
+            "active_components": active_components,
+            "skipped_components": skipped_components,
+            "normalized_weights": normalized_weights,
+            "inputs": {
+                "pssm_profile": bool(str(self.evo_pssm_profile).strip()),
+                "esm1v_table": bool(str(self.evo_esm1v_table).strip()),
+                "structure_pdb": bool(str(self.structure_pdb).strip()),
+                "esm_mutation_col": self.evo_esm_mutation_col,
+            },
+        }
+        logging.info("EvoCluster active distance components: %s", active_components)
+        logging.info("EvoCluster normalized weights: %s", normalized_weights)
+        if skipped_components:
+            logging.info("EvoCluster skipped distance components: %s", skipped_components)
+
         return self.normalize_distance_matrix(total_distance)
+
+    def build_method_report(self) -> dict[str, object]:
+        report = super().build_method_report()
+        report["evo"] = self.last_component_report
+        return report
 
     def predict_labels(self, score_matrix: np.ndarray) -> np.ndarray:
         from sklearn.cluster import AgglomerativeClustering
