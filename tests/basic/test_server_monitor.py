@@ -7,11 +7,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-# PyQt or PySide (adapt this import to whichever you use):
-from PyQt5 import QtWidgets
-
 from REvoDesign.basic.server_monitor import MenuActionServerMonitor, ServerControlAbstract
-from REvoDesign.Qt import QtCore
+from REvoDesign.Qt import QtCore, QtWidgets
 from REvoDesign.tools.package_manager import WorkerThread
 
 # -----------------------------------------------------------------------------

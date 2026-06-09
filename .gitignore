@@ -122,3 +122,7 @@ server/.env
 server/.env.local
 /presentation_revodesign
 /plan
+src/REvoDesign/UI/preference.py
+src/REvoDesign/UI/socket.py
+src/REvoDesign/UI/REvoDesign-PyMOL-entry.py
+src/REvoDesign/tools/REvoDesign-manager/UI/REvoDesign_installer.py

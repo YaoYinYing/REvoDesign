@@ -17,7 +17,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from platformdirs import user_cache_dir, user_data_dir
 
-from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.Qt import QtCompat, QtWidgets
 
 
 def decide(title="", description="", rich: bool = False, details: str | None = None):
@@ -27,17 +27,17 @@ def decide(title="", description="", rich: bool = False, details: str | None = N
 
     # A confirmation message.
     msg = QtWidgets.QMessageBox()
-    msg.setIcon(QtWidgets.QMessageBox.Question)
+    msg.setIcon(QtCompat.Question)
     msg.setWindowTitle(title)
     msg.setText(description)
     if details is not None:
         msg.setDetailedText(details)
     if rich:
-        msg.setTextFormat(QtCore.Qt.RichText)
-    msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-    result = msg.exec_()
+        msg.setTextFormat(QtCompat.RichText)
+    msg.setStandardButtons(QtCompat.Yes | QtCompat.No)
+    result = QtCompat.exec(msg)
 
-    return result == QtWidgets.QMessageBox.Yes
+    return result == QtCompat.Yes
 
 
 def set_REvoDesign_config_file(delete_user_config_tree: bool = False):

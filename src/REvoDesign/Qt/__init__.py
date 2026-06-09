@@ -3,11 +3,34 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-"""
-Import Path for REvoDesign.Qt
-Ensures type checkers recognize QtCore, QtGui, and QtWidgets correctly.
-"""
+"""Public Qt compatibility exports for REvoDesign."""
 
-from .qt_wrapper import QtCore, QtGui, QtSource, QtWidgets
+from .qt_wrapper import (
+    QT_BACKEND,
+    QT_MAJOR,
+    QtCompat,
+    QtCore,
+    QtGui,
+    QtNetwork,
+    QtSource,
+    QtSvg,
+    QtWebSockets,
+    QtWidgets,
+    has_qt_module,
+    qexec,
+)
 
-__all__ = ["QtCore", "QtGui", "QtWidgets", "QtSource"]
+__all__ = [
+    "QtCore",
+    "QtGui",
+    "QtWidgets",
+    "QtNetwork",
+    "QtWebSockets",
+    "QtSvg",
+    "QtCompat",
+    "QT_BACKEND",
+    "QT_MAJOR",
+    "QtSource",
+    "has_qt_module",
+    "qexec",
+]

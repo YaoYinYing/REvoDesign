@@ -4,11 +4,9 @@
 
 
 import pytest
-from PyQt5 import QtCore, QtWidgets
 
+from REvoDesign.Qt import QtCore, QtWidgets
 from REvoDesign.tools import package_manager
-
-pytest.importorskip("PyQt5")
 
 
 @pytest.fixture(scope="module")

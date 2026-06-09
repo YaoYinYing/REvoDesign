@@ -31,7 +31,7 @@ from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import GremlinAnalyser, MutateWorker, VisualizingWorker
-from REvoDesign.Qt import QtCore, QtGui, QtWidgets
+from REvoDesign.Qt import QT_BACKEND, QtCore, QtGui, QtWidgets, has_qt_module
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (
     WorkerThread,
@@ -93,17 +93,15 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.multi_designer: MultiMutantDesigner = None  # type: ignore
         self.cluster_tab_controller = None
 
-        try:
-            # if QtWebsockets is available, teamwork is activated.
-            # TODO: move this import trial to REvoDesign.Qt
-            from PyQt5 import QtWebSockets
-
-            logging.info(f"Find QtWebSockets in {QtWebSockets.__file__}")
-
+        if has_qt_module("QtWebSockets"):
+            logging.info("QtWebSockets detected via PyMOL Qt backend: %s", QT_BACKEND)
             self.teamwork_enabled = True
-        except ImportError:
-            warnings.warn(issues.DisabledFunctionWarning("Teamwork is disabled. Please install PyQt5."))
-            traceback.print_exc()
+        else:
+            warnings.warn(
+                issues.DisabledFunctionWarning(
+                    "Teamwork is disabled because the active PyMOL Qt backend does not provide QtWebSockets."
+                )
+            )
             self.teamwork_enabled = False
 
     # TODO: deprecate

@@ -40,16 +40,10 @@ from packaging.version import InvalidVersion, Version
 from pymol import cmd, get_version_message
 from pymol.plugins import addmenuitemqt
 from pymol.Qt.utils import loadUi
+from REvoDesign.Qt import QT_BACKEND, QtCompat, QtCore, QtGui, QtWidgets, has_qt_module, qexec
 
 LOGGER_LEVEL = 0
 _WORKER_CONTEXT = threading.local()
-
-if TYPE_CHECKING:
-    # type checking branch
-    from PyQt5 import QtCore, QtGui, QtWidgets
-else:
-    # runtime branch
-    from pymol.Qt import QtCore, QtGui, QtWidgets
 
 
 if not __file__.endswith("package_manager.py"):
@@ -594,7 +588,7 @@ class CheckableListView(QtWidgets.QWidget):
                 # Add as a regular checkable item
                 item = QtGui.QStandardItem(_e.name)
                 item.setCheckable(True)
-                item.setCheckState(QtCore.Qt.Unchecked)  # Default unchecked
+                item.setCheckState(QtCompat.Unchecked)  # Default unchecked
                 item.setToolTip(_e.description or _e.name)
                 self.model.appendRow(item)
 
@@ -623,7 +617,7 @@ class CheckableListView(QtWidgets.QWidget):
         Returns:
             A list of strings representing the texts of all checked items.
         """
-        checked_items = self._get_items_by_check_state(QtCore.Qt.Checked)
+        checked_items = self._get_items_by_check_state(QtCompat.Checked)
         logging.debug(f"Checked: {checked_items}")
         return checked_items.extras_id_list
 
@@ -634,7 +628,7 @@ class CheckableListView(QtWidgets.QWidget):
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
             if item.isCheckable() and item.text() != "Test":
-                item.setCheckState(QtCore.Qt.Checked)
+                item.setCheckState(QtCompat.Checked)
 
     def uncheck_all(self):
         """
@@ -643,7 +637,7 @@ class CheckableListView(QtWidgets.QWidget):
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
             if item.isCheckable():
-                item.setCheckState(QtCore.Qt.Unchecked)
+                item.setCheckState(QtCompat.Unchecked)
 
 
 @dataclass(frozen=True)
@@ -1325,7 +1319,7 @@ class REvoDesignPackageManager:
                 self.menu.addSection(item.name)
 
         # Set the context menu policy to show the menu on right-click
-        self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.installer_ui.setContextMenuPolicy(QtCompat.CustomContextMenu)
         self.installer_ui.customContextMenuRequested.connect(self.show_menu)
 
     def show_menu(self, pos):
@@ -1338,7 +1332,7 @@ class REvoDesignPackageManager:
         # Show the menu at the position of the mouse cursor
         logging.debug(f"showing menu at {pos}")
         global_pos = self.installer_ui.mapToGlobal(pos)
-        self.menu.exec_(global_pos)
+        qexec(self.menu, global_pos)
 
     def make_window(self) -> QtWidgets.QDialog:
         """
@@ -1951,7 +1945,7 @@ class ThreadDashboard(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.table)
         self.hide()
-        self.table.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.table.setContextMenuPolicy(QtCompat.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
 
     @classmethod
@@ -1976,10 +1970,10 @@ class ThreadDashboard(QtWidgets.QDialog):
         self.table.setRowCount(len(entries))
         for row, entry in enumerate(entries):
             duration_item = QtWidgets.QTableWidgetItem(f"{entry.duration:.1f}s")
-            duration_item.setTextAlignment(QtCore.Qt.AlignCenter)
+            duration_item.setTextAlignment(QtCompat.AlignCenter)
             thread_item = QtWidgets.QTableWidgetItem(hex(entry.thread_id))
             thread_item.setForeground(QtGui.QColor("#9cdcfe"))
-            thread_item.setTextAlignment(QtCore.Qt.AlignCenter)
+            thread_item.setTextAlignment(QtCompat.AlignCenter)
             task_item = QtWidgets.QTableWidgetItem(entry.description)
             task_item.setForeground(QtGui.QColor("#ce9178"))
             self.table.setItem(row, 0, task_item)
@@ -2007,7 +2001,7 @@ class ThreadDashboard(QtWidgets.QDialog):
         menu = QtWidgets.QMenu(self)
         kill_action = menu.addAction("Kill")
         global_pos = self.table.viewport().mapToGlobal(pos)
-        action = menu.exec_(global_pos)
+        action = qexec(menu, global_pos)
         if action == kill_action:
             ThreadExecutionManager.kill_entry(entry)
 
@@ -2609,19 +2603,19 @@ def _show_notification_dialog(
     msg = QtWidgets.QMessageBox()
 
     if error_type is None:
-        msg.setIcon(QtWidgets.QMessageBox.Information)
+        msg.setIcon(QtCompat.Information)
     elif issubclass(error_type, Warning):
-        msg.setIcon(QtWidgets.QMessageBox.Warning)
+        msg.setIcon(QtCompat.Warning)
     elif issubclass(error_type, Exception):
-        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg.setIcon(QtCompat.Critical)
 
     msg.setText(message)
     if details is not None:
         msg.setDetailedText(details)
 
-    msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+    msg.setStandardButtons(QtCompat.Ok)
     # Display the message box
-    msg.exec_()
+    qexec(msg)
     # If error_type is None, end the function execution
     if error_type is None:
         return
@@ -2719,17 +2713,17 @@ def _decide_dialog(title="", description="", rich: bool = False, details: str | 
     refresh_window()
     # A confirmation message.
     msg = QtWidgets.QMessageBox()
-    msg.setIcon(QtWidgets.QMessageBox.Question)
+    msg.setIcon(QtCompat.Question)
     msg.setWindowTitle(title)
     msg.setText(description)
     if details is not None:
         msg.setDetailedText(details)
     if rich:
-        msg.setTextFormat(QtCore.Qt.RichText)
-    msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-    result = msg.exec_()
+        msg.setTextFormat(QtCompat.RichText)
+    msg.setStandardButtons(QtCompat.Yes | QtCompat.No)
+    result = qexec(msg)
 
-    return result == QtWidgets.QMessageBox.Yes
+    return result == QtCompat.Yes
 
 
 def is_package_installed(package):

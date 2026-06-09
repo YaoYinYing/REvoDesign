@@ -962,6 +962,16 @@ is_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
 
 has_docker = shutil.which("docker") is not None
 
+
+def has_docker_daemon() -> bool:
+    if not has_docker:
+        return False
+    try:
+        result = subprocess.run(["docker", "info"], capture_output=True, text=True)
+    except OSError:
+        return False
+    return result.returncode == 0
+
 # Github Actions, Ubuntu-latest with Rosetta Docker container enabled
 ENABLE_ROSETTA_CONTAINER_NODE_TEST = os.environ.get("ENABLE_ROSETTA_CONTAINER_NODE_TEST", "NO") == "YES"
 

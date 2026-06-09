@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+from __future__ import annotations
+
 """
 Team work module
 
@@ -26,9 +28,8 @@ from typing import Any, Literal
 
 import msgpack
 from pymol import cmd
-from PyQt5 import QtCore, QtNetwork, QtWebSockets  # type: ignore
-
 from REvoDesign import ConfigBus, SingletonAbstract, issues
+from REvoDesign.Qt import QT_BACKEND, QtCompat, QtCore, QtNetwork, QtWebSockets, has_qt_module
 from REvoDesign.common.mutant_tree import MutantTree
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.customized_widgets import refresh_tree_widget
@@ -37,6 +38,17 @@ from REvoDesign.tools.ssl_certificates import SSLCertificateManager
 from REvoDesign.tools.utils import run_worker_thread_in_pool
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+_QWEBSOCKET_TYPE = getattr(QtWebSockets, "QWebSocket", None) if QtWebSockets is not None else None
+
+
+def _require_websocket_support() -> None:
+    missing = [module_name for module_name in ("QtNetwork", "QtWebSockets") if not has_qt_module(module_name)]
+    if missing:
+        missing_text = ", ".join(missing)
+        raise RuntimeError(
+            f"The active PyMOL Qt backend does not provide {missing_text}. Active backend: {QT_BACKEND}."
+        )
 
 """
 helpful:
@@ -211,7 +223,7 @@ class Broadcaster:
         final=True,
     ) -> None:
         # typing checks for broad cast group
-        if isinstance(meetingroom, QtWebSockets.QWebSocket):
+        if _QWEBSOCKET_TYPE is not None and isinstance(meetingroom, _QWEBSOCKET_TYPE):
             all_clients = [meetingroom]
         elif isinstance(meetingroom, Client):
             all_clients = [meetingroom.client]
@@ -629,6 +641,8 @@ class REvoDesignWebSocketServer(SingletonAbstract):
     def setup_ws_server(self):
         from REvoDesign.tools.system_tools import get_client_info
 
+        _require_websocket_support()
+
         self.use_authentication = self.bus.get_value("ui.socket.use_key")
         self.authentication_key = self.bus.get_value("ui.socket.input.key")
         if self.use_authentication and not self.authentication_key:
@@ -650,9 +664,9 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
         host_info = get_client_info()
         if not self.server:
-            self.server = QtWebSockets.QWebSocketServer(host_info["node"], QtWebSockets.QWebSocketServer.NonSecureMode)
+            self.server = QtWebSockets.QWebSocketServer(host_info["node"], QtCompat.NonSecureMode)
 
-            if not self.server.listen(QtNetwork.QHostAddress.Any, self.port):
+            if not self.server.listen(QtCompat.AnyAddress, self.port):
                 self.meetingroom = None
                 raise issues.SocketError("Unable to start the server.")
 
@@ -719,8 +733,9 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         Returns:
         bool: True if the port is available, False otherwise.
         """
+        _require_websocket_support()
         sock = QtNetwork.QTcpSocket()
-        sock.bind(QtNetwork.QHostAddress.LocalHost, port)
+        sock.bind(QtCompat.LocalHost, port)
         can_listen = sock.waitForConnected(500)  # Wait for 0.5 seconds to check connection
         sock.disconnectFromHost()
         return not can_listen
@@ -744,6 +759,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         self.treeWidget_ws_peers = None
 
     def setup_ws_client(self):
+        _require_websocket_support()
         self.server_url = self.bus.get_value("ui.socket.server_url")
 
         server_port = self.bus.get_value("ui.socket.server_port", int)
@@ -763,6 +779,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         logging.info("Setting up client is done. Preparing to connect to the server.")
 
     def connect_to_server(self):
+        _require_websocket_support()
         if not self.server_is_reachable:
             logging.error("Server unreachable or network issue.")
             return
@@ -792,7 +809,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
 
     @property
     def connected(self):
-        return self.client and self.client.state() == QtNetwork.QAbstractSocket.ConnectedState
+        return self.client and self.client.state() == QtCompat.ConnectedState
 
     def close_connection(self):
         if not self.connected:

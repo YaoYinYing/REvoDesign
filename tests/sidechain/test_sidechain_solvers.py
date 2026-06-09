@@ -22,6 +22,11 @@ MUTANTS: list[Mutant] = [Mutant(**m.__dict__) for m in Mutant.from_pdb(WT_PDB, [
 mutant_string = MUTANTS[0].full_mutant_id
 
 
+def _is_diffpack_backend_mismatch(exc: Exception) -> bool:
+    message = str(exc)
+    return "Relation mismatch:" in message and "layer=" in message and "graph=" in message
+
+
 class TestSidechainSolver:
 
     @pytest.fixture(autouse=True)
@@ -42,7 +47,12 @@ class TestSidechainSolver:
             pytest.skip(f"{runner.__name__} is not installed")
 
         mutate_runner = runner(**init_kwargs)
-        mutate_pdb_path = mutate_runner.run_mutate(mutant=mutant)
+        try:
+            mutate_pdb_path = mutate_runner.run_mutate(mutant=mutant)
+        except ValueError as exc:
+            if runner is DiffPack_worker and _is_diffpack_backend_mismatch(exc):
+                pytest.skip(f"Installed DiffPack backend is incompatible with the local model/config: {exc}")
+            raise
 
         from Bio.PDB.PDBParser import PDBParser
         from Bio.PDB.Structure import Structure

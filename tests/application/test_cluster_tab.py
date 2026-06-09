@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from pathlib import Path
+import importlib.util
 import subprocess
 import sys
 
@@ -22,6 +23,15 @@ def _normalize_pyuic_output(text: str) -> str:
         )
         for line in text.splitlines()
     )
+
+
+def _load_module(path: Path, module_name: str):
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec is not None
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 class _FakeBus:
@@ -83,6 +93,9 @@ def test_ui_regeneration_matches_committed_output(tmp_path):
         [sys.executable, "-m", "PyQt5.uic.pyuic", str(ui_path), "-o", str(generated_path)],
         check=True,
     )
-    assert _normalize_pyuic_output(generated_path.read_text(encoding="utf-8")) == _normalize_pyuic_output(
-        committed_path.read_text(encoding="utf-8")
+    compiler = _load_module(
+        Path(__file__).resolve().parents[2] / "dev/tools/compile_qt_ui.py",
+        "compile_qt_ui",
     )
+    rewritten = compiler.rewrite_generated_qt_source(generated_path.read_text(encoding="utf-8"))
+    assert _normalize_pyuic_output(rewritten) == _normalize_pyuic_output(committed_path.read_text(encoding="utf-8"))

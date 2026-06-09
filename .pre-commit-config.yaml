@@ -3,6 +3,21 @@ ci:
   autofix_commit_msg: "style: pre-commit fixes"
 
 repos:
+  - repo: local
+    hooks:
+      - id: compile-qt-ui
+        name: Compile Qt .ui files and rewrite Qt imports
+        entry: python dev/tools/compile_qt_ui.py
+        language: system
+        pass_filenames: false
+        files: \.ui$
+
+      - id: check-qt-binding-imports
+        name: Reject direct Qt binding imports
+        entry: python dev/tools/check_qt_binding_imports.py
+        language: system
+        pass_filenames: false
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -91,5 +106,4 @@ repos:
         - --fast
         - ./src
         - ./tests
-
 
