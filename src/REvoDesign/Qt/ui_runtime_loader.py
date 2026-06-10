@@ -52,11 +52,18 @@ class RuntimeUiProxy:
         self._duplicate_object_names: dict[str, list[QtCore.QObject]] = {}
         self.refresh_bindings()
 
+        # Kept for backward compatibility with the legacy generated-UI i18n path.
+        # The original generated Ui_REvoDesign held a QTranslator as `trans` so
+        # that language-switching code could install / remove it.  RuntimeUiProxy
+        # preserves this attribute so that existing callers (LanguageSwitch and
+        # the main plugin) continue to work without modification.
+        self.trans = QtCore.QTranslator(window)
+
     def refresh_bindings(self) -> None:
         """Bind named Qt descendants as attributes on this proxy."""
 
         for attr_name in list(vars(self)):
-            if attr_name.startswith("_"):
+            if attr_name.startswith("_") or attr_name == "trans":
                 continue
             delattr(self, attr_name)
 

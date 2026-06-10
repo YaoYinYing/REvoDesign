@@ -13,6 +13,9 @@ from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 class REvoDesignUiProtocol(Protocol):
     """Static typing contract for the runtime-loaded REvoDesign main UI."""
 
+    trans: QtCore.QTranslator
+    """Legacy translator kept for backward compatibility with the generated-UI i18n path."""
+
     def retranslateUi(self, window: QtWidgets.QMainWindow) -> None:
         """Retranslate UI strings after a language change."""
         ...
