@@ -24,6 +24,7 @@ class ClusterTabController:
         self.ui = ui
         self.bus = bus
         self._installed = False
+        self._methods_cache: list[str] | None = None
 
     def install(self) -> None:
         """Install tooltips, method-specific panel switching, and safe defaults."""
@@ -58,6 +59,8 @@ class ClusterTabController:
         )
 
     def _available_methods(self) -> list[str]:
+        if self._methods_cache is not None:
+            return self._methods_cache
         try:
             from REvoDesign.clusters.cluster_sequence import IMPLEMENTED_CLUSTER_METHOD
 
@@ -67,7 +70,8 @@ class ClusterTabController:
 
         ordered = [name for name in FALLBACK_CLUSTER_METHODS if name in available]
         ordered.extend(sorted(name for name in available if name not in FALLBACK_CLUSTER_METHODS))
-        return ordered or list(FALLBACK_CLUSTER_METHODS)
+        self._methods_cache = ordered or list(FALLBACK_CLUSTER_METHODS)
+        return self._methods_cache
 
     def _configured_method_name(self) -> str:
         if self.bus is not None:

@@ -158,7 +158,24 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def run_plugin_gui(self):
         """PyMOL entry for running the plugin"""
         if self.window is None:
+            # Show a lightweight splash label immediately so the user sees
+            # feedback while the full window is being constructed.
+            # Use Qt5-compatible enum access (flat) with Qt6 fallback (scoped).
+            _WindowType = getattr(QtCore.Qt, "WindowType", QtCore.Qt)
+            _splash_flag = getattr(_WindowType, "SplashScreen", 15)
+            _Alignment = getattr(QtCore.Qt, "AlignmentFlag", QtCore.Qt)
+            _align_center = getattr(_Alignment, "AlignCenter", 132)
+
+            splash = QtWidgets.QLabel("Loading REvoDesign...")
+            splash.setWindowFlags(_splash_flag)
+            splash.setAlignment(_align_center)
+            splash.setMinimumSize(300, 80)
+            splash.show()
+            QtWidgets.QApplication.processEvents()
+
             self.window = self.make_window()
+            splash.close()
+
         self.window.show()
         self.fix_wd()
 
@@ -213,7 +230,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         from REvoDesign.application.i18n import LanguageSwitch
         from REvoDesign.application.icon import IconSetter
         from REvoDesign.application.cluster_tab import ClusterTabController
-        from REvoDesign.application.menu import MENU_LINKS
         from REvoDesign.basic.menu_item import MenuCollection, MenuItem
         from REvoDesign.basic.server_monitor import MenuActionServerMonitor
         from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketClient, REvoDesignWebSocketServer
@@ -288,7 +304,16 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ),
         )
         # TODO: dynamic created menu item tree system
-        MenuCollection(self.bus.ui, MENU_LINKS)
+        # The application/menu module scans the config directory at import
+        # time to build config-edit and recent-experiment links.  Defer its
+        # import and binding until the window is painted so that startup
+        # latency is not gated on filesystem I/O.
+        def _bind_menu_links():
+            from REvoDesign.application.menu import MENU_LINKS
+
+            MenuCollection(self.bus.ui, MENU_LINKS)
+
+        QtCore.QTimer.singleShot(0, _bind_menu_links)
 
         # TODO: refactor needed
         # TODO: skip register if headless

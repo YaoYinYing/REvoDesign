@@ -766,7 +766,13 @@ class Widget2ConfigMapper:
         )
 
     def get_button_from_id(self, button_id: str, prefix="pushButton", button_type: Any = QtWidgets.QPushButton):
-        return self.find_child(button_type, f"{prefix}_{button_id}")
+        # Fast path: RuntimeUiProxy exposes all named children as
+        # attributes, including push buttons with their objectName.
+        full_name = f"{prefix}_{button_id}"
+        widget = getattr(self.ui, full_name, None)
+        if widget is not None:
+            return widget
+        return self.find_child(button_type, full_name)
 
     @property
     def all_widget_ids(self) -> tuple[str, ...]:
@@ -791,5 +797,11 @@ class Widget2ConfigMapper:
         return widget_id
 
     def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:
-        widget = self.find_child(self.c2wi.get_widget_typing(widget_id=widget_id), widget_id)
-        return widget
+        # Fast path: RuntimeUiProxy exposes named children as attributes.
+        widget = getattr(self.ui, widget_id, None)
+        if widget is not None:
+            return widget
+        # Slow path: search through layouts for widgets not exposed as
+        # direct proxy attributes (e.g. layout-managed children without
+        # an objectName matching their widget_id).
+        return self.find_child(self.c2wi.get_widget_typing(widget_id=widget_id), widget_id)

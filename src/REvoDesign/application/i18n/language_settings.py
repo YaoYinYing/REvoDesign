@@ -121,7 +121,18 @@ class LanguageSwitch(QtWidgets.QWidget):
 
         if lan_id := self.bus.get_value("language", str, reject_none=True):
             logging.debug(f"Language {lan_id} is loaded from configuration.")
-            lan = [_language for _language in self.language_items if _language.id == lan_id][0]
+            matches = [_language for _language in self.language_items if _language.id == lan_id]
+            if matches:
+                lan = matches[0]
+
+        # When the restored language is English (no .qm file) and no
+        # translator has been installed yet, the UI is already showing
+        # correct source-language strings.  Skipping the retranslation
+        # pass avoids an unnecessary widget-tree walk at startup.
+        if lan.id.startswith("eng-eng") and not self._translator_installed:
+            self._set_action_checked(language=lan)
+            self.bus.set_value("language", lan.id)
+            return
 
         self.switch_language(language=lan)
         self._set_action_checked(language=lan)
