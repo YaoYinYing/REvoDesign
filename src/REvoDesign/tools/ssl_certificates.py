@@ -125,7 +125,7 @@ class SSLCertificateManager:
         cert.get_subject().C = "CN"
         cert.get_subject().ST = "Yunnan"
         cert.get_subject().L = "Kunming"
-        cert.get_subject().O = "JAPS"
+        cert.get_subject().O = "JAPS"  # noqa: E741 -- X.509 Organization field
         cert.get_subject().OU = "Yunnan Very Normal University"
         cert.get_subject().CN = f"{user}.{node}.{role}.REvoDesign"
 

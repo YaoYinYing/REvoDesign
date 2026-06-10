@@ -14,10 +14,6 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from PyQt5 import QtCore as _QtCore
     from PyQt5 import QtGui as _QtGui
-    from PyQt5 import QtNetwork as _QtNetwork
-    from PyQt5 import QtSvg as _QtSvg
-    from PyQt5 import QtUiTools as _QtUiTools
-    from PyQt5 import QtWebSockets as _QtWebSockets
     from PyQt5 import QtWidgets as _QtWidgets
 else:
     from pymol import Qt as _pymol_qt

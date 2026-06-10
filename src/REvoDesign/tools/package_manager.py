@@ -1122,9 +1122,9 @@ class REvoDesignPackageManager:
             if not diffs:
                 return notify_box(f"{title} is already up to date.")
 
-            num_added_lines = len([l for l in diffs if l.startswith("+ ")])
-            num_chged_lines = len([l for l in diffs if l.startswith("! ")])
-            num_deled_lines = len([l for l in diffs if l.startswith("- ")])
+            num_added_lines = len([line for line in diffs if line.startswith("+ ")])
+            num_chged_lines = len([line for line in diffs if line.startswith("! ")])
+            num_deled_lines = len([line for line in diffs if line.startswith("- ")])
 
             with open(diff_file, "w") as diff:
                 diff.writelines(diffs)
@@ -2657,14 +2657,14 @@ def execute_on_main_thread(func: Callable[..., GuiResult], *args, **kwargs) -> G
 
 
 @overload
-def notify_box(message: str = "", error_type: None | type[Warning] = None, details: str | None = None) -> None: ...
+def notify_box(message: str = "", error_type: None | type[Warning] = None, details: str | None = None) -> None: ...  # noqa: E704
 
 
 # Overload #2: Exception => NoReturn
 
 
 @overload
-def notify_box(message: str, error_type: type[Exception], details: str | None = None) -> NoReturn: ...
+def notify_box(message: str, error_type: type[Exception], details: str | None = None) -> NoReturn: ...  # noqa: E704
 
 
 def notify_box(
@@ -2730,7 +2730,7 @@ def raise_error(error_type: type[Exception], message: str) -> NoReturn:
 
 
 @overload
-def run_worker_thread_in_pool(
+def run_worker_thread_in_pool(  # noqa: E704
     worker_function: Callable[..., R],
     *args,
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
@@ -2740,7 +2740,7 @@ def run_worker_thread_in_pool(
 
 
 @overload
-def run_worker_thread_in_pool(
+def run_worker_thread_in_pool(  # noqa: E704
     worker_function: Callable[..., R | None],
     *args,
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,

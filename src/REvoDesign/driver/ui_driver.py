@@ -504,7 +504,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         return cfg_item
 
     @overload
-    def get_value(
+    def get_value(  # noqa: E704
         self,
         cfg_item: str,
         converter: Callable[[Any], ValueFromConfigT],
@@ -514,7 +514,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     ) -> ValueFromConfigT: ...
 
     @overload
-    def get_value(
+    def get_value(  # noqa: E704
         self,
         cfg_item: str,
         converter: type[bool],
@@ -524,7 +524,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     ) -> bool: ...
 
     @overload
-    def get_value(
+    def get_value(  # noqa: E704
         self,
         cfg_item: str,
         converter: Callable[[Any], ValueFromConfigT],
@@ -534,7 +534,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     ) -> ValueFromConfigT: ...
 
     @overload
-    def get_value(self, cfg_item: str, converter: None) -> Any: ...
+    def get_value(self, cfg_item: str, converter: None) -> Any: ...  # noqa: E704
 
     def get_value(
         self,

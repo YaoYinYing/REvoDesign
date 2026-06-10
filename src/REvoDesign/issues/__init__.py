@@ -7,5 +7,5 @@
 Exceptions and warnings
 """
 
-from .exceptions import *  # noqa: F401 — re-export public API
-from .warnings import *  # noqa: F401 — re-export public API
+from .exceptions import *  # noqa -- star-import re-export, __all__ defined in submodule
+from .warnings import *  # noqa -- star-import re-export, __all__ defined in submodule

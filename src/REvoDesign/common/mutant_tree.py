@@ -24,11 +24,11 @@ class MutantDict(TypedDict):
 
 
 class MutateRunner(Protocol):
-    def run_mutate_parallel(self, mutants: list[Mutant], nproc: int = 2) -> list[str]: ...
+    def run_mutate_parallel(self, mutants: list[Mutant], nproc: int = 2) -> list[str]: ...  # noqa: E704
 
-    def mutated_pdb_mapping(self, mutant_tree: "MutantTree", pdb_fps: list[str]) -> "MutantTree": ...
+    def mutated_pdb_mapping(self, mutant_tree: "MutantTree", pdb_fps: list[str]) -> "MutantTree": ...  # noqa: E704
 
-    def cite(self) -> None: ...
+    def cite(self) -> None: ...  # noqa: E704
 
 
 class MutantTree:

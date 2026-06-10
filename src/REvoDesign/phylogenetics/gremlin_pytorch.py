@@ -302,9 +302,9 @@ def GREMLIN(
 
         def closure():
             optimizer.zero_grad()
-            l = model(MSA_oh_torch, MSA_weights_torch)
-            l.backward()
-            return l
+            loss_val = model(MSA_oh_torch, MSA_weights_torch)
+            loss_val.backward()
+            return loss_val
 
         optimizer.step(closure)
         print("final", round(full_loss(), 2))
@@ -315,8 +315,8 @@ def GREMLIN(
             if batch_size is None:
                 # full-batch
                 optimizer.zero_grad()
-                l = model(MSA_oh_torch, MSA_weights_torch)
-                l.backward()
+                loss_val = model(MSA_oh_torch, MSA_weights_torch)
+                loss_val.backward()
                 optimizer.step()
             else:
                 # mini-batch
@@ -324,8 +324,8 @@ def GREMLIN(
                 oh_batch = MSA_oh_torch[idx]
                 wt_batch = MSA_weights_torch[idx]
                 optimizer.zero_grad()
-                l = model(oh_batch, wt_batch)
-                l.backward()
+                loss_val = model(oh_batch, wt_batch)
+                loss_val.backward()
                 optimizer.step()
 
             # print progress ~10 times

@@ -158,7 +158,7 @@ class CgoAxes(GraphicObject):
 
         # Ensure attributes are of the correct type
         self.w = float(self.w)
-        self.l = float(self.l)
+        self.l = float(self.l)  # noqa: E741 -- standard abbreviation for length (w/l/h)
         self.h = float(self.h)
         self.always_left_corner = bool(self.always_left_corner)
 
@@ -376,11 +376,11 @@ Center: {self.cen_xyz[0]:.3f}, {self.cen_xyz[1]:.3f}, {self.cen_xyz[2]:.3f}"""
 
 
 @overload
-def showbox(box: str, minX: float, maxX: float, minY: float, maxY: float, minZ: float, maxZ: float) -> CgoBox: ...
+def showbox(box: str, minX: float, maxX: float, minY: float, maxY: float, minZ: float, maxZ: float) -> CgoBox: ...  # noqa: E704
 
 
 @overload
-def showbox(
+def showbox(  # noqa: E704
     box: CgoBox,
     minX: float | str | None = None,
     maxX: float | str | None = None,
