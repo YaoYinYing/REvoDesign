@@ -10,7 +10,10 @@ from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.utils import require_installed
 
-matplotlib.use("Qt5Agg")
+try:
+    matplotlib.use("QtAgg")
+except Exception:
+    pass  # Fall back to default backend (e.g. in headless / CI environments)
 
 
 @require_installed

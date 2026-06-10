@@ -16,6 +16,10 @@ from tests.conftest import MEMORY_AVAILABLE_GB
 @pytest.mark.serial
 @pytest.mark.skipif(MEMORY_AVAILABLE_GB < 10, reason="Not enough memory available for this test")
 @pytest.mark.skipif(not Esm1v.installed, reason="Esm1v not installed")
+@pytest.mark.skipif(
+    bool(os.environ.get("GITHUB_ACTION")),
+    reason="ESM-1v model download from Meta CDN is unreliable on GitHub Actions runners",
+)
 def test_esm1v():
 
     sequence: str = "YINYING"

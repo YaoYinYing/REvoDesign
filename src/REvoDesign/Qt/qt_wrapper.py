@@ -136,7 +136,7 @@ def _install_qtcore_scoped_aliases() -> None:
         return
 
     scoped_map = {
-        "WidgetAttribute": ("WA_DeleteOnClose", "WA_ShowWithoutActivating"),
+        "WidgetAttribute": ("WA_DeleteOnClose", "WA_ShowWithoutActivating", "WA_TransparentForMouseEvents", "WA_TranslucentBackground"),
         "ContextMenuPolicy": ("CustomContextMenu",),
         "TextFormat": ("RichText", "PlainText"),
         "CheckState": ("Checked", "Unchecked", "PartiallyChecked"),
@@ -161,6 +161,8 @@ def _install_qtcore_scoped_aliases() -> None:
         "CursorShape": ("PointingHandCursor",),
         "WindowType": ("Tool", "FramelessWindowHint", "WindowStaysOnTopHint", "WindowDoesNotAcceptFocus"),
         "InputMethodHint": ("ImhDigitsOnly",),
+        "BrushStyle": ("NoBrush",),
+        "DropAction": ("CopyAction", "MoveAction", "LinkAction", "IgnoreAction"),
     }
     for container_name, member_names in scoped_map.items():
         for member_name in member_names:
@@ -169,6 +171,8 @@ def _install_qtcore_scoped_aliases() -> None:
     flat_aliases = (
         ("WidgetAttribute", "WA_DeleteOnClose"),
         ("WidgetAttribute", "WA_ShowWithoutActivating"),
+        ("WidgetAttribute", "WA_TransparentForMouseEvents"),
+        ("WidgetAttribute", "WA_TranslucentBackground"),
         ("ContextMenuPolicy", "CustomContextMenu"),
         ("TextFormat", "RichText"),
         ("TextFormat", "PlainText"),
@@ -204,6 +208,11 @@ def _install_qtcore_scoped_aliases() -> None:
         ("AlignmentFlag", "AlignCenter"),
         ("AlignmentFlag", "AlignLeading"),
         ("AlignmentFlag", "AlignTrailing"),
+        ("BrushStyle", "NoBrush"),
+        ("DropAction", "CopyAction"),
+        ("DropAction", "MoveAction"),
+        ("DropAction", "LinkAction"),
+        ("DropAction", "IgnoreAction"),
     )
     for container_name, member_name in flat_aliases:
         _install_flat_alias(qt_namespace, container_name, member_name)
@@ -278,16 +287,31 @@ def _install_qtwidgets_scoped_aliases() -> None:
         for member_name in member_names:
             _install_scoped_alias(owner, container_name, member_name)
 
+    # QStackedLayout.StackingMode: scoped enum in Qt6 (StackAll, StackOne).
+    # Provide flat aliases (Qt5-style) so that code referencing
+    # QtWidgets.QStackedLayout.StackAll continues to work under Qt6.
+    for member_name in ("StackAll", "StackOne"):
+        _install_scoped_alias(
+            getattr(QtWidgets, "QStackedLayout", None), "StackingMode", member_name
+        )
+        _install_flat_alias(
+            getattr(QtWidgets, "QStackedLayout", None), "StackingMode", member_name
+        )
+
 
 def _install_qtgui_scoped_aliases() -> None:
     qfont = getattr(QtGui, "QFont", None)
     qpalette = getattr(QtGui, "QPalette", None)
+    qpainter = getattr(QtGui, "QPainter", None)
     if qfont is not None:
         for member_name in ("Thin", "ExtraLight", "Light", "Normal", "Medium", "DemiBold", "Bold", "ExtraBold", "Black"):
             _install_scoped_alias(qfont, "Weight", member_name)
     if qpalette is not None:
         for member_name in ("Window", "WindowText", "Base", "AlternateBase", "Text", "Button", "ButtonText", "Highlight", "HighlightedText"):
             _install_scoped_alias(qpalette, "ColorRole", member_name)
+    if qpainter is not None:
+        _install_scoped_alias(qpainter, "RenderHint", "Antialiasing")
+        _install_flat_alias(qpainter, "RenderHint", "Antialiasing")
 
 
 def _install_qtnetwork_scoped_aliases() -> None:
