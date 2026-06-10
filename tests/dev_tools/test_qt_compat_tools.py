@@ -179,6 +179,29 @@ def test_install_qt5_aliases_adds_qt6_compat_members():
 
     class _WidgetAttribute:
         WA_DeleteOnClose = 101
+        WA_ShowWithoutActivating = 102
+
+    class _ScrollBarPolicy:
+        ScrollBarAlwaysOff = 111
+
+    class _GlobalColor:
+        yellow = 113
+        blue = 114
+
+    class _EasingCurveType:
+        OutQuad = 112
+
+    class _FocusPolicy:
+        NoFocus = 115
+
+    class _CursorShape:
+        PointingHandCursor = 116
+
+    class _WindowType:
+        Tool = 117
+        FramelessWindowHint = 118
+        WindowStaysOnTopHint = 119
+        WindowDoesNotAcceptFocus = 120
 
     class _TabShape:
         Rounded = 202
@@ -186,8 +209,23 @@ def test_install_qt5_aliases_adds_qt6_compat_members():
     class _Icon:
         Warning = 303
 
+    class _SizeAdjustPolicy:
+        AdjustToContentsOnFirstShow = 404
+
+    class _SegmentStyle:
+        Flat = 505
+
+    class _Weight:
+        Bold = 606
+
     fake_core = SimpleNamespace(Qt=_QtNamespace())
     fake_core.Qt.WidgetAttribute = _WidgetAttribute
+    fake_core.Qt.ScrollBarPolicy = _ScrollBarPolicy
+    fake_core.Qt.GlobalColor = _GlobalColor
+    fake_core.Qt.FocusPolicy = _FocusPolicy
+    fake_core.Qt.CursorShape = _CursorShape
+    fake_core.Qt.WindowType = _WindowType
+    fake_core.QEasingCurve = type("FakeEasingCurve", (), {"Type": _EasingCurveType})
     fake_widgets = SimpleNamespace(
         QTabWidget=type("FakeTabWidget", (), {"TabShape": _TabShape}),
         QMessageBox=type("FakeMessageBox", (), {"Icon": _Icon}),
@@ -196,10 +234,17 @@ def test_install_qt5_aliases_adds_qt6_compat_members():
         QAbstractItemView=type("FakeItemView", (), {}),
         QHeaderView=type("FakeHeaderView", (), {}),
         QAbstractSpinBox=type("FakeSpinBox", (), {}),
-        QComboBox=type("FakeComboBox", (), {}),
+        QComboBox=type("FakeComboBox", (), {"SizeAdjustPolicy": _SizeAdjustPolicy}),
+        QLCDNumber=type("FakeLCDNumber", (), {"SegmentStyle": _SegmentStyle}),
+        QMainWindow=type("FakeMainWindow", (), {}),
+        QFormLayout=type("FakeFormLayout", (), {}),
+        QLayout=type("FakeLayout", (), {}),
         QDialogButtonBox=type("FakeDialogButtonBox", (), {}),
     )
-    fake_gui = SimpleNamespace(QPalette=type("FakePalette", (), {}))
+    fake_gui = SimpleNamespace(
+        QPalette=type("FakePalette", (), {}),
+        QFont=type("FakeFont", (), {"Weight": _Weight}),
+    )
 
     original_core = qt_wrapper.QtCore
     original_widgets = qt_wrapper.QtWidgets
@@ -224,8 +269,22 @@ def test_install_qt5_aliases_adds_qt6_compat_members():
         qt_wrapper._ALIASES_INSTALLED = original_flag
 
     assert fake_core.Qt.WA_DeleteOnClose == 101
+    assert fake_core.Qt.WA_ShowWithoutActivating == 102
+    assert fake_core.Qt.ScrollBarAlwaysOff == 111
+    assert fake_core.Qt.yellow == 113
+    assert fake_core.Qt.blue == 114
+    assert fake_core.Qt.NoFocus == 115
+    assert fake_core.Qt.PointingHandCursor == 116
+    assert fake_core.Qt.Tool == 117
+    assert fake_core.Qt.FramelessWindowHint == 118
+    assert fake_core.Qt.WindowStaysOnTopHint == 119
+    assert fake_core.Qt.WindowDoesNotAcceptFocus == 120
+    assert fake_core.QEasingCurve.OutQuad == 112
+    assert fake_gui.QFont.Bold == 606
     assert fake_widgets.QTabWidget.Rounded == 202
     assert fake_widgets.QMessageBox.Warning == 303
+    assert fake_widgets.QComboBox.AdjustToContentsOnFirstShow == 404
+    assert fake_widgets.QLCDNumber.Flat == 505
 
 
 def test_qexec_prefers_exec_and_falls_back_to_exec_():
@@ -282,8 +341,10 @@ def test_ui_rewrite_converts_generated_binding_imports():
     )
     source = (
         "from PyQt6 import QtCore, QtGui, QtWidgets\n"
-        "x = QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter\n"
-        "y = QtCore.Qt.ImhDigitsOnly\n"
+        "x = QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter\n"
+        "y = QtCore.Qt.InputMethodHint.ImhDigitsOnly\n"
+        "z = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Preferred)\n"
+        "w = QtWidgets.QComboBox(parent=self.widget)\n"
     )
 
     rewritten = script.rewrite_generated_qt_source(source)
@@ -291,6 +352,8 @@ def test_ui_rewrite_converts_generated_binding_imports():
     assert "from REvoDesign.Qt import QtCore, QtGui, QtWidgets, QtCompat" in rewritten
     assert "QtCompat.AlignRight | QtCompat.AlignVCenter" in rewritten
     assert "QtCompat.ImhDigitsOnly" in rewritten
+    assert "QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)" in rewritten
+    assert "QtWidgets.QComboBox(self.widget)" in rewritten
 
 
 def test_ui_rewrite_converts_pyqt5_imports():

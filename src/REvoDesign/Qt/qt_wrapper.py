@@ -117,11 +117,22 @@ def _install_qtcore_aliases() -> None:
         return
 
     _alias_attr(qt_namespace, "WA_DeleteOnClose", qt_namespace, "WidgetAttribute", "WA_DeleteOnClose")
+    _alias_attr(qt_namespace, "WA_ShowWithoutActivating", qt_namespace, "WidgetAttribute", "WA_ShowWithoutActivating")
     _alias_attr(qt_namespace, "CustomContextMenu", qt_namespace, "ContextMenuPolicy", "CustomContextMenu")
     _alias_attr(qt_namespace, "RichText", qt_namespace, "TextFormat", "RichText")
     _alias_attr(qt_namespace, "PlainText", qt_namespace, "TextFormat", "PlainText")
     _alias_many(qt_namespace, qt_namespace, "CheckState", ("Checked", "Unchecked", "PartiallyChecked"))
     _alias_many(qt_namespace, qt_namespace, "Orientation", ("Horizontal", "Vertical"))
+    _alias_many(qt_namespace, qt_namespace, "ScrollBarPolicy", ("ScrollBarAsNeeded", "ScrollBarAlwaysOff", "ScrollBarAlwaysOn"))
+    _alias_many(qt_namespace, qt_namespace, "GlobalColor", ("yellow", "blue", "red", "green", "black", "white"))
+    _alias_many(qt_namespace, qt_namespace, "FocusPolicy", ("NoFocus",))
+    _alias_many(qt_namespace, qt_namespace, "CursorShape", ("PointingHandCursor",))
+    _alias_many(
+        qt_namespace,
+        qt_namespace,
+        "WindowType",
+        ("Tool", "FramelessWindowHint", "WindowStaysOnTopHint", "WindowDoesNotAcceptFocus"),
+    )
     _alias_many(
         qt_namespace,
         qt_namespace,
@@ -146,6 +157,7 @@ def _install_qtcore_aliases() -> None:
         "KeyboardModifier",
         ("NoModifier", "ControlModifier", "ShiftModifier", "AltModifier", "MetaModifier"),
     )
+    _alias_many(QtCore.QEasingCurve, QtCore.QEasingCurve, "Type", ("Linear", "InQuad", "OutQuad", "InOutQuad"))
 
 
 def _install_qtwidgets_aliases() -> None:
@@ -196,8 +208,12 @@ def _install_qtwidgets_aliases() -> None:
         "ScrollMode",
         ("ScrollPerItem", "ScrollPerPixel"),
     )
+    _alias_many(QtWidgets.QMainWindow, QtWidgets.QMainWindow, "DockOption", ("AnimatedDocks", "AllowTabbedDocks"))
+    _alias_many(QtWidgets.QFormLayout, QtWidgets.QFormLayout, "ItemRole", ("LabelRole", "FieldRole"))
+    _alias_many(QtWidgets.QLayout, QtWidgets.QLayout, "SizeConstraint", ("SetNoConstraint",))
     _alias_many(QtWidgets.QHeaderView, QtWidgets.QHeaderView, "ResizeMode", ("Interactive", "Stretch", "Fixed", "ResizeToContents"))
     _alias_many(QtWidgets.QAbstractSpinBox, QtWidgets.QAbstractSpinBox, "ButtonSymbols", ("UpDownArrows", "PlusMinus", "NoButtons"))
+    _alias_many(QtWidgets.QLCDNumber, QtWidgets.QLCDNumber, "SegmentStyle", ("Flat", "Outline", "Filled"))
     _alias_many(
         QtWidgets.QComboBox,
         QtWidgets.QComboBox,
@@ -211,6 +227,12 @@ def _install_qtwidgets_aliases() -> None:
             "InsertBeforeCurrent",
             "InsertAlphabetically",
         ),
+    )
+    _alias_many(
+        QtWidgets.QComboBox,
+        QtWidgets.QComboBox,
+        "SizeAdjustPolicy",
+        ("AdjustToContents", "AdjustToContentsOnFirstShow", "AdjustToMinimumContentsLengthWithIcon"),
     )
     _alias_many(
         QtWidgets.QDialogButtonBox,
@@ -233,6 +255,7 @@ def _install_qtwidgets_aliases() -> None:
 
 
 def _install_qtgui_aliases() -> None:
+    _alias_many(QtGui.QFont, QtGui.QFont, "Weight", ("Thin", "ExtraLight", "Light", "Normal", "Medium", "DemiBold", "Bold", "ExtraBold", "Black"))
     _alias_many(
         QtGui.QPalette,
         QtGui.QPalette,

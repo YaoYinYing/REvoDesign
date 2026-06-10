@@ -34,6 +34,30 @@ logging = ROOT_LOGGER.getChild(__name__)
 ALL_NODES: Sequence[NodeHintT] = ("docker", "docker_mpi", "mpi", "wsl", "wsl_mpi", "native")
 
 
+def _resolve_local_rosetta_database() -> str | None:
+    """Return an existing local Rosetta database directory when one is already installed."""
+
+    for candidate in (os.environ.get("ROSETTA3_DB"),):
+        if candidate and os.path.isdir(candidate):
+            return candidate
+
+    rosetta_bin = os.environ.get("ROSETTA_BIN", "")
+    if not rosetta_bin:
+        return None
+
+    bin_dir = os.path.abspath(rosetta_bin)
+    candidate_roots = (
+        os.path.dirname(bin_dir),
+        os.path.dirname(os.path.dirname(bin_dir)),
+    )
+    for root in candidate_roots:
+        database_dir = os.path.join(root, "database")
+        if os.path.isdir(database_dir):
+            os.environ["ROSETTA3_DB"] = database_dir
+            return database_dir
+    return None
+
+
 def setup_minimal_rosetta_db(subdirectory_to_clone: str):
     """
     Sets up the minimal Rosetta database required by cloning a specific subdirectory from the Rosetta repository.
@@ -49,6 +73,11 @@ def setup_minimal_rosetta_db(subdirectory_to_clone: str):
     # If the environment variable exists, return its value directly
     if rosetta3_db_path:
         return rosetta3_db_path
+
+    local_rosetta_db = _resolve_local_rosetta_database()
+    if local_rosetta_db:
+        print(f"ROSETTA3_DB={local_rosetta_db}")
+        return local_rosetta_db
 
     # Partially clone the Rosetta database
     rosetta3_db_path = partial_clone(

@@ -94,7 +94,10 @@ class ClusterTabController:
 
     @staticmethod
     def _set_combo_text(combo: QtWidgets.QComboBox, text: str) -> None:
-        index = combo.findText(text, QtCore.Qt.MatchExactly)
+        match_exactly = getattr(QtCore.Qt, "MatchExactly", None)
+        if match_exactly is None:
+            match_exactly = QtCore.Qt.MatchFlag.MatchExactly
+        index = combo.findText(text, match_exactly)
         combo.setCurrentIndex(index if index >= 0 else 0)
 
     def _page_map(self) -> dict[str, QtWidgets.QWidget]:

@@ -62,7 +62,7 @@ class FontSetter:
         """
         self.main_window = main_window
 
-        self.font_families = QtGui.QFontDatabase().families()
+        self.font_families = self._list_font_families()
         self.flavored_fonts = FlavoredFonts.OS_TYPE_FONT_TABLE
         global DEFAULT_FONT
         global CURRENT_FONT
@@ -71,6 +71,16 @@ class FontSetter:
 
         self.set_window_font()
         CURRENT_FONT = self.main_window.font()
+
+    @staticmethod
+    def _list_font_families() -> list[str]:
+        families = getattr(QtGui.QFontDatabase, "families", None)
+        if callable(families):
+            try:
+                return list(families())
+            except TypeError:
+                pass
+        return list(QtGui.QFontDatabase().families())
 
     def set_window_font(self, custom_font: QtGui.QFont | str | None = None):
         """

@@ -88,14 +88,14 @@ def test_ui_regeneration_matches_committed_output(tmp_path):
     ui_path = Path(__file__).resolve().parents[2] / "src/REvoDesign/UI/REvoDesign.ui"
     generated_path = tmp_path / "Ui_REvoDesign.py"
     committed_path = Path(__file__).resolve().parents[2] / "src/REvoDesign/UI/Ui_REvoDesign.py"
-
-    subprocess.run(
-        [sys.executable, "-m", "PyQt5.uic.pyuic", str(ui_path), "-o", str(generated_path)],
-        check=True,
-    )
     compiler = _load_module(
         Path(__file__).resolve().parents[2] / "dev/tools/compile_qt_ui.py",
         "compile_qt_ui",
+    )
+
+    subprocess.run(
+        [*compiler.select_pyuic_command(), str(ui_path), "-o", str(generated_path)],
+        check=True,
     )
     rewritten = compiler.rewrite_generated_qt_source(generated_path.read_text(encoding="utf-8"))
     assert _normalize_pyuic_output(rewritten) == _normalize_pyuic_output(committed_path.read_text(encoding="utf-8"))

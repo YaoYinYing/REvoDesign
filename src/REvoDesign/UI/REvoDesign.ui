@@ -1830,7 +1830,7 @@
        <rect>
         <x>20</x>
         <y>10</y>
-        <width>341</width>
+        <width>321</width>
         <height>351</height>
        </rect>
       </property>
@@ -1842,7 +1842,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>341</width>
+         <width>321</width>
          <height>249</height>
         </rect>
        </property>
@@ -2067,7 +2067,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>341</width>
+         <width>321</width>
          <height>249</height>
         </rect>
        </property>
@@ -2180,14 +2180,14 @@
           <item row="6" column="0">
            <widget class="QLabel" name="label_cluster_evo_weight_esm">
             <property name="text">
-             <string>ESM weight</string>
+             <string>ESM:</string>
             </property>
            </widget>
           </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label_cluster_evo_pssm">
             <property name="text">
-             <string>PSSM profile</string>
+             <string>PSSM:</string>
             </property>
            </widget>
           </item>
@@ -2217,7 +2217,7 @@
           <item row="4" column="3">
            <widget class="QLabel" name="label_cluster_evo_weight_physchem">
             <property name="text">
-             <string>Physchem weight</string>
+             <string>Physchem:</string>
             </property>
            </widget>
           </item>
@@ -2254,14 +2254,14 @@
           <item row="4" column="0">
            <widget class="QLabel" name="label_cluster_evo_weight_seq">
             <property name="text">
-             <string>Sequence weight</string>
+             <string>Sequence:</string>
             </property>
            </widget>
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="label_cluster_evo_structure">
             <property name="text">
-             <string>Structure PDB</string>
+             <string>Structure:</string>
             </property>
            </widget>
           </item>
@@ -2278,7 +2278,7 @@
           <item row="1" column="0">
            <widget class="QLabel" name="label_cluster_evo_esm">
             <property name="text">
-             <string>ESM-1v table</string>
+             <string>ESM-1v:</string>
             </property>
            </widget>
           </item>
@@ -2305,14 +2305,14 @@
           <item row="5" column="0">
            <widget class="QLabel" name="label_cluster_evo_weight_spatial">
             <property name="text">
-             <string>Spatial weight</string>
+             <string>Spatial:</string>
             </property>
            </widget>
           </item>
           <item row="5" column="3">
            <widget class="QLabel" name="label_cluster_evo_weight_pssm">
             <property name="text">
-             <string>PSSM weight</string>
+             <string>PSSM:</string>
             </property>
            </widget>
           </item>
@@ -2336,7 +2336,7 @@
           <item row="6" column="3">
            <widget class="QLabel" name="label_cluster_evo_mutation_col">
             <property name="text">
-             <string>ESM mutation column</string>
+             <string>ESM mutation column:</string>
             </property>
            </widget>
           </item>
