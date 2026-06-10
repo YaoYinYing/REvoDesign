@@ -41,7 +41,7 @@
 
 These conda environments are used for testing Qt versions.
 
-- Qt 5: `REvoDesignTestFlight`, where Qt 5 is installed via `conda create -y -n REvoDesignTestFlightQt6 python=3.12 conda-forge:pymol-open-source pyqt=5`
+- Qt 5: `REvoDesignTestFlight`, where Qt 5 is installed via `conda create -y -n REvoDesignTestFlight python=3.12 conda-forge:pymol-open-source pyqt=5`
 - Qt 6: `REvoDesignTestFlightQt6`, where Qt 6 is installed via `conda create -y -n REvoDesignTestFlightQt6 python=3.12 conda-forge:pymol-open-source`
 
 ## Pre-commit hooks
