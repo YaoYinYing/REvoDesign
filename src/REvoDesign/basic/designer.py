@@ -100,7 +100,15 @@ class ExternalDesignerAbstract(ThirdPartyModuleAbstract):
         Parallelize the scoring of a list of mutants.
         """
         mutants = [mutant for mutant in mutants if not mutant.empty]
-        res = Parallel(n_jobs=nproc)(delayed(self.scorer)(mutant) for mutant in mutants)
+        if nproc <= 1:
+            scores = [self.scorer(mutant) for mutant in mutants]
+            return self.score_mutant_mapping(mutants, scores)
+
+        try:
+            res = Parallel(n_jobs=nproc)(delayed(self.scorer)(mutant) for mutant in mutants)
+        except PermissionError:
+            scores = [self.scorer(mutant) for mutant in mutants]
+            return self.score_mutant_mapping(mutants, scores)
         scores: list[float] = list(res)  # type: ignore
         return self.score_mutant_mapping(mutants, scores)
 

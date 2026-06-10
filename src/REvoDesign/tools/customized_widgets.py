@@ -29,7 +29,7 @@ from REvoDesign.basic import FileExtensionCollection as FExCol
 from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.common import file_extensions as Fext
 from REvoDesign.logger import ROOT_LOGGER
-from REvoDesign.Qt import QtCore, QtGui, QtWidgets
+from REvoDesign.Qt import QtCompat, QtCore, QtGui, QtWidgets, qexec
 
 from .package_manager import WorkerThread, decide, hold_trigger_button, notify_box, refresh_window
 
@@ -473,7 +473,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         button_matrix.show()
 
         # Execute the application
-        app.exec_()
+        qexec(app)
         ```
 
     Notes:
@@ -668,7 +668,7 @@ class QButtonMatrix(QtWidgets.QWidget):
             if hasattr(self, "_set_label_size"):
                 self._set_label_size(label)
 
-            self.button_layout.addWidget(label, row, 0, QtCore.Qt.AlignRight)
+            self.button_layout.addWidget(label, row, 0, QtCompat.AlignRight)
             for col, col_name in enumerate(self.alphabet_col):
                 value = self.df_matrix.iloc[row, col]
 
@@ -717,7 +717,7 @@ class QButtonMatrix(QtWidgets.QWidget):
             if hasattr(self, "_set_label_size"):
                 self._set_label_size(label)
             self.button_layout.addWidget(
-                label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft
+                label, len(self.alphabet_col), col + 1, QtCompat.AlignTop | QtCompat.AlignLeft
             )
 
     def signal_process(self, row, col):
@@ -851,30 +851,30 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
     def _add_checkable_item(self, text):
         """Add a checkable item to the combo box."""
         item = QtGui.QStandardItem(text)
-        item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-        item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+        item.setFlags(QtCompat.ItemIsUserCheckable | QtCompat.ItemIsEnabled)
+        item.setData(QtCompat.Unchecked, QtCompat.CheckStateRole)
         self.model().appendRow(item)
 
     def select_all(self):
         """Check all items."""
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
-            item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
+            item.setData(QtCompat.Checked, QtCompat.CheckStateRole)
 
     def unselect_all(self):
         """Uncheck all items."""
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
-            item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+            item.setData(QtCompat.Unchecked, QtCompat.CheckStateRole)
 
     def invert_selection(self):
         """Reverse the selection of all items."""
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
-            current_state = item.data(QtCore.Qt.CheckStateRole)
+            current_state = item.data(QtCompat.CheckStateRole)
             item.setData(
-                QtCore.Qt.Checked if current_state == QtCore.Qt.Unchecked else QtCore.Qt.Unchecked,
-                QtCore.Qt.CheckStateRole,
+                QtCompat.Checked if current_state == QtCompat.Unchecked else QtCompat.Unchecked,
+                QtCompat.CheckStateRole,
             )
 
     def get_checked_items(self) -> list[str]:
@@ -882,7 +882,7 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
         checked = []
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
-            if item.data(QtCore.Qt.CheckStateRole) == QtCore.Qt.Checked:
+            if item.data(QtCompat.CheckStateRole) == QtCompat.Checked:
                 checked.append(item.text())
         return checked
 
@@ -891,7 +891,7 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
             if item.text() in items:
-                item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
+                item.setData(QtCompat.Checked, QtCompat.CheckStateRole)
 
     def hidePopup(self):
         """Override to update selected items on close."""
@@ -1624,7 +1624,7 @@ class ValueDialog(REvoDesignWidget):
         if key_dict.banner:
             banner_label = QtWidgets.QLabel(key_dict.banner)
             banner_label.setWordWrap(True)
-            banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+            banner_label.setAlignment(QtCompat.AlignTop | QtCompat.AlignLeft)
             banner_label.setStyleSheet(
                 """
                 font-size: 14px;
@@ -2265,7 +2265,7 @@ class AppendableValueDialog(QtWidgets.QDialog):
 
 def ask_for_appendable_values() -> AskedValueCollection | None:
     dialog = AppendableValueDialog()
-    if dialog.exec_() == QtWidgets.QDialog.Accepted:
+    if qexec(dialog) == QtCompat.Accepted:
         return dialog.get_values()
 
 

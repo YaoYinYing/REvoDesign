@@ -94,8 +94,7 @@ class TaskDatabase:
 
     def _initialize(self) -> None:
         with self.engine.begin() as conn:
-            conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
-            conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+            self._safe_apply_pragmas(conn)
             try:
                 self.metadata.create_all(conn, checkfirst=True)
             except OperationalError as exc:
@@ -106,6 +105,26 @@ class TaskDatabase:
                     raise
                 logging.warning("TaskDatabase metadata already present, skipping creation")
             self._ensure_columns(conn)
+
+    @staticmethod
+    def _safe_apply_pragmas(conn) -> None:
+        # During dockerized server tests, concurrent web/worker startup can briefly
+        # contend on the same SQLite file. Retrying PRAGMA setup avoids process
+        # exit on transient lock without changing DB semantics.
+        for attempt in range(3):
+            try:
+                conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
+                conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+                return
+            except OperationalError as exc:
+                if "database is locked" not in str(exc).lower():
+                    raise
+                if attempt == 2:
+                    logging.warning(
+                        "SQLite pragma initialization is locked; proceeding with default pragmas for this process."
+                    )
+                    return
+                time.sleep(0.2 * (attempt + 1))
 
     @staticmethod
     def _ensure_columns(conn) -> None:

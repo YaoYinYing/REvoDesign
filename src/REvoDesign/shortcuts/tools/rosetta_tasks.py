@@ -23,7 +23,7 @@ from REvoDesign import ROOT_LOGGER
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.sidechain.mutate_runner.RosettaMutateRelax import MutateRelax_worker
-from REvoDesign.tools.rosetta_utils import copy_rosetta_citation, read_rosetta_node_config
+from REvoDesign.tools import rosetta_utils
 from REvoDesign.tools.utils import get_cited, timing
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -31,7 +31,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 class RosettaLigand(RosettaLigandOriginal, CitableModuleAbstract):
 
-    __bibtex__: dict[str, str | tuple] = copy_rosetta_citation(
+    __bibtex__: dict[str, str | tuple] = rosetta_utils.copy_rosetta_citation(
         {
             "RosettaLigand": """
 @article{https://doi.org/10.1002/prot.21086,
@@ -73,7 +73,7 @@ url="https://doi.org/10.1007/978-1-61779-465-0_10"
 
 
 class PROSS(PROSS_Original, CitableModuleAbstract):
-    __bibtex__ = copy_rosetta_citation(
+    __bibtex__ = rosetta_utils.copy_rosetta_citation(
         {
             "PROSS2": """@article{10.1093/bioinformatics/btaa1071,
 author = {Weinstein, Jonathan Jacob and Goldenzweig, Adi and Hoch, ShlomoYakir and Fleishman, Sarel Jacob},
@@ -196,7 +196,7 @@ def shortcut_rosettaligand(
 
     """
 
-    node_config = read_rosetta_node_config()
+    node_config = rosetta_utils.read_rosetta_node_config()
 
     app = RosettaLigand(
         pdb=pdb,
@@ -250,7 +250,7 @@ def shortcut_pross(
         save_dir=save_dir,
         job_id=job_id,
         node_hint=ConfigBus().get_value("rosetta.node_hint", str, reject_none=True),  # type: ignore
-        node_config=read_rosetta_node_config(),
+        node_config=rosetta_utils.read_rosetta_node_config(),
     )
     best_refined = pross.refine(nstruct_refine)
 
@@ -280,7 +280,7 @@ def shortcut_fast_relax(
         job_id=job_id,
         save_dir=save_dir,
         node_hint=ConfigBus().get_value("rosetta.node_hint", str, reject_none=True),  # type: ignore
-        node_config=read_rosetta_node_config(),
+        node_config=rosetta_utils.read_rosetta_node_config(),
     )
 
     analyser = fast_relax.run(
@@ -398,7 +398,7 @@ def shortcut_relax_w_ca_constraints(
         job_id=job_id,
         relax_opts=relax_opts,
         node_hint=ConfigBus().get_value("rosetta.node_hint", str, reject_none=True),  # type: ignore
-        node_config=read_rosetta_node_config(),
+        node_config=rosetta_utils.read_rosetta_node_config(),
     )
 
     final_pdb = app.run(load_to_preview)

@@ -13,10 +13,11 @@ import os
 import tempfile
 import traceback
 import warnings
+from pathlib import Path
 
 # using partial module to reduce duplicate code.
 from functools import partial
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from omegaconf import OmegaConf
 from pymol import cmd
@@ -31,7 +32,8 @@ from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import GremlinAnalyser, MutateWorker, VisualizingWorker
-from REvoDesign.Qt import QtCore, QtGui, QtWidgets
+from REvoDesign.Qt import QT_BACKEND, QtCore, QtGui, QtWidgets, has_qt_module
+from REvoDesign.Qt.ui_runtime_loader import is_language_change_event, load_runtime_ui
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (
     WorkerThread,
@@ -56,7 +58,9 @@ from REvoDesign.tools.pymol_utils import (
     is_empty_session,
 )
 from REvoDesign.tools.utils import generate_strong_password, require_not_none, run_worker_thread_in_pool, timing
-from REvoDesign.UI import Ui_REvoDesignPyMOL_UI as REvoDesignMainUI
+
+if TYPE_CHECKING:
+    from REvoDesign.UI.types import REvoDesignUiProtocol
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
@@ -65,6 +69,9 @@ logging: LoggerT = None  # type: ignore
 
 
 class REvoDesignPlugin(QtWidgets.QWidget):
+    if TYPE_CHECKING:
+        ui: "REvoDesignUiProtocol"
+
     def __init__(
         self,
     ):
@@ -91,18 +98,18 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         logging = ROOT_LOGGER.getChild(self.__class__.__name__)
 
         self.multi_designer: MultiMutantDesigner = None  # type: ignore
+        self.cluster_tab_controller = None
+        self._language_change_filter: QtCore.QObject | None = None
 
-        try:
-            # if QtWebsockets is available, teamwork is activated.
-            # TODO: move this import trial to REvoDesign.Qt
-            from PyQt5 import QtWebSockets
-
-            logging.info(f"Find QtWebSockets in {QtWebSockets.__file__}")
-
+        if has_qt_module("QtWebSockets"):
+            logging.info("QtWebSockets detected via PyMOL Qt backend: %s", QT_BACKEND)
             self.teamwork_enabled = True
-        except ImportError:
-            warnings.warn(issues.DisabledFunctionWarning("Teamwork is disabled. Please install PyQt5."))
-            traceback.print_exc()
+        else:
+            warnings.warn(
+                issues.DisabledFunctionWarning(
+                    "Teamwork is disabled because the active PyMOL Qt backend does not provide QtWebSockets."
+                )
+            )
             self.teamwork_enabled = False
 
     # TODO: deprecate
@@ -151,7 +158,24 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def run_plugin_gui(self):
         """PyMOL entry for running the plugin"""
         if self.window is None:
+            # Show a lightweight splash label immediately so the user sees
+            # feedback while the full window is being constructed.
+            # Use Qt5-compatible enum access (flat) with Qt6 fallback (scoped).
+            _WindowType = getattr(QtCore.Qt, "WindowType", QtCore.Qt)
+            _splash_flag = getattr(_WindowType, "SplashScreen", 15)
+            _Alignment = getattr(QtCore.Qt, "AlignmentFlag", QtCore.Qt)
+            _align_center = getattr(_Alignment, "AlignCenter", 132)
+
+            splash = QtWidgets.QLabel("Loading REvoDesign...")
+            splash.setWindowFlags(_splash_flag)
+            splash.setAlignment(_align_center)
+            splash.setMinimumSize(300, 80)
+            splash.show()
+            QtWidgets.QApplication.processEvents()
+
             self.window = self.make_window()
+            splash.close()
+
         self.window.show()
         self.fix_wd()
 
@@ -205,7 +229,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         from REvoDesign.application.font import FontSetter
         from REvoDesign.application.i18n import LanguageSwitch
         from REvoDesign.application.icon import IconSetter
-        from REvoDesign.application.menu import MENU_LINKS
+        from REvoDesign.application.cluster_tab import ClusterTabController
         from REvoDesign.basic.menu_item import MenuCollection, MenuItem
         from REvoDesign.basic.server_monitor import MenuActionServerMonitor
         from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketClient, REvoDesignWebSocketServer
@@ -218,20 +242,17 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         logging.debug(f"REvoDesign is installed in {installed_dir}")
         check_mac_rosetta2()
 
-        main_window = QtWidgets.QMainWindow()  # type: ignore
-
-        # loadUi fails on translations so we have to precompile the form as `REvoDesignMainUI`
-        # ui_file=os.path.join(installed_dir, 'UI','REvoDesign.ui')
-        # self.ui=loadUi(ui_file, main_window)
-
-        # TODO: move tab config as a standalone setting ui widget
-        self.ui = REvoDesignMainUI()
-        self.ui.setupUi(main_window)
+        ui_path = Path(__file__).resolve().parent / "UI" / "REvoDesign.ui"
+        main_window, ui_proxy = load_runtime_ui(ui_path)
+        self.ui = cast("REvoDesignUiProtocol", ui_proxy)
+        self._install_language_change_filter(main_window)
 
         IconSetter(main_window=main_window)
 
         # create a bus btw cfg<---> ui
         self.reload_configurations()
+        self.cluster_tab_controller = ClusterTabController(self.ui, self.bus)
+        self.cluster_tab_controller.install()
         # all ConfigBus related method calls must follow this
         # since the bus is initialized here
 
@@ -283,7 +304,16 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ),
         )
         # TODO: dynamic created menu item tree system
-        MenuCollection(self.bus.ui, MENU_LINKS)
+        # The application/menu module scans the config directory at import
+        # time to build config-edit and recent-experiment links.  Defer its
+        # import and binding until the window is painted so that startup
+        # latency is not gated on filesystem I/O.
+        def _bind_menu_links():
+            from REvoDesign.application.menu import MENU_LINKS
+
+            MenuCollection(self.bus.ui, MENU_LINKS)
+
+        QtCore.QTimer.singleShot(0, _bind_menu_links)
 
         # TODO: refactor needed
         # TODO: skip register if headless
@@ -594,6 +624,21 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         return main_window
 
+    def _install_language_change_filter(self, main_window: QtWidgets.QMainWindow) -> None:
+        class _LanguageChangeFilter(QtCore.QObject):
+            def __init__(self, plugin: "REvoDesignPlugin", watched_window: QtWidgets.QMainWindow):
+                super().__init__(plugin)
+                self._plugin = plugin
+                self._watched_window = watched_window
+
+            def eventFilter(self, watched, event):
+                if watched is self._watched_window and is_language_change_event(event):
+                    self._plugin.ui.retranslateUi(self._watched_window)
+                return False
+
+        self._language_change_filter = _LanguageChangeFilter(self, main_window)
+        main_window.installEventFilter(self._language_change_filter)
+
     def reload_molecule_info(self):
         """Reload the molecule in current session."""
         self.temperal_session = tempfile.mkstemp(suffix=".pse")[1]
@@ -858,13 +903,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.evaluator.find_all_best_mutants()
 
-    # combination and clustering
     def run_clustering(self):
         """
         The function `run_clustering` initializes a `ClusterRunner`
         object and runs the clustering process upon triggering a button press.
         """
         trigger_button = self.bus.button("run_cluster")
+        if self.cluster_tab_controller and not self.cluster_tab_controller.confirm_cluster_run():
+            return
 
         # lazy module loading to fasten plugin initializing
 
@@ -1379,6 +1425,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         ) in self.bus.w2c.widget_id2config_dict.items():
             widget = self.bus.get_widget_from_id(widget_id=widget_id)
             set_widget_value(widget, OmegaConf.select(self.bus.cfg_group["main"].cfg, config_item))
+        if self.cluster_tab_controller is not None:
+            self.cluster_tab_controller.install()
 
     def load_and_save_experiment(self, mode: IO_MODE = "r", do_backup: bool = True):
         """Loads and saves experiment configurations, copying files

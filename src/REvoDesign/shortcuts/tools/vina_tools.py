@@ -19,7 +19,7 @@ from pymol import cgo, cmd
 from pymol.vfont import plain
 
 from REvoDesign.logger import ROOT_LOGGER
-from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.Qt import QtCompat, QtCore, QtWidgets
 from REvoDesign.tools.customized_widgets import REvoDesignWidget
 
 from ...tools.cgo_utils import Cone, Cube, Cylinder, GraphicObject
@@ -849,7 +849,7 @@ Press Up/Right/A/W or Down/Left/S/D to change the values."""
     # A label to display the current instructions or banner text.
     banner_label = QtWidgets.QLabel("Pick action to start")
     banner_label.setWordWrap(True)
-    banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+    banner_label.setAlignment(QtCompat.AlignTop | QtCompat.AlignLeft)
     banner_label.setStyleSheet(
         """
         font-size: 14px;

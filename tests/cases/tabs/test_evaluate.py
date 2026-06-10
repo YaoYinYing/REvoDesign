@@ -11,8 +11,6 @@ from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_val
 from tests.conftest import TestWorker
 from tests.data.test_data import KeyData
 
-os.environ["PYTEST_QT_API"] = "pyqt5"
-
 
 @pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"], scope="session")
 class TestREvoDesignPlugin_TabEvaluate:

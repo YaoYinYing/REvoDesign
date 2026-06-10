@@ -13,8 +13,6 @@ from REvoDesign.tools.customized_widgets import QButtonBrick, get_widget_value, 
 from tests.conftest import TestWorker
 from tests.data.test_data import KeyData
 
-os.environ["PYTEST_QT_API"] = "pyqt5"
-
 
 @pytest.mark.serial
 @pytest.mark.very_slow

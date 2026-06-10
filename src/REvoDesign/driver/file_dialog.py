@@ -216,6 +216,40 @@ class FileDialog(SingletonAbstract):
         bus.button("open_mut_table_2").clicked.connect(
             partial(self.open_mutant_table, "ui.cluster.input.from_mutant_txt", "r")
         )
+        bus.button("open_cluster_evo_pssm_profile").clicked.connect(
+            partial(
+                self.open_file,
+                "ui.cluster.evo.inputs.pssm_profile",
+                (
+                    file_extensions.PSSM,
+                    file_extensions.CSV,
+                    file_extensions.Any,
+                    file_extensions.Compressed,
+                ),
+            )
+        )
+        bus.button("open_cluster_evo_esm1v_table").clicked.connect(
+            partial(
+                self.open_file,
+                "ui.cluster.evo.inputs.esm1v_table",
+                (
+                    file_extensions.CSV,
+                    file_extensions.Any,
+                    file_extensions.Compressed,
+                ),
+            )
+        )
+        bus.button("open_cluster_evo_structure_pdb").clicked.connect(
+            partial(
+                self.open_file,
+                "ui.cluster.evo.inputs.structure_pdb",
+                (
+                    file_extensions.PDB,
+                    file_extensions.Session,
+                    file_extensions.Any,
+                ),
+            )
+        )
         bus.button("open_mut_table_csv").clicked.connect(
             partial(
                 self.open_mutant_table,

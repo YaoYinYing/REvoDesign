@@ -21,11 +21,14 @@ import pytest
 import requests
 from werkzeug.utils import secure_filename
 
-from tests.conftest import REPO_DIR, TEST_ROOT, has_docker
+from tests.conftest import REPO_DIR, TEST_ROOT, has_docker_daemon
 
 MSA_ROOT = Path(REPO_DIR) / "tests" / "data" / "msa"
 
-REQUIRES_DOCKER = pytest.mark.skipif(not has_docker, reason="Docker CLI is required for GREMLIN integration tests.")
+REQUIRES_DOCKER = pytest.mark.skipif(
+    not has_docker_daemon(),
+    reason="A reachable Docker daemon is required for GREMLIN integration tests.",
+)
 
 
 def _determine_runner_identity() -> tuple[str, str, bool]:

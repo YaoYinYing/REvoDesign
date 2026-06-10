@@ -11,8 +11,6 @@ from REvoDesign.tools.customized_widgets import set_widget_value
 from tests.conftest import TestWorker
 from tests.data.test_data import KeyData
 
-os.environ["PYTEST_QT_API"] = "pyqt5"
-
 
 @pytest.mark.serial
 @pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"], scope="session")
@@ -74,4 +72,5 @@ class TestREvoDesignPlugin_TabCluster:
             assert all(
                 [os.path.exists(os.path.join(dir, f"c.{c}.fasta")) for c in range(test_worker.test_data.cluster_num)]
             )
+            assert os.path.exists(os.path.join(dir, "cluster_centers_nearest_centroid.fasta"))
             assert os.path.exists(os.path.join(dir, "cluster_centers_stochastic.fasta"))

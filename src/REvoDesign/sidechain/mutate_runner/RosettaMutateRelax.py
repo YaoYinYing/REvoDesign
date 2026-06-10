@@ -21,13 +21,7 @@ from REvoDesign import ConfigBus
 from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import ROOT_LOGGER
-from REvoDesign.tools.rosetta_utils import (
-    IS_ROSETTA_RUNNABLE,
-    copy_rosetta_citation,
-    is_run_node_available,
-    read_rosetta_config,
-    read_rosetta_node_config,
-)
+from REvoDesign.tools import rosetta_utils
 from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -136,7 +130,7 @@ class MutateRelax_worker(MutateRunnerAbstract):
     """
 
     name: str = "Rosetta-MutateRelax"
-    installed: bool = IS_ROSETTA_RUNNABLE
+    installed: bool = rosetta_utils.IS_ROSETTA_RUNNABLE
 
     def __init__(self, pdb_file: str, **kwargs):
         """
@@ -167,9 +161,9 @@ class MutateRelax_worker(MutateRunnerAbstract):
         self.node_hint: NodeHintT = bus.get_value("rosetta.node_hint", default_value="native")  # type: ignore
 
         # Check if the run node is available
-        self.installed = is_run_node_available(self.node_hint)
+        self.installed = rosetta_utils.is_run_node_available(self.node_hint)
 
-        self.rosetta_general_opts: list[str] = read_rosetta_config()
+        self.rosetta_general_opts: list[str] = rosetta_utils.read_rosetta_config()
 
         # Initialize MutateRelax instance
         self.mutate_relax_instance = MutateRelax(
@@ -178,7 +172,7 @@ class MutateRelax_worker(MutateRunnerAbstract):
             save_dir=self.new_cache_dir,
             job_id="mutate_relax",
             node_hint=self.node_hint,
-            node_config=read_rosetta_node_config(),
+            node_config=rosetta_utils.read_rosetta_node_config(),
         )
 
     def run_mutate(
@@ -195,7 +189,7 @@ class MutateRelax_worker(MutateRunnerAbstract):
             str: Path to the output PDB file.
         """
         # Refresh node configuration before each run
-        self.mutate_relax_instance.node = self.node_hint, read_rosetta_node_config()
+        self.mutate_relax_instance.node = self.node_hint, rosetta_utils.read_rosetta_node_config()
         self.mutate_relax_instance.run([mutant], opts=list(self.rosetta_general_opts))
         return os.path.join(self.temp_dir, f"{mutant.short_mutant_id}.pdb")
 
@@ -215,11 +209,11 @@ class MutateRelax_worker(MutateRunnerAbstract):
             List[str]: List of output PDB file paths for all mutants.
         """
         # Refresh node configuration before each run
-        self.mutate_relax_instance.node = self.node_hint, read_rosetta_node_config()
+        self.mutate_relax_instance.node = self.node_hint, rosetta_utils.read_rosetta_node_config()
         self.mutate_relax_instance.run(mutants, opts=list(self.rosetta_general_opts))
         return [os.path.join(self.temp_dir, f"{mutant.short_mutant_id}.pdb") for mutant in mutants]
 
-    __bibtex__ = copy_rosetta_citation(
+    __bibtex__ = rosetta_utils.copy_rosetta_citation(
         {
             "Relax": """@article{10.1002/pro.2389, author = {Conway, P. and Tyka, M. D. and DiMaio, F. and Konerding, D. E. and Baker, D.}, title = {Relaxation of backbone bond geometry improves protein energy landscape modeling}, journal = {Protein Science}, year = {2013}, volume = {23}, issue = {1}, pages = {47-55}, doi = {10.1002/pro.2389} }"""
         }

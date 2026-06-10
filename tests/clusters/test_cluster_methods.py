@@ -1,0 +1,586 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+import pathlib
+
+import numpy as np
+import pandas as pd
+import pytest
+import yaml
+
+from REvoDesign.clusters.cluster_sequence import (
+    AgglomerativeCluster,
+    ClusterMethodManager,
+    EvoCluster,
+    KMeansCluster,
+    LegacyCluster,
+)
+
+
+class _DummySignal:
+    def connect(self, _callback):
+        return None
+
+
+class _FakeQtParallelExecutor:
+    def __init__(self, func, args, _n_jobs):
+        self.func = func
+        self.args = args
+        self.result_signal = _DummySignal()
+        self._results = []
+        self._finished = False
+
+    def start(self):
+        self._results = [self.func(*arg_pair) for arg_pair in self.args]
+        self._finished = True
+
+    def isFinished(self):
+        return self._finished
+
+    def handle_result(self):
+        return self._results
+
+
+class _DummyProgressbar:
+    def setRange(self, _min_value, _max_value):
+        return None
+
+    def setValue(self, _value):
+        return None
+
+
+def _write_tiny_fasta(path: pathlib.Path):
+    path.write_text(
+        (
+            ">seq_0\nAAAAAA\n"
+            ">seq_1\nAAAATA\n"
+            ">seq_2\nTTTTTT\n"
+            ">seq_3\nTTTTTA\n"
+        ),
+        encoding="utf-8",
+    )
+
+
+def _run_cluster(cluster_cls, monkeypatch, tmp_path, run_name):
+    import REvoDesign.tools.customized_widgets as customized_widgets
+
+    monkeypatch.setattr(customized_widgets, "QtParallelExecutor", _FakeQtParallelExecutor)
+
+    input_fasta = tmp_path / f"{run_name}.fasta"
+    _write_tiny_fasta(input_fasta)
+
+    cluster = cluster_cls(str(input_fasta))
+    cluster._save_dir = str(tmp_path / f"output_{run_name}")
+    cluster.num_clusters = 2
+    cluster.num_proc = 2
+    cluster.batch_size = 10
+    cluster.initialize_aligner()
+    cluster.run_clustering(_DummyProgressbar())
+
+    return cluster
+
+
+def test_cluster_factory_selection():
+    assert isinstance(ClusterMethodManager.get("LegacyCluster", fastafile="a"), LegacyCluster)
+    assert isinstance(ClusterMethodManager.get("AgglomerativeCluster", fastafile="a"), AgglomerativeCluster)
+    assert isinstance(ClusterMethodManager.get("KMeansCluster", fastafile="a"), KMeansCluster)
+    assert isinstance(ClusterMethodManager.get("EvoCluster", fastafile="a"), EvoCluster)
+
+
+def test_legacy_cluster_warns(monkeypatch, tmp_path):
+    with pytest.warns(RuntimeWarning, match="LegacyCluster"):
+        _run_cluster(LegacyCluster, monkeypatch, tmp_path, "legacy")
+
+
+def test_kmeans_cluster_runs(monkeypatch, tmp_path):
+    cluster = _run_cluster(KMeansCluster, monkeypatch, tmp_path, "kmeans")
+    centers_fp = pathlib.Path(cluster.cluster_output_fp["cluster_centers"])
+    assert centers_fp.exists()
+    assert (centers_fp.parent / "cluster_centers_stochastic.fasta").exists()
+
+
+def test_agglomerative_cluster_runs(monkeypatch, tmp_path):
+    cluster = _run_cluster(AgglomerativeCluster, monkeypatch, tmp_path, "agglo")
+    centers_fp = pathlib.Path(cluster.cluster_output_fp["cluster_centers"])
+    assert centers_fp.exists()
+    assert (centers_fp.parent / "cluster_centers_stochastic.fasta").exists()
+
+
+def test_evo_distance_fallback_to_sequence_when_optional_missing(monkeypatch, tmp_path):
+    cluster = EvoCluster(str(tmp_path / "dummy.fasta"))
+    cluster.evo_weights = {
+        "seq": 0.0,
+        "physchem": 0.0,
+        "spatial": 0.0,
+        "pssm": 1.0,
+        "esm": 0.0,
+    }
+
+    monkeypatch.setattr(cluster, "_get_mutations_per_record", lambda: [])
+    monkeypatch.setattr(cluster, "_build_physchem_distance_matrix", lambda _x: None)
+    monkeypatch.setattr(cluster, "_build_spatial_distance_matrix", lambda _x: None)
+    monkeypatch.setattr(cluster, "_build_pssm_distance_matrix", lambda _x: None)
+    monkeypatch.setattr(cluster, "_build_esm_distance_matrix", lambda _x: None)
+
+    score_matrix = np.array(
+        [
+            [10.0, 8.0, 7.0],
+            [8.0, 10.0, 6.0],
+            [7.0, 6.0, 10.0],
+        ]
+    )
+    with pytest.raises(ValueError, match="no active distance components"):
+        cluster._build_evo_distance(score_matrix)
+
+
+def test_evo_weight_renormalization_with_missing_components(monkeypatch, tmp_path):
+    cluster = EvoCluster(str(tmp_path / "dummy.fasta"))
+    cluster.evo_weights = {
+        "seq": 1.0,
+        "physchem": 0.0,
+        "spatial": 0.0,
+        "pssm": 1.0,
+        "esm": 0.0,
+    }
+
+    monkeypatch.setattr(cluster, "_get_mutations_per_record", lambda: [])
+    monkeypatch.setattr(cluster, "_build_physchem_distance_matrix", lambda _x: None)
+    monkeypatch.setattr(cluster, "_build_spatial_distance_matrix", lambda _x: None)
+    monkeypatch.setattr(
+        cluster,
+        "_build_pssm_distance_matrix",
+        lambda _x: np.array(
+            [
+                [0.0, 1.0, 1.0],
+                [1.0, 0.0, 2.0],
+                [1.0, 2.0, 0.0],
+            ]
+        ),
+    )
+    monkeypatch.setattr(cluster, "_build_esm_distance_matrix", lambda _x: None)
+
+    score_matrix = np.array(
+        [
+            [10.0, 8.0, 7.0],
+            [8.0, 10.0, 6.0],
+            [7.0, 6.0, 10.0],
+        ]
+    )
+    seq_norm = cluster.normalize_distance_matrix(cluster.build_distance_matrix_from_scores(score_matrix))
+    pssm_norm = cluster.normalize_distance_matrix(
+        np.array(
+            [
+                [0.0, 1.0, 1.0],
+                [1.0, 0.0, 2.0],
+                [1.0, 2.0, 0.0],
+            ]
+        )
+    )
+    expected = cluster.normalize_distance_matrix(0.5 * seq_norm + 0.5 * pssm_norm)
+    actual = cluster._build_evo_distance(score_matrix)
+    assert actual == pytest.approx(expected)
+
+
+def test_evo_esm_group_weight_is_fixed(tmp_path):
+    cluster = EvoCluster(str(tmp_path / "dummy.fasta"))
+
+    mutations_per_record = [
+        [type("Mut", (), {"wt_res": "A", "position": 1, "mut_res": "V"})],
+        [type("Mut", (), {"wt_res": "A", "position": 1, "mut_res": "T"})],
+    ]
+
+    esm_one = tmp_path / "esm_one.csv"
+    pd.DataFrame(
+        {
+            "mutation": ["A1V", "A1T"],
+            "esm-1v_1": [1.0, 0.2],
+        }
+    ).to_csv(esm_one, index=False)
+
+    esm_two = tmp_path / "esm_two.csv"
+    pd.DataFrame(
+        {
+            "mutation": ["A1V", "A1T"],
+            "esm-1v_1": [1.0, 0.2],
+            "esm-1v_2": [1.0, 0.2],
+        }
+    ).to_csv(esm_two, index=False)
+
+    cluster.evo_esm_mutation_col = "mutation"
+    cluster.evo_esm1v_table = str(esm_one)
+    dist_one = cluster._build_esm_distance_matrix(mutations_per_record)
+
+    cluster.evo_esm1v_table = str(esm_two)
+    dist_two = cluster._build_esm_distance_matrix(mutations_per_record)
+
+    assert dist_one is not None
+    assert dist_two is not None
+    assert dist_one == pytest.approx(dist_two)
+
+
+def test_cluster_runner_dispatches_by_method(monkeypatch, tmp_path):
+    from REvoDesign.clusters.cluster_runner import ClusterRunner
+
+    calls = {"method": None}
+
+    class _FakeClusterMethod:
+        name = "AgglomerativeCluster"
+
+        def __init__(self):
+            self.cluster_output_fp = {"score": str(tmp_path / "score.png")}
+            self.save_dir = str(tmp_path / "save_dir")
+
+        def initialize_aligner(self):
+            return None
+
+        def get_method_spec(self):
+            return type("Spec", (), {"representative_policy": "nearest centroid"})()
+
+        def run_clustering(self, progressbar=None):
+            del progressbar
+            pathlib.Path(self.cluster_output_fp["score"]).write_text("ok", encoding="utf-8")
+            return None
+
+        def override_cluster_centers_with_rosetta(self, _results):
+            return None
+
+        def cite(self):
+            return None
+
+    def _fake_get(cluster_method_name: str, **_kwargs):
+        calls["method"] = cluster_method_name
+        return _FakeClusterMethod()
+
+    class _FakeCombinations:
+        def __init__(self):
+            self.expected_output_fasta = ""
+
+        def run_combinations(self):
+            output = tmp_path / "comb.fasta"
+            _write_tiny_fasta(output)
+            self.expected_output_fasta = str(output)
+
+    class _FakeProgress:
+        def setRange(self, *_args):
+            return None
+
+        def setValue(self, *_args):
+            return None
+
+    class _FakeUI:
+        def __init__(self):
+            self.stackedWidget = object()
+            self.progressBar = _FakeProgress()
+
+    class _FakeBus:
+        ui = _FakeUI()
+
+        values = {
+            "ui.header_panel.input.molecule": "1ABC",
+            "ui.header_panel.input.chain_id": "A",
+            "designable_sequences": {"A": "AAAAAA"},
+            "ui.cluster.input.from_mutant_txt": str(tmp_path / "in.mut.txt"),
+            "ui.cluster.batch_size": 100,
+            "ui.cluster.num_cluster": 2,
+            "ui.cluster.mut_num_min": 1,
+            "ui.cluster.mut_num_max": 1,
+            "ui.cluster.score_matrix.default": "PAM30",
+            "ui.cluster.shuffle": False,
+            "ui.cluster.mutate_relax": False,
+            "ui.cluster.method.use": "KMeansCluster",
+            "ui.cluster.evo.inputs.pssm_profile": "",
+            "ui.cluster.evo.inputs.esm1v_table": "",
+            "ui.cluster.evo.inputs.structure_pdb": "",
+            "ui.cluster.evo.esm.mutation_col": "mutation",
+            "ui.cluster.evo.weights.seq": 1.0,
+            "ui.cluster.evo.weights.physchem": 0.0,
+            "ui.cluster.evo.weights.spatial": 0.0,
+            "ui.cluster.evo.weights.pssm": 0.0,
+            "ui.cluster.evo.weights.esm": 0.0,
+            "ui.header_panel.nproc": 2,
+            "rosetta.node_hint": "native",
+        }
+
+        def get_value(self, key, _type=None, cfg=None, default_value=None, reject_none=False):
+            del _type, cfg, reject_none
+            return self.values.get(key, default_value)
+
+    (tmp_path / "in.mut.txt").write_text("A1V\n", encoding="utf-8")
+
+    import REvoDesign.clusters.cluster_runner as runner_module
+    import REvoDesign.clusters.combine_positions as combinations_module
+
+    monkeypatch.setattr(runner_module, "ConfigBus", _FakeBus)
+    monkeypatch.setattr(runner_module.ClusterMethodManager, "get", _fake_get)
+    monkeypatch.setattr(runner_module, "set_widget_value", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(combinations_module, "Combinations", _FakeCombinations)
+
+    runner = ClusterRunner(str(tmp_path))
+    runner.run_clustering()
+
+    assert calls["method"] == "KMeansCluster"
+
+
+def test_cluster_runner_only_overrides_rosetta_representatives_when_enabled(monkeypatch, tmp_path):
+    from REvoDesign.clusters.cluster_runner import ClusterRunner
+
+    calls = {"override": 0}
+
+    class _FakeClusterMethod:
+        name = "AgglomerativeCluster"
+
+        def __init__(self):
+            self.cluster_output_fp = {"score": str(tmp_path / "score.png")}
+            self.save_dir = str(tmp_path / "save_dir")
+
+        def initialize_aligner(self):
+            return None
+
+        def get_method_spec(self):
+            return type("Spec", (), {"representative_policy": "nearest centroid"})()
+
+        def run_clustering(self, progressbar=None):
+            del progressbar
+            pathlib.Path(self.cluster_output_fp["score"]).write_text("ok", encoding="utf-8")
+            return None
+
+        def override_cluster_centers_with_rosetta(self, _results):
+            calls["override"] += 1
+
+        def cite(self):
+            return None
+
+    class _FakeCombinations:
+        def __init__(self):
+            self.expected_output_fasta = ""
+
+        def run_combinations(self):
+            output = tmp_path / "comb.fasta"
+            _write_tiny_fasta(output)
+            self.expected_output_fasta = str(output)
+
+    class _FakeProgress:
+        def setRange(self, *_args):
+            return None
+
+        def setValue(self, *_args):
+            return None
+
+    class _FakeUI:
+        def __init__(self):
+            self.stackedWidget = object()
+            self.progressBar = _FakeProgress()
+
+    class _FakeBus:
+        ui = _FakeUI()
+
+        values = {
+            "ui.header_panel.input.molecule": "1ABC",
+            "ui.header_panel.input.chain_id": "A",
+            "designable_sequences": {"A": "AAAAAA"},
+            "ui.cluster.input.from_mutant_txt": str(tmp_path / "in.mut.txt"),
+            "ui.cluster.batch_size": 100,
+            "ui.cluster.num_cluster": 2,
+            "ui.cluster.mut_num_min": 1,
+            "ui.cluster.mut_num_max": 1,
+            "ui.cluster.score_matrix.default": "PAM30",
+            "ui.cluster.shuffle": False,
+            "ui.cluster.random_seed": 0,
+            "ui.cluster.mutate_relax": True,
+            "ui.cluster.rosetta.override_representatives": False,
+            "ui.cluster.method.use": "AgglomerativeCluster",
+            "ui.cluster.evo.inputs.pssm_profile": "",
+            "ui.cluster.evo.inputs.esm1v_table": "",
+            "ui.cluster.evo.inputs.structure_pdb": "",
+            "ui.cluster.evo.esm.mutation_col": "mutation",
+            "ui.cluster.evo.weights.seq": 1.0,
+            "ui.cluster.evo.weights.physchem": 0.0,
+            "ui.cluster.evo.weights.spatial": 0.0,
+            "ui.cluster.evo.weights.pssm": 0.0,
+            "ui.cluster.evo.weights.esm": 0.0,
+            "ui.header_panel.nproc": 2,
+            "rosetta.node_hint": "native",
+        }
+
+        def get_value(self, key, _type=None, cfg=None, default_value=None, reject_none=False):
+            del _type, cfg, reject_none
+            return self.values.get(key, default_value)
+
+    (tmp_path / "in.mut.txt").write_text("A1V\n", encoding="utf-8")
+
+    import REvoDesign.clusters.cluster_runner as runner_module
+    import REvoDesign.clusters.combine_positions as combinations_module
+
+    monkeypatch.setattr(runner_module, "ConfigBus", _FakeBus)
+    monkeypatch.setattr(runner_module.ClusterMethodManager, "get", lambda **_kwargs: _FakeClusterMethod())
+    monkeypatch.setattr(runner_module, "set_widget_value", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(runner_module, "run_worker_thread_in_pool", lambda **_kwargs: [object()])
+    monkeypatch.setattr(runner_module, "score_clusters", object())
+    monkeypatch.setattr(runner_module.ClusterRunner, "_make_input_pdb", lambda *_args, **_kwargs: str(tmp_path / "in.pdb"))
+    monkeypatch.setattr(combinations_module, "Combinations", _FakeCombinations)
+
+    runner = ClusterRunner(str(tmp_path))
+    runner.run_clustering()
+    assert calls["override"] == 0
+
+    _FakeBus.values["ui.cluster.rosetta.override_representatives"] = True
+    runner = ClusterRunner(str(tmp_path))
+    runner.run_clustering()
+    assert calls["override"] == 1
+
+
+def test_cluster_runner_rejects_num_clusters_above_variant_count(monkeypatch, tmp_path):
+    from REvoDesign.clusters.cluster_runner import ClusterRunner
+
+    class _FakeCombinations:
+        def __init__(self):
+            self.expected_output_fasta = ""
+
+        def run_combinations(self):
+            output = tmp_path / "comb.fasta"
+            output.write_text(">seq_0\nAAAAAA\n", encoding="utf-8")
+            self.expected_output_fasta = str(output)
+
+    class _FakeProgress:
+        def setRange(self, *_args):
+            return None
+
+        def setValue(self, *_args):
+            return None
+
+    class _FakeUI:
+        def __init__(self):
+            self.stackedWidget = object()
+            self.progressBar = _FakeProgress()
+
+    class _FakeBus:
+        ui = _FakeUI()
+
+        values = {
+            "ui.header_panel.input.molecule": "1ABC",
+            "ui.header_panel.input.chain_id": "A",
+            "designable_sequences": {"A": "AAAAAA"},
+            "ui.cluster.input.from_mutant_txt": str(tmp_path / "in.mut.txt"),
+            "ui.cluster.batch_size": 100,
+            "ui.cluster.num_cluster": 2,
+            "ui.cluster.mut_num_min": 1,
+            "ui.cluster.mut_num_max": 1,
+            "ui.cluster.score_matrix.default": "PAM30",
+            "ui.cluster.shuffle": False,
+            "ui.cluster.random_seed": 0,
+            "ui.cluster.mutate_relax": False,
+            "ui.cluster.rosetta.override_representatives": False,
+            "ui.cluster.method.use": "AgglomerativeCluster",
+            "ui.cluster.evo.inputs.pssm_profile": "",
+            "ui.cluster.evo.inputs.esm1v_table": "",
+            "ui.cluster.evo.inputs.structure_pdb": "",
+            "ui.cluster.evo.esm.mutation_col": "mutation",
+            "ui.cluster.evo.weights.seq": 1.0,
+            "ui.cluster.evo.weights.physchem": 0.0,
+            "ui.cluster.evo.weights.spatial": 0.0,
+            "ui.cluster.evo.weights.pssm": 0.0,
+            "ui.cluster.evo.weights.esm": 0.0,
+            "ui.header_panel.nproc": 2,
+            "rosetta.node_hint": "native",
+        }
+
+        def get_value(self, key, _type=None, cfg=None, default_value=None, reject_none=False):
+            del _type, cfg, reject_none
+            return self.values.get(key, default_value)
+
+    (tmp_path / "in.mut.txt").write_text("A1V\n", encoding="utf-8")
+
+    import REvoDesign.clusters.cluster_runner as runner_module
+    import REvoDesign.clusters.combine_positions as combinations_module
+
+    monkeypatch.setattr(runner_module, "ConfigBus", _FakeBus)
+    monkeypatch.setattr(runner_module, "set_widget_value", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(combinations_module, "Combinations", _FakeCombinations)
+
+    runner = ClusterRunner(str(tmp_path))
+    with pytest.raises(ValueError, match="Requested 2 clusters for only 1 variants"):
+        runner.run_clustering()
+
+
+def test_main_yaml_contains_cluster_method_defaults():
+    config_fp = pathlib.Path(__file__).resolve().parents[2] / "src/REvoDesign/config/main.yaml"
+    config = yaml.safe_load(config_fp.read_text(encoding="utf-8"))
+    cluster_cfg = config["ui"]["cluster"]
+
+    assert cluster_cfg["method"]["use"] == "AgglomerativeCluster"
+    assert cluster_cfg["random_seed"] == 0
+    assert cluster_cfg["rosetta"]["override_representatives"] is False
+    assert cluster_cfg["mutate_relax"] is False
+
+
+def test_widget_link_contains_cluster_method_mappings():
+    from REvoDesign.driver.widget_link import Config2WidgetIds
+
+    c2wi = Config2WidgetIds().c2wi
+
+    assert c2wi["ui.cluster.method.use"] == "comboBox_cluster_method"
+    assert c2wi["ui.cluster.random_seed"] == "spinBox_cluster_random_seed"
+    assert (
+        c2wi["ui.cluster.rosetta.override_representatives"]
+        == "checkBox_cluster_rosetta_override_representatives"
+    )
+
+
+def test_batch_size_adjustment_never_becomes_zero(tmp_path):
+    cluster = AgglomerativeCluster(str(tmp_path / "dummy.fasta"))
+    assert cluster._normalize_batch_size(1, 8) == 8
+    assert cluster._normalize_batch_size(9, 8) == 8
+
+
+def test_legacy_cluster_spec_is_deprecated():
+    assert LegacyCluster.get_method_spec().deprecated is True
+
+
+def test_evo_runner_requires_pssm_path_for_positive_pssm_weight(monkeypatch, tmp_path):
+    from REvoDesign.clusters.cluster_runner import ClusterRunner
+
+    class _FakeUI:
+        stackedWidget = object()
+        progressBar = type("Progress", (), {"setRange": lambda *_args: None, "setValue": lambda *_args: None})()
+
+    class _FakeBus:
+        ui = _FakeUI()
+        values = {
+            "ui.header_panel.input.molecule": "1ABC",
+            "ui.header_panel.input.chain_id": "A",
+            "designable_sequences": {"A": "AAAAAA"},
+            "ui.cluster.input.from_mutant_txt": str(tmp_path / "in.mut.txt"),
+            "ui.cluster.batch_size": 100,
+            "ui.cluster.num_cluster": 1,
+            "ui.cluster.mut_num_min": 1,
+            "ui.cluster.mut_num_max": 1,
+            "ui.cluster.score_matrix.default": "PAM30",
+            "ui.cluster.shuffle": False,
+            "ui.cluster.random_seed": 0,
+            "ui.cluster.mutate_relax": False,
+            "ui.cluster.rosetta.override_representatives": False,
+            "ui.cluster.method.use": "EvoCluster",
+            "ui.cluster.evo.inputs.pssm_profile": "",
+            "ui.cluster.evo.inputs.esm1v_table": "",
+            "ui.cluster.evo.inputs.structure_pdb": "",
+            "ui.cluster.evo.esm.mutation_col": "mutation",
+            "ui.cluster.evo.weights.seq": 0.0,
+            "ui.cluster.evo.weights.physchem": 0.0,
+            "ui.cluster.evo.weights.spatial": 0.0,
+            "ui.cluster.evo.weights.pssm": 1.0,
+            "ui.cluster.evo.weights.esm": 0.0,
+            "ui.header_panel.nproc": 2,
+            "rosetta.node_hint": "native",
+        }
+
+        def get_value(self, key, _type=None, cfg=None, default_value=None, reject_none=False):
+            del _type, cfg, reject_none
+            return self.values.get(key, default_value)
+
+    import REvoDesign.clusters.cluster_runner as runner_module
+
+    monkeypatch.setattr(runner_module, "ConfigBus", _FakeBus)
+    runner = ClusterRunner(str(tmp_path))
+    with pytest.raises(ValueError, match="requires a PSSM profile path"):
+        runner._validate_evo_configuration()

@@ -10,3 +10,27 @@ Typing hints are supported in this environment.
     For special case: `MACOSX_DEPLOYMENT_TARGET=10.13 pip install git+https://github.com/schrodinger/pymol-open-source.git@v3.1.0`
 
 6. Install the rest of packages using `pip install pyqt5==5.15.11 pyqt5-qt5==5.15.15 pyqt5-sip==12.15.0 --force-reinstall` (**twice** if pymol failed on launch) to continue the installation. 
+
+7. Enable pre-commit checks before committing UI or Qt-related changes.
+   `pip install pre-commit`
+   `pre-commit install`
+   `pre-commit run --all-files`
+
+## Runtime UI loading, i18n, and type checking
+
+`src/REvoDesign/UI/REvoDesign.ui` is the runtime source of truth for the main window.
+`src/REvoDesign/UI/types.py` is generated from the `.ui` file for static typing only.
+Do not regenerate or commit `Ui_REvoDesign.py`.
+
+After editing `REvoDesign.ui`, run:
+
+```bash
+python dev/tools/generate_ui_typing.py
+python dev/tools/generate_ui_typing.py --check
+python dev/tools/validate_ui_i18n.py
+python dev/tools/check_qt_binding_imports.py
+```
+
+Business code should continue using `self.ui.<objectName>`.
+Every widget or action accessed from Python must have a stable `objectName` that is a valid Python identifier.
+Avoid duplicate `objectName` values because they change the generated typing contract and the runtime proxy surface.

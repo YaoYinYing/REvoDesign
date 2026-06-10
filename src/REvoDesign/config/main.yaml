@@ -62,14 +62,32 @@ ui:
   cluster:
     input:
       from_mutant_txt: ''
+    method:
+      use: AgglomerativeCluster
     mut_num_min: 1
     mut_num_max: 1
     num_cluster: 15
     score_matrix: 
       default: PAM30
     batch_size: 100
+    random_seed: 0
     shuffle: True
     mutate_relax: False
+    rosetta:
+      override_representatives: False
+    evo:
+      inputs:
+        pssm_profile: ''
+        esm1v_table: ''
+        structure_pdb: ''
+      esm:
+        mutation_col: mutation
+      weights:
+        seq: 1.0
+        physchem: 0.0
+        spatial: 0.0
+        pssm: 0.0
+        esm: 0.0
     
   
   visualize:

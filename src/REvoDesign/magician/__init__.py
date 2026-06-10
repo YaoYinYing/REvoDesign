@@ -10,9 +10,9 @@ Collect, Register, Heat up and Cool down.
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from types import MappingProxyType
 
 from REvoDesign import ConfigBus, issues
+from REvoDesign.basic import build_plugin_registry
 from REvoDesign.basic.abc_singleton import SingletonAbstract
 from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.logger import ROOT_LOGGER
@@ -23,15 +23,12 @@ from .designers import ColabDesigner_MPNN, ddg
 
 logging = ROOT_LOGGER.getChild(__name__)
 
-# 2. add the designer class to this list
-# TODO: automatically register the designer class
-ALL_DESIGNER_CLASSES: list[type[ExternalDesignerAbstract]] = [
-    ColabDesigner_MPNN,
-    ddg,
-]
-IMPLEMENTED_DESIGNERS: Mapping[str, type[ExternalDesignerAbstract]] = MappingProxyType(
-    {c.name: c for c in ALL_DESIGNER_CLASSES}
+DESIGNER_REGISTRY = build_plugin_registry(
+    base_class=ExternalDesignerAbstract,
+    package="REvoDesign.magician.designers",
 )
+ALL_DESIGNER_CLASSES: list[type[ExternalDesignerAbstract]] = list(DESIGNER_REGISTRY.all_classes)
+IMPLEMENTED_DESIGNERS: Mapping[str, type[ExternalDesignerAbstract]] = DESIGNER_REGISTRY.implemented_map
 
 
 __all__ = ["ExternalDesignerAbstract", "ColabDesigner_MPNN"]
@@ -43,12 +40,11 @@ class MagicianAssistant:
     A class to manage the installation and usage of external design tools.
     """
 
-    installed_worker: list[str] = field(default_factory=lambda: [c.name for c in ALL_DESIGNER_CLASSES if c.installed])
+    installed_worker: list[str] = field(default_factory=lambda: DESIGNER_REGISTRY.installed_names)
 
     @staticmethod
     def get(name: str, **kwargs) -> ExternalDesignerAbstract:
-        designer_class = IMPLEMENTED_DESIGNERS[name]
-        return designer_class(**kwargs)
+        return DESIGNER_REGISTRY.get(name, **kwargs)
 
 
 class Magician(SingletonAbstract):

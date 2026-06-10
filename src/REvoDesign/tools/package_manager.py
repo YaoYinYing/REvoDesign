@@ -14,6 +14,7 @@ import importlib.util
 import io
 import json
 import locale
+import logging
 import math
 import os
 import platform
@@ -39,17 +40,99 @@ from urllib.parse import urlparse
 from packaging.version import InvalidVersion, Version
 from pymol import cmd, get_version_message
 from pymol.plugins import addmenuitemqt
+from pymol.Qt import QtCore, QtGui, QtWidgets
 from pymol.Qt.utils import loadUi
 
 LOGGER_LEVEL = 0
 _WORKER_CONTEXT = threading.local()
 
-if TYPE_CHECKING:
-    # type checking branch
-    from PyQt5 import QtCore, QtGui, QtWidgets
-else:
-    # runtime branch
-    from pymol.Qt import QtCore, QtGui, QtWidgets
+
+def _qt_enum(owner, enum_name: str, member_name: str):
+    """Return a Qt enum member with Qt6 scoped lookup and Qt5 fallback."""
+
+    scoped_enum = getattr(owner, enum_name, None)
+    if scoped_enum is not None and hasattr(scoped_enum, member_name):
+        return getattr(scoped_enum, member_name)
+    return getattr(owner, member_name)
+
+
+def _qt_exec(obj, *args, **kwargs):
+    """Execute a Qt object on both Qt5 and Qt6 bindings."""
+
+    if hasattr(obj, "exec"):
+        return obj.exec(*args, **kwargs)
+    return obj.exec_(*args, **kwargs)
+
+
+def _install_qt5_aliases_for_manager() -> None:
+    """Patch a minimal Qt5-style surface onto Qt6 bindings for the manager."""
+
+    def _alias_attr(target, old_name: str, source, enum_name: str, member_name: str) -> None:
+        if hasattr(target, old_name):
+            return
+        enum_obj = getattr(source, enum_name, None)
+        if enum_obj is None or not hasattr(enum_obj, member_name):
+            return
+        setattr(target, old_name, getattr(enum_obj, member_name))
+
+    _alias_attr(QtCore.Qt, "WA_DeleteOnClose", QtCore.Qt, "WidgetAttribute", "WA_DeleteOnClose")
+    _alias_attr(QtCore.Qt, "WA_ShowWithoutActivating", QtCore.Qt, "WidgetAttribute", "WA_ShowWithoutActivating")
+    _alias_attr(QtCore.Qt, "CustomContextMenu", QtCore.Qt, "ContextMenuPolicy", "CustomContextMenu")
+    _alias_attr(QtCore.Qt, "RichText", QtCore.Qt, "TextFormat", "RichText")
+    _alias_attr(QtCore.Qt, "Checked", QtCore.Qt, "CheckState", "Checked")
+    _alias_attr(QtCore.Qt, "Unchecked", QtCore.Qt, "CheckState", "Unchecked")
+    _alias_attr(QtCore.Qt, "yellow", QtCore.Qt, "GlobalColor", "yellow")
+    _alias_attr(QtCore.Qt, "blue", QtCore.Qt, "GlobalColor", "blue")
+    _alias_attr(QtCore.Qt, "Tool", QtCore.Qt, "WindowType", "Tool")
+    _alias_attr(QtCore.Qt, "FramelessWindowHint", QtCore.Qt, "WindowType", "FramelessWindowHint")
+    _alias_attr(QtCore.Qt, "WindowStaysOnTopHint", QtCore.Qt, "WindowType", "WindowStaysOnTopHint")
+    _alias_attr(QtCore.Qt, "WindowDoesNotAcceptFocus", QtCore.Qt, "WindowType", "WindowDoesNotAcceptFocus")
+    _alias_attr(QtCore.Qt, "NoFocus", QtCore.Qt, "FocusPolicy", "NoFocus")
+    _alias_attr(QtCore.Qt, "PointingHandCursor", QtCore.Qt, "CursorShape", "PointingHandCursor")
+    _alias_attr(QtWidgets.QMessageBox, "Warning", QtWidgets.QMessageBox, "Icon", "Warning")
+    _alias_attr(QtWidgets.QMessageBox, "Information", QtWidgets.QMessageBox, "Icon", "Information")
+    _alias_attr(QtWidgets.QMessageBox, "Critical", QtWidgets.QMessageBox, "Icon", "Critical")
+    _alias_attr(QtWidgets.QMessageBox, "Question", QtWidgets.QMessageBox, "Icon", "Question")
+    _alias_attr(QtWidgets.QMessageBox, "Yes", QtWidgets.QMessageBox, "StandardButton", "Yes")
+    _alias_attr(QtWidgets.QMessageBox, "No", QtWidgets.QMessageBox, "StandardButton", "No")
+    _alias_attr(QtWidgets.QMessageBox, "Ok", QtWidgets.QMessageBox, "StandardButton", "Ok")
+    _alias_attr(QtWidgets.QMessageBox, "Cancel", QtWidgets.QMessageBox, "StandardButton", "Cancel")
+    _alias_attr(QtWidgets.QAbstractItemView, "NoEditTriggers", QtWidgets.QAbstractItemView, "EditTrigger", "NoEditTriggers")
+    _alias_attr(QtWidgets.QAbstractItemView, "NoSelection", QtWidgets.QAbstractItemView, "SelectionMode", "NoSelection")
+    _alias_attr(QtWidgets.QHeaderView, "Stretch", QtWidgets.QHeaderView, "ResizeMode", "Stretch")
+    _alias_attr(QtWidgets.QHeaderView, "ResizeToContents", QtWidgets.QHeaderView, "ResizeMode", "ResizeToContents")
+    _alias_attr(QtGui.QFont, "Bold", QtGui.QFont, "Weight", "Bold")
+    _alias_attr(QtCore.QEasingCurve, "OutQuad", QtCore.QEasingCurve, "Type", "OutQuad")
+
+
+class _QtCompatNamespace:
+    """Local Qt compat surface for the standalone package manager."""
+
+    Information = _qt_enum(QtWidgets.QMessageBox, "Icon", "Information")
+    Warning = _qt_enum(QtWidgets.QMessageBox, "Icon", "Warning")
+    Critical = _qt_enum(QtWidgets.QMessageBox, "Icon", "Critical")
+    Question = _qt_enum(QtWidgets.QMessageBox, "Icon", "Question")
+    Ok = _qt_enum(QtWidgets.QMessageBox, "StandardButton", "Ok")
+    Yes = _qt_enum(QtWidgets.QMessageBox, "StandardButton", "Yes")
+    No = _qt_enum(QtWidgets.QMessageBox, "StandardButton", "No")
+    Cancel = _qt_enum(QtWidgets.QMessageBox, "StandardButton", "Cancel")
+    Checked = _qt_enum(QtCore.Qt, "CheckState", "Checked")
+    Unchecked = _qt_enum(QtCore.Qt, "CheckState", "Unchecked")
+    RichText = _qt_enum(QtCore.Qt, "TextFormat", "RichText")
+    CustomContextMenu = _qt_enum(QtCore.Qt, "ContextMenuPolicy", "CustomContextMenu")
+    WA_DeleteOnClose = _qt_enum(QtCore.Qt, "WidgetAttribute", "WA_DeleteOnClose")
+    AlignCenter = _qt_enum(QtCore.Qt, "AlignmentFlag", "AlignCenter")
+
+
+_install_qt5_aliases_for_manager()
+QtCompat = _QtCompatNamespace()
+qexec = _qt_exec
+
+
+def _load_module(module_name: str):
+    """Import a module lazily for post-install runtime integrations."""
+
+    return importlib.import_module(module_name)
 
 
 if not __file__.endswith("package_manager.py"):
@@ -101,10 +184,7 @@ meaning that any tools existed here is part of the manager.
 To make any of them importable in certain modules, import them from here
 and add to the `__all__` attributes so that they can be discoverable.
 """
-    # enable logger from REvoDesign if it is a submodule not a script
-    from REvoDesign.logger import ROOT_LOGGER
-
-    logging = ROOT_LOGGER.getChild(__name__)
+    logging = logging.getLogger(__name__)
     logging.info("Package manager is running via REvoDesign.")
 
 
@@ -594,7 +674,7 @@ class CheckableListView(QtWidgets.QWidget):
                 # Add as a regular checkable item
                 item = QtGui.QStandardItem(_e.name)
                 item.setCheckable(True)
-                item.setCheckState(QtCore.Qt.Unchecked)  # Default unchecked
+                item.setCheckState(QtCompat.Unchecked)  # Default unchecked
                 item.setToolTip(_e.description or _e.name)
                 self.model.appendRow(item)
 
@@ -623,7 +703,7 @@ class CheckableListView(QtWidgets.QWidget):
         Returns:
             A list of strings representing the texts of all checked items.
         """
-        checked_items = self._get_items_by_check_state(QtCore.Qt.Checked)
+        checked_items = self._get_items_by_check_state(QtCompat.Checked)
         logging.debug(f"Checked: {checked_items}")
         return checked_items.extras_id_list
 
@@ -634,7 +714,7 @@ class CheckableListView(QtWidgets.QWidget):
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
             if item.isCheckable() and item.text() != "Test":
-                item.setCheckState(QtCore.Qt.Checked)
+                item.setCheckState(QtCompat.Checked)
 
     def uncheck_all(self):
         """
@@ -643,7 +723,7 @@ class CheckableListView(QtWidgets.QWidget):
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
             if item.isCheckable():
-                item.setCheckState(QtCore.Qt.Unchecked)
+                item.setCheckState(QtCompat.Unchecked)
 
 
 @dataclass(frozen=True)
@@ -1325,7 +1405,7 @@ class REvoDesignPackageManager:
                 self.menu.addSection(item.name)
 
         # Set the context menu policy to show the menu on right-click
-        self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.installer_ui.setContextMenuPolicy(QtCompat.CustomContextMenu)
         self.installer_ui.customContextMenuRequested.connect(self.show_menu)
 
     def show_menu(self, pos):
@@ -1338,7 +1418,7 @@ class REvoDesignPackageManager:
         # Show the menu at the position of the mouse cursor
         logging.debug(f"showing menu at {pos}")
         global_pos = self.installer_ui.mapToGlobal(pos)
-        self.menu.exec_(global_pos)
+        qexec(self.menu, global_pos)
 
     def make_window(self) -> QtWidgets.QDialog:
         """
@@ -1819,8 +1899,9 @@ class REvoDesignPackageManager:
             None
         """
         try:
-            # Import necessary components from REvoDesign
-            from REvoDesign import ConfigBus, save_configuration
+            revodesign = _load_module("REvoDesign")
+            ConfigBus = revodesign.ConfigBus
+            save_configuration = revodesign.save_configuration
 
             bus = ConfigBus()
 
@@ -1861,9 +1942,9 @@ class REvoDesignPackageManager:
         if not comfirmed:
             return
 
-        from REvoDesign.bootstrap.set_config import set_REvoDesign_config_file
+        set_config = _load_module("REvoDesign.bootstrap.set_config")
 
-        set_REvoDesign_config_file(delete_user_config_tree=True)
+        set_config.set_REvoDesign_config_file(delete_user_config_tree=True)
 
     @staticmethod
     def _open_thread_dashboard(event=None):
@@ -1905,7 +1986,7 @@ class ThreadDashboard(QtWidgets.QDialog):
         super().__init__()
         self.setWindowTitle("Thread Dashboard")
         self.setModal(False)
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
+        self.setAttribute(QtCompat.WA_DeleteOnClose, False)
         self.resize(540, 260)
         self.setStyleSheet(
             """
@@ -1951,7 +2032,7 @@ class ThreadDashboard(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.table)
         self.hide()
-        self.table.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.table.setContextMenuPolicy(QtCompat.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
 
     @classmethod
@@ -1976,10 +2057,10 @@ class ThreadDashboard(QtWidgets.QDialog):
         self.table.setRowCount(len(entries))
         for row, entry in enumerate(entries):
             duration_item = QtWidgets.QTableWidgetItem(f"{entry.duration:.1f}s")
-            duration_item.setTextAlignment(QtCore.Qt.AlignCenter)
+            duration_item.setTextAlignment(QtCompat.AlignCenter)
             thread_item = QtWidgets.QTableWidgetItem(hex(entry.thread_id))
             thread_item.setForeground(QtGui.QColor("#9cdcfe"))
-            thread_item.setTextAlignment(QtCore.Qt.AlignCenter)
+            thread_item.setTextAlignment(QtCompat.AlignCenter)
             task_item = QtWidgets.QTableWidgetItem(entry.description)
             task_item.setForeground(QtGui.QColor("#ce9178"))
             self.table.setItem(row, 0, task_item)
@@ -2007,7 +2088,7 @@ class ThreadDashboard(QtWidgets.QDialog):
         menu = QtWidgets.QMenu(self)
         kill_action = menu.addAction("Kill")
         global_pos = self.table.viewport().mapToGlobal(pos)
-        action = menu.exec_(global_pos)
+        action = qexec(menu, global_pos)
         if action == kill_action:
             ThreadExecutionManager.kill_entry(entry)
 
@@ -2609,19 +2690,19 @@ def _show_notification_dialog(
     msg = QtWidgets.QMessageBox()
 
     if error_type is None:
-        msg.setIcon(QtWidgets.QMessageBox.Information)
+        msg.setIcon(QtCompat.Information)
     elif issubclass(error_type, Warning):
-        msg.setIcon(QtWidgets.QMessageBox.Warning)
+        msg.setIcon(QtCompat.Warning)
     elif issubclass(error_type, Exception):
-        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg.setIcon(QtCompat.Critical)
 
     msg.setText(message)
     if details is not None:
         msg.setDetailedText(details)
 
-    msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+    msg.setStandardButtons(QtCompat.Ok)
     # Display the message box
-    msg.exec_()
+    qexec(msg)
     # If error_type is None, end the function execution
     if error_type is None:
         return
@@ -2719,17 +2800,17 @@ def _decide_dialog(title="", description="", rich: bool = False, details: str | 
     refresh_window()
     # A confirmation message.
     msg = QtWidgets.QMessageBox()
-    msg.setIcon(QtWidgets.QMessageBox.Question)
+    msg.setIcon(QtCompat.Question)
     msg.setWindowTitle(title)
     msg.setText(description)
     if details is not None:
         msg.setDetailedText(details)
     if rich:
-        msg.setTextFormat(QtCore.Qt.RichText)
-    msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-    result = msg.exec_()
+        msg.setTextFormat(QtCompat.RichText)
+    msg.setStandardButtons(QtCompat.Yes | QtCompat.No)
+    result = qexec(msg)
 
-    return result == QtWidgets.QMessageBox.Yes
+    return result == QtCompat.Yes
 
 
 def is_package_installed(package):
@@ -2970,13 +3051,13 @@ def issue_collection(
             info["REvoDesign::Version"] = "Not Installed"
             return info
 
-        import REvoDesign
-        from REvoDesign.driver.ui_driver import ConfigBus
-        from REvoDesign.magician import ALL_DESIGNER_CLASSES
-        from REvoDesign.sidechain.sidechain_solver import ALL_RUNNER_CLASSES
+        revodesign = _load_module("REvoDesign")
+        ConfigBus = _load_module("REvoDesign.driver.ui_driver").ConfigBus
+        ALL_DESIGNER_CLASSES = _load_module("REvoDesign.magician").ALL_DESIGNER_CLASSES
+        ALL_RUNNER_CLASSES = _load_module("REvoDesign.sidechain.sidechain_solver").ALL_RUNNER_CLASSES
 
-        info["REvoDesign::Version"] = REvoDesign.__version__
-        info["REvoDesign::Config"] = REvoDesign.REVODESIGN_CONFIG_FILE
+        info["REvoDesign::Version"] = revodesign.__version__
+        info["REvoDesign::Config"] = revodesign.REVODESIGN_CONFIG_FILE
 
         ui_language = ConfigBus().cfg_group["main"].cfg.language if ConfigBus._instance is not None else "N/A"
         info["REvoDesign::UI::Language"] = ui_language
@@ -3020,9 +3101,8 @@ def issue_collection(
         dummy_payload: dict[str, Any] = {"Dummy::Environ": env_dict, "Dummy::Pip::List": pip_packages}
 
         if is_package_installed("REvoDesign"):
-            import REvoDesign
-            from REvoDesign.bootstrap.set_config import ConfigConverter
-            from REvoDesign.driver.ui_driver import ConfigBus
+            ConfigConverter = _load_module("REvoDesign.bootstrap.set_config").ConfigConverter
+            ConfigBus = _load_module("REvoDesign.driver.ui_driver").ConfigBus
 
             dummy_payload["Dummy::REvoDesign::Configurations"] = (
                 ConfigConverter().convert(ConfigBus().cfg_group["main"].cfg)
@@ -3220,9 +3300,7 @@ def __init_plugin__(app=None):
         nonlocal revodesign_plugin
         if revodesign_plugin is None:
             try:
-                from REvoDesign import REvoDesignPlugin
-
-                revodesign_plugin = REvoDesignPlugin()
+                revodesign_plugin = _load_module("REvoDesign").REvoDesignPlugin()
             except Exception as exc:
                 logging.error("Failed to initialize REvoDesign plugin", exc_info=True)
                 notify_box(

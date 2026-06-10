@@ -142,7 +142,7 @@ This plan turns the scattered documentation notes into a cohesive set of guides 
    1. Documentation at this [README](../server/README.md)
    2. Docker image at [DockerHub](https://hub.docker.com/r/yaoyinying/revodesign-pssm-gremlin)
    3. Also [Dockerfile for making the image](../server/docker/Dockerfile)
-   4. Environment [inside container](../server/env/GREMLIN.yml) and [for the server](../server/env/REvoDesign.yml)
+   4. Environments: [runner image env](../server/env/GREMLIN.yml) and maintained server dependency set at [docker/server/requirements.txt](../server/docker/server/requirements.txt)
 
 ### UI design (`docs/ui-designs.md`)
 

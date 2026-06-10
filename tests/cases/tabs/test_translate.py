@@ -9,8 +9,6 @@ import pytest
 
 from tests.conftest import TestWorker
 
-os.environ["PYTEST_QT_API"] = "pyqt5"
-
 
 @pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"], scope="session")
 class TestREvoDesignPlugin_ActionTranslate:

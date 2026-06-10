@@ -62,7 +62,12 @@ class FontSetter:
         """
         self.main_window = main_window
 
-        self.font_families = QtGui.QFontDatabase().families()
+        # Deferred: system font enumeration via QFontDatabase is expensive
+        # (~100-500 ms depending on installed fonts) and is only needed when
+        # set_window_font searches for a matching flavoured font.  The common
+        # path (no match or a match already cached) does not require the full
+        # family list, so we compute it lazily.
+        self._font_families_cache: list[str] | None = None
         self.flavored_fonts = FlavoredFonts.OS_TYPE_FONT_TABLE
         global DEFAULT_FONT
         global CURRENT_FONT
@@ -71,6 +76,23 @@ class FontSetter:
 
         self.set_window_font()
         CURRENT_FONT = self.main_window.font()
+
+    @staticmethod
+    def _list_font_families() -> list[str]:
+        families = getattr(QtGui.QFontDatabase, "families", None)
+        if callable(families):
+            try:
+                return list(families())
+            except TypeError:
+                pass
+        return list(QtGui.QFontDatabase().families())
+
+    @property
+    def font_families(self) -> list[str]:
+        """Return the list of installed font families (lazy, cached)."""
+        if self._font_families_cache is None:
+            self._font_families_cache = self._list_font_families()
+        return self._font_families_cache
 
     def set_window_font(self, custom_font: QtGui.QFont | str | None = None):
         """
@@ -125,10 +147,9 @@ def set_font(font: QtGui.QFont | str | None = None):
 
     # Get configuration bus and UI instance
     from REvoDesign.driver.ui_driver import ConfigBus
-    from REvoDesign.UI.Ui_REvoDesign import Ui_REvoDesignPyMOL_UI as UI
 
     bus = ConfigBus()
-    ui: UI = bus.ui
+    ui = bus.ui
     window = bus.ui.centralwidget
     window.setFont(font)
 

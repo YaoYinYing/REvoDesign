@@ -10,6 +10,7 @@ pytest configuration
 from __future__ import annotations
 
 import gc
+import importlib.util
 import json
 import os
 import platform
@@ -27,10 +28,26 @@ import psutil
 import pytest
 from _pytest.nodes import Item
 from immutabledict import immutabledict
-from pymol import CmdException, cmd
-from pytestqt import qtbot
+from pymol import CmdException, Qt as pymol_qt, cmd
 from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
+
+
+def _resolve_pytest_qt_api() -> str:
+    backend = getattr(pymol_qt, "PYQT_NAME", "")
+    if backend:
+        return backend.lower()
+
+    for module_name in ("PyQt6", "PyQt5"):
+        if importlib.util.find_spec(module_name) is not None:
+            return module_name.lower()
+
+    raise RuntimeError("Unable to determine a Qt binding for pytest-qt.")
+
+
+PYTEST_QT_API = os.environ.setdefault("PYTEST_QT_API", _resolve_pytest_qt_api())
+
+from pytestqt import qtbot
 
 from REvoDesign import REvoDesignPlugin
 from REvoDesign.basic.abc_singleton import reset_singletons
@@ -139,8 +156,6 @@ main_config = set_REvoDesign_config_file()
 
 # check_real_config_dir(cck.i)
 
-
-os.environ["PYTEST_QT_API"] = "pyqt5"
 
 TAB_NAMES = Literal["prepare", "mutate", "evaluate", "cluster", "visualize", "interact", "socket", "config"]
 
@@ -617,11 +632,16 @@ class TestWorker:
         return f"[{p.pid}] memory usage: {rss / 1e6:0.3} MB"
 
     def print_all_mem(self):
-        p = psutil.Process()
-        procs = [p] + p.children(recursive=True)
         mem_count_file = os.path.join("performance", f"ram_usage_{self.run_time}.log")
+        try:
+            p = psutil.Process()
+            procs = [p] + p.children(recursive=True)
+            contents = "\n".join([self.print_mem(p) for p in procs])
+        except PermissionError as error:
+            warnings.warn(f"Skip memory report due to process permission error: {error}")
+            contents = f"permission_error: {error}\n"
         with open(mem_count_file, "w") as mc:
-            mc.write("\n".join([self.print_mem(p) for p in procs]))
+            mc.write(contents)
 
     def inject_rosetta_node_config(self, node_hint: NodeHintT):
         self.plugin.bus.set_value("rosetta.node_hint", node_hint or "native")
@@ -961,6 +981,16 @@ def github_rosetta_test():
 is_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
 
 has_docker = shutil.which("docker") is not None
+
+
+def has_docker_daemon() -> bool:
+    if not has_docker:
+        return False
+    try:
+        result = subprocess.run(["docker", "info"], capture_output=True, text=True)
+    except OSError:
+        return False
+    return result.returncode == 0
 
 # Github Actions, Ubuntu-latest with Rosetta Docker container enabled
 ENABLE_ROSETTA_CONTAINER_NODE_TEST = os.environ.get("ENABLE_ROSETTA_CONTAINER_NODE_TEST", "NO") == "YES"

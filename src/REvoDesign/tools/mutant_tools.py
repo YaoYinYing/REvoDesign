@@ -23,6 +23,7 @@ from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 from REvoDesign import ConfigBus, file_extensions, issues
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.Qt import QtCompat
 from REvoDesign.sidechain import SidechainSolver
 from REvoDesign.tools.customized_widgets import QButtonMatrix, REvoDesignWidget
 from REvoDesign.tools.pymol_utils import is_hidden_object
@@ -933,7 +934,7 @@ View Highlight Nbr: {view_highlight_nbr}
 
     banner_label = QtWidgets.QLabel(f"Design with Profiles: {shorter_range(custom_indices)}")
     banner_label.setWordWrap(True)
-    banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)  # type: ignore
+    banner_label.setAlignment(QtCompat.AlignTop | QtCompat.AlignLeft)  # type: ignore
     banner_label.setStyleSheet(
         """
         font-size: 14px;

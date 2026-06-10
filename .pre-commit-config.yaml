@@ -3,6 +3,39 @@ ci:
   autofix_commit_msg: "style: pre-commit fixes"
 
 repos:
+  - repo: local
+    hooks:
+      - id: generate-ui-typing
+        name: Generate REvoDesign UI typing contract
+        entry: python dev/tools/generate_ui_typing.py
+        language: system
+        pass_filenames: false
+        files: ^src/REvoDesign/UI/REvoDesign\.ui$
+
+      - id: check-ui-typing
+        name: Check REvoDesign UI typing contract freshness
+        entry: python dev/tools/generate_ui_typing.py --check
+        language: system
+        pass_filenames: false
+
+      - id: validate-ui-i18n
+        name: Validate runtime UI i18n
+        entry: python dev/tools/validate_ui_i18n.py
+        language: system
+        pass_filenames: false
+
+      - id: reject-generated-main-ui
+        name: Reject generated Ui_REvoDesign.py
+        entry: python dev/tools/reject_generated_main_ui.py
+        language: system
+        pass_filenames: false
+
+      - id: check-qt-binding-imports
+        name: Reject direct Qt binding imports and Qt5-only usages
+        entry: python dev/tools/check_qt_binding_imports.py
+        language: system
+        pass_filenames: false
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -91,5 +124,3 @@ repos:
         - --fast
         - ./src
         - ./tests
-
-
