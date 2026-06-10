@@ -43,11 +43,9 @@ _QWEBSOCKET_TYPE = getattr(QtWebSockets, "QWebSocket", None) if QtWebSockets is 
 
 
 def _require_websocket_support() -> None:
-    missing = [module_name for module_name in ("QtNetwork", "QtWebSockets") if not has_qt_module(module_name)]
-    if missing:
-        missing_text = ", ".join(missing)
+    if not has_qt_module("QtNetwork") or not has_qt_module("QtWebSockets"):
         raise RuntimeError(
-            f"The active PyMOL Qt backend does not provide {missing_text}. Active backend: {QT_BACKEND}."
+            f"The active PyMOL Qt backend does not provide QtWebSockets. Active backend: {QT_BACKEND}."
         )
 
 """
@@ -666,7 +664,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         if not self.server:
             self.server = QtWebSockets.QWebSocketServer(host_info["node"], QtCompat.NonSecureMode)
 
-            if not self.server.listen(QtCompat.AnyAddress, self.port):
+            if not self.server.listen(QtCompat.AnyHostAddress, self.port):
                 self.meetingroom = None
                 raise issues.SocketError("Unable to start the server.")
 
@@ -735,7 +733,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         """
         _require_websocket_support()
         sock = QtNetwork.QTcpSocket()
-        sock.bind(QtCompat.LocalHost, port)
+        sock.bind(QtCompat.LocalHostAddress, port)
         can_listen = sock.waitForConnected(500)  # Wait for 0.5 seconds to check connection
         sock.disconnectFromHost()
         return not can_listen

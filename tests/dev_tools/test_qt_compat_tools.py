@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+from types import SimpleNamespace
 
 from REvoDesign.Qt import qt_wrapper
 
@@ -99,6 +100,10 @@ def test_qtcompat_resolves_qt5_and_qt6_style_enums():
         Yes = 6
         No = 7
 
+    class _Qt5TabWidget:
+        Rounded = 71
+        Triangular = 72
+
     class _Qt6Icon:
         Information = 51
         Warning = 52
@@ -125,8 +130,31 @@ def test_qtcompat_resolves_qt5_and_qt6_style_enums():
     class _Qt6Dialog:
         DialogCode = _Qt6DialogCode
 
-    widgets_qt5 = type("WidgetsQt5", (), {"QMessageBox": _Qt5MessageBox, "QDialog": _Qt5Dialog})
-    widgets_qt6 = type("WidgetsQt6", (), {"QMessageBox": _Qt6MessageBox, "QDialog": _Qt6Dialog})
+    class _Qt6TabShape:
+        Rounded = 73
+        Triangular = 74
+
+    class _Qt6TabWidget:
+        TabShape = _Qt6TabShape
+
+    widgets_qt5 = type(
+        "WidgetsQt5",
+        (),
+        {
+            "QMessageBox": _Qt5MessageBox,
+            "QDialog": _Qt5Dialog,
+            "QTabWidget": _Qt5TabWidget,
+        },
+    )
+    widgets_qt6 = type(
+        "WidgetsQt6",
+        (),
+        {
+            "QMessageBox": _Qt6MessageBox,
+            "QDialog": _Qt6Dialog,
+            "QTabWidget": _Qt6TabWidget,
+        },
+    )
 
     compat_qt5 = compat_cls(_Qt5Core, widgets_qt5)
     compat_qt6 = compat_cls(_Qt6Core, widgets_qt6)
@@ -135,11 +163,69 @@ def test_qtcompat_resolves_qt5_and_qt6_style_enums():
     assert compat_qt5.Yes == 6
     assert compat_qt5.RichText == 11
     assert compat_qt5.AlignTrailing == 21
+    assert compat_qt5.Rounded == 71
 
     assert compat_qt6.Warning == 52
     assert compat_qt6.Yes == 56
     assert compat_qt6.RichText == 31
     assert compat_qt6.AlignTrailing == 41
+    assert compat_qt6.Rounded == 73
+    assert compat_qt6.Cancel is None
+
+
+def test_install_qt5_aliases_adds_qt6_compat_members():
+    class _QtNamespace:
+        pass
+
+    class _WidgetAttribute:
+        WA_DeleteOnClose = 101
+
+    class _TabShape:
+        Rounded = 202
+
+    class _Icon:
+        Warning = 303
+
+    fake_core = SimpleNamespace(Qt=_QtNamespace())
+    fake_core.Qt.WidgetAttribute = _WidgetAttribute
+    fake_widgets = SimpleNamespace(
+        QTabWidget=type("FakeTabWidget", (), {"TabShape": _TabShape}),
+        QMessageBox=type("FakeMessageBox", (), {"Icon": _Icon}),
+        QFrame=type("FakeFrame", (), {}),
+        QSizePolicy=type("FakeSizePolicy", (), {}),
+        QAbstractItemView=type("FakeItemView", (), {}),
+        QHeaderView=type("FakeHeaderView", (), {}),
+        QAbstractSpinBox=type("FakeSpinBox", (), {}),
+        QComboBox=type("FakeComboBox", (), {}),
+        QDialogButtonBox=type("FakeDialogButtonBox", (), {}),
+    )
+    fake_gui = SimpleNamespace(QPalette=type("FakePalette", (), {}))
+
+    original_core = qt_wrapper.QtCore
+    original_widgets = qt_wrapper.QtWidgets
+    original_gui = qt_wrapper.QtGui
+    original_network = qt_wrapper.QtNetwork
+    original_websockets = qt_wrapper.QtWebSockets
+    original_flag = qt_wrapper._ALIASES_INSTALLED
+    try:
+        qt_wrapper.QtCore = fake_core
+        qt_wrapper.QtWidgets = fake_widgets
+        qt_wrapper.QtGui = fake_gui
+        qt_wrapper.QtNetwork = None
+        qt_wrapper.QtWebSockets = None
+        qt_wrapper._ALIASES_INSTALLED = False
+        qt_wrapper.install_qt5_aliases()
+    finally:
+        qt_wrapper.QtCore = original_core
+        qt_wrapper.QtWidgets = original_widgets
+        qt_wrapper.QtGui = original_gui
+        qt_wrapper.QtNetwork = original_network
+        qt_wrapper.QtWebSockets = original_websockets
+        qt_wrapper._ALIASES_INSTALLED = original_flag
+
+    assert fake_core.Qt.WA_DeleteOnClose == 101
+    assert fake_widgets.QTabWidget.Rounded == 202
+    assert fake_widgets.QMessageBox.Warning == 303
 
 
 def test_qexec_prefers_exec_and_falls_back_to_exec_():
@@ -173,6 +259,22 @@ def test_import_guard_detects_forbidden_binding_imports(tmp_path):
     assert "direct Qt binding import" in errors[0]
 
 
+def test_import_guard_detects_qt5_only_patterns(tmp_path):
+    script = _load_module(
+        Path(__file__).resolve().parents[2] / "dev/tools/check_qt_binding_imports.py",
+        "check_qt_binding_imports_patterns",
+    )
+    script.REPO_ROOT = tmp_path
+    bad_file = tmp_path / "src" / "bad_runtime.py"
+    bad_file.parent.mkdir()
+    bad_file.write_text("dialog.exec_()\nQtCore.Qt.WA_DeleteOnClose\nQTabWidget.Rounded\n", encoding="utf-8")
+
+    errors = script.scan_file(bad_file)
+    assert any(".exec_(" in error for error in errors)
+    assert any("QtCore.Qt.WA_DeleteOnClose" in error for error in errors)
+    assert any("QTabWidget.Rounded" in error for error in errors)
+
+
 def test_ui_rewrite_converts_generated_binding_imports():
     script = _load_module(
         Path(__file__).resolve().parents[2] / "dev/tools/compile_qt_ui.py",
@@ -189,3 +291,34 @@ def test_ui_rewrite_converts_generated_binding_imports():
     assert "from REvoDesign.Qt import QtCore, QtGui, QtWidgets, QtCompat" in rewritten
     assert "QtCompat.AlignRight | QtCompat.AlignVCenter" in rewritten
     assert "QtCompat.ImhDigitsOnly" in rewritten
+
+
+def test_ui_rewrite_converts_pyqt5_imports():
+    script = _load_module(
+        Path(__file__).resolve().parents[2] / "dev/tools/compile_qt_ui.py",
+        "compile_qt_ui_pyqt5",
+    )
+    rewritten = script.rewrite_generated_qt_source("from PyQt5 import QtCore, QtGui, QtWidgets\n")
+    assert rewritten.strip() == "from REvoDesign.Qt import QtCore, QtGui, QtWidgets"
+
+
+def test_ui_compiler_whitelist_is_single_revodesign_ui():
+    script = _load_module(
+        Path(__file__).resolve().parents[2] / "dev/tools/compile_qt_ui.py",
+        "compile_qt_ui_whitelist",
+    )
+    assert script.UI_COMPILE_MAP == {
+        Path("src/REvoDesign/UI/REvoDesign.ui"): Path("src/REvoDesign/UI/Ui_REvoDesign.py"),
+    }
+
+
+def test_package_manager_uses_local_qt_helpers():
+    package_manager_source = (
+        Path(__file__).resolve().parents[2] / "src/REvoDesign/tools/package_manager.py"
+    ).read_text(encoding="utf-8")
+
+    assert "from REvoDesign" not in package_manager_source
+    assert "import REvoDesign" not in package_manager_source
+    assert "def _qt_enum(" in package_manager_source
+    assert "def _qt_exec(" in package_manager_source
+    assert "def _install_qt5_aliases_for_manager()" in package_manager_source

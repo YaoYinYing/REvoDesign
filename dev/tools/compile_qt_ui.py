@@ -2,13 +2,12 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Compile Qt Designer files and rewrite generated imports to REvoDesign.Qt."""
+"""Compile the whitelisted Qt Designer files and rewrite generated imports."""
 
 from __future__ import annotations
 
 import argparse
 import importlib.util
-import re
 import shutil
 import subprocess
 import sys
@@ -16,21 +15,11 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-EXCLUDED_DIR_NAMES = {
-    ".git",
-    ".hg",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".tox",
-    ".venv",
-    "__pycache__",
-    "build",
-    "dist",
-}
+import re
+
 DIRECT_QT_IMPORT_RE = re.compile(r"^from (PyQt5|PyQt6|PySide2|PySide6) import ([^\n]+)$", re.MULTILINE)
 REVO_QT_IMPORT_RE = re.compile(r"^from REvoDesign\.Qt import ([^\n]+)$", re.MULTILINE)
-UI_TARGET_OVERRIDES = {
+UI_COMPILE_MAP = {
     Path("src/REvoDesign/UI/REvoDesign.ui"): Path("src/REvoDesign/UI/Ui_REvoDesign.py"),
 }
 QTCORE_QT_REPLACEMENTS = {
@@ -50,27 +39,16 @@ FORBIDDEN_IMPORT_RE = re.compile(r"\b(?:from|import)\s+(?:PyQt5|PyQt6|PySide2|Py
 
 
 def find_ui_files(root: Path = REPO_ROOT) -> list[Path]:
-    """Return the tracked UI files that should be compiled."""
+    """Return the whitelisted UI files that should be compiled."""
 
-    ui_files: list[Path] = []
-    for path in root.rglob("*.ui"):
-        if any(part in EXCLUDED_DIR_NAMES for part in path.parts):
-            continue
-        ui_files.append(path)
-    return sorted(ui_files)
+    return [root / relative_path for relative_path in UI_COMPILE_MAP]
 
 
 def resolve_output_path(ui_path: Path, root: Path = REPO_ROOT) -> Path:
     """Resolve the generated Python file path for a UI file."""
 
     relative_ui = ui_path.relative_to(root)
-    if relative_ui in UI_TARGET_OVERRIDES:
-        return root / UI_TARGET_OVERRIDES[relative_ui]
-
-    prefixed_target = ui_path.with_name(f"Ui_{ui_path.stem}.py")
-    if prefixed_target.exists():
-        return prefixed_target
-    return ui_path.with_suffix(".py")
+    return root / UI_COMPILE_MAP[relative_ui]
 
 
 def select_pyuic_command() -> list[str]:

@@ -14,6 +14,7 @@ import importlib.util
 import io
 import json
 import locale
+import logging
 import math
 import os
 import platform
@@ -39,11 +40,82 @@ from urllib.parse import urlparse
 from packaging.version import InvalidVersion, Version
 from pymol import cmd, get_version_message
 from pymol.plugins import addmenuitemqt
+from pymol.Qt import QtCore, QtGui, QtWidgets
 from pymol.Qt.utils import loadUi
-from REvoDesign.Qt import QT_BACKEND, QtCompat, QtCore, QtGui, QtWidgets, has_qt_module, qexec
 
 LOGGER_LEVEL = 0
 _WORKER_CONTEXT = threading.local()
+
+
+def _qt_enum(owner, enum_name: str, member_name: str):
+    """Return a Qt enum member with Qt6 scoped lookup and Qt5 fallback."""
+
+    scoped_enum = getattr(owner, enum_name, None)
+    if scoped_enum is not None and hasattr(scoped_enum, member_name):
+        return getattr(scoped_enum, member_name)
+    return getattr(owner, member_name)
+
+
+def _qt_exec(obj, *args, **kwargs):
+    """Execute a Qt object on both Qt5 and Qt6 bindings."""
+
+    if hasattr(obj, "exec"):
+        return obj.exec(*args, **kwargs)
+    return obj.exec_(*args, **kwargs)
+
+
+def _install_qt5_aliases_for_manager() -> None:
+    """Patch a minimal Qt5-style surface onto Qt6 bindings for the manager."""
+
+    def _alias_attr(target, old_name: str, source, enum_name: str, member_name: str) -> None:
+        if hasattr(target, old_name):
+            return
+        enum_obj = getattr(source, enum_name, None)
+        if enum_obj is None or not hasattr(enum_obj, member_name):
+            return
+        setattr(target, old_name, getattr(enum_obj, member_name))
+
+    _alias_attr(QtCore.Qt, "WA_DeleteOnClose", QtCore.Qt, "WidgetAttribute", "WA_DeleteOnClose")
+    _alias_attr(QtCore.Qt, "CustomContextMenu", QtCore.Qt, "ContextMenuPolicy", "CustomContextMenu")
+    _alias_attr(QtCore.Qt, "RichText", QtCore.Qt, "TextFormat", "RichText")
+    _alias_attr(QtWidgets.QMessageBox, "Warning", QtWidgets.QMessageBox, "Icon", "Warning")
+    _alias_attr(QtWidgets.QMessageBox, "Information", QtWidgets.QMessageBox, "Icon", "Information")
+    _alias_attr(QtWidgets.QMessageBox, "Critical", QtWidgets.QMessageBox, "Icon", "Critical")
+    _alias_attr(QtWidgets.QMessageBox, "Question", QtWidgets.QMessageBox, "Icon", "Question")
+    _alias_attr(QtWidgets.QMessageBox, "Yes", QtWidgets.QMessageBox, "StandardButton", "Yes")
+    _alias_attr(QtWidgets.QMessageBox, "No", QtWidgets.QMessageBox, "StandardButton", "No")
+    _alias_attr(QtWidgets.QMessageBox, "Ok", QtWidgets.QMessageBox, "StandardButton", "Ok")
+    _alias_attr(QtWidgets.QMessageBox, "Cancel", QtWidgets.QMessageBox, "StandardButton", "Cancel")
+
+
+class _QtCompatNamespace:
+    """Local Qt compat surface for the standalone package manager."""
+
+    Information = _qt_enum(QtWidgets.QMessageBox, "Icon", "Information")
+    Warning = _qt_enum(QtWidgets.QMessageBox, "Icon", "Warning")
+    Critical = _qt_enum(QtWidgets.QMessageBox, "Icon", "Critical")
+    Question = _qt_enum(QtWidgets.QMessageBox, "Icon", "Question")
+    Ok = _qt_enum(QtWidgets.QMessageBox, "StandardButton", "Ok")
+    Yes = _qt_enum(QtWidgets.QMessageBox, "StandardButton", "Yes")
+    No = _qt_enum(QtWidgets.QMessageBox, "StandardButton", "No")
+    Cancel = _qt_enum(QtWidgets.QMessageBox, "StandardButton", "Cancel")
+    Checked = _qt_enum(QtCore.Qt, "CheckState", "Checked")
+    Unchecked = _qt_enum(QtCore.Qt, "CheckState", "Unchecked")
+    RichText = _qt_enum(QtCore.Qt, "TextFormat", "RichText")
+    CustomContextMenu = _qt_enum(QtCore.Qt, "ContextMenuPolicy", "CustomContextMenu")
+    WA_DeleteOnClose = _qt_enum(QtCore.Qt, "WidgetAttribute", "WA_DeleteOnClose")
+    AlignCenter = _qt_enum(QtCore.Qt, "AlignmentFlag", "AlignCenter")
+
+
+_install_qt5_aliases_for_manager()
+QtCompat = _QtCompatNamespace()
+qexec = _qt_exec
+
+
+def _load_module(module_name: str):
+    """Import a module lazily for post-install runtime integrations."""
+
+    return importlib.import_module(module_name)
 
 
 if not __file__.endswith("package_manager.py"):
@@ -95,10 +167,7 @@ meaning that any tools existed here is part of the manager.
 To make any of them importable in certain modules, import them from here
 and add to the `__all__` attributes so that they can be discoverable.
 """
-    # enable logger from REvoDesign if it is a submodule not a script
-    from REvoDesign.logger import ROOT_LOGGER
-
-    logging = ROOT_LOGGER.getChild(__name__)
+    logging = logging.getLogger(__name__)
     logging.info("Package manager is running via REvoDesign.")
 
 
@@ -1813,8 +1882,9 @@ class REvoDesignPackageManager:
             None
         """
         try:
-            # Import necessary components from REvoDesign
-            from REvoDesign import ConfigBus, save_configuration
+            revodesign = _load_module("REvoDesign")
+            ConfigBus = revodesign.ConfigBus
+            save_configuration = revodesign.save_configuration
 
             bus = ConfigBus()
 
@@ -1855,9 +1925,9 @@ class REvoDesignPackageManager:
         if not comfirmed:
             return
 
-        from REvoDesign.bootstrap.set_config import set_REvoDesign_config_file
+        set_config = _load_module("REvoDesign.bootstrap.set_config")
 
-        set_REvoDesign_config_file(delete_user_config_tree=True)
+        set_config.set_REvoDesign_config_file(delete_user_config_tree=True)
 
     @staticmethod
     def _open_thread_dashboard(event=None):
@@ -1899,7 +1969,7 @@ class ThreadDashboard(QtWidgets.QDialog):
         super().__init__()
         self.setWindowTitle("Thread Dashboard")
         self.setModal(False)
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
+        self.setAttribute(QtCompat.WA_DeleteOnClose, False)
         self.resize(540, 260)
         self.setStyleSheet(
             """
@@ -2964,13 +3034,13 @@ def issue_collection(
             info["REvoDesign::Version"] = "Not Installed"
             return info
 
-        import REvoDesign
-        from REvoDesign.driver.ui_driver import ConfigBus
-        from REvoDesign.magician import ALL_DESIGNER_CLASSES
-        from REvoDesign.sidechain.sidechain_solver import ALL_RUNNER_CLASSES
+        revodesign = _load_module("REvoDesign")
+        ConfigBus = _load_module("REvoDesign.driver.ui_driver").ConfigBus
+        ALL_DESIGNER_CLASSES = _load_module("REvoDesign.magician").ALL_DESIGNER_CLASSES
+        ALL_RUNNER_CLASSES = _load_module("REvoDesign.sidechain.sidechain_solver").ALL_RUNNER_CLASSES
 
-        info["REvoDesign::Version"] = REvoDesign.__version__
-        info["REvoDesign::Config"] = REvoDesign.REVODESIGN_CONFIG_FILE
+        info["REvoDesign::Version"] = revodesign.__version__
+        info["REvoDesign::Config"] = revodesign.REVODESIGN_CONFIG_FILE
 
         ui_language = ConfigBus().cfg_group["main"].cfg.language if ConfigBus._instance is not None else "N/A"
         info["REvoDesign::UI::Language"] = ui_language
@@ -3014,9 +3084,8 @@ def issue_collection(
         dummy_payload: dict[str, Any] = {"Dummy::Environ": env_dict, "Dummy::Pip::List": pip_packages}
 
         if is_package_installed("REvoDesign"):
-            import REvoDesign
-            from REvoDesign.bootstrap.set_config import ConfigConverter
-            from REvoDesign.driver.ui_driver import ConfigBus
+            ConfigConverter = _load_module("REvoDesign.bootstrap.set_config").ConfigConverter
+            ConfigBus = _load_module("REvoDesign.driver.ui_driver").ConfigBus
 
             dummy_payload["Dummy::REvoDesign::Configurations"] = (
                 ConfigConverter().convert(ConfigBus().cfg_group["main"].cfg)
@@ -3214,9 +3283,7 @@ def __init_plugin__(app=None):
         nonlocal revodesign_plugin
         if revodesign_plugin is None:
             try:
-                from REvoDesign import REvoDesignPlugin
-
-                revodesign_plugin = REvoDesignPlugin()
+                revodesign_plugin = _load_module("REvoDesign").REvoDesignPlugin()
             except Exception as exc:
                 logging.error("Failed to initialize REvoDesign plugin", exc_info=True)
                 notify_box(

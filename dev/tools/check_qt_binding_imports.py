@@ -19,6 +19,8 @@ ALLOWED_DIRECT_BINDING_IMPORTS = {
 ALLOWED_QT5_PATTERN_FILES = {
     Path("src/REvoDesign/Qt/qt_wrapper.py"),
     Path("dev/tools/check_qt_binding_imports.py"),
+    Path("src/REvoDesign/tools/package_manager.py"),
+    Path("src/REvoDesign/UI/Ui_REvoDesign.py"),
 }
 ALLOWED_TEST_FILES = {
     Path("tests/dev_tools/test_qt_binding_imports_guard.py"),
@@ -32,6 +34,8 @@ FORBIDDEN_RUNTIME_PATTERNS = (
     "QMessageBox.Yes",
     "QMessageBox.No",
     "QMessageBox.Ok",
+    "QtCore.Qt.WA_DeleteOnClose",
+    "QTabWidget.Rounded",
 )
 
 

@@ -17,6 +17,7 @@ from .qt_wrapper import (
     QtWebSockets,
     QtWidgets,
     has_qt_module,
+    install_qt5_aliases,
     qexec,
 )
 
@@ -32,5 +33,6 @@ __all__ = [
     "QT_MAJOR",
     "QtSource",
     "has_qt_module",
+    "install_qt5_aliases",
     "qexec",
 ]
