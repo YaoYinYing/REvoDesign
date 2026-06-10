@@ -19,8 +19,8 @@ from RosettaPy.node import NodeHintT
 from REvoDesign import ConfigBus
 from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
-from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 from REvoDesign.tools import rosetta_utils
+from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 
 def get_ddg_mut_id(mutations: list[Mutation]) -> str:

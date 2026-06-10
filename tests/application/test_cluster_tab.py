@@ -7,9 +7,9 @@ from typing import cast
 
 import pytest
 
+from REvoDesign.application.cluster_tab import ClusterTabController
 from REvoDesign.Qt.ui_runtime_loader import load_runtime_ui
 from REvoDesign.UI.types import REvoDesignUiProtocol
-from REvoDesign.application.cluster_tab import ClusterTabController
 
 
 class _FakeBus:

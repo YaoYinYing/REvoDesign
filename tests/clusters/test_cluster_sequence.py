@@ -6,6 +6,7 @@ import pathlib
 import random
 
 from Bio import SeqIO
+
 from REvoDesign.clusters.cluster_sequence import Clustering
 
 

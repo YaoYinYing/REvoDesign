@@ -71,7 +71,9 @@ def scan_file(path: Path) -> list[str]:
                     if alias.name in {"PyQt5", "PyQt6", "PySide2", "PySide6"}:
                         errors.append(f"{relative_path}:{node.lineno}: direct Qt binding import is not allowed")
                     if "Ui_REvoDesign" in alias.name:
-                        errors.append(f"{relative_path}:{node.lineno}: runtime import of Ui_REvoDesign.py is not allowed")
+                        errors.append(
+                            f"{relative_path}:{node.lineno}: runtime import of Ui_REvoDesign.py is not allowed"
+                        )
             elif isinstance(node, ast.ImportFrom) and node.module in {"PyQt5", "PyQt6", "PySide2", "PySide6"}:
                 errors.append(f"{relative_path}:{node.lineno}: direct Qt binding import is not allowed")
             elif isinstance(node, ast.ImportFrom) and node.module and "Ui_REvoDesign" in node.module:

@@ -28,11 +28,12 @@ Github Copilot was prompted to generate all the contents below based on the code
 2. call the extended command: `read_measurement [start,[debug]]`
 """
 
-from pymol import cmd
-from typing import Any, Optional
-from dataclasses import dataclass, field
 import math
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, field
+from typing import Any, Optional
+
+from pymol import cmd
 
 # TODO:
 # 1. refactor the code to make it more readable and maintainable, simple and clean

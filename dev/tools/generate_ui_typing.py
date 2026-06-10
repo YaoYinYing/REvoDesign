@@ -68,6 +68,7 @@ BUTTON_GROUP_TYPE = "QtWidgets.QButtonGroup"
 FALLBACK_QOBJECT_TYPE = "QtCore.QObject"
 FALLBACK_WIDGET_TYPE = "QtWidgets.QWidget"
 
+
 class UiBinding:
     def __init__(self, name: str, type_name: str, warning: str | None = None) -> None:
         self.name = name
@@ -171,7 +172,9 @@ def write_types(check: bool = False) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="Validate generated typing output without modifying files.")
+    parser.add_argument(
+        "--check", action="store_true", help="Validate generated typing output without modifying files."
+    )
     args = parser.parse_args(argv)
     return write_types(check=args.check)
 

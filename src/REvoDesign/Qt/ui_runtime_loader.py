@@ -6,8 +6,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from REvoDesign.Qt import QT_BACKEND, QtCore, QtUiTools, QtWidgets
 

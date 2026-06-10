@@ -18,8 +18,8 @@ from .qt_wrapper import (
     QtWebSockets,
     QtWidgets,
     has_qt_module,
-    install_qt6_aliases,
     install_qt5_aliases,
+    install_qt6_aliases,
     qexec,
 )
 

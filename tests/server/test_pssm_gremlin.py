@@ -14,7 +14,6 @@ import zipfile
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from types import SimpleNamespace
 
 import docker
 import pytest

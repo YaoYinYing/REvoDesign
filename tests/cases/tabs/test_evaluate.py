@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-import os
-
 import pytest
 
 from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value

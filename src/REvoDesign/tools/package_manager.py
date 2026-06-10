@@ -2657,7 +2657,9 @@ def execute_on_main_thread(func: Callable[..., GuiResult], *args, **kwargs) -> G
 
 
 @overload
-def notify_box(message: str = "", error_type: None | type[Warning] = None, details: str | None = None) -> None: ...  # noqa: E704
+def notify_box(
+    message: str = "", error_type: None | type[Warning] = None, details: str | None = None
+) -> None: ...  # noqa: E704
 
 
 # Overload #2: Exception => NoReturn

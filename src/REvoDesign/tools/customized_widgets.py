@@ -974,7 +974,9 @@ def set_widget_value(widget: MultiCheckableComboBox, value: list | tuple | str |
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QComboBox, value: list | tuple | dict | str | int | float | bool): ...  # noqa: E704
+def set_widget_value(
+    widget: QtWidgets.QComboBox, value: list | tuple | dict | str | int | float | bool
+): ...  # noqa: E704
 
 
 @overload
@@ -982,7 +984,9 @@ def set_widget_value(widget: QtWidgets.QGridLayout, value: str): ...  # noqa: E7
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QLineEdit | QtWidgets.QLCDNumber | QtWidgets.QCheckBox, value: Any): ...  # noqa: E704
+def set_widget_value(
+    widget: QtWidgets.QLineEdit | QtWidgets.QLCDNumber | QtWidgets.QCheckBox, value: Any
+): ...  # noqa: E704
 
 
 def set_widget_value(widget, value):

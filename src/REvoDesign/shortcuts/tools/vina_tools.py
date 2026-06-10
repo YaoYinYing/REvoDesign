@@ -376,7 +376,9 @@ Center: {self.cen_xyz[0]:.3f}, {self.cen_xyz[1]:.3f}, {self.cen_xyz[2]:.3f}"""
 
 
 @overload
-def showbox(box: str, minX: float, maxX: float, minY: float, maxY: float, minZ: float, maxZ: float) -> CgoBox: ...  # noqa: E704
+def showbox(
+    box: str, minX: float, maxX: float, minY: float, maxY: float, minZ: float, maxZ: float
+) -> CgoBox: ...  # noqa: E704
 
 
 @overload

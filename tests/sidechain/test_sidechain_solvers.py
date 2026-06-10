@@ -8,8 +8,8 @@ from pymol import cmd
 
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.sidechain.mutate_runner import (
-    DLPackerPytorch_worker,
     DiffPack_worker,
+    DLPackerPytorch_worker,
     MutateRelax_worker,
     PIPPack_worker,
     PyMOL_mutate,
