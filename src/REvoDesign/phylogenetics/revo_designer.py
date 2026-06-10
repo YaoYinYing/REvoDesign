@@ -64,7 +64,7 @@ class REvoDesigner:
         self.randomized_sample_num = 10
         self.mutate_runner: MutateRunnerAbstract = None  # type: ignore
 
-        self.pwd = "."
+        self.pwd = "."  # nosec B105: present working directory, not a password
         self.sequence = ""
 
         self.design_case = "default"

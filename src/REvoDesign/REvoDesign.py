@@ -308,6 +308,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # time to build config-edit and recent-experiment links.  Defer its
         # import and binding until the window is painted so that startup
         # latency is not gated on filesystem I/O.
+
         def _bind_menu_links():
             from REvoDesign.application.menu import MENU_LINKS
 

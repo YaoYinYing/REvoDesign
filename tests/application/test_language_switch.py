@@ -22,6 +22,7 @@ from REvoDesign.Qt import QtCore, QtWidgets
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_fake_translator(load_returns: bool = True):
     """Create a MagicMock that quacks like QtCore.QTranslator."""
     t = MagicMock(spec=QtCore.QTranslator)

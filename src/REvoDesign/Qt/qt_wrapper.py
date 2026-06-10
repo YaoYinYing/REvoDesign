@@ -97,7 +97,9 @@ def _ensure_enum_container(owner: object, container_name: str) -> object:
     return container
 
 
-def _install_scoped_alias(owner: object, container_name: str, member_name: str, legacy_value_name: str | None = None) -> None:
+def _install_scoped_alias(
+    owner: object, container_name: str, member_name: str, legacy_value_name: str | None = None
+) -> None:
     """Install a Qt6-style scoped enum alias from a Qt5-style unscoped value."""
 
     legacy_name = legacy_value_name or member_name
@@ -136,7 +138,12 @@ def _install_qtcore_scoped_aliases() -> None:
         return
 
     scoped_map = {
-        "WidgetAttribute": ("WA_DeleteOnClose", "WA_ShowWithoutActivating", "WA_TransparentForMouseEvents", "WA_TranslucentBackground"),
+        "WidgetAttribute": (
+            "WA_DeleteOnClose",
+            "WA_ShowWithoutActivating",
+            "WA_TransparentForMouseEvents",
+            "WA_TranslucentBackground",
+        ),
         "ContextMenuPolicy": ("CustomContextMenu",),
         "TextFormat": ("RichText", "PlainText"),
         "CheckState": ("Checked", "Unchecked", "PartiallyChecked"),
@@ -260,21 +267,41 @@ def _install_qtwidgets_scoped_aliases() -> None:
             "Policy",
             ("Fixed", "Minimum", "Maximum", "Preferred", "Expanding", "MinimumExpanding", "Ignored"),
         ),
-        (getattr(QtWidgets, "QFrame", None), "Shape", ("NoFrame", "Box", "Panel", "StyledPanel", "HLine", "VLine", "WinPanel")),
+        (
+            getattr(QtWidgets, "QFrame", None),
+            "Shape",
+            ("NoFrame", "Box", "Panel", "StyledPanel", "HLine", "VLine", "WinPanel"),
+        ),
         (getattr(QtWidgets, "QFrame", None), "Shadow", ("Plain", "Raised", "Sunken")),
         (
             getattr(QtWidgets, "QAbstractItemView", None),
             "EditTrigger",
-            ("NoEditTriggers", "CurrentChanged", "DoubleClicked", "SelectedClicked", "EditKeyPressed", "AnyKeyPressed", "AllEditTriggers"),
+            (
+                "NoEditTriggers",
+                "CurrentChanged",
+                "DoubleClicked",
+                "SelectedClicked",
+                "EditKeyPressed",
+                "AnyKeyPressed",
+                "AllEditTriggers",
+            ),
         ),
-        (getattr(QtWidgets, "QAbstractItemView", None), "SelectionBehavior", ("SelectItems", "SelectRows", "SelectColumns")),
+        (
+            getattr(QtWidgets, "QAbstractItemView", None),
+            "SelectionBehavior",
+            ("SelectItems", "SelectRows", "SelectColumns"),
+        ),
         (
             getattr(QtWidgets, "QAbstractItemView", None),
             "SelectionMode",
             ("SingleSelection", "MultiSelection", "ExtendedSelection", "ContiguousSelection", "NoSelection"),
         ),
         (getattr(QtWidgets, "QAbstractItemView", None), "ScrollMode", ("ScrollPerItem", "ScrollPerPixel")),
-        (getattr(QtWidgets, "QHeaderView", None), "ResizeMode", ("Interactive", "Stretch", "Fixed", "ResizeToContents")),
+        (
+            getattr(QtWidgets, "QHeaderView", None),
+            "ResizeMode",
+            ("Interactive", "Stretch", "Fixed", "ResizeToContents"),
+        ),
         (getattr(QtWidgets, "QAbstractSpinBox", None), "ButtonSymbols", ("UpDownArrows", "PlusMinus", "NoButtons")),
         (getattr(QtWidgets, "QLCDNumber", None), "SegmentStyle", ("Flat", "Outline", "Filled")),
         (getattr(QtWidgets, "QMainWindow", None), "DockOption", ("AllowTabbedDocks", "AnimatedDocks")),
@@ -291,12 +318,8 @@ def _install_qtwidgets_scoped_aliases() -> None:
     # Provide flat aliases (Qt5-style) so that code referencing
     # QtWidgets.QStackedLayout.StackAll continues to work under Qt6.
     for member_name in ("StackAll", "StackOne"):
-        _install_scoped_alias(
-            getattr(QtWidgets, "QStackedLayout", None), "StackingMode", member_name
-        )
-        _install_flat_alias(
-            getattr(QtWidgets, "QStackedLayout", None), "StackingMode", member_name
-        )
+        _install_scoped_alias(getattr(QtWidgets, "QStackedLayout", None), "StackingMode", member_name)
+        _install_flat_alias(getattr(QtWidgets, "QStackedLayout", None), "StackingMode", member_name)
 
 
 def _install_qtgui_scoped_aliases() -> None:
@@ -304,10 +327,30 @@ def _install_qtgui_scoped_aliases() -> None:
     qpalette = getattr(QtGui, "QPalette", None)
     qpainter = getattr(QtGui, "QPainter", None)
     if qfont is not None:
-        for member_name in ("Thin", "ExtraLight", "Light", "Normal", "Medium", "DemiBold", "Bold", "ExtraBold", "Black"):
+        for member_name in (
+            "Thin",
+            "ExtraLight",
+            "Light",
+            "Normal",
+            "Medium",
+            "DemiBold",
+            "Bold",
+            "ExtraBold",
+            "Black",
+        ):
             _install_scoped_alias(qfont, "Weight", member_name)
     if qpalette is not None:
-        for member_name in ("Window", "WindowText", "Base", "AlternateBase", "Text", "Button", "ButtonText", "Highlight", "HighlightedText"):
+        for member_name in (
+            "Window",
+            "WindowText",
+            "Base",
+            "AlternateBase",
+            "Text",
+            "Button",
+            "ButtonText",
+            "Highlight",
+            "HighlightedText",
+        ):
             _install_scoped_alias(qpalette, "ColorRole", member_name)
     if qpainter is not None:
         _install_scoped_alias(qpainter, "RenderHint", "Antialiasing")
@@ -405,8 +448,12 @@ class _QtCompatNamespace:
         )
         self.AnyHostAddress = _qt_enum(qt_network.QHostAddress, "SpecialAddress", "Any") if qt_network else None
         self.LocalHostAddress = _qt_enum(qt_network.QHostAddress, "SpecialAddress", "LocalHost") if qt_network else None
-        self.ConnectedState = _qt_enum(qt_network.QAbstractSocket, "SocketState", "ConnectedState") if qt_network else None
-        self.NonSecureMode = _qt_enum(qt_websockets.QWebSocketServer, "SslMode", "NonSecureMode") if qt_websockets else None
+        self.ConnectedState = (
+            _qt_enum(qt_network.QAbstractSocket, "SocketState", "ConnectedState") if qt_network else None
+        )
+        self.NonSecureMode = (
+            _qt_enum(qt_websockets.QWebSocketServer, "SslMode", "NonSecureMode") if qt_websockets else None
+        )
 
         self.AnyAddress = self.AnyHostAddress
         self.LocalHost = self.LocalHostAddress

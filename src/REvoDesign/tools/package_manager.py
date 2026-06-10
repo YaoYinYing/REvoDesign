@@ -97,7 +97,9 @@ def _install_qt5_aliases_for_manager() -> None:
     _alias_attr(QtWidgets.QMessageBox, "No", QtWidgets.QMessageBox, "StandardButton", "No")
     _alias_attr(QtWidgets.QMessageBox, "Ok", QtWidgets.QMessageBox, "StandardButton", "Ok")
     _alias_attr(QtWidgets.QMessageBox, "Cancel", QtWidgets.QMessageBox, "StandardButton", "Cancel")
-    _alias_attr(QtWidgets.QAbstractItemView, "NoEditTriggers", QtWidgets.QAbstractItemView, "EditTrigger", "NoEditTriggers")
+    _alias_attr(
+        QtWidgets.QAbstractItemView, "NoEditTriggers", QtWidgets.QAbstractItemView, "EditTrigger", "NoEditTriggers"
+    )
     _alias_attr(QtWidgets.QAbstractItemView, "NoSelection", QtWidgets.QAbstractItemView, "SelectionMode", "NoSelection")
     _alias_attr(QtWidgets.QHeaderView, "Stretch", QtWidgets.QHeaderView, "ResizeMode", "Stretch")
     _alias_attr(QtWidgets.QHeaderView, "ResizeToContents", QtWidgets.QHeaderView, "ResizeMode", "ResizeToContents")

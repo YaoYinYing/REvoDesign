@@ -43,12 +43,7 @@ class _DummyProgressbar:
 
 def _write_tiny_fasta(path: pathlib.Path):
     path.write_text(
-        (
-            ">seq_0\nAAAAAA\n"
-            ">seq_1\nAAAATA\n"
-            ">seq_2\nTTTTTT\n"
-            ">seq_3\nTTTTTA\n"
-        ),
+        (">seq_0\nAAAAAA\n" ">seq_1\nAAAATA\n" ">seq_2\nTTTTTT\n" ">seq_3\nTTTTTA\n"),
         encoding="utf-8",
     )
 

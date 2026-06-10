@@ -7,5 +7,5 @@
 Exceptions and warnings
 """
 
-from .exceptions import *
-from .warnings import *
+from .exceptions import *  # noqa: F401 — re-export public API
+from .warnings import *  # noqa: F401 — re-export public API

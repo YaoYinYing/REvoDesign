@@ -716,9 +716,7 @@ class QButtonMatrix(QtWidgets.QWidget):
             label.setFont(font)
             if hasattr(self, "_set_label_size"):
                 self._set_label_size(label)
-            self.button_layout.addWidget(
-                label, len(self.alphabet_col), col + 1, QtCompat.AlignTop | QtCompat.AlignLeft
-            )
+            self.button_layout.addWidget(label, len(self.alphabet_col), col + 1, QtCompat.AlignTop | QtCompat.AlignLeft)
 
     def signal_process(self, row, col):
         """

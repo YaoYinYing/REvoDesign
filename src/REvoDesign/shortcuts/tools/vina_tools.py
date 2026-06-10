@@ -760,8 +760,6 @@ def box_helper(box_name: str):
         :param new_action: Either 'move_coords' or 'change_size'.
         """
         nonlocal action
-        nonlocal window
-        nonlocal banner_label
         nonlocal action_method
         action = new_action
 
@@ -809,7 +807,6 @@ Press Up/Right/A/W or Down/Left/S/D to change the values."""
         Query the current box's info (using CgoBox) and display it in the info banner.
         This provides details such as the box coordinates, size, and AutoDock parameters.
         """
-        nonlocal banner_info
         box = CgoBox.from_selection(box_name, "_select_box", 0, (0, 0, 0))
         banner_info.setText(
             f"""Box {box_name} info:\n{repr(box)}\n\nAutoDock Vina:\n{box.to_vina}\n\nAutoGrid:\n{box.to_autogrid}"""

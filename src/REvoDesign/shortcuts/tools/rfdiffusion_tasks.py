@@ -5,7 +5,7 @@
 
 import glob
 import os
-import pickle
+import pickle  # nosec B403: traceback serialization, trusted context
 import random
 import re
 import shutil

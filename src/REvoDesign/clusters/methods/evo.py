@@ -206,9 +206,7 @@ class EvoCluster(ClusterMethodAbstract):
             return None
 
         numeric_cols = [
-            col
-            for col in df.columns
-            if col != self.evo_esm_mutation_col and pd.api.types.is_numeric_dtype(df[col])
+            col for col in df.columns if col != self.evo_esm_mutation_col and pd.api.types.is_numeric_dtype(df[col])
         ]
         if not numeric_cols:
             return None
@@ -309,9 +307,7 @@ class EvoCluster(ClusterMethodAbstract):
         normalized_weights = {name: norm_weight for name, norm_weight, _ in weighted_components}
         active_components = [name for name in normalized_weights]
         skipped_components = {
-            name: details
-            for name, details in component_status.items()
-            if name not in active_components
+            name: details for name, details in component_status.items() if name not in active_components
         }
         self.last_component_report = {
             "component_status": component_status,

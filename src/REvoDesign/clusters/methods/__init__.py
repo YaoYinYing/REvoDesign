@@ -5,4 +5,3 @@
 """
 Cluster method discovery namespace.
 """
-

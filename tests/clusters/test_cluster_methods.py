@@ -52,12 +52,7 @@ class _DummyProgressbar:
 
 def _write_tiny_fasta(path: pathlib.Path):
     path.write_text(
-        (
-            ">seq_0\nAAAAAA\n"
-            ">seq_1\nAAAATA\n"
-            ">seq_2\nTTTTTT\n"
-            ">seq_3\nTTTTTA\n"
-        ),
+        (">seq_0\nAAAAAA\n" ">seq_1\nAAAATA\n" ">seq_2\nTTTTTT\n" ">seq_3\nTTTTTA\n"),
         encoding="utf-8",
     )
 
@@ -417,7 +412,9 @@ def test_cluster_runner_only_overrides_rosetta_representatives_when_enabled(monk
     monkeypatch.setattr(runner_module, "set_widget_value", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(runner_module, "run_worker_thread_in_pool", lambda **_kwargs: [object()])
     monkeypatch.setattr(runner_module, "score_clusters", object())
-    monkeypatch.setattr(runner_module.ClusterRunner, "_make_input_pdb", lambda *_args, **_kwargs: str(tmp_path / "in.pdb"))
+    monkeypatch.setattr(
+        runner_module.ClusterRunner, "_make_input_pdb", lambda *_args, **_kwargs: str(tmp_path / "in.pdb")
+    )
     monkeypatch.setattr(combinations_module, "Combinations", _FakeCombinations)
 
     runner = ClusterRunner(str(tmp_path))
@@ -521,10 +518,7 @@ def test_widget_link_contains_cluster_method_mappings():
 
     assert c2wi["ui.cluster.method.use"] == "comboBox_cluster_method"
     assert c2wi["ui.cluster.random_seed"] == "spinBox_cluster_random_seed"
-    assert (
-        c2wi["ui.cluster.rosetta.override_representatives"]
-        == "checkBox_cluster_rosetta_override_representatives"
-    )
+    assert c2wi["ui.cluster.rosetta.override_representatives"] == "checkBox_cluster_rosetta_override_representatives"
 
 
 def test_batch_size_adjustment_never_becomes_zero(tmp_path):

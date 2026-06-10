@@ -992,6 +992,7 @@ def has_docker_daemon() -> bool:
         return False
     return result.returncode == 0
 
+
 # Github Actions, Ubuntu-latest with Rosetta Docker container enabled
 ENABLE_ROSETTA_CONTAINER_NODE_TEST = os.environ.get("ENABLE_ROSETTA_CONTAINER_NODE_TEST", "NO") == "YES"
 

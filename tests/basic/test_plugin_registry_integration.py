@@ -24,4 +24,3 @@ def test_magician_registry_compat_symbols_match():
 def test_cluster_registry_compat_symbols_match():
     assert list(CLUSTER_METHOD_REGISTRY.all_classes) == ALL_CLUSTER_METHOD_CLASSES
     assert dict(CLUSTER_METHOD_REGISTRY.implemented_map) == dict(IMPLEMENTED_CLUSTER_METHOD)
-

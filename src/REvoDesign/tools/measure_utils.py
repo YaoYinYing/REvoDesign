@@ -261,7 +261,7 @@ def _build_scene_atom_list(cmd_module):
         except Exception:
             try:
                 model = cmd_module.get_model(obj)
-            except Exception:
+            except Exception:  # nosec B112: skip PyMOL objects that can't be retrieved as models
                 continue
         for a in model.atom:
             # coords
@@ -465,7 +465,7 @@ class Measurement:
             try:
                 if isinstance(header, (list, tuple)) and len(header) > 1 and isinstance(header[1], str):
                     derived_name = header[1]
-            except Exception:
+            except Exception:  # nosec B110: fall back to empty name on unparseable header
                 pass
             return cls(name=derived_name, header=header, dsets=dsets, raw_obj_pylist=raw_obj_pylist)
         return None

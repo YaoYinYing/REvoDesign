@@ -797,8 +797,6 @@ def pick_design_from_profile(
     designed_tree = existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
 
     def mutate_with_gridbuttons(row, col):
-        nonlocal button_matrix
-        nonlocal designed_tree
 
         resn: str = button_matrix.alphabet_row[row]
         # one-indexed, int

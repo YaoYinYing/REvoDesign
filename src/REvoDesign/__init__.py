@@ -39,7 +39,7 @@ from REvoDesign.logger import ROOT_LOGGER, setup_logging
 # 6. Set version info
 # version number checker: https://regex101.com/r/6AoOI9/1
 __version__ = "1.8.6"
-# To bump a new version tag, change __version__, use the checker to ensure no syntax error. 
+# To bump a new version tag, change __version__, use the checker to ensure no syntax error.
 # then use `make tag` at repository root to complete the committing.
 
 
@@ -57,6 +57,7 @@ def __getattr__(name: str):
 
         return all_shortcuts
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "REvoDesignPlugin",

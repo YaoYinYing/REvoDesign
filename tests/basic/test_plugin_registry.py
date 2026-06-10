@@ -72,4 +72,3 @@ def test_plugin_registry_duplicate_name_fails(monkeypatch, tmp_path):
     base_mod = importlib.import_module(f"{pkg_name}.base")
     with pytest.raises(ValueError, match="Duplicate plugin name 'dup'"):
         PluginRegistry(base_class=base_mod.BasePlugin, package=pkg_name)
-

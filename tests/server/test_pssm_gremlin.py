@@ -1651,6 +1651,7 @@ def _wait_for_server_ready(
         )
     raise AssertionError(f"PSSM GREMLIN server failed to start within timeout ({last_error})")
 
+
 def _extract_md5(location: str) -> str:
     return location.rstrip("/").rsplit("/", 1)[-1]
 
