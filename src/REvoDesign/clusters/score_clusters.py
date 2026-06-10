@@ -16,19 +16,19 @@ from RosettaPy.node import NodeHintT
 
 from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
-from REvoDesign.tools.rosetta_utils import IS_ROSETTA_RUNNABLE, read_rosetta_node_config
+from REvoDesign.tools import rosetta_utils
 
 logging = ROOT_LOGGER.getChild(__name__)
 
 
 def score_clusters(pdb, chain_id, node_hint: NodeHintT, tasks_dir: str) -> list[RosettaEnergyUnitAnalyser]:
-    if not IS_ROSETTA_RUNNABLE:
+    if not rosetta_utils.IS_ROSETTA_RUNNABLE:
         raise issues.DependencyError(
             "Rosetta is not runnable on this machine. " "Please chech the documentation of RosettaPy for more details."
         )
     instance = os.path.basename(pdb)[:-4]
     task_bn = os.path.basename(tasks_dir)
-    node_config = read_rosetta_node_config()
+    node_config = rosetta_utils.read_rosetta_node_config()
     cluster_scorer = ScoreClusters(
         pdb=pdb,
         chain_id=chain_id,

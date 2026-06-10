@@ -20,7 +20,7 @@ from REvoDesign import ConfigBus
 from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-from REvoDesign.tools.rosetta_utils import IS_ROSETTA_RUNNABLE, copy_rosetta_citation, read_rosetta_node_config
+from REvoDesign.tools import rosetta_utils
 
 
 def get_ddg_mut_id(mutations: list[Mutation]) -> str:
@@ -37,7 +37,7 @@ class ddg(ExternalDesignerAbstract):
 
     name = "Cartesian-ddG"
     # the class variable installed is set to True if rosetta is installed as any node
-    installed = IS_ROSETTA_RUNNABLE
+    installed = rosetta_utils.IS_ROSETTA_RUNNABLE
 
     scorer_only = True
     no_need_to_score_wt = True
@@ -64,7 +64,7 @@ class ddg(ExternalDesignerAbstract):
 
         self.ddg_iterations = bus.get_value("rosetta.cart_ddg.iterations", int, default_value=3, reject_none=True)
 
-        self.node_config: dict[str, Any] | None = read_rosetta_node_config()
+        self.node_config: dict[str, Any] | None = rosetta_utils.read_rosetta_node_config()
         if self.node_config is None:
             self.node_config = {}
 
@@ -146,7 +146,7 @@ class ddg(ExternalDesignerAbstract):
 
         return float(updated_mutant[0].mutant_score)
 
-    __bibtex__ = copy_rosetta_citation(
+    __bibtex__ = rosetta_utils.copy_rosetta_citation(
         {
             "Cartesian-ddG": """@article{doi:10.1021/acs.jctc.6b00819,
 author = {Park, Hahnbeom and Bradley, Philip and Greisen, Per Jr. and Liu, Yuan and Mulligan, Vikram Khipple and Kim, David E. and Baker, David and DiMaio, Frank},

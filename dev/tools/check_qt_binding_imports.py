@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import ast
-import re
 import sys
 from pathlib import Path
 
@@ -15,12 +14,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SEARCH_ROOTS = ("src", "dev", "tests")
 ALLOWED_DIRECT_BINDING_IMPORTS = {
     Path("src/REvoDesign/Qt/qt_wrapper.py"),
+    Path("src/REvoDesign/Qt/ui_runtime_loader.py"),
 }
 ALLOWED_QT5_PATTERN_FILES = {
     Path("src/REvoDesign/Qt/qt_wrapper.py"),
     Path("dev/tools/check_qt_binding_imports.py"),
     Path("src/REvoDesign/tools/package_manager.py"),
-    Path("src/REvoDesign/UI/Ui_REvoDesign.py"),
 }
 ALLOWED_TEST_FILES = {
     Path("tests/dev_tools/test_qt_binding_imports_guard.py"),
@@ -71,8 +70,12 @@ def scan_file(path: Path) -> list[str]:
                 for alias in node.names:
                     if alias.name in {"PyQt5", "PyQt6", "PySide2", "PySide6"}:
                         errors.append(f"{relative_path}:{node.lineno}: direct Qt binding import is not allowed")
+                    if "Ui_REvoDesign" in alias.name:
+                        errors.append(f"{relative_path}:{node.lineno}: runtime import of Ui_REvoDesign.py is not allowed")
             elif isinstance(node, ast.ImportFrom) and node.module in {"PyQt5", "PyQt6", "PySide2", "PySide6"}:
                 errors.append(f"{relative_path}:{node.lineno}: direct Qt binding import is not allowed")
+            elif isinstance(node, ast.ImportFrom) and node.module and "Ui_REvoDesign" in node.module:
+                errors.append(f"{relative_path}:{node.lineno}: runtime import of Ui_REvoDesign.py is not allowed")
 
     for lineno, line in enumerate(text.splitlines(), start=1):
         if check_runtime_patterns:

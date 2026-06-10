@@ -135,10 +135,9 @@ def set_font(font: QtGui.QFont | str | None = None):
 
     # Get configuration bus and UI instance
     from REvoDesign.driver.ui_driver import ConfigBus
-    from REvoDesign.UI.Ui_REvoDesign import Ui_REvoDesignPyMOL_UI as UI
 
     bus = ConfigBus()
-    ui: UI = bus.ui
+    ui = bus.ui
     window = bus.ui.centralwidget
     window.setFont(font)
 

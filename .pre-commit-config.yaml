@@ -5,12 +5,30 @@ ci:
 repos:
   - repo: local
     hooks:
-      - id: compile-revodesign-ui
-        name: Compile REvoDesign.ui and rewrite Qt imports
-        entry: python dev/tools/compile_qt_ui.py
+      - id: generate-ui-typing
+        name: Generate REvoDesign UI typing contract
+        entry: python dev/tools/generate_ui_typing.py
         language: system
         pass_filenames: false
         files: ^src/REvoDesign/UI/REvoDesign\.ui$
+
+      - id: check-ui-typing
+        name: Check REvoDesign UI typing contract freshness
+        entry: python dev/tools/generate_ui_typing.py --check
+        language: system
+        pass_filenames: false
+
+      - id: validate-ui-i18n
+        name: Validate runtime UI i18n
+        entry: python dev/tools/validate_ui_i18n.py
+        language: system
+        pass_filenames: false
+
+      - id: reject-generated-main-ui
+        name: Reject generated Ui_REvoDesign.py
+        entry: python dev/tools/reject_generated_main_ui.py
+        language: system
+        pass_filenames: false
 
       - id: check-qt-binding-imports
         name: Reject direct Qt binding imports and Qt5-only usages

@@ -3,35 +3,13 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from pathlib import Path
-import importlib.util
-import subprocess
-import sys
+from typing import cast
 
 import pytest
 
-from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
+from REvoDesign.Qt.ui_runtime_loader import load_runtime_ui
+from REvoDesign.UI.types import REvoDesignUiProtocol
 from REvoDesign.application.cluster_tab import ClusterTabController
-from REvoDesign.Qt import QtWidgets
-
-
-def _normalize_pyuic_output(text: str) -> str:
-    return "\n".join(
-        (
-            "# Form implementation generated from reading ui file 'src/REvoDesign/UI/REvoDesign.ui'"
-            if line.startswith("# Form implementation generated from reading ui file ")
-            else line
-        )
-        for line in text.splitlines()
-    )
-
-
-def _load_module(path: Path, module_name: str):
-    spec = importlib.util.spec_from_file_location(module_name, path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec is not None
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
 class _FakeBus:
@@ -45,10 +23,9 @@ class _FakeBus:
 
 @pytest.fixture
 def cluster_ui(app):
-    window = QtWidgets.QMainWindow()
-    ui = Ui_REvoDesignPyMOL_UI()
-    ui.setupUi(window)
-    return window, ui
+    ui_path = Path(__file__).resolve().parents[2] / "src/REvoDesign/UI/REvoDesign.ui"
+    window, ui_proxy = load_runtime_ui(ui_path)
+    return window, cast(REvoDesignUiProtocol, ui_proxy)
 
 
 def test_cluster_tab_controller_switches_pages(cluster_ui):
@@ -84,18 +61,13 @@ def test_cluster_tab_controller_disables_rosetta_override_until_scoring_enabled(
     assert ui.checkBox_cluster_rosetta_override_representatives.isEnabled() is True
 
 
-def test_ui_regeneration_matches_committed_output(tmp_path):
-    ui_path = Path(__file__).resolve().parents[2] / "src/REvoDesign/UI/REvoDesign.ui"
-    generated_path = tmp_path / "Ui_REvoDesign.py"
-    committed_path = Path(__file__).resolve().parents[2] / "src/REvoDesign/UI/Ui_REvoDesign.py"
-    compiler = _load_module(
-        Path(__file__).resolve().parents[2] / "dev/tools/compile_qt_ui.py",
-        "compile_qt_ui",
-    )
+def test_runtime_ui_exposes_representative_attributes(cluster_ui):
+    window, ui = cluster_ui
 
-    subprocess.run(
-        [*compiler.select_pyuic_command(), str(ui_path), "-o", str(generated_path)],
-        check=True,
-    )
-    rewritten = compiler.rewrite_generated_qt_source(generated_path.read_text(encoding="utf-8"))
-    assert _normalize_pyuic_output(rewritten) == _normalize_pyuic_output(committed_path.read_text(encoding="utf-8"))
+    assert window.objectName() == "REvoDesignPyMOL_UI"
+    assert ui.actionSource_Code.text()
+    assert ui.comboBox_surface_exclusion is not None
+    assert ui.tabWidget is not None
+    assert ui.pushButton_run_surface_refresh is not None
+
+    ui.retranslateUi(window)

@@ -76,8 +76,19 @@ def _install_qt5_aliases_for_manager() -> None:
         setattr(target, old_name, getattr(enum_obj, member_name))
 
     _alias_attr(QtCore.Qt, "WA_DeleteOnClose", QtCore.Qt, "WidgetAttribute", "WA_DeleteOnClose")
+    _alias_attr(QtCore.Qt, "WA_ShowWithoutActivating", QtCore.Qt, "WidgetAttribute", "WA_ShowWithoutActivating")
     _alias_attr(QtCore.Qt, "CustomContextMenu", QtCore.Qt, "ContextMenuPolicy", "CustomContextMenu")
     _alias_attr(QtCore.Qt, "RichText", QtCore.Qt, "TextFormat", "RichText")
+    _alias_attr(QtCore.Qt, "Checked", QtCore.Qt, "CheckState", "Checked")
+    _alias_attr(QtCore.Qt, "Unchecked", QtCore.Qt, "CheckState", "Unchecked")
+    _alias_attr(QtCore.Qt, "yellow", QtCore.Qt, "GlobalColor", "yellow")
+    _alias_attr(QtCore.Qt, "blue", QtCore.Qt, "GlobalColor", "blue")
+    _alias_attr(QtCore.Qt, "Tool", QtCore.Qt, "WindowType", "Tool")
+    _alias_attr(QtCore.Qt, "FramelessWindowHint", QtCore.Qt, "WindowType", "FramelessWindowHint")
+    _alias_attr(QtCore.Qt, "WindowStaysOnTopHint", QtCore.Qt, "WindowType", "WindowStaysOnTopHint")
+    _alias_attr(QtCore.Qt, "WindowDoesNotAcceptFocus", QtCore.Qt, "WindowType", "WindowDoesNotAcceptFocus")
+    _alias_attr(QtCore.Qt, "NoFocus", QtCore.Qt, "FocusPolicy", "NoFocus")
+    _alias_attr(QtCore.Qt, "PointingHandCursor", QtCore.Qt, "CursorShape", "PointingHandCursor")
     _alias_attr(QtWidgets.QMessageBox, "Warning", QtWidgets.QMessageBox, "Icon", "Warning")
     _alias_attr(QtWidgets.QMessageBox, "Information", QtWidgets.QMessageBox, "Icon", "Information")
     _alias_attr(QtWidgets.QMessageBox, "Critical", QtWidgets.QMessageBox, "Icon", "Critical")
@@ -86,6 +97,12 @@ def _install_qt5_aliases_for_manager() -> None:
     _alias_attr(QtWidgets.QMessageBox, "No", QtWidgets.QMessageBox, "StandardButton", "No")
     _alias_attr(QtWidgets.QMessageBox, "Ok", QtWidgets.QMessageBox, "StandardButton", "Ok")
     _alias_attr(QtWidgets.QMessageBox, "Cancel", QtWidgets.QMessageBox, "StandardButton", "Cancel")
+    _alias_attr(QtWidgets.QAbstractItemView, "NoEditTriggers", QtWidgets.QAbstractItemView, "EditTrigger", "NoEditTriggers")
+    _alias_attr(QtWidgets.QAbstractItemView, "NoSelection", QtWidgets.QAbstractItemView, "SelectionMode", "NoSelection")
+    _alias_attr(QtWidgets.QHeaderView, "Stretch", QtWidgets.QHeaderView, "ResizeMode", "Stretch")
+    _alias_attr(QtWidgets.QHeaderView, "ResizeToContents", QtWidgets.QHeaderView, "ResizeMode", "ResizeToContents")
+    _alias_attr(QtGui.QFont, "Bold", QtGui.QFont, "Weight", "Bold")
+    _alias_attr(QtCore.QEasingCurve, "OutQuad", QtCore.QEasingCurve, "Type", "OutQuad")
 
 
 class _QtCompatNamespace:

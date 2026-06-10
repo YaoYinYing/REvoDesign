@@ -212,6 +212,13 @@ Tracker = "https://github.com/YaoYinYing/REvoDesign/issues"
 [tool.flit.module]
 name = "REvoDesign"
 
+[tool.flit.sdist]
+include = [
+    "src/REvoDesign/UI/REvoDesign.ui",
+    "src/REvoDesign/UI/language/*.qm",
+    "src/REvoDesign/UI/language/*.ts",
+]
+
 [tool.bandit]
 exclude_dirs = ["build","dist","tests","scripts"]
 number = 4
