@@ -147,7 +147,7 @@ class DLPackerPytorch_worker(MutateRunnerAbstract):
         nproc: int = 2,
     ) -> list[str]:
         with timing("setting up DLPackerPytorch"):
-            from dlpacker_pytorch import DLPacker
+            from dlpacker_pytorch import DLPacker  # noqa: F401 -- lazy import for side-effect (cache warm)
 
         if nproc is None:
             nproc = os.cpu_count()

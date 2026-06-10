@@ -16,7 +16,7 @@ from typing import Any
 
 import numpy as np
 from immutabledict import immutabledict
-from pymol import cmd, get_version_message
+from pymol import cmd
 from pymol.constants_palette import palette_dict
 from pymol.parsing import QuietException
 from pymol.setting import index_dict

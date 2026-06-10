@@ -262,7 +262,7 @@ def logger_level_setter_ng(settings: dict[str, str]):
     """
     from REvoDesign.driver.ui_driver import ConfigBus
 
-    logging.info(f"Setting logger level")
+    logging.info("Setting logger level")
 
     all_logger_channels = list_all_logger_channels()
 

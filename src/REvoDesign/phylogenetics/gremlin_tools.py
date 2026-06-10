@@ -31,7 +31,7 @@ import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
 from scipy import stats
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import squareform
 
 from REvoDesign import ConfigBus, issues
 from REvoDesign.citations import CitableModuleAbstract

@@ -33,7 +33,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypedDict, TypeVar, cast, overload
+from typing import Any, ClassVar, NoReturn, TypedDict, TypeVar, cast, overload
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 
@@ -172,7 +172,7 @@ REvoDesign -- Makes enzyme redesign tasks easier to all."""
         def critical(msg: str, *args, **kwargs):
             print(f"[CRITICAL]: {msg}") if LOGGER_LEVEL < 50 else None
 
-    logging = MockLogger()
+    logging = MockLogger()  # noqa: F811 -- intentional override for package manager mode
     logging.info(f"Package manager is running via PyMOL: {__file__}.")
 
 
@@ -888,7 +888,7 @@ class PIPInstaller:
         ensurepip = run_command([self.python_exe, "-m", "ensurepip"], verbose=self.verbose_level > -1, env=self.env)
         if ensurepip.returncode:
             notify_box(
-                f"ensurepip failed.",
+                "ensurepip failed.",
                 RuntimeError,
                 details=f"\nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}",
             )
@@ -1442,7 +1442,7 @@ class REvoDesignPackageManager:
         except Exception as e:
             decided = decide(
                 "UI Error",
-                f"Error Occurs while loading UI file, this UI may out-of-dated.\nCleanup and fetch the latest?",
+                "Error Occurs while loading UI file, this UI may out-of-dated.\nCleanup and fetch the latest?",
                 details=str(e),
             )
             if decided:
