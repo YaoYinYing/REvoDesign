@@ -156,7 +156,7 @@ jobs:
           if [ "${{ matrix.qt-version }}" = "5" ]; then
             conda install ${{ matrix.conda-channel}} '${{ matrix.pymol-version}}' pyqt=5 -n ${{ env.conda_env }} -y
           else
-            conda install ${{ matrix.conda-channel}} '${{ matrix.pymol-version}}' -n ${{ env.conda_env }} -y
+            conda install ${{ matrix.conda-channel}} '${{ matrix.pymol-version}}' 'pyqt>=6' -n ${{ env.conda_env }} -y
           fi
           # for server testings on x86_64 linux and macos
           conda install -c conda-forge -c bioconda blast hhsuite -y -n ${{ env.conda_env }}
