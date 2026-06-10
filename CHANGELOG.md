@@ -19,6 +19,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- Runtime UI loading:
+  - Added `src/REvoDesign/Qt/ui_runtime_loader.py` with `RuntimeUiProxy` and `load_runtime_ui()` — loads `.ui` at runtime instead of relying on a generated `Ui_REvoDesign.py`.
+  - Added `dev/tools/generate_ui_typing.py` to generate `src/REvoDesign/UI/types.py` (`REvoDesignUiProtocol`) from `REvoDesign.ui` for static typing and IDE completion only.
+  - Added pre-commit hooks: `generate-ui-typing`, `check-ui-typing`, `validate-ui-i18n`, `reject-generated-main-ui`, `check-qt-binding-imports`.
+  - Added dev tools: `dev/tools/check_qt_binding_imports.py`, `dev/tools/reject_generated_main_ui.py`, `dev/tools/validate_ui_i18n.py`, `dev/tools/validate_package_data.py`.
+- Qt cross-compatibility layer (`src/REvoDesign/Qt/`):
+  - Added `QtCompat` namespace that resolves enum members and methods across PyQt5 and PyQt6.
+  - Added `qexec()` for safe `exec`/`exec_` dispatch.
+  - Added `has_qt_module()` for probing optional Qt modules from the active backend.
+  - Added scoped-enum aliases (`Qt.WidgetAttribute`, `Qt.AlignmentFlag`, `Qt.CheckState`, `Qt.WindowType`, etc.) automatically installed for Qt5 backends.
+  - Added `Qt/__init__.py` with public exports.
+- Cluster:
+  - Added `ClusterInputSpec` and `ClusterMethodSpec` frozen dataclasses for declarative method metadata.
+  - Added `ClusterTabController` (`application/cluster_tab.py`) for runtime cluster-method selection, tooltip installation, and page switching.
+  - Added `cluster.method.random_seed` and `cluster.method.rosetta.override_representatives` config keys.
+  - `ClusterRunner`: added worker-count sanitisation, variant counting, input-PDB generation, representative-policy introspection, and `confirm_cluster_run()` for legacy method guard.
+- Package manager (`tools/package_manager.py`):
+  - Added thread worker management: `ThreadExecutionManager`, `ThreadPoolEntry`, `ThreadDashboard`, `ThreadPoolRegistry`, `RunningProcessRegistry`, `AbortButtonOverlay`.
+  - Added `_GuiThreadInvoker` / `execute_on_main_thread` for marshalling Qt operations from worker threads.
+  - Added `_install_qt5_aliases_for_manager()` for its own Qt5/Qt6 surface.
+- Rosetta:
+  - Added `_resolve_local_rosetta_database()` to discover an existing local Rosetta DB from `ROSETTA3_DB`/`ROSETTA_BIN` before falling back to a partial clone.
+- Tests:
+  - Added `tests/dev_tools/test_qt_compat_tools.py` covering Qt alias installation, `qexec`, `RuntimeUiProxy`, typing contract generation, and import guards.
+  - Added `tests/application/test_cluster_tab.py` covering page switching, rosetta-override state sync, and proxy attribute exposure.
+- Docs:
+  - Added runtime UI loading, i18n, and type-checking guidance in `dev/README.md`.
+  - Added Qt versioning environments to `AGENTS.md`.
 - Universal plugin registry:
   - Added `REvoDesign.basic.plugin_registry.PluginRegistry` and `build_plugin_registry` for package-based plugin discovery.
   - Added cluster method discovery namespace `REvoDesign.clusters.methods` for file-based method extension.
@@ -53,6 +81,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added splash label ("Loading REvoDesign…") shown immediately when the plugin is launched from PyMOL, giving instant feedback while the main window constructs.
 
 ### Changed
+- Runtime UI loading:
+  - `REvoDesignPlugin.make_window()` now uses `load_runtime_ui()` instead of the generated `Ui_REvoDesignPyMOL_UI.setupUi()`.  The `.ui` file is the single source of truth; `RuntimeUiProxy` exposes named children as attributes.
+  - All business code continues to use `self.ui.<objectName>` — no interface change.
+- Qt imports:
+  - Migrated every module that previously imported `PyQt5`/`PyQt6` directly to use `REvoDesign.Qt` (`QtCompat`, `qexec`, `has_qt_module`, etc.).
+    - `REvoDesign.py`, `QtSocketConnector.py`, `customized_widgets.py`, `bootstrap/set_config.py`, `font_manager.py`, `shortcuts/tools/vina_tools.py`, `shortcuts/tools/rosetta_tasks.py`, `sidechain/mutate_runner/RosettaMutateRelax.py`.
+- Package `__init__.py`:
+  - `REvoDesignPlugin` and `all_shortcuts` are now lazy-imported via `__getattr__` to reduce startup import cost.
+- Cluster:
+  - `ClusterMethodAbstract`: added `get_method_spec()`, `method_report` dict, `random_seed` attr.
+  - `ClusterRunner`: refactored with input validation, representative-policy introspection, and `LegacyCluster` confirmation guard wired through `ClusterTabController`.
+  - `REvoDesignPlugin.run_clustering()` checks `cluster_tab_controller.confirm_cluster_run()` before execution.
+- Designer:
+  - `ExternalDesignerAbstract.parallel_scorer()`: `nproc=1` now uses a serial loop instead of `joblib.Parallel`; added `PermissionError` fallback for restricted process environments.
+- Rosetta:
+  - Refactored `rosetta_tasks.py` and `RosettaMutateRelax.py` to import `rosetta_utils` as a module instead of destructuring individual symbols.
+- Package manager:
+  - Hardened archive extraction (`extract_archive`) with member-path traversal rejection.
+  - `GitSolver` now detects Linux/BSD package managers and conditionally prefixes `sudo`.
+- Tests:
+  - `conftest.py`: `PYTEST_QT_API` is now auto-detected from PyMOL's Qt backend instead of hardcoded to `pyqt5`.
+  - Memory reporting in `TestWorker.print_all_mem()` now catches `PermissionError`.
+  - Added `has_docker_daemon()` helper for docker-dependent test guards.
 - Plugins/registries:
   - Sidechain solvers now use scoped auto-discovery registry in `sidechain_solver.py` while keeping compatibility symbols (`ALL_RUNNER_CLASSES`, `IMPLEMENTED_RUNNER`) and manager API.
   - Magician designers now use scoped auto-discovery registry in `magician/__init__.py` while keeping compatibility symbols (`ALL_DESIGNER_CLASSES`, `IMPLEMENTED_DESIGNERS`) and assistant API.
@@ -77,6 +128,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - plan: added `plan/launch_optimization.md` with full startup profiling and implementation notes.
 
 ### Fixed
+- packaging:
+  - `pyproject.toml` sdist now explicitly includes `REvoDesign.ui` and `language/*.qm`/`.ts` so source distributions contain the runtime UI and translation binaries.
 - ci:
   - Twine uploads now use `--skip-existing` for both PyPI and TestPyPI to avoid hard failures on reruns of the same version artifacts.
   - Removed legacy `pypirc` file from repository to prevent confusion with CI-secret based publishing.
@@ -97,6 +150,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - server:
   - removed legacy/manual server deployment artifacts (`server/README.legacy.md`, `server/env/REvoDesign.yml`) now that the maintained server path is Docker-only.
+- UI:
+  - removed generated `src/REvoDesign/UI/Ui_REvoDesign.py` (2992 lines).  The `.ui` file is now loaded at runtime via `RuntimeUiProxy`; static typing uses the auto-generated `types.py` (`REvoDesignUiProtocol`).
 
 ## [1.8.6] - 2026-04-17
 
