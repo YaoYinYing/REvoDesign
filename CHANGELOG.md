@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added `DiffPack_worker` into sidechain solver mutate test matrix.
 - docs:
   - added modular integration guide `docs/modular/add_new_sidechain_solver.md` for adding and validating new sidechain solvers.
+- launch:
+  - added splash label ("Loading REvoDesign…") shown immediately when the plugin is launched from PyMOL, giving instant feedback while the main window constructs.
 
 ### Changed
 - Plugins/registries:
@@ -66,6 +68,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - DiffPack default backend is now `torchdrug` for better paper-level reproducibility alignment.
 - installer/extras:
   - REvoDesign `diffpack` extra now installs `diffpack[torchdrug]` from GitHub URL.
+- launch performance:
+  - `FontSetter` (`application/font/font_manager.py`): system font-family enumeration via `QFontDatabase` is now lazy (cached `@property`) instead of running at `__init__` time (~300ms saved on macOS where the OS type is not in the flavored-font table).
+  - `LanguageSwitch` (`application/i18n/language_settings.py`): `restore_from_config()` now skips the `retranslateUi` tree walk when the restored language is English and no translator has been installed yet.
+  - `Widget2ConfigMapper` (`driver/ui_driver.py`): `get_widget_from_id()` and `get_button_from_id()` now use `getattr(ui, name)` fast path before falling back to the linear `find_child()` search — `RuntimeUiProxy` already exposes all named children as attributes.
+  - `ClusterTabController` (`application/cluster_tab.py`): `_available_methods()` result is now cached so the heavy cluster-module import (`scipy`, `sklearn`) runs only once per controller lifetime.
+  - config-edit / recent-experiment menu links: the second `MenuCollection` (which imports `application/menu.py` and triggers config-directory scanning + `os.path.getmtime()` on every experiment file) is now deferred via `QTimer.singleShot(0, ...)` so the window appears before the filesystem I/O begins.
+  - plan: added `plan/launch_optimization.md` with full startup profiling and implementation notes.
 
 ### Fixed
 - ci:
