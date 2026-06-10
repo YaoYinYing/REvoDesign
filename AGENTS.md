@@ -37,12 +37,21 @@
   make prepare-test
   ```
 
+## Qt versioning
+
+These conda environments are used for testing Qt versions.
+
+- Qt 5: `REvoDesignTestFlight`, where Qt 5 is installed via `conda create -y -n REvoDesignTestFlightQt6 python=3.12 conda-forge:pymol-open-source pyqt=5`
+- Qt 6: `REvoDesignTestFlightQt6`, where Qt 6 is installed via `conda create -y -n REvoDesignTestFlightQt6 python=3.12 conda-forge:pymol-open-source`
+
 ## Pre-commit hooks
 
 - Enable the hooks with `pre-commit install` so they run on each commit.
 - Run `pre-commit run --all-files` or just `make black` before pushing to ensure formatting and linting with flake8, isort, autopep8, autoflake and other hooks.
 
 ## Running tests
+
+- Always run test under certain conda environment, e.g. `conda run -n <conda-env-name> make fast-test`
 
 - Fastest and specified
   - Run `make kw-test PYTEST_KW='<keyword>'` or `make kw-test PYTEST_KW='"<keyword_a> or <keyword_b>"'` to run a keyword-based test.
