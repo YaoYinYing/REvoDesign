@@ -232,7 +232,7 @@ async def load_file(file_path: str, token: str = Query(None), request: Request =
 
     if not is_file_allowed(target_file, require_editable=False):
         record_failure(request)
-        raise HTTPException(status_code=403, detail=f"Loading this file is not allowed: Permission denied.")
+        raise HTTPException(status_code=403, detail="Loading this file is not allowed: Permission denied.")
 
     if not target_file.exists():
         record_failure(request)

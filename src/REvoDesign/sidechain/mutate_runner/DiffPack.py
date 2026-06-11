@@ -111,7 +111,8 @@ class DiffPack_worker(MutateRunnerAbstract):
     @staticmethod
     def _to_mutation_tokens(mutant: Mutant) -> str:
         return ",".join(
-            f"{mut_info.chain_id}{mut_info.wt_res}{mut_info.position}{mut_info.mut_res}" for mut_info in mutant.mutations
+            f"{mut_info.chain_id}{mut_info.wt_res}{mut_info.position}{mut_info.mut_res}"
+            for mut_info in mutant.mutations
         )
 
     def _run_diffpack(
@@ -213,7 +214,9 @@ class DiffPack_worker(MutateRunnerAbstract):
             f"(requested={nproc}, mutants={len(mutants)}, cpu={max_cores})."
         )
 
-        results = Parallel(n_jobs=effective_nproc, return_as="list")(delayed(self.run_mutate)(mutant) for mutant in mutants)
+        results = Parallel(n_jobs=effective_nproc, return_as="list")(
+            delayed(self.run_mutate)(mutant) for mutant in mutants
+        )
         return list(results)  # type: ignore
 
     __bibtex__ = {

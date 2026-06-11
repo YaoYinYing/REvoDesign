@@ -13,10 +13,10 @@ import os
 import tempfile
 import traceback
 import warnings
-from pathlib import Path
 
 # using partial module to reduce duplicate code.
 from functools import partial
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from omegaconf import OmegaConf
@@ -226,10 +226,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         Returns:
             QtWidgets.QMainWindow: new main window object
         """
+        from REvoDesign.application.cluster_tab import ClusterTabController
         from REvoDesign.application.font import FontSetter
         from REvoDesign.application.i18n import LanguageSwitch
         from REvoDesign.application.icon import IconSetter
-        from REvoDesign.application.cluster_tab import ClusterTabController
         from REvoDesign.basic.menu_item import MenuCollection, MenuItem
         from REvoDesign.basic.server_monitor import MenuActionServerMonitor
         from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketClient, REvoDesignWebSocketServer
@@ -308,6 +308,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # time to build config-edit and recent-experiment links.  Defer its
         # import and binding until the window is painted so that startup
         # latency is not gated on filesystem I/O.
+
         def _bind_menu_links():
             from REvoDesign.application.menu import MENU_LINKS
 

@@ -33,7 +33,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, TypedDict, TypeVar, cast, overload
+from typing import Any, ClassVar, NoReturn, TypedDict, TypeVar, cast, overload
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 
@@ -97,7 +97,9 @@ def _install_qt5_aliases_for_manager() -> None:
     _alias_attr(QtWidgets.QMessageBox, "No", QtWidgets.QMessageBox, "StandardButton", "No")
     _alias_attr(QtWidgets.QMessageBox, "Ok", QtWidgets.QMessageBox, "StandardButton", "Ok")
     _alias_attr(QtWidgets.QMessageBox, "Cancel", QtWidgets.QMessageBox, "StandardButton", "Cancel")
-    _alias_attr(QtWidgets.QAbstractItemView, "NoEditTriggers", QtWidgets.QAbstractItemView, "EditTrigger", "NoEditTriggers")
+    _alias_attr(
+        QtWidgets.QAbstractItemView, "NoEditTriggers", QtWidgets.QAbstractItemView, "EditTrigger", "NoEditTriggers"
+    )
     _alias_attr(QtWidgets.QAbstractItemView, "NoSelection", QtWidgets.QAbstractItemView, "SelectionMode", "NoSelection")
     _alias_attr(QtWidgets.QHeaderView, "Stretch", QtWidgets.QHeaderView, "ResizeMode", "Stretch")
     _alias_attr(QtWidgets.QHeaderView, "ResizeToContents", QtWidgets.QHeaderView, "ResizeMode", "ResizeToContents")
@@ -170,7 +172,7 @@ REvoDesign -- Makes enzyme redesign tasks easier to all."""
         def critical(msg: str, *args, **kwargs):
             print(f"[CRITICAL]: {msg}") if LOGGER_LEVEL < 50 else None
 
-    logging = MockLogger()
+    logging = MockLogger()  # noqa: F811 -- intentional override for package manager mode
     logging.info(f"Package manager is running via PyMOL: {__file__}.")
 
 
@@ -886,7 +888,7 @@ class PIPInstaller:
         ensurepip = run_command([self.python_exe, "-m", "ensurepip"], verbose=self.verbose_level > -1, env=self.env)
         if ensurepip.returncode:
             notify_box(
-                f"ensurepip failed.",
+                "ensurepip failed.",
                 RuntimeError,
                 details=f"\nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}",
             )
@@ -1120,9 +1122,9 @@ class REvoDesignPackageManager:
             if not diffs:
                 return notify_box(f"{title} is already up to date.")
 
-            num_added_lines = len([l for l in diffs if l.startswith("+ ")])
-            num_chged_lines = len([l for l in diffs if l.startswith("! ")])
-            num_deled_lines = len([l for l in diffs if l.startswith("- ")])
+            num_added_lines = len([line for line in diffs if line.startswith("+ ")])
+            num_chged_lines = len([line for line in diffs if line.startswith("! ")])
+            num_deled_lines = len([line for line in diffs if line.startswith("- ")])
 
             with open(diff_file, "w") as diff:
                 diff.writelines(diffs)
@@ -1440,7 +1442,7 @@ class REvoDesignPackageManager:
         except Exception as e:
             decided = decide(
                 "UI Error",
-                f"Error Occurs while loading UI file, this UI may out-of-dated.\nCleanup and fetch the latest?",
+                "Error Occurs while loading UI file, this UI may out-of-dated.\nCleanup and fetch the latest?",
                 details=str(e),
             )
             if decided:
@@ -2655,14 +2657,18 @@ def execute_on_main_thread(func: Callable[..., GuiResult], *args, **kwargs) -> G
 
 
 @overload
-def notify_box(message: str = "", error_type: None | type[Warning] = None, details: str | None = None) -> None: ...
+def notify_box(
+    message: str = "", error_type: None | type[Warning] = None, details: str | None = None
+) -> None:
+    ...
 
 
 # Overload #2: Exception => NoReturn
 
 
 @overload
-def notify_box(message: str, error_type: type[Exception], details: str | None = None) -> NoReturn: ...
+def notify_box(message: str, error_type: type[Exception], details: str | None = None) -> NoReturn:
+    ...
 
 
 def notify_box(
@@ -2734,7 +2740,8 @@ def run_worker_thread_in_pool(
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
     notify_slot: Callable[[str], None] | None = None,
     **kwargs,
-) -> R: ...
+) -> R:
+    ...
 
 
 @overload
@@ -2744,7 +2751,8 @@ def run_worker_thread_in_pool(
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
     notify_slot: Callable[[str], None] | None = None,
     **kwargs,
-) -> R | None: ...
+) -> R | None:
+    ...
 
 
 def run_worker_thread_in_pool(

@@ -75,7 +75,7 @@ for config_name, config_file in all_main_config_files.items():
     CONFIG_EDIT_LINKS.append(
         MenuItem(
             f"actionEditConf_{_clean_config_name(config_name)}",
-            f"REvoDesign.editor.monaco.monaco:menu_edit_file",
+            "REvoDesign.editor.monaco.monaco:menu_edit_file",
             kwargs={"file_path": config_file},
             action_text=f"Edit {config_name}",
             menu_section="menuEdit_Configuration",
@@ -96,7 +96,7 @@ for config_name, config_file in all_secondary_config_files.items():
     CONFIG_EDIT_LINKS.append(
         MenuItem(
             f"actionEditConf_{_clean_config_name(config_name)}",
-            f"REvoDesign.editor.monaco.monaco:menu_edit_file",
+            "REvoDesign.editor.monaco.monaco:menu_edit_file",
             kwargs={"file_path": config_file},
             action_text=f"Edit {config_name}",
             menu_section="menuEdit_Configuration",
@@ -124,7 +124,7 @@ for config_name, config_file in sorted_recent_experiments.items():
     CONFIG_EDIT_LINKS.append(
         MenuItem(
             f"actionEditConf_{_clean_config_name(config_name)}",
-            f"REvoDesign.editor.monaco.monaco:menu_edit_file",
+            "REvoDesign.editor.monaco.monaco:menu_edit_file",
             kwargs={"file_path": config_file},
             action_text=f"Edit {config_name}",
             menu_section="menuRecent_Experiments",

@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-import os
-
 import pytest
 
 from tests.conftest import TestWorker

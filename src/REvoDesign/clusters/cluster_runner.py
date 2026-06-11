@@ -237,9 +237,7 @@ class ClusterRunner:
                     if self.rosetta_override_representatives:
                         clustering.override_cluster_centers_with_rosetta(rosetta_results)
                     else:
-                        logging.info(
-                            "Rosetta cluster scoring finished without overriding representative FASTA files."
-                        )
+                        logging.info("Rosetta cluster scoring finished without overriding representative FASTA files.")
 
             clustering.cite()
 

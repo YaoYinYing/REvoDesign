@@ -18,11 +18,11 @@ from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.logger import ROOT_LOGGER
 
 # 1. implement the mutate runner and import then here
+from REvoDesign.sidechain.mutate_runner import MutateRelax_worker  # noqa: F401 -- registered via build_plugin_registry
 from REvoDesign.sidechain.mutate_runner import (
+    DiffPack_worker,
     DLPacker_worker,
     DLPackerPytorch_worker,
-    DiffPack_worker,
-    MutateRelax_worker,
     PIPPack_worker,
     PyMOL_mutate,
 )

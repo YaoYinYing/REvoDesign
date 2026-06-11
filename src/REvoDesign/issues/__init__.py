@@ -7,5 +7,5 @@
 Exceptions and warnings
 """
 
-from .exceptions import *
-from .warnings import *
+from .exceptions import *  # noqa: F401,F403 -- star-import re-export, __all__ defined in submodule
+from .warnings import *  # noqa: F401,F403 -- star-import re-export, __all__ defined in submodule

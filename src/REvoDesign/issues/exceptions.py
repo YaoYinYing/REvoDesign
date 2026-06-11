@@ -7,6 +7,35 @@
 REvoDesign Exceptions
 """
 
+__all__ = [
+    "BadDataError",
+    "ConfigurationError",
+    "ConfigureError",
+    "ConfigureOutofDateError",
+    "DependencyError",
+    "EmptySessionError",
+    "EnzymeDesignError",
+    "FileFormatError",
+    "FobbidenDataTypeError",
+    "InternalError",
+    "InvalidInputError",
+    "MissingExternalToolError",
+    "MoleculeError",
+    "MoleculeUnloadedError",
+    "NetworkError",
+    "NoInputError",
+    "NoResultsError",
+    "PluginError",
+    "PluginNotImplementedError",
+    "REvoDesignException",
+    "SocketError",
+    "UnauthorizedError",
+    "UnexpectedWorkflowError",
+    "UninstalledPackageError",
+    "UnknownWidgetError",
+    "UnsupportedDataTypeError",
+]
+
 
 class REvoDesignException(Exception):
     """Base class for all exceptions in the REvoDesign application."""

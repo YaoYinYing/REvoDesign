@@ -6,8 +6,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from REvoDesign.Qt import QT_BACKEND, QtCore, QtUiTools, QtWidgets
 
@@ -91,7 +92,9 @@ class RuntimeUiProxy:
         self.refresh_bindings()
 
 
-def _load_with_pyuic(ui_path: Path, parent: QtWidgets.QWidget | None = None) -> tuple[QtWidgets.QMainWindow, RuntimeUiProxy]:
+def _load_with_pyuic(
+    ui_path: Path, parent: QtWidgets.QWidget | None = None
+) -> tuple[QtWidgets.QMainWindow, RuntimeUiProxy]:
     uic = _load_pyqt_uic_module()
     form_class, base_class = uic.loadUiType(str(ui_path))
     window = base_class(parent)
@@ -150,7 +153,9 @@ def load_runtime_ui(
         pass
 
     attempted = ", ".join(attempted_loaders) or "no runtime UI loader"
-    raise ImportError(f"Unable to load {resolved_ui_path} with the active backend {QT_BACKEND!r}; attempted: {attempted}.")
+    raise ImportError(
+        f"Unable to load {resolved_ui_path} with the active backend {QT_BACKEND!r}; attempted: {attempted}."
+    )
 
 
 __all__ = ["RuntimeUiProxy", "is_language_change_event", "load_runtime_ui"]

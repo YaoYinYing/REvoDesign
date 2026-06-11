@@ -158,7 +158,7 @@ class CgoAxes(GraphicObject):
 
         # Ensure attributes are of the correct type
         self.w = float(self.w)
-        self.l = float(self.l)
+        self.l = float(self.l)  # noqa: E741 -- standard abbreviation for length (w/l/h)
         self.h = float(self.h)
         self.always_left_corner = bool(self.always_left_corner)
 
@@ -376,7 +376,10 @@ Center: {self.cen_xyz[0]:.3f}, {self.cen_xyz[1]:.3f}, {self.cen_xyz[2]:.3f}"""
 
 
 @overload
-def showbox(box: str, minX: float, maxX: float, minY: float, maxY: float, minZ: float, maxZ: float) -> CgoBox: ...
+def showbox(
+    box: str, minX: float, maxX: float, minY: float, maxY: float, minZ: float, maxZ: float
+) -> CgoBox:
+    ...
 
 
 @overload
@@ -388,7 +391,8 @@ def showbox(
     maxY: float | str | None = None,
     minZ: float | str | None = None,
     maxZ: float | str | None = None,
-) -> CgoBox: ...
+) -> CgoBox:
+    ...
 
 
 def showbox(
@@ -760,8 +764,6 @@ def box_helper(box_name: str):
         :param new_action: Either 'move_coords' or 'change_size'.
         """
         nonlocal action
-        nonlocal window
-        nonlocal banner_label
         nonlocal action_method
         action = new_action
 
@@ -809,7 +811,6 @@ Press Up/Right/A/W or Down/Left/S/D to change the values."""
         Query the current box's info (using CgoBox) and display it in the info banner.
         This provides details such as the box coordinates, size, and AutoDock parameters.
         """
-        nonlocal banner_info
         box = CgoBox.from_selection(box_name, "_select_box", 0, (0, 0, 0))
         banner_info.setText(
             f"""Box {box_name} info:\n{repr(box)}\n\nAutoDock Vina:\n{box.to_vina}\n\nAutoGrid:\n{box.to_autogrid}"""

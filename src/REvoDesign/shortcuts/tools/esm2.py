@@ -324,8 +324,6 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
         _unused_batch_labels, _unused_batch_strs, batch_tokens = batch_converter(data)
 
-        _unused_wt_encoded, _unused_mt_encoded = alphabet.get_idx(wt), alphabet.get_idx(mt)
-
         # compute probabilities at each position
         log_probs = []
         for i in range(1, len(sequence) - 1):

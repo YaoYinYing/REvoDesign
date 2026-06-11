@@ -38,7 +38,7 @@ class DLPackerPytorch_worker(MutateRunnerAbstract):
         cache_dir = set_cache_dir()
         expected_dlpacker_weight_cache_dir = os.path.join(os.path.abspath(cache_dir), "weights", "DLPacker")
         default_weights_prefix = os.path.join(expected_dlpacker_weight_cache_dir, "DLPacker_weights")
-        configured_weights_prefix = (str(inference_cfg.weights_prefix).strip() if inference_cfg.weights_prefix else "")
+        configured_weights_prefix = str(inference_cfg.weights_prefix).strip() if inference_cfg.weights_prefix else ""
         self.weights_prefix = configured_weights_prefix or default_weights_prefix
         os.environ["DLPACKER_PRETRAINED_WEIGHT"] = os.path.dirname(self.weights_prefix)
 
@@ -147,7 +147,7 @@ class DLPackerPytorch_worker(MutateRunnerAbstract):
         nproc: int = 2,
     ) -> list[str]:
         with timing("setting up DLPackerPytorch"):
-            from dlpacker_pytorch import DLPacker
+            from dlpacker_pytorch import DLPacker  # noqa: F401 -- lazy import for side-effect (cache warm)
 
         if nproc is None:
             nproc = os.cpu_count()

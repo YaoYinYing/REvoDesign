@@ -203,7 +203,7 @@ class DLPacker_worker(MutateRunnerAbstract):
         """
         with timing("setting up DLPacker"):
             # call DLPacker to initialize with cache dir
-            from DLPacker.dlpacker import DLPacker
+            from DLPacker.dlpacker import DLPacker  # noqa: F401 -- lazy import for side-effect (cache warm)
 
         if nproc is None:
             nproc = os.cpu_count()

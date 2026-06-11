@@ -15,7 +15,7 @@ Team work module
 
 import base64
 import copy
-import pickle
+import pickle  # nosec B403: inter-process Qt socket serialization, trusted local context
 import socket
 import time
 import traceback
@@ -28,10 +28,11 @@ from typing import Any, Literal
 
 import msgpack
 from pymol import cmd
+
 from REvoDesign import ConfigBus, SingletonAbstract, issues
-from REvoDesign.Qt import QT_BACKEND, QtCompat, QtCore, QtNetwork, QtWebSockets, has_qt_module
 from REvoDesign.common.mutant_tree import MutantTree
 from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.Qt import QT_BACKEND, QtCompat, QtCore, QtNetwork, QtWebSockets, has_qt_module
 from REvoDesign.tools.customized_widgets import refresh_tree_widget
 from REvoDesign.tools.safe_pickle import restricted_loads
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
@@ -44,9 +45,8 @@ _QWEBSOCKET_TYPE = getattr(QtWebSockets, "QWebSocket", None) if QtWebSockets is 
 
 def _require_websocket_support() -> None:
     if not has_qt_module("QtNetwork") or not has_qt_module("QtWebSockets"):
-        raise RuntimeError(
-            f"The active PyMOL Qt backend does not provide QtWebSockets. Active backend: {QT_BACKEND}."
-        )
+        raise RuntimeError(f"The active PyMOL Qt backend does not provide QtWebSockets. Active backend: {QT_BACKEND}.")
+
 
 """
 helpful:

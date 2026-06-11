@@ -14,7 +14,6 @@ import zipfile
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from types import SimpleNamespace
 
 import docker
 import pytest
@@ -1650,6 +1649,7 @@ def _wait_for_server_ready(
             f"stderr:\n{logs.stderr}"
         )
     raise AssertionError(f"PSSM GREMLIN server failed to start within timeout ({last_error})")
+
 
 def _extract_md5(location: str) -> str:
     return location.rstrip("/").rsplit("/", 1)[-1]

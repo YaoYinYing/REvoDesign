@@ -126,4 +126,3 @@ def build_plugin_registry(
         include_package_module=include_package_module,
         include_predicate=include_predicate,
     )
-

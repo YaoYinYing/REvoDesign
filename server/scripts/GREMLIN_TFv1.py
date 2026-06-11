@@ -12,7 +12,7 @@
 
 import os
 import pathlib
-import pickle
+import pickle  # nosec B403: MRF model serialization, trusted data
 import sys
 
 import matplotlib

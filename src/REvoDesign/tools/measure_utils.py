@@ -28,6 +28,14 @@ Github Copilot was prompted to generate all the contents below based on the code
 2. call the extended command: `read_measurement [start,[debug]]`
 """
 
+import logging
+import math
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, field
+from typing import Any, Optional
+
+from pymol import cmd
+
 # TODO:
 # 1. refactor the code to make it more readable and maintainable, simple and clean
 # 2. read non-distance measurements
@@ -35,49 +43,38 @@ Github Copilot was prompted to generate all the contents below based on the code
 # 4. add regex measurement object name filter: `read_measurement  <filter-string>,[start,[debug]]`, default is '(all)'
 
 
-"""
 # Code for Gromacs indexing system
+#
+#  0 System              : 113812 atoms
+#  1 Protein             :  8773 atoms
+#  2 Protein-H           :  4414 atoms
+#  3 C-alpha             :   594 atoms
+#  4 Backbone            :  1782 atoms
+#  5 MainChain           :  2375 atoms
+#  6 MainChain+Cb        :  2902 atoms
+#  7 MainChain+H         :  2941 atoms
+#  8 SideChain           :  5832 atoms
+#  9 SideChain-H         :  2039 atoms
+# 10 Prot-Masses         :  8773 atoms
+# 11 non-Protein         : 105039 atoms
+# 12 Other               :   140 atoms
+# 13 FAD                 :    84 atoms ; case by case
+# 14 C18                 :    56 atoms ; case by case
+# 15 NA                  :     4 atoms ; according to system
+# 16 Water               : 104895 atoms
+# 17 SOL                 : 104895 atoms
+# 18 non-Water           :  8917 atoms
+# 19 Ion                 :     4 atoms
+# 20 Water_and_ions      : 104899 atoms
+# 21 Protein_FAD_C18     :  8913 atoms ; case by case
+#
+# nr : group      '!': not  'name' nr name   'splitch' nr    Enter: list groups
+# 'a': atom       '&': and  'del' nr         'splitres' nr   'l': list residues
+# 't': atom type  '|': or   'keep' nr        'splitat' nr    'h': help
+# 'r': residue              'res' nr         'chain' char
+# "name": group             'case': case sensitive           'q': save and quit
+# 'ri': residue index
 
-  0 System              : 113812 atoms
-  1 Protein             :  8773 atoms
-  2 Protein-H           :  4414 atoms
-  3 C-alpha             :   594 atoms
-  4 Backbone            :  1782 atoms
-  5 MainChain           :  2375 atoms
-  6 MainChain+Cb        :  2902 atoms
-  7 MainChain+H         :  2941 atoms
-  8 SideChain           :  5832 atoms
-  9 SideChain-H         :  2039 atoms
- 10 Prot-Masses         :  8773 atoms
- 11 non-Protein         : 105039 atoms
- 12 Other               :   140 atoms
- 13 FAD                 :    84 atoms ; case by case
- 14 C18                 :    56 atoms ; case by case
- 15 NA                  :     4 atoms ; according to system
- 16 Water               : 104895 atoms
- 17 SOL                 : 104895 atoms
- 18 non-Water           :  8917 atoms
- 19 Ion                 :     4 atoms
- 20 Water_and_ions      : 104899 atoms
- 21 Protein_FAD_C18     :  8913 atoms ; case by case
-
- nr : group      '!': not  'name' nr name   'splitch' nr    Enter: list groups
- 'a': atom       '&': and  'del' nr         'splitres' nr   'l': list residues
- 't': atom type  '|': or   'keep' nr        'splitat' nr    'h': help
- 'r': residue              'res' nr         'chain' char
- "name": group             'case': case sensitive           'q': save and quit
- 'ri': residue index
-
-
-"""
-
-
-import math
-from collections.abc import Iterable, Sequence
-from dataclasses import dataclass, field
-from typing import Any, Optional
-
-from pymol import cmd
 
 """
 A proper measure object looks like this:
@@ -261,7 +258,8 @@ def _build_scene_atom_list(cmd_module):
         except Exception:
             try:
                 model = cmd_module.get_model(obj)
-            except Exception:
+            except Exception as exc:  # nosec B112: skip PyMOL objects that can't be retrieved as models
+                logging.debug("Skipping PyMOL object '%s' that can't be retrieved: %s", obj, exc)
                 continue
         for a in model.atom:
             # coords
@@ -465,7 +463,8 @@ class Measurement:
             try:
                 if isinstance(header, (list, tuple)) and len(header) > 1 and isinstance(header[1], str):
                     derived_name = header[1]
-            except Exception:
+            except Exception as exc:  # nosec B110: fall back to empty name on unparseable header
+                logging.debug("Could not derive name from header %r: %s", header, exc)
                 pass
             return cls(name=derived_name, header=header, dsets=dsets, raw_obj_pylist=raw_obj_pylist)
         return None

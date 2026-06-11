@@ -7,9 +7,9 @@
 This module contains all the mutate runners.
 """
 
+from .DiffPack import DiffPack_worker
 from .DLPacker import DLPacker_worker
 from .DLPackerPytorch import DLPackerPytorch_worker
-from .DiffPack import DiffPack_worker
 from .DunbrackRotamerLib import PyMOL_mutate
 from .PIPPack import PIPPack_worker
 from .RosettaMutateRelax import MutateRelax_worker

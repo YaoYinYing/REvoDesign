@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from REvoDesign.Qt import qt_wrapper
 from REvoDesign.Qt.ui_runtime_loader import RuntimeUiProxy

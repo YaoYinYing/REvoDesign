@@ -430,11 +430,10 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         self.write_method_report()
 
 
-from REvoDesign.clusters.methods.agglomerative import AgglomerativeCluster
-from REvoDesign.clusters.methods.evo import EvoCluster
-from REvoDesign.clusters.methods.kmeans import KMeansCluster
-from REvoDesign.clusters.methods.legacy import LegacyCluster
-
+from REvoDesign.clusters.methods.agglomerative import AgglomerativeCluster  # noqa: E402 — deferred for circular-import
+from REvoDesign.clusters.methods.evo import EvoCluster  # noqa: E402
+from REvoDesign.clusters.methods.kmeans import KMeansCluster  # noqa: E402
+from REvoDesign.clusters.methods.legacy import LegacyCluster  # noqa: E402
 
 CLUSTER_METHOD_REGISTRY = build_plugin_registry(
     base_class=ClusterMethodAbstract,

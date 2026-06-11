@@ -207,7 +207,7 @@ LoggerT = python_logging.Logger
 
 
 def logger_level_setter(**kwargs) -> None:
-    '''
+    """
     A mirror method of `logger_level_setter_ng` that use kwargs instead of `settings` dict.
 
     See the docstring of `logger_level_setter_ng` for more details.
@@ -219,7 +219,7 @@ def logger_level_setter(**kwargs) -> None:
         file="DEBUG",
         notebook="DEBUG",
     )
-    '''
+    """
     logger_level_setter_ng(kwargs)
 
 
@@ -238,31 +238,31 @@ def reload_logging_config():
 def logger_level_setter_ng(settings: dict[str, str]):
     """
     Sets logger levels for different channels
-    
-    This function configures the logging levels for different log channels based on the input 
+
+    This function configures the logging levels for different log channels based on the input
     settings dictionary, including both the root logger and specific channel handlers.
-    It also updates the logger configuration in the config bus, saves to file, and reloads the 
+    It also updates the logger configuration in the config bus, saves to file, and reloads the
     logging configuration.
-    
+
     Args:
-        settings (dict[str, str]): A dictionary containing logger channel names as keys and 
-                                   corresponding log levels as values. The special key "root" 
+        settings (dict[str, str]): A dictionary containing logger channel names as keys and
+                                   corresponding log levels as values. The special key "root"
                                    is used to set the root logger level.
-                                   
+
     Returns:
-        None: This function does not return a value but modifies the global logger configuration 
+        None: This function does not return a value but modifies the global logger configuration
               and runtime logger levels.
 
     Examples:
         >>> logger_level_setter_ng(settings={'root': 'INFO'}) # mute root logger from debug messages
         >>> logger_level_setter_ng(settings={'<channel>': '<level>'}) # set level towards a specific logging channel
-        where: <channel> is one of the available channels that can be found by `list_all_logger_channels()` and 
+        where: <channel> is one of the available channels that can be found by `list_all_logger_channels()` and
                <level> is one of the available levels that can be found by `list_all_logger_levels()`.
 
     """
     from REvoDesign.driver.ui_driver import ConfigBus
 
-    logging.info(f"Setting logger level")
+    logging.info("Setting logger level")
 
     all_logger_channels = list_all_logger_channels()
 

@@ -164,7 +164,12 @@ class LanguageSwitch(QtWidgets.QWidget):
         ``self.trans`` reference internally.
         """
         existing = getattr(self.bus.ui, "trans", None)
-        if existing is not None and hasattr(existing, "load") and hasattr(existing, "isEmpty") and hasattr(existing, "translate"):
+        if (
+            existing is not None
+            and hasattr(existing, "load")
+            and hasattr(existing, "isEmpty")
+            and hasattr(existing, "translate")
+        ):
             return existing
 
         translator = QtCore.QTranslator(self.window)
@@ -228,7 +233,9 @@ class LanguageSwitch(QtWidgets.QWidget):
             else:
                 logging.warning("Failed to load translation file for %s (%s)", language.name, language.id)
         else:
-            logging.debug("%s (%s) is not available; falling back to source-language strings.", language.name, language.id)
+            logging.debug(
+                "%s (%s) is not available; falling back to source-language strings.", language.name, language.id
+            )
 
         self.bus.ui.retranslateUi(self.window)
         self._retranslate_language_actions()

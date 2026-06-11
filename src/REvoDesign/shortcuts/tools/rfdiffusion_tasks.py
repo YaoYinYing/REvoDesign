@@ -5,7 +5,7 @@
 
 import glob
 import os
-import pickle
+import pickle  # nosec B403: traceback serialization, trusted context
 import random
 import re
 import shutil
@@ -178,9 +178,11 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             # use model trained for inpaint_seq
             if self.config.contigmap.provide_seq is not None:
                 # this is only used for partial diffusion
-                assert (
-                    self.config.diffuser.partial_T is not None
-                ), "The provide_seq input is specifically for partial diffusion"
+                if self.config.diffuser.partial_T is None:
+                    raise issues.ConfigurationError(
+                        "The provide_seq input is specifically for partial diffusion. "
+                        "Set diffuser.partial_T to use this feature."
+                    )
             if self.config.scaffoldguided.scaffoldguided:
                 model_name = "InpaintSeq_Fold_ckpt"
             else:

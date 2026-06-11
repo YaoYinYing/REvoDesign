@@ -1350,4 +1350,4 @@ def delete_tasks_batch():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=CONFIG.port)
+    app.run(host="0.0.0.0", port=CONFIG.port)  # nosec B104: containerized server, binding to all interfaces by design

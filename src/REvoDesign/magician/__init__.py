@@ -19,7 +19,7 @@ from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import timing
 
 # 1. implement and import the designer
-from .designers import ColabDesigner_MPNN, ddg
+from .designers import ColabDesigner_MPNN, ddg  # noqa: F401 -- ddg registered via build_plugin_registry
 
 logging = ROOT_LOGGER.getChild(__name__)
 
