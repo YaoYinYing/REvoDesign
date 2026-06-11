@@ -421,6 +421,7 @@ class Measurement:
     extra: Any | None = None
 
     _atoms_cache: list[AtomDescriptor] | None = None
+    _atoms_cache_key: tuple[int, float] | None = None  # (scene_fingerprint, coord_tol)
 
     # ---- measurement-type queries ------------------------------------------
 
@@ -507,7 +508,7 @@ class Measurement:
     def _compute_angle(
         coords: list[tuple[float, float, float]],
     ) -> float:
-        """Compute bond angle in degrees (atom1–atom2–atom3)."""
+        """Compute bond angle in degrees (atom1-atom2-atom3)."""
         if len(coords) < 3:
             return math.nan
         a, b, c = coords[0], coords[1], coords[2]
@@ -525,7 +526,7 @@ class Measurement:
     def _compute_dihedral(
         coords: list[tuple[float, float, float]],
     ) -> float:
-        """Compute dihedral angle in degrees (atom1–atom2–atom3–atom4).
+        """Compute dihedral angle in degrees (atom1-atom2-atom3-atom4).
 
         Uses the standard atan2 formula from computational chemistry.
         """
@@ -575,12 +576,23 @@ class Measurement:
                         result.append(int(uid))
         return result
 
+    @staticmethod
+    def _scene_fingerprint(cmd_module) -> int:
+        """Cheap scene fingerprint from object names — changes when objects change."""
+        try:
+            return hash(tuple(sorted(_get_object_list(cmd_module))))
+        except Exception:
+            return 0
+
     def atoms(self, cmd_module=None, coord_tol: float = 0.9) -> list[AtomDescriptor]:
         """Resolve measurement atoms to ``AtomDescriptor`` objects.
 
         Resolution strategy (in order of preference):
           1. Direct ``unique_id`` lookup (fast and unambiguous).
           2. Coordinate-based nearest-neighbor search within *coord_tol* (Å).
+
+        Results are cached and only recomputed when the scene fingerprint or
+        *coord_tol* changes.
 
         Parameters
         ----------
@@ -589,15 +601,18 @@ class Measurement:
         coord_tol:
             Coordinate tolerance in Å for nearest-neighbor matching.
         """
-        if self._atoms_cache is not None:
-            return self._atoms_cache
-
         if cmd_module is None:
             cmd_module = cmd
+
+        fingerprint = self._scene_fingerprint(cmd_module)
+        cache_key = (fingerprint, coord_tol)
+        if self._atoms_cache is not None and self._atoms_cache_key == cache_key:
+            return self._atoms_cache
 
         unique_ids = self._collect_unique_ids()
         if not unique_ids:
             self._atoms_cache = []
+            self._atoms_cache_key = cache_key
             return []
 
         # Build lookup structures once
@@ -648,6 +663,53 @@ class Measurement:
             resolved.append(AtomDescriptor("(unresolved)", -1, None, None, None, None, None, uid, found_coord))
 
         self._atoms_cache = resolved
+        self._atoms_cache_key = cache_key
+        return resolved
+
+    def atoms_for_entry(
+        self, mi: MeasureInfo, ds: DistSet, cmd_module=None, coord_tol: float = 0.9
+    ) -> list[AtomDescriptor]:
+        """Resolve atoms for a single ``MeasureInfo`` + ``DistSet`` pair.
+
+        Unlike ``atoms()``, this does not de-duplicate across entries and
+        preserves per-entry ordering.  The result is NOT cached.
+        """
+        if cmd_module is None:
+            cmd_module = cmd
+
+        scene_atoms = build_scene_atom_list(cmd_module)
+        unique_map: dict[int, AtomDescriptor] = {a.unique_id: a for a in scene_atoms if a.unique_id is not None}
+        coords = ds.get_vertex_coords_for_measure(mi)
+
+        resolved: list[AtomDescriptor] = []
+        for j, uid in enumerate(mi.ids):
+            if uid is not None and uid in unique_map:
+                resolved.append(unique_map[uid])
+                continue
+
+            # coordinate fallback
+            if j < len(coords):
+                found_coord = coords[j]
+                best = _nearest_atom_by_coord(found_coord, scene_atoms)
+                if best is not None:
+                    atom_descr, d2 = best
+                    if math.sqrt(d2) <= coord_tol:
+                        if atom_descr.unique_id is None:
+                            atom_descr = AtomDescriptor(
+                                obj=atom_descr.obj,
+                                atom_index=atom_descr.atom_index,
+                                chain=atom_descr.chain,
+                                segi=atom_descr.segi,
+                                resi=atom_descr.resi,
+                                resn=atom_descr.resn,
+                                name=atom_descr.name,
+                                unique_id=uid,
+                                coord=atom_descr.coord,
+                            )
+                        resolved.append(atom_descr)
+                        continue
+
+            resolved.append(AtomDescriptor("(unresolved)", -1, None, None, None, None, None, uid, None))
         return resolved
 
     # ---- serialization -----------------------------------------------------
@@ -793,16 +855,11 @@ class Measurement:
 def _gmx_group_for_resn(resn: str | None) -> str:
     """Return the Gromacs index group number string for a residue name.
 
-    ``9`` = SideChain, ``8`` = Backbone (used for GLY).
+    ``4`` = Backbone (used for GLY), ``8`` = SideChain (all other residues).
     """
     if resn == "GLY":
-        return "8"
-    return "9"
-
-
-def _format_gmx_label(measurements: list[Measurement]) -> str:
-    """Format measurement names as space-separated quoted strings for Gromacs."""
-    return "(" + " ".join(f"'{m.name}'" for m in measurements) + ")"
+        return "4"
+    return "8"
 
 
 def read_measurement(start: str | int = 0, debug: int = 0) -> list[Measurement]:
@@ -811,8 +868,8 @@ def read_measurement(start: str | int = 0, debug: int = 0) -> list[Measurement]:
     For each measurement atom, this prints a Gromacs ``make_ndx``-style
     selection and ``name`` command, following the convention:
 
-    - ``9 & r <resi>`` for non-glycine sidechain atoms
-    - ``8 & r <resi>`` for glycine backbone atoms
+    - ``4 & r <resi>`` for glycine backbone atoms
+    - ``8 & r <resi>`` for non-glycine sidechain atoms
 
     Works with distance (2 atoms), angle (3 atoms), and dihedral (4 atoms)
     measurements.
@@ -838,52 +895,52 @@ def read_measurement(start: str | int = 0, debug: int = 0) -> list[Measurement]:
     if not measurements:
         raise ValueError("No measurement objects found in session")
 
-    atoms: dict[int, str] = {}  # gmx_index → residue_label
-    all_pairs: dict[str, list[str]] = {}
+    seen_labels: set[str] = set()
+    all_entries: list[tuple[str, tuple[str, ...]]] = []  # (meas_name, (label0, label1, ...))
 
     for m in measurements:
         if DEBUG:
             print("-=" * 30)
             print(f"[DEBUG] {m.summarize(cmd)}")
 
-        resolved = m.atoms(cmd)
-        pair: list[str] = []
+        for ds in m.dsets:
+            for mi in ds.measure_info:
+                entry_atoms = m.atoms_for_entry(mi, ds, cmd)
+                labels_tuple = tuple(f"r{a.resi}" for a in entry_atoms)
+                all_entries.append((m.name, labels_tuple))
 
-        for a in resolved:
-            label = f"r{a.resi}"
-            pair.append(label)
+                for a in entry_atoms:
+                    label = f"r{a.resi}"
+                    if label in seen_labels:
+                        if DEBUG:
+                            print(f"[DEBUG] skipping {a.resi} to avoid duplicates")
+                        continue
+                    seen_labels.add(label)
 
-            if label in atoms.values():
-                if DEBUG:
-                    print(f"[DEBUG] skipping {a.resi} to avoid duplicates")
-                continue
-
-            start_idx += 1
-            group = _gmx_group_for_resn(a.resn)
-            print(f"{group} & r {a.resi}")
-            print(f"name {start_idx} {label}")
-            atoms[start_idx] = label
-
-        all_pairs[m.name] = pair
+                    start_idx += 1
+                    group = _gmx_group_for_resn(a.resn)
+                    print(f"{group} & r {a.resi}")
+                    print(f"name {start_idx} {label}")
 
         if DEBUG:
-            print(f"[DEBUG] {m.name} {pair}")
+            m_entries = [e for name, e in all_entries if name == m.name]
+            print(f"[DEBUG] {m.name} {m_entries}")
             print("-=" * 30)
 
     if DEBUG:
-        print(f"[DEBUG] all_pairs: {all_pairs}")
+        print(f"[DEBUG] all_entries: {all_entries}")
         print("-=" * 30)
 
-    # Print Gromacs-style summary labels
-    print(f"labels={_format_gmx_label(measurements)}")
+    # Print Gromacs-style summary labels (one per entry)
+    names = [f"'{name}'" for name, _ in all_entries]
+    print(f"labels=({' '.join(names)})")
 
-    # Print atom group lists for each position in the measurement
-    max_atoms = max((len(p) for p in all_pairs.values()), default=2)
+    # Print atom group lists for each position across all entries
+    max_atoms = max((len(entry) for _, entry in all_entries), default=2)
     for pos in range(max_atoms):
         grp_values = []
-        for m in measurements:
-            pair = all_pairs.get(m.name, [])
-            grp_values.append(f"'{pair[pos]}'" if pos < len(pair) else "''")
+        for _, entry in all_entries:
+            grp_values.append(f"'{entry[pos]}'" if pos < len(entry) else "''")
         suffix = chr(ord("a") + pos) if pos < 26 else f"_{pos}"
         print(f"grp_{suffix}s=({' '.join(grp_values)})")
 

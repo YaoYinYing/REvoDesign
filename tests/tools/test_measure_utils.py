@@ -32,12 +32,16 @@ from REvoDesign.tools.measure_utils import (AtomDescriptor, DistSet,
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(autouse=True)
-def _pymol_session():
-    """Ensure a fresh PyMOL session with a test structure loaded."""
+@pytest.fixture(scope="session")
+def _pymol_startup():
+    """Launch PyMOL once per test session."""
     pymol.finish_launching(["pymol", "-qc"])
+
+
+@pytest.fixture(autouse=True)
+def _pymol_session(_pymol_startup):
+    """Fresh PyMOL state for each test function."""
     cmd.reinitialize()
-    # Create a small protein-like structure for measurements
     cmd.fab("ACDEFGHIKL", "test_protein")
     yield
     cmd.reinitialize()
@@ -441,13 +445,13 @@ class TestValueComputation:
         assert math.isnan(Measurement._compute_distance([(0.0, 0.0, 0.0)]))
 
     def test_compute_angle_right(self):
-        """90° angle: (1,0,0)–(0,0,0)–(0,1,0)."""
+        """90° angle: (1,0,0)-(0,0,0)-(0,1,0)."""
         coords = [(1.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
         result = Measurement._compute_angle(coords)
         assert result == pytest.approx(90.0)
 
     def test_compute_angle_straight(self):
-        """180° angle: (1,0,0)–(0,0,0)–(-1,0,0)."""
+        """180° angle: (1,0,0)-(0,0,0)-(-1,0,0)."""
         coords = [(1.0, 0.0, 0.0), (0.0, 0.0, 0.0), (-1.0, 0.0, 0.0)]
         result = Measurement._compute_angle(coords)
         assert result == pytest.approx(180.0)
