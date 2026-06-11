@@ -126,6 +126,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ClusterTabController` (`application/cluster_tab.py`): `_available_methods()` result is now cached so the heavy cluster-module import (`scipy`, `sklearn`) runs only once per controller lifetime.
   - config-edit / recent-experiment menu links: the second `MenuCollection` (which imports `application/menu.py` and triggers config-directory scanning + `os.path.getmtime()` on every experiment file) is now deferred via `QTimer.singleShot(0, ...)` so the window appears before the filesystem I/O begins.
   - plan: added `plan/launch_optimization.md` with full startup profiling and implementation notes.
+- gremlin (`phylogenetics/evo_mutator.py`):
+  - `plot_coevolved_pair_in_pymol()`: replaced `cmd.create()` (full-atom copy) with `cmd.pseudoatom()` — lightweight pseudo atoms at CA coordinates only, avoiding per-atom property duplication.
+  - CA coordinate pre-caching: all unique `(chain, resi)` coordinates queried once via `cmd.get_coords()` before the pair loop, eliminating redundant selection-string parses.
+  - wrapped the entire batch-creation body inside `cmd.set("suspend_updates", 1)` / `finally: cmd.set("suspend_updates", 0)` so PyMOL defers visual rebuilds until all pairs are created — no per-`cmd.bond()` redraws, no UI freeze.
+  - initial `stick_color`/`stick_transparency` are now set inline during pair creation, removing two full `mark_pair_state()` iterations over every pair.
+  - `in_design` (focused) pair: `stick_transparency` changed from `0.1` to `0.0` (fully opaque).
+  - `i_out_of_range`/`discarded` membership test in the post-filter switched from O(N²) `in list` to O(1) `id()`-based `set` lookup.
+  - added `from __future__ import annotations` per repo header contract.
+  - added empty-collection guard after discarding out-of-range pairs so `load_co_evolving_pairs()` cannot dereference `current_item` on an empty `IterableLoop`.
+  - `run_gremlin_tool()`: added matching empty guard after `plot_coevolved_pair_in_pymol()` to skip button wiring when no pairs survive filtering.
 
 ### Fixed
 - packaging:

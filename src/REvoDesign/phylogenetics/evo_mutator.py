@@ -2,6 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
+from __future__ import annotations
 
 """
 Evolutionary involved mutation processings
@@ -39,19 +40,16 @@ from REvoDesign.magician import IMPLEMENTED_DESIGNERS, Magician
 from REvoDesign.phylogenetics.gremlin_tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.revo_designer import REvoDesigner
 from REvoDesign.sidechain import SidechainSolver
-from REvoDesign.tools.customized_widgets import (
-    QButtonMatrixGremlin,
-    hold_trigger_button,
-    refresh_window,
-    set_widget_value,
-)
+from REvoDesign.tools.customized_widgets import (QButtonMatrixGremlin,
+                                                 hold_trigger_button,
+                                                 refresh_window,
+                                                 set_widget_value)
 from REvoDesign.tools.mutant_tools import save_mutant_choices
-from REvoDesign.tools.pymol_utils import (
-    any_posision_has_been_selected,
-    is_a_REvoDesign_session,
-    make_temperal_input_pdb,
-)
-from REvoDesign.tools.utils import cmap_reverser, get_color, rescale_number, run_worker_thread_in_pool, timing
+from REvoDesign.tools.pymol_utils import (any_posision_has_been_selected,
+                                          is_a_REvoDesign_session,
+                                          make_temperal_input_pdb)
+from REvoDesign.tools.utils import (cmap_reverser, get_color, rescale_number,
+                                    run_worker_thread_in_pool, timing)
 
 matplotlib.use("Agg")
 
@@ -644,6 +642,10 @@ class GremlinAnalyser:
         logging.info("Visualizing as bonds ...")
         self.plot_coevolved_pair_in_pymol()
 
+        if self.coevolved_pairs.empty:
+            logging.warning("No coevolved pairs remain after visualization.")
+            return
+
         try:
             self.bus.button("previous").clicked.disconnect()
             self.bus.button("next").clicked.disconnect()
@@ -673,132 +675,137 @@ class GremlinAnalyser:
         return True
 
     def plot_coevolved_pair_in_pymol(self):
-        # visualize co-evolved pair in pymol UI
-        min_gremlin_score = min(
-            [
-                min([p.zscore for p in self.coevolved_pairs.iterable]),
-                0,
-            ]
-        )
-        max_gremlin_score = max([p.zscore for p in self.coevolved_pairs.iterable])
+        # Suspend visual updates during batch creation — prevents UI freeze
+        cmd.set("suspend_updates", 1)
+        try:
+            # visualize co-evolved pair in pymol UI
+            # Single-pass min/max across all pairs
+            _zscores = [p.zscore for p in self.coevolved_pairs.iterable]
+            min_gremlin_score = min(min(_zscores), 0)
+            max_gremlin_score = max(_zscores)
 
-        self.ce_object_group_valid = cmd.get_unused_name(f"cep_{self.design_molecule}_")
+            self.ce_object_group_valid = cmd.get_unused_name(f"cep_{self.design_molecule}_")
 
-        self.ce_object_group_invalid = cmd.get_unused_name(f"invalid_{self.ce_object_group_valid}_")
+            self.ce_object_group_invalid = cmd.get_unused_name(f"invalid_{self.ce_object_group_valid}_")
 
-        _tmp_obj = f"_tmp_object_for_{self.ce_object_group_valid}"
+            # Pre-cache all unique CA coordinates to avoid redundant cmd.get_coords calls
+            ca_coords: dict[tuple[str, int], list[float]] = {}
+            for pair in self.coevolved_pairs.iterable:
+                for cc in pair.all_res_pairs:
+                    for chain, resi in [(cc[0], pair.i_1), (cc[1], pair.j_1)]:
+                        if (chain, resi) not in ca_coords:
+                            try:
+                                coords = cmd.get_coords(
+                                    f"{self.design_molecule} and c. {chain} and i. {resi} and n. CA", 1
+                                )
+                            except CmdException:
+                                continue
+                            if coords is not None and len(coords) > 0:
+                                ca_coords[(chain, resi)] = coords[0].tolist()
 
-        cmd.create(_tmp_obj, f"{self.design_molecule} and n. CA")
-        cmd.hide("cartoon", _tmp_obj)
-        cmd.hide("surface", _tmp_obj)
-
-        i_out_of_range: list[CoevolvedPair] = []
-        discarded: list[CoevolvedPair] = []
-        set_widget_value(self.bus.ui.progressBar, (0, len(self.coevolved_pairs.iterable)))
-        for i, pair in enumerate(self.coevolved_pairs.iterable):
-            set_widget_value(self.bus.ui.progressBar, i)
-            refresh_window()
-
-            sele_name = repr(pair)
-            logging.debug(f"{sele_name=}")
-            pair.selection_string = cmd.get_unused_name(f"{sele_name}_")
-            _sele = " or ".join([x for x in pair.all_res_pairs_selections.values()])
-            sele = f"{_tmp_obj} and ({_sele}) and n. CA"
-
-            try:
-                logging.debug(f"trying to get all atom from {pair.selection_string=}: {sele=}")
-                cmd.create(
-                    pair.selection_string,
-                    sele,
-                )
-            except CmdException:
-                logging.debug("Failed, now discard this pair!")
-                warnings.warn(issues.BadDataWarning(f"This atom selection is invalid: {sele}"))
-                discarded.append(pair)
-                continue
-            refresh_window()
-            cmd.hide("cartoon", pair.selection_string)
-            cmd.hide("surface", pair.selection_string)
-            cmd.show("sticks", pair.selection_string)
-            refresh_window()
-            zscore = rescale_number(
-                pair.zscore,
-                min_value=min_gremlin_score,
-                max_value=max_gremlin_score,
-            )
-            refresh_window()
-            logging.debug(f"Setting stick_radius as {zscore=} for {pair.selection_string=}")
-            cmd.set(
-                "stick_radius",
-                zscore,
-                pair.selection_string,
-            )
-
-            refresh_window()
-            if pair.all_out_of_range:
-                i_out_of_range.append(pair)
-                logging.debug(f"Grouping {pair.selection_string=} to {self.ce_object_group_invalid=}")
-                cmd.group(self.ce_object_group_invalid, pair.selection_string)
-
-            else:
-                logging.debug(f"Grouping {pair.selection_string=} to {self.ce_object_group_valid=}")
-                cmd.group(self.ce_object_group_valid, pair.selection_string)
-
-            # bond w/o colors
-            # out-of-range residue pair in valid pair will be not considered.
-            for cc, res_pair in pair.all_res_pairs.items():
+            i_out_of_range: list[CoevolvedPair] = []
+            discarded: list[CoevolvedPair] = []
+            set_widget_value(self.bus.ui.progressBar, (0, len(self.coevolved_pairs.iterable)))
+            for i, pair in enumerate(self.coevolved_pairs.iterable):
+                set_widget_value(self.bus.ui.progressBar, i)
                 refresh_window()
-                if pair.is_out_of_range(cc):
-                    logging.info(
-                        f"Resi {pair.i_1}({cc[0]}) is {pair.dist(chain_pair=cc):.2f} Å away from {pair.j_1}({cc[1]}), out of distance {pair.dist_cutoff} Å."
-                    )
 
+                sele_name = repr(pair)
+                logging.debug(f"{sele_name=}")
+                pair.selection_string = cmd.get_unused_name(f"{sele_name}_")
+
+                # Collect unique (chain, resi) atoms for this pair from cache
+                unique_atoms: list[tuple[str, int, list[float]]] = []
+                seen: set[tuple[str, int]] = set()
+                for cc in pair.all_res_pairs:
+                    for chain, resi in [(cc[0], pair.i_1), (cc[1], pair.j_1)]:
+                        if (chain, resi) not in seen:
+                            pos = ca_coords.get((chain, resi))
+                            if pos is not None:
+                                unique_atoms.append((chain, resi, pos))
+                                seen.add((chain, resi))
+
+                if not unique_atoms:
+                    logging.debug("Failed, now discard this pair!")
+                    discarded.append(pair)
                     continue
 
-                logging.debug(f"Bonding {pair.selection_string}: {res_pair[0]} and {res_pair[1]}")
+                # Create lightweight pseudo atoms (far faster than cmd.create())
+                for chain, resi, pos in unique_atoms:
+                    cmd.pseudoatom(object=pair.selection_string, pos=pos, name="CA", chain=chain, resi=resi)
 
-                cmd.bond(
-                    f"{pair.selection_string} and {res_pair[0]} and n. CA",
-                    f"{pair.selection_string} and {res_pair[1]} and n. CA",
+                cmd.show("sticks", pair.selection_string)
+
+                zscore = rescale_number(
+                    pair.zscore,
+                    min_value=min_gremlin_score,
+                    max_value=max_gremlin_score,
                 )
-        refresh_window()
-        cmd.delete(_tmp_obj)
-        cmd.group(self.ce_object_group_valid, action="close")
-        cmd.group(self.ce_object_group_invalid, action="close")
-        refresh_window()
-        for p in i_out_of_range:
-            logging.info(f"Pair {p.i_aa}-{p.j_aa} will be removed: out of range.")
+                logging.debug(f"Setting stick_radius as {zscore=} for {pair.selection_string=}")
+                cmd.set("stick_radius", zscore, pair.selection_string)
 
-        self.mark_pair_state(
-            pairs=tuple(p for p in i_out_of_range),
-            state="out_of_range",
-        )
+                if pair.all_out_of_range:
+                    i_out_of_range.append(pair)
+                    pair_state = "out_of_range"
+                    cmd.group(self.ce_object_group_invalid, pair.selection_string)
+                else:
+                    pair_state = "available"
+                    cmd.group(self.ce_object_group_valid, pair.selection_string)
 
-        # remove pairs that distal or discarded
-        self.coevolved_pairs = IterableLoop(
-            iterable=tuple(
-                filter(
-                    lambda p: not (p in i_out_of_range or p in discarded),
-                    self.coevolved_pairs.iterable,
-                )
+                # Set initial color + transparency inline (avoids extra mark_pair_state pass)
+                pair_color = CoevolvedPairState().color(pair_state)
+                pair_transparency = 0.7
+                cmd.set("stick_color", pair_color, pair.selection_string)
+                cmd.set("stick_transparency", pair_transparency, pair.selection_string)
+
+                # bond w/o colors
+                # out-of-range residue pair in valid pair will be not considered.
+                for cc, res_pair in pair.all_res_pairs.items():
+                    refresh_window()
+                    if pair.is_out_of_range(cc):
+                        logging.info(
+                            f"Resi {pair.i_1}({cc[0]}) is {pair.dist(chain_pair=cc):.2f} Å "
+                            f"away from {pair.j_1}({cc[1]}), out of distance {pair.dist_cutoff} Å."
+                        )
+                        continue
+
+                    logging.debug(f"Bonding {pair.selection_string}: {res_pair[0]} and {res_pair[1]}")
+
+                    cmd.bond(
+                        f"{pair.selection_string} and {res_pair[0]} and n. CA",
+                        f"{pair.selection_string} and {res_pair[1]} and n. CA",
+                    )
+            refresh_window()
+            cmd.group(self.ce_object_group_valid, action="close")
+            cmd.group(self.ce_object_group_invalid, action="close")
+            refresh_window()
+            for p in i_out_of_range:
+                logging.info(f"Pair {p.i_aa}-{p.j_aa} will be removed: out of range.")
+
+            # Remove distal/discarded pairs (use set for O(1) membership test)
+            removed: set[int] = {id(p) for p in i_out_of_range}
+            removed.update(id(p) for p in discarded)
+            self.coevolved_pairs = IterableLoop(
+                iterable=tuple(p for p in self.coevolved_pairs.iterable if id(p) not in removed)
             )
-        )
-        self.mark_pair_state(
-            pairs=self.coevolved_pairs.iterable,
-            state="available",
-        )
 
-        cmd.set("stick_use_shader", 0)
-        cmd.set("stick_round_nub", 0)
+            if self.coevolved_pairs.empty:
+                logging.warning("All pairs filtered out after removing distal/discarded.")
+                return
 
-        logging.warning(f"Out of range: {len(i_out_of_range)}")
-        logging.warning(f"Discarded pairs: {len(discarded)}")
-        logging.warning(f"Filtered pairs: {len(self.coevolved_pairs.iterable)}")
+            cmd.set("stick_use_shader", 0)
+            cmd.set("stick_round_nub", 0)
 
-        set_widget_value(self.bus.ui.progressBar, (0, len(self.coevolved_pairs.iterable)))
+            logging.warning(f"Out of range: {len(i_out_of_range)}")
+            logging.warning(f"Discarded pairs: {len(discarded)}")
+            logging.warning(f"Filtered pairs: {len(self.coevolved_pairs.iterable)}")
 
-        CitationManager().output()
-        return
+            set_widget_value(self.bus.ui.progressBar, (0, len(self.coevolved_pairs.iterable)))
+
+            CitationManager().output()
+        finally:
+            # Always resume visual updates, even on exception
+            cmd.set("suspend_updates", 0)
 
     def mark_pair_state(
         self,
@@ -814,18 +821,18 @@ class GremlinAnalyser:
         if isinstance(pairs, CoevolvedPair):
             pairs = (pairs,)
 
-        for p in pairs:
+        transparency = 0.7 if state != "in_design" else 0.0
+        if len(pairs) > 1:
+            # Batch: apply settings to all pair selections at once
+            all_sele = " or ".join(p.selection_string for p in pairs)
             refresh_window()
-            cmd.set(
-                "stick_color",
-                color,
-                p.selection_string,
-            )
-            cmd.set(
-                "stick_transparency",
-                0.7 if state != "in_design" else 0.1,
-                p.selection_string,
-            )
+            cmd.set("stick_color", color, all_sele)
+            cmd.set("stick_transparency", transparency, all_sele)
+        else:
+            for p in pairs:
+                refresh_window()
+                cmd.set("stick_color", color, p.selection_string)
+                cmd.set("stick_transparency", transparency, p.selection_string)
 
         logging.debug(f"Marking pair as {state=}: {[str(p) for p in pairs]}")
 
