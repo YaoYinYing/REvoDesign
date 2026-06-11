@@ -28,6 +28,7 @@ Github Copilot was prompted to generate all the contents below based on the code
 2. call the extended command: `read_measurement [start,[debug]]`
 """
 
+import logging
 import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
@@ -257,7 +258,8 @@ def _build_scene_atom_list(cmd_module):
         except Exception:
             try:
                 model = cmd_module.get_model(obj)
-            except Exception:  # nosec B112: skip PyMOL objects that can't be retrieved as models
+            except Exception as exc:  # nosec B112: skip PyMOL objects that can't be retrieved as models
+                logging.debug("Skipping PyMOL object '%s' that can't be retrieved: %s", obj, exc)
                 continue
         for a in model.atom:
             # coords
@@ -461,7 +463,8 @@ class Measurement:
             try:
                 if isinstance(header, (list, tuple)) and len(header) > 1 and isinstance(header[1], str):
                     derived_name = header[1]
-            except Exception:  # nosec B110: fall back to empty name on unparseable header
+            except Exception as exc:  # nosec B110: fall back to empty name on unparseable header
+                logging.debug("Could not derive name from header %r: %s", header, exc)
                 pass
             return cls(name=derived_name, header=header, dsets=dsets, raw_obj_pylist=raw_obj_pylist)
         return None
