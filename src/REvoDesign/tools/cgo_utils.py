@@ -80,7 +80,7 @@ from pymol.vfont import plain
 
 from REvoDesign.tools.utils import pairwise_loop
 
-DEBUG = False
+DEBUG = True
 
 
 # name: hsv imutable dicts

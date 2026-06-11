@@ -7,6 +7,7 @@
 Evolutionary involved mutation processings
 
 TODO: need refactor:
+1. GREMLIN analyser: use CGO to replace bonding
 2. Decision making workflow: refactor
 """
 
@@ -24,7 +25,7 @@ import matplotlib
 import pandas as pd
 from immutabledict import immutabledict
 from joblib import Parallel, delayed
-from pymol import CmdException, cgo, cmd
+from pymol import CmdException, cmd
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import ConfigBus, issues
@@ -38,17 +39,19 @@ from REvoDesign.magician import IMPLEMENTED_DESIGNERS, Magician
 from REvoDesign.phylogenetics.gremlin_tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.revo_designer import REvoDesigner
 from REvoDesign.sidechain import SidechainSolver
-from REvoDesign.tools.cgo_utils import Point
-from REvoDesign.tools.customized_widgets import (QButtonMatrixGremlin,
-                                                 hold_trigger_button,
-                                                 refresh_window,
-                                                 set_widget_value)
+from REvoDesign.tools.customized_widgets import (
+    QButtonMatrixGremlin,
+    hold_trigger_button,
+    refresh_window,
+    set_widget_value,
+)
 from REvoDesign.tools.mutant_tools import save_mutant_choices
-from REvoDesign.tools.pymol_utils import (any_posision_has_been_selected,
-                                          is_a_REvoDesign_session,
-                                          make_temperal_input_pdb)
-from REvoDesign.tools.utils import (cmap_reverser, get_color, rescale_number,
-                                    run_worker_thread_in_pool, timing)
+from REvoDesign.tools.pymol_utils import (
+    any_posision_has_been_selected,
+    is_a_REvoDesign_session,
+    make_temperal_input_pdb,
+)
+from REvoDesign.tools.utils import cmap_reverser, get_color, rescale_number, run_worker_thread_in_pool, timing
 
 matplotlib.use("Agg")
 
@@ -669,82 +672,6 @@ class GremlinAnalyser:
 
         return True
 
-    @staticmethod
-    def _get_cgo_link_data(pair: CoevolvedPair, color_name: str, radius: float = 0.15, alpha: float = 1.0) -> list:
-        """Create CGO link data for a coevolved pair using CYLINDER with alpha.
-
-        Draws cylinder connections between CA atoms of coevolved residues.
-        Out-of-range chain pairs are skipped. Colors are resolved through
-        PyMOL's ``cmd.get_color_tuple()`` to support all PyMOL color names
-        (e.g. ``tv_yellow``). Transparency is controlled via ``cgo.ALPHA``
-        preceding each CYLINDER in the data stream (alpha: 1.0=opaque).
-
-        Args:
-            pair: The coevolved pair to draw links for.
-            color_name: PyMOL color name for the CGO cylinders.
-            radius: Radius of the cylinder connections.
-            alpha: Opacity (1.0 = fully opaque, 0.0 = fully transparent).
-
-        Returns:
-            Flat list of CGO data for all valid chain-pair connections.
-        """
-        rgb = cmd.get_color_tuple(color_name)
-        if rgb is None:
-            rgb = (1.0, 1.0, 1.0)  # fallback to white
-        cgo_data: list = []
-        for chain_pair, (res1_sel, res2_sel) in pair.all_res_pairs.items():
-            refresh_window()
-            if pair.is_out_of_range(chain_pair):
-                continue
-            try:
-                coords1 = cmd.get_coords(f"{res1_sel} and n. CA", 1)
-                coords2 = cmd.get_coords(f"{res2_sel} and n. CA", 1)
-                if coords1 is None or coords2 is None or len(coords1) == 0 or len(coords2) == 0:
-                    continue
-                logging.debug(f"CGO link for {pair.selection_string}: {res1_sel} - {res2_sel}")
-                p1 = Point(*coords1[0])
-                p2 = Point(*coords2[0])
-                cgo_data.extend(
-                    [
-                        cgo.ALPHA,
-                        alpha,
-                        cgo.CYLINDER,
-                        *p1.array,
-                        *p2.array,
-                        radius,
-                        *rgb,
-                        *rgb,
-                    ]
-                )
-            except Exception:
-                continue
-        return cgo_data
-
-    def _update_cgo_links(self, pair: CoevolvedPair, color_name: str, radius: float = 0.15, alpha: float = 1.0):
-        """Update CGO link objects for a coevolved pair with the given color and alpha.
-
-        Deletes any existing CGO link object for this pair and creates a fresh one.
-        The link object is grouped under the valid or invalid group as appropriate.
-        Alpha is embedded via ``cgo.ALPHA`` preceding each CYLINDER in the
-        data stream (1.0 = fully opaque, 0.0 = fully transparent).
-
-        Args:
-            pair: The coevolved pair to update links for.
-            color_name: PyMOL color name for the CGO cylinders.
-            radius: Radius of the cylinder connections.
-            alpha: Opacity (1.0 = fully opaque, 0.0 = fully transparent).
-        """
-        link_name = f"{pair.selection_string}_link"
-        if link_name in cmd.get_names():
-            cmd.delete(link_name)
-        cgo_data = self._get_cgo_link_data(pair, color_name, radius, alpha)
-        if cgo_data:
-            cmd.load_cgo(cgo_data, link_name)
-            if pair.all_out_of_range:
-                cmd.group(self.ce_object_group_invalid, link_name)
-            else:
-                cmd.group(self.ce_object_group_valid, link_name)
-
     def plot_coevolved_pair_in_pymol(self):
         # visualize co-evolved pair in pymol UI
         min_gremlin_score = min(
@@ -817,17 +744,23 @@ class GremlinAnalyser:
                 logging.debug(f"Grouping {pair.selection_string=} to {self.ce_object_group_valid=}")
                 cmd.group(self.ce_object_group_valid, pair.selection_string)
 
-            # CGO-driven links between CA atoms (replaces cmd.bond)
-            # Link thickness proportional to coevolution signal (zscore)
-            pair.cgo_radius = max(0.01, zscore)
-            for cc in pair.all_res_pairs:
+            # bond w/o colors
+            # out-of-range residue pair in valid pair will be not considered.
+            for cc, res_pair in pair.all_res_pairs.items():
+                refresh_window()
                 if pair.is_out_of_range(cc):
                     logging.info(
-                        f"Resi {pair.i_1}({cc[0]}) is {pair.dist(chain_pair=cc):.2f} Å "
-                        f"away from {pair.j_1}({cc[1]}), out of distance {pair.dist_cutoff} Å."
+                        f"Resi {pair.i_1}({cc[0]}) is {pair.dist(chain_pair=cc):.2f} Å away from {pair.j_1}({cc[1]}), out of distance {pair.dist_cutoff} Å."
                     )
-            pair_color = CoevolvedPairState().color("available")
-            self._update_cgo_links(pair, pair_color, pair.cgo_radius, alpha=0.3)
+
+                    continue
+
+                logging.debug(f"Bonding {pair.selection_string}: {res_pair[0]} and {res_pair[1]}")
+
+                cmd.bond(
+                    f"{pair.selection_string} and {res_pair[0]} and n. CA",
+                    f"{pair.selection_string} and {res_pair[1]} and n. CA",
+                )
         refresh_window()
         cmd.delete(_tmp_obj)
         cmd.group(self.ce_object_group_valid, action="close")
@@ -893,10 +826,6 @@ class GremlinAnalyser:
                 0.7 if state != "in_design" else 0.1,
                 p.selection_string,
             )
-            # Update CGO link color and alpha to match pair state
-            # Radius is driven solely by coevolution signal (zscore), not state
-            alpha = 0.9 if state == "in_design" else 0.3
-            self._update_cgo_links(p, color, p.cgo_radius, alpha)
 
         logging.debug(f"Marking pair as {state=}: {[str(p) for p in pairs]}")
 
