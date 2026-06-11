@@ -65,6 +65,8 @@ class CoevolvedPair:
 
     dist_cutoff: float = 0
 
+    cgo_radius: float = 0.15
+
     @property
     def homochain_mode(self) -> bool:
         return len(self.homochains_dist) > 1
