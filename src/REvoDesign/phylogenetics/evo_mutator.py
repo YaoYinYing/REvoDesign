@@ -670,20 +670,20 @@ class GremlinAnalyser:
         return True
 
     @staticmethod
-    def _get_cgo_link_data(pair: CoevolvedPair, color_name: str, radius: float = 0.15, alpha: float = 0.0) -> list:
+    def _get_cgo_link_data(pair: CoevolvedPair, color_name: str, radius: float = 0.15, alpha: float = 1.0) -> list:
         """Create CGO link data for a coevolved pair using CYLINDER with alpha.
 
         Draws cylinder connections between CA atoms of coevolved residues.
-        Out-of-range chain pairs are skipped. Transparency is controlled via
-        ``cgo.ALPHA`` preceding each CYLINDER in the data stream.
-        Colors are resolved through PyMOL's ``cmd.get_color_tuple()`` to
-        support all PyMOL color names (e.g. ``tv_yellow``).
+        Out-of-range chain pairs are skipped. Colors are resolved through
+        PyMOL's ``cmd.get_color_tuple()`` to support all PyMOL color names
+        (e.g. ``tv_yellow``). Transparency is controlled via ``cgo.ALPHA``
+        preceding each CYLINDER in the data stream (alpha: 1.0=opaque).
 
         Args:
             pair: The coevolved pair to draw links for.
             color_name: PyMOL color name for the CGO cylinders.
             radius: Radius of the cylinder connections.
-            alpha: Transparency (0.0 = fully opaque, 1.0 = fully transparent).
+            alpha: Opacity (1.0 = fully opaque, 0.0 = fully transparent).
 
         Returns:
             Flat list of CGO data for all valid chain-pair connections.
@@ -720,17 +720,19 @@ class GremlinAnalyser:
                 continue
         return cgo_data
 
-    def _update_cgo_links(self, pair: CoevolvedPair, color_name: str, radius: float = 0.15, alpha: float = 0.0):
+    def _update_cgo_links(self, pair: CoevolvedPair, color_name: str, radius: float = 0.15, alpha: float = 1.0):
         """Update CGO link objects for a coevolved pair with the given color and alpha.
 
         Deletes any existing CGO link object for this pair and creates a fresh one.
         The link object is grouped under the valid or invalid group as appropriate.
+        Alpha is embedded via ``cgo.ALPHA`` preceding each CYLINDER in the
+        data stream (1.0 = fully opaque, 0.0 = fully transparent).
 
         Args:
             pair: The coevolved pair to update links for.
-            color_name: Color name for the CGO cylinders.
+            color_name: PyMOL color name for the CGO cylinders.
             radius: Radius of the cylinder connections.
-            alpha: Transparency (0.0 = fully opaque, 1.0 = fully transparent).
+            alpha: Opacity (1.0 = fully opaque, 0.0 = fully transparent).
         """
         link_name = f"{pair.selection_string}_link"
         if link_name in cmd.get_names():
@@ -825,7 +827,7 @@ class GremlinAnalyser:
                         f"away from {pair.j_1}({cc[1]}), out of distance {pair.dist_cutoff} Å."
                     )
             pair_color = CoevolvedPairState().color("available")
-            self._update_cgo_links(pair, pair_color, pair.cgo_radius, alpha=0.7)
+            self._update_cgo_links(pair, pair_color, pair.cgo_radius, alpha=0.3)
         refresh_window()
         cmd.delete(_tmp_obj)
         cmd.group(self.ce_object_group_valid, action="close")
@@ -891,11 +893,10 @@ class GremlinAnalyser:
                 0.7 if state != "in_design" else 0.1,
                 p.selection_string,
             )
-            # Update CGO link color, thickness, and alpha to match pair state
-            # Base radius comes from coevolution signal (zscore); bump for focused pair
-            radius = p.cgo_radius * 1.5 if state == "in_design" else p.cgo_radius
-            alpha = 0.1 if state == "in_design" else 0.7
-            self._update_cgo_links(p, color, radius, alpha)
+            # Update CGO link color and alpha to match pair state
+            # Radius is driven solely by coevolution signal (zscore), not state
+            alpha = 0.9 if state == "in_design" else 0.3
+            self._update_cgo_links(p, color, p.cgo_radius, alpha)
 
         logging.debug(f"Marking pair as {state=}: {[str(p) for p in pairs]}")
 
