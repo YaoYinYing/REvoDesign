@@ -32,6 +32,17 @@ def _leave_event():
     return QtCore.QEvent(event_type)
 
 
+def _make_mouse_move_event(pos: QtCore.QPointF | QtCore.QPoint) -> QtGui.QMouseEvent:
+    """Create a platform-independent MouseMove event."""
+    return QtGui.QMouseEvent(
+        QtCore.QEvent.MouseMove,
+        QtCore.QPointF(pos) if hasattr(QtCore, "QPointF") else pos,
+        QtCore.Qt.MouseButton.NoButton,
+        QtCore.Qt.MouseButton.NoButton,
+        QtCore.Qt.KeyboardModifier.NoModifier,
+    )
+
+
 def test_button_matrix_hover_clears(qtbot):
     widget, _ = _build_gremlin_widget(qtbot)
 
@@ -40,12 +51,10 @@ def test_button_matrix_hover_clears(qtbot):
     outside = widget._matrix_rect().topLeft() - QtCore.QPoint(2, 2)
     outside = QtCore.QPoint(max(0, outside.x()), max(0, outside.y()))
 
-    qtbot.mouseMove(widget, center)
-    qtbot.wait(20)
+    QtWidgets.QApplication.sendEvent(widget, _make_mouse_move_event(center))
     assert widget._hover_index == idx
 
-    qtbot.mouseMove(widget, outside)
-    qtbot.wait(20)
+    QtWidgets.QApplication.sendEvent(widget, _make_mouse_move_event(outside))
     assert widget._hover_index is None
 
     QtWidgets.QApplication.sendEvent(widget, _leave_event())
