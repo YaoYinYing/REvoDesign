@@ -38,7 +38,7 @@ import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Any, Optional
+from typing import Any
 
 from pymol import cmd
 
@@ -55,7 +55,7 @@ class MeasureType(IntEnum):
     DIHEDRAL = 4  # cRepDihedral (4 atoms)
 
     @classmethod
-    def from_atom_count(cls, n: int) -> "MeasureType":
+    def from_atom_count(cls, n: int) -> MeasureType:
         """Infer measurement type from the number of atom ids.
 
         This mirrors the C++ logic in ``MeasureInfoListFromPyList``::
@@ -124,7 +124,7 @@ class MeasureInfo:
             self.measure_type = MeasureType.from_atom_count(len(self.ids))
 
     @classmethod
-    def from_pylist(cls, item: Sequence[Any]) -> "MeasureInfo":
+    def from_pylist(cls, item: Sequence[Any]) -> MeasureInfo:
         """Deserialize a Python list produced by ``MeasureInfoListAsPyList``.
 
         The PyList format is::
@@ -198,7 +198,7 @@ class DistSet:
     # ---- factories ---------------------------------------------------------
 
     @classmethod
-    def from_pylist(cls, py: Sequence[Any]) -> "DistSet":
+    def from_pylist(cls, py: Sequence[Any]) -> DistSet:
         """Deserialize from the 10-element Python list format."""
         if not isinstance(py, (list, tuple)):
             raise TypeError("DistSet.from_pylist expects a list or tuple")
@@ -715,7 +715,7 @@ class Measurement:
     # ---- serialization -----------------------------------------------------
 
     @classmethod
-    def from_names_entry(cls, entry: Sequence[Any]) -> Optional["Measurement"]:
+    def from_names_entry(cls, entry: Sequence[Any]) -> Measurement | None:
         """Parse a single entry from ``cmd.get_session()['names']``.
 
         The entry format (from ``ExecutiveGetExecObjectAsPyList``)::
@@ -745,7 +745,7 @@ class Measurement:
         return None
 
     @classmethod
-    def _from_object_dist_pylist(cls, name: str, raw: list[Any]) -> "Measurement":
+    def _from_object_dist_pylist(cls, name: str, raw: list[Any]) -> Measurement:
         """Parse from the ``ObjectDistAsPyList`` 4-element list."""
         header = raw[0] if len(raw) > 0 else None
         dset_pylist = raw[2] if len(raw) > 2 else None
@@ -768,7 +768,7 @@ class Measurement:
         return cls(name=name, header=header, dsets=dsets, raw_obj_pylist=raw)
 
     @classmethod
-    def from_session_names(cls, names: Iterable[Sequence[Any]]) -> list["Measurement"]:
+    def from_session_names(cls, names: Iterable[Sequence[Any]]) -> list[Measurement]:
         """Parse all measurement objects from a ``get_session()['names']`` list."""
         out: list[Measurement] = []
         for entry in names:

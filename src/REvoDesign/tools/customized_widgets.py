@@ -31,9 +31,7 @@ from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.common import file_extensions as Fext
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCompat, QtCore, QtGui, QtWidgets, qexec
-from REvoDesign.tools.package_manager import (WorkerThread, decide,
-                                              hold_trigger_button, notify_box,
-                                              refresh_window)
+from REvoDesign.tools.package_manager import WorkerThread, decide, hold_trigger_button, notify_box, refresh_window
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -97,8 +95,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
             allow_repeat (bool): If True, allows multiple instances of the widget with the same name. Defaults to False.
             parent (Optional[QWidget]): The parent widget. Defaults to None.
         """
-        from REvoDesign.application.font.font_manager import (CURRENT_FONT,
-                                                              DEFAULT_FONT)
+        from REvoDesign.application.font.font_manager import CURRENT_FONT, DEFAULT_FONT
 
         super().__init__(parent=parent)
         if not parent:
@@ -600,6 +597,7 @@ class QButtonMatrix(QtWidgets.QWidget):
             finally:
                 self.end_busy()
         else:
+            self.pulse_cell(idx)
             self.report_axes_signal.emit(row, col)
         self.cellSelected.emit(row, col)
 
@@ -1908,7 +1906,7 @@ class AskedValueCollection:
         )
 
     @property
-    def typing_fixed(self) -> "AskedValueCollection":
+    def typing_fixed(self) -> AskedValueCollection:
         """
         Returns a new object with the `asked_values` field where each element's `val` attribute has been type-converted.
 

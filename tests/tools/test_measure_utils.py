@@ -21,11 +21,17 @@ import math
 import pymol
 import pytest
 from pymol import cmd
-from REvoDesign.tools.measure_utils import (AtomDescriptor, DistSet,
-                                            MeasureInfo, Measurement,
-                                            MeasureType, build_scene_atom_list,
-                                            build_unique_id_map,
-                                            read_measurement)
+
+from REvoDesign.tools.measure_utils import (
+    AtomDescriptor,
+    DistSet,
+    MeasureInfo,
+    Measurement,
+    MeasureType,
+    build_scene_atom_list,
+    build_unique_id_map,
+    read_measurement,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures

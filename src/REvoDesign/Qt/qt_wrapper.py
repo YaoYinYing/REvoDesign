@@ -136,6 +136,7 @@ def _install_qtcore_scoped_aliases() -> None:
     scoped_map = {
         "WidgetAttribute": (
             "WA_DeleteOnClose",
+            "WA_Hover",
             "WA_ShowWithoutActivating",
             "WA_TransparentForMouseEvents",
             "WA_TranslucentBackground",
@@ -173,6 +174,7 @@ def _install_qtcore_scoped_aliases() -> None:
 
     flat_aliases = (
         ("WidgetAttribute", "WA_DeleteOnClose"),
+        ("WidgetAttribute", "WA_Hover"),
         ("WidgetAttribute", "WA_ShowWithoutActivating"),
         ("WidgetAttribute", "WA_TransparentForMouseEvents"),
         ("WidgetAttribute", "WA_TranslucentBackground"),
