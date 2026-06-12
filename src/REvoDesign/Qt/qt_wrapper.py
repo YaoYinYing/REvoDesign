@@ -136,6 +136,7 @@ def _install_qtcore_scoped_aliases() -> None:
     scoped_map = {
         "WidgetAttribute": (
             "WA_DeleteOnClose",
+            "WA_Hover",
             "WA_ShowWithoutActivating",
             "WA_TransparentForMouseEvents",
             "WA_TranslucentBackground",
@@ -173,6 +174,7 @@ def _install_qtcore_scoped_aliases() -> None:
 
     flat_aliases = (
         ("WidgetAttribute", "WA_DeleteOnClose"),
+        ("WidgetAttribute", "WA_Hover"),
         ("WidgetAttribute", "WA_ShowWithoutActivating"),
         ("WidgetAttribute", "WA_TransparentForMouseEvents"),
         ("WidgetAttribute", "WA_TranslucentBackground"),
@@ -417,6 +419,9 @@ class _QtCompatNamespace:
         self.No = _qt_enum(qt_widgets.QMessageBox, "StandardButton", "No")
         self.Cancel = _qt_enum(qt_widgets.QMessageBox, "StandardButton", "Cancel")
         self.WA_DeleteOnClose = _qt_enum(qt_core.Qt, "WidgetAttribute", "WA_DeleteOnClose")
+        self.WA_Hover = _qt_enum(qt_core.Qt, "WidgetAttribute", "WA_Hover")
+        self.WA_TranslucentBackground = _qt_enum(qt_core.Qt, "WidgetAttribute", "WA_TranslucentBackground")
+        self.WA_TransparentForMouseEvents = _qt_enum(qt_core.Qt, "WidgetAttribute", "WA_TransparentForMouseEvents")
         self.CustomContextMenu = _qt_enum(qt_core.Qt, "ContextMenuPolicy", "CustomContextMenu")
         self.RichText = _qt_enum(qt_core.Qt, "TextFormat", "RichText")
         self.PlainText = _qt_enum(qt_core.Qt, "TextFormat", "PlainText")

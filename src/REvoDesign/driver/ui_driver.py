@@ -511,8 +511,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         reject_none: bool,
         default_value: None = ...,
         cfg: Config | str = "main",
-    ) -> ValueFromConfigT:
-        ...
+    ) -> ValueFromConfigT: ...
 
     @overload
     def get_value(
@@ -522,8 +521,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         reject_none: bool,
         default_value: bool = ...,
         cfg: Config | str = "main",
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
     @overload
     def get_value(
@@ -533,12 +531,10 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         reject_none: bool = True,
         default_value: ValueFromConfigT | None = ...,
         cfg: Config | str = "main",
-    ) -> ValueFromConfigT:
-        ...
+    ) -> ValueFromConfigT: ...
 
     @overload
-    def get_value(self, cfg_item: str, converter: None) -> Any:
-        ...
+    def get_value(self, cfg_item: str, converter: None) -> Any: ...
 
     def get_value(
         self,

@@ -2,6 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
+from __future__ import annotations
 
 """
 Custom widgets for REvoDesign.
@@ -30,8 +31,7 @@ from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.common import file_extensions as Fext
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCompat, QtCore, QtGui, QtWidgets, qexec
-
-from .package_manager import WorkerThread, decide, hold_trigger_button, notify_box, refresh_window
+from REvoDesign.tools.package_manager import WorkerThread, decide, hold_trigger_button, notify_box, refresh_window
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -282,7 +282,8 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         self.setObjectName(self.button_name)
         self.setText(label)
         self.setToolTip(tooltip_text)
-        self.setSizePolicy(size_policy)
+        if size_policy is not None:
+            self.setSizePolicy(size_policy)
         self.setMouseTracking(True)  # Enable mouse tracking for hover events.
 
     def enterEvent(self, event):
@@ -406,92 +407,56 @@ class QHoverCross(QtWidgets.QWidget):
         painter.drawRect(vertical_rect)
 
 
+@dataclass(frozen=True)
+class MatrixIndex:
+    """Row and column indices into the matrix."""
+
+    row: int
+    col: int
+
+
+@dataclass(frozen=True)
+class MatrixGeometry:
+    """Computed geometry for painting the matrix."""
+
+    origin_x: int = 0
+    origin_y: int = 0
+    cell_size: int = 12
+    cell_gap: int = 1
+    row_label_width: int = 20
+    col_label_height: int = 14
+    label_margin: int = 4
+
+
 class QButtonMatrix(QtWidgets.QWidget):
-    """
-    A custom widget for displaying a matrix of buttons.
+    """Custom painted matrix widget replacing per-cell QPushButton grids.
 
-    Attributes:
-        label_size (Optional[List[int]]): Fixed size of row/column labels.
-        report_axes_signal (pyqtSignal): Signal emitted with row and column indices.
+    Paints a square heatmap matrix with QPainter.  Handles hover, click,
+    and crosshair highlighting via mouse events.  This avoids native
+    QPushButton size hints that differ between Qt5 and Qt6 and deform the
+    matrix into vertical strips.
 
-    Methods:
-        _map_value_to_color: Maps a matrix value to a QColor.
-        _set_label_size: Sets the fixed size of a label.
-        is_wt_button: Determines if a button is a wild type button.
-        _make_button_tip: Constructs a tooltip for a button.
-        init_ui: Initializes the matrix UI with buttons and labels.
-        signal_process: Handles button click events.
-
-    Usage Example:
-        ```python
-
-        # Example DataFrame
-        data = {
-            'A': [1.0, 2.0, 3.0],
-            'B': [4.0, 5.0, 6.0],
-            'C': [7.0, 8.0, 9.0]
-        }
-        df_button_matrix = pd.DataFrame(data, index=['X', 'Y', 'Z'])
-
-        # Sequence
-        sequence = "XYZ"
-
-        # Function to handle button actions
-        def mutate_with_gridbuttons(row, col, matrix, ignore_wt):
-            print(f"Mutation grid button action executed at row {row}, col {col}.")
-
-        # PyQt Application Setup
-        app = QApplication([])
-
-        # Create QButtonMatrix instance
-        button_matrix = QButtonMatrix(
-            df_matrix=df_button_matrix,
-            sequence=sequence,
-            cmap='bwr',
-            flip_cmap=False,
-        )
-
-        # Method 1: Using internal calls with active_func
-        button_matrix.sequence = sequence
-        button_matrix.init_ui()
-        button_matrix.active_func = partial(
-            mutate_with_gridbuttons,
-            **kwargs,
-        )
-
-        # Method 2: Connecting the signal externally
-        button_matrix.report_axes_signal.connect(
-            lambda row, col: mutate_with_gridbuttons(
-                row,
-                col,
-                *args,
-                **kwargs,
-            )
-        )
-
-        # Show the widget
-        button_matrix.show()
-
-        # Execute the application
-        qexec(app)
-        ```
-
-    Notes:
-    - Method 1 (internal calls with `active_func`): Aligns with Pythonic principles
-        by encapsulating logic within the widget. It ensures centralized management
-        of button actions and allows for features like holding or freezing the trigger
-        button during execution.
-    - Method 2 (external signal connection): Aligns with PyQt-idiomatic practices,
-        leveraging the signal-slot mechanism to decouple button actions from widget
-        logic. Ideal for integrating into larger PyQt applications where events are
-        handled externally.
-
+    Public API is compatible with the previous button-grid implementation:
+    ``init_ui()``, ``active_func``, ``report_axes_signal``, ``shape``,
+    ``alphabet_row``, ``alphabet_col``, ``df_matrix``, ``min_value``,
+    ``max_value``, ``on_hover``, ``on_leave``, ``signal_process``,
+    ``_map_value_to_color``, and the ``cellSelected`` convenience signal.
     """
 
-    label_size: list[int] | None = [18, 12]
+    # --- Geometry constants (can be overridden on instances) ---
+    min_cell_size: int = 6
+    max_cell_size: int = 40
+    label_margin: int = 4
+    cell_gap: int = 0
+    highlight_width: int = 2
+    tooltip_padding: int = 2
 
-    # Define a custom signal for reporting axes
+    # --- Class-level defaults ---
+    label_size: tuple[int, int] | None = (18, 12)
+
+    # --- Signals ---
     report_axes_signal = QtCore.pyqtSignal(int, int)
+    cellSelected = QtCore.pyqtSignal(int, int)
 
     def __init__(
         self,
@@ -501,114 +466,98 @@ class QButtonMatrix(QtWidgets.QWidget):
         parent=None,
         cmap: str = "bwr",
         flip_cmap: bool = False,
-        button_size=12,
-        zero_index_offset=0,
+        button_size: int = 12,
+        zero_index_offset: int = 0,
         scroll_x: bool = False,
     ):
-        """
-        Initializes the QButtonMatrix widget.
-
-        Args:
-            df_matrix (pd.DataFrame): Dataframe representing the matrix.
-            sequence (str): Full sequence of residues.
-            func (Optional[Callable[[int, int], None]]): Function called on button click.
-            parent: Parent widget.
-            cmap (str): Colormap name for button colors.
-            flip_cmap (bool): Whether to reverse the colormap.
-            button_size (int): Size of the buttons.
-            zero_index_offset (int): Offset for zero-based indexing. Default is 0.
-        """
         from REvoDesign.tools.utils import cmap_reverser
 
         super().__init__(parent)
-        # Stacked layout for hover cross above the button grid
-        self.main_layout = QtWidgets.QStackedLayout(self)
-        self.main_layout.setStackingMode(QtWidgets.QStackedLayout.StackAll)
 
-        # Button grid layout
-        self.matrix_widget = QtWidgets.QWidget()
-        self.button_layout = QtWidgets.QGridLayout()
-        self.matrix_widget.setLayout(self.button_layout)
-
-        # Hover cross with rectangular boxes
-        self.hover_cross = QHoverCross(button_size, self)
-
-        # Add widgets to the stacked layout
-        self.main_layout.addWidget(self.matrix_widget)  # Button layer
-        self.main_layout.addWidget(self.hover_cross)  # Hover cross layer
+        self.setMouseTracking(True)
 
         self.button_size = button_size
         self.sequence = sequence
         self.active_func = func
         self.df_matrix = df_matrix.copy()
+        self._base_matrix = self.df_matrix.copy(deep=True)
         self.zero_index_offset = zero_index_offset
 
-        self.alphabet_row = self.df_matrix.index.tolist()
-        self.alphabet_col = self.df_matrix.columns.tolist()
+        self.alphabet_row = list(self.df_matrix.index)
+        self.alphabet_col = list(self.df_matrix.columns)
 
         max_abs = np.max((np.abs(self.df_matrix.values.min()), self.df_matrix.values.max()))
         self.min_value, self.max_value = -max_abs, max_abs
 
-        cmap = cmap_reverser(
-            cmap=cmap,
-            reverse=flip_cmap,
-        )
-        self.colormap = plt.get_cmap(cmap)
+        cmap_name = cmap_reverser(cmap=cmap, reverse=flip_cmap)
+        self.colormap = plt.get_cmap(cmap_name)
+
+        # Per-cell tooltip cache: populated by init_ui, keyed by (row, col)
+        self._tips: dict[tuple[int, int], str] = {}
+        # Per-cell WT flag cache
+        self._wt_flags: dict[tuple[int, int], bool] = {}
+
+        # --- Clean interaction-state model ---
+        # _hover_index: transient, cleared on leaveEvent / mouse outside matrix
+        self._hover_index: MatrixIndex | None = None
+        # _selected_index: persistent inspected pair (updated by signal_process / prev/next)
+        self._selected_index: MatrixIndex | None = None
+        # _pressed_index: transient mouse-press cell, cleared on release / leave
+        self._pressed_index: MatrixIndex | None = None
+        # _busy_index: cell currently running an inspection task (drives breathing)
+        self._busy_index: MatrixIndex | None = None
+        # Persistent review-state overlays, independent from the base heatmap.
+        self._accepted_annotations: set[MatrixIndex] = set()
+        self._rejected_annotations: set[MatrixIndex] = set()
+
+        # Breathing animation timer
+        self._busy_alpha: float = 0.0
+        self._busy_phase: float = 0.0
+        self._busy_timer = QtCore.QTimer(self)
+        self._busy_timer.setInterval(35)
+        self._busy_timer.timeout.connect(self._tick_busy_animation)
+        self._busy_stop_timer = QtCore.QTimer(self)
+        self._busy_stop_timer.setSingleShot(True)
+        self._busy_stop_timer.timeout.connect(self.end_busy)
+        self._busy_elapsed = QtCore.QElapsedTimer()
+
+        # Font for labels
+        self._label_font = QtGui.QFont()
+        self._label_font.setPointSizeF(self.button_size * 0.8)
+        self._label_font.setBold(True)
+
+        # Allow the widget to grow
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        if QtCompat.WA_Hover is not None:
+            self.setAttribute(QtCompat.WA_Hover, True)
+
+        # --- Geometry placeholders set in init_ui ---
+        self._n_rows: int = 0
+        self._n_cols: int = 0
+
+    # -----------------------------------------------------------------
+    # Public API (compatible with the old button-grid widget)
+    # -----------------------------------------------------------------
 
     def on_hover(self, row: int, col: int):
-        """
-        Update the hover cross position when hovering over a button.
-        """
-        button = self.findChild(QButtonBrick, f"matrixButton_{row}_vs_{col}")
-        if button:
-            self.hover_cross.update_position(button.geometry())
+        """Programmatic hover entry point (kept for backward compat)."""
+        self._set_hover_index(MatrixIndex(row, col))
 
     def on_leave(self):
-        """
-        Hide the hover cross when the mouse leaves a button.
-        """
-        self.hover_cross.hide_hover()
+        """Programmatic hover-clear entry point (kept for backward compat)."""
+        self._set_hover_index(None)
 
-    def _map_value_to_color(self, value):
-        """
-        Maps a value to a QColor based on the colormap.
+    def _map_value_to_color(self, value: float) -> QtGui.QColor:
+        """Map a matrix value to a QColor through the colormap."""
+        denom = self.max_value - self.min_value
+        if denom == 0:
+            denom = 1
+        normalized = 1.0 - (value - self.min_value) / denom
+        rgba = self.colormap(normalized)
+        return QtGui.QColor.fromRgbF(rgba[0], rgba[1], rgba[2], rgba[3])
 
-        Args:
-            value (float): Value to be mapped.
-
-        Returns:
-            QtGui.QColor: Color corresponding to the value.
-        """
-        normalized_value = 1 - (value - self.min_value) / (self.max_value - self.min_value)
-        rgba_color = self.colormap(normalized_value)
-        return QtGui.QColor.fromRgbF(rgba_color[0], rgba_color[1], rgba_color[2], rgba_color[3])
-
-    def _set_label_size(self, label: Any):
-        """
-        Sets the fixed size for a label if the class attribute `label_size` is defined.
-
-        Args:
-            label (QtWidgets.QLabel): The label to resize.
-        """
-        if not (hasattr(self, "label_size") and self.label_size):
-            return
-        if len(self.label_size) != 2:
-            raise ValueError("label size must be a list of length 2")
-        label.setFixedSize(*self.label_size)
-
-    def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
-        """
-        Determines if a button corresponds to a wild type (WT) pair.
-
-        Args:
-            row_name (str): Name of the row.
-            col_name (str): Name of the column.
-            row (int): Row index.
-            col (int): Column index.
-
-        Returns:
-            bool: True if the button represents a WT pair, False otherwise.
-        """
+    def is_wt_button(self, row_name: str, col_name: str, row: int, col: int) -> bool:
+        """Return True if the cell represents a wild-type pair."""
         return row_name == self.sequence[int(col_name) - 1 + self.zero_index_offset]
 
     @staticmethod
@@ -627,114 +576,529 @@ class QButtonMatrix(QtWidgets.QWidget):
         row: int | None = None,
         col: int | None = None,
         is_wt_pair: bool = False,
-    ):
-        """
-        Constructs a tooltip for a button.
-
-        Args:
-            row_name (str): Name of the row.
-            col_name (str): Name of the column.
-            value (float): Value associated with the button.
-            row (Optional[int]): Row index.
-            col (Optional[int]): Column index.
-            is_wt_pair (bool): Whether the button is a WT pair.
-
-        Returns:
-            str: Tooltip text for the button.
-        """
+    ) -> str:
         _WT = self.sequence[int(col_name) - 1 + self.zero_index_offset]
         _IDX = str(int(col_name) + self.zero_index_offset)
         _SUB = row_name
         _IS_WT_NOTE = ", WT" if is_wt_pair else ""
         return f"{_WT}{_IDX}{_SUB} ({value:.3f}){_IS_WT_NOTE}"
 
-    def init_ui(self):
-        """
-        Initializes the user interface by creating buttons and labels based on the matrix and sequence.
-        """
-        font = QtGui.QFont()
-        font.setPointSizeF(self.button_size * 0.8)
-        font.setBold(True)
-
-        logging.debug(
-            f"Initialized button matrix with shape {self.shape}: {self.shape[0]} rows, {self.shape[1]} columns"
-        )
-
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
-
-        for row, row_name in enumerate(self.alphabet_row):
-            label = QtWidgets.QLabel(row_name)
-            label.setFont(font)
-            if hasattr(self, "_set_label_size"):
-                self._set_label_size(label)
-
-            self.button_layout.addWidget(label, row, 0, QtCompat.AlignRight)
-            for col, col_name in enumerate(self.alphabet_col):
-                value = self.df_matrix.iloc[row, col]
-
-                is_wt_button = self.is_wt_button(row_name=row_name, col_name=col_name, row=row, col=col)
-                button_tip = self._make_button_tip(
-                    col_name=col_name, row_name=row_name, value=value, is_wt_pair=is_wt_button
-                )
-
-                # new button
-                button = QButtonBrick(
-                    coords=ButtonCoords(row, row_name, col, col_name),
-                    color=self._map_value_to_color(value),
-                    label=f"&{self.get_WT_label(row_name, col_name, row, col)}" if is_wt_button else None,
-                    tooltip_text=button_tip,
-                    is_wt=is_wt_button,
-                    size_policy=size_policy,
-                )
-
-                # set style
-                bfont = QtGui.QFont()
-                bfont.setPointSizeF(self.button_size * 0.9)
-                bfont.setBold(True)
-                button.setFont(bfont)
-
-                # Connect hover signals
-                button.hover_signal.connect(self.on_hover)
-                button.leave_signal.connect(self.on_leave)
-
-                # connect click signals
-                button.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
-
-                # add to layout
-                self.button_layout.addWidget(button, row, col + 1)
-
-        for col, col_name in enumerate(self.alphabet_col):
-            if self.zero_index_offset:
-                try:
-                    col_name = str(int(col_name) - self.zero_index_offset)
-                except ValueError as e:
-                    raise issues.UnsupportedDataTypeError(
-                        f"Zero-index offset is not supported for Column where {self.alphabet_col}.\n"
-                        f"Expected type is int or digit string, not {type(col_name)}."
-                    ) from e
-            label = QtWidgets.QLabel(str(col_name))
-            label.setFont(font)
-            if hasattr(self, "_set_label_size"):
-                self._set_label_size(label)
-            self.button_layout.addWidget(label, len(self.alphabet_col), col + 1, QtCompat.AlignTop | QtCompat.AlignLeft)
-
-    def signal_process(self, row, col):
-        """
-        Handles button click events and processes signals.
-
-        Args:
-            row (int): Row index of the clicked button.
-            col (int): Column index of the clicked button.
-        """
-        logging.debug(f"Button at ({row}, {col}) clicked.")
-
+    def signal_process(self, row: int, col: int):
+        """Handle a cell selection — update state, animate, run task."""
+        logging.debug(f"Cell at ({row}, {col}) selected.")
+        idx = MatrixIndex(row, col)
+        self._set_selected_index(idx)
         if self.active_func is not None:
             trigger_button = self.findChild(QButtonBrick, f"matrixButton_{row}_vs_{col}")
-            with hold_trigger_button(trigger_button):
-                self.active_func(row, col)
-                return
+            self.begin_busy(idx)
+            try:
+                with hold_trigger_button(trigger_button):
+                    self.active_func(row, col)
+            finally:
+                self.end_busy()
         else:
+            self.pulse_cell(idx)
             self.report_axes_signal.emit(row, col)
+        self.cellSelected.emit(row, col)
+
+    def init_ui(self):
+        """Build tooltip cache and initialise geometry.
+
+        Callers may override ``alphabet_row`` / ``alphabet_col`` before
+        calling this method (the old behaviour is preserved).
+        """
+        self._n_rows = len(self.alphabet_row)
+        self._n_cols = len(self.alphabet_col)
+        self._tips.clear()
+        self._wt_flags.clear()
+
+        for row, row_name in enumerate(self.alphabet_row):
+            for col, col_name in enumerate(self.alphabet_col):
+                value = self.df_matrix.iloc[row, col]
+                is_wt = self.is_wt_button(row_name=row_name, col_name=col_name, row=row, col=col)
+                self._wt_flags[(row, col)] = is_wt
+                self._tips[(row, col)] = self._make_button_tip(
+                    col_name=col_name, row_name=row_name, value=value, is_wt_pair=is_wt
+                )
+
+        logging.debug(
+            f"Initialized painted matrix with shape {self.shape}: " f"{self._n_rows} rows, {self._n_cols} columns"
+        )
+
+        # Create placeholder QButtonBrick children for backward compatibility
+        # with test code that looks up cells via findChild(QButtonBrick, name).
+        # These must be in a QGridLayout so they're discoverable through Qt's
+        # widget tree — findChild on bare QObject children is unreliable across
+        # Qt versions.
+        self._placeholder_widget = QtWidgets.QWidget(self)
+        self._placeholder_widget.setFixedSize(1, 1)
+        self._placeholder_widget.move(-10, -10)
+        placeholder_layout = QtWidgets.QGridLayout(self._placeholder_widget)
+        placeholder_layout.setContentsMargins(0, 0, 0, 0)
+        placeholder_layout.setSpacing(0)
+
+        for row, row_name in enumerate(self.alphabet_row):
+            for col, col_name in enumerate(self.alphabet_col):
+                btn = QButtonBrick(
+                    coords=ButtonCoords(row, str(row_name), col, str(col_name)),
+                    color=QtGui.QColor("transparent"),
+                    size_policy=QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed),
+                )
+                btn.setFixedSize(1, 1)
+                btn.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
+                placeholder_layout.addWidget(btn, row, col)
+
+        self.updateGeometry()
+        self.update()
+
+    # -----------------------------------------------------------------
+    # Geometry helpers
+    # -----------------------------------------------------------------
+
+    def _available_size(self) -> QtCore.QSize:
+        """Viewport available for the matrix cells (excluding margins)."""
+        lm = self.label_margin
+        return QtCore.QSize(
+            max(1, self.width() - lm - self._label_area_width() - lm),
+            max(1, self.height() - lm - self._label_area_height() - lm),
+        )
+
+    def _label_area_width(self) -> int:
+        """Estimated width for row labels."""
+        if not self.label_size or len(self.label_size) != 2:
+            return 30
+        return self.label_size[0]
+
+    def _label_area_height(self) -> int:
+        """Estimated height for column labels."""
+        if not self.label_size or len(self.label_size) != 2:
+            return 14
+        return self.label_size[1]
+
+    def _compute_cell_size(self) -> int:
+        """Return the largest square cell size fitting both dimensions."""
+        avail = self._available_size()
+        if self._n_cols <= 0 or self._n_rows <= 0:
+            return self.min_cell_size
+        gap_total = self.cell_gap * (max(self._n_cols, self._n_rows) - 1)
+        cs_w = (avail.width() - gap_total) // self._n_cols if self._n_cols > 0 else 0
+        cs_h = (avail.height() - gap_total) // self._n_rows if self._n_rows > 0 else 0
+        cs = max(min(cs_w, cs_h, self.max_cell_size), self.min_cell_size)
+        return cs
+
+    def _compute_geometry(self) -> MatrixGeometry:
+        cs = self._compute_cell_size()
+        matrix_w = self._n_cols * cs + self.cell_gap * (self._n_cols - 1)
+        matrix_h = self._n_rows * cs + self.cell_gap * (self._n_rows - 1)
+        rlw = self._label_area_width()
+        clh = self._label_area_height()
+        lm = self.label_margin
+        # Centre the matrix in the available area
+        origin_x = lm + rlw + max(0, (self._available_size().width() - matrix_w) // 2)
+        origin_y = lm + max(0, (self._available_size().height() - matrix_h) // 2)
+        return MatrixGeometry(
+            origin_x=int(origin_x),
+            origin_y=int(origin_y),
+            cell_size=int(cs),
+            cell_gap=self.cell_gap,
+            row_label_width=int(rlw),
+            col_label_height=int(clh),
+        )
+
+    def _matrix_rect(self, geo: MatrixGeometry | None = None) -> QtCore.QRect:
+        """Return the outer rect of the matrix cells."""
+        if geo is None:
+            geo = self._compute_geometry()
+        if self._n_rows <= 0 or self._n_cols <= 0:
+            return QtCore.QRect()
+        matrix_w = self._n_cols * geo.cell_size + geo.cell_gap * (self._n_cols - 1)
+        matrix_h = self._n_rows * geo.cell_size + geo.cell_gap * (self._n_rows - 1)
+        return QtCore.QRect(geo.origin_x, geo.origin_y, matrix_w, matrix_h)
+
+    def _cell_rect(
+        self,
+        row_or_index: int | MatrixIndex,
+        col: int | None = None,
+        geo: MatrixGeometry | None = None,
+    ) -> QtCore.QRect:
+        """Pixel rect for a cell."""
+        if geo is None:
+            geo = self._compute_geometry()
+        if isinstance(row_or_index, MatrixIndex):
+            row = row_or_index.row
+            col = row_or_index.col
+        else:
+            row = row_or_index
+        if col is None:
+            raise ValueError("Column is required when row is passed directly.")
+        step = geo.cell_size + geo.cell_gap
+        x = geo.origin_x + col * step
+        y = geo.origin_y + row * step
+        return QtCore.QRect(x, y, geo.cell_size, geo.cell_size)
+
+    def _cell_at(self, pos: QtCore.QPoint) -> MatrixIndex | None:
+        """Return the matrix index at *pos*, or None."""
+        geo = self._compute_geometry()
+        step = geo.cell_size + geo.cell_gap
+        col = (pos.x() - geo.origin_x) // step
+        row = (pos.y() - geo.origin_y) // step
+        rx = (pos.x() - geo.origin_x) % step
+        ry = (pos.y() - geo.origin_y) % step
+        if rx >= geo.cell_size or ry >= geo.cell_size:
+            return None
+        if 0 <= row < self._n_rows and 0 <= col < self._n_cols:
+            return MatrixIndex(int(row), int(col))
+        return None
+
+    # -----------------------------------------------------------------
+    # Size hints
+    # -----------------------------------------------------------------
+
+    def minimumSizeHint(self) -> QtCore.QSize:
+        cs = max(self.min_cell_size, self.button_size)
+        gap = self.cell_gap
+        lm = self.label_margin
+        n_rows = max(self._n_rows, 1)
+        n_cols = max(self._n_cols, 1)
+        w = lm + self._label_area_width() + lm + n_cols * cs + gap * (n_cols - 1) + lm
+        h = lm + n_rows * cs + gap * (n_rows - 1) + lm + self._label_area_height() + lm
+        return QtCore.QSize(int(w), int(h))
+
+    def sizeHint(self) -> QtCore.QSize:
+        return self.minimumSizeHint()
+
+    # -----------------------------------------------------------------
+    # Painting
+    # -----------------------------------------------------------------
+
+    # -----------------------------------------------------------------
+    # State helpers — every mutation repaints only the affected regions
+    # -----------------------------------------------------------------
+
+    def _set_hover_index(self, idx: MatrixIndex | None):
+        """Set hover state, repaint old and new hover regions."""
+        old = self._hover_index
+        if old == idx:
+            return
+        self._hover_index = idx
+        self._repaint_overlay_transition(old, idx)
+        self._update_index_region(old)
+        self._update_index_region(idx)
+        if idx is not None:
+            self.setToolTip(self._tips.get((idx.row, idx.col), ""))
+        else:
+            self.setToolTip("")
+
+    def _set_selected_index(self, idx: MatrixIndex | None):
+        """Set selected (inspected) pair, repaint old and new regions."""
+        if idx == self._selected_index:
+            return
+        old = self._selected_index
+        self._selected_index = idx
+        self._repaint_overlay_transition(old, idx)
+        self._update_index_region(old)
+        self._update_index_region(idx)
+
+    def _set_pressed_index(self, idx: MatrixIndex | None):
+        """Set pressed state, repaint old and new regions."""
+        if idx == self._pressed_index:
+            return
+        old = self._pressed_index
+        self._pressed_index = idx
+        self._repaint_overlay_transition(old, idx)
+        self._update_index_region(old)
+        self._update_index_region(idx)
+
+    def _repaint_overlay_transition(self, old: MatrixIndex | None, new: MatrixIndex | None):
+        """Repaint both old and new overlay regions.
+
+        Hover correctness is preferred over micro-optimisation here, so the
+        full matrix is also refreshed to avoid stale bands on Qt6/macOS.
+        """
+        old_rect = self._crosshair_region(old).boundingRect()
+        new_rect = self._crosshair_region(new).boundingRect()
+        if old_rect.isValid():
+            self.update(old_rect)
+        if new_rect.isValid():
+            self.update(new_rect)
+        repaint_rect = self._matrix_rect().adjusted(
+            -self.tooltip_padding,
+            -self.tooltip_padding,
+            self.tooltip_padding,
+            self.tooltip_padding,
+        )
+        if repaint_rect.isValid():
+            self.update(repaint_rect)
+        else:
+            self.update()
+
+    def _update_index_region(self, idx: MatrixIndex | None):
+        """Queue a repaint for the cell *idx* plus its full row/column bands.
+
+        The cell is included because busy/pressed overlays fill the cell
+        interior — not just the crosshair bands.  The bands are expanded by
+        ``highlight_width`` to cover the crosshair pen width.
+        """
+        if idx is None or self._n_rows == 0 or self._n_cols == 0:
+            return
+        geo = self._compute_geometry()
+        margin = self.highlight_width + 1
+        cell = self._cell_rect(idx.row, idx.col, geo).adjusted(-margin, -margin, margin, margin)
+        row_band = self._row_band_rect(idx.row, geo).adjusted(-margin, 0, margin, 0)
+        col_band = self._column_band_rect(idx.col, geo).adjusted(0, -margin, 0, margin)
+        self.update(cell)
+        self.update(row_band)
+        self.update(col_band)
+
+    def _row_band_rect(self, row: int, geo: MatrixGeometry | None = None) -> QtCore.QRect:
+        if geo is None:
+            geo = self._compute_geometry()
+        step = geo.cell_size + geo.cell_gap
+        return QtCore.QRect(geo.origin_x, geo.origin_y + row * step, self._n_cols * step - geo.cell_gap, geo.cell_size)
+
+    def _column_band_rect(self, col: int, geo: MatrixGeometry | None = None) -> QtCore.QRect:
+        if geo is None:
+            geo = self._compute_geometry()
+        step = geo.cell_size + geo.cell_gap
+        return QtCore.QRect(geo.origin_x + col * step, geo.origin_y, geo.cell_size, self._n_rows * step - geo.cell_gap)
+
+    def _crosshair_region(self, idx: MatrixIndex | None) -> QtGui.QRegion:
+        """Return the repaint region for the row/column crosshair of *idx*."""
+        if idx is None or self._n_rows <= 0 or self._n_cols <= 0:
+            return QtGui.QRegion()
+        geo = self._compute_geometry()
+        margin = self.highlight_width + 1
+        region = QtGui.QRegion(self._row_band_rect(idx.row, geo).adjusted(-margin, -margin, margin, margin))
+        region = region.united(
+            QtGui.QRegion(self._column_band_rect(idx.col, geo).adjusted(-margin, -margin, margin, margin))
+        )
+        region = region.united(QtGui.QRegion(self._cell_rect(idx, geo=geo).adjusted(-margin, -margin, margin, margin)))
+        return region
+
+    def set_review_annotation(self, idx: MatrixIndex, accepted: bool | None):
+        """Store a persistent review annotation for a cell."""
+        self._accepted_annotations.discard(idx)
+        self._rejected_annotations.discard(idx)
+        if accepted is True:
+            self._accepted_annotations.add(idx)
+        elif accepted is False:
+            self._rejected_annotations.add(idx)
+        self._update_index_region(idx)
+
+    # -----------------------------------------------------------------
+    # Busy / pulse animation (public API)
+    # -----------------------------------------------------------------
+
+    def begin_busy(self, idx: MatrixIndex):
+        """Start breathing animation on a cell (e.g. during async task)."""
+        old = self._busy_index
+        self._busy_stop_timer.stop()
+        self._busy_index = idx
+        self._busy_phase = 0.0
+        self._busy_alpha = 0.25
+        self._busy_elapsed.start()
+        self._busy_timer.start()
+        self._update_index_region(old)
+        self._update_index_region(idx)
+        refresh_window()
+
+    def end_busy(self):
+        """Stop breathing animation and clear busy state."""
+        old = self._busy_index
+        self._busy_timer.stop()
+        self._busy_stop_timer.stop()
+        self._busy_index = None
+        self._busy_alpha = 0.0
+        self._update_index_region(old)
+
+    def pulse_cell(self, idx: MatrixIndex, duration_ms: int = 500):
+        """Show a short click-feedback pulse, stops automatically."""
+        old = self._busy_index
+        self._busy_index = idx
+        self._busy_phase = 0.0
+        self._busy_alpha = 0.35
+        self._busy_elapsed.start()
+        self._busy_timer.start()
+        self._busy_stop_timer.start(duration_ms)
+        self._update_index_region(old)
+        self._update_index_region(idx)
+        refresh_window()
+
+    def _tick_busy_animation(self):
+        """One frame of the busy breathing animation.
+
+        Alpha oscillates as a sine wave between ~0.25 and ~0.90, producing a
+        visible amber pulse on the busy cell without hiding the heatmap value.
+        """
+        import math
+
+        self._busy_phase += 0.18
+        self._busy_alpha = 0.25 + 0.35 * (1.0 + math.sin(self._busy_phase))
+        if self._busy_index is not None:
+            self._update_index_region(self._busy_index)
+
+    # -----------------------------------------------------------------
+    # Painting (layered: base → selection → hover → pressed → busy → labels)
+    # -----------------------------------------------------------------
+
+    def paintEvent(self, event: QtGui.QPaintEvent):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing, False)
+
+        geo = self._compute_geometry()
+
+        # 1. Background
+        painter.fillRect(self.rect(), QtGui.QColor(50, 50, 50))
+
+        # 2. Base heatmap cells (never mutated by interaction)
+        self._paint_cells(painter, geo)
+
+        # 3. Persistent accepted/rejected review annotations
+        self._paint_review_annotations(painter, geo)
+
+        # 4. Selected-pair crosshair (persistent)
+        if self._selected_index is not None:
+            self._draw_crosshair(painter, self._selected_index, geo, QtGui.QColor(255, 200, 50, 220))
+
+        # 5. Hover crosshair (transient)
+        if self._hover_index is not None and self._hover_index != self._pressed_index:
+            self._draw_crosshair(painter, self._hover_index, geo, QtGui.QColor(255, 80, 80, 140))
+
+        # 6. Pressed-cell overlay (momentary)
+        if self._pressed_index is not None:
+            r = self._cell_rect(self._pressed_index, geo=geo)
+            painter.fillRect(r, QtGui.QColor(255, 255, 100, 80))
+
+        # 7. Busy breathing overlay (amber pulse on top of cell)
+        if self._busy_index is not None and self._busy_alpha > 0.01:
+            r = self._cell_rect(self._busy_index, geo=geo)
+            a = int(self._busy_alpha * 220)
+            painter.fillRect(r, QtGui.QColor(255, 200, 80, a))
+
+        # 8. Labels remain on top; tooltip text is handled by QWidget tooltips.
+        self._paint_labels(painter, geo)
+
+    def _paint_cells(self, painter: QtGui.QPainter, geo: MatrixGeometry):
+        """Paint every matrix cell as a filled square, with WT label."""
+        wt_font = QtGui.QFont()
+        wt_font.setPointSizeF(geo.cell_size * 0.5)
+        wt_font.setBold(True)
+
+        for row in range(self._n_rows):
+            for col in range(self._n_cols):
+                r = self._cell_rect(row, col, geo)
+                value = self._base_matrix.iloc[row, col]
+                color = self._map_value_to_color(value)
+                painter.fillRect(r, color)
+
+                if self._wt_flags.get((row, col), False):
+                    painter.save()
+                    painter.setFont(wt_font)
+                    painter.setPen(QtGui.QColor(0, 0, 0))
+                    painter.drawText(r, QtCompat.AlignCenter, "WT")
+                    painter.restore()
+
+    def _paint_review_annotations(self, painter: QtGui.QPainter, geo: MatrixGeometry):
+        """Paint persistent accept/reject review overlays without touching base values."""
+        for idx in self._accepted_annotations:
+            r = self._cell_rect(idx, geo=geo)
+            painter.fillRect(r, QtGui.QColor(80, 210, 120, 70))
+            painter.save()
+            painter.setPen(QtGui.QPen(QtGui.QColor(60, 190, 100, 220), 2))
+            painter.drawRect(r.adjusted(1, 1, -1, -1))
+            painter.restore()
+
+        for idx in self._rejected_annotations:
+            r = self._cell_rect(idx, geo=geo)
+            painter.fillRect(r, QtGui.QColor(220, 90, 90, 70))
+            painter.save()
+            painter.setPen(QtGui.QPen(QtGui.QColor(210, 70, 70, 220), 2))
+            painter.drawLine(r.topLeft(), r.bottomRight())
+            painter.drawLine(r.topRight(), r.bottomLeft())
+            painter.restore()
+
+    def _draw_crosshair(self, painter: QtGui.QPainter, idx: MatrixIndex, geo: MatrixGeometry, color: QtGui.QColor):
+        """Draw row+column crosshair bands centred on *idx*."""
+        painter.save()
+        h_bar = self._row_band_rect(idx.row, geo)
+        v_bar = self._column_band_rect(idx.col, geo)
+        pen = QtGui.QPen(color, self.highlight_width)
+        painter.setPen(pen)
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.drawRect(h_bar)
+        painter.drawRect(v_bar)
+        painter.restore()
+
+    def _paint_labels(self, painter: QtGui.QPainter, geo: MatrixGeometry):
+        """Paint row labels (left) and column labels (bottom)."""
+        painter.save()
+        painter.setFont(self._label_font)
+        painter.setPen(QtGui.QColor(220, 220, 220))
+        lm = self.label_margin
+
+        for row, name in enumerate(self.alphabet_row):
+            r = self._cell_rect(row, 0, geo)
+            label_rect = QtCore.QRect(lm, r.top(), geo.row_label_width, r.height())
+            painter.drawText(label_rect, QtCompat.AlignRight | QtCompat.AlignVCenter, str(name))
+
+        for col, name in enumerate(self.alphabet_col):
+            r = self._cell_rect(0, col, geo)
+            if self.zero_index_offset:
+                try:
+                    name = str(int(name) - self.zero_index_offset)
+                except ValueError:
+                    pass
+            label_rect = QtCore.QRect(
+                r.left(),
+                geo.origin_y + (self._n_rows * (geo.cell_size + geo.cell_gap)) + lm,
+                r.width(),
+                geo.col_label_height,
+            )
+            painter.drawText(label_rect, QtCompat.AlignTop | QtCompat.AlignLeft, str(name))
+        painter.restore()
+
+    # -----------------------------------------------------------------
+    # Mouse interaction
+    # -----------------------------------------------------------------
+
+    def _event_pos(self, event: QtGui.QMouseEvent) -> QtCore.QPoint:
+        """Return the mouse position in a Qt5/Qt6-safe way."""
+        pos = getattr(event, "position", None)
+        if pos is not None:
+            return pos().toPoint() if callable(pos) else pos.toPoint()
+        pos = getattr(event, "pos", None)
+        if pos is not None:
+            return pos() if callable(pos) else pos
+        return QtCore.QPoint(0, 0)
+
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent):
+        self._set_hover_index(self._cell_at(self._event_pos(event)))
+        super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event: QtGui.QMouseEvent):
+        if event.button() != QtCore.Qt.LeftButton:
+            return
+        idx = self._cell_at(self._event_pos(event))
+        if idx is None:
+            self._set_pressed_index(None)
+            return
+        self._set_pressed_index(idx)
+        self._set_selected_index(idx)
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
+        if event.button() != QtCore.Qt.LeftButton:
+            return
+        idx = self._cell_at(self._event_pos(event))
+        self._set_pressed_index(None)
+        if idx is not None and idx == self._selected_index:
+            self.signal_process(idx.row, idx.col)
+        super().mouseReleaseEvent(event)
+
+    def leaveEvent(self, event):
+        self._set_hover_index(None)
+        self._set_pressed_index(None)
+        super().leaveEvent(event)
 
 
 class QButtonMatrixGremlin(QButtonMatrix):
@@ -750,7 +1114,7 @@ class QButtonMatrixGremlin(QButtonMatrix):
         _make_button_tip: Custom tooltip generation for Gremlin.
     """
 
-    label_size: list[int] | None = [12, 12]
+    label_size: tuple[int, int] | None = (12, 12)
 
     def __init__(
         self,
@@ -952,49 +1316,37 @@ def getOpenFileNameWithExt(*args, **kwargs):
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QFontComboBox, value: QtGui.QFont | str):
-    ...
+def set_widget_value(widget: QtWidgets.QFontComboBox, value: QtGui.QFont | str): ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QStackedWidget, value: list):
-    ...
+def set_widget_value(widget: QtWidgets.QStackedWidget, value: list): ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QProgressBar, value: int | list[int] | tuple[int, int]):
-    ...
+def set_widget_value(widget: QtWidgets.QProgressBar, value: int | list[int] | tuple[int, int]): ...
 
 
 @overload
 def set_widget_value(
     widget: QtWidgets.QDoubleSpinBox | QtWidgets.QSpinBox, value: int | float | list[str] | tuple[str, str]
-):
-    ...
+): ...
 
 
 @overload
-def set_widget_value(widget: MultiCheckableComboBox, value: list | tuple | str | int | float):
-    ...
+def set_widget_value(widget: MultiCheckableComboBox, value: list | tuple | str | int | float): ...
 
 
 @overload
-def set_widget_value(
-    widget: QtWidgets.QComboBox, value: list | tuple | dict | str | int | float | bool
-):
-    ...
+def set_widget_value(widget: QtWidgets.QComboBox, value: list | tuple | dict | str | int | float | bool): ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QGridLayout, value: str):
-    ...
+def set_widget_value(widget: QtWidgets.QGridLayout, value: str): ...
 
 
 @overload
-def set_widget_value(
-    widget: QtWidgets.QLineEdit | QtWidgets.QLCDNumber | QtWidgets.QCheckBox, value: Any
-):
-    ...
+def set_widget_value(widget: QtWidgets.QLineEdit | QtWidgets.QLCDNumber | QtWidgets.QCheckBox, value: Any): ...
 
 
 def set_widget_value(widget, value):
@@ -1095,30 +1447,25 @@ def set_widget_value(widget, value):
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QCheckBox) -> bool:
-    ...  # type: ignore
+def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ...  # type: ignore
 
 
 @overload
 def get_widget_value(
     widget: QtWidgets.QComboBox | QtWidgets.QLineEdit | QtWidgets.QFontComboBox,
-) -> str:
-    ...  # type: ignore
+) -> str: ...  # type: ignore
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QDoubleSpinBox | QtWidgets.QLCDNumber) -> float:
-    ...  # type: ignore
+def get_widget_value(widget: QtWidgets.QDoubleSpinBox | QtWidgets.QLCDNumber) -> float: ...  # type: ignore
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QSpinBox | QtWidgets.QProgressBar) -> int:
-    ...  # type: ignore
+def get_widget_value(widget: QtWidgets.QSpinBox | QtWidgets.QProgressBar) -> int: ...  # type: ignore
 
 
 @overload
-def get_widget_value(widget: MultiCheckableComboBox) -> list[str]:
-    ...  # type: ignore
+def get_widget_value(widget: MultiCheckableComboBox) -> list[str]: ...  # type: ignore
 
 
 def get_widget_value(widget: QtWidgets.QWidget) -> Any:
@@ -1559,7 +1906,7 @@ class AskedValueCollection:
         )
 
     @property
-    def typing_fixed(self) -> "AskedValueCollection":
+    def typing_fixed(self) -> AskedValueCollection:
         """
         Returns a new object with the `asked_values` field where each element's `val` attribute has been type-converted.
 

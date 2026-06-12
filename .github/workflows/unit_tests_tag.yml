@@ -19,14 +19,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: 
+        os:
           - ubuntu-latest
-        python-version: 
-          # - "3.10"
-          # - "3.11"
-          - "3.12" # control
-          # - "3.13"
-          # - "3.14"
+        python-version:
+          - "3.10"
+          - "3.11"
+          - "3.12"
         pymol-tag:
           - 'latest pymol open source'
         conda-channel:
@@ -35,67 +33,50 @@ jobs:
           - "pymol-open-source"
         qt-version:
           - "5"
-          - "6"
 
-        # include:
-          # windows
+        include:
+          # ubuntu qt6 py312 pymol-open-source
+          - os: ubuntu-latest
+            python-version: "3.12"
+            pymol-tag: 'latest pymol open source'
+            conda-channel: -c conda-forge
+            pymol-version: "pymol-open-source"
+            qt-version: "6"
+
+          # macos pymol-open-source py311 qt5
+          - os: macos-15
+            python-version: "3.11"
+            pymol-tag: 'latest pymol open source'
+            conda-channel: -c conda-forge
+            pymol-version: "pymol-open-source"
+            qt-version: "5"
+
+          # # macos pymol bundle py311 (qt5)
+          # # pymol-bundle not available on macOS Apple Silicon
+          # - os: macos-15
+          #   python-version: "3.11"
+          #   pymol-tag: 'latest pymol bundle'
+          #   conda-channel: -c schrodinger -c conda-forge
+          #   pymol-version: "pymol-bundle"
+          #   qt-version: "5"
+
+          # # windows pymol-open-source py311 qt5
+          # # pymol-open-source not available on Windows
           # - os: windows-latest
           #   python-version: "3.11"
           #   pymol-tag: 'latest pymol open source'
           #   conda-channel: -c conda-forge
           #   pymol-version: "pymol-open-source"
+          #   qt-version: "5"
 
-          # macos latest, latest pymol open source and py312
-          # - os: macos-15
-          #   python-version: "3.12"
-          #   pymol-tag: 'latest pymol open source'
-          #   pymol-version: "pymol-open-source"
-          #   conda-channel: -c conda-forge
-
-          # # macos tahoe, latest pymol open source and py312
-          # - os: macos-26
-          #   python-version: "3.12"
-          #   pymol-tag: 'latest pymol open source'
-          #   pymol-version: "pymol-open-source"
-          #   conda-channel: -c conda-forge
-
-
-          # # ubuntu arm 
-          # not available for private repos
-          # - os: ubuntu-24.04-arm
-          #   python-version: "3.12"
-          #   pymol-tag: 'latest pymol open source'
-          #   pymol-version: "pymol-open-source"
-          #   conda-channel: -c conda-forge
-          
-          # # latest bundled pymol 
-          # - os: ubuntu-latest
-          #   python-version: "3.10"
+          # # windows pymol bundle py311 (qt5)
+          # # pymol-bundle not available on Windows
+          # - os: windows-latest
+          #   python-version: "3.11"
           #   pymol-tag: 'latest pymol bundle'
+          #   conda-channel: -c schrodinger -c conda-forge
           #   pymol-version: "pymol-bundle"
-          #   conda-channel: -c schrodinger -c conda-forge
-
-          # # bundled pymol, v2
-          # - os: ubuntu-latest
-          #   python-version: "3.11"
-          #   pymol-tag: 'legacy (v2) pymol bundle'
-          #   pymol-version: "pymol-bundle<3"
-          #   conda-channel: -c schrodinger -c conda-forge
-            
-          
-          # # pymol-open-source, v2 py310
-          # - os: ubuntu-latest
-          #   python-version: "3.10"
-          #   pymol-tag: 'legacy (v2) pymol open source'
-          #   pymol-version: "pymol-open-source<3"
-          #   conda-channel: -c conda-forge
-
-          # # pymol-open-source, v2 py311
-          # - os: ubuntu-latest
-          #   python-version: "3.11"
-          #   pymol-tag: 'legacy (v2) pymol open source'
-          #   pymol-version: "pymol-open-source<3"
-          #   conda-channel: -c conda-forge
+          #   qt-version: "5"
             
 
 
@@ -141,6 +122,10 @@ jobs:
       - name: setup Qt headless Display on Windows
         if: startsWith(matrix.os, 'windows')
         uses: pyvista/setup-headless-display-action@8b39741bba8c06652c7def81821b5841adc17582 # v2
+
+      - name: setup Qt headless Display on macOS
+        if: startsWith(matrix.os, 'macos')
+        uses: pyvista/setup-headless-display-action@8b39741bba8c06652c7def81821b5841adc17582 # v2
       
       - name: Setup Conda on ${{ matrix.os }} 
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
@@ -153,20 +138,29 @@ jobs:
       
       - name: Setup PyMOL - (${{ matrix.pymol-tag }}, Qt${{ matrix.qt-version }})-(${{ matrix.os }}-py${{ matrix.python-version }})
         run: |
-          if [ "${{ matrix.qt-version }}" = "5" ]; then
+          if [ "${{ matrix.qt-version }}" = "bundled" ]; then
+            # pymol-bundle ships with its own Qt, no separate pyqt needed
+            conda install ${{ matrix.conda-channel}} '${{ matrix.pymol-version}}' -n ${{ env.conda_env }} -y
+          elif [ "${{ matrix.qt-version }}" = "5" ]; then
             conda install ${{ matrix.conda-channel}} '${{ matrix.pymol-version}}' pyqt=5 -n ${{ env.conda_env }} -y
           else
             conda install ${{ matrix.conda-channel}} '${{ matrix.pymol-version}}' 'pyqt>=6' -n ${{ env.conda_env }} -y
           fi
-          # for server testings on x86_64 linux and macos
-          conda install -c conda-forge -c bioconda blast hhsuite -y -n ${{ env.conda_env }}
+          # for server testings on ubuntu (requires blast, hhsuite)
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            conda install -c conda-forge -c bioconda blast hhsuite -y -n ${{ env.conda_env }}
+          fi
           conda info
           conda list
           which python
           which python3
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
-          make install-pytorch-cpu-non-mac
+          if [ "${{ matrix.os }}" = "macos-15" ]; then
+            make install-pytorch-cpu-mac
+          else
+            make install-pytorch-cpu-non-mac
+          fi
           make install
       
       - name: Install DGL on Ubuntu
@@ -179,7 +173,7 @@ jobs:
         run: |
           make install-dgl-win
 
-      - name: Full Unit Test on Ubuntu
+      - name: Full Unit Test
         run: |
           make prepare-test
           make all-test

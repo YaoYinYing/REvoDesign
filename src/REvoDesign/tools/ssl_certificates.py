@@ -127,7 +127,9 @@ class SSLCertificateManager:
         cert.get_subject().L = "Kunming"
         cert.get_subject().O = "JAPS"  # noqa: E741 -- X.509 Organization field
         cert.get_subject().OU = "Yunnan Very Normal University"
-        cert.get_subject().CN = f"{user}.{node}.{role}.REvoDesign"
+        # X.509 CN max 64 chars — truncate hostname if needed
+        _cn = f"{user}.{node}.{role}.REvoDesign"
+        cert.get_subject().CN = _cn[:64]
 
         # Set serial number, validity period, issuer, public key, and sign the certificate
         cert.set_serial_number(1000)
