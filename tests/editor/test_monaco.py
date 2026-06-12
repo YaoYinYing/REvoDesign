@@ -52,6 +52,9 @@ def test_ensure_editor_downloaded(test_tmp_dir, mock_user_data_dir, mock_config_
     manager.editor_path = test_tmp_dir
     manager.html_template_path = os.path.join(test_tmp_dir, "index.html")
     Path(manager.html_template_path).touch()  # Create a dummy template
+    # Create a dummy monaco-editor directory so no_upgrade path is taken
+    dummy_monaco = os.path.join(test_tmp_dir, "monaco-editor-test")
+    os.makedirs(dummy_monaco, exist_ok=True)
     manager.ensure_editor_downloaded(no_upgrade=True)
 
 
