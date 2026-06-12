@@ -51,29 +51,29 @@ jobs:
             pymol-version: "pymol-open-source"
             qt-version: "5"
 
-          # macos pymol bundle py311 (qt bundled)
+          # macos pymol bundle py311 (qt5)
           - os: macos-15
             python-version: "3.11"
             pymol-tag: 'latest pymol bundle'
             conda-channel: -c schrodinger -c conda-forge
             pymol-version: "pymol-bundle"
-            qt-version: "bundled"
+            qt-version: "5"
 
-          # # windows pymol-open-source py311 qt5
-          # - os: windows-latest
-          #   python-version: "3.11"
-          #   pymol-tag: 'latest pymol open source'
-          #   conda-channel: -c conda-forge
-          #   pymol-version: "pymol-open-source"
-          #   qt-version: "5"
+          # windows pymol-open-source py311 qt5
+          - os: windows-latest
+            python-version: "3.11"
+            pymol-tag: 'latest pymol open source'
+            conda-channel: -c conda-forge
+            pymol-version: "pymol-open-source"
+            qt-version: "5"
 
-          # # windows pymol bundle py311 (qt bundled)
-          # - os: windows-latest
-          #   python-version: "3.11"
-          #   pymol-tag: 'latest pymol bundle'
-          #   conda-channel: -c schrodinger -c conda-forge
-          #   pymol-version: "pymol-bundle"
-          #   qt-version: "bundled"
+          # windows pymol bundle py311 (qt5)
+          - os: windows-latest
+            python-version: "3.11"
+            pymol-tag: 'latest pymol bundle'
+            conda-channel: -c schrodinger -c conda-forge
+            pymol-version: "pymol-bundle"
+            qt-version: "5"
             
 
 
