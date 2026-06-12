@@ -629,17 +629,26 @@ class QButtonMatrix(QtWidgets.QWidget):
 
         # Create placeholder QButtonBrick children for backward compatibility
         # with test code that looks up cells via findChild(QButtonBrick, name).
-        # These are painted over by our QPainter but keep the old signal path.
+        # These must be in a QGridLayout so they're discoverable through Qt's
+        # widget tree — findChild on bare QObject children is unreliable across
+        # Qt versions.
+        self._placeholder_widget = QtWidgets.QWidget(self)
+        self._placeholder_widget.setFixedSize(1, 1)
+        self._placeholder_widget.move(-10, -10)
+        placeholder_layout = QtWidgets.QGridLayout(self._placeholder_widget)
+        placeholder_layout.setContentsMargins(0, 0, 0, 0)
+        placeholder_layout.setSpacing(0)
+
         for row, row_name in enumerate(self.alphabet_row):
             for col, col_name in enumerate(self.alphabet_col):
                 btn = QButtonBrick(
                     coords=ButtonCoords(row, str(row_name), col, str(col_name)),
                     color=QtGui.QColor("transparent"),
                     size_policy=QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed),
-                    parent=self,
                 )
                 btn.setFixedSize(1, 1)
                 btn.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
+                placeholder_layout.addWidget(btn, row, col)
 
         self.updateGeometry()
         self.update()
