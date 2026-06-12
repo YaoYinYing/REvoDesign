@@ -2,6 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
+from __future__ import annotations
 
 """
 Custom widgets for REvoDesign.
@@ -30,9 +31,9 @@ from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.common import file_extensions as Fext
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCompat, QtCore, QtGui, QtWidgets, qexec
-
-from .package_manager import (WorkerThread, decide, hold_trigger_button,
-                              notify_box, refresh_window)
+from REvoDesign.tools.package_manager import (WorkerThread, decide,
+                                              hold_trigger_button, notify_box,
+                                              refresh_window)
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -417,7 +418,7 @@ class MatrixIndex:
     col: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class MatrixGeometry:
     """Computed geometry for painting the matrix."""
 
@@ -454,7 +455,7 @@ class QButtonMatrix(QtWidgets.QWidget):
     tooltip_padding: int = 2
 
     # --- Class-level defaults ---
-    label_size: list[int] | None = [18, 12]
+    label_size: tuple[int, int] | None = (18, 12)
 
     # --- Signals ---
     report_axes_signal = QtCore.pyqtSignal(int, int)
@@ -585,9 +586,10 @@ class QButtonMatrix(QtWidgets.QWidget):
         return f"{_WT}{_IDX}{_SUB} ({value:.3f}){_IS_WT_NOTE}"
 
     def signal_process(self, row: int, col: int):
-        """Handle a cell selection — begins busy animation, runs task, ends busy."""
+        """Handle a cell selection — update state, animate, run task."""
         logging.debug(f"Cell at ({row}, {col}) selected.")
         idx = MatrixIndex(row, col)
+        self._set_selected_index(idx)
         if self.active_func is not None:
             trigger_button = self.findChild(QButtonBrick, f"matrixButton_{row}_vs_{col}")
             self.begin_busy(idx)
@@ -595,13 +597,9 @@ class QButtonMatrix(QtWidgets.QWidget):
                 with hold_trigger_button(trigger_button):
                     self.active_func(row, col)
             finally:
-                elapsed_ms = self._busy_elapsed.elapsed() if self._busy_elapsed.isValid() else 0
                 self.end_busy()
-                if elapsed_ms < 300:
-                    self.pulse_cell(idx, duration_ms=max(300, 500 - elapsed_ms))
         else:
             self.report_axes_signal.emit(row, col)
-            self.pulse_cell(idx)
         self.cellSelected.emit(row, col)
 
     def init_ui(self):
@@ -1014,7 +1012,6 @@ class QButtonMatrix(QtWidgets.QWidget):
     def _draw_crosshair(self, painter: QtGui.QPainter, idx: MatrixIndex, geo: MatrixGeometry, color: QtGui.QColor):
         """Draw row+column crosshair bands centred on *idx*."""
         painter.save()
-        r = self._cell_rect(idx, geo=geo)
         h_bar = self._row_band_rect(idx.row, geo)
         v_bar = self._column_band_rect(idx.col, geo)
         pen = QtGui.QPen(color, self.highlight_width)
@@ -1109,7 +1106,7 @@ class QButtonMatrixGremlin(QButtonMatrix):
         _make_button_tip: Custom tooltip generation for Gremlin.
     """
 
-    label_size: list[int] | None = [12, 12]
+    label_size: tuple[int, int] | None = (12, 12)
 
     def __init__(
         self,
