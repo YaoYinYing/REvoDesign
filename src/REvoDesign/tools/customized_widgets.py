@@ -531,7 +531,8 @@ class QButtonMatrix(QtWidgets.QWidget):
 
         # Allow the widget to grow
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.setAttribute(QtCore.Qt.WA_Hover, True)
+        if QtCompat.WA_Hover is not None:
+            self.setAttribute(QtCompat.WA_Hover, True)
 
         # --- Geometry placeholders set in init_ui ---
         self._n_rows: int = 0
