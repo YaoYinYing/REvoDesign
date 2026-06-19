@@ -283,17 +283,11 @@ class MutantVisualizer:
                 self.mutant_tree.add_mutant_to_branch(self.group_name, variant_obj.short_mutant_id, variant_obj)
 
         else:
-            # -- magician gimmick --------------------------------------------
+            # -- magician gimmick (pre-warmed by the caller) -----------------
             from REvoDesign.magician import Magician
-            from REvoDesign.tools.utils import run_worker_thread_in_pool
 
-            magician = run_worker_thread_in_pool(
-                worker_function=Magician().setup,
-                name_cfg_term="ui.interact.use_external_scorer",
-                molecule=self.molecule,
-                chain=self.chain_id,
-            )
-            if magician is None or magician.gimmick is None:
+            magician = Magician()
+            if magician.gimmick is None:
                 raise issues.NoInputError(
                     "No profile scoring data loaded and no external scorer is configured. "
                     "Load a profile file or select an external scorer via the combo box."

@@ -281,7 +281,7 @@ class VisualizingWorker:
 
                 run_worker_thread_in_pool(
                     worker_function=Magician().setup,
-                    magician_name=design_profile_format,
+                    gimmick_name=design_profile_format,
                     molecule=self.design_molecule,
                     chain=self.design_chain_id,
                 )
