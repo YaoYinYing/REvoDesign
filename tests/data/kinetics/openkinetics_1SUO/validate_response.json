@@ -1,0 +1,36 @@
+{
+  "invalidProteins": [],
+  "invalidSubstrates": [],
+  "lengthLimits": {
+    "CatPred": 2048,
+    "CataPro": 1000,
+    "DLKcat": null,
+    "EITLEM": 1024,
+    "IECata": 1000,
+    "KinForm-H": 1500,
+    "KinForm-L": 1500,
+    "MMISA-KM": 500,
+    "OmniESI": 1000,
+    "RealKcat": 1022,
+    "Server": 10000,
+    "TurNup": 1024,
+    "UniKP": 1000
+  },
+  "lengthViolations": {
+    "CatPred": 0,
+    "CataPro": 0,
+    "DLKcat": 0,
+    "EITLEM": 0,
+    "IECata": 0,
+    "KinForm-H": 0,
+    "KinForm-L": 0,
+    "MMISA-KM": 0,
+    "OmniESI": 0,
+    "RealKcat": 0,
+    "Server": 0,
+    "TurNup": 0,
+    "UniKP": 0
+  },
+  "rowCount": 4,
+  "similarity": null
+}

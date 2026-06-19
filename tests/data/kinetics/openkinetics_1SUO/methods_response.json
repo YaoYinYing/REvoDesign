@@ -1,0 +1,422 @@
+{
+  "longSequenceOptions": {
+    "skip": "Omit rows where the sequence exceeds the model's maximum length.",
+    "truncate": "Shorten sequences that exceed the model's maximum length."
+  },
+  "methods": {
+    "Km": [
+      {
+        "authors": "Zechen Wang, Dongqi Xie, Dong Wu, Xiaozhou Luo, Sheng Wang, Yangyang Li, Yanmei Yang, Weifeng Li, Liangzhen Zheng",
+        "citationUrl": "https://www.nature.com/articles/s41467-025-58038-4",
+        "displayName": "CataPro",
+        "id": "CataPro",
+        "inputFormat": "single",
+        "maxSeqLen": 1000,
+        "moreInfo": "",
+        "publicationTitle": "Robust enzyme discovery and engineering with deep learning using CataPro",
+        "repoUrl": "https://github.com/zchwang/CataPro",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km",
+          "kcat/Km"
+        ]
+      },
+      {
+        "authors": "Veda Sheersh Boorla, Somtirtha Santra, Costas D. Maranas",
+        "citationUrl": "https://www.nature.com/articles/s41467-025-57215-9",
+        "displayName": "CatPred",
+        "id": "CatPred",
+        "inputFormat": "single",
+        "maxSeqLen": 2048,
+        "moreInfo": "Recommended for wildtype proteins.",
+        "publicationTitle": "CatPred: A comprehensive framework for deep learning in vitro enzyme kinetic parameters",
+        "repoUrl": "https://github.com/maranasgroup/CatPred",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      },
+      {
+        "authors": "Xiaowei Shen, Ziheng Cui, Jianyu Long, Shiding Zhang, Biqiang Chen, Tianwei Tan",
+        "citationUrl": "https://www.sciencedirect.com/science/article/pii/S2667109324002665",
+        "displayName": "EITLEM-Kinetics",
+        "id": "EITLEM",
+        "inputFormat": "single",
+        "maxSeqLen": 1024,
+        "moreInfo": "",
+        "publicationTitle": "EITLEM-Kinetics: A deep-learning framework for kinetic parameter prediction of mutant enzymes",
+        "repoUrl": "https://github.com/XvesS/EITLEM-Kinetics",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      },
+      {
+        "authors": "Saleh Alwer, Ronan M T Fleming",
+        "citationUrl": "https://www.nature.com/articles/s41540-026-00692-5",
+        "displayName": "KinForm-H",
+        "id": "KinForm-H",
+        "inputFormat": "single",
+        "maxSeqLen": 1500,
+        "moreInfo": "Recommended for proteins with high sequence similarity to training data.",
+        "publicationTitle": "KinForm: Kinetics Informed Feature Optimised Representation Models for Enzyme kcat and KM Prediction",
+        "repoUrl": "https://github.com/Digital-Metabolic-Twin-Centre/KinForm",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      },
+      {
+        "authors": "Aijie Song, Kai Wang",
+        "citationUrl": "https://doi.org/10.1109/DDCLS66240.2025.11064981",
+        "displayName": "MMISA-KM",
+        "id": "MMISA-KM",
+        "inputFormat": "single",
+        "maxSeqLen": 500,
+        "moreInfo": "",
+        "publicationTitle": "MMISA-KM: A multimodal deep learning model for Michaelis constant prediction",
+        "repoUrl": "https://github.com/kaiwang-group/MMISA-KM",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "Km"
+        ]
+      },
+      {
+        "authors": "Zhiwei Nie, Hongyu Zhang, Hao Jiang, Yutian Liu, Xiansong Huang, Fan Xu, Jie Fu, Zhixiang Ren, Yonghong Tian, Wen-Bin Zhang, Jie Chen",
+        "citationUrl": "https://doi.org/10.48550/arXiv.2506.17963",
+        "displayName": "OmniESI",
+        "id": "OmniESI",
+        "inputFormat": "single",
+        "maxSeqLen": 1000,
+        "moreInfo": "",
+        "publicationTitle": "OmniESI: A unified framework for enzyme-substrate interaction prediction with progressive conditional deep learning",
+        "repoUrl": "https://github.com/Hong-yu-Zhang/OmniESI",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      },
+      {
+        "authors": "Sajeevan AK, Osinuga A, Mali A, et al.",
+        "citationUrl": "https://doi.org/10.1101/2025.02.10.637555",
+        "displayName": "RealKcat",
+        "id": "RealKcat",
+        "inputFormat": "single",
+        "maxSeqLen": 1022,
+        "moreInfo": "",
+        "publicationTitle": "Robust Prediction of Enzyme Variant Kinetics with RealKcat",
+        "repoUrl": "https://github.com/TKAI-LAB-Mali/RealKcat",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      },
+      {
+        "authors": "Han Yu, Huaxiang Deng, Jiahui He, Jay D. Keasling & Xiaozhou Luo",
+        "citationUrl": "https://www.nature.com/articles/s41467-023-44113-1",
+        "displayName": "UniKP",
+        "id": "UniKP",
+        "inputFormat": "single",
+        "maxSeqLen": 1000,
+        "moreInfo": "",
+        "publicationTitle": "UniKP: a unified framework for the prediction of enzyme kinetic parameters",
+        "repoUrl": "https://github.com/Luo-SynBioLab/UniKP",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      }
+    ],
+    "kcat": [
+      {
+        "authors": "Zechen Wang, Dongqi Xie, Dong Wu, Xiaozhou Luo, Sheng Wang, Yangyang Li, Yanmei Yang, Weifeng Li, Liangzhen Zheng",
+        "citationUrl": "https://www.nature.com/articles/s41467-025-58038-4",
+        "displayName": "CataPro",
+        "id": "CataPro",
+        "inputFormat": "single",
+        "maxSeqLen": 1000,
+        "moreInfo": "",
+        "publicationTitle": "Robust enzyme discovery and engineering with deep learning using CataPro",
+        "repoUrl": "https://github.com/zchwang/CataPro",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km",
+          "kcat/Km"
+        ]
+      },
+      {
+        "authors": "Veda Sheersh Boorla, Somtirtha Santra, Costas D. Maranas",
+        "citationUrl": "https://www.nature.com/articles/s41467-025-57215-9",
+        "displayName": "CatPred",
+        "id": "CatPred",
+        "inputFormat": "single",
+        "maxSeqLen": 2048,
+        "moreInfo": "Recommended for wildtype proteins.",
+        "publicationTitle": "CatPred: A comprehensive framework for deep learning in vitro enzyme kinetic parameters",
+        "repoUrl": "https://github.com/maranasgroup/CatPred",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      },
+      {
+        "authors": "Feiran Li, Le Yuan, Hongzhong Lu, Gang Li, Yu Chen, Martin K. M. Engqvist, Eduard J. Kerkhoven & Jens Nielsen",
+        "citationUrl": "https://www.nature.com/articles/s41929-022-00798-z",
+        "displayName": "DLKcat",
+        "id": "DLKcat",
+        "inputFormat": "single",
+        "maxSeqLen": null,
+        "moreInfo": "",
+        "publicationTitle": "Deep learning-based kcat prediction enables improved enzyme-constrained model reconstruction",
+        "repoUrl": "https://github.com/SysBioChalmers/DLKcat",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat"
+        ]
+      },
+      {
+        "authors": "Xiaowei Shen, Ziheng Cui, Jianyu Long, Shiding Zhang, Biqiang Chen, Tianwei Tan",
+        "citationUrl": "https://www.sciencedirect.com/science/article/pii/S2667109324002665",
+        "displayName": "EITLEM-Kinetics",
+        "id": "EITLEM",
+        "inputFormat": "single",
+        "maxSeqLen": 1024,
+        "moreInfo": "",
+        "publicationTitle": "EITLEM-Kinetics: A deep-learning framework for kinetic parameter prediction of mutant enzymes",
+        "repoUrl": "https://github.com/XvesS/EITLEM-Kinetics",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      },
+      {
+        "authors": "Saleh Alwer, Ronan M T Fleming",
+        "citationUrl": "https://www.nature.com/articles/s41540-026-00692-5",
+        "displayName": "KinForm-H",
+        "id": "KinForm-H",
+        "inputFormat": "single",
+        "maxSeqLen": 1500,
+        "moreInfo": "Recommended for proteins with high sequence similarity to training data.",
+        "publicationTitle": "KinForm: Kinetics Informed Feature Optimised Representation Models for Enzyme kcat and KM Prediction",
+        "repoUrl": "https://github.com/Digital-Metabolic-Twin-Centre/KinForm",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      },
+      {
+        "authors": "Saleh Alwer, Ronan M T Fleming",
+        "citationUrl": "https://www.nature.com/articles/s41540-026-00692-5",
+        "displayName": "KinForm-L",
+        "id": "KinForm-L",
+        "inputFormat": "single",
+        "maxSeqLen": 1500,
+        "moreInfo": "Recommended for proteins with low sequence similarity to training data.",
+        "publicationTitle": "KinForm: Kinetics Informed Feature Optimised Representation Models for Enzyme kcat and KM Prediction",
+        "repoUrl": "https://github.com/Digital-Metabolic-Twin-Centre/KinForm",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat"
+        ]
+      },
+      {
+        "authors": "Zhiwei Nie, Hongyu Zhang, Hao Jiang, Yutian Liu, Xiansong Huang, Fan Xu, Jie Fu, Zhixiang Ren, Yonghong Tian, Wen-Bin Zhang, Jie Chen",
+        "citationUrl": "https://doi.org/10.48550/arXiv.2506.17963",
+        "displayName": "OmniESI",
+        "id": "OmniESI",
+        "inputFormat": "single",
+        "maxSeqLen": 1000,
+        "moreInfo": "",
+        "publicationTitle": "OmniESI: A unified framework for enzyme-substrate interaction prediction with progressive conditional deep learning",
+        "repoUrl": "https://github.com/Hong-yu-Zhang/OmniESI",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      },
+      {
+        "authors": "Sajeevan AK, Osinuga A, Mali A, et al.",
+        "citationUrl": "https://doi.org/10.1101/2025.02.10.637555",
+        "displayName": "RealKcat",
+        "id": "RealKcat",
+        "inputFormat": "single",
+        "maxSeqLen": 1022,
+        "moreInfo": "",
+        "publicationTitle": "Robust Prediction of Enzyme Variant Kinetics with RealKcat",
+        "repoUrl": "https://github.com/TKAI-LAB-Mali/RealKcat",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      },
+      {
+        "authors": "Alexander Kroll, Yvan Rousset, Xiao-Pan Hu, Nina A. Liebrand & Martin J. Lercher",
+        "citationUrl": "https://www.nature.com/articles/s41467-023-39840-4",
+        "displayName": "TurNup",
+        "id": "TurNup",
+        "inputFormat": "multi",
+        "maxSeqLen": 1024,
+        "moreInfo": "Recommended for natural reactions of wild-type enzymes.",
+        "publicationTitle": "Turnover number predictions for kinetically uncharacterised enzymes using machine and deep learning",
+        "repoUrl": "https://github.com/AlexanderKroll/Kcat_prediction",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrates",
+          "Products"
+        ],
+        "substrateFormat": "Full reaction: semicolon-separated SMILES or InChI strings in Substrates and Products",
+        "supports": [
+          "kcat"
+        ]
+      },
+      {
+        "authors": "Han Yu, Huaxiang Deng, Jiahui He, Jay D. Keasling & Xiaozhou Luo",
+        "citationUrl": "https://www.nature.com/articles/s41467-023-44113-1",
+        "displayName": "UniKP",
+        "id": "UniKP",
+        "inputFormat": "single",
+        "maxSeqLen": 1000,
+        "moreInfo": "",
+        "publicationTitle": "UniKP: a unified framework for the prediction of enzyme kinetic parameters",
+        "repoUrl": "https://github.com/Luo-SynBioLab/UniKP",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km"
+        ]
+      }
+    ],
+    "kcat/Km": [
+      {
+        "authors": "Zechen Wang, Dongqi Xie, Dong Wu, Xiaozhou Luo, Sheng Wang, Yangyang Li, Yanmei Yang, Weifeng Li, Liangzhen Zheng",
+        "citationUrl": "https://www.nature.com/articles/s41467-025-58038-4",
+        "displayName": "CataPro",
+        "id": "CataPro",
+        "inputFormat": "single",
+        "maxSeqLen": 1000,
+        "moreInfo": "",
+        "publicationTitle": "Robust enzyme discovery and engineering with deep learning using CataPro",
+        "repoUrl": "https://github.com/zchwang/CataPro",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat",
+          "Km",
+          "kcat/Km"
+        ]
+      },
+      {
+        "authors": "Jingjing Wang, Yanpeng Zhao, Zhijiang Yang, Ge Yao, Penggang Han, Jiajia Liu, Chang Chen, Peng Zan, Xiukun Wan, Xiaochen Bo, Hui Jiang",
+        "citationUrl": "https://doi.org/10.1093/bib/bbaf283",
+        "displayName": "IECata",
+        "id": "IECata",
+        "inputFormat": "single",
+        "maxSeqLen": 1000,
+        "moreInfo": "",
+        "publicationTitle": "IECata: Interpretable bilinear attention network and evidential deep learning improve the catalytic efficiency prediction of enzymes",
+        "repoUrl": "https://github.com/zhaoyanpeng208/IECata",
+        "requiredColumns": [
+          "Protein Sequence",
+          "Substrate"
+        ],
+        "substrateFormat": "Single substrate: one SMILES/InChI per row; multi-substrate inputs use dot-joined co-substrates in the same Substrate cell",
+        "supports": [
+          "kcat/Km"
+        ]
+      }
+    ]
+  },
+  "notes": {
+    "quota": "[redacted]",
+    "targets": "Submit target selection via 'targets' (list) and method selection via 'methods' (object mapping each selected target to a method key)."
+  },
+  "predictionTypes": [
+    "kcat",
+    "Km",
+    "kcat/Km"
+  ]
+}

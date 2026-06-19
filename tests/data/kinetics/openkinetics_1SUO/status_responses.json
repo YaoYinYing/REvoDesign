@@ -1,0 +1,433 @@
+[
+  {
+    "activeStageIndex": 0,
+    "completedStageCount": 0,
+    "computeSeconds": 0,
+    "elapsedSeconds": 0,
+    "gpuPrecompute": {
+      "attempted": false,
+      "completed": true,
+      "events": [
+        {
+          "attempted": false,
+          "completed": true,
+          "failed": false,
+          "methodKey": "CataPro",
+          "method_key": "CataPro",
+          "reason": "cache_complete",
+          "target": "kcat/Km",
+          "updatedAt": "2026-06-19T01:57:20.078334+00:00",
+          "usedGpu": false,
+          "used_gpu": false
+        }
+      ],
+      "failed": false,
+      "methodKey": "CataPro",
+      "method_key": "CataPro",
+      "reason": "cache_complete",
+      "target": "kcat/Km",
+      "updatedAt": "2026-06-19T01:57:20.078366+00:00",
+      "usedGpu": false,
+      "used_gpu": false
+    },
+    "jobId": "VrjXW6v",
+    "progress": {
+      "activeStageIndex": 0,
+      "completedStageCount": 0,
+      "embedding": {
+        "cachedAlready": 4,
+        "cached_already": 4,
+        "computed": 0,
+        "enabled": true,
+        "methodKey": "CataPro",
+        "method_key": "CataPro",
+        "needComputation": 0,
+        "need_computation": 0,
+        "remaining": 0,
+        "state": "done",
+        "target": "kcat/Km",
+        "total": 4,
+        "updatedAt": "2026-06-19T01:57:20.152690+00:00"
+      },
+      "invalidRows": 0,
+      "moleculesProcessed": 4,
+      "moleculesTotal": 4,
+      "predictionsMade": 0,
+      "predictionsTotal": 4,
+      "stages": [
+        {
+          "completed_at": null,
+          "embedding": {
+            "cachedAlready": 4,
+            "cached_already": 4,
+            "computed": 0,
+            "enabled": true,
+            "methodKey": "CataPro",
+            "method_key": "CataPro",
+            "needComputation": 0,
+            "need_computation": 0,
+            "remaining": 0,
+            "state": "done",
+            "target": "kcat/Km",
+            "total": 4
+          },
+          "index": 0,
+          "message": "",
+          "methodKey": "CataPro",
+          "methodName": "CataPro",
+          "method_key": "CataPro",
+          "method_name": "CataPro",
+          "prediction": {
+            "invalidRows": 0,
+            "invalid_rows": 0,
+            "moleculesProcessed": 4,
+            "moleculesTotal": 4,
+            "molecules_processed": 4,
+            "molecules_total": 4,
+            "predictionsMade": 0,
+            "predictionsTotal": 4,
+            "predictions_made": 0,
+            "predictions_total": 4
+          },
+          "started_at": "2026-06-19T01:57:19.932148+00:00",
+          "status": "running",
+          "target": "kcat/Km"
+        }
+      ],
+      "totalStageCount": 1
+    },
+    "progressStages": [
+      {
+        "completed_at": null,
+        "embedding": {
+          "cachedAlready": 4,
+          "cached_already": 4,
+          "computed": 0,
+          "enabled": true,
+          "methodKey": "CataPro",
+          "method_key": "CataPro",
+          "needComputation": 0,
+          "need_computation": 0,
+          "remaining": 0,
+          "state": "done",
+          "target": "kcat/Km",
+          "total": 4
+        },
+        "index": 0,
+        "message": "",
+        "methodKey": "CataPro",
+        "methodName": "CataPro",
+        "method_key": "CataPro",
+        "method_name": "CataPro",
+        "prediction": {
+          "invalidRows": 0,
+          "invalid_rows": 0,
+          "moleculesProcessed": 4,
+          "moleculesTotal": 4,
+          "molecules_processed": 4,
+          "molecules_total": 4,
+          "predictionsMade": 0,
+          "predictionsTotal": 4,
+          "predictions_made": 0,
+          "predictions_total": 4
+        },
+        "started_at": "2026-06-19T01:57:19.932148+00:00",
+        "status": "running",
+        "target": "kcat/Km"
+      }
+    ],
+    "queuePosition": null,
+    "queueSeconds": 0,
+    "status": "Processing",
+    "submittedAt": "2026-06-19T01:57:19.887805+00:00",
+    "totalStageCount": 1
+  },
+  {
+    "activeStageIndex": 0,
+    "completedStageCount": 0,
+    "computeSeconds": 3,
+    "elapsedSeconds": 3,
+    "gpuPrecompute": {
+      "attempted": false,
+      "completed": true,
+      "events": [
+        {
+          "attempted": false,
+          "completed": true,
+          "failed": false,
+          "methodKey": "CataPro",
+          "method_key": "CataPro",
+          "reason": "cache_complete",
+          "target": "kcat/Km",
+          "updatedAt": "2026-06-19T01:57:20.078334+00:00",
+          "usedGpu": false,
+          "used_gpu": false
+        }
+      ],
+      "failed": false,
+      "methodKey": "CataPro",
+      "method_key": "CataPro",
+      "reason": "cache_complete",
+      "target": "kcat/Km",
+      "updatedAt": "2026-06-19T01:57:20.078366+00:00",
+      "usedGpu": false,
+      "used_gpu": false
+    },
+    "jobId": "VrjXW6v",
+    "progress": {
+      "activeStageIndex": 0,
+      "completedStageCount": 0,
+      "embedding": {
+        "cachedAlready": 4,
+        "cached_already": 4,
+        "computed": 0,
+        "enabled": true,
+        "methodKey": "CataPro",
+        "method_key": "CataPro",
+        "needComputation": 0,
+        "need_computation": 0,
+        "remaining": 0,
+        "state": "done",
+        "target": "kcat/Km",
+        "total": 4,
+        "updatedAt": "2026-06-19T01:57:20.152690+00:00"
+      },
+      "invalidRows": 0,
+      "moleculesProcessed": 4,
+      "moleculesTotal": 4,
+      "predictionsMade": 4,
+      "predictionsTotal": 4,
+      "stages": [
+        {
+          "completed_at": null,
+          "embedding": {
+            "cachedAlready": 4,
+            "cached_already": 4,
+            "computed": 0,
+            "enabled": true,
+            "methodKey": "CataPro",
+            "method_key": "CataPro",
+            "needComputation": 0,
+            "need_computation": 0,
+            "remaining": 0,
+            "state": "done",
+            "target": "kcat/Km",
+            "total": 4
+          },
+          "index": 0,
+          "message": "",
+          "methodKey": "CataPro",
+          "methodName": "CataPro",
+          "method_key": "CataPro",
+          "method_name": "CataPro",
+          "prediction": {
+            "invalidRows": 0,
+            "invalid_rows": 0,
+            "moleculesProcessed": 4,
+            "moleculesTotal": 4,
+            "molecules_processed": 4,
+            "molecules_total": 4,
+            "predictionsMade": 4,
+            "predictionsTotal": 4,
+            "predictions_made": 4,
+            "predictions_total": 4
+          },
+          "started_at": "2026-06-19T01:57:19.932148+00:00",
+          "status": "running",
+          "target": "kcat/Km"
+        }
+      ],
+      "totalStageCount": 1
+    },
+    "progressStages": [
+      {
+        "completed_at": null,
+        "embedding": {
+          "cachedAlready": 4,
+          "cached_already": 4,
+          "computed": 0,
+          "enabled": true,
+          "methodKey": "CataPro",
+          "method_key": "CataPro",
+          "needComputation": 0,
+          "need_computation": 0,
+          "remaining": 0,
+          "state": "done",
+          "target": "kcat/Km",
+          "total": 4
+        },
+        "index": 0,
+        "message": "",
+        "methodKey": "CataPro",
+        "methodName": "CataPro",
+        "method_key": "CataPro",
+        "method_name": "CataPro",
+        "prediction": {
+          "invalidRows": 0,
+          "invalid_rows": 0,
+          "moleculesProcessed": 4,
+          "moleculesTotal": 4,
+          "molecules_processed": 4,
+          "molecules_total": 4,
+          "predictionsMade": 4,
+          "predictionsTotal": 4,
+          "predictions_made": 4,
+          "predictions_total": 4
+        },
+        "started_at": "2026-06-19T01:57:19.932148+00:00",
+        "status": "running",
+        "target": "kcat/Km"
+      }
+    ],
+    "queuePosition": null,
+    "queueSeconds": 0,
+    "status": "Processing",
+    "submittedAt": "2026-06-19T01:57:19.887805+00:00",
+    "totalStageCount": 1
+  },
+  {
+    "activeStageIndex": 0,
+    "completedAt": "2026-06-19T01:57:23.986797+00:00",
+    "completedStageCount": 1,
+    "computeSeconds": 4,
+    "elapsedSeconds": 4,
+    "gpuPrecompute": {
+      "attempted": false,
+      "completed": true,
+      "events": [
+        {
+          "attempted": false,
+          "completed": true,
+          "failed": false,
+          "methodKey": "CataPro",
+          "method_key": "CataPro",
+          "reason": "cache_complete",
+          "target": "kcat/Km",
+          "updatedAt": "2026-06-19T01:57:20.078334+00:00",
+          "usedGpu": false,
+          "used_gpu": false
+        }
+      ],
+      "failed": false,
+      "methodKey": "CataPro",
+      "method_key": "CataPro",
+      "reason": "cache_complete",
+      "target": "kcat/Km",
+      "updatedAt": "2026-06-19T01:57:20.078366+00:00",
+      "usedGpu": false,
+      "used_gpu": false
+    },
+    "jobId": "VrjXW6v",
+    "progress": {
+      "activeStageIndex": 0,
+      "completedStageCount": 1,
+      "embedding": {
+        "cachedAlready": 4,
+        "cached_already": 4,
+        "computed": 0,
+        "enabled": true,
+        "methodKey": "CataPro",
+        "method_key": "CataPro",
+        "needComputation": 0,
+        "need_computation": 0,
+        "remaining": 0,
+        "state": "done",
+        "target": "kcat/Km",
+        "total": 4,
+        "updatedAt": "2026-06-19T01:57:23.963892+00:00"
+      },
+      "invalidRows": 0,
+      "moleculesProcessed": 4,
+      "moleculesTotal": 4,
+      "predictionsMade": 4,
+      "predictionsTotal": 4,
+      "stages": [
+        {
+          "completed_at": "2026-06-19T01:57:23.971942+00:00",
+          "embedding": {
+            "cachedAlready": 4,
+            "cached_already": 4,
+            "computed": 0,
+            "enabled": true,
+            "methodKey": "CataPro",
+            "method_key": "CataPro",
+            "needComputation": 0,
+            "need_computation": 0,
+            "remaining": 0,
+            "state": "done",
+            "target": "kcat/Km",
+            "total": 4
+          },
+          "index": 0,
+          "message": "",
+          "methodKey": "CataPro",
+          "methodName": "CataPro",
+          "method_key": "CataPro",
+          "method_name": "CataPro",
+          "prediction": {
+            "invalidRows": 0,
+            "invalid_rows": 0,
+            "moleculesProcessed": 4,
+            "moleculesTotal": 4,
+            "molecules_processed": 4,
+            "molecules_total": 4,
+            "predictionsMade": 4,
+            "predictionsTotal": 4,
+            "predictions_made": 4,
+            "predictions_total": 4
+          },
+          "started_at": "2026-06-19T01:57:19.932148+00:00",
+          "status": "completed",
+          "target": "kcat/Km"
+        }
+      ],
+      "totalStageCount": 1
+    },
+    "progressStages": [
+      {
+        "completed_at": "2026-06-19T01:57:23.971942+00:00",
+        "embedding": {
+          "cachedAlready": 4,
+          "cached_already": 4,
+          "computed": 0,
+          "enabled": true,
+          "methodKey": "CataPro",
+          "method_key": "CataPro",
+          "needComputation": 0,
+          "need_computation": 0,
+          "remaining": 0,
+          "state": "done",
+          "target": "kcat/Km",
+          "total": 4
+        },
+        "index": 0,
+        "message": "",
+        "methodKey": "CataPro",
+        "methodName": "CataPro",
+        "method_key": "CataPro",
+        "method_name": "CataPro",
+        "prediction": {
+          "invalidRows": 0,
+          "invalid_rows": 0,
+          "moleculesProcessed": 4,
+          "moleculesTotal": 4,
+          "molecules_processed": 4,
+          "molecules_total": 4,
+          "predictionsMade": 4,
+          "predictionsTotal": 4,
+          "predictions_made": 4,
+          "predictions_total": 4
+        },
+        "started_at": "2026-06-19T01:57:19.932148+00:00",
+        "status": "completed",
+        "target": "kcat/Km"
+      }
+    ],
+    "queuePosition": null,
+    "queueSeconds": 0,
+    "resultUrl": "/api/v1/result/VrjXW6v/",
+    "status": "Completed",
+    "submittedAt": "2026-06-19T01:57:19.887805+00:00",
+    "totalStageCount": 1
+  }
+]
