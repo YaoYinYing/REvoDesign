@@ -19,7 +19,14 @@ from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import timing
 
 # 1. implement and import the designer
-from .designers import ColabDesigner_MPNN, ddg  # noqa: F401 -- ddg registered via build_plugin_registry
+from .designers import (  # noqa: F401 -- imported for convenience; registry discovers concrete designers dynamically
+    CataProKcatKmScorer,
+    ColabDesigner_MPNN,
+    OpenKineticsScorer,
+    UniKPKcatScorer,
+    UniKPKmScorer,
+    ddg,
+)
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -31,7 +38,14 @@ ALL_DESIGNER_CLASSES: list[type[ExternalDesignerAbstract]] = list(DESIGNER_REGIS
 IMPLEMENTED_DESIGNERS: Mapping[str, type[ExternalDesignerAbstract]] = DESIGNER_REGISTRY.implemented_map
 
 
-__all__ = ["ExternalDesignerAbstract", "ColabDesigner_MPNN"]
+__all__ = [
+    "CataProKcatKmScorer",
+    "ColabDesigner_MPNN",
+    "ExternalDesignerAbstract",
+    "OpenKineticsScorer",
+    "UniKPKcatScorer",
+    "UniKPKmScorer",
+]
 
 
 @dataclass(frozen=True)

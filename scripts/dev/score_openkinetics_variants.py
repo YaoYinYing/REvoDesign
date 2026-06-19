@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-MODULE_PATH = REPO_ROOT / "src" / "REvoDesign" / "evaluate" / "openkinetics.py"
+MODULE_PATH = REPO_ROOT / "src" / "REvoDesign" / "magician" / "designers" / "openkinetics.py"
 
 
 def _load_openkinetics_module():
@@ -35,6 +35,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--substrate-smiles", required=True)
     parser.add_argument("--method", default=openkinetics.DEFAULT_OPENKINETICS_METHOD)
     parser.add_argument("--prediction-type", default=openkinetics.DEFAULT_OPENKINETICS_PREDICTION_TYPE)
+    parser.add_argument("--api-key")
+    parser.add_argument("--api-key-env", default=None)
     parser.add_argument("--raw-result-json")
     parser.add_argument("--no-cache", action="store_true")
     return parser
@@ -51,7 +53,10 @@ def read_variants(path: str | Path) -> list[dict[str, str]]:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    scorer = openkinetics.OpenKineticsScorer()
+    scorer = openkinetics.OpenKineticsScorer(
+        api_key=args.api_key,
+        api_key_env=args.api_key_env,
+    )
     variants = read_variants(args.input_csv)
     result = scorer.score_variants(
         variants,

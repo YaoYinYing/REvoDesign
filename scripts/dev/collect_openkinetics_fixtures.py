@@ -12,7 +12,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = REPO_ROOT / "src"
-MODULE_PATH = SRC_DIR / "REvoDesign" / "evaluate" / "openkinetics.py"
+MODULE_PATH = SRC_DIR / "REvoDesign" / "magician" / "designers" / "openkinetics.py"
 
 
 def _load_openkinetics_module():
@@ -55,7 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=openkinetics.DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
     )
-    parser.add_argument("--limit", type=int, default=4, help="Number of mutant rows to include alongside WT.")
+    parser.add_argument("--limit", type=int, default=None, help="Optional number of mutant rows to include alongside WT.")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser
@@ -68,6 +68,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[openkinetics] mutation_path={args.mutation_path}")
     print(f"[openkinetics] pdb_path={args.pdb_path}")
     print(f"[openkinetics] dry_run={args.dry_run}")
+    print(f"[openkinetics] limit={args.limit if args.limit is not None else 'all'}")
 
     try:
         result = openkinetics.collect_openkinetics_fixture_dataset(

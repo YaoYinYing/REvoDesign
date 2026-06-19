@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import importlib.util
 import sys
@@ -8,7 +9,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-MODULE_PATH = REPO_ROOT / "src" / "REvoDesign" / "evaluate" / "openkinetics.py"
+MODULE_PATH = REPO_ROOT / "src" / "REvoDesign" / "magician" / "designers" / "openkinetics.py"
 MUTATION_PATH = REPO_ROOT / "tests" / "data" / "mutations" / "1SUO.surf.entro.mutagenesis.besthits.mut.txt"
 PDB_PATH = REPO_ROOT / "tests" / "data" / "pdb" / "1SUO.pdb"
 FIXTURE_DIR = REPO_ROOT / "tests" / "data" / "kinetics" / "openkinetics_1SUO"
@@ -29,6 +30,11 @@ openkinetics = _load_openkinetics_module()
 
 def _load_fixture(name: str):
     return json.loads((FIXTURE_DIR / name).read_text(encoding="utf-8"))
+
+
+def _load_csv_rows(name: str) -> list[dict[str, str]]:
+    with (FIXTURE_DIR / name).open("r", encoding="utf-8", newline="") as handle:
+        return list(csv.DictReader(handle))
 
 
 class _FakeResponse:
@@ -80,6 +86,7 @@ def test_parse_1suo_mutation_labels():
     labels = openkinetics.load_mutation_labels(MUTATION_PATH)
     assert labels[:3] == ["AE93D", "AK191R", "AQ204E"]
     assert labels[-1] == "AE474A"
+    assert len(labels) == 15
 
     mutation = openkinetics.parse_point_mutation_label(labels[0])
     assert mutation.chain_id == "A"
@@ -89,21 +96,31 @@ def test_parse_1suo_mutation_labels():
 
 
 def test_build_variant_rows_uses_pdb_numbering():
-    sequence = openkinetics.ProteinChainSequence.from_pdb(PDB_PATH, chain_id="A")
-    rows = openkinetics.build_variant_rows(sequence, ["AE93D", "AK191R"])
+    _, sequence, residue_numbers = openkinetics.load_chain_sequence_context(PDB_PATH, chain_id="A")
+    rows = openkinetics.build_variant_rows(sequence, residue_numbers, ["AE93D", "AK191R"], chain_id="A")
 
     assert rows[0]["variant_id"] == "WT"
-    assert rows[0]["protein_sequence"] == sequence.sequence
-    assert sequence.residue_at(93) == "E"
-    assert sequence.residue_at(191) == "K"
+    assert rows[0]["protein_sequence"] == sequence
+    assert openkinetics.residue_at_pdb_position(sequence, residue_numbers, 93, "A") == "E"
+    assert openkinetics.residue_at_pdb_position(sequence, residue_numbers, 191, "A") == "K"
 
     mutated_93 = rows[1]["protein_sequence"]
-    assert mutated_93[sequence.residue_index(93)] == "D"
-    assert mutated_93[sequence.residue_index(191)] == "K"
+    assert mutated_93[openkinetics.residue_index_for_pdb_position(residue_numbers, 93, "A")] == "D"
+    assert mutated_93[openkinetics.residue_index_for_pdb_position(residue_numbers, 191, "A")] == "K"
 
     mutated_191 = rows[2]["protein_sequence"]
-    assert mutated_191[sequence.residue_index(93)] == "E"
-    assert mutated_191[sequence.residue_index(191)] == "R"
+    assert mutated_191[openkinetics.residue_index_for_pdb_position(residue_numbers, 93, "A")] == "E"
+    assert mutated_191[openkinetics.residue_index_for_pdb_position(residue_numbers, 191, "A")] == "R"
+
+
+def test_mutation_file_produces_wt_plus_all_point_mutants():
+    labels = openkinetics.load_mutation_labels(MUTATION_PATH)
+    _, sequence, residue_numbers = openkinetics.load_chain_sequence_context(PDB_PATH, chain_id="A")
+    rows = openkinetics.build_variant_rows(sequence, residue_numbers, labels, chain_id="A")
+
+    assert len(rows) == 16
+    assert rows[0]["variant_id"] == "WT"
+    assert rows[-1]["variant_id"] == "AE474A"
 
 
 def test_resolve_substrate_metadata_uses_cpz_manual_fallback():
@@ -122,13 +139,15 @@ def test_collect_openkinetics_fixture_dataset_dry_run(tmp_path):
         output_dir=output_dir,
         dry_run=True,
         overwrite=True,
-        limit=3,
     )
 
     manifest = result["manifest"]
     assert manifest["dry_run"] is True
-    assert manifest["number_of_variants_submitted"] == 4
+    assert manifest["number_of_mutations_parsed"] == 15
+    assert manifest["number_of_variants_submitted"] == 16
+    assert manifest["collection_limited"] is False
     assert manifest["ligand_identifier"] == "CPZ:A:600"
+    assert manifest["ligand_id"] == "CPZ"
 
     input_variants = output_dir / "input_variants.csv"
     substrate = output_dir / "substrate.json"
@@ -142,14 +161,30 @@ def test_collect_openkinetics_fixture_dataset_dry_run(tmp_path):
 
     substrate_payload = json.loads(substrate.read_text(encoding="utf-8"))
     assert substrate_payload["substrate_smiles"] == "CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21"
+    assert "manual_fallback" in substrate_payload
 
 
-def test_real_fixture_manifest_and_scores_exist():
+def test_real_fixture_tables_cover_all_variants():
     manifest = _load_fixture("manifest.json")
+    input_rows = _load_csv_rows("input_variants.csv")
+    api_rows = _load_csv_rows("api_input.csv")
+    score_rows = _load_csv_rows("normalized_scores.csv")
+
     assert manifest["openkinetics_method"] == "CataPro"
     assert manifest["prediction_type"] == "kcat/Km"
-    assert manifest["number_of_variants_submitted"] == 4
-    assert (FIXTURE_DIR / "normalized_scores.csv").is_file()
+    assert manifest["number_of_mutations_parsed"] == 15
+    assert manifest["number_of_variants_submitted"] == 16
+    assert len(input_rows) == 16
+    assert len(api_rows) == 16
+    assert input_rows[0]["variant_id"] == "WT"
+    assert input_rows[-1]["variant_id"] == "AE474A"
+    if manifest.get("fixture_status") == "stale_partial_live_result":
+        assert len(score_rows) < len(input_rows)
+        assert "python scripts/dev/collect_openkinetics_fixtures.py --overwrite" in (
+            FIXTURE_DIR / "README.md"
+        ).read_text(encoding="utf-8")
+    else:
+        assert len(score_rows) == len(input_rows)
 
 
 def test_openkinetics_client_submit_uses_real_json_shape():
@@ -178,6 +213,18 @@ def test_openkinetics_client_submit_uses_real_json_shape():
     assert payload["targets"] == ["kcat/Km"]
     assert payload["methods"] == {"kcat/Km": "CataPro"}
     assert payload["data"] == rows
+
+
+def test_openkinetics_api_key_resolution_prefers_direct_key(monkeypatch):
+    monkeypatch.setenv("OPENKINETICS_API_KEY", "env-key")
+    client = openkinetics.OpenKineticsClient(api_key="yaml-key", api_key_env="OPENKINETICS_API_KEY")
+    assert client._require_api_key() == "yaml-key"
+
+
+def test_openkinetics_api_key_resolution_falls_back_to_env(monkeypatch):
+    monkeypatch.setenv("OPENKINETICS_API_KEY", "env-key")
+    client = openkinetics.OpenKineticsClient(api_key=None, api_key_env="OPENKINETICS_API_KEY")
+    assert client._require_api_key() == "env-key"
 
 
 def test_openkinetics_scorer_normalizes_real_fixture_response(tmp_path):
@@ -249,11 +296,60 @@ def test_openkinetics_scorer_cache_hit(tmp_path):
     assert result["job_id"] == "cached-job"
     assert result["normalized_scores"][0]["predicted_value"] == 1.23
 
+    cache_files = list((tmp_path / "cache").glob("*.json"))
+    assert cache_files
+    assert "test-key" not in cache_files[0].read_text(encoding="utf-8")
+
 
 def test_openkinetics_client_requires_api_key():
     client = openkinetics.OpenKineticsClient(api_key_env="OPENKINETICS_API_KEY")
     with pytest.raises(openkinetics.OpenKineticsConfigurationError):
         client._require_api_key()
+
+
+def test_methods_parsing_supports_unikp_and_rejects_invalid_combo():
+    methods_response = _load_fixture("methods_response.json")
+    method_metadata = openkinetics.get_method_metadata(
+        methods_response,
+        method="UniKP",
+        prediction_type="kcat",
+    )
+    assert method_metadata["id"] == "UniKP"
+    with pytest.raises(openkinetics.OpenKineticsValidationError):
+        openkinetics.get_method_metadata(
+            methods_response,
+            method="UniKP",
+            prediction_type="kcat/Km",
+        )
+
+
+def test_score_direction_tracks_prediction_type():
+    km_rows = openkinetics._normalize_result_rows(
+        [{"variant_id": "WT", "prediction": 1.5, "protein_sequence": "AAAA"}],
+        method="UniKP",
+        prediction_type="Km",
+        substrate_smiles="CCO",
+        variant_rows=[{"variant_id": "WT", "mutation": "WT", "protein_sequence": "AAAA"}],
+    )
+    kcat_km_rows = openkinetics._normalize_result_rows(
+        [{"variant_id": "WT", "prediction": 1.5, "protein_sequence": "AAAA"}],
+        method="CataPro",
+        prediction_type="kcat/Km",
+        substrate_smiles="CCO",
+        variant_rows=[{"variant_id": "WT", "mutation": "WT", "protein_sequence": "AAAA"}],
+    )
+    assert km_rows[0]["score_direction"] == "lower_is_better"
+    assert kcat_km_rows[0]["score_direction"] == "higher_is_better"
+
+
+def test_malformed_result_raises_validation_error():
+    with pytest.raises(openkinetics.OpenKineticsValidationError):
+        openkinetics._normalize_result_rows(
+            {"jobId": "x"},
+            method="CataPro",
+            prediction_type="kcat/Km",
+            substrate_smiles="CCO",
+        )
 
 
 def test_openkinetics_poll_timeout():
@@ -272,3 +368,15 @@ def test_openkinetics_poll_timeout():
     client._require_api_key = lambda: "test-key"
     with pytest.raises(openkinetics.OpenKineticsTimeoutError):
         client.poll_until_complete("job-1", poll_interval_seconds=0, timeout_seconds=0)
+
+
+def test_import_does_not_trigger_network_calls(monkeypatch):
+    def _boom(*args, **kwargs):
+        raise AssertionError("network should not be called during import")
+
+    monkeypatch.setattr("requests.sessions.Session.request", _boom)
+    spec = importlib.util.spec_from_file_location("revodesign_openkinetics_import_check", MODULE_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert hasattr(module, "OpenKineticsScorer")
