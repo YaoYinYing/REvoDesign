@@ -458,14 +458,6 @@ class TestREvoDesignPlugin_TabVisualize:
         """Visualise tab scoring via the real OpenKinetics API (local only)."""
         test_worker.test_id = test_worker.method_name()
 
-        # Inject the API key into ConfigBus if only available via env var.
-        import os as _os
-
-        if _os.environ.get("OPENKINETICS_API_KEY") and not test_worker.plugin.bus.get_value(
-            "scorers.openkinetics.api_key", str, default_value=None
-        ):
-            test_worker.plugin.bus.set_value("scorers.openkinetics.api_key", _os.environ["OPENKINETICS_API_KEY"])
-
         # Inject substrate SMILES since the GUI flow doesn't pass it yet.
         from REvoDesign.magician.designers.openkinetics._scorers import OpenKineticsScorerAbstract
 
