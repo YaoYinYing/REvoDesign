@@ -9,7 +9,6 @@ from __future__ import annotations
 from ._client import (
     OpenKineticsClient,
     _normalize_result_rows,
-    _stable_cache_key,
     build_openkinetics_data_rows,
     build_openkinetics_request_payload,
     get_method_metadata,
@@ -112,7 +111,6 @@ __all__ = [
     "write_normalized_scores_csv",
     # result normalization
     "_normalize_result_rows",
-    "_stable_cache_key",
     # PDB / ligand
     "choose_primary_ligand",
     "discover_ligand_candidates",

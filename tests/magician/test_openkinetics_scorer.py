@@ -15,7 +15,6 @@ from REvoDesign.magician.designers.openkinetics import (
     OpenKineticsTimeoutError,
     OpenKineticsValidationError,
     _normalize_result_rows,
-    _stable_cache_key,
     get_method_metadata,
     load_chain_sequence_context,
     load_mutation_labels,
@@ -300,36 +299,73 @@ def test_openkinetics_scorer_cache_hit(tmp_path):
 
     cache_dir = tmp_path / "cache"
     scorer = CataProKcatKmScorer(cache_dir=str(cache_dir))
-    cached_payload = {
-        "job_id": "cached-job",
-        "status": "completed",
-        "normalized_scores": [{"variant_id": "WT", "predicted_value": 1.23}],
-        "raw_result": {"ok": True},
-        "status_responses": [],
-    }
-    local_rows, api_rows = scorer._prepare_rows(
-        [{"variant_id": "WT", "mutation": "WT", "protein_sequence": "AAAA"}],
-        "CCO",
-    )
-    cache_key = _stable_cache_key(
+    ck = scorer._variant_cache_key("AAAA", "CCO", scorer.default_method, scorer.default_prediction_type)
+    scorer._write_variant_cache(
+        ck,
         {
-            "base_url": scorer.client.base_url,
+            "protein_sequence": "AAAA",
+            "substrate_smiles": "CCO",
             "method": scorer.default_method,
             "prediction_type": scorer.default_prediction_type,
-            "rows": api_rows,
-        }
+            "predicted_value": 1.23,
+            "score_direction": "higher_is_better",
+            "variant_id": "WT",
+            "mutation": "WT",
+            "job_id": "cached-job",
+        },
     )
-    scorer._write_cache(cache_key, cached_payload)
+    # Verify the cache file is SQLite, not JSON
+    assert (cache_dir / "variant_cache.db").is_file()
     result = scorer.score_variants(
         [{"variant_id": "WT", "mutation": "WT", "protein_sequence": "AAAA"}],
         substrate_smiles="CCO",
     )
-    assert result["job_id"] == "cached-job"
+    assert result["job_id"] == ""
     assert result["normalized_scores"][0]["predicted_value"] == 1.23
+    assert "test-key" not in (cache_dir / "variant_cache.db").read_bytes().decode("latin-1")
 
-    cache_files = list((tmp_path / "cache").glob("*.json"))
-    assert cache_files
-    assert "test-key" not in cache_files[0].read_text(encoding="utf-8")
+
+def test_openkinetics_scorer_cache_writes_new_entries(tmp_path):
+    """After a successful API call, fresh scores are written to the SQLite cache."""
+    from REvoDesign.magician.designers.openkinetics._scorers import CataProKcatKmScorer
+
+    session = _FakeSession(
+        methods_response=_load_fixture("methods_response.json"),
+        validate_response=_load_fixture("validate_response.json"),
+        submit_response=_load_fixture("submit_response.json"),
+        status_responses=_load_fixture("status_responses.json"),
+        result_response=_load_fixture("result_response.json"),
+    )
+
+    cache_dir = tmp_path / "cache"
+    client = OpenKineticsClient(session=session)
+    client._require_api_key = lambda: "test-key"
+    scorer = CataProKcatKmScorer(client=client, cache_dir=str(cache_dir))
+
+    # Use a sequence present in the fixture result_response.
+    seq = _load_fixture("result_response.json")["data"][0]["Protein Sequence"]
+    result = scorer.score_variants(
+        [{"variant_id": "WT", "mutation": "WT", "protein_sequence": seq}],
+        substrate_smiles="CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21",
+    )
+    assert result["status"] == "completed"
+
+    # Verify the fresh score was written to the SQLite cache DB.
+    db_path = cache_dir / "variant_cache.db"
+    assert db_path.is_file()
+    import sqlite3
+
+    with sqlite3.connect(str(db_path)) as conn:
+        count = conn.execute("SELECT COUNT(*) FROM variant_cache").fetchone()[0]
+    assert count >= 1
+
+    # Subsequent call with the same variant hits the cache (no API call needed).
+    result2 = scorer.score_variants(
+        [{"variant_id": "WT", "mutation": "WT", "protein_sequence": seq}],
+        substrate_smiles="CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21",
+    )
+    assert result2["normalized_scores"][0]["predicted_value"] == result["normalized_scores"][0]["predicted_value"]
+    assert result2["job_id"] == ""  # all-cache: no job_id
 
 
 def test_openkinetics_client_requires_api_key():
