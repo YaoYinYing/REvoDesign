@@ -277,15 +277,19 @@ class VisualizingWorker:
                 logging.debug("No profile is given. Expected to use score labels")
 
             elif design_profile_format in IMPLEMENTED_DESIGNERS:
+                from REvoDesign.magician import Magician
+
                 run_worker_thread_in_pool(
-                    worker_function=self.visualizer.magician.setup,
+                    worker_function=Magician().setup,
                     magician_name=design_profile_format,
                     molecule=self.design_molecule,
                     chain=self.design_chain_id,
                 )
 
             else:
-                self.visualizer.magician.setup()  # cool it down
+                from REvoDesign.magician import Magician
+
+                Magician().setup()  # cool it down
                 self.visualizer.profile_scoring_df = self.visualizer.parse_profile(
                     profile_fp=design_profile,
                     profile_format=design_profile_format,
