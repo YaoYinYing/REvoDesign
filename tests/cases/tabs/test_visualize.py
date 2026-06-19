@@ -17,6 +17,17 @@ from tests.conftest import TestWorker
 from tests.data.test_data import KeyData
 
 
+def _openkinetics_api_key_available() -> bool:
+    """Check whether an OpenKinetics API key is available via YAML config or env var."""
+    try:
+        from REvoDesign.magician.designers.openkinetics import resolve_api_key
+
+        resolve_api_key()
+        return True
+    except Exception:
+        return False
+
+
 # move to fast tests
 @pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"], scope="session")
 class TestREvoDesignPlugin_TabVisualize:
@@ -438,14 +449,22 @@ class TestREvoDesignPlugin_TabVisualize:
         reason="Live API test skipped under GHA CI — requires a real OpenKinetics API key",
     )
     @pytest.mark.skipif(
-        not os.environ.get("OPENKINETICS_API_KEY"),
-        reason="OPENKINETICS_API_KEY environment variable is not set",
+        not _openkinetics_api_key_available(),
+        reason="OpenKinetics API key not found in YAML config or OPENKINETICS_API_KEY env var",
     )
     def test_visualize_openkinetics_catapro_live(
         self, test_worker: TestWorker, KeyDataDuringTests: KeyData, monkeypatch
     ):
         """Visualise tab scoring via the real OpenKinetics API (local only)."""
         test_worker.test_id = test_worker.method_name()
+
+        # Inject the API key into ConfigBus if only available via env var.
+        import os as _os
+
+        if _os.environ.get("OPENKINETICS_API_KEY") and not test_worker.plugin.bus.get_value(
+            "scorers.openkinetics.api_key", str, default_value=None
+        ):
+            test_worker.plugin.bus.set_value("scorers.openkinetics.api_key", _os.environ["OPENKINETICS_API_KEY"])
 
         # Inject substrate SMILES since the GUI flow doesn't pass it yet.
         from REvoDesign.magician.designers.openkinetics._scorers import OpenKineticsScorerAbstract
