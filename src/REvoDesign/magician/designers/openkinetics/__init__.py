@@ -1,0 +1,114 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""OpenKinetics API-backed scorers and fixture helpers."""
+
+from __future__ import annotations
+
+from ._client import (
+    OpenKineticsClient,
+    _normalize_result_rows,
+    _stable_cache_key,
+    build_openkinetics_data_rows,
+    build_openkinetics_request_payload,
+    get_method_metadata,
+    load_openkinetics_config,
+    normalize_variant_rows_for_local_table,
+    resolve_api_key,
+    sha256_file,
+    write_csv_rows,
+    write_json,
+    write_normalized_scores_csv,
+)
+from ._models import (
+    DEFAULT_OPENKINETICS_API_KEY_ENV,
+    DEFAULT_OPENKINETICS_BASE_URL,
+    DEFAULT_OPENKINETICS_METHOD,
+    DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
+    DEFAULT_OPENKINETICS_PREDICTION_TYPE,
+    DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
+    OPENKINETICS_DOCS_ASSUMPTION,
+    OPENKINETICS_ENDPOINTS,
+    COFACTOR_EXCLUSIONS,
+    WATER_RESIDUE_NAMES,
+    LigandCandidate,
+    OpenKineticsAPIError,
+    OpenKineticsConfigurationError,
+    OpenKineticsError,
+    OpenKineticsFixturePaths,
+    OpenKineticsTimeoutError,
+    OpenKineticsValidationError,
+)
+from ._pdb import (
+    _canonicalize_smiles,
+    choose_primary_ligand,
+    discover_ligand_candidates,
+    extract_ligand_pdb_block,
+    load_chain_sequence_context,
+    load_mutation_labels,
+    relabel_pdb_position_to_sequential,
+    resolve_substrate_metadata,
+    smiles_from_ligand_pdb_block,
+)
+from ._scorers import (
+    CataProKcatKmScorer,
+    OpenKineticsScorerAbstract,
+    UniKPKcatScorer,
+    UniKPKmScorer,
+)
+
+__all__ = [
+    # scorers
+    "CataProKcatKmScorer",
+    "OpenKineticsScorerAbstract",
+    "UniKPKcatScorer",
+    "UniKPKmScorer",
+    # client
+    "OpenKineticsClient",
+    # config
+    "load_openkinetics_config",
+    "resolve_api_key",
+    # data helpers
+    "build_openkinetics_data_rows",
+    "build_openkinetics_request_payload",
+    "get_method_metadata",
+    "normalize_variant_rows_for_local_table",
+    "write_csv_rows",
+    "write_json",
+    "sha256_file",
+    "write_normalized_scores_csv",
+    # result normalization
+    "_normalize_result_rows",
+    "_stable_cache_key",
+    # PDB / ligand
+    "choose_primary_ligand",
+    "discover_ligand_candidates",
+    "extract_ligand_pdb_block",
+    "load_chain_sequence_context",
+    "load_mutation_labels",
+    "relabel_pdb_position_to_sequential",
+    "resolve_substrate_metadata",
+    "smiles_from_ligand_pdb_block",
+    "_canonicalize_smiles",
+    # exceptions
+    "OpenKineticsAPIError",
+    "OpenKineticsConfigurationError",
+    "OpenKineticsError",
+    "OpenKineticsTimeoutError",
+    "OpenKineticsValidationError",
+    # dataclasses
+    "LigandCandidate",
+    "OpenKineticsFixturePaths",
+    # constants
+    "COFACTOR_EXCLUSIONS",
+    "DEFAULT_OPENKINETICS_API_KEY_ENV",
+    "DEFAULT_OPENKINETICS_BASE_URL",
+    "DEFAULT_OPENKINETICS_METHOD",
+    "DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS",
+    "DEFAULT_OPENKINETICS_PREDICTION_TYPE",
+    "DEFAULT_OPENKINETICS_TIMEOUT_SECONDS",
+    "OPENKINETICS_DOCS_ASSUMPTION",
+    "OPENKINETICS_ENDPOINTS",
+    "WATER_RESIDUE_NAMES",
+]

@@ -5,12 +5,11 @@
 
 from .cart_ddg import ddg
 from .colabdesign import ColabDesigner_MPNN
-from .openkinetics import CataProKcatKmScorer, OpenKineticsScorer, UniKPKcatScorer, UniKPKmScorer
+from .openkinetics import CataProKcatKmScorer, UniKPKcatScorer, UniKPKmScorer
 
 __all__ = [
     "CataProKcatKmScorer",
     "ColabDesigner_MPNN",
-    "OpenKineticsScorer",
     "UniKPKcatScorer",
     "UniKPKmScorer",
     "ddg",

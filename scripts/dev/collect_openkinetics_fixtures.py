@@ -4,30 +4,23 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import sys
 from pathlib import Path
 
+from _openkinetics_fixtures import collect_openkinetics_fixture_dataset
+
+from REvoDesign.magician.designers.openkinetics import (
+    DEFAULT_OPENKINETICS_API_KEY_ENV,
+    DEFAULT_OPENKINETICS_BASE_URL,
+    DEFAULT_OPENKINETICS_METHOD,
+    DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
+    DEFAULT_OPENKINETICS_PREDICTION_TYPE,
+    DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
+    OpenKineticsError,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SRC_DIR = REPO_ROOT / "src"
-MODULE_PATH = SRC_DIR / "REvoDesign" / "magician" / "designers" / "openkinetics.py"
-
-
-def _load_openkinetics_module():
-    spec = importlib.util.spec_from_file_location("revodesign_openkinetics", MODULE_PATH)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Unable to load OpenKinetics module from {MODULE_PATH}")
-
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-openkinetics = _load_openkinetics_module()
-
 
 DEFAULT_MUTATION_PATH = REPO_ROOT / "tests" / "data" / "mutations" / "1SUO.surf.entro.mutagenesis.besthits.mut.txt"
 DEFAULT_PDB_PATH = REPO_ROOT / "tests" / "data" / "pdb" / "1SUO.pdb"
@@ -41,21 +34,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--chain-id", default="A")
     parser.add_argument("--structure-id", default="1SUO")
-    parser.add_argument("--base-url", default=openkinetics.DEFAULT_OPENKINETICS_BASE_URL)
-    parser.add_argument("--api-key-env", default=openkinetics.DEFAULT_OPENKINETICS_API_KEY_ENV)
-    parser.add_argument("--method", default=openkinetics.DEFAULT_OPENKINETICS_METHOD)
-    parser.add_argument("--prediction-type", default=openkinetics.DEFAULT_OPENKINETICS_PREDICTION_TYPE)
+    parser.add_argument("--base-url", default=DEFAULT_OPENKINETICS_BASE_URL)
+    parser.add_argument("--api-key-env", default=DEFAULT_OPENKINETICS_API_KEY_ENV)
+    parser.add_argument("--method", default=DEFAULT_OPENKINETICS_METHOD)
+    parser.add_argument("--prediction-type", default=DEFAULT_OPENKINETICS_PREDICTION_TYPE)
+    parser.add_argument("--poll-interval-seconds", type=int, default=DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS)
+    parser.add_argument("--timeout-seconds", type=int, default=DEFAULT_OPENKINETICS_TIMEOUT_SECONDS)
     parser.add_argument(
-        "--poll-interval-seconds",
-        type=int,
-        default=openkinetics.DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
+        "--limit", type=int, default=None, help="Optional number of mutant rows to include alongside WT."
     )
-    parser.add_argument(
-        "--timeout-seconds",
-        type=int,
-        default=openkinetics.DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
-    )
-    parser.add_argument("--limit", type=int, default=None, help="Optional number of mutant rows to include alongside WT.")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser
@@ -71,7 +58,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[openkinetics] limit={args.limit if args.limit is not None else 'all'}")
 
     try:
-        result = openkinetics.collect_openkinetics_fixture_dataset(
+        result = collect_openkinetics_fixture_dataset(
             mutation_path=args.mutation_path,
             pdb_path=args.pdb_path,
             output_dir=args.output_dir,
@@ -87,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
             dry_run=args.dry_run,
             limit=args.limit,
         )
-    except openkinetics.OpenKineticsError as exc:
+    except OpenKineticsError as exc:
         print(f"[openkinetics] error: {exc}", file=sys.stderr)
         return 1
 

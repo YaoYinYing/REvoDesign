@@ -40,6 +40,28 @@ protein_letters_3to1 = {
     for k, v in IUPACData.protein_letters_1to3.items()
 }
 
+
+def aa3_to_aa1(three_letter_code: str) -> str:
+    """Convert a 3-letter amino acid code to its 1-letter equivalent.
+
+    Uses standard IUPAC codes (via Biopython) with non-standard codes
+    from ``REvoDesign.data.protein_code.rAA`` as a fallback.
+
+    Raises:
+        ValueError: If the 3-letter code is not recognised.
+    """
+    from REvoDesign.data.protein_code import rAA
+
+    code = three_letter_code.strip().upper()
+    one_letter = protein_letters_3to1.get(code)
+    if one_letter is not None:
+        return one_letter
+    one_letter = rAA.get(code)
+    if one_letter is not None:
+        return one_letter
+    raise ValueError(f"Unknown 3-letter amino acid code: {three_letter_code!r}")
+
+
 NOT_ALLOWED_GROUP_ID_PREFIX: tuple = (
     "RDPM",
     "multi_design",

@@ -22,7 +22,6 @@ from REvoDesign.tools.utils import timing
 from .designers import (  # noqa: F401 -- imported for convenience; registry discovers concrete designers dynamically
     CataProKcatKmScorer,
     ColabDesigner_MPNN,
-    OpenKineticsScorer,
     UniKPKcatScorer,
     UniKPKmScorer,
     ddg,
@@ -42,7 +41,6 @@ __all__ = [
     "CataProKcatKmScorer",
     "ColabDesigner_MPNN",
     "ExternalDesignerAbstract",
-    "OpenKineticsScorer",
     "UniKPKcatScorer",
     "UniKPKmScorer",
 ]

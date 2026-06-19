@@ -5,27 +5,11 @@ from __future__ import annotations
 
 import argparse
 import csv
-import importlib.util
 import json
-import sys
 from pathlib import Path
 
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-MODULE_PATH = REPO_ROOT / "src" / "REvoDesign" / "magician" / "designers" / "openkinetics.py"
-
-
-def _load_openkinetics_module():
-    spec = importlib.util.spec_from_file_location("revodesign_openkinetics_score", MODULE_PATH)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Unable to load OpenKinetics module from {MODULE_PATH}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-openkinetics = _load_openkinetics_module()
+from REvoDesign.magician.designers.openkinetics import DEFAULT_OPENKINETICS_METHOD, DEFAULT_OPENKINETICS_PREDICTION_TYPE
+from REvoDesign.magician.designers.openkinetics._scorers import CataProKcatKmScorer
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,8 +17,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--input-csv", required=True)
     parser.add_argument("--output-csv", required=True)
     parser.add_argument("--substrate-smiles", required=True)
-    parser.add_argument("--method", default=openkinetics.DEFAULT_OPENKINETICS_METHOD)
-    parser.add_argument("--prediction-type", default=openkinetics.DEFAULT_OPENKINETICS_PREDICTION_TYPE)
+    parser.add_argument("--method", default=DEFAULT_OPENKINETICS_METHOD)
+    parser.add_argument("--prediction-type", default=DEFAULT_OPENKINETICS_PREDICTION_TYPE)
     parser.add_argument("--api-key")
     parser.add_argument("--api-key-env", default=None)
     parser.add_argument("--raw-result-json")
@@ -53,10 +37,7 @@ def read_variants(path: str | Path) -> list[dict[str, str]]:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    scorer = openkinetics.OpenKineticsScorer(
-        api_key=args.api_key,
-        api_key_env=args.api_key_env,
-    )
+    scorer = CataProKcatKmScorer(api_key=args.api_key, api_key_env=args.api_key_env)
     variants = read_variants(args.input_csv)
     result = scorer.score_variants(
         variants,

@@ -61,7 +61,7 @@ class TestREvoDesignPlugin_TabCluster:
         m = test_worker.test_data.molecule
         c = test_worker.test_data.chain_id
 
-        bn = f'{m}_{c}_{os.path.basename(KeyDataDuringTests.mutant_file).replace(".txt","")}_designs_'
+        bn = f'{m}_{c}_{os.path.basename(KeyDataDuringTests.mutant_file).replace(".txt", "")}_designs_'
 
         for mut_num in range(
             test_worker.test_data.cluster_min,
