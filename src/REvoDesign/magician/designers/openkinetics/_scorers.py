@@ -220,16 +220,79 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
 
 
 # ---------------------------------------------------------------------------
-# Concrete scorers
+# Concrete scorers — one class per (method, prediction_type) pair.
+#
+# All single-substrate predictors (Protein Sequence + Substrate input).
+# Km-type predictions are "lower is better"; kcat and kcat/Km are
+# "higher is better".
 # ---------------------------------------------------------------------------
 
 
-class CataProKcatKmScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-CataPro-kcat/Km"
+# -- kcat scorers ---------------------------------------------------------
+
+
+class CataProKcatScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-CataPro-kcat"
 
     @classmethod
     def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "CataPro", "prediction_type": "kcat/Km"}
+        return {"method": "CataPro", "prediction_type": "kcat"}
+
+
+class CatPredKcatScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-CatPred-kcat"
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "CatPred", "prediction_type": "kcat"}
+
+
+class DLKcatScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-DLKcat-kcat"
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "DLKcat", "prediction_type": "kcat"}
+
+
+class EITLEMKcatScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-EITLEM-kcat"
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "EITLEM", "prediction_type": "kcat"}
+
+
+class KinFormHKcatScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-KinForm-H-kcat"
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "KinForm-H", "prediction_type": "kcat"}
+
+
+class KinFormLKcatScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-KinForm-L-kcat"
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "KinForm-L", "prediction_type": "kcat"}
+
+
+class OmniESIKcatScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-OmniESI-kcat"
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "OmniESI", "prediction_type": "kcat"}
+
+
+class RealKcatScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-RealKcat-kcat"
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "RealKcat", "prediction_type": "kcat"}
 
 
 class UniKPKcatScorer(OpenKineticsScorerAbstract):
@@ -240,6 +303,72 @@ class UniKPKcatScorer(OpenKineticsScorerAbstract):
         return {"method": "UniKP", "prediction_type": "kcat"}
 
 
+# -- Km scorers -----------------------------------------------------------
+
+
+class CataProKmScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-CataPro-Km"
+    prefer_lower = True
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "CataPro", "prediction_type": "Km"}
+
+
+class CatPredKmScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-CatPred-Km"
+    prefer_lower = True
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "CatPred", "prediction_type": "Km"}
+
+
+class EITLEMKmScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-EITLEM-Km"
+    prefer_lower = True
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "EITLEM", "prediction_type": "Km"}
+
+
+class KinFormHKmScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-KinForm-H-Km"
+    prefer_lower = True
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "KinForm-H", "prediction_type": "Km"}
+
+
+class MMISAKMKmScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-MMISA-KM-Km"
+    prefer_lower = True
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "MMISA-KM", "prediction_type": "Km"}
+
+
+class OmniESIKmScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-OmniESI-Km"
+    prefer_lower = True
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "OmniESI", "prediction_type": "Km"}
+
+
+class RealKcatKmScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-RealKcat-Km"
+    prefer_lower = True
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "RealKcat", "prediction_type": "Km"}
+
+
 class UniKPKmScorer(OpenKineticsScorerAbstract):
     name = "OpenKinetics-UniKP-Km"
     prefer_lower = True
@@ -247,3 +376,22 @@ class UniKPKmScorer(OpenKineticsScorerAbstract):
     @classmethod
     def built_in_defaults(cls) -> dict[str, str]:
         return {"method": "UniKP", "prediction_type": "Km"}
+
+
+# -- kcat/Km scorers ------------------------------------------------------
+
+
+class CataProKcatKmScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-CataPro-kcat/Km"
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "CataPro", "prediction_type": "kcat/Km"}
+
+
+class IECataKcatKmScorer(OpenKineticsScorerAbstract):
+    name = "OpenKinetics-IECata-kcat/Km"
+
+    @classmethod
+    def built_in_defaults(cls) -> dict[str, str]:
+        return {"method": "IECata", "prediction_type": "kcat/Km"}

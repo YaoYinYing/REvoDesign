@@ -5,11 +5,47 @@
 
 from .cart_ddg import ddg
 from .colabdesign import ColabDesigner_MPNN
-from .openkinetics import CataProKcatKmScorer, UniKPKcatScorer, UniKPKmScorer
+from .openkinetics import (  # noqa: F401
+    CataProKcatKmScorer,
+    CataProKcatScorer,
+    CataProKmScorer,
+    CatPredKcatScorer,
+    CatPredKmScorer,
+    DLKcatScorer,
+    EITLEMKcatScorer,
+    EITLEMKmScorer,
+    IECataKcatKmScorer,
+    KinFormHKcatScorer,
+    KinFormHKmScorer,
+    KinFormLKcatScorer,
+    MMISAKMKmScorer,
+    OmniESIKcatScorer,
+    OmniESIKmScorer,
+    RealKcatKmScorer,
+    RealKcatScorer,
+    UniKPKcatScorer,
+    UniKPKmScorer,
+)
 
 __all__ = [
     "CataProKcatKmScorer",
+    "CataProKcatScorer",
+    "CataProKmScorer",
+    "CatPredKcatScorer",
+    "CatPredKmScorer",
     "ColabDesigner_MPNN",
+    "DLKcatScorer",
+    "EITLEMKcatScorer",
+    "EITLEMKmScorer",
+    "IECataKcatKmScorer",
+    "KinFormHKcatScorer",
+    "KinFormHKmScorer",
+    "KinFormLKcatScorer",
+    "MMISAKMKmScorer",
+    "OmniESIKcatScorer",
+    "OmniESIKmScorer",
+    "RealKcatKmScorer",
+    "RealKcatScorer",
     "UniKPKcatScorer",
     "UniKPKmScorer",
     "ddg",

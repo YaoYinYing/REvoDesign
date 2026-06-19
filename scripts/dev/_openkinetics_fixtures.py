@@ -219,7 +219,6 @@ def collect_openkinetics_fixture_dataset(
         "input_hash": sha256_file(paths.input_variants_path),
         "result_hash": None,
         "normalized_input_table_sha256": sha256_file(paths.input_variants_path),
-        "raw_result_sha256": None,
         "python_version": _python_version(),
         "revodesign_commit_hash": _git_commit_hash(repo_root),
         "api_key_policy": f"Read from YAML api_key or environment variable {api_key_env} and never stored",
@@ -265,18 +264,9 @@ def collect_openkinetics_fixture_dataset(
     )
 
     validate_response = client.validate_file(paths.api_input_path, run_similarity=False)
-    write_json(
-        paths.output_dir / "validate_request.redacted.json",
-        {
-            "file": paths.api_input_path.name,
-            "runSimilarity": False,
-            "file_sha256": sha256_file(paths.api_input_path),
-        },
-    )
     write_json(paths.output_dir / "validate_response.json", _redact_payload(validate_response))
 
     submit_response = client._request("POST", OPENKINETICS_ENDPOINTS["submit"], json_payload=api_payload)
-    write_json(paths.output_dir / "submit_request.redacted.json", _redact_payload(api_payload))
     write_json(paths.output_dir / "submit_response.json", _redact_payload(submit_response))
     job_id = submit_response.get("jobId")
     if not job_id:
@@ -291,7 +281,6 @@ def collect_openkinetics_fixture_dataset(
 
     result_response = client.get_result(job_id)
     write_json(paths.output_dir / "result_response.json", _redact_payload(result_response))
-    write_json(paths.output_dir / "raw_result.json", _redact_payload(result_response))
 
     normalized_scores = _normalize_result_rows(
         result_response,
@@ -304,8 +293,7 @@ def collect_openkinetics_fixture_dataset(
     normalized_scores_path = paths.output_dir / "normalized_scores.csv"
     write_csv_rows(normalized_scores_path, normalized_scores)
 
-    manifest["raw_result_sha256"] = sha256_file(paths.output_dir / "raw_result.json")
-    manifest["result_hash"] = manifest["raw_result_sha256"]
+    manifest["result_hash"] = sha256_file(paths.output_dir / "result_response.json")
     manifest["job_id"] = job_id
     write_json(paths.manifest_path, manifest)
     _write_fixture_readme(paths, manifest)
