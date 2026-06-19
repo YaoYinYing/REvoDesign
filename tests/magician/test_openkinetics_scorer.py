@@ -214,13 +214,11 @@ def test_real_fixture_tables_cover_all_variants():
     assert input_rows[0]["variant_id"] == "WT"
     assert input_rows[-1]["variant_id"] == "AE474A"
 
-    if manifest.get("fixture_status") == "stale_partial_live_result":
-        pytest.skip(
-            "Fixture is stale: {} score rows for {} input variants. "
-            'Regenerate with: export OPENKINETICS_API_KEY="..." && '
-            "python scripts/dev/collect_openkinetics_fixtures.py --overwrite".format(len(score_rows), len(input_rows))
-        )
-    assert len(score_rows) == len(input_rows)
+    assert len(score_rows) == len(input_rows), (
+        f"Fixture has {len(score_rows)} score rows for {len(input_rows)} variants. "
+        'Regenerate with: export OPENKINETICS_API_KEY="..." && '
+        "python scripts/dev/collect_openkinetics_fixtures.py --overwrite"
+    )
 
 
 def test_openkinetics_client_submit_uses_real_json_shape():

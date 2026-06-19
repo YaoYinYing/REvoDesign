@@ -21,6 +21,7 @@ from typing import Any
 
 from REvoDesign.magician.designers.openkinetics import (
     OPENKINETICS_DOCS_ASSUMPTION,
+    OPENKINETICS_ENDPOINTS,
     DEFAULT_OPENKINETICS_API_KEY_ENV,
     DEFAULT_OPENKINETICS_BASE_URL,
     DEFAULT_OPENKINETICS_METHOD,
@@ -274,7 +275,7 @@ def collect_openkinetics_fixture_dataset(
     )
     write_json(paths.output_dir / "validate_response.json", _redact_payload(validate_response))
 
-    submit_response = client.submit(api_payload, method=method, prediction_type=prediction_type)
+    submit_response = client._request("POST", OPENKINETICS_ENDPOINTS["submit"], json_payload=api_payload)
     write_json(paths.output_dir / "submit_request.redacted.json", _redact_payload(api_payload))
     write_json(paths.output_dir / "submit_response.json", _redact_payload(submit_response))
     job_id = submit_response.get("jobId")

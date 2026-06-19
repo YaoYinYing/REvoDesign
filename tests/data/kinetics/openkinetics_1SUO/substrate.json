@@ -1,19 +1,11 @@
 {
-  "automatic_smiles": "ClC1CCC(C2CNCN2)CC1",
   "ligand_atom_count": 12,
   "ligand_chain_id": "A",
   "ligand_identifier": "CPZ:A:600",
   "ligand_residue_name": "CPZ",
   "ligand_residue_number": 600,
-  "manual_fallback": {
-    "ligand_name": "chlorpromazine",
-    "note": "RDKit conversion from the PDB block does not preserve the expected phenothiazine aromaticity for the 1SUO CPZ ligand, so the script prefers this auditable manual fallback.",
-    "smiles": "CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21",
-    "source": "manual_fallback"
-  },
   "pdb_block_sha256": "c75e90979832733367a03376f778479adcf9a8bcd8f4f1e9860aa9b84143337a",
-  "resolution_note": "RDKit conversion from the PDB block does not preserve the expected phenothiazine aromaticity for the 1SUO CPZ ligand, so the script prefers this auditable manual fallback.",
-  "smiles_resolution": "manual_fallback",
+  "smiles_resolution": "rdkit",
   "structure_id": "1SUO",
-  "substrate_smiles": "CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21"
+  "substrate_smiles": "ClC1CCC(C2CNCN2)CC1"
 }
