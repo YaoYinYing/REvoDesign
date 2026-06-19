@@ -40,8 +40,6 @@ from ._models import (
 # Configuration loading
 # ---------------------------------------------------------------------------
 
-_config_bus = ConfigBus()
-
 
 def _config_cache_dir() -> str:
     """Return the OpenKinetics cache directory from either the user config
@@ -53,37 +51,41 @@ def _config_cache_dir() -> str:
 
 def load_openkinetics_config() -> dict[str, Any]:
     """Load OpenKinetics configuration from ConfigBus / YAML, filling in
-    sensible defaults for every key that is not explicitly set."""
+    sensible defaults for every key that is not explicitly set.
+
+    ConfigBus is instantiated *lazily* here rather than at module level
+    so that the singleton does not get locked into headless mode before
+    the plugin has had a chance to attach its UI.
+    """
+    bus = ConfigBus()
     config = {
-        "base_url": _config_bus.get_value(
-            "scorers.openkinetics.base_url", str, default_value=DEFAULT_OPENKINETICS_BASE_URL
-        ),
-        "api_key": _config_bus.get_value("scorers.openkinetics.api_key", str, default_value=None),
-        "api_key_env": _config_bus.get_value(
+        "base_url": bus.get_value("scorers.openkinetics.base_url", str, default_value=DEFAULT_OPENKINETICS_BASE_URL),
+        "api_key": bus.get_value("scorers.openkinetics.api_key", str, default_value=None),
+        "api_key_env": bus.get_value(
             "scorers.openkinetics.api_key_env", str, default_value=DEFAULT_OPENKINETICS_API_KEY_ENV
         ),
-        "default_method": _config_bus.get_value(
+        "default_method": bus.get_value(
             "scorers.openkinetics.default_method", str, default_value=DEFAULT_OPENKINETICS_METHOD
         ),
-        "default_prediction_type": _config_bus.get_value(
+        "default_prediction_type": bus.get_value(
             "scorers.openkinetics.default_prediction_type",
             str,
             default_value=DEFAULT_OPENKINETICS_PREDICTION_TYPE,
         ),
-        "poll_interval_seconds": _config_bus.get_value(
+        "poll_interval_seconds": bus.get_value(
             "scorers.openkinetics.poll_interval_seconds",
             int,
             default_value=DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
         ),
-        "timeout_seconds": _config_bus.get_value(
+        "timeout_seconds": bus.get_value(
             "scorers.openkinetics.timeout_seconds",
             int,
             default_value=DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
         ),
-        "max_retries": _config_bus.get_value("scorers.openkinetics.max_retries", int, default_value=3),
-        "cache_enabled": _config_bus.get_value("scorers.openkinetics.cache_enabled", bool, default_value=True),
+        "max_retries": bus.get_value("scorers.openkinetics.max_retries", int, default_value=3),
+        "cache_enabled": bus.get_value("scorers.openkinetics.cache_enabled", bool, default_value=True),
         "cache_dir": os.path.expanduser(
-            _config_bus.get_value(
+            bus.get_value(
                 "scorers.openkinetics.cache_dir",
                 str,
                 default_value=_config_cache_dir(),
