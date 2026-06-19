@@ -21,7 +21,6 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.common.profile_parsers import ProfileManager
-from REvoDesign.magician import Magician
 from REvoDesign.sidechain import MutateRunnerAbstract
 from REvoDesign.tools.mutant_tools import extract_mutant_from_sequences, extract_mutants_from_mutant_id
 from REvoDesign.tools.utils import get_color, require_not_none, run_command
@@ -59,7 +58,6 @@ class MutantVisualizer:
         self.mutant_tree: MutantTree = MutantTree({})
 
         self.consider_global_score_from_profile = False
-        self.magician = Magician()
 
     def process_mutant(self, mutant_obj: Mutant):
         """
@@ -256,11 +254,6 @@ class MutantVisualizer:
         if self.key_col not in mutation_data.columns:
             raise issues.InvalidInputError(f"Variant column '{self.key_col}' not found in the data.")
 
-        # Check if the score_col exists in the dataframe, if not, add it with a default value of 1
-        if self.score_col not in mutation_data.columns:
-            logging.warning(f"Score column '{self.score_col}' not found in the data. Setting score to 1.")
-            mutation_data[self.score_col] = 1
-
         variant_objs = [
             extract_mutants_from_mutant_id(
                 mutant_string=row[self.key_col],
@@ -269,60 +262,48 @@ class MutantVisualizer:
             for _, row in mutation_data.loc[~(mutation_data[self.key_col].str.contains(r"WT|wt"))].iterrows()
         ]
 
-        # margician stays highest priority.
-        if self.magician.gimmick is not None:
-            logging.info(f"Using designer for parallel scoring: {self.magician.gimmick.name}")
-            self.magician.gimmick.parallel_scorer(variant_objs, nproc=self.nproc)
+        if not variant_objs:
+            raise issues.NoInputError("No variants found in the mutation data.")
 
-            self.mutant_tree.update_tree_with_new_branches(
-                {self.group_name: {mutant_obj.short_mutant_id: mutant_obj for mutant_obj in variant_objs}}
-            )
-
-        # the profile scoring is a bit more complicated if the mutant contains multiple substitutions.
-        # so we have to igore it here.
-        elif (
-            all(len(variant_obj.mutations) == 1 for variant_obj in variant_objs)
+        # -- profile scoring --------------------------------------------------
+        profile_usable = (
+            all(len(v.mutations) == 1 for v in variant_objs)
             and self.profile_scoring_df is not None
-            and (not self.profile_scoring_df.empty)
-        ):
+            and not self.profile_scoring_df.empty
+        )
+        if profile_usable:
             logging.info("Using profile scoring for single substitution mutants.")
             for variant_obj in variant_objs:
                 _score = self.profile_scoring_df.loc[
                     variant_obj.mutations[0].mut_res,
                     str(variant_obj.mutations[0].position - 1),
                 ]
-                logging.debug(f"Reading profile score for variant DMS table {variant_obj.short_mutant_id}: {_score}")
+                logging.debug(f"Reading profile score for variant {variant_obj.short_mutant_id}: {_score}")
                 variant_obj.mutant_score = float(_score)  # type: ignore
                 self.mutant_tree.add_mutant_to_branch(self.group_name, variant_obj.short_mutant_id, variant_obj)
 
         else:
-            logging.info(f"Reading profile score for CSV mutant table: Mutant: {self.key_col}, Score: {self.score_col}")
-            use_col_id = self.group_name in mutation_data.columns
-            logging.debug(f"Using {self.group_name} as group name label: {use_col_id}")
-            # read wt record from the mutation data
-            _df_wt = mutation_data.loc[mutation_data[self.key_col].str.contains(r"WT|wt")]
+            # -- magician gimmick --------------------------------------------
+            from REvoDesign.magician import Magician
+            from REvoDesign.tools.utils import run_worker_thread_in_pool
 
-            # use mean score of wt tests as the default wt score for all mutants or none
-            _wt_score = _df_wt[self.score_col].mean(0) if not _df_wt.empty else None
-
-            # non wt variants
-            df_non_wt = mutation_data.loc[~(mutation_data[self.key_col].str.contains(r"WT|wt"))]
-
-            for _, row in df_non_wt.iterrows():
-                variant_obj = extract_mutants_from_mutant_id(
-                    mutant_string=row[self.key_col],
-                    sequences=self.designable_sequences,
+            magician = run_worker_thread_in_pool(
+                worker_function=Magician().setup,
+                name_cfg_term="ui.interact.use_external_scorer",
+                molecule=self.molecule,
+                chain=self.chain_id,
+            )
+            if magician is None or magician.gimmick is None:
+                raise issues.NoInputError(
+                    "No profile scoring data loaded and no external scorer is configured. "
+                    "Load a profile file or select an external scorer via the combo box."
                 )
-                _score = row[self.score_col]
-                _group_name = row[self.group_name] if use_col_id else self.group_name
-                logging.debug(
-                    f"Reading mutant table score for variant {variant_obj.short_mutant_id} - {_score} --> {_group_name}"
-                )
-                if _wt_score:
-                    variant_obj.wt_score = _wt_score
 
-                variant_obj.mutant_score = float(_score)  # type: ignore
-                self.mutant_tree.add_mutant_to_branch(_group_name, variant_obj.short_mutant_id, variant_obj)
+            logging.info(f"Using designer for parallel scoring: {magician.gimmick.name}")
+            magician.gimmick.parallel_scorer(variant_objs, nproc=self.nproc)
+            self.mutant_tree.update_tree_with_new_branches(
+                {self.group_name: {mutant_obj.short_mutant_id: mutant_obj for mutant_obj in variant_objs}}
+            )
 
         logging.debug(f"Mutant tree: {self.mutant_tree}")
 
@@ -335,7 +316,6 @@ class MutantVisualizer:
             self.consider_global_score_from_profile  # Toggle the global score flag
             and (self.profile_scoring_df is not None)  # profile df is not None
             and (not self.profile_scoring_df.empty)  # profile df is not empty
-            and (self.magician.gimmick is None)  # no magician enabled
         ):
             self.min_score = self.min_score_profile
             self.max_score = self.max_score_profile
