@@ -378,5 +378,6 @@ def test_import_does_not_trigger_network_calls(monkeypatch):
     spec = importlib.util.spec_from_file_location("revodesign_openkinetics_import_check", MODULE_PATH)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     assert hasattr(module, "OpenKineticsScorer")

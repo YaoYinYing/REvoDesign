@@ -22,39 +22,10 @@ import requests
 from Bio.Data.IUPACData import protein_letters_3to1
 from Bio.PDB import PDBParser
 from platformdirs import user_cache_dir
+from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-try:
-    from RosettaPy.common.mutation import RosettaPyProteinSequence
-
-    from REvoDesign.basic.designer import ExternalDesignerAbstract
-    from REvoDesign.common.mutant import Mutant
-except ModuleNotFoundError:
-    class RosettaPyProteinSequence:  # type: ignore[no-redef]
-        def __init__(self, chains: dict[str, str] | None = None):
-            self._chains = dict(chains or {})
-            self.all_chain_ids = tuple(self._chains.keys())
-
-        @classmethod
-        def from_dict(cls, mapping: dict[str, str]) -> "RosettaPyProteinSequence":
-            return cls(chains=mapping)
-
-        def get_sequence_by_chain(self, chain_id: str) -> str:
-            return self._chains[chain_id]
-
-    class ExternalDesignerAbstract:  # type: ignore[no-redef]
-        name = ""
-        installed = False
-        scorer_only = False
-        no_need_to_score_wt = False
-        prefer_lower = False
-
-        def __init__(self, molecule):
-            self.molecule = molecule
-            self.initialized = False
-            self.reload = False
-
-    class Mutant:  # type: ignore[no-redef]
-        pass
+from REvoDesign.basic.designer import ExternalDesignerAbstract
+from REvoDesign.common.mutant import Mutant
 
 
 DEFAULT_OPENKINETICS_BASE_URL = "https://predictor.openkinetics.org/api/v1"
@@ -706,6 +677,7 @@ def _normalize_result_rows(
     }
 
     score_column = None
+    result_payload_job_id = result_payload.get("jobId") if isinstance(result_payload, dict) else None
     if isinstance(result_payload, dict) and isinstance(result_payload.get("columns"), list):
         for column_name in result_payload["columns"]:
             if isinstance(column_name, str) and column_name.lower().startswith(prediction_type.lower()):
@@ -722,7 +694,7 @@ def _normalize_result_rows(
         variant_id = record.get("variant_id") or matched_variant.get("variant_id") or record.get("id") or record.get("name") or "unknown"
         mutation = record.get("mutation") or matched_variant.get("mutation") or variant_id
         status = record.get("status") or "completed"
-        row_job_id = record.get("job_id") or record.get("job") or result_payload.get("jobId") or job_id
+        row_job_id = record.get("job_id") or record.get("job") or result_payload_job_id or job_id
 
         predicted_value = None
         for key in (

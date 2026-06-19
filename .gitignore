@@ -128,3 +128,4 @@ src/REvoDesign/UI/REvoDesign-PyMOL-entry.py
 src/REvoDesign/tools/REvoDesign-manager/UI/REvoDesign_installer.py
 cluster_test.zip
 /cluster_test
+/.codex-tmp
