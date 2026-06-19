@@ -3,9 +3,12 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+import json
 import os
+from pathlib import Path
 
 import pytest
+import requests
 
 from REvoDesign.magician.designers import ColabDesigner_MPNN
 from REvoDesign.sidechain.mutate_runner.PIPPack import PIPPack_worker
@@ -327,3 +330,105 @@ class TestREvoDesignPlugin_TabVisualize:
         assert len(mt.all_mutant_branch_ids) == 4
         for _id in [f"c.{i}" for i in range(0, 4)]:
             assert _id in mt.all_mutant_branch_ids
+
+    def test_visualize_openkinetics_catapro(self, test_worker: TestWorker, KeyDataDuringTests: KeyData, monkeypatch):
+        """Visualise tab scoring via OpenKinetics CataPro with mocked HTTP."""
+        test_worker.test_id = test_worker.method_name()
+
+        # -- build a fake HTTP layer that returns plausible OpenKinetics payloads --
+        fixture_dir = Path(__file__).resolve().parents[3] / "data" / "kinetics" / "openkinetics_1SUO"
+        methods_json = json.loads((fixture_dir / "methods_response.json").read_text(encoding="utf-8"))
+
+        _status_index = [0]  # mutable counter for sequential status responses
+
+        def _fake_request(self_, method, url, json=None, timeout=None, headers=None, **__):
+            if "/methods/" in url:
+                resp = requests.Response()
+                resp.status_code = 200
+                resp._content = json.dumps(methods_json).encode("utf-8")
+                return resp
+            if "/validate/" in url:
+                resp = requests.Response()
+                resp.status_code = 200
+                resp._content = json.dumps({"valid": True}).encode("utf-8")
+                return resp
+            if "/submit/" in url:
+                resp = requests.Response()
+                resp.status_code = 200
+                resp._content = json.dumps({"jobId": "test-openkinetics-job"}).encode("utf-8")
+                return resp
+            if "/status/" in url:
+                _status_index[0] += 1
+                resp = requests.Response()
+                resp.status_code = 200
+                # first poll returns Processing, second returns Completed
+                status = "Processing" if _status_index[0] == 1 else "Completed"
+                resp._content = json.dumps({"status": status}).encode("utf-8")
+                return resp
+            if "/result/" in url:
+                # Build a result payload that echoes back whatever was submitted.
+                submitted = json or {}
+                submitted_data = submitted.get("data", [{"Protein Sequence": "MOCK"}])
+                columns = ["kcat/Km (1/(s*mM))"]
+                data = []
+                for i, row in enumerate(submitted_data):
+                    seq = row.get("Protein Sequence", "MOCK")
+                    data.append(
+                        {
+                            "Protein Sequence": seq,
+                            "variant_id": f"variant_{i}",
+                            "kcat/Km (1/(s*mM))": 10.0 + i,
+                        }
+                    )
+                resp = requests.Response()
+                resp.status_code = 200
+                resp._content = json.dumps({"jobId": "test-openkinetics-job", "columns": columns, "data": data}).encode(
+                    "utf-8"
+                )
+                return resp
+            raise AssertionError(f"Unexpected request: {method} {url}")
+
+        monkeypatch.setattr("requests.sessions.Session.request", _fake_request)
+
+        # -- ensure the OpenKinetics scorer has a substrate SMILES available --
+        from REvoDesign.magician.designers.openkinetics._scorers import OpenKineticsScorerAbstract
+
+        _orig_init = OpenKineticsScorerAbstract.__init__
+
+        def _patched_init(self_, *args, **kw):
+            _orig_init(self_, *args, **kw)
+            if not self_.substrate_smiles:
+                self_.substrate_smiles = "CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21"
+
+        monkeypatch.setattr(OpenKineticsScorerAbstract, "__init__", _patched_init)
+
+        # -- drive the GUI --
+        test_worker.load_session_and_check()
+        test_worker.go_to_tab(tab_name="config")
+        set_widget_value(test_worker.plugin.ui.comboBox_sidechain_solver, "Dunbrack Rotamer Library")
+        test_worker.go_to_tab(tab_name="visualize")
+
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_input_mut_table_csv,
+            KeyDataDuringTests.minimum_mutant_file,
+        )
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_output_pse_visualize,
+            test_worker.test_data.test_data_repo + "/analysis/1SUO.xtal.openkinetics_catapro.pze",
+        )
+        set_widget_value(test_worker.plugin.ui.comboBox_external_scorer, "OpenKinetics-CataPro-kcat/Km")
+        set_widget_value(test_worker.plugin.ui.comboBox_group_name, "openkinetics_test")
+
+        test_worker.save_screenshot(widget=test_worker.plugin.window, basename=f"{test_worker.test_id}_before_run")
+        test_worker.save_new_experiment()
+        test_worker.click(test_worker.plugin.ui.pushButton_run_visualizing)
+        test_worker.save_pymol_png(basename=test_worker.test_id)
+        test_worker.save_screenshot(widget=test_worker.plugin.window, basename=f"{test_worker.test_id}_after_run")
+
+        pse_path = test_worker.test_data.test_data_repo + "/analysis/1SUO.xtal.openkinetics_catapro.pze"
+        assert os.path.exists(pse_path)
+        mt = test_worker.check_existed_mutant_tree()
+        assert (
+            test_worker.test_data.test_data_repo + "/analysis/1SUO.xtal.openkinetics_catapro"
+            in mt.all_mutant_branch_ids
+        )
