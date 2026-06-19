@@ -432,3 +432,53 @@ class TestREvoDesignPlugin_TabVisualize:
             test_worker.test_data.test_data_repo + "/analysis/1SUO.xtal.openkinetics_catapro"
             in mt.all_mutant_branch_ids
         )
+
+    @pytest.mark.skipif(
+        os.environ.get("GITHUB_ACTIONS") == "true",
+        reason="Live API test skipped under GHA CI — requires a real OpenKinetics API key",
+    )
+    @pytest.mark.skipif(
+        not os.environ.get("OPENKINETICS_API_KEY"),
+        reason="OPENKINETICS_API_KEY environment variable is not set",
+    )
+    def test_visualize_openkinetics_catapro_live(
+        self, test_worker: TestWorker, KeyDataDuringTests: KeyData, monkeypatch
+    ):
+        """Visualise tab scoring via the real OpenKinetics API (local only)."""
+        test_worker.test_id = test_worker.method_name()
+
+        # Inject substrate SMILES since the GUI flow doesn't pass it yet.
+        from REvoDesign.magician.designers.openkinetics._scorers import OpenKineticsScorerAbstract
+
+        _orig_init = OpenKineticsScorerAbstract.__init__
+
+        def _patched_init(self_, *args, **kw):
+            _orig_init(self_, *args, **kw)
+            if not self_.substrate_smiles:
+                self_.substrate_smiles = "CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21"
+
+        monkeypatch.setattr(OpenKineticsScorerAbstract, "__init__", _patched_init)
+
+        test_worker.load_session_and_check()
+        test_worker.go_to_tab(tab_name="config")
+        set_widget_value(test_worker.plugin.ui.comboBox_sidechain_solver, "Dunbrack Rotamer Library")
+        test_worker.go_to_tab(tab_name="visualize")
+
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_input_mut_table_csv,
+            KeyDataDuringTests.minimum_mutant_file,
+        )
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_output_pse_visualize,
+            test_worker.test_data.test_data_repo + "/analysis/1SUO.xtal.openkinetics_catapro_live.pze",
+        )
+        set_widget_value(test_worker.plugin.ui.comboBox_external_scorer, "OpenKinetics-CataPro-kcat/Km")
+        set_widget_value(test_worker.plugin.ui.comboBox_group_name, "openkinetics_live")
+
+        test_worker.save_new_experiment()
+        test_worker.click(test_worker.plugin.ui.pushButton_run_visualizing)
+
+        pse_path = test_worker.test_data.test_data_repo + "/analysis/1SUO.xtal.openkinetics_catapro_live.pze"
+        assert os.path.exists(pse_path)
+        mt = test_worker.check_existed_mutant_tree()
+        assert len(mt.all_mutant_branch_ids) >= 1
