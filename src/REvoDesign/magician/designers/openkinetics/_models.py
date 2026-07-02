@@ -66,10 +66,7 @@ class OpenKineticsFixturePaths:
 # Constants
 # ---------------------------------------------------------------------------
 
-DEFAULT_OPENKINETICS_BASE_URL = "https://predictor.openkinetics.org/api/v1"
 DEFAULT_OPENKINETICS_API_KEY_ENV = "OPENKINETICS_API_KEY"
-DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS = 3
-DEFAULT_OPENKINETICS_TIMEOUT_SECONDS = 600
 
 OPENKINETICS_ENDPOINTS = {
     "methods": "/methods/",

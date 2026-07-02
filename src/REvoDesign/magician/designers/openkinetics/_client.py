@@ -18,13 +18,12 @@ from typing import Any
 
 import requests
 
-from REvoDesign import ConfigBus
+from omegaconf import DictConfig
+
+from REvoDesign import reload_config_file
 
 from ._models import (
     DEFAULT_OPENKINETICS_API_KEY_ENV,
-    DEFAULT_OPENKINETICS_BASE_URL,
-    DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
-    DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
     OPENKINETICS_ENDPOINTS,
     OpenKineticsAPIError,
     OpenKineticsConfigurationError,
@@ -46,42 +45,18 @@ def _config_cache_dir() -> str:
 
 
 def load_openkinetics_config() -> dict[str, Any]:
-    """Load OpenKinetics configuration from ConfigBus / YAML, filling in
-    sensible defaults for every key that is not explicitly set.
-
-    ConfigBus is instantiated *lazily* here rather than at module level
-    so that the singleton does not get locked into headless mode before
-    the plugin has had a chance to attach its UI.
-    """
-    bus = ConfigBus()
-    config = {
-        "base_url": bus.get_value("scorers.openkinetics.base_url", str, default_value=DEFAULT_OPENKINETICS_BASE_URL),
-        "default_method": bus.get_value("scorers.openkinetics.default_method", str, default_value="CataPro"),
-        "default_prediction_type": bus.get_value(
-            "scorers.openkinetics.default_prediction_type",
-            str,
-            default_value="kcat/Km",
-        ),
-        "poll_interval_seconds": bus.get_value(
-            "scorers.openkinetics.poll_interval_seconds",
-            int,
-            default_value=DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
-        ),
-        "timeout_seconds": bus.get_value(
-            "scorers.openkinetics.timeout_seconds",
-            int,
-            default_value=DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
-        ),
-        "cache_enabled": bus.get_value("scorers.openkinetics.cache_enabled", bool, default_value=True),
-        "cache_dir": os.path.expanduser(
-            bus.get_value(
-                "scorers.openkinetics.cache_dir",
-                str,
-                default_value=_config_cache_dir(),
-            )
-        ),
+    """Load OpenKinetics config from ``third_party/scorers/openkinetics_api.yaml``."""
+    cfg: DictConfig = reload_config_file("third_party/scorers/openkinetics_api")["third_party"]
+    ok_cfg = cfg["scorers"]["openkinetics"]
+    return {
+        "base_url": str(ok_cfg.get("base_url", "https://predictor.openkinetics.org/api/v1")),
+        "default_method": str(ok_cfg.get("default_method", "CataPro")),
+        "default_prediction_type": str(ok_cfg.get("default_prediction_type", "kcat/Km")),
+        "poll_interval_seconds": int(ok_cfg.get("poll_interval_seconds", 3)),
+        "timeout_seconds": int(ok_cfg.get("timeout_seconds", 600)),
+        "cache_enabled": bool(ok_cfg.get("cache_enabled", True)),
+        "cache_dir": os.path.expanduser(str(ok_cfg.get("cache_dir", _config_cache_dir()))),
     }
-    return config
 
 
 def resolve_api_key(*, api_key: str | None = None) -> str:
@@ -467,8 +442,8 @@ class OpenKineticsClient:
         self,
         job_id: str,
         *,
-        poll_interval_seconds: int = DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
-        timeout_seconds: int = DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
+        poll_interval_seconds: int = 3,
+        timeout_seconds: int = 600,
     ) -> list[Any]:
         started = time.monotonic()
         responses: list[Any] = []

@@ -178,16 +178,6 @@ rosetta:
       nstruct: 4
     iterations: 3
 
-scorers:
-  openkinetics:
-    enabled: false
-    base_url: "https://predictor.openkinetics.org/api/v1"
-    default_method: "CataPro"
-    default_prediction_type: "kcat/Km"
-    poll_interval_seconds: 3
-    timeout_seconds: 600
-    cache_enabled: true
-    cache_dir: "~/.revodesign/cache/openkinetics"
 
 
 

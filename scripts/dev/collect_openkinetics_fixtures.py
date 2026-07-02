@@ -10,12 +10,7 @@ from pathlib import Path
 
 from _openkinetics_fixtures import collect_openkinetics_fixture_dataset
 
-from REvoDesign.magician.designers.openkinetics import (
-    DEFAULT_OPENKINETICS_BASE_URL,
-    DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
-    DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
-    OpenKineticsError,
-)
+from REvoDesign.magician.designers.openkinetics import OpenKineticsError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -31,11 +26,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--chain-id", default="A")
     parser.add_argument("--structure-id", default="1SUO")
-    parser.add_argument("--base-url", default=DEFAULT_OPENKINETICS_BASE_URL)
+    parser.add_argument("--base-url", default="https://predictor.openkinetics.org/api/v1")
     parser.add_argument("--method", default="CataPro")
     parser.add_argument("--prediction-type", default="kcat/Km")
-    parser.add_argument("--poll-interval-seconds", type=int, default=DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS)
-    parser.add_argument("--timeout-seconds", type=int, default=DEFAULT_OPENKINETICS_TIMEOUT_SECONDS)
+    parser.add_argument("--poll-interval-seconds", type=int, default=3)
+    parser.add_argument("--timeout-seconds", type=int, default=600)
     parser.add_argument(
         "--limit", type=int, default=None, help="Optional number of mutant rows to include alongside WT."
     )

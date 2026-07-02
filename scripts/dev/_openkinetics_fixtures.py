@@ -19,9 +19,6 @@ from pathlib import Path
 from typing import Any
 
 from REvoDesign.magician.designers.openkinetics import (
-    DEFAULT_OPENKINETICS_BASE_URL,
-    DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
-    DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
     OPENKINETICS_ENDPOINTS,
     OpenKineticsClient,
     OpenKineticsConfigurationError,
@@ -142,11 +139,11 @@ def collect_openkinetics_fixture_dataset(
     output_dir: str | Path,
     chain_id: str = "A",
     structure_id: str = "1SUO",
-    base_url: str = DEFAULT_OPENKINETICS_BASE_URL,
+    base_url: str = "https://predictor.openkinetics.org/api/v1",
     method: str = "CataPro",
     prediction_type: str = "kcat/Km",
-    poll_interval_seconds: int = DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
-    timeout_seconds: int = DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
+    poll_interval_seconds: int = 3,
+    timeout_seconds: int = 600,
     overwrite: bool = False,
     dry_run: bool = False,
     limit: int | None = None,
