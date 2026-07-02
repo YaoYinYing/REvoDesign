@@ -8,7 +8,6 @@ import csv
 import json
 from pathlib import Path
 
-from REvoDesign.magician.designers.openkinetics import DEFAULT_OPENKINETICS_METHOD, DEFAULT_OPENKINETICS_PREDICTION_TYPE
 from REvoDesign.magician.designers.openkinetics._scorers import CataProKcatKmScorer
 
 
@@ -17,8 +16,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--input-csv", required=True)
     parser.add_argument("--output-csv", required=True)
     parser.add_argument("--substrate-smiles", required=True)
-    parser.add_argument("--method", default=DEFAULT_OPENKINETICS_METHOD)
-    parser.add_argument("--prediction-type", default=DEFAULT_OPENKINETICS_PREDICTION_TYPE)
+    parser.add_argument("--method", default="CataPro")
+    parser.add_argument("--prediction-type", default="kcat/Km")
     parser.add_argument("--api-key")
     parser.add_argument("--raw-result-json")
     parser.add_argument("--no-cache", action="store_true")

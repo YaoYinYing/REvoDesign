@@ -23,9 +23,7 @@ from REvoDesign import ConfigBus
 from ._models import (
     DEFAULT_OPENKINETICS_API_KEY_ENV,
     DEFAULT_OPENKINETICS_BASE_URL,
-    DEFAULT_OPENKINETICS_METHOD,
     DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
-    DEFAULT_OPENKINETICS_PREDICTION_TYPE,
     DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
     OPENKINETICS_ENDPOINTS,
     OpenKineticsAPIError,
@@ -58,13 +56,11 @@ def load_openkinetics_config() -> dict[str, Any]:
     bus = ConfigBus()
     config = {
         "base_url": bus.get_value("scorers.openkinetics.base_url", str, default_value=DEFAULT_OPENKINETICS_BASE_URL),
-        "default_method": bus.get_value(
-            "scorers.openkinetics.default_method", str, default_value=DEFAULT_OPENKINETICS_METHOD
-        ),
+        "default_method": bus.get_value("scorers.openkinetics.default_method", str, default_value="CataPro"),
         "default_prediction_type": bus.get_value(
             "scorers.openkinetics.default_prediction_type",
             str,
-            default_value=DEFAULT_OPENKINETICS_PREDICTION_TYPE,
+            default_value="kcat/Km",
         ),
         "poll_interval_seconds": bus.get_value(
             "scorers.openkinetics.poll_interval_seconds",

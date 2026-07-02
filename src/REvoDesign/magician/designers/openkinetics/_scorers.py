@@ -28,7 +28,7 @@ from ._client import (
     write_json,
     write_normalized_scores_csv,
 )
-from ._models import DEFAULT_OPENKINETICS_METHOD, DEFAULT_OPENKINETICS_PREDICTION_TYPE, OpenKineticsConfigurationError
+from ._models import OpenKineticsConfigurationError
 
 _VARIANT_CACHE_DDL = """
 CREATE TABLE IF NOT EXISTS variant_cache (

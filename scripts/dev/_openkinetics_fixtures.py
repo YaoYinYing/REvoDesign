@@ -20,11 +20,8 @@ from typing import Any
 
 from REvoDesign.magician.designers.openkinetics import (
     DEFAULT_OPENKINETICS_BASE_URL,
-    DEFAULT_OPENKINETICS_METHOD,
     DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
-    DEFAULT_OPENKINETICS_PREDICTION_TYPE,
     DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
-    OPENKINETICS_DOCS_ASSUMPTION,
     OPENKINETICS_ENDPOINTS,
     OpenKineticsClient,
     OpenKineticsConfigurationError,
@@ -146,8 +143,8 @@ def collect_openkinetics_fixture_dataset(
     chain_id: str = "A",
     structure_id: str = "1SUO",
     base_url: str = DEFAULT_OPENKINETICS_BASE_URL,
-    method: str = DEFAULT_OPENKINETICS_METHOD,
-    prediction_type: str = DEFAULT_OPENKINETICS_PREDICTION_TYPE,
+    method: str = "CataPro",
+    prediction_type: str = "kcat/Km",
     poll_interval_seconds: int = DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
     timeout_seconds: int = DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
     overwrite: bool = False,
@@ -225,7 +222,11 @@ def collect_openkinetics_fixture_dataset(
         "python_version": _python_version(),
         "revodesign_commit_hash": _git_commit_hash(repo_root),
         "api_key_policy": "Read from OPENKINETICS_API_KEY and never stored",
-        "schema_assumption_note": OPENKINETICS_DOCS_ASSUMPTION,
+        "schema_assumption_note": (
+            "Official API docs could not be fetched automatically during implementation; "
+            "the collector uses the documented fallback endpoint pattern from "
+            "plan/openkinetics.md."
+        ),
         "dry_run": dry_run,
         "secrets_policy": "Authorization headers and API keys are redacted and never stored",
         "substrate_metadata_source": substrate_metadata["smiles_resolution"],

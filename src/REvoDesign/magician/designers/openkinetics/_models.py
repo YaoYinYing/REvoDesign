@@ -68,8 +68,6 @@ class OpenKineticsFixturePaths:
 
 DEFAULT_OPENKINETICS_BASE_URL = "https://predictor.openkinetics.org/api/v1"
 DEFAULT_OPENKINETICS_API_KEY_ENV = "OPENKINETICS_API_KEY"
-DEFAULT_OPENKINETICS_METHOD = "CataPro"
-DEFAULT_OPENKINETICS_PREDICTION_TYPE = "kcat/Km"
 DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS = 3
 DEFAULT_OPENKINETICS_TIMEOUT_SECONDS = 600
 
@@ -80,12 +78,6 @@ OPENKINETICS_ENDPOINTS = {
     "status": "/status/{job_id}/",
     "result": "/result/{job_id}/",
 }
-
-OPENKINETICS_DOCS_ASSUMPTION = (
-    "Official API docs could not be fetched automatically during implementation; "
-    "the collector uses the documented fallback endpoint pattern from "
-    "plan/openkinetics.md."
-)
 
 WATER_RESIDUE_NAMES = frozenset({"HOH", "WAT"})
 COFACTOR_EXCLUSIONS = frozenset({"HEM"})
