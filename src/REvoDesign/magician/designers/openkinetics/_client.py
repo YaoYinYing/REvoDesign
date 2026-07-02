@@ -17,8 +17,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-from omegaconf import OmegaConf
 import requests
+from omegaconf import OmegaConf
 
 from REvoDesign import ROOT_LOGGER, reload_config_file
 

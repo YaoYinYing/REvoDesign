@@ -107,8 +107,8 @@ class MenuCollection:
 
                 if m.menu_section is None:
                     raise issues.InternalError(
-                        f"To build a menu action ({
-                            m.action}) that does not exist in the menu section, a menu section must be provided."
+                        f"To build a menu action({m.action})"
+                        f" that does not exist in the menu section, a menu section must be provided."
                     )
                 # print(f"Menu Section: {m.menu_section}")
 

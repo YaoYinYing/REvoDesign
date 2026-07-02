@@ -670,8 +670,8 @@ class CheckableListView(QtWidgets.QWidget):
                     if not _python_version_matches(_e.python_version, python_version_filter):
                         logging.debug(
                             f"Skipping {
-                                _e.name} due to python version ({python_version_filter} requires {
-                                _e.python_version})",
+                                _e.name} due to python version({python_version_filter} requires {
+                                    _e.python_version})",
                         )
                         continue
 
@@ -1875,10 +1875,10 @@ class REvoDesignPackageManager:
                     message="Installation succeeded. \nIf this is an upgrade, "
                     "please restart PyMOL for it to take effect.",
                     details=(
-                        f"CMD:\n{
-                            installed.args}\n\nRETURN_CODE:\n{
-                            installed.returncode}\n\nSTDOUT:\n{
-                            installed.stdout}\n\nSTDERR:\n{
+                        f"CMD: \n{
+                            installed.args}\n\nRETURN_CODE: \n{
+                            installed.returncode}\n\nSTDOUT: \n{
+                            installed.stdout}\n\nSTDERR: \n{
                             installed.stderr}"
                         if installed
                         else None
@@ -1889,8 +1889,8 @@ class REvoDesignPackageManager:
             notify_box(
                 message=f"Installation failed from: {install_source} \n",
                 details=(
-                    f"CMD:\n{
-                        installed.args}\n\nRETURN_CODE:\n{
+                    f"CMD: \n{
+                        installed.args}\n\nRETURN_CODE: \n{
                         installed.returncode}\n\nSTDOUT: \n{
                         installed.stderr}\n\nSTDERR: \n{
                         installed.stderr}"

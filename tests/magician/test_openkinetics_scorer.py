@@ -284,8 +284,8 @@ def test_openkinetics_api_key_resolution_falls_back_to_env(monkeypatch):
 
 
 def test_persist_openkinetics_api_key_updates_envfile(tmp_path, monkeypatch):
-    from REvoDesign import ConfigBus
     import REvoDesign.bootstrap as bootstrap
+    from REvoDesign import ConfigBus
 
     monkeypatch.setattr(ConfigBus, "_instance", None, raising=False)
     monkeypatch.setattr(bootstrap, "REVODESIGN_CONFIG_DIR", str(tmp_path))
@@ -326,8 +326,8 @@ def test_fetch_openkinetics_api_key_logs_without_secret(caplog):
 
 
 def test_resolve_api_key_auto_registers_generated_key(tmp_path, monkeypatch):
-    from REvoDesign import ConfigBus
     import REvoDesign.bootstrap as bootstrap
+    from REvoDesign import ConfigBus
 
     monkeypatch.setattr(ConfigBus, "_instance", None, raising=False)
     monkeypatch.setattr(bootstrap, "REVODESIGN_CONFIG_DIR", str(tmp_path))
