@@ -20,7 +20,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--method", default=DEFAULT_OPENKINETICS_METHOD)
     parser.add_argument("--prediction-type", default=DEFAULT_OPENKINETICS_PREDICTION_TYPE)
     parser.add_argument("--api-key")
-    parser.add_argument("--api-key-env", default=None)
     parser.add_argument("--raw-result-json")
     parser.add_argument("--no-cache", action="store_true")
     return parser
@@ -37,7 +36,7 @@ def read_variants(path: str | Path) -> list[dict[str, str]]:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    scorer = CataProKcatKmScorer(api_key=args.api_key, api_key_env=args.api_key_env)
+    scorer = CataProKcatKmScorer(api_key=args.api_key)
     variants = read_variants(args.input_csv)
     result = scorer.score_variants(
         variants,

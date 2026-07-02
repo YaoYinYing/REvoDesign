@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""OpenKinetics scorer classes — one base class and three concrete scorers."""
+"""OpenKinetics scorer classes."""
 
 from __future__ import annotations
 
@@ -28,11 +28,7 @@ from ._client import (
     write_json,
     write_normalized_scores_csv,
 )
-from ._models import (
-    DEFAULT_OPENKINETICS_METHOD,
-    DEFAULT_OPENKINETICS_PREDICTION_TYPE,
-    OpenKineticsConfigurationError,
-)
+from ._models import DEFAULT_OPENKINETICS_METHOD, DEFAULT_OPENKINETICS_PREDICTION_TYPE, OpenKineticsConfigurationError
 
 _VARIANT_CACHE_DDL = """
 CREATE TABLE IF NOT EXISTS variant_cache (
@@ -52,6 +48,110 @@ CREATE TABLE IF NOT EXISTS variant_cache (
 )
 """
 
+_OPENKINETICS_PREDICTOR_BIBTEX = r"""@misc{OpenKineticsPredictorCitationPending,
+  title = {OpenKineticsPredictor: open-source platform for kinetic parameter prediction},
+  note = {Citation details to be added},
+  url = {https://predictor.openkinetics.org}
+}"""
+
+_PREDICTOR_BIBTEX = {
+    "CataPro": r"""@article{Wang2025CataPro,
+  title = {Robust enzyme discovery and engineering with deep learning using CataPro},
+  author = {Wang, Zechen and Xie, Dongqi and Wu, Dong and Luo, Xiaozhou and Wang, Sheng and Li, Yangyang and Yang, Yanmei and Li, Weifeng and Zheng, Liangzhen},
+  journal = {Nature Communications},
+  volume = {16},
+  number = {1},
+  year = {2025},
+  doi = {10.1038/s41467-025-58038-4},
+  url = {https://doi.org/10.1038/s41467-025-58038-4}
+}""",
+    "CatPred": r"""@article{Boorla2025CatPred,
+  title = {CatPred: a comprehensive framework for deep learning in vitro enzyme kinetic parameters},
+  author = {Boorla, Veda Sheersh and Maranas, Costas D.},
+  journal = {Nature Communications},
+  volume = {16},
+  number = {1},
+  year = {2025},
+  doi = {10.1038/s41467-025-57215-9},
+  url = {https://doi.org/10.1038/s41467-025-57215-9}
+}""",
+    "DLKcat": r"""@article{Li2022DLKcat,
+  title = {Deep learning-based kcat prediction enables improved enzyme-constrained model reconstruction},
+  author = {Li, Feiran and Yuan, Le and Lu, Hongzhong and Li, Gang and Chen, Yu and Engqvist, Martin K. M. and Kerkhoven, Eduard J. and Nielsen, Jens},
+  journal = {Nature Catalysis},
+  volume = {5},
+  number = {8},
+  pages = {662--672},
+  year = {2022},
+  doi = {10.1038/s41929-022-00798-z},
+  url = {https://doi.org/10.1038/s41929-022-00798-z}
+}""",
+    "EITLEM": r"""@article{Shen2024EITLEMKinetics,
+  title = {EITLEM-Kinetics: A deep-learning framework for kinetic parameter prediction of mutant enzymes},
+  author = {Shen, Xiaowei and Cui, Ziheng and Long, Jianyu and Zhang, Shiding and Chen, Biqiang and Tan, Tianwei},
+  journal = {Chem Catalysis},
+  volume = {4},
+  number = {9},
+  pages = {101094},
+  year = {2024},
+  doi = {10.1016/j.checat.2024.101094},
+  url = {https://doi.org/10.1016/j.checat.2024.101094}
+}""",
+    "KinForm": r"""@article{Alwer2026KinForm,
+  title = {KinForm: kinetics-informed feature optimised representation models for enzyme kcat and KM prediction},
+  author = {Alwer, Saleh and Fleming, Ronan M. T.},
+  journal = {npj Systems Biology and Applications},
+  volume = {12},
+  number = {1},
+  year = {2026},
+  doi = {10.1038/s41540-026-00692-5},
+  url = {https://doi.org/10.1038/s41540-026-00692-5}
+}""",
+    "MMISA-KM": r"""@inproceedings{Song2025MMISAKM,
+  title = {MMISA-KM: a deep-learning method using multi-modal information and self-attention mechanisms for the prediction of Michaelis constants},
+  author = {Song, Aijie and Wang, Kai},
+  booktitle = {2025 IEEE 14th Data Driven Control and Learning Systems (DDCLS)},
+  pages = {2023--2028},
+  year = {2025},
+  doi = {10.1109/DDCLS66240.2025.11064981},
+  url = {https://doi.org/10.1109/DDCLS66240.2025.11064981}
+}""",
+    "OmniESI": r"""@misc{Nie2025OmniESI,
+  title = {OmniESI: A unified framework for enzyme-substrate interaction prediction with progressive conditional deep learning},
+  author = {Nie, Zhiwei and Zhang, Hongyu and Jiang, Hao and Liu, Yutian and Huang, Xiansong and Xu, Fan and Fu, Jie and Ren, Zhixiang and Tian, Yonghong and Zhang, Wen-Bin and Chen, Jie},
+  year = {2025},
+  doi = {10.48550/arXiv.2506.17963},
+  url = {https://doi.org/10.48550/arXiv.2506.17963}
+}""",
+    "RealKcat": r"""@article{Sajeevan2025RealKcat,
+  title = {Robust Prediction of Enzyme Variant Kinetics with RealKcat},
+  author = {Sajeevan, Karuna Anna and Osinuga, Abraham and B, Arunraj and Ferdous, Sakib and Shahreen, Nabia and Noor, Mohammed and Koneru, Shashank and Santa-Correa, Laura Mariana and Salehi, Rahil and Chowdhury, Niaz Bahar and Aryee, Randy and Calderon-Lopez, Brisa and Mali, Ankur and Saha, Rajib and Chowdhury, Ratul},
+  year = {2025},
+  doi = {10.1101/2025.02.10.637555},
+  url = {https://doi.org/10.1101/2025.02.10.637555}
+}""",
+    "UniKP": r"""@article{Yu2023UniKP,
+  title = {UniKP: a unified framework for the prediction of enzyme kinetic parameters},
+  author = {Yu, Han and Deng, Huaxiang and He, Jiahui and Keasling, Jay D. and Luo, Xiaozhou},
+  journal = {Nature Communications},
+  volume = {14},
+  number = {1},
+  year = {2023},
+  doi = {10.1038/s41467-023-44113-1},
+  url = {https://doi.org/10.1038/s41467-023-44113-1}
+}""",
+    "IECata": r"""@article{Wang2025IECata,
+  title = {IECata: interpretable bilinear attention network and evidential deep learning improve the catalytic efficiency prediction of enzymes},
+  author = {Wang, Jingjing and Zhao, Yanpeng and Yang, Zhijiang and Yao, Ge and Han, Penggang and Liu, Jiajia and Chen, Chang and Zan, Peng and Wan, Xiukun and Bo, Xiaochen and Jiang, Hui},
+  journal = {Briefings in Bioinformatics},
+  volume = {26},
+  number = {3},
+  year = {2025},
+  doi = {10.1093/bib/bbaf283},
+  url = {https://doi.org/10.1093/bib/bbaf283}
+}""",
+}
+
 
 class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
     """Base class for OpenKinetics API-based kinetic scorers.
@@ -62,6 +162,7 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
 
     installed = True
     scorer_only = True
+    __bibtex__ = {"OpenKineticsPredictor": _OPENKINETICS_PREDICTOR_BIBTEX}
 
     @classmethod
     @abstractmethod
@@ -75,12 +176,10 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         client: OpenKineticsClient | None = None,
         base_url: str | None = None,
         api_key: str | None = None,
-        api_key_env: str | None = None,
         default_method: str | None = None,
         default_prediction_type: str | None = None,
         poll_interval_seconds: int | None = None,
         timeout_seconds: int | None = None,
-        max_retries: int | None = None,
         cache_enabled: bool | None = None,
         cache_dir: str | None = None,
         substrate_smiles: str | None = None,
@@ -91,9 +190,7 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         self.client = client or OpenKineticsClient(
             base_url=base_url,
             api_key=api_key,
-            api_key_env=api_key_env,
             timeout_seconds=timeout_seconds,
-            max_retries=max_retries,
         )
         self.default_method = default_method or class_defaults["method"] or config["default_method"]
         self.default_prediction_type = (
@@ -256,6 +353,7 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         output_csv_path: str | Path | None = None,
         raw_result_path: str | Path | None = None,
     ) -> dict[str, Any]:
+        self.cite()
         selected_method = method or self.default_method
         selected_prediction_type = prediction_type or self.default_prediction_type
         local_rows, api_rows = self._prepare_rows(variants, substrate_smiles)
@@ -349,179 +447,50 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         }
 
 
-# ---------------------------------------------------------------------------
-# Concrete scorers — one class per (method, prediction_type) pair.
-#
-# All single-substrate predictors (Protein Sequence + Substrate input).
-# Km-type predictions are "lower is better"; kcat and kcat/Km are
-# "higher is better".
-# ---------------------------------------------------------------------------
+_SCORER_SPECS: tuple[tuple[str, str, str, str, str], ...] = (
+    ("CataProKcatScorer", "OpenKinetics-CataPro-kcat", "CataPro", "kcat", "CataPro"),
+    ("CatPredKcatScorer", "OpenKinetics-CatPred-kcat", "CatPred", "kcat", "CatPred"),
+    ("DLKcatScorer", "OpenKinetics-DLKcat-kcat", "DLKcat", "kcat", "DLKcat"),
+    ("EITLEMKcatScorer", "OpenKinetics-EITLEM-kcat", "EITLEM", "kcat", "EITLEM"),
+    ("KinFormHKcatScorer", "OpenKinetics-KinForm-H-kcat", "KinForm-H", "kcat", "KinForm"),
+    ("KinFormLKcatScorer", "OpenKinetics-KinForm-L-kcat", "KinForm-L", "kcat", "KinForm"),
+    ("OmniESIKcatScorer", "OpenKinetics-OmniESI-kcat", "OmniESI", "kcat", "OmniESI"),
+    ("RealKcatScorer", "OpenKinetics-RealKcat-kcat", "RealKcat", "kcat", "RealKcat"),
+    ("UniKPKcatScorer", "OpenKinetics-UniKP-kcat", "UniKP", "kcat", "UniKP"),
+    ("CataProKmScorer", "OpenKinetics-CataPro-Km", "CataPro", "Km", "CataPro"),
+    ("CatPredKmScorer", "OpenKinetics-CatPred-Km", "CatPred", "Km", "CatPred"),
+    ("EITLEMKmScorer", "OpenKinetics-EITLEM-Km", "EITLEM", "Km", "EITLEM"),
+    ("KinFormHKmScorer", "OpenKinetics-KinForm-H-Km", "KinForm-H", "Km", "KinForm"),
+    ("MMISAKMKmScorer", "OpenKinetics-MMISA-KM-Km", "MMISA-KM", "Km", "MMISA-KM"),
+    ("OmniESIKmScorer", "OpenKinetics-OmniESI-Km", "OmniESI", "Km", "OmniESI"),
+    ("RealKcatKmScorer", "OpenKinetics-RealKcat-Km", "RealKcat", "Km", "RealKcat"),
+    ("UniKPKmScorer", "OpenKinetics-UniKP-Km", "UniKP", "Km", "UniKP"),
+    ("CataProKcatKmScorer", "OpenKinetics-CataPro-kcat/Km", "CataPro", "kcat/Km", "CataPro"),
+    ("IECataKcatKmScorer", "OpenKinetics-IECata-kcat/Km", "IECata", "kcat/Km", "IECata"),
+)
 
 
-# -- kcat scorers ---------------------------------------------------------
-
-
-class CataProKcatScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-CataPro-kcat"
-
+def _built_in_defaults(method: str, prediction_type: str):
     @classmethod
     def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "CataPro", "prediction_type": "kcat"}
+        return {"method": method, "prediction_type": prediction_type}
+
+    return built_in_defaults
 
 
-class CatPredKcatScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-CatPred-kcat"
+OPENKINETICS_SCORER_CLASS_NAMES = tuple(spec[0] for spec in _SCORER_SPECS)
 
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "CatPred", "prediction_type": "kcat"}
-
-
-class DLKcatScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-DLKcat-kcat"
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "DLKcat", "prediction_type": "kcat"}
-
-
-class EITLEMKcatScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-EITLEM-kcat"
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "EITLEM", "prediction_type": "kcat"}
-
-
-class KinFormHKcatScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-KinForm-H-kcat"
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "KinForm-H", "prediction_type": "kcat"}
-
-
-class KinFormLKcatScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-KinForm-L-kcat"
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "KinForm-L", "prediction_type": "kcat"}
-
-
-class OmniESIKcatScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-OmniESI-kcat"
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "OmniESI", "prediction_type": "kcat"}
-
-
-class RealKcatScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-RealKcat-kcat"
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "RealKcat", "prediction_type": "kcat"}
-
-
-class UniKPKcatScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-UniKP-kcat"
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "UniKP", "prediction_type": "kcat"}
-
-
-# -- Km scorers -----------------------------------------------------------
-
-
-class CataProKmScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-CataPro-Km"
-    prefer_lower = True
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "CataPro", "prediction_type": "Km"}
-
-
-class CatPredKmScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-CatPred-Km"
-    prefer_lower = True
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "CatPred", "prediction_type": "Km"}
-
-
-class EITLEMKmScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-EITLEM-Km"
-    prefer_lower = True
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "EITLEM", "prediction_type": "Km"}
-
-
-class KinFormHKmScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-KinForm-H-Km"
-    prefer_lower = True
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "KinForm-H", "prediction_type": "Km"}
-
-
-class MMISAKMKmScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-MMISA-KM-Km"
-    prefer_lower = True
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "MMISA-KM", "prediction_type": "Km"}
-
-
-class OmniESIKmScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-OmniESI-Km"
-    prefer_lower = True
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "OmniESI", "prediction_type": "Km"}
-
-
-class RealKcatKmScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-RealKcat-Km"
-    prefer_lower = True
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "RealKcat", "prediction_type": "Km"}
-
-
-class UniKPKmScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-UniKP-Km"
-    prefer_lower = True
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "UniKP", "prediction_type": "Km"}
-
-
-# -- kcat/Km scorers ------------------------------------------------------
-
-
-class CataProKcatKmScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-CataPro-kcat/Km"
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "CataPro", "prediction_type": "kcat/Km"}
-
-
-class IECataKcatKmScorer(OpenKineticsScorerAbstract):
-    name = "OpenKinetics-IECata-kcat/Km"
-
-    @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
-        return {"method": "IECata", "prediction_type": "kcat/Km"}
+for class_name, scorer_name, method, prediction_type, citation_key in _SCORER_SPECS:
+    globals()[class_name] = type(
+        class_name,
+        (OpenKineticsScorerAbstract,),
+        {
+            "__module__": __name__,
+            "name": scorer_name,
+            "__bibtex__": {
+                **OpenKineticsScorerAbstract.__bibtex__,
+                citation_key: _PREDICTOR_BIBTEX[citation_key],
+            },
+            "built_in_defaults": _built_in_defaults(method, prediction_type),
+        },
+    )

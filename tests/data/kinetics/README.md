@@ -8,8 +8,9 @@ This directory is reserved for real and mocked OpenKinetics fixture data.
 - API keys must never be written anywhere under this directory.
 - The offline input tables should contain WT plus all mutations from the source mutation file even when the checked-in live result subset is stale.
 
-If the real fixture has not been collected yet, run the collector manually with:
+If the real fixture has not been collected yet, add `OPENKINETICS_API_KEY` to
+the living `environ.yaml`, reload REvoDesign, then run:
 
 ```bash
-OPENKINETICS_API_KEY="..." python scripts/dev/collect_openkinetics_fixtures.py --overwrite
+python scripts/dev/collect_openkinetics_fixtures.py --overwrite
 ```

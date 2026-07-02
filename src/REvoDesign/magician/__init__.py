@@ -20,6 +20,7 @@ from REvoDesign.tools.utils import timing
 
 # 1. implement and import the designer
 from .designers import (  # noqa: F401 -- imported for convenience; registry discovers concrete designers dynamically
+    OPENKINETICS_SCORER_CLASS_NAMES,
     CataProKcatKmScorer,
     CataProKcatScorer,
     CataProKmScorer,
@@ -54,27 +55,9 @@ IMPLEMENTED_DESIGNERS: Mapping[str, type[ExternalDesignerAbstract]] = DESIGNER_R
 
 
 __all__ = [
-    "CataProKcatKmScorer",
-    "CataProKcatScorer",
-    "CataProKmScorer",
-    "CatPredKcatScorer",
-    "CatPredKmScorer",
     "ColabDesigner_MPNN",
-    "DLKcatScorer",
-    "EITLEMKcatScorer",
-    "EITLEMKmScorer",
     "ExternalDesignerAbstract",
-    "IECataKcatKmScorer",
-    "KinFormHKcatScorer",
-    "KinFormHKmScorer",
-    "KinFormLKcatScorer",
-    "MMISAKMKmScorer",
-    "OmniESIKcatScorer",
-    "OmniESIKmScorer",
-    "RealKcatKmScorer",
-    "RealKcatScorer",
-    "UniKPKcatScorer",
-    "UniKPKmScorer",
+    *OPENKINETICS_SCORER_CLASS_NAMES,
 ]
 
 

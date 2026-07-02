@@ -9,12 +9,14 @@ from pathlib import Path
 import pytest
 
 import REvoDesign.magician.designers.openkinetics as openkinetics
+from REvoDesign.citations import CitationManager
 from REvoDesign.magician.designers.openkinetics import (
     OpenKineticsClient,
     OpenKineticsConfigurationError,
     OpenKineticsTimeoutError,
     OpenKineticsValidationError,
     _normalize_result_rows,
+    build_openkinetics_request_payload,
     get_method_metadata,
     load_chain_sequence_context,
     load_mutation_labels,
@@ -215,7 +217,7 @@ def test_real_fixture_tables_cover_all_variants():
 
     assert len(score_rows) == len(input_rows), (
         f"Fixture has {len(score_rows)} score rows for {len(input_rows)} variants. "
-        'Regenerate with: export OPENKINETICS_API_KEY="..." && '
+        "Add OPENKINETICS_API_KEY to environ.yaml, reload REvoDesign, then regenerate with: "
         "python scripts/dev/collect_openkinetics_fixtures.py --overwrite"
     )
 
@@ -228,7 +230,7 @@ def test_openkinetics_client_submit_uses_real_json_shape():
         status_responses=_load_fixture("status_responses.json"),
         result_response=_load_fixture("result_response.json"),
     )
-    client = OpenKineticsClient(api_key_env="OPENKINETICS_API_KEY", session=session)
+    client = OpenKineticsClient(session=session)
     client._require_api_key = lambda: "test-key"
 
     rows = [{"Protein Sequence": "AAA", "Substrate": "CCO"}]
@@ -238,17 +240,18 @@ def test_openkinetics_client_submit_uses_real_json_shape():
     assert payload["targets"] == ["kcat/Km"]
     assert payload["methods"] == {"kcat/Km": "CataPro"}
     assert payload["data"] == rows
+    assert payload["useExperimental"] is False
 
 
 def test_openkinetics_api_key_resolution_prefers_direct_key(monkeypatch):
     monkeypatch.setenv("OPENKINETICS_API_KEY", "env-key")
-    client = OpenKineticsClient(api_key="yaml-key", api_key_env="OPENKINETICS_API_KEY")
-    assert client._require_api_key() == "yaml-key"
+    client = OpenKineticsClient(api_key="direct-key")
+    assert client._require_api_key() == "direct-key"
 
 
 def test_openkinetics_api_key_resolution_falls_back_to_env(monkeypatch):
     monkeypatch.setenv("OPENKINETICS_API_KEY", "env-key")
-    client = OpenKineticsClient(api_key=None, api_key_env="OPENKINETICS_API_KEY")
+    client = OpenKineticsClient(api_key=None)
     assert client._require_api_key() == "env-key"
 
 
@@ -297,6 +300,7 @@ def test_openkinetics_scorer_normalizes_real_fixture_response(tmp_path):
 def test_openkinetics_scorer_cache_hit(tmp_path):
     from REvoDesign.magician.designers.openkinetics._scorers import CataProKcatKmScorer
 
+    CitationManager().clear()
     cache_dir = tmp_path / "cache"
     scorer = CataProKcatKmScorer(cache_dir=str(cache_dir))
     ck = scorer._variant_cache_key("AAAA", "CCO", scorer.default_method, scorer.default_prediction_type)
@@ -323,6 +327,17 @@ def test_openkinetics_scorer_cache_hit(tmp_path):
     assert result["job_id"] == ""
     assert result["normalized_scores"][0]["predicted_value"] == 1.23
     assert "test-key" not in (cache_dir / "variant_cache.db").read_bytes().decode("latin-1")
+    assert "OpenKineticsPredictor" in CitationManager().called_citations
+    assert "CataPro" in CitationManager().called_citations
+
+
+def test_openkinetics_predictor_classes_include_method_citations():
+    from REvoDesign.magician.designers.openkinetics import CataProKcatKmScorer, EITLEMKmScorer
+
+    assert "OpenKineticsPredictor" in CataProKcatKmScorer.__bibtex__
+    assert "CataPro" in CataProKcatKmScorer.__bibtex__
+    assert "10.1038/s41467-025-58038-4" in CataProKcatKmScorer.__bibtex__["CataPro"]
+    assert "10.1016/j.checat.2024.101094" in EITLEMKmScorer.__bibtex__["EITLEM"]
 
 
 def test_openkinetics_scorer_cache_writes_new_entries(tmp_path):
@@ -369,7 +384,7 @@ def test_openkinetics_scorer_cache_writes_new_entries(tmp_path):
 
 
 def test_openkinetics_client_requires_api_key():
-    client = OpenKineticsClient(api_key_env="OPENKINETICS_API_KEY")
+    client = OpenKineticsClient()
     with pytest.raises(OpenKineticsConfigurationError):
         client._require_api_key()
 
@@ -378,8 +393,23 @@ def test_methods_parsing_supports_unikp_and_rejects_invalid_combo():
     methods_response = _load_fixture("methods_response.json")
     method_metadata = get_method_metadata(methods_response, method="UniKP", prediction_type="kcat")
     assert method_metadata["id"] == "UniKP"
+    method_metadata = get_method_metadata(methods_response, method="TurNup", prediction_type="kcat")
+    assert method_metadata["id"] == "TurNup"
     with pytest.raises(OpenKineticsValidationError):
         get_method_metadata(methods_response, method="UniKP", prediction_type="kcat/Km")
+
+
+def test_submit_payload_rejects_missing_method_required_columns():
+    methods_response = _load_fixture("methods_response.json")
+    method_metadata = get_method_metadata(methods_response, method="TurNup", prediction_type="kcat")
+
+    with pytest.raises(OpenKineticsValidationError, match="Products, Substrates"):
+        build_openkinetics_request_payload(
+            data_rows=[{"Protein Sequence": "AAAA", "Substrate": "CCO"}],
+            method_metadata=method_metadata,
+            method="TurNup",
+            prediction_type="kcat",
+        )
 
 
 def test_score_direction_tracks_prediction_type():
@@ -443,5 +473,6 @@ def test_import_does_not_trigger_network_calls(monkeypatch):
     # Re-import the openkinetics package fresh; must not touch the network.
     importlib.reload(openkinetics)
     assert hasattr(openkinetics, "CataProKcatKmScorer")
+    assert not hasattr(openkinetics, "TurNupKcatScorer")
     assert hasattr(openkinetics, "UniKPKcatScorer")
     assert hasattr(openkinetics, "UniKPKmScorer")

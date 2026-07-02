@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Any
 
 import requests
-from platformdirs import user_cache_dir
 
 from REvoDesign import ConfigBus
 
@@ -34,7 +33,6 @@ from ._models import (
     OpenKineticsTimeoutError,
     OpenKineticsValidationError,
 )
-
 
 # ---------------------------------------------------------------------------
 # Configuration loading
@@ -60,10 +58,6 @@ def load_openkinetics_config() -> dict[str, Any]:
     bus = ConfigBus()
     config = {
         "base_url": bus.get_value("scorers.openkinetics.base_url", str, default_value=DEFAULT_OPENKINETICS_BASE_URL),
-        "api_key": bus.get_value("scorers.openkinetics.api_key", str, default_value=None),
-        "api_key_env": bus.get_value(
-            "scorers.openkinetics.api_key_env", str, default_value=DEFAULT_OPENKINETICS_API_KEY_ENV
-        ),
         "default_method": bus.get_value(
             "scorers.openkinetics.default_method", str, default_value=DEFAULT_OPENKINETICS_METHOD
         ),
@@ -82,7 +76,6 @@ def load_openkinetics_config() -> dict[str, Any]:
             int,
             default_value=DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
         ),
-        "max_retries": bus.get_value("scorers.openkinetics.max_retries", int, default_value=3),
         "cache_enabled": bus.get_value("scorers.openkinetics.cache_enabled", bool, default_value=True),
         "cache_dir": os.path.expanduser(
             bus.get_value(
@@ -95,19 +88,17 @@ def load_openkinetics_config() -> dict[str, Any]:
     return config
 
 
-def resolve_api_key(*, api_key: str | None = None, api_key_env: str = DEFAULT_OPENKINETICS_API_KEY_ENV) -> str:
+def resolve_api_key(*, api_key: str | None = None) -> str:
     direct_api_key = (api_key or "").strip()
     if direct_api_key:
         return direct_api_key
 
-    env_var_name = (api_key_env or DEFAULT_OPENKINETICS_API_KEY_ENV).strip()
-    env_api_key = os.environ.get(env_var_name, "").strip()
+    env_api_key = os.environ.get(DEFAULT_OPENKINETICS_API_KEY_ENV, "").strip()
     if env_api_key:
         return env_api_key
 
     raise OpenKineticsConfigurationError(
-        "Missing OpenKinetics API key. Set scorers.openkinetics.api_key in YAML "
-        f"or define the {env_var_name} environment variable."
+        f"Missing OpenKinetics API key. Add {DEFAULT_OPENKINETICS_API_KEY_ENV} to environ.yaml and reload REvoDesign."
     )
 
 
@@ -159,21 +150,6 @@ def _json_safe(value: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 
-def normalize_variant_rows_for_local_table(
-    variant_rows: list[dict[str, str]],
-    substrate_smiles: str,
-) -> list[dict[str, str]]:
-    return [
-        {
-            "variant_id": row["variant_id"],
-            "mutation": row["mutation"],
-            "protein_sequence": row["protein_sequence"],
-            "substrate_smiles": substrate_smiles,
-        }
-        for row in variant_rows
-    ]
-
-
 def build_openkinetics_data_rows(
     variant_rows: list[dict[str, str]],
     substrate_smiles: str,
@@ -217,12 +193,26 @@ def build_openkinetics_request_payload(
     method: str,
     prediction_type: str,
 ) -> dict[str, Any]:
+    required_columns = method_metadata.get("requiredColumns") or []
+    if isinstance(required_columns, list) and required_columns:
+        missing_columns = sorted(
+            {
+                str(column_name)
+                for column_name in required_columns
+                if any(str(column_name) not in row for row in data_rows)
+            }
+        )
+        if missing_columns:
+            raise OpenKineticsValidationError(
+                f"Method {method!r} for {prediction_type!r} requires columns: {', '.join(missing_columns)}"
+            )
+
     return {
         "data": data_rows,
         "targets": [prediction_type],
         "methods": {prediction_type: method_metadata.get("id", method)},
         "handleLongSequences": "truncate",
-        "useExperimental": True,
+        "useExperimental": False,
         "includeSimilarityColumns": True,
         "canonicalizeSubstrates": True,
     }
@@ -325,26 +315,21 @@ class OpenKineticsClient:
         *,
         base_url: str | None = None,
         api_key: str | None = None,
-        api_key_env: str | None = None,
         timeout_seconds: int | None = None,
-        max_retries: int | None = None,
         session: requests.Session | None = None,
     ) -> None:
         config = load_openkinetics_config()
         resolved_base_url = str(base_url or config["base_url"]).rstrip("/")
-        resolved_api_key_env = str(api_key_env or config["api_key_env"]).strip() or DEFAULT_OPENKINETICS_API_KEY_ENV
 
         self.base_url = resolved_base_url
-        self.api_key = (api_key if api_key is not None else config["api_key"]) or None
-        self.api_key_env = resolved_api_key_env
+        self.api_key = api_key or None
         self.timeout_seconds = int(timeout_seconds or config["timeout_seconds"])
-        self.max_retries = int(max_retries or config["max_retries"])
         self.session = session or requests.Session()
 
     # -- credential helpers -------------------------------------------------
 
     def _require_api_key(self) -> str:
-        return resolve_api_key(api_key=self.api_key, api_key_env=self.api_key_env)
+        return resolve_api_key(api_key=self.api_key)
 
     # -- low-level request --------------------------------------------------
 
@@ -402,7 +387,7 @@ class OpenKineticsClient:
         *,
         run_similarity: bool = False,
     ) -> dict[str, Any]:
-        normalized_rows = self._normalize_score_variants_input(rows)
+        self._normalize_score_variants_input(rows)
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="", suffix=".csv", delete=False) as handle:
             temp_path = Path(handle.name)
         try:
@@ -427,7 +412,7 @@ class OpenKineticsClient:
         prediction_type: str,
         *,
         handle_long_sequences: str = "truncate",
-        use_experimental: bool = True,
+        use_experimental: bool = False,
         include_similarity_columns: bool = True,
         canonicalize_substrates: bool = True,
     ) -> str:

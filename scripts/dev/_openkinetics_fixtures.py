@@ -11,7 +11,6 @@ does **not** depend on it.
 
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 import sys
@@ -20,14 +19,13 @@ from pathlib import Path
 from typing import Any
 
 from REvoDesign.magician.designers.openkinetics import (
-    OPENKINETICS_DOCS_ASSUMPTION,
-    OPENKINETICS_ENDPOINTS,
-    DEFAULT_OPENKINETICS_API_KEY_ENV,
     DEFAULT_OPENKINETICS_BASE_URL,
     DEFAULT_OPENKINETICS_METHOD,
     DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
     DEFAULT_OPENKINETICS_PREDICTION_TYPE,
     DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
+    OPENKINETICS_DOCS_ASSUMPTION,
+    OPENKINETICS_ENDPOINTS,
     OpenKineticsClient,
     OpenKineticsConfigurationError,
     OpenKineticsFixturePaths,
@@ -38,7 +36,6 @@ from REvoDesign.magician.designers.openkinetics import (
     get_method_metadata,
     load_chain_sequence_context,
     load_mutation_labels,
-    normalize_variant_rows_for_local_table,
     relabel_pdb_position_to_sequential,
     resolve_substrate_metadata,
     sha256_file,
@@ -46,7 +43,6 @@ from REvoDesign.magician.designers.openkinetics import (
     write_json,
 )
 from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id
-
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -130,8 +126,8 @@ def _write_fixture_readme(paths: OpenKineticsFixturePaths, manifest: dict[str, A
             [
                 f"- Fixture status: `{manifest['fixture_status']}`",
                 "- The checked-in live prediction files cover only a limited subset of variants.",
-                "- Regenerate the full live fixture with "
-                '`export OPENKINETICS_API_KEY="..." && python scripts/dev/collect_openkinetics_fixtures.py --overwrite`.',
+                "- Add OPENKINETICS_API_KEY to environ.yaml, reload REvoDesign, then regenerate the full live "
+                "fixture with `python scripts/dev/collect_openkinetics_fixtures.py --overwrite`.",
             ]
         )
     paths.readme_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -150,7 +146,6 @@ def collect_openkinetics_fixture_dataset(
     chain_id: str = "A",
     structure_id: str = "1SUO",
     base_url: str = DEFAULT_OPENKINETICS_BASE_URL,
-    api_key_env: str = DEFAULT_OPENKINETICS_API_KEY_ENV,
     method: str = DEFAULT_OPENKINETICS_METHOD,
     prediction_type: str = DEFAULT_OPENKINETICS_PREDICTION_TYPE,
     poll_interval_seconds: int = DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
@@ -195,7 +190,15 @@ def collect_openkinetics_fixture_dataset(
             }
         )
 
-    local_rows = normalize_variant_rows_for_local_table(variant_rows, substrate_metadata["substrate_smiles"])
+    local_rows = [
+        {
+            "variant_id": row["variant_id"],
+            "mutation": row["mutation"],
+            "protein_sequence": row["protein_sequence"],
+            "substrate_smiles": substrate_metadata["substrate_smiles"],
+        }
+        for row in variant_rows
+    ]
     api_data_rows = build_openkinetics_data_rows(variant_rows, substrate_metadata["substrate_smiles"])
 
     write_csv_rows(paths.input_variants_path, local_rows)
@@ -221,7 +224,7 @@ def collect_openkinetics_fixture_dataset(
         "normalized_input_table_sha256": sha256_file(paths.input_variants_path),
         "python_version": _python_version(),
         "revodesign_commit_hash": _git_commit_hash(repo_root),
-        "api_key_policy": f"Read from YAML api_key or environment variable {api_key_env} and never stored",
+        "api_key_policy": "Read from OPENKINETICS_API_KEY and never stored",
         "schema_assumption_note": OPENKINETICS_DOCS_ASSUMPTION,
         "dry_run": dry_run,
         "secrets_policy": "Authorization headers and API keys are redacted and never stored",
@@ -233,7 +236,7 @@ def collect_openkinetics_fixture_dataset(
             "targets": [prediction_type],
             "methods": {prediction_type: method},
             "handleLongSequences": "truncate",
-            "useExperimental": True,
+            "useExperimental": False,
             "includeSimilarityColumns": True,
             "canonicalizeSubstrates": True,
             "data": api_data_rows,
@@ -248,7 +251,6 @@ def collect_openkinetics_fixture_dataset(
 
     client = OpenKineticsClient(
         base_url=base_url,
-        api_key_env=api_key_env,
         timeout_seconds=timeout_seconds,
     )
 

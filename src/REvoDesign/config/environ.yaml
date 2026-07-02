@@ -2,3 +2,4 @@
 
 variables:
   # ROSETTA_BIN: /Users/yyy/rosetta/rosetta_binary/rosetta.source.release-371/main/source/bin/
+  # OPENKINETICS_API_KEY: your-openkinetics-api-key

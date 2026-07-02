@@ -5,7 +5,8 @@
 
 from .cart_ddg import ddg
 from .colabdesign import ColabDesigner_MPNN
-from .openkinetics import (  # noqa: F401
+from .openkinetics import (
+    OPENKINETICS_SCORER_CLASS_NAMES,  # noqa: F401
     CataProKcatKmScorer,
     CataProKcatScorer,
     CataProKmScorer,
@@ -28,25 +29,7 @@ from .openkinetics import (  # noqa: F401
 )
 
 __all__ = [
-    "CataProKcatKmScorer",
-    "CataProKcatScorer",
-    "CataProKmScorer",
-    "CatPredKcatScorer",
-    "CatPredKmScorer",
     "ColabDesigner_MPNN",
-    "DLKcatScorer",
-    "EITLEMKcatScorer",
-    "EITLEMKmScorer",
-    "IECataKcatKmScorer",
-    "KinFormHKcatScorer",
-    "KinFormHKmScorer",
-    "KinFormLKcatScorer",
-    "MMISAKMKmScorer",
-    "OmniESIKcatScorer",
-    "OmniESIKmScorer",
-    "RealKcatKmScorer",
-    "RealKcatScorer",
-    "UniKPKcatScorer",
-    "UniKPKmScorer",
     "ddg",
+    *OPENKINETICS_SCORER_CLASS_NAMES,
 ]

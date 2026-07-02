@@ -6,16 +6,23 @@ OpenKinetics support is being added as an optional API-based activity scorer.
 - It does not bundle CataPro, UniKP, PyTorch, or local model weights.
 - The runtime scorer now lives under `src/REvoDesign/magician/designers/openkinetics.py`.
 - It is registered as a magician scorer through `ExternalDesignerAbstract`.
-- Credentials can be provided directly in `src/REvoDesign/config/main.yaml` as `scorers.openkinetics.api_key`.
-- `OPENKINETICS_API_KEY` remains the fallback when the YAML key is empty.
+- Add `OPENKINETICS_API_KEY` under `variables` in the living REvoDesign `environ.yaml`, then reload REvoDesign to make the API-backed predictors usable.
+- On macOS the living file is usually `~/Library/Application Support/REvoDesign/config/environ.yaml`.
+- `main.yaml` does not store the API key; keep the secret in `environ.yaml`.
 - The manual real-fixture collection entry point is `scripts/dev/collect_openkinetics_fixtures.py`.
 - Real fixture data belongs under `tests/data/kinetics`.
 - Ordinary tests should use mocked fixture files and must not call the real service.
 
-Example manual collection command:
+Example `environ.yaml` entry:
+
+```yaml
+variables:
+  OPENKINETICS_API_KEY: your-openkinetics-api-key
+```
+
+Example manual collection command after reload:
 
 ```bash
-export OPENKINETICS_API_KEY="..."
 python scripts/dev/collect_openkinetics_fixtures.py --overwrite
 ```
 
@@ -25,10 +32,9 @@ The current 1SUO collector derives:
 - the non-heme ligand `CPZ` from `tests/data/pdb/1SUO.pdb`
 - a substrate SMILES string using an auditable manual fallback when direct PDB-to-SMILES conversion is not chemically reliable
 
-The checked-in fixture currently contains all 16 input variants locally, but if `tests/data/kinetics/openkinetics_1SUO/manifest.json` reports `fixture_status: stale_partial_live_result`, the checked-in live prediction rows still come from an earlier limited API run. Refresh that dataset with:
+The checked-in fixture currently contains all 16 input variants locally, but if `tests/data/kinetics/openkinetics_1SUO/manifest.json` reports `fixture_status: stale_partial_live_result`, the checked-in live prediction rows still come from an earlier limited API run. After adding the key to the living `environ.yaml` and reloading REvoDesign, refresh that dataset with:
 
 ```bash
-export OPENKINETICS_API_KEY="..."
 python scripts/dev/collect_openkinetics_fixtures.py --overwrite
 ```
 
@@ -48,7 +54,7 @@ python scripts/dev/score_openkinetics_variants.py \
   --substrate-smiles "CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21"
 ```
 
-The scorer script reads `scorers.openkinetics.api_key` from YAML first. Use `OPENKINETICS_API_KEY` only when you prefer environment-based secrets or leave the YAML key empty.
+The scorer reads `OPENKINETICS_API_KEY` from the registered environment.
 
 Expected input CSV columns for the runner:
 

@@ -16,13 +16,7 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign.tools.mutant_tools import aa3_to_aa1
 
-from ._models import (
-    COFACTOR_EXCLUSIONS,
-    WATER_RESIDUE_NAMES,
-    LigandCandidate,
-    OpenKineticsValidationError,
-)
-
+from ._models import COFACTOR_EXCLUSIONS, WATER_RESIDUE_NAMES, LigandCandidate, OpenKineticsValidationError
 
 # ---------------------------------------------------------------------------
 # Mutation label I/O

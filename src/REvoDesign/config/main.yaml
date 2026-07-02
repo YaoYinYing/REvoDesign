@@ -182,13 +182,10 @@ scorers:
   openkinetics:
     enabled: false
     base_url: "https://predictor.openkinetics.org/api/v1"
-    api_key: null
-    api_key_env: "OPENKINETICS_API_KEY"
     default_method: "CataPro"
     default_prediction_type: "kcat/Km"
     poll_interval_seconds: 3
     timeout_seconds: 600
-    max_retries: 3
     cache_enabled: true
     cache_dir: "~/.revodesign/cache/openkinetics"
 

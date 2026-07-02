@@ -13,7 +13,6 @@ from ._client import (
     build_openkinetics_request_payload,
     get_method_metadata,
     load_openkinetics_config,
-    normalize_variant_rows_for_local_table,
     resolve_api_key,
     sha256_file,
     write_csv_rows,
@@ -21,6 +20,7 @@ from ._client import (
     write_normalized_scores_csv,
 )
 from ._models import (
+    COFACTOR_EXCLUSIONS,
     DEFAULT_OPENKINETICS_API_KEY_ENV,
     DEFAULT_OPENKINETICS_BASE_URL,
     DEFAULT_OPENKINETICS_METHOD,
@@ -29,7 +29,6 @@ from ._models import (
     DEFAULT_OPENKINETICS_TIMEOUT_SECONDS,
     OPENKINETICS_DOCS_ASSUMPTION,
     OPENKINETICS_ENDPOINTS,
-    COFACTOR_EXCLUSIONS,
     WATER_RESIDUE_NAMES,
     LigandCandidate,
     OpenKineticsAPIError,
@@ -51,6 +50,7 @@ from ._pdb import (
     smiles_from_ligand_pdb_block,
 )
 from ._scorers import (
+    OPENKINETICS_SCORER_CLASS_NAMES,  # noqa: F401
     CataProKcatKmScorer,
     CataProKcatScorer,
     CataProKmScorer,
@@ -74,27 +74,8 @@ from ._scorers import (
 )
 
 __all__ = [
-    # scorers
-    "CataProKcatKmScorer",
-    "CataProKcatScorer",
-    "CataProKmScorer",
-    "CatPredKcatScorer",
-    "CatPredKmScorer",
-    "DLKcatScorer",
-    "EITLEMKcatScorer",
-    "EITLEMKmScorer",
-    "IECataKcatKmScorer",
-    "KinFormHKcatScorer",
-    "KinFormHKmScorer",
-    "KinFormLKcatScorer",
-    "MMISAKMKmScorer",
-    "OmniESIKcatScorer",
-    "OmniESIKmScorer",
+    *OPENKINETICS_SCORER_CLASS_NAMES,
     "OpenKineticsScorerAbstract",
-    "RealKcatKmScorer",
-    "RealKcatScorer",
-    "UniKPKcatScorer",
-    "UniKPKmScorer",
     # client
     "OpenKineticsClient",
     # config
@@ -104,7 +85,6 @@ __all__ = [
     "build_openkinetics_data_rows",
     "build_openkinetics_request_payload",
     "get_method_metadata",
-    "normalize_variant_rows_for_local_table",
     "write_csv_rows",
     "write_json",
     "sha256_file",

@@ -43,8 +43,8 @@ def test_rfdiffusion_general():
     assert (
         sequence_designed.chains[0].sequence != sequence_original.chains[0].sequence
     ), f"Expected different sequences: {
-        sequence_designed.chains[0].sequence=} != {
-            sequence_original.chains[0].sequence=}"
+        sequence_designed.chains[0].sequence =} != {
+            sequence_original.chains[0].sequence =}"
 
     assert sequence_designed.chains[0].sequence.startswith(
         "GGGGGG"

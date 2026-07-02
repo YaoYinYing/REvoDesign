@@ -11,7 +11,6 @@ from pathlib import Path
 from _openkinetics_fixtures import collect_openkinetics_fixture_dataset
 
 from REvoDesign.magician.designers.openkinetics import (
-    DEFAULT_OPENKINETICS_API_KEY_ENV,
     DEFAULT_OPENKINETICS_BASE_URL,
     DEFAULT_OPENKINETICS_METHOD,
     DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS,
@@ -35,7 +34,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--chain-id", default="A")
     parser.add_argument("--structure-id", default="1SUO")
     parser.add_argument("--base-url", default=DEFAULT_OPENKINETICS_BASE_URL)
-    parser.add_argument("--api-key-env", default=DEFAULT_OPENKINETICS_API_KEY_ENV)
     parser.add_argument("--method", default=DEFAULT_OPENKINETICS_METHOD)
     parser.add_argument("--prediction-type", default=DEFAULT_OPENKINETICS_PREDICTION_TYPE)
     parser.add_argument("--poll-interval-seconds", type=int, default=DEFAULT_OPENKINETICS_POLL_INTERVAL_SECONDS)
@@ -65,7 +63,6 @@ def main(argv: list[str] | None = None) -> int:
             chain_id=args.chain_id,
             structure_id=args.structure_id,
             base_url=args.base_url,
-            api_key_env=args.api_key_env,
             method=args.method,
             prediction_type=args.prediction_type,
             poll_interval_seconds=args.poll_interval_seconds,
