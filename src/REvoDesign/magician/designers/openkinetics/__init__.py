@@ -12,8 +12,10 @@ from ._client import (
     _normalize_result_rows,
     build_openkinetics_data_rows,
     build_openkinetics_request_payload,
+    fetch_openkinetics_api_key,
     get_method_metadata,
     load_openkinetics_config,
+    persist_openkinetics_api_key,
     resolve_api_key,
     sha256_file,
     write_csv_rows,
@@ -57,6 +59,8 @@ __all__ = [
     "OpenKineticsClient",
     # config
     "load_openkinetics_config",
+    "fetch_openkinetics_api_key",
+    "persist_openkinetics_api_key",
     "resolve_api_key",
     # data helpers
     "build_openkinetics_data_rows",

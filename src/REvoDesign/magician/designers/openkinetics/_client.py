@@ -15,10 +15,12 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
+from omegaconf import OmegaConf
 import requests
 
-from REvoDesign import reload_config_file
+from REvoDesign import ROOT_LOGGER, reload_config_file
 
 from ._models import (
     DEFAULT_OPENKINETICS_API_KEY_ENV,
@@ -28,6 +30,8 @@ from ._models import (
     OpenKineticsTimeoutError,
     OpenKineticsValidationError,
 )
+
+logging = ROOT_LOGGER.getChild(__name__)
 
 # ---------------------------------------------------------------------------
 # Configuration loading
@@ -40,17 +44,159 @@ def load_openkinetics_config() -> Any:
     return scorers.get("openkinetics") or scorers["scorers"]["openkinetics"]
 
 
-def resolve_api_key(*, api_key: str | None = None) -> str:
+def _api_key_management_base_url(base_url: str) -> str:
+    parsed = urlsplit(base_url.rstrip("/"))
+    path = parsed.path.rstrip("/")
+    if path.endswith("/v1"):
+        path = path[: -len("/v1")]
+    if not path.endswith("/api"):
+        path = "/api"
+    return urlunsplit((parsed.scheme, parsed.netloc, path, "", ""))
+
+
+def persist_openkinetics_api_key(api_key: str) -> str:
+    """Persist an OpenKinetics API key and register it for this process."""
+    api_key = (api_key or "").strip()
+    if not api_key:
+        raise OpenKineticsConfigurationError("Cannot persist an empty OpenKinetics API key.")
+
+    logging.info("Persisting OpenKinetics API key as %s.", DEFAULT_OPENKINETICS_API_KEY_ENV)
+    os.environ[DEFAULT_OPENKINETICS_API_KEY_ENV] = api_key
+    logging.debug("OpenKinetics API key registered in the current process environment.")
+
+    try:
+        from REvoDesign import ConfigBus
+        from REvoDesign.driver.environ_register import register_environment_variables
+
+        if ConfigBus._instance is not None:
+            logging.debug("ConfigBus is initialized; updating environ.yaml through ConfigBus.")
+            bus = ConfigBus()
+            bus.set_value(
+                f"variables.{DEFAULT_OPENKINETICS_API_KEY_ENV}",
+                api_key,
+                cfg="environ",
+                force_add=True,
+            )
+            bus.cfg_group["environ"].save()
+            register_environment_variables()
+            logging.info("OpenKinetics API key saved to environ.yaml and applied immediately.")
+            return api_key
+    except Exception as exc:
+        logging.debug("OpenKinetics API key persistence through ConfigBus failed.", exc_info=True)
+        raise OpenKineticsConfigurationError("Failed to persist OpenKinetics API key to environ.yaml.") from exc
+
+    from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
+
+    environ_path = Path(REVODESIGN_CONFIG_DIR) / "environ.yaml"
+    logging.debug("ConfigBus is not initialized; writing OpenKinetics API key directly to %s.", environ_path)
+    environ_path.parent.mkdir(parents=True, exist_ok=True)
+    config = OmegaConf.load(environ_path) if environ_path.exists() else OmegaConf.create({"variables": {}})
+    OmegaConf.update(config, f"variables.{DEFAULT_OPENKINETICS_API_KEY_ENV}", api_key, force_add=True)
+    OmegaConf.save(config, environ_path)
+    logging.info("OpenKinetics API key saved to %s and applied immediately.", environ_path)
+    return api_key
+
+
+def fetch_openkinetics_api_key(
+    *,
+    base_url: str | None = None,
+    timeout_seconds: int | None = None,
+    session: requests.Session | None = None,
+    replace_existing: bool = False,
+) -> str:
+    """Generate a self-service OpenKinetics API key for the current client IP."""
+    config = load_openkinetics_config()
+    resolved_base_url = str(base_url or config["base_url"]).rstrip("/")
+    timeout = int(timeout_seconds or config["timeout_seconds"])
+    http = session or requests.Session()
+    key_base_url = _api_key_management_base_url(resolved_base_url)
+    logging.info("Requesting self-service OpenKinetics API key from %s.", key_base_url)
+    logging.debug(
+        "OpenKinetics API key request settings: base_url=%s timeout_seconds=%s replace_existing=%s",
+        resolved_base_url,
+        timeout,
+        replace_existing,
+    )
+
+    def _post(path: str) -> requests.Response:
+        logging.debug("OpenKinetics API key POST %s%s", key_base_url, path)
+        try:
+            response = http.post(f"{key_base_url}{path}", timeout=timeout)
+        except requests.RequestException as exc:
+            logging.debug("OpenKinetics API key POST failed.", exc_info=True)
+            raise OpenKineticsAPIError(f"OpenKinetics API key request failed: {exc}") from exc
+        logging.debug("OpenKinetics API key POST returned HTTP %s.", response.status_code)
+        return response
+
+    response = _post("/api-key/generate/")
+    if response.status_code == 409 and replace_existing:
+        logging.info("OpenKinetics reports an active API key; revoking because replace_existing=True.")
+        revoke_response = _post("/api-key/revoke/")
+        if revoke_response.status_code >= 400:
+            raise OpenKineticsAPIError(
+                f"OpenKinetics API key revoke failed: {revoke_response.status_code} {revoke_response.text[:200]}"
+            )
+        logging.debug("OpenKinetics active API key revoked; generating a replacement.")
+        response = _post("/api-key/generate/")
+
+    if response.status_code == 409:
+        logging.info("OpenKinetics reports an active API key for this IP; not revoking automatically.")
+        raise OpenKineticsConfigurationError(
+            "OpenKinetics reports an active API key for this IP, but the full key is not available locally. "
+            f"Add {DEFAULT_OPENKINETICS_API_KEY_ENV} to environ.yaml or regenerate with replace_existing=True."
+        )
+    if response.status_code >= 400:
+        logging.debug("OpenKinetics API key generation failed with response body: %s", response.text[:200])
+        raise OpenKineticsAPIError(
+            f"OpenKinetics API key generation failed: {response.status_code} {response.text[:200]}"
+        )
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise OpenKineticsAPIError("OpenKinetics API key endpoint returned a non-JSON response") from exc
+
+    generated_key = str(payload.get("key") or "").strip()
+    if not generated_key:
+        raise OpenKineticsAPIError("OpenKinetics API key endpoint did not return a key")
+    logging.info("OpenKinetics API key generated successfully; key value is redacted.")
+    return generated_key
+
+
+def resolve_api_key(
+    *,
+    api_key: str | None = None,
+    auto_register: bool = False,
+    replace_existing: bool = False,
+    base_url: str | None = None,
+    timeout_seconds: int | None = None,
+    session: requests.Session | None = None,
+) -> str:
     direct_api_key = (api_key or "").strip()
     if direct_api_key:
+        logging.debug("Using directly supplied OpenKinetics API key.")
         return direct_api_key
 
     env_api_key = os.environ.get(DEFAULT_OPENKINETICS_API_KEY_ENV, "").strip()
     if env_api_key:
+        logging.debug("Using OpenKinetics API key from %s.", DEFAULT_OPENKINETICS_API_KEY_ENV)
         return env_api_key
 
+    if auto_register:
+        logging.info("No local OpenKinetics API key found; auto-registration is enabled.")
+        return persist_openkinetics_api_key(
+            fetch_openkinetics_api_key(
+                base_url=base_url,
+                timeout_seconds=timeout_seconds,
+                session=session,
+                replace_existing=replace_existing,
+            )
+        )
+
+    logging.info("No OpenKinetics API key found and auto-registration is disabled.")
     raise OpenKineticsConfigurationError(
-        f"Missing OpenKinetics API key. Add {DEFAULT_OPENKINETICS_API_KEY_ENV} to environ.yaml and reload REvoDesign."
+        f"Missing OpenKinetics API key. Add {DEFAULT_OPENKINETICS_API_KEY_ENV} to environ.yaml or enable "
+        "OpenKinetics API key auto-registration."
     )
 
 
@@ -267,6 +413,8 @@ class OpenKineticsClient:
         *,
         base_url: str | None = None,
         api_key: str | None = None,
+        auto_register_api_key: bool = False,
+        replace_existing_api_key: bool = False,
         timeout_seconds: int | None = None,
         session: requests.Session | None = None,
     ) -> None:
@@ -275,13 +423,22 @@ class OpenKineticsClient:
 
         self.base_url = resolved_base_url
         self.api_key = api_key or None
+        self.auto_register_api_key = auto_register_api_key
+        self.replace_existing_api_key = replace_existing_api_key
         self.timeout_seconds = int(timeout_seconds or config["timeout_seconds"])
         self.session = session or requests.Session()
 
     # -- credential helpers -------------------------------------------------
 
     def _require_api_key(self) -> str:
-        return resolve_api_key(api_key=self.api_key)
+        return resolve_api_key(
+            api_key=self.api_key,
+            auto_register=self.auto_register_api_key,
+            replace_existing=self.replace_existing_api_key,
+            base_url=self.base_url,
+            timeout_seconds=self.timeout_seconds,
+            session=self.session,
+        )
 
     # -- low-level request --------------------------------------------------
 

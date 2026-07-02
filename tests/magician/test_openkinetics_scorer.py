@@ -3,6 +3,8 @@ from __future__ import annotations
 import csv
 import importlib
 import json
+import logging
+import os
 import sys
 from pathlib import Path
 
@@ -19,9 +21,11 @@ from REvoDesign.magician.designers.openkinetics import (
     OpenKineticsValidationError,
     _normalize_result_rows,
     build_openkinetics_request_payload,
+    fetch_openkinetics_api_key,
     get_method_metadata,
     load_chain_sequence_context,
     load_mutation_labels,
+    persist_openkinetics_api_key,
     relabel_pdb_position_to_sequential,
     resolve_substrate_metadata,
 )
@@ -103,6 +107,16 @@ class _FakeSession:
 class _FailingSession:
     def request(self, method, url, json=None, timeout=None, headers=None):
         raise requests.ConnectionError("dns down")
+
+
+class _ApiKeySession:
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.posts = []
+
+    def post(self, url, timeout=None, headers=None, files=None, data=None):
+        self.posts.append(url)
+        return self.responses.pop(0)
 
 
 # ---------------------------------------------------------------------------
@@ -267,6 +281,82 @@ def test_openkinetics_api_key_resolution_falls_back_to_env(monkeypatch):
     monkeypatch.setenv("OPENKINETICS_API_KEY", "env-key")
     client = OpenKineticsClient(api_key=None)
     assert client._require_api_key() == "env-key"
+
+
+def test_persist_openkinetics_api_key_updates_envfile(tmp_path, monkeypatch):
+    from REvoDesign import ConfigBus
+    import REvoDesign.bootstrap as bootstrap
+
+    monkeypatch.setattr(ConfigBus, "_instance", None, raising=False)
+    monkeypatch.setattr(bootstrap, "REVODESIGN_CONFIG_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENKINETICS_API_KEY", raising=False)
+
+    assert persist_openkinetics_api_key(" generated-key ") == "generated-key"
+    assert os.environ["OPENKINETICS_API_KEY"] == "generated-key"
+    assert "generated-key" in (tmp_path / "environ.yaml").read_text(encoding="utf-8")
+
+
+def test_fetch_openkinetics_api_key_uses_management_endpoint():
+    session = _ApiKeySession([_FakeResponse({"key": "ak_generated", "keySuffix": "erated"}, status_code=201)])
+
+    key = fetch_openkinetics_api_key(
+        base_url="https://predictor.openkinetics.org/api/v1",
+        timeout_seconds=5,
+        session=session,
+    )
+
+    assert key == "ak_generated"
+    assert session.posts == ["https://predictor.openkinetics.org/api/api-key/generate/"]
+
+
+def test_fetch_openkinetics_api_key_logs_without_secret(caplog):
+    caplog.set_level(logging.DEBUG, logger="REvoDesign.magician.designers.openkinetics._client")
+    session = _ApiKeySession([_FakeResponse({"key": "ak_generated_secret"}, status_code=201)])
+
+    fetch_openkinetics_api_key(
+        base_url="https://predictor.openkinetics.org/api/v1",
+        timeout_seconds=5,
+        session=session,
+    )
+
+    log_text = caplog.text
+    assert "Requesting self-service OpenKinetics API key" in log_text
+    assert "key value is redacted" in log_text
+    assert "ak_generated_secret" not in log_text
+
+
+def test_resolve_api_key_auto_registers_generated_key(tmp_path, monkeypatch):
+    from REvoDesign import ConfigBus
+    import REvoDesign.bootstrap as bootstrap
+
+    monkeypatch.setattr(ConfigBus, "_instance", None, raising=False)
+    monkeypatch.setattr(bootstrap, "REVODESIGN_CONFIG_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENKINETICS_API_KEY", raising=False)
+    session = _ApiKeySession([_FakeResponse({"key": "ak_generated"}, status_code=201)])
+
+    key = OpenKineticsClient(
+        base_url="https://predictor.openkinetics.org/api/v1",
+        auto_register_api_key=True,
+        timeout_seconds=5,
+        session=session,
+    )._require_api_key()
+
+    assert key == "ak_generated"
+    assert os.environ["OPENKINETICS_API_KEY"] == "ak_generated"
+    assert "ak_generated" in (tmp_path / "environ.yaml").read_text(encoding="utf-8")
+
+
+def test_fetch_openkinetics_api_key_refuses_silent_revoke():
+    session = _ApiKeySession([_FakeResponse({"error": "An active API key already exists"}, status_code=409)])
+
+    with pytest.raises(OpenKineticsConfigurationError, match="active API key"):
+        fetch_openkinetics_api_key(
+            base_url="https://predictor.openkinetics.org/api/v1",
+            timeout_seconds=5,
+            session=session,
+        )
+
+    assert session.posts == ["https://predictor.openkinetics.org/api/api-key/generate/"]
 
 
 def test_openkinetics_scorer_normalizes_real_fixture_response(tmp_path):
@@ -438,7 +528,8 @@ def test_openkinetics_scorer_cache_writes_new_entries(tmp_path):
     assert result2["job_id"] == ""  # all-cache: no job_id
 
 
-def test_openkinetics_client_requires_api_key():
+def test_openkinetics_client_requires_api_key(monkeypatch):
+    monkeypatch.delenv("OPENKINETICS_API_KEY", raising=False)
     client = OpenKineticsClient()
     with pytest.raises(OpenKineticsConfigurationError):
         client._require_api_key()

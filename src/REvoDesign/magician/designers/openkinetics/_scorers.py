@@ -177,6 +177,8 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         client: OpenKineticsClient | None = None,
         base_url: str | None = None,
         api_key: str | None = None,
+        auto_register_api_key: bool = True,
+        replace_existing_api_key: bool = False,
         default_method: str | None = None,
         default_prediction_type: str | None = None,
         poll_interval_seconds: int | None = None,
@@ -193,6 +195,8 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         self.client = client or OpenKineticsClient(
             base_url=base_url,
             api_key=api_key,
+            auto_register_api_key=auto_register_api_key,
+            replace_existing_api_key=replace_existing_api_key,
             timeout_seconds=timeout_seconds,
         )
         self.default_method = default_method or class_defaults["method"] or config["default_method"]

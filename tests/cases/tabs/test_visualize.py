@@ -5,6 +5,7 @@
 
 import json as json_module
 import os
+import warnings
 from pathlib import Path
 
 import pytest
@@ -33,6 +34,10 @@ def _real_openkinetics_api_key() -> str:
         pytest.skip("Set REVODESIGN_RUN_OPENKINETICS_LIVE=1 to submit to the live OpenKinetics API")
     key = os.environ.get("OPENKINETICS_API_KEY", "").strip()
     if not key:
+        warnings.warn(
+            "REVODESIGN_RUN_OPENKINETICS_LIVE=1 but OPENKINETICS_API_KEY is not set; skipping live OpenKinetics test.",
+            UserWarning,
+        )
         pytest.skip("Set OPENKINETICS_API_KEY env var for live OpenKinetics tests")
     return key
 
