@@ -3,7 +3,7 @@
 This directory is produced by `scripts/dev/collect_openkinetics_fixtures.py`.
 
 - Structure: `1SUO`
-- Mutation source: `/Users/yyy/Documents/protein_design/REvoDesign/tests/data/mutations/1SUO.surf.entro.mutagenesis.besthits.mut.txt`
+- Mutation source: `tests/data/mutations/1SUO.surf.entro.mutagenesis.besthits.mut.txt`
 - Ligand identifier: `CPZ:A:600`
 - Substrate SMILES: `ClC1CCC(C2CNCN2)CC1`
 - Method: `CataPro`

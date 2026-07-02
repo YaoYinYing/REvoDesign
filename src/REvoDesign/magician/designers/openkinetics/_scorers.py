@@ -458,12 +458,13 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         )
 
         # Write fresh scores to per-variant cache.
-        for fresh_row in fresh_scores:
-            ck = self._variant_cache_key(
-                fresh_row["protein_sequence"], substrate_smiles, selected_method, selected_prediction_type
-            )
-            fresh_row["cached_at_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-            self._write_variant_cache(ck, fresh_row)
+        if cache_enabled:
+            for fresh_row in fresh_scores:
+                ck = self._variant_cache_key(
+                    fresh_row["protein_sequence"], substrate_smiles, selected_method, selected_prediction_type
+                )
+                fresh_row["cached_at_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                self._write_variant_cache(ck, fresh_row)
 
         # Merge cached + fresh, preserving original order.
         fresh_iter = iter(fresh_scores)

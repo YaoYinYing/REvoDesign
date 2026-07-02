@@ -534,7 +534,7 @@ class OpenKineticsClient:
         use_experimental: bool = False,
         include_similarity_columns: bool = True,
         canonicalize_substrates: bool = True,
-    ) -> str:
+    ) -> dict[str, Any]:
         if not rows:
             raise OpenKineticsValidationError("At least one row is required for submission")
         methods_response = self.list_methods()

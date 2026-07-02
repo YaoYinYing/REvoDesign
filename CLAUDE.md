@@ -115,5 +115,6 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 ## Commit and PR guidelines
 
 - **Commit messages**: Follow conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`). Use `[skip ci]` to skip CI for non-code changes.
+- **PR titles**: Must follow conventional commit format — `type(scope): description` or `type: description`. Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Enforced by `semantic-pr-check` workflow on PR open/edit/sync.
 - **Before pushing**: Run `make black`, then `git add -A` to stage formatting changes. Pre-commit hooks must pass.
 - **Documentation**: Stored as Markdown under `docs/` or within the relevant module directory; no build step required.

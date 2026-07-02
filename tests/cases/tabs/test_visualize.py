@@ -39,6 +39,7 @@ def _real_openkinetics_api_key() -> str:
         warnings.warn(
             "REVODESIGN_RUN_OPENKINETICS_LIVE=1 but OPENKINETICS_API_KEY is not set; skipping live OpenKinetics test.",
             UserWarning,
+            stacklevel=2,
         )
         pytest.skip("Set OPENKINETICS_API_KEY env var for live OpenKinetics tests")
     return key
@@ -101,6 +102,7 @@ def test_visualize_openkinetics_catapro_live_submit():
             warnings.warn(
                 f"Live OpenKinetics API returned HTTP {status_code}; skipping environment-dependent test.",
                 UserWarning,
+                stacklevel=2,
             )
             pytest.skip(f"Live OpenKinetics API returned HTTP {status_code}")
         raise

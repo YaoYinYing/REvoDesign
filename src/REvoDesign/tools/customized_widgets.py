@@ -561,8 +561,9 @@ class QButtonMatrix(QtWidgets.QWidget):
 
     def _load_crosshair_appearance(self):
         try:
-            from REvoDesign import reload_config_file
             from omegaconf import OmegaConf
+
+            from REvoDesign import reload_config_file
 
             cfg = reload_config_file("appearence")
             color = OmegaConf.select(cfg, "button_matrix.hover_crosshair.color", default=self.hover_highlight_color)

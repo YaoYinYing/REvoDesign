@@ -4,7 +4,7 @@ OpenKinetics support is being added as an optional API-based activity scorer.
 
 - It is intended to call the remote OpenKinetics Predictor service.
 - It does not bundle CataPro, UniKP, PyTorch, or local model weights.
-- The runtime scorer now lives under `src/REvoDesign/magician/designers/openkinetics.py`.
+- The runtime scorer now lives under `src/REvoDesign/magician/designers/openkinetics/`.
 - It is registered as a magician scorer through `ExternalDesignerAbstract`.
 - Add `OPENKINETICS_API_KEY` under `variables` in the living REvoDesign `environ.yaml`, then reload REvoDesign to make the API-backed predictors usable.
 - On macOS the living file is usually `~/Library/Application Support/REvoDesign/config/environ.yaml`.

@@ -288,8 +288,14 @@ class MutantVisualizer:
 
             magician = Magician()
             if magician.gimmick is None:
+                profile_loaded = self.profile_scoring_df is not None and not self.profile_scoring_df.empty
+                reason = (
+                    "Profile scoring is loaded but only supports single-substitution mutants. "
+                    if profile_loaded
+                    else "No profile scoring data loaded and "
+                )
                 raise issues.NoInputError(
-                    "No profile scoring data loaded and no external scorer is configured. "
+                    reason + "no external scorer is configured. "
                     "Load a profile file or select an external scorer via the combo box."
                 )
 
