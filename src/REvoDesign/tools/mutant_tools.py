@@ -887,7 +887,7 @@ def pick_design_from_profile(
         df_matrix=df_button_matrix, sequence=sequence, cmap=cmap, flip_cmap=True, button_size=pix_per_block
     )
     button_matrix.setObjectName("ProfileDesignButtonMatrix")
-    button_matrix.label_size = [18, 9]
+    button_matrix.label_size = [18, pix_per_block]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
     button_matrix.setFixedSize(button_matrix.sizeHint())
@@ -906,7 +906,8 @@ def pick_design_from_profile(
 
     # Set window size constraints
     # - Adjust height and width to fit available screen size dynamically
-    fixed_height = pix_per_block * 21 + 110  # 110 for the banner and spacing
+    scroll_bar_height = QtWidgets.QScrollBar(QtCompat.Horizontal).sizeHint().height()
+    fixed_height = button_matrix.height() + scroll_bar_height + 130  # banner, frame, and layout spacing
     calculated_width = pix_per_block * (num_cols + 1)
     max_width = min(calculated_width, screen_width - 20)
 
@@ -937,6 +938,7 @@ View Highlight Nbr: {view_highlight_nbr}
     scroll_area.setWidgetResizable(False)
     scroll_area.setHorizontalScrollBarPolicy(QtCompat.ScrollBarAsNeeded)
     scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  # Disable vertical scrollbar
+    scroll_area.setMinimumHeight(button_matrix.height() + scroll_bar_height + scroll_area.frameWidth() * 2)
 
     # Remove extra padding or margins to make buttons compact
     button_matrix.setContentsMargins(0, 0, 0, 0)

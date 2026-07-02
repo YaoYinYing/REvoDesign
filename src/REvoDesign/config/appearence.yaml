@@ -13,6 +13,7 @@ font:
   letterSpacing: ...
   # ...
 
-
-  
-  
+button_matrix:
+  hover_crosshair:
+    color: "#20c45a"
+    width: 4

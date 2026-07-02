@@ -7,7 +7,7 @@ from __future__ import annotations
 import pandas as pd
 
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
-from REvoDesign.tools.customized_widgets import MatrixIndex, QButtonMatrixGremlin
+from REvoDesign.tools.customized_widgets import MatrixIndex, QButtonMatrix, QButtonMatrixGremlin
 
 
 def _build_gremlin_widget(qtbot):
@@ -95,3 +95,24 @@ def test_button_matrix_paint_smoke(qtbot):
 
     assert not pixmap.isNull()
     widget.end_busy()
+
+
+def test_button_matrix_wt_label_profile_vs_gremlin(qtbot):
+    df = pd.DataFrame([[0.0]], index=["A"], columns=["1"])
+
+    profile_widget = QButtonMatrix(df_matrix=df, sequence="A")
+    qtbot.addWidget(profile_widget)
+    assert profile_widget.get_WT_label("A", "1", 0, 0) == "A"
+
+    gremlin_widget = QButtonMatrixGremlin(df_matrix=df, sequence="AR", pair_i=0, pair_j=1)
+    qtbot.addWidget(gremlin_widget)
+    assert gremlin_widget.get_WT_label("A", "R", 0, 0) == "WT"
+
+
+def test_button_matrix_hover_appearance_from_config(qtbot):
+    df = pd.DataFrame([[0.0]], index=["A"], columns=["1"])
+    widget = QButtonMatrix(df_matrix=df, sequence="A")
+    qtbot.addWidget(widget)
+
+    assert widget.hover_highlight_color == "#20c45a"
+    assert widget.hover_highlight_width == 4
