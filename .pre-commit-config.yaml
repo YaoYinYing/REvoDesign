@@ -36,6 +36,12 @@ repos:
         language: system
         pass_filenames: false
 
+      - id: check-multiline-fstring
+        name: Reject PEP 701 multi-line f-strings (Python 3.12+ only, project targets 3.10+)
+        entry: dev/tools/check_multiline_fstring.sh
+        language: script
+        pass_filenames: false
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:

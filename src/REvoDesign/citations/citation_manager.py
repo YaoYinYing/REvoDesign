@@ -194,8 +194,8 @@ class CitableModuleAbstract(ABC):
         """
         if not hasattr(func, "__bibtex__"):
             raise issues.InternalError(
-                f"Function {
-                    func.__name__} does not have __bibtex__ attribute. Make sure to use `setattr` to set the `__bibtex__`."
+                f"Function {func.__name__} does not have __bibtex__ attribute."
+                f" Make sure to use `setattr` to set the `__bibtex__`."
             )
 
         class AnonymousCitableModule(cls):

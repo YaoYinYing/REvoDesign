@@ -843,10 +843,8 @@ def _load_b_factors(
 
         if do_rescale:
             logging.debug(
-                f'ramp_new {
-                    f"count_{mol}_{chain_id}_ori, {obj}, [{
-                        min(bfacts_orignal)}, {
-                        max(bfacts_orignal)}], {ramp_color}"}'
+                f"ramp_new count_{mol}_{chain_id}_ori, {obj}, "
+                f"[{min(bfacts_orignal)}, {max(bfacts_orignal)}], {ramp_color}"
             )
             cmd.ramp_new(
                 f"count_{mol}_{chain_id}_ori", obj, [min(bfacts_orignal), max(bfacts_orignal)], color=ramp_color
