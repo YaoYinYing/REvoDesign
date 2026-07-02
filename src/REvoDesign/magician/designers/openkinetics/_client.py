@@ -36,7 +36,8 @@ from ._models import (
 
 def load_openkinetics_config() -> Any:
     """Load OpenKinetics config from ``third_party/scorers/openkinetics_api.yaml``."""
-    return reload_config_file("third_party/scorers/openkinetics_api")["third_party"]["scorers"]["openkinetics"]
+    scorers = reload_config_file("third_party/scorers/openkinetics_api")["third_party"]["scorers"]
+    return scorers.get("openkinetics") or scorers["scorers"]["openkinetics"]
 
 
 def resolve_api_key(*, api_key: str | None = None) -> str:
@@ -286,17 +287,24 @@ class OpenKineticsClient:
 
     def _request(self, method: str, path: str, *, json_payload: Any | None = None) -> Any:
         api_key = self._require_api_key()
-        response = self.session.request(
-            method=method,
-            url=f"{self.base_url}{path}",
-            json=json_payload,
-            timeout=self.timeout_seconds,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-            },
-        )
+        for attempt in range(3):
+            try:
+                response = self.session.request(
+                    method=method,
+                    url=f"{self.base_url}{path}",
+                    json=json_payload,
+                    timeout=self.timeout_seconds,
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    },
+                )
+                break
+            except requests.RequestException as exc:
+                if attempt == 2:
+                    raise OpenKineticsAPIError(f"OpenKinetics API request failed: {exc}") from exc
+                time.sleep(1)
         if response.status_code >= 400:
             raise OpenKineticsAPIError(f"OpenKinetics API request failed: {response.status_code} {response.text[:200]}")
 
@@ -318,16 +326,19 @@ class OpenKineticsClient:
     ) -> Any:
         api_key = self._require_api_key()
         with Path(csv_path).open("rb") as handle:
-            response = self.session.post(
-                f"{self.base_url}{OPENKINETICS_ENDPOINTS['validate']}",
-                timeout=self.timeout_seconds,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Accept": "application/json",
-                },
-                files={"file": handle},
-                data={"runSimilarity": "true" if run_similarity else "false"},
-            )
+            try:
+                response = self.session.post(
+                    f"{self.base_url}{OPENKINETICS_ENDPOINTS['validate']}",
+                    timeout=self.timeout_seconds,
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Accept": "application/json",
+                    },
+                    files={"file": handle},
+                    data={"runSimilarity": "true" if run_similarity else "false"},
+                )
+            except requests.RequestException as exc:
+                raise OpenKineticsAPIError(f"OpenKinetics API request failed: {exc}") from exc
         if response.status_code >= 400:
             raise OpenKineticsAPIError(f"OpenKinetics API request failed: {response.status_code} {response.text[:200]}")
         return response.json()
@@ -403,14 +414,17 @@ class OpenKineticsClient:
             return self._request("GET", f"{path}?format=json")
         if result_format == "csv":
             api_key = self._require_api_key()
-            response = self.session.get(
-                f"{self.base_url}{path}",
-                timeout=self.timeout_seconds,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Accept": "text/csv",
-                },
-            )
+            try:
+                response = self.session.get(
+                    f"{self.base_url}{path}",
+                    timeout=self.timeout_seconds,
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Accept": "text/csv",
+                    },
+                )
+            except requests.RequestException as exc:
+                raise OpenKineticsAPIError(f"OpenKinetics API request failed: {exc}") from exc
             if response.status_code >= 400:
                 raise OpenKineticsAPIError(
                     f"OpenKinetics API request failed: {response.status_code} {response.text[:200]}"

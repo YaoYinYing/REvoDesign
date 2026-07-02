@@ -7,8 +7,10 @@ import sys
 from pathlib import Path
 
 import pytest
+import requests
 
 import REvoDesign.magician.designers.openkinetics as openkinetics
+from RosettaPy.common.mutation import Chain, RosettaPyProteinSequence
 from REvoDesign.citations import CitationManager
 from REvoDesign.magician.designers.openkinetics import (
     OpenKineticsClient,
@@ -96,6 +98,11 @@ class _FakeSession:
 
     def get(self, url, timeout=None, headers=None):
         raise AssertionError(f"Unexpected get URL: {url}")
+
+
+class _FailingSession:
+    def request(self, method, url, json=None, timeout=None, headers=None):
+        raise requests.ConnectionError("dns down")
 
 
 # ---------------------------------------------------------------------------
@@ -243,6 +250,13 @@ def test_openkinetics_client_submit_uses_real_json_shape():
     assert payload["useExperimental"] is False
 
 
+def test_openkinetics_client_wraps_transport_errors():
+    client = OpenKineticsClient(session=_FailingSession())
+    client._require_api_key = lambda: "test-key"
+    with pytest.raises(openkinetics.OpenKineticsAPIError, match="dns down"):
+        client.list_methods()
+
+
 def test_openkinetics_api_key_resolution_prefers_direct_key(monkeypatch):
     monkeypatch.setenv("OPENKINETICS_API_KEY", "env-key")
     client = OpenKineticsClient(api_key="direct-key")
@@ -295,6 +309,47 @@ def test_openkinetics_scorer_normalizes_real_fixture_response(tmp_path):
         result["normalized_scores"][0]["predicted_value"]
         == _load_fixture("result_response.json")["data"][0]["kcat/Km (1/(s*mM))"]
     )
+
+
+def test_openkinetics_parallel_scorer_batches_variants(tmp_path):
+    from REvoDesign.magician.designers.openkinetics._scorers import CataProKcatKmScorer
+    from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id
+
+    session = _FakeSession(
+        methods_response=_load_fixture("methods_response.json"),
+        validate_response=_load_fixture("validate_response.json"),
+        submit_response=_load_fixture("submit_response.json"),
+        status_responses=_load_fixture("status_responses.json"),
+        result_response=_load_fixture("result_response.json"),
+    )
+    client = OpenKineticsClient(session=session)
+    client._require_api_key = lambda: "test-key"
+    scorer = CataProKcatKmScorer(client=client, cache_dir=str(tmp_path / "cache"), substrate_smiles="CCO")
+
+    wt_sequences, _, residue_numbers = load_chain_sequence_context(PDB_PATH, chain_id="A")
+    mutants = [
+        extract_mutants_from_mutant_id(
+            relabel_pdb_position_to_sequential(label, residue_numbers, chain_id="A"),
+            wt_sequences,
+        )
+        for label in ("AE93D", "AK191R")
+    ]
+
+    scored = scorer.parallel_scorer(mutants, nproc=8)
+
+    assert len(session.submissions) == 1
+    assert len(session.submissions[0]["data"]) == 2
+    assert [mutant.mutant_score for mutant in scored] == [
+        _load_fixture("result_response.json")["data"][0]["kcat/Km (1/(s*mM))"],
+        _load_fixture("result_response.json")["data"][1]["kcat/Km (1/(s*mM))"],
+    ]
+
+
+def test_openkinetics_sequence_selection_uses_configured_chain(tmp_path):
+    scorer = CataProKcatKmScorer(cache_dir=str(tmp_path / "cache"), substrate_smiles="CCO", chain="B")
+    sequence = RosettaPyProteinSequence([Chain("A", "AAAA"), Chain("B", "BBBB")])
+
+    assert scorer._sequence_from_mutant(sequence) == ("variant", "BBBB")
 
 
 def test_openkinetics_scorer_cache_hit(tmp_path):

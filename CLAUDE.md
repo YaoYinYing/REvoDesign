@@ -10,8 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Install dev environment
-conda create -n REvoDesign python=3.12 -y
-conda install -c conda-forge pymol-open-source pyqt=5 -n REvoDesign -y
+conda create -n REvoDesignTestFlight python=3.12 -y
+conda install -c conda-forge pymol-open-source pyqt=5 -n REvoDesignTestFlight -y
 make install-pytorch-cpu-non-mac
 make install
 make prepare-test

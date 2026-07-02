@@ -284,6 +284,7 @@ class VisualizingWorker:
                     gimmick_name=design_profile_format,
                     molecule=self.design_molecule,
                     chain=self.design_chain_id,
+                    pdb_path=self.visualizer.input_session,
                 )
 
             else:

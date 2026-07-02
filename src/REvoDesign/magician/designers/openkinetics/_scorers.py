@@ -29,6 +29,7 @@ from ._client import (
     write_normalized_scores_csv,
 )
 from ._models import OpenKineticsConfigurationError
+from ._pdb import resolve_substrate_metadata
 
 _VARIANT_CACHE_DDL = """
 CREATE TABLE IF NOT EXISTS variant_cache (
@@ -183,6 +184,8 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         cache_enabled: bool | None = None,
         cache_dir: str | None = None,
         substrate_smiles: str | None = None,
+        chain: str | None = None,
+        pdb_path: str | os.PathLike[str] | None = None,
     ) -> None:
         super().__init__(molecule or "")
         config = load_openkinetics_config()
@@ -202,21 +205,31 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         self.cache_enabled = config["cache_enabled"] if cache_enabled is None else cache_enabled
         self.cache_dir = os.path.expanduser(cache_dir or config["cache_dir"])
         self.substrate_smiles = substrate_smiles
+        self.chain = chain
+        self.pdb_path = pdb_path
         self.initialized = False
 
     # -- ExternalDesignerAbstract interface --------------------------------
 
     def initialize(self, *args, **kwargs):
+        if not self.substrate_smiles:
+            if substrate_smiles := kwargs.get("substrate_smiles"):
+                self.substrate_smiles = str(substrate_smiles)
+            elif pdb_path := kwargs.get("pdb_path") or self.pdb_path:
+                self.substrate_smiles = resolve_substrate_metadata(pdb_path)["substrate_smiles"]
         self.initialized = True
 
-    @staticmethod
-    def _sequence_from_mutant(mutant: Mutant | RosettaPyProteinSequence) -> tuple[str, str]:
+    def _sequence_from_mutant(self, mutant: Mutant | RosettaPyProteinSequence) -> tuple[str, str]:
         if isinstance(mutant, Mutant):
-            chain_id = mutant.wt_protein_sequence.all_chain_ids[0]
+            chain_id = (
+                self.chain
+                if self.chain in mutant.wt_protein_sequence.all_chain_ids
+                else mutant.wt_protein_sequence.all_chain_ids[0]
+            )
             sequence = mutant.get_mutant_sequence_single_chain(chain_id=chain_id, ignore_missing=True).sequence
             return mutant.raw_mutant_id or "variant", sequence
 
-        chain_id = mutant.all_chain_ids[0]
+        chain_id = self.chain if self.chain in mutant.all_chain_ids else mutant.all_chain_ids[0]
         return "variant", mutant.get_sequence_by_chain(chain_id=chain_id).replace("X", "")
 
     def scorer(self, mutant: Mutant | RosettaPyProteinSequence, **kwargs) -> float:
@@ -233,6 +246,31 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
             use_cache=kwargs.get("use_cache"),
         )
         return float(result["normalized_scores"][0]["predicted_value"])
+
+    def parallel_scorer(self, mutants: list[Mutant], nproc: int = 2, **kwargs) -> list[Mutant]:
+        substrate_smiles = kwargs.get("substrate_smiles") or self.substrate_smiles
+        if not substrate_smiles:
+            raise OpenKineticsConfigurationError("OpenKinetics scoring requires a substrate SMILES string.")
+
+        active_mutants = [mutant for mutant in mutants if not mutant.empty]
+        if not active_mutants:
+            return active_mutants
+
+        # ponytail: OpenKinetics accepts a batch; joblib would create one remote job per mutant.
+        rows = []
+        for mutant in active_mutants:
+            variant_id, sequence = self._sequence_from_mutant(mutant)
+            rows.append({"variant_id": variant_id, "mutation": variant_id, "protein_sequence": sequence})
+        result = self.score_variants(
+            rows,
+            substrate_smiles=substrate_smiles,
+            method=kwargs.get("method"),
+            prediction_type=kwargs.get("prediction_type"),
+            wait=kwargs.get("wait", True),
+            use_cache=kwargs.get("use_cache"),
+        )
+        scores = [float(row["predicted_value"]) for row in result["normalized_scores"]]
+        return self.score_mutant_mapping(active_mutants, scores)
 
     # -- helpers -----------------------------------------------------------
 
