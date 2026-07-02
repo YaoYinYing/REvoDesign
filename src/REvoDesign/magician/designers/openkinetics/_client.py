@@ -18,8 +18,6 @@ from typing import Any
 
 import requests
 
-from omegaconf import DictConfig
-
 from REvoDesign import reload_config_file
 
 from ._models import (
@@ -36,27 +34,9 @@ from ._models import (
 # ---------------------------------------------------------------------------
 
 
-def _config_cache_dir() -> str:
-    """Return the OpenKinetics cache directory from either the user config
-    or the platform-appropriate user-cache location."""
-    from REvoDesign import set_cache_dir
-
-    return os.path.join(set_cache_dir(), "openkinetics")
-
-
-def load_openkinetics_config() -> dict[str, Any]:
+def load_openkinetics_config() -> Any:
     """Load OpenKinetics config from ``third_party/scorers/openkinetics_api.yaml``."""
-    cfg: DictConfig = reload_config_file("third_party/scorers/openkinetics_api")["third_party"]
-    ok_cfg = cfg["scorers"]["openkinetics"]
-    return {
-        "base_url": str(ok_cfg.get("base_url", "https://predictor.openkinetics.org/api/v1")),
-        "default_method": str(ok_cfg.get("default_method", "CataPro")),
-        "default_prediction_type": str(ok_cfg.get("default_prediction_type", "kcat/Km")),
-        "poll_interval_seconds": int(ok_cfg.get("poll_interval_seconds", 3)),
-        "timeout_seconds": int(ok_cfg.get("timeout_seconds", 600)),
-        "cache_enabled": bool(ok_cfg.get("cache_enabled", True)),
-        "cache_dir": os.path.expanduser(str(ok_cfg.get("cache_dir", _config_cache_dir()))),
-    }
+    return reload_config_file("third_party/scorers/openkinetics_api")["third_party"]["scorers"]["openkinetics"]
 
 
 def resolve_api_key(*, api_key: str | None = None) -> str:
