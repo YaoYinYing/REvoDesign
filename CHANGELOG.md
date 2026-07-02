@@ -79,6 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added modular integration guide `docs/modular/add_new_sidechain_solver.md` for adding and validating new sidechain solvers.
 - launch:
   - added splash label ("Loading REvoDesign…") shown immediately when the plugin is launched from PyMOL, giving instant feedback while the main window constructs.
+- UI:
+  - Added `button_matrix.hover_crosshair.color` and `button_matrix.hover_crosshair.width` to `appearence.yaml` for profile/GREMLIN matrix hover styling.
 
 ### Changed
 - Runtime UI loading:
@@ -159,6 +161,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added OpenKinetics API key auto-registration tests covering self-service generation, immediate `environ.yaml` persistence, active-key conflict handling, and redacted debug logging.
 
 ### Fixed
+- UI:
+  - Restored profile-design matrix layout after the painted `QButtonMatrix` refactor:
+    - profile matrices now stay horizontally scrollable instead of being squeezed into the dialog viewport.
+    - bottom residue-position labels are visible, centered, and no longer covered by the horizontal scrollbar.
+    - profile WT cells show the one-letter wild residue while GREMLIN matrices keep the `WT` label.
+    - hover crosshair is thicker and green by default for clearer row/column tracking.
 - Fixed 7 multi-line f-strings (PEP 701, Python 3.12+ only) across `package_manager.py`, `represents.py`, `citation_manager.py`, `menu_item.py`, and `test_rfd.py` that caused `SyntaxError` on Python 3.10/3.11. Replaced with implicit string concatenation.
 - packaging:
   - `pyproject.toml` sdist now explicitly includes `REvoDesign.ui` and `language/*.qm`/`.ts` so source distributions contain the runtime UI and translation binaries.
