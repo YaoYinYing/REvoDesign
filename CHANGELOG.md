@@ -142,6 +142,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added configurable chain selection (`chain` parameter) and auto substrate SMILES resolution from PDB metadata on `initialize()`.
   - Plumbed `pdb_path` from `VisualizingWorker` through to scorer initialization.
   - `prefer_lower` is now a class attribute on each generated scorer class instead of an instance attribute (Km scorers: `True`; kcat and kcat/Km scorers: `False`).
+  - Added self-service API key generation via `/api/api-key/generate/` when no local `OPENKINETICS_API_KEY` is available.
+  - Added immediate API key persistence to `environ.yaml` and current-process environment registration so downstream scoring can continue without manual reload.
+  - Added info/debug logging for key source selection, key-generation requests, HTTP status, persistence path, and conflict handling while redacting secret values.
+  - Live-test gating now skips with an explicit warning when `REVODESIGN_RUN_OPENKINETICS_LIVE=1` is set without `OPENKINETICS_API_KEY`.
+- ci:
+  - Added `REVODESIGN_RUN_OPENKINETICS_LIVE=1` and `OPENKINETICS_API_KEY` secret wiring to tagged full unit tests for live OpenKinetics coverage when CI secrets are present.
 - Registries: Removed redundant explicit class-name import/re-export blocks from `magician/__init__.py`, `designers/__init__.py`, `openkinetics/__init__.py`, and `sidechain/sidechain_solver.py`. The auto-discovery registry is the sole source of truth; class re-exports use a dynamic `globals()` loop keyed off the registry.
 - `__all__` lists simplified to static literals only — dynamically-generated class names no longer appear in `__all__`, resolving Pylance/Pyright type-checking errors on unpacked tuples.
 - Docs: Merged `AGENTS.md` into `CLAUDE.md` — single canonical project instruction file. Added PR/commit guidelines, headless CI setup, and DGL install steps.
@@ -149,6 +155,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests:
   - Added live OpenKinetics integration test `test_visualize_openkinetics_catapro_live_submit` (guarded by `REVODESIGN_RUN_OPENKINETICS_LIVE=1` and `OPENKINETICS_API_KEY` env var, no hardcoded paths).
   - Added `test_openkinetics_client_wraps_transport_errors`, `test_openkinetics_parallel_scorer_batches_variants`, `test_openkinetics_sequence_selection_uses_configured_chain`.
+  - Added OpenKinetics API key auto-registration tests covering self-service generation, immediate `environ.yaml` persistence, active-key conflict handling, and redacted debug logging.
 
 ### Fixed
 - Fixed 7 multi-line f-strings (PEP 701, Python 3.12+ only) across `package_manager.py`, `represents.py`, `citation_manager.py`, `menu_item.py`, and `test_rfd.py` that caused `SyntaxError` on Python 3.10/3.11. Replaced with implicit string concatenation.
