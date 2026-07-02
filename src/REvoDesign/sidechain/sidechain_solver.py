@@ -54,7 +54,6 @@ class MutateRunnerManager:
 
 @dataclass(frozen=True)
 class SidechainSolverConfig:
-    molecule: str
     sidechain_solver_name: str
     sidechain_solver_radius: float | None
     sidechain_solver_model: str | None
@@ -81,7 +80,8 @@ class SidechainSolver(SingletonAbstract):
     def setup(self):
         logging.info(f"Using {self.cfg.sidechain_solver_name} as sidechain solver.")
 
-        input_pdb = make_temperal_input_pdb(molecule=self.cfg.molecule, reload=False)
+        molecule = self.bus.get_value("ui.header_panel.input.molecule", str, reject_none=True)
+        input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
 
         with timing("Setting up sidechain solver"):
             try:
@@ -90,7 +90,6 @@ class SidechainSolver(SingletonAbstract):
                     pdb_file=input_pdb,
                     use_model=self.cfg.sidechain_solver_model,
                     radius=self.cfg.sidechain_solver_radius,
-                    molecule=self.cfg.molecule,
                 )
                 return self
             except Exception as e:
@@ -98,7 +97,6 @@ class SidechainSolver(SingletonAbstract):
 
     def get_config(self) -> SidechainSolverConfig:
         cfg = SidechainSolverConfig(
-            molecule=self.bus.get_value("ui.header_panel.input.molecule", str, reject_none=True),
             sidechain_solver_name=self.bus.get_widget_value("ui.config.sidechain_solver.use", str),
             sidechain_solver_radius=self.bus.get_widget_value("ui.config.sidechain_solver.repack_radius", float),
             sidechain_solver_model=self.bus.get_widget_value("ui.config.sidechain_solver.model", str),

@@ -108,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `has_docker_daemon()` helper for docker-dependent test guards.
 - Plugins/registries:
   - Sidechain solvers now use scoped auto-discovery registry in `sidechain_solver.py` while keeping compatibility symbols (`ALL_RUNNER_CLASSES`, `IMPLEMENTED_RUNNER`) and manager API.
+  - `PyMOL_mutate` (Dunbrack Rotamer Library) now derives the molecule name from the input PDB basename instead of receiving it as a constructor argument. Removed `molecule` field from `SidechainSolverConfig` — `SidechainSolver.setup()` reads the molecule directly from the config bus for `make_temperal_input_pdb()`.
   - Magician designers now use scoped auto-discovery registry in `magician/__init__.py` while keeping compatibility symbols (`ALL_DESIGNER_CLASSES`, `IMPLEMENTED_DESIGNERS`) and assistant API.
   - Cluster methods now use scoped auto-discovery registry in `cluster_sequence.py` while keeping compatibility symbols (`ALL_CLUSTER_METHOD_CLASSES`, `IMPLEMENTED_CLUSTER_METHOD`) and `ClusterMethodManager` API.
 - clusters:
