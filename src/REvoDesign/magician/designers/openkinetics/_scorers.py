@@ -199,7 +199,6 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         self.default_prediction_type = (
             default_prediction_type or class_defaults["prediction_type"] or config["default_prediction_type"]
         )
-        self.prefer_lower = self.default_prediction_type.lower() == "km"
         self.poll_interval_seconds = int(poll_interval_seconds or config["poll_interval_seconds"])
         self.timeout_seconds = int(timeout_seconds or config["timeout_seconds"])
         self.cache_enabled = config["cache_enabled"] if cache_enabled is None else cache_enabled
@@ -525,6 +524,7 @@ for class_name, scorer_name, method, prediction_type, citation_key in _SCORER_SP
         {
             "__module__": __name__,
             "name": scorer_name,
+            "prefer_lower": prediction_type.lower() == "km",
             "__bibtex__": {
                 **OpenKineticsScorerAbstract.__bibtex__,
                 citation_key: _PREDICTOR_BIBTEX[citation_key],

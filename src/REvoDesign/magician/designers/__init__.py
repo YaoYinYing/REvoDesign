@@ -3,33 +3,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+from . import openkinetics as _ok  # noqa: F401 — triggers class creation
 from .cart_ddg import ddg
 from .colabdesign import ColabDesigner_MPNN
-from .openkinetics import OPENKINETICS_SCORER_CLASS_NAMES  # noqa: F401
-from .openkinetics import (
-    CataProKcatKmScorer,
-    CataProKcatScorer,
-    CataProKmScorer,
-    CatPredKcatScorer,
-    CatPredKmScorer,
-    DLKcatScorer,
-    EITLEMKcatScorer,
-    EITLEMKmScorer,
-    IECataKcatKmScorer,
-    KinFormHKcatScorer,
-    KinFormHKmScorer,
-    KinFormLKcatScorer,
-    MMISAKMKmScorer,
-    OmniESIKcatScorer,
-    OmniESIKmScorer,
-    RealKcatKmScorer,
-    RealKcatScorer,
-    UniKPKcatScorer,
-    UniKPKmScorer,
-)
 
-__all__ = [
-    "ColabDesigner_MPNN",
-    "ddg",
-    *OPENKINETICS_SCORER_CLASS_NAMES,
-]
+__all__ = ["ColabDesigner_MPNN", "ddg"]

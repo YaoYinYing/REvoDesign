@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 import requests
-import yaml
 
 from REvoDesign.magician.designers import ColabDesigner_MPNN
 from REvoDesign.magician.designers.openkinetics import (
@@ -27,18 +26,14 @@ TESTS_DIR = Path(__file__).resolve().parents[2]
 OPENKINETICS_FIXTURE_DIR = TESTS_DIR / "data" / "kinetics" / "openkinetics_1SUO"
 OPENKINETICS_LIVE_MUTANT_FILE = TESTS_DIR / "data" / "mutagenese" / "evaluate_pssm_ent_surf.besthits.mut.txt"
 OPENKINETICS_LIVE_PDB = TESTS_DIR / "data" / "pdb" / "1SUO.pdb"
-REAL_OPENKINETICS_ENVIRON = Path("/Users/yyy/Library/Application Support/REvoDesign/config/environ.yaml")
 
 
 def _real_openkinetics_api_key() -> str:
     if os.environ.get("REVODESIGN_RUN_OPENKINETICS_LIVE") != "1":
         pytest.skip("Set REVODESIGN_RUN_OPENKINETICS_LIVE=1 to submit to the live OpenKinetics API")
-    if not REAL_OPENKINETICS_ENVIRON.is_file():
-        pytest.skip(f"OpenKinetics live test needs {REAL_OPENKINETICS_ENVIRON}")
-    payload = yaml.safe_load(REAL_OPENKINETICS_ENVIRON.read_text(encoding="utf-8")) or {}
-    key = str((payload.get("variables") or {}).get("OPENKINETICS_API_KEY") or "").strip()
-    if not key or key.startswith("your-"):
-        pytest.skip(f"OpenKinetics live test needs OPENKINETICS_API_KEY in {REAL_OPENKINETICS_ENVIRON}")
+    key = os.environ.get("OPENKINETICS_API_KEY", "").strip()
+    if not key:
+        pytest.skip("Set OPENKINETICS_API_KEY env var for live OpenKinetics tests")
     return key
 
 

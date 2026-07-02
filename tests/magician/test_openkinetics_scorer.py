@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 import requests
+from RosettaPy.common.mutation import Chain, RosettaPyProteinSequence
 
 import REvoDesign.magician.designers.openkinetics as openkinetics
-from RosettaPy.common.mutation import Chain, RosettaPyProteinSequence
 from REvoDesign.citations import CitationManager
 from REvoDesign.magician.designers.openkinetics import (
     OpenKineticsClient,

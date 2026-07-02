@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from . import _scorers as _scorers_mod  # triggers class creation; see _SCORER_SPECS loop
 from ._client import (
     OpenKineticsClient,
     _normalize_result_rows,
@@ -44,31 +45,13 @@ from ._pdb import (
     smiles_from_ligand_pdb_block,
 )
 from ._scorers import OPENKINETICS_SCORER_CLASS_NAMES  # noqa: F401
-from ._scorers import (
-    CataProKcatKmScorer,
-    CataProKcatScorer,
-    CataProKmScorer,
-    CatPredKcatScorer,
-    CatPredKmScorer,
-    DLKcatScorer,
-    EITLEMKcatScorer,
-    EITLEMKmScorer,
-    IECataKcatKmScorer,
-    KinFormHKcatScorer,
-    KinFormHKmScorer,
-    KinFormLKcatScorer,
-    MMISAKMKmScorer,
-    OmniESIKcatScorer,
-    OmniESIKmScorer,
-    OpenKineticsScorerAbstract,
-    RealKcatKmScorer,
-    RealKcatScorer,
-    UniKPKcatScorer,
-    UniKPKmScorer,
-)
+from ._scorers import OpenKineticsScorerAbstract
+
+# Re-export dynamically-created scorer classes by name.
+for _name in OPENKINETICS_SCORER_CLASS_NAMES:
+    globals()[_name] = getattr(_scorers_mod, _name)
 
 __all__ = [
-    *OPENKINETICS_SCORER_CLASS_NAMES,
     "OpenKineticsScorerAbstract",
     # client
     "OpenKineticsClient",

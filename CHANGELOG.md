@@ -136,6 +136,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added `from __future__ import annotations` per repo header contract.
   - added empty-collection guard after discarding out-of-range pairs so `load_co_evolving_pairs()` cannot dereference `current_item` on an empty `IterableLoop`.
   - `run_gremlin_tool()`: added matching empty guard after `plot_coevolved_pair_in_pymol()` to skip button wiring when no pairs survive filtering.
+- OpenKinetics (`src/REvoDesign/magician/designers/openkinetics/`):
+  - Added retry logic (3 attempts with 1s backoff) to `_request()` for transient network failures; all transport errors now raise `OpenKineticsAPIError`.
+  - Added `parallel_scorer()` method on `OpenKineticsScorerAbstract` for batch submission in a single API call instead of one-per-mutant.
+  - Added configurable chain selection (`chain` parameter) and auto substrate SMILES resolution from PDB metadata on `initialize()`.
+  - Plumbed `pdb_path` from `VisualizingWorker` through to scorer initialization.
+  - `prefer_lower` is now a class attribute on each generated scorer class instead of an instance attribute (Km scorers: `True`; kcat and kcat/Km scorers: `False`).
+- Registries: Removed redundant explicit class-name import/re-export blocks from `magician/__init__.py`, `designers/__init__.py`, `openkinetics/__init__.py`, and `sidechain/sidechain_solver.py`. The auto-discovery registry is the sole source of truth; class re-exports use a dynamic `globals()` loop keyed off the registry.
+- `__all__` lists simplified to static literals only — dynamically-generated class names no longer appear in `__all__`, resolving Pylance/Pyright type-checking errors on unpacked tuples.
+- Tests:
+  - Added live OpenKinetics integration test `test_visualize_openkinetics_catapro_live_submit` (guarded by `REVODESIGN_RUN_OPENKINETICS_LIVE=1` and `OPENKINETICS_API_KEY` env var, no hardcoded paths).
+  - Added `test_openkinetics_client_wraps_transport_errors`, `test_openkinetics_parallel_scorer_batches_variants`, `test_openkinetics_sequence_selection_uses_configured_chain`.
 
 ### Fixed
 - packaging:
