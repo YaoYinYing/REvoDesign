@@ -884,12 +884,13 @@ def pick_design_from_profile(
     pix_per_block = 25
 
     button_matrix = QButtonMatrix(
-        df_matrix=df_button_matrix, sequence=sequence, cmap=cmap, flip_cmap=True, button_size=12
+        df_matrix=df_button_matrix, sequence=sequence, cmap=cmap, flip_cmap=True, button_size=pix_per_block
     )
     button_matrix.setObjectName("ProfileDesignButtonMatrix")
     button_matrix.label_size = [18, 9]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
+    button_matrix.setFixedSize(button_matrix.sizeHint())
 
     button_matrix.active_func = mutate_with_gridbuttons
 
@@ -931,9 +932,10 @@ View Highlight Nbr: {view_highlight_nbr}
 
     # Add a scroll area to the window
     scroll_area = QtWidgets.QScrollArea()
+    scroll_area.setObjectName("ProfileDesignButtonMatrixScrollArea")
     scroll_area.setWidget(button_matrix)
-    scroll_area.setWidgetResizable(True)
-    scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+    scroll_area.setWidgetResizable(False)
+    scroll_area.setHorizontalScrollBarPolicy(QtCompat.ScrollBarAsNeeded)
     scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  # Disable vertical scrollbar
 
     # Remove extra padding or margins to make buttons compact

@@ -146,6 +146,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added immediate API key persistence to `environ.yaml` and current-process environment registration so downstream scoring can continue without manual reload.
   - Added info/debug logging for key source selection, key-generation requests, HTTP status, persistence path, and conflict handling while redacting secret values.
   - Live-test gating now skips with an explicit warning when `REVODESIGN_RUN_OPENKINETICS_LIVE=1` is set without `OPENKINETICS_API_KEY`.
+  - Live OpenKinetics submit smoke now skips environment-dependent HTTP `4xx`/`5xx` service responses, such as bad VPS/IP `502` failures.
 - ci:
   - Added `REVODESIGN_RUN_OPENKINETICS_LIVE=1` and `OPENKINETICS_API_KEY` secret wiring to tagged full unit tests for live OpenKinetics coverage when CI secrets are present.
 - Registries: Removed redundant explicit class-name import/re-export blocks from `magician/__init__.py`, `designers/__init__.py`, `openkinetics/__init__.py`, and `sidechain/sidechain_solver.py`. The auto-discovery registry is the sole source of truth; class re-exports use a dynamic `globals()` loop keyed off the registry.

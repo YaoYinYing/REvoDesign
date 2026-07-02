@@ -5,6 +5,7 @@
 
 import json as json_module
 import os
+import re
 import warnings
 from pathlib import Path
 
@@ -14,6 +15,7 @@ import requests
 from REvoDesign.magician.designers import ColabDesigner_MPNN
 from REvoDesign.magician.designers.openkinetics import (
     CataProKcatKmScorer,
+    OpenKineticsAPIError,
     load_chain_sequence_context,
     relabel_pdb_position_to_sequential,
 )
@@ -42,6 +44,25 @@ def _real_openkinetics_api_key() -> str:
     return key
 
 
+def _openkinetics_live_http_error_status(exc: OpenKineticsAPIError) -> int | None:
+    match = re.search(r"\b([45]\d\d)\b", str(exc))
+    return int(match.group(1)) if match else None
+
+
+def test_openkinetics_live_http_error_status_parser():
+    assert (
+        _openkinetics_live_http_error_status(OpenKineticsAPIError("OpenKinetics API request failed: 502 Bad Gateway"))
+        == 502
+    )
+    assert (
+        _openkinetics_live_http_error_status(OpenKineticsAPIError("OpenKinetics API request failed: 403 Forbidden"))
+        == 403
+    )
+    assert (
+        _openkinetics_live_http_error_status(OpenKineticsAPIError("OpenKinetics API request failed: dns down")) is None
+    )
+
+
 @pytest.mark.integration
 @pytest.mark.very_slow
 def test_visualize_openkinetics_catapro_live_submit():
@@ -67,12 +88,22 @@ def test_visualize_openkinetics_catapro_live_submit():
         timeout_seconds=60,
     )
     scorer.initialize(pdb_path=OPENKINETICS_LIVE_PDB)
-    result = scorer.score_variants(
-        variants,
-        substrate_smiles=scorer.substrate_smiles,
-        wait=False,
-        use_cache=False,
-    )
+    try:
+        result = scorer.score_variants(
+            variants,
+            substrate_smiles=scorer.substrate_smiles,
+            wait=False,
+            use_cache=False,
+        )
+    except OpenKineticsAPIError as exc:
+        status_code = _openkinetics_live_http_error_status(exc)
+        if status_code is not None:
+            warnings.warn(
+                f"Live OpenKinetics API returned HTTP {status_code}; skipping environment-dependent test.",
+                UserWarning,
+            )
+            pytest.skip(f"Live OpenKinetics API returned HTTP {status_code}")
+        raise
 
     assert result["status"] == "submitted"
     assert len(result["job_id"]) > 0
