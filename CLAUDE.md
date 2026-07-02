@@ -14,6 +14,11 @@ conda create -n REvoDesignTestFlight python=3.12 -y
 conda install -c conda-forge pymol-open-source pyqt=5 -n REvoDesignTestFlight -y
 make install-pytorch-cpu-non-mac
 make install
+
+# Optional: DGL (Linux only, failure is non-fatal)
+make install-dgl-linux
+
+# Test dependencies
 make prepare-test
 
 # Run tests (always inside a conda environment)
@@ -23,6 +28,10 @@ conda run -n <env> make slow-test          # slowest tests
 conda run -n <env> make all-test           # full test matrix
 conda run -n <env> make kw-test PYTEST_KW='<keyword>'          # single keyword
 conda run -n <env> make kw-test PYTEST_KW='"<kw1> or <kw2>"'   # multiple keywords
+
+# CI / headless environments
+make setup-display-gha                     # configure virtual display
+export ENABLE_ROSETTA_CONTAINER_NODE_TEST=NO  # skip Docker + Rosetta for basic testing
 
 # Formatting and linting
 make black          # runs pre-commit run --all-files
@@ -102,3 +111,9 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 - **Imports**: First-party package is `REvoDesign`; internal imports use fully-qualified paths (`from REvoDesign.Qt import QtCore`).
 - **Config files**: YAML under `src/REvoDesign/config/`, managed by OmegaConf/Hydra. The config directory is determined by `platformdirs` user config path.
 - **Version**: Set in `src/REvoDesign/__init__.py` (`__version__`). Use `make tag` to bump.
+
+## Commit and PR guidelines
+
+- **Commit messages**: Follow conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`). Use `[skip ci]` to skip CI for non-code changes.
+- **Before pushing**: Run `make black`, then `git add -A` to stage formatting changes. Pre-commit hooks must pass.
+- **Documentation**: Stored as Markdown under `docs/` or within the relevant module directory; no build step required.
