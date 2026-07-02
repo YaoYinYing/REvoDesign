@@ -144,11 +144,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `prefer_lower` is now a class attribute on each generated scorer class instead of an instance attribute (Km scorers: `True`; kcat and kcat/Km scorers: `False`).
 - Registries: Removed redundant explicit class-name import/re-export blocks from `magician/__init__.py`, `designers/__init__.py`, `openkinetics/__init__.py`, and `sidechain/sidechain_solver.py`. The auto-discovery registry is the sole source of truth; class re-exports use a dynamic `globals()` loop keyed off the registry.
 - `__all__` lists simplified to static literals only — dynamically-generated class names no longer appear in `__all__`, resolving Pylance/Pyright type-checking errors on unpacked tuples.
+- Docs: Merged `AGENTS.md` into `CLAUDE.md` — single canonical project instruction file. Added PR/commit guidelines, headless CI setup, and DGL install steps.
+- Tooling: Restricted black to `--target-version py310` so it does not emit PEP 701 multi-line f-strings (Python 3.12+ only). Added pre-commit hook `check-multiline-fstring` as defense in depth.
 - Tests:
   - Added live OpenKinetics integration test `test_visualize_openkinetics_catapro_live_submit` (guarded by `REVODESIGN_RUN_OPENKINETICS_LIVE=1` and `OPENKINETICS_API_KEY` env var, no hardcoded paths).
   - Added `test_openkinetics_client_wraps_transport_errors`, `test_openkinetics_parallel_scorer_batches_variants`, `test_openkinetics_sequence_selection_uses_configured_chain`.
 
 ### Fixed
+- Fixed 7 multi-line f-strings (PEP 701, Python 3.12+ only) across `package_manager.py`, `represents.py`, `citation_manager.py`, `menu_item.py`, and `test_rfd.py` that caused `SyntaxError` on Python 3.10/3.11. Replaced with implicit string concatenation.
 - packaging:
   - `pyproject.toml` sdist now explicitly includes `REvoDesign.ui` and `language/*.qm`/`.ts` so source distributions contain the runtime UI and translation binaries.
 - ci:
