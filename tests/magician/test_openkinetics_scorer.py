@@ -632,6 +632,28 @@ def test_openkinetics_poll_timeout():
         client.poll_until_complete("job-1", poll_interval_seconds=0, timeout_seconds=0)
 
 
+def test_openkinetics_get_result_retries_on_409():
+    """get_result should retry when the API returns 409 (result not ready yet)."""
+    call_count = [0]
+
+    class _FlakyResultSession:
+        def request(self, method, url, json=None, timeout=None, headers=None):
+            call_count[0] += 1
+            # First 3 calls: 409 (still processing); 4th call: success.
+            if call_count[0] <= 3:
+                return _FakeResponse(
+                    {"error": "Results are not yet available — job status is 'Processing'."},
+                    status_code=409,
+                )
+            return _FakeResponse({"result": [{"score": 1.0}]})
+
+    client = OpenKineticsClient(session=_FlakyResultSession())
+    client._require_api_key = lambda: "test-key"
+    result = client.get_result("job-1", result_format="json")
+    assert result == {"result": [{"score": 1.0}]}
+    assert call_count[0] == 4  # 3 failures + 1 success
+
+
 def test_import_does_not_trigger_network_calls(monkeypatch):
     def _boom(*args, **kwargs):
         raise AssertionError("network should not be called during import")

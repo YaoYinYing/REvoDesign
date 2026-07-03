@@ -594,7 +594,21 @@ class OpenKineticsClient:
     def get_result(self, job_id: str, result_format: str = "json") -> dict[str, Any] | str:
         path = OPENKINETICS_ENDPOINTS["result"].format(job_id=job_id)
         if result_format == "json":
-            return self._request("GET", f"{path}?format=json")
+            # ponytail: retry on 409 — /status/ can report Completed before
+            # /result/ is actually ready (eventual consistency). Treat 409
+            # as "still Processing" rather than a hard error.
+            _last_attempt = 4
+            for attempt in range(_last_attempt + 1):
+                try:
+                    return self._request("GET", f"{path}?format=json")
+                except OpenKineticsAPIError as exc:
+                    if "409" not in str(exc) or attempt == _last_attempt:
+                        raise
+                    logging.info(
+                        "OpenKinetics result not ready for job %s (409, attempt %d/%d), retrying...",
+                        job_id, attempt + 1, _last_attempt + 1,
+                    )
+                    time.sleep(2 * (attempt + 1))
         if result_format == "csv":
             api_key = self._require_api_key()
             try:
