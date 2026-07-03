@@ -620,14 +620,17 @@ class OpenKineticsClient:
     ) -> dict[str, Any] | str:
         path = OPENKINETICS_ENDPOINTS["result"].format(job_id=job_id)
         if result_format == "json":
-            # ponytail: poll_until_complete now gates on predictionsMade,
-            # so the 409 window is tiny (result file write).  A few
-            # retries with backoff covers it + transient network errors.
+            # ponytail: the API can report status=Completed a moment
+            # before /result/ is materialized (409).  Retry with
+            # backoff bounded by the remaining timeout budget.
+            # Transient network errors are also retried; hard HTTP
+            # errors (non-409 4xx/5xx) raise immediately.
             deadline = time.monotonic() + (timeout_seconds if timeout_seconds is not None else 30)
             delay = poll_interval_seconds
             while True:
                 try:
-                    return self._request("GET", f"{path}?format=json")
+                    _remaining = max(1.0, deadline - time.monotonic())
+                    return self._request("GET", f"{path}?format=json", timeout=min(30.0, _remaining))
                 except OpenKineticsAPIError as exc:
                     if _is_hard_http_error(str(exc)):
                         raise

@@ -209,7 +209,7 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         self.poll_interval_seconds = int(poll_interval_seconds or config["poll_interval_seconds"])
         self.timeout_seconds = int(timeout_seconds or config["timeout_seconds"])
         self.cache_enabled = config["cache_enabled"] if cache_enabled is None else cache_enabled
-        self.cache_dir = cache_dir or os.path.join(set_cache_dir(), "openkinetics")
+        self.cache_dir = os.path.expanduser(cache_dir) if cache_dir else os.path.join(set_cache_dir(), "openkinetics")
         self.substrate_smiles = substrate_smiles
         self.chain = chain
         self.pdb_path = pdb_path
