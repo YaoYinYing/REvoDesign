@@ -164,6 +164,12 @@ memray = [
 ]
 
 
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.25",
+]
+
 test = [
     
     "bandit[toml]==1.7.10",
@@ -204,7 +210,7 @@ test = [
 
 
 [project.urls]
-Documentation = "https://github.com/YaoYinYing/REvoDesign/tree/main#readme"
+Documentation = "https://YaoYinYing.github.io/REvoDesign"
 Source = "https://github.com/YaoYinYing/REvoDesign"
 Tracker = "https://github.com/YaoYinYing/REvoDesign/issues"
 

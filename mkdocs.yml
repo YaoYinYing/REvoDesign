@@ -1,0 +1,82 @@
+site_name: REvoDesign
+site_description: API Documentation for REvoDesign — enzyme redesign plugin for PyMOL
+site_url: https://YaoYinYing.github.io/REvoDesign
+repo_url: https://github.com/YaoYinYing/REvoDesign
+repo_name: YaoYinYing/REvoDesign
+edit_uri: blob/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - search.suggest
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: false
+            show_root_heading: true
+            docstring_style: google
+            members_order: source
+            filters:
+              - "!^_"
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+  - attr_list
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - User Guide:
+      - user-guide/index.md
+      - Cluster Methods: user-guide/cluster-methods.md
+      - OpenKinetics: user-guide/openkinetics.md
+  - Developer Guide:
+      - dev-guide/index.md
+      - Architecture: dev-guide/architecture.md
+      - Adding a Scorer: dev-guide/adding-a-scorer.md
+      - Adding a Sidechain Solver: dev-guide/adding-a-sidechain-solver.md
+  - API Reference:
+      - Core: api/core.md
+      - Bootstrap: api/bootstrap.md
+      - Basic: api/basic.md
+      - Driver: api/driver.md
+      - Magician: api/magician.md
+      - OpenKinetics: api/openkinetics.md
+      - Clusters: api/clusters.md
+      - Common: api/common.md
+      - Qt Layer: api/qt.md
+      - Sidechain: api/sidechain.md
+      - Tools: api/tools.md
+      - Structure: api/structure.md
+      - Logger: api/logger.md
+      - Citations: api/citations.md
+      - Application: api/application.md
+      - Shortcuts: api/shortcuts.md
+      - Issues: api/issues.md
