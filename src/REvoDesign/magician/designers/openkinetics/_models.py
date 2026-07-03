@@ -69,11 +69,13 @@ class OpenKineticsFixturePaths:
 DEFAULT_OPENKINETICS_API_KEY_ENV = "OPENKINETICS_API_KEY"
 
 OPENKINETICS_ENDPOINTS = {
+    "health": "/health/",
     "methods": "/methods/",
     "validate": "/validate/",
     "submit": "/submit/",
     "status": "/status/{job_id}/",
     "result": "/result/{job_id}/",
+    "quota": "/quota/",
 }
 
 WATER_RESIDUE_NAMES = frozenset({"HOH", "WAT"})

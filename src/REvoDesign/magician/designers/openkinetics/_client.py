@@ -442,15 +442,21 @@ class OpenKineticsClient:
 
     # -- low-level request --------------------------------------------------
 
-    def _request(self, method: str, path: str, *, json_payload: Any | None = None) -> Any:
+    def _request(
+        self, method: str, path: str, *, json_payload: Any | None = None, timeout: float | None = None
+    ) -> Any:
         api_key = self._require_api_key()
+        # Default to a short per-request timeout so a hung connection doesn't
+        # block the caller for the full job timeout.  Submit/poll callers that
+        # genuinely need patience pass an explicit timeout.
+        effective_timeout = timeout if timeout is not None else 30.0
         for attempt in range(3):
             try:
                 response = self.session.request(
                     method=method,
                     url=f"{self.base_url}{path}",
                     json=json_payload,
-                    timeout=self.timeout_seconds,
+                    timeout=effective_timeout,
                     headers={
                         "Authorization": f"Bearer {api_key}",
                         "Accept": "application/json",
@@ -524,6 +530,14 @@ class OpenKineticsClient:
         finally:
             temp_path.unlink(missing_ok=True)
 
+    def check_health(self) -> dict[str, Any]:
+        """Check the OpenKinetics service health endpoint."""
+        return self._request("GET", OPENKINETICS_ENDPOINTS["health"])
+
+    def check_quota(self) -> dict[str, Any]:
+        """Check the account quota (daily usage / limit)."""
+        return self._request("GET", OPENKINETICS_ENDPOINTS["quota"])
+
     def submit(
         self,
         rows: list[dict[str, Any]],
@@ -539,11 +553,19 @@ class OpenKineticsClient:
             raise OpenKineticsValidationError("At least one row is required for submission")
         methods_response = self.list_methods()
         method_metadata = get_method_metadata(methods_response, method=method, prediction_type=prediction_type)
+        # Resolve the substrate column name from the method's required columns so
+        # we match whatever the API expects ("Substrate" vs "Substrates" etc.).
+        required_columns: list[str] = method_metadata.get("requiredColumns") or []
+        substrate_col = "Substrates"
+        for col in required_columns:
+            if col not in ("Protein Sequence",) and "substrat" in col.lower():
+                substrate_col = col
+                break
         payload = build_openkinetics_request_payload(
             data_rows=[
                 {
-                    "Protein Sequence": str(row["Protein Sequence"]),
-                    "Substrate": str(row["Substrate"]),
+                    "Protein Sequence": str(row.get("Protein Sequence", row.get("protein_sequence", ""))),
+                    substrate_col: str(row.get("Substrate", row.get(substrate_col, ""))),
                 }
                 for row in rows
             ],
@@ -556,10 +578,14 @@ class OpenKineticsClient:
         payload["includeSimilarityColumns"] = include_similarity_columns
         payload["canonicalizeSubstrates"] = canonicalize_substrates
 
-        submit_response = self._request("POST", OPENKINETICS_ENDPOINTS["submit"], json_payload=payload)
+        logging.info("OpenKinetics service health: %s", self.check_health())
+        submit_response = self._request(
+            "POST", OPENKINETICS_ENDPOINTS["submit"], json_payload=payload, timeout=self.timeout_seconds
+        )
         job_id = submit_response.get("jobId")
         if not job_id:
             raise OpenKineticsValidationError("Submit response did not contain a job identifier (jobId)")
+        logging.info("OpenKinetics job submitted: %s (method=%s, type=%s)", job_id, method, prediction_type)
         return submit_response
 
     def get_status(self, job_id: str) -> dict[str, Any]:
@@ -598,14 +624,41 @@ class OpenKineticsClient:
     ) -> list[Any]:
         started = time.monotonic()
         responses: list[Any] = []
+        _last_logged_elapsed: int | None = None
         while True:
             status_payload = self.get_status(job_id)
             responses.append(status_payload)
 
-            top_level_status = str(status_payload.get("status", "")).strip().lower()
-            if top_level_status == "completed":
+            top_level_status = str(status_payload.get("status", "")).strip()
+            elapsed = status_payload.get("elapsedSeconds", 0)
+            queue_s = status_payload.get("queueSeconds")
+            compute_s = status_payload.get("computeSeconds")
+            queue_pos = status_payload.get("queuePosition")
+            progress = status_payload.get("progress", {})
+
+            # Log on every status change or every ~30 s of elapsed wall-clock.
+            if top_level_status and (
+                _last_logged_elapsed is None or abs((elapsed or 0) - _last_logged_elapsed) >= 30
+            ):
+                _last_logged_elapsed = int(elapsed or 0)
+                parts = [f"status={top_level_status}", f"elapsed={elapsed}s"]
+                if queue_s is not None:
+                    parts.append(f"queue={queue_s}s")
+                if compute_s is not None:
+                    parts.append(f"compute={compute_s}s")
+                if queue_pos is not None:
+                    parts.append(f"queuePosition={queue_pos}")
+                if progress:
+                    parts.append(
+                        "progress="
+                        f"{progress.get('moleculesProcessed',0)}/{progress.get('moleculesTotal',0)} mol, "
+                        f"{progress.get('predictionsMade',0)}/{progress.get('predictionsTotal',0)} pred"
+                    )
+                logging.info("OpenKinetics job %s: %s", job_id, ", ".join(parts))
+
+            if top_level_status.lower() in ("completed",):
                 return responses
-            if top_level_status in {"failed", "error"}:
+            if top_level_status.lower() in ("failed", "error"):
                 raise OpenKineticsAPIError(f"OpenKinetics job {job_id} failed: {status_payload}")
 
             status_value = json.dumps(status_payload).lower()

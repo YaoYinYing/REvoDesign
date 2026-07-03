@@ -85,6 +85,8 @@ class _FakeSession:
         self.validate_calls = 0
 
     def request(self, method, url, json=None, timeout=None, headers=None):
+        if url.endswith("/health/"):
+            return _FakeResponse({"status": "ok"})
         if url.endswith("/methods/"):
             return _FakeResponse(self.methods_response)
         if "/submit/" in url:
@@ -95,6 +97,8 @@ class _FakeSession:
             return _FakeResponse(payload)
         if "/result/" in url:
             return _FakeResponse(self.result_response)
+        if url.endswith("/quota/"):
+            return _FakeResponse({"daily": {"used": 5, "limit": 100}})
         raise AssertionError(f"Unexpected request URL: {url}")
 
     def post(self, url, timeout=None, headers=None, files=None, data=None):
@@ -531,6 +535,18 @@ def test_openkinetics_scorer_cache_writes_new_entries(tmp_path):
     )
     assert result2["normalized_scores"][0]["predicted_value"] == result["normalized_scores"][0]["predicted_value"]
     assert result2["job_id"] == ""  # all-cache: no job_id
+
+
+def test_openkinetics_scorer_default_cache_dir_uses_set_cache_dir(tmp_path, monkeypatch):
+    """When no cache_dir is given, the scorer derives it from set_cache_dir()."""
+    from REvoDesign.magician.designers.openkinetics._scorers import CataProKcatKmScorer
+
+    monkeypatch.setattr(
+        "REvoDesign.magician.designers.openkinetics._scorers.set_cache_dir",
+        lambda: str(tmp_path / "main_cache"),
+    )
+    scorer = CataProKcatKmScorer(substrate_smiles="CCO", chain="B")
+    assert scorer.cache_dir == str(tmp_path / "main_cache" / "openkinetics")
 
 
 def test_openkinetics_client_requires_api_key(monkeypatch):

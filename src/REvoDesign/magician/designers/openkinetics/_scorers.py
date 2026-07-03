@@ -17,6 +17,7 @@ from typing import Any
 
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
+from REvoDesign import ROOT_LOGGER, set_cache_dir
 from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
 
@@ -30,6 +31,8 @@ from ._client import (
 )
 from ._models import OpenKineticsConfigurationError
 from ._pdb import resolve_substrate_metadata
+
+logging = ROOT_LOGGER.getChild(__name__)
 
 _VARIANT_CACHE_DDL = """
 CREATE TABLE IF NOT EXISTS variant_cache (
@@ -206,7 +209,7 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         self.poll_interval_seconds = int(poll_interval_seconds or config["poll_interval_seconds"])
         self.timeout_seconds = int(timeout_seconds or config["timeout_seconds"])
         self.cache_enabled = config["cache_enabled"] if cache_enabled is None else cache_enabled
-        self.cache_dir = os.path.expanduser(cache_dir or config["cache_dir"])
+        self.cache_dir = cache_dir or os.path.join(set_cache_dir(), "openkinetics")
         self.substrate_smiles = substrate_smiles
         self.chain = chain
         self.pdb_path = pdb_path
@@ -446,6 +449,12 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         result_payload = self.client.get_result(job_id, result_format="json")
         if not isinstance(result_payload, dict):
             raise OpenKineticsConfigurationError("Expected JSON result payload")
+
+        try:
+            quota = self.client.check_quota()
+            logging.warning("OpenKinetics daily quota: %s", quota)
+        except Exception:
+            logging.debug("OpenKinetics quota check failed", exc_info=True)
 
         uncached_local_rows = [local_rows[i] for i in uncached_indices]
         fresh_scores = _normalize_result_rows(

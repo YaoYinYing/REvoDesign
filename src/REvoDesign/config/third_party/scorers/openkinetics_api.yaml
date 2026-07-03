@@ -10,4 +10,3 @@ scorers:
     poll_interval_seconds: 3
     timeout_seconds: 600
     cache_enabled: true
-    cache_dir: "~/.revodesign/cache/openkinetics"
