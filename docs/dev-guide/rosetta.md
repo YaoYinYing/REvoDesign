@@ -235,12 +235,25 @@ For analysis/shortcut protocols:
    and the function entry point.
 5. Add a menu action in `REvoDesign.ui` if it needs a UI trigger.
 
+## Platform Compatibility
+
+From the RosettaPy README:
+
+| Node | Linux | macOS | Windows | Notes |
+|------|:-----:|:-----:|:-------:|-------|
+| `Native` | ✅ | ✅ | ❌ | Requires Rosetta compiled from source |
+| `MpiNode` | ✅ | ✅ | ❌ | Requires `extras=mpi` build + MPI installed |
+| `RosettaContainer` | ✅ | ✅ | ✅ | Docker Desktop; macOS uses Rosetta2 translation on Apple Silicon |
+| `WslWrapper` | ❌ | ❌ | ✅ | WSL2 with Rosetta built inside the distro |
+
+`Native` and `MpiNode` require a local Rosetta build — Linux and macOS only.
+`RosettaContainer` (Docker) works on all three platforms. Windows users without
+Docker can use `WslWrapper` with a WSL2 Rosetta installation.
+
 ## Limitations
 
 - Rosetta is **not bundled** with REvoDesign — users must install it separately
   or use the Docker images.
-- `RosettaContainer` (Docker MPI) is Linux-only; macOS/Windows are limited to
-  `Native` serial or `WslWrapper` on Windows.
 - Some protocols (cartesian ddG, FastRelax) require a Rosetta license for
   commercial use.
 - **RosettaPy ≠ PyRosetta.** RosettaPy wraps the CLI; PyRosetta binds C++ objects.
