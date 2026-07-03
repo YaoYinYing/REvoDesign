@@ -155,6 +155,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Registries: Removed redundant explicit class-name import/re-export blocks from `magician/__init__.py`, `designers/__init__.py`, `openkinetics/__init__.py`, and `sidechain/sidechain_solver.py`. The auto-discovery registry is the sole source of truth; class re-exports use a dynamic `globals()` loop keyed off the registry.
 - `__all__` lists simplified to static literals only — dynamically-generated class names no longer appear in `__all__`, resolving Pylance/Pyright type-checking errors on unpacked tuples.
 - Docs: Merged `AGENTS.md` into `CLAUDE.md` — single canonical project instruction file. Added PR/commit guidelines, headless CI setup, and DGL install steps.
+- Docs: Added CLAUDE.md guidance for test-case-driven live/integration fixes: encode the smallest test or skip guard first, run the focused keyword gate, and changelog the result.
 - Tooling: Restricted black to `--target-version py310` so it does not emit PEP 701 multi-line f-strings (Python 3.12+ only). Added pre-commit hook `check-multiline-fstring` as defense in depth.
 - Tests:
   - Added live OpenKinetics integration test `test_visualize_openkinetics_catapro_live_submit` (guarded by `REVODESIGN_RUN_OPENKINETICS_LIVE=1` and `OPENKINETICS_API_KEY` env var, no hardcoded paths).
