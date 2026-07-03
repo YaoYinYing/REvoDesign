@@ -61,8 +61,13 @@ nav:
       - dev-guide/index.md
       - Architecture: dev-guide/architecture.md
       - Concepts: dev-guide/concepts.md
+      - Testing: dev-guide/testing.md
       - CI/CD: dev-guide/ci-cd.md
       - PSSM/GREMLIN Server: dev-guide/server.md
+      - Monaco Editor: dev-guide/editor.md
+      - Rosetta Integration: dev-guide/rosetta.md
+      - Translation (i18n): dev-guide/translation.md
+      - UI Design: dev-guide/ui-design.md
       - Makefile Reference: dev-guide/makefile-reference.md
       - Package Manager: dev-guide/package-manager.md
       - Adding a Scorer: dev-guide/adding-a-scorer.md
