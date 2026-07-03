@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workflow
 
-- **Before committing**: Run `make black` to format all files, then `git add -A` to stage the formatting changes together with your edits. This ensures pre-commit hooks (black, isort, autoflake, pyupgrade, autopep8) pass and keeps the diff reviewable.
+- **Before committing**: Run `make black` to format all files, then `git add -A` to stage the formatting changes together with your edits. This ensures pre-commit hooks (black, isort, autoflake, pyupgrade, autopep8) pass and keeps the diff reviewable. **The exit code of `make black` is advisory — if the hooks leave the code with improved syntax and style, the result is good regardless of the exit code.**
 - **Test-case-driven fixes**: For live/integration issues, first encode the observed behavior as the smallest test case or skip guard, then make the smallest production/test change, run the focused keyword gate (for example `make kw-test PYTEST_KW=openkinetics`), and update `CHANGELOG.md`. Treat environment-dependent live API responses such as expected HTTP `4xx`/`5xx` as explicit skips, while keeping non-HTTP client errors failing.
 
 ## Build and Test
