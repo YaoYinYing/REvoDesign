@@ -178,6 +178,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - server/dependencies:
   - bumped `Flask-HTTPAuth` from `4.8.0` to `4.8.1` across test/runtime env definitions to close dependabot alert `#10` (`GHSA-p44q-vqpr-4xmg` / `CVE-2026-34531`).
   - bumped runtime `requests` from `2.32.5` to `2.33.0` and raised the base dependency floor to `>=2.33.0` to close dependabot alert `#9` (`GHSA-gc5v-m9x4-r6x2` / `CVE-2026-25645`).
+- tests:
+  - `DockerServerStack.start()` now retries web container creation up to 3 times with a 5-second delay between attempts to mitigate transient Docker daemon failures on CI.
 - sidechain:
   - fixed DLPacker radius-based reconstruct target selection in
     `src/REvoDesign/sidechain/mutate_runner/DLPacker.py` to prevent rename-only mutate outputs:
