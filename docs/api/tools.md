@@ -636,6 +636,24 @@ Custom Qt widgets and dialogs used throughout the REvoDesign UI.
       show_source: false
       heading_level: 3
 
+::: REvoDesign.tools.customized_widgets.QHoverCross
+    options:
+      show_root_heading: true
+      show_source: false
+      heading_level: 3
+
+::: REvoDesign.tools.customized_widgets.ButtonCoords
+    options:
+      show_root_heading: true
+      show_source: false
+      heading_level: 3
+
+::: REvoDesign.tools.customized_widgets.QButtonBrick
+    options:
+      show_root_heading: true
+      show_source: false
+      heading_level: 3
+
 ::: REvoDesign.tools.customized_widgets.MultiCheckableComboBox
     options:
       show_root_heading: true
@@ -648,11 +666,47 @@ Custom Qt widgets and dialogs used throughout the REvoDesign UI.
       show_source: false
       heading_level: 3
 
+::: REvoDesign.tools.customized_widgets.ParallelExecutor
+    options:
+      show_root_heading: true
+      show_source: false
+      heading_level: 3
+
 ::: REvoDesign.tools.customized_widgets.QtParallelExecutor
     options:
       show_root_heading: true
       show_source: false
       heading_level: 3
+
+::: REvoDesign.tools.customized_widgets.AskedValue
+    options:
+      show_root_heading: true
+      show_source: false
+      heading_level: 3
+
+::: REvoDesign.tools.customized_widgets.AskedValueCollection
+    options:
+      show_root_heading: true
+      show_source: false
+      heading_level: 3
+
+::: REvoDesign.tools.customized_widgets.dialog_wrapper
+    options:
+      show_root_heading: true
+      show_source: false
+      heading_level: 4
+
+::: REvoDesign.tools.customized_widgets.widget_signal_tape
+    options:
+      show_root_heading: true
+      show_source: false
+      heading_level: 4
+
+::: REvoDesign.tools.customized_widgets.create_cmap_icon
+    options:
+      show_root_heading: true
+      show_source: false
+      heading_level: 4
 
 ::: REvoDesign.tools.customized_widgets.pick_color
     options:

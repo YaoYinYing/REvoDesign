@@ -60,8 +60,17 @@ nav:
   - Developer Guide:
       - dev-guide/index.md
       - Architecture: dev-guide/architecture.md
+      - Concepts: dev-guide/concepts.md
+      - CI/CD: dev-guide/ci-cd.md
+      - PSSM/GREMLIN Server: dev-guide/server.md
+      - Makefile Reference: dev-guide/makefile-reference.md
+      - Package Manager: dev-guide/package-manager.md
       - Adding a Scorer: dev-guide/adding-a-scorer.md
       - Adding a Sidechain Solver: dev-guide/adding-a-sidechain-solver.md
+      - How-To:
+          - Add Profile: dev-guide/how-to-add-profile.md
+          - Add Config: dev-guide/how-to-add-config.md
+          - Add Shortcut: dev-guide/how-to-add-shortcut.md
   - API Reference:
       - Core: api/core.md
       - Bootstrap: api/bootstrap.md
@@ -74,6 +83,9 @@ nav:
       - Qt Layer: api/qt.md
       - Sidechain: api/sidechain.md
       - Tools: api/tools.md
+      - Clients: api/clients.md
+      - Download Registry: api/download-registry.md
+      - Phylogenetics: api/phylogenetics.md
       - Structure: api/structure.md
       - Logger: api/logger.md
       - Citations: api/citations.md

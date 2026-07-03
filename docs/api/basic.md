@@ -15,7 +15,7 @@ The plugin registry system enables package-scoped, subclass-based plugin discove
 
 ## Data Structures
 
-`IterableLoop` is a generic dataclass that manages an iterable with circular navigation (next/previous wrapping), tracking the current index.
+`IterableLoop` is a generic class that manages an iterable with circular navigation (next/previous wrapping), tracking the current index.
 
 ::: REvoDesign.basic.data_structure.IterableLoop
 

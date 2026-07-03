@@ -59,7 +59,7 @@ src/REvoDesign/
 ├── evaluate/
 │   └── evaluator.py             # Mutant evaluation and decision-making
 ├── config/                      # YAML config hierarchy (OmegaConf/Hydra)
-│   ├── defaults.yaml            # Default configuration
+│   ├── main.yaml                # Primary UI and workflow configuration
 │   ├── third_party/
 │   │   └── scorers/
 │   │       └── openkinetics_api.yaml  # OpenKinetics API settings
@@ -101,15 +101,18 @@ through a strict ordering of imports:
 At PyMOL start time, `REvoDesignPlugin.make_window()` runs:
 
 ```
-load_runtime_ui(ui_path)       # Load REvoDesign.ui → (main_window, RuntimeUiProxy)
-IconSetter(main_window)
-ConfigBus.initialize(ui=ui)    # Transition ConfigBus from headless → GUI mode
-ClusterTabController(...)
-FontSetter(main_window)
-LanguageSwitch(window)         # i18n translator setup
-MenuCollection(...)            # Wire menu items
-StoresWidget()                 # Server switch monitors (Editor, OpenMM)
-# Wire tab-specific button signals and combo-box connections
+load_runtime_ui(ui_path)         # Load REvoDesign.ui → (main_window, RuntimeUiProxy)
+_install_language_change_filter  # Intercept Qt language change events
+IconSetter(main_window)          # Set window and taskbar icon
+reload_configurations()          # Initialize ConfigBus (headless → GUI mode),
+                                 # register env vars, widget groups, and signals
+ClusterTabController(ui, bus)    # Manage clustering tab state
+FontSetter(main_window)          # Apply application font
+LanguageSwitch(window)           # i18n translator setup
+MenuCollection(...)              # Wire static menu items (working dir, reconfigure, etc.)
+QtCore.QTimer → _bind_menu_links # Deferred: scan config files for edit/recent-experiment links
+StoresWidget()                   # Server switch monitors (Editor, OpenMM)
+# Wire tab-specific button signals, combo-box connections, and WebSocket setup
 ```
 
 ## Singleton Pattern

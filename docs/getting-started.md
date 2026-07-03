@@ -24,24 +24,31 @@ ships PyQt6) can be used instead.
 
 ## 2. Install REvoDesign
 
-Install from PyPI:
+REvoDesign uses its own **Package Manager** — a standalone installer that runs
+inside PyMOL. It is not distributed on PyPI.
+
+1. Open PyMOL.
+2. Navigate to **Plugin > Plugin Manager > Install New Plugin**.
+3. Choose **Install from PyMOLWiki or any URL**.
+4. Paste the Package Manager URL:
+
+   ```
+   https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw/REvoDesign_PyMOL.py
+   ```
+
+5. Click **Fetch** and confirm.
+6. The REvoDesign Package Manager appears in the PyMOL menu. Use it to
+   install the core REvoDesign program. Supported sources:
+   - **Repository** — Install directly from the GitHub repository.
+   - **Local clone** — Install from a local source tree or cloned repo.
+   - **Local file** — Install from a `.zip` or `.tar.gz` archive.
+
+For development work, the `Makefile` provides pip-based convenience targets:
 
 ```bash
-pip install revodesign
-```
-
-Or, from a local clone:
-
-```bash
-pip install .
-```
-
-The `Makefile` in the project root also provides convenience targets:
-
-```bash
-make install           # pip install with extras
+make install           # pip install with basic extras
 make install-no-dept   # pip install, no dependency resolution
-make reinstall         # reinstall after code changes
+make reinstall         # clean, reformat, reinstall
 ```
 
 Optional extras (rf diffusion, ESM2, etc.) are listed in `pyproject.toml`.

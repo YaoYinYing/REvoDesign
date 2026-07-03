@@ -25,11 +25,17 @@ greater confidence and less manual effort.
 conda create -n revodesign python=3.12 -y
 conda activate revodesign
 conda install -c conda-forge pymol-open-source pyqt=5 -y
-pip install revodesign
 ```
 
-Then launch PyMOL, open the plugin manager, and install the REvoDesign
-Package Manager from the remote URL.
+Then launch PyMOL, open **Plugin > Plugin Manager > Install New Plugin**,
+choose **Install from PyMOLWiki or any URL**, and paste the Package Manager URL:
+
+```
+https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw/REvoDesign_PyMOL.py
+```
+
+Click **Fetch**, confirm, and use the REvoDesign Package Manager to install
+the main program.
 
 ## Learn More
 
