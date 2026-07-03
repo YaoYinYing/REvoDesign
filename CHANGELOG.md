@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```
 ## [Unreleased]
+
+## [1.9.0] - 2026-07-03
 ### Added
 - Runtime UI loading:
   - Added `src/REvoDesign/Qt/ui_runtime_loader.py` with `RuntimeUiProxy` and `load_runtime_ui()` — loads `.ui` at runtime instead of relying on a generated `Ui_REvoDesign.py`.
