@@ -41,3 +41,7 @@ solvers, or make changes to the core infrastructure.
   YAML config file and wire it into the widget system.
 - **[Adding a Shortcut](how-to-add-shortcut.md)** -- How to register a new
   function as a `cmd.extend` command with a dialog popup and menu entry.
+- **[Codacy Fix Playbook](codex-codacy.md)** -- AI-assisted workflow for
+  triaging and fixing Codacy findings in risk-prioritized batches.
+- **[DeepSource Fix Playbook](codex-deepsource.md)** -- AI-assisted workflow
+  for triaging and fixing DeepSource findings with minimal, verified diffs.
