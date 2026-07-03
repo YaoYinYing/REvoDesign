@@ -27,6 +27,8 @@ solvers, or make changes to the core infrastructure.
   support, adding new languages, and the translation pipeline.
 - **[UI Design](ui-design.md)** -- Qt Designer workflow, `.ui` files, object
   naming conventions, and the runtime UI loading system.
+- **[CGO Graphics](cgo.md)** -- Compiled Graphics Objects: PyMOL's low-level
+  OpenGL drawing API and REvoDesign's high-level `cgo_utils` wrapper.
 - **[Makefile Reference](makefile-reference.md)** -- A command-by-command
   reference for all `make` targets.
 - **[Package Manager](package-manager.md)** -- Standalone installer internals:

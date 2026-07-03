@@ -68,6 +68,7 @@ nav:
       - Rosetta Integration: dev-guide/rosetta.md
       - Translation (i18n): dev-guide/translation.md
       - UI Design: dev-guide/ui-design.md
+      - CGO Graphics: dev-guide/cgo.md
       - Dev Tricks:
           - Codacy Fixes (AI): dev-guide/codex-codacy.md
           - DeepSource Fixes (AI): dev-guide/codex-deepsource.md
