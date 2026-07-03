@@ -622,48 +622,24 @@ class OpenKineticsClient:
     ) -> dict[str, Any] | str:
         path = OPENKINETICS_ENDPOINTS["result"].format(job_id=job_id)
         if result_format == "json":
-            # ponytail: retry on 409 (result not ready) and on transient
-            # network errors. Re-check /status/ on each retry: if the job
-            # regressed to Processing, resume poll_until_complete; if it
-            # failed, raise; if still Completed, retry with backoff.
+            # ponytail: poll_until_complete now gates on predictionsMade,
+            # so the 409 window is tiny (result file write).  A few
+            # retries with backoff covers it + transient network errors.
             deadline = time.monotonic() + (timeout_seconds if timeout_seconds is not None else 30)
             delay = poll_interval_seconds
             while True:
-                _is_409: bool = False
                 try:
                     return self._request("GET", f"{path}?format=json")
                 except OpenKineticsAPIError as exc:
-                    msg = str(exc)
-                    _is_409 = "409" in msg
-                    # Hard HTTP error with a non-409 status code → raise.
-                    if _is_hard_http_error(msg):
+                    if _is_hard_http_error(str(exc)):
                         raise
-                    # 409 or network error → retryable.
-                # Re-check /status/ to distinguish race from regression.
-                try:
-                    status = self.get_status(job_id)
-                except OpenKineticsAPIError:
-                    # Status check itself failed (network); will retry below.
-                    status = {}
-                top = str(status.get("status", "")).strip().lower()
-                if top in ("failed", "error"):
-                    raise OpenKineticsAPIError(f"OpenKinetics job {job_id} failed: {status}")
-                if top == "processing":
-                    logging.info(
-                        "OpenKinetics job %s regressed to Processing, resuming poll...", job_id
-                    )
-                    self.poll_until_complete(
-                        job_id,
-                        poll_interval_seconds=poll_interval_seconds,
-                        timeout_seconds=max(0, int(deadline - time.monotonic())),
-                    )
+                    # 409 or network — retryable.
                 if time.monotonic() + delay > deadline:
                     raise OpenKineticsTimeoutError(
                         f"Timed out waiting for OpenKinetics result {job_id}"
                     )
                 logging.info(
-                    "OpenKinetics result not ready for job %s (%s), retrying in %ds...",
-                    job_id, "409" if _is_409 else "network", delay,
+                    "OpenKinetics result not ready for job %s, retrying in %ds...", job_id, delay
                 )
                 time.sleep(delay)
                 delay = min(delay * 2, 30)
@@ -728,15 +704,16 @@ class OpenKineticsClient:
                     )
                 logging.info("OpenKinetics job %s: %s", job_id, ", ".join(parts))
 
+            # ponytail: don't trust status alone — the API can report
+            # "Completed" before predictions are actually done.  Use the
+            # progress counters as the ground truth.
             if top_level_status.lower() in ("completed",):
-                return responses
-            if top_level_status.lower() in ("failed", "error"):
-                raise OpenKineticsAPIError(f"OpenKinetics job {job_id} failed: {status_payload}")
-
-            status_value = json.dumps(status_payload).lower()
-            if '"status": "completed"' in status_value:
-                return responses
-            if '"status": "failed"' in status_value or '"status": "error"' in status_value:
+                pred_done = progress.get("predictionsMade", 0)
+                pred_total = progress.get("predictionsTotal", 0)
+                if pred_total == 0 or pred_done >= pred_total:
+                    return responses
+                # Predictions still running — keep polling.
+            elif top_level_status.lower() in ("failed", "error"):
                 raise OpenKineticsAPIError(f"OpenKinetics job {job_id} failed: {status_payload}")
 
             if time.monotonic() - started > timeout_seconds:
