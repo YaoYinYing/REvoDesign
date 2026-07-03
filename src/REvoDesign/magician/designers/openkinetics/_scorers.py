@@ -441,12 +441,19 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         if not wait:
             return {"job_id": job_id, "status": "submitted"}
 
+        _poll_started = time.monotonic()
         status_responses = self.client.poll_until_complete(
             job_id,
             poll_interval_seconds=self.poll_interval_seconds,
             timeout_seconds=self.timeout_seconds,
         )
-        result_payload = self.client.get_result(job_id, result_format="json")
+        _remaining = self.timeout_seconds - int(time.monotonic() - _poll_started)
+        result_payload = self.client.get_result(
+            job_id,
+            result_format="json",
+            poll_interval_seconds=self.poll_interval_seconds,
+            timeout_seconds=max(0, _remaining),
+        )
         if not isinstance(result_payload, dict):
             raise OpenKineticsConfigurationError("Expected JSON result payload")
 

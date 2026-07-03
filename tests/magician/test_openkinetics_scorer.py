@@ -633,25 +633,29 @@ def test_openkinetics_poll_timeout():
 
 
 def test_openkinetics_get_result_retries_on_409():
-    """get_result should retry when the API returns 409 (result not ready yet)."""
-    call_count = [0]
+    """get_result retries on 409, re-checking /status/ between attempts."""
+    result_calls = [0]
 
     class _FlakyResultSession:
         def request(self, method, url, json=None, timeout=None, headers=None):
-            call_count[0] += 1
-            # First 3 calls: 409 (still processing); 4th call: success.
-            if call_count[0] <= 3:
-                return _FakeResponse(
-                    {"error": "Results are not yet available — job status is 'Processing'."},
-                    status_code=409,
-                )
-            return _FakeResponse({"result": [{"score": 1.0}]})
+            if "/result/" in url:
+                result_calls[0] += 1
+                if result_calls[0] <= 2:
+                    return _FakeResponse(
+                        {"error": "Results are not yet available — job status is 'Processing'."},
+                        status_code=409,
+                    )
+                return _FakeResponse({"result": [{"score": 1.0}]})
+            if "/status/" in url:
+                # Always report Completed (no regression).
+                return _FakeResponse({"status": "Completed"})
+            raise AssertionError(f"Unexpected request URL: {url}")
 
     client = OpenKineticsClient(session=_FlakyResultSession())
     client._require_api_key = lambda: "test-key"
-    result = client.get_result("job-1", result_format="json")
+    result = client.get_result("job-1", result_format="json", poll_interval_seconds=0)
     assert result == {"result": [{"score": 1.0}]}
-    assert call_count[0] == 4  # 3 failures + 1 success
+    assert result_calls[0] == 3  # 2 failures + 1 success
 
 
 def test_import_does_not_trigger_network_calls(monkeypatch):

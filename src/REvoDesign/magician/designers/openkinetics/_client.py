@@ -396,6 +396,27 @@ def _normalize_result_rows(
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _is_hard_http_error(error_message: str) -> bool:
+    """Return True if *error_message* contains a non-409 HTTP status code.
+
+    ``_request`` raises ``OpenKineticsAPIError`` with a message like
+    ``"OpenKinetics API request failed: 409 {body}"`` for HTTP errors or
+    ``"OpenKinetics API request failed: <exception>"`` for transport errors.
+    Only HTTP responses with a status code other than 409 are "hard" errors.
+    """
+    prefix = "OpenKinetics API request failed: "
+    if not error_message.startswith(prefix):
+        return False
+    tail = error_message[len(prefix):]
+    code_str = tail.split(" ", 1)[0]
+    return code_str.isdigit() and code_str != "409"
+
+
+# ---------------------------------------------------------------------------
 # HTTP client
 # ---------------------------------------------------------------------------
 
@@ -591,24 +612,61 @@ class OpenKineticsClient:
     def get_status(self, job_id: str) -> dict[str, Any]:
         return self._request("GET", OPENKINETICS_ENDPOINTS["status"].format(job_id=job_id))
 
-    def get_result(self, job_id: str, result_format: str = "json") -> dict[str, Any] | str:
+    def get_result(
+        self,
+        job_id: str,
+        result_format: str = "json",
+        *,
+        poll_interval_seconds: int = 3,
+        timeout_seconds: int | None = None,
+    ) -> dict[str, Any] | str:
         path = OPENKINETICS_ENDPOINTS["result"].format(job_id=job_id)
         if result_format == "json":
-            # ponytail: retry on 409 — /status/ can report Completed before
-            # /result/ is actually ready (eventual consistency). Treat 409
-            # as "still Processing" rather than a hard error.
-            _last_attempt = 4
-            for attempt in range(_last_attempt + 1):
+            # ponytail: retry on 409 (result not ready) and on transient
+            # network errors. Re-check /status/ on each retry: if the job
+            # regressed to Processing, resume poll_until_complete; if it
+            # failed, raise; if still Completed, retry with backoff.
+            deadline = time.monotonic() + (timeout_seconds if timeout_seconds is not None else 30)
+            delay = poll_interval_seconds
+            while True:
+                _is_409: bool = False
                 try:
                     return self._request("GET", f"{path}?format=json")
                 except OpenKineticsAPIError as exc:
-                    if "409" not in str(exc) or attempt == _last_attempt:
+                    msg = str(exc)
+                    _is_409 = "409" in msg
+                    # Hard HTTP error with a non-409 status code → raise.
+                    if _is_hard_http_error(msg):
                         raise
+                    # 409 or network error → retryable.
+                # Re-check /status/ to distinguish race from regression.
+                try:
+                    status = self.get_status(job_id)
+                except OpenKineticsAPIError:
+                    # Status check itself failed (network); will retry below.
+                    status = {}
+                top = str(status.get("status", "")).strip().lower()
+                if top in ("failed", "error"):
+                    raise OpenKineticsAPIError(f"OpenKinetics job {job_id} failed: {status}")
+                if top == "processing":
                     logging.info(
-                        "OpenKinetics result not ready for job %s (409, attempt %d/%d), retrying...",
-                        job_id, attempt + 1, _last_attempt + 1,
+                        "OpenKinetics job %s regressed to Processing, resuming poll...", job_id
                     )
-                    time.sleep(2 * (attempt + 1))
+                    self.poll_until_complete(
+                        job_id,
+                        poll_interval_seconds=poll_interval_seconds,
+                        timeout_seconds=max(0, int(deadline - time.monotonic())),
+                    )
+                if time.monotonic() + delay > deadline:
+                    raise OpenKineticsTimeoutError(
+                        f"Timed out waiting for OpenKinetics result {job_id}"
+                    )
+                logging.info(
+                    "OpenKinetics result not ready for job %s (%s), retrying in %ds...",
+                    job_id, "409" if _is_409 else "network", delay,
+                )
+                time.sleep(delay)
+                delay = min(delay * 2, 30)
         if result_format == "csv":
             api_key = self._require_api_key()
             try:
