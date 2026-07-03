@@ -85,6 +85,8 @@ class _FakeSession:
         self.validate_calls = 0
 
     def request(self, method, url, json=None, timeout=None, headers=None):
+        if url.endswith("/health/"):
+            return _FakeResponse({"status": "ok"})
         if url.endswith("/methods/"):
             return _FakeResponse(self.methods_response)
         if "/submit/" in url:
@@ -95,6 +97,8 @@ class _FakeSession:
             return _FakeResponse(payload)
         if "/result/" in url:
             return _FakeResponse(self.result_response)
+        if url.endswith("/quota/"):
+            return _FakeResponse({"daily": {"used": 5, "limit": 100}})
         raise AssertionError(f"Unexpected request URL: {url}")
 
     def post(self, url, timeout=None, headers=None, files=None, data=None):
@@ -533,6 +537,18 @@ def test_openkinetics_scorer_cache_writes_new_entries(tmp_path):
     assert result2["job_id"] == ""  # all-cache: no job_id
 
 
+def test_openkinetics_scorer_default_cache_dir_uses_set_cache_dir(tmp_path, monkeypatch):
+    """When no cache_dir is given, the scorer derives it from set_cache_dir()."""
+    from REvoDesign.magician.designers.openkinetics._scorers import CataProKcatKmScorer
+
+    monkeypatch.setattr(
+        "REvoDesign.magician.designers.openkinetics._scorers.set_cache_dir",
+        lambda: str(tmp_path / "main_cache"),
+    )
+    scorer = CataProKcatKmScorer(substrate_smiles="CCO", chain="B")
+    assert scorer.cache_dir == str(tmp_path / "main_cache" / "openkinetics")
+
+
 def test_openkinetics_client_requires_api_key(monkeypatch):
     monkeypatch.delenv("OPENKINETICS_API_KEY", raising=False)
     client = OpenKineticsClient()
@@ -614,6 +630,32 @@ def test_openkinetics_poll_timeout():
     client._require_api_key = lambda: "test-key"
     with pytest.raises(OpenKineticsTimeoutError):
         client.poll_until_complete("job-1", poll_interval_seconds=0, timeout_seconds=0)
+
+
+def test_openkinetics_get_result_retries_on_409():
+    """get_result retries on 409, re-checking /status/ between attempts."""
+    result_calls = [0]
+
+    class _FlakyResultSession:
+        def request(self, method, url, json=None, timeout=None, headers=None):
+            if "/result/" in url:
+                result_calls[0] += 1
+                if result_calls[0] <= 2:
+                    return _FakeResponse(
+                        {"error": "Results are not yet available — job status is 'Processing'."},
+                        status_code=409,
+                    )
+                return _FakeResponse({"result": [{"score": 1.0}]})
+            if "/status/" in url:
+                # Always report Completed (no regression).
+                return _FakeResponse({"status": "Completed"})
+            raise AssertionError(f"Unexpected request URL: {url}")
+
+    client = OpenKineticsClient(session=_FlakyResultSession())
+    client._require_api_key = lambda: "test-key"
+    result = client.get_result("job-1", result_format="json", poll_interval_seconds=0)
+    assert result == {"result": [{"score": 1.0}]}
+    assert result_calls[0] == 3  # 2 failures + 1 success
 
 
 def test_import_does_not_trigger_network_calls(monkeypatch):
