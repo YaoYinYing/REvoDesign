@@ -704,16 +704,13 @@ class OpenKineticsClient:
                     )
                 logging.info("OpenKinetics job %s: %s", job_id, ", ".join(parts))
 
-            # ponytail: don't trust status alone — the API can report
-            # "Completed" before predictions are actually done.  Use the
-            # progress counters as the ground truth.
+            # ponytail: status is authoritative — the API marks jobs
+            # "Completed" even when some variants lack predictions
+            # (e.g. 10/15).  The 409 race on /result/ is handled by
+            # get_result's retry loop.
             if top_level_status.lower() in ("completed",):
-                pred_done = progress.get("predictionsMade", 0)
-                pred_total = progress.get("predictionsTotal", 0)
-                if pred_total == 0 or pred_done >= pred_total:
-                    return responses
-                # Predictions still running — keep polling.
-            elif top_level_status.lower() in ("failed", "error"):
+                return responses
+            if top_level_status.lower() in ("failed", "error"):
                 raise OpenKineticsAPIError(f"OpenKinetics job {job_id} failed: {status_payload}")
 
             if time.monotonic() - started > timeout_seconds:
