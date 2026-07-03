@@ -40,9 +40,11 @@ def test_rfdiffusion_general():
 
     sequence_designed = RosettaPyProteinSequence.from_pdb(pdb_path)
     assert sequence_designed.all_chain_ids == ["A"]
-    assert (
-        sequence_designed.chains[0].sequence != sequence_original.chains[0].sequence
-    ), f"Expected different sequences: {sequence_designed.chains[0].sequence=} != {sequence_original.chains[0].sequence=}"
+    assert sequence_designed.chains[0].sequence != sequence_original.chains[0].sequence, (
+        f"Expected different sequences: "
+        f"{sequence_designed.chains[0].sequence=} != "
+        f"{sequence_original.chains[0].sequence=}"
+    )
 
     assert sequence_designed.chains[0].sequence.startswith(
         "GGGGGG"

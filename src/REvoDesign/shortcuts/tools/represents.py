@@ -575,10 +575,10 @@ class BFactor:
         val = self.bfactor_data[self.bfactor_data.iloc[:, 0] == pos_one_idx + self.offset].iloc[0, 1]
         if not isinstance(val, float):
             logging.warning(
-                f"Failed to retrieve B-factor value for position {pos_one_idx} (zero-indexed {pos_one_idx-1})"
+                f"Failed to retrieve B-factor value for position {pos_one_idx} (zero-indexed {pos_one_idx - 1})"
             )
             raise issues.InvalidInputError(
-                f"Failed to retrieve B-factor value for position {pos_one_idx} (zero-indexed {pos_one_idx-1})"
+                f"Failed to retrieve B-factor value for position {pos_one_idx} (zero-indexed {pos_one_idx - 1})"
             )
 
         return float(val)
@@ -602,16 +602,16 @@ class BFactor:
             The bfactor value
         """
         bfact = self.get(pos_one_idx)
-        logging.debug(f"Setting B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1}) to {bfact}")
+        logging.debug(f"Setting B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx - 1}) to {bfact}")
         try:
             cmd.alter_state(
                 state=state, selection=f"{self.obj_sel_pymol} and i. {pos_one_idx}", expression=f"b={bfact}"
             )
         except Exception as e:
-            logging.error(f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1}): {e}")
+            logging.error(f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx - 1}): {e}")
             warnings.warn(
                 issues.BadDataWarning(
-                    f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1})"
+                    f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx - 1})"
                 )
             )
         return bfact
@@ -801,13 +801,13 @@ def _load_b_factors(
                 bfact_ori = bf_chain.get(pos)
             except (IndexError, KeyError, issues.InvalidInputError):
                 logging.warning(
-                    f"Position {pos} (zero-indexed {pos-1}) exceeds the length of new B-factor data ({len(bf_chain.bfactor_data)}); setting B-factor to -1.0"
+                    f"Position {pos} (zero-indexed {pos - 1}) exceeds the length of new B-factor data ({len(bf_chain.bfactor_data)}); setting B-factor to -1.0"
                 )
                 continue
             bfacts_orignal.append(bfact_ori)
             bfacts_rescaled.append(bfact)
             # fix pos to one-based indexing for pymol
-            logging.debug(f"Setting B-factor for position {pos} (zero-indexed {pos-1}) to {bfact}")
+            logging.debug(f"Setting B-factor for position {pos} (zero-indexed {pos - 1}) to {bfact}")
             bfact_assign.assign_to_res_pymol(pos, state=0)
 
         if not visual:
@@ -843,7 +843,8 @@ def _load_b_factors(
 
         if do_rescale:
             logging.debug(
-                f'ramp_new {f"count_{mol}_{chain_id}_ori, {obj}, [{min(bfacts_orignal)}, {max(bfacts_orignal)}], {ramp_color}"}'
+                f"ramp_new count_{mol}_{chain_id}_ori, {obj}, "
+                f"[{min(bfacts_orignal)}, {max(bfacts_orignal)}], {ramp_color}"
             )
             cmd.ramp_new(
                 f"count_{mol}_{chain_id}_ori", obj, [min(bfacts_orignal), max(bfacts_orignal)], color=ramp_color

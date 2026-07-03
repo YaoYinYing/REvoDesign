@@ -3,15 +3,113 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+import json as json_module
 import os
+import re
+import warnings
+from pathlib import Path
 
 import pytest
+import requests
 
 from REvoDesign.magician.designers import ColabDesigner_MPNN
+from REvoDesign.magician.designers.openkinetics import (
+    CataProKcatKmScorer,
+    OpenKineticsAPIError,
+    load_chain_sequence_context,
+    relabel_pdb_position_to_sequential,
+)
 from REvoDesign.sidechain.mutate_runner.PIPPack import PIPPack_worker
 from REvoDesign.tools.customized_widgets import set_widget_value
+from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id
 from tests.conftest import TestWorker
 from tests.data.test_data import KeyData
+
+TESTS_DIR = Path(__file__).resolve().parents[2]
+OPENKINETICS_FIXTURE_DIR = TESTS_DIR / "data" / "kinetics" / "openkinetics_1SUO"
+OPENKINETICS_LIVE_MUTANT_FILE = TESTS_DIR / "data" / "mutagenese" / "evaluate_pssm_ent_surf.besthits.mut.txt"
+OPENKINETICS_LIVE_PDB = TESTS_DIR / "data" / "pdb" / "1SUO.pdb"
+
+
+def _real_openkinetics_api_key() -> str:
+    if os.environ.get("REVODESIGN_RUN_OPENKINETICS_LIVE") != "1":
+        pytest.skip("Set REVODESIGN_RUN_OPENKINETICS_LIVE=1 to submit to the live OpenKinetics API")
+    key = os.environ.get("OPENKINETICS_API_KEY", "").strip()
+    if not key:
+        warnings.warn(
+            "REVODESIGN_RUN_OPENKINETICS_LIVE=1 but OPENKINETICS_API_KEY is not set; skipping live OpenKinetics test.",
+            UserWarning,
+            stacklevel=2,
+        )
+        pytest.skip("Set OPENKINETICS_API_KEY env var for live OpenKinetics tests")
+    return key
+
+
+def _openkinetics_live_http_error_status(exc: OpenKineticsAPIError) -> int | None:
+    match = re.search(r"\b([45]\d\d)\b", str(exc))
+    return int(match.group(1)) if match else None
+
+
+def test_openkinetics_live_http_error_status_parser():
+    assert (
+        _openkinetics_live_http_error_status(OpenKineticsAPIError("OpenKinetics API request failed: 502 Bad Gateway"))
+        == 502
+    )
+    assert (
+        _openkinetics_live_http_error_status(OpenKineticsAPIError("OpenKinetics API request failed: 403 Forbidden"))
+        == 403
+    )
+    assert (
+        _openkinetics_live_http_error_status(OpenKineticsAPIError("OpenKinetics API request failed: dns down")) is None
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.very_slow
+def test_visualize_openkinetics_catapro_live_submit():
+    """Live OpenKinetics submit smoke for the Visualise-tab 1SUO mutant file."""
+    wt_sequences, _, residue_numbers = load_chain_sequence_context(OPENKINETICS_LIVE_PDB, chain_id="A")
+    variants = []
+    for label in OPENKINETICS_LIVE_MUTANT_FILE.read_text(encoding="utf-8").splitlines():
+        mutant = extract_mutants_from_mutant_id(
+            relabel_pdb_position_to_sequential(label, residue_numbers, chain_id="A"),
+            wt_sequences,
+        )
+        variants.append(
+            {
+                "variant_id": label,
+                "mutation": label,
+                "protein_sequence": mutant.mutated_sequence.get_sequence_by_chain(chain_id="A"),
+            }
+        )
+
+    scorer = CataProKcatKmScorer(
+        api_key=_real_openkinetics_api_key(),
+        cache_enabled=False,
+        timeout_seconds=60,
+    )
+    scorer.initialize(pdb_path=OPENKINETICS_LIVE_PDB)
+    try:
+        result = scorer.score_variants(
+            variants,
+            substrate_smiles=scorer.substrate_smiles,
+            wait=False,
+            use_cache=False,
+        )
+    except OpenKineticsAPIError as exc:
+        status_code = _openkinetics_live_http_error_status(exc)
+        if status_code is not None:
+            warnings.warn(
+                f"Live OpenKinetics API returned HTTP {status_code}; skipping environment-dependent test.",
+                UserWarning,
+                stacklevel=2,
+            )
+            pytest.skip(f"Live OpenKinetics API returned HTTP {status_code}")
+        raise
+
+    assert result["status"] == "submitted"
+    assert len(result["job_id"]) > 0
+    assert len(variants) == len(OPENKINETICS_LIVE_MUTANT_FILE.read_text(encoding="utf-8").splitlines())
 
 
 # move to fast tests
@@ -327,3 +425,102 @@ class TestREvoDesignPlugin_TabVisualize:
         assert len(mt.all_mutant_branch_ids) == 4
         for _id in [f"c.{i}" for i in range(0, 4)]:
             assert _id in mt.all_mutant_branch_ids
+
+    def test_visualize_openkinetics_catapro(
+        self,
+        test_worker: TestWorker,
+        KeyDataDuringTests: KeyData,
+        monkeypatch,
+        tmp_path,
+    ):
+        """Visualise tab scoring via OpenKinetics CataPro with mocked HTTP."""
+        test_worker.test_id = test_worker.method_name()
+        monkeypatch.setenv("OPENKINETICS_API_KEY", "test-openkinetics-key")
+        from REvoDesign.magician.designers.openkinetics._client import load_openkinetics_config
+
+        openkinetics_config = load_openkinetics_config()
+        monkeypatch.setattr(
+            "REvoDesign.magician.designers.openkinetics._scorers.load_openkinetics_config",
+            lambda: {**openkinetics_config, "cache_dir": str(tmp_path / "openkinetics-cache")},
+        )
+
+        methods_json = json_module.loads(
+            (OPENKINETICS_FIXTURE_DIR / "methods_response.json").read_text(encoding="utf-8")
+        )
+
+        status_index = [0]
+        submitted_data = []
+
+        def _fake_request(self_, method, url, json=None, timeout=None, headers=None, **__):
+            json_payload = json
+            if "/methods/" in url:
+                resp = requests.Response()
+                resp.status_code = 200
+                resp._content = json_module.dumps(methods_json).encode("utf-8")
+                return resp
+            if "/validate/" in url:
+                resp = requests.Response()
+                resp.status_code = 200
+                resp._content = json_module.dumps({"valid": True}).encode("utf-8")
+                return resp
+            if "/submit/" in url:
+                submitted_data[:] = list((json_payload or {}).get("data", []))
+                resp = requests.Response()
+                resp.status_code = 200
+                resp._content = json_module.dumps({"jobId": "test-openkinetics-job"}).encode("utf-8")
+                return resp
+            if "/status/" in url:
+                status_index[0] += 1
+                resp = requests.Response()
+                resp.status_code = 200
+                status = "Processing" if status_index[0] == 1 else "Completed"
+                resp._content = json_module.dumps({"status": status}).encode("utf-8")
+                return resp
+            if "/result/" in url:
+                columns = ["kcat/Km (1/(s*mM))"]
+                data = []
+                for i, row in enumerate(submitted_data):
+                    seq = row.get("Protein Sequence", "MOCK")
+                    data.append(
+                        {
+                            "Protein Sequence": seq,
+                            "variant_id": f"variant_{i}",
+                            "kcat/Km (1/(s*mM))": 10.0 + i,
+                        }
+                    )
+                resp = requests.Response()
+                resp.status_code = 200
+                resp._content = json_module.dumps(
+                    {"jobId": "test-openkinetics-job", "columns": columns, "data": data}
+                ).encode("utf-8")
+                return resp
+            raise AssertionError(f"Unexpected request: {method} {url}")
+
+        test_worker.load_session_and_check(from_rcsb=True)
+        monkeypatch.setattr("requests.sessions.Session.request", _fake_request)
+        test_worker.go_to_tab(tab_name="config")
+        set_widget_value(test_worker.plugin.ui.comboBox_sidechain_solver, "Dunbrack Rotamer Library")
+        test_worker.go_to_tab(tab_name="visualize")
+
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_input_mut_table_csv,
+            KeyDataDuringTests.minimum_mutant_file,
+        )
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_output_pse_visualize,
+            test_worker.test_data.test_data_repo + "/analysis/1SUO.xtal.openkinetics_catapro.pze",
+        )
+        set_widget_value(test_worker.plugin.ui.comboBox_profile_type_2, "OpenKinetics-CataPro-kcat/Km")
+        set_widget_value(test_worker.plugin.ui.comboBox_group_name, "openkinetics_test")
+
+        test_worker.save_screenshot(widget=test_worker.plugin.window, basename=f"{test_worker.test_id}_before_run")
+        test_worker.save_new_experiment()
+        test_worker.click(test_worker.plugin.ui.pushButton_run_visualizing)
+        test_worker.save_pymol_png(basename=test_worker.test_id)
+        test_worker.save_screenshot(widget=test_worker.plugin.window, basename=f"{test_worker.test_id}_after_run")
+
+        pse_path = test_worker.test_data.test_data_repo + "/analysis/1SUO.xtal.openkinetics_catapro.pze"
+        assert os.path.exists(pse_path)
+        mt = test_worker.check_existed_mutant_tree()
+        assert "openkinetics_test" in mt.all_mutant_branch_ids
+        assert len(submitted_data) == 4

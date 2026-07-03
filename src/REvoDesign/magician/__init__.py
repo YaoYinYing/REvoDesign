@@ -18,8 +18,8 @@ from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import timing
 
-# 1. implement and import the designer
-from .designers import ColabDesigner_MPNN, ddg  # noqa: F401 -- ddg registered via build_plugin_registry
+# Trigger subpackage imports so the registry can discover all designer subclasses.
+from . import designers as _designers  # noqa: F401
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -30,8 +30,18 @@ DESIGNER_REGISTRY = build_plugin_registry(
 ALL_DESIGNER_CLASSES: list[type[ExternalDesignerAbstract]] = list(DESIGNER_REGISTRY.all_classes)
 IMPLEMENTED_DESIGNERS: Mapping[str, type[ExternalDesignerAbstract]] = DESIGNER_REGISTRY.implemented_map
 
+# Re-export discovered classes so ``from REvoDesign.magician import <Name>`` still works.
+for _cls in ALL_DESIGNER_CLASSES:
+    globals()[_cls.__name__] = _cls
 
-__all__ = ["ExternalDesignerAbstract", "ColabDesigner_MPNN"]
+__all__ = [
+    "ExternalDesignerAbstract",
+    "Magician",
+    "MagicianAssistant",
+    "DESIGNER_REGISTRY",
+    "ALL_DESIGNER_CLASSES",
+    "IMPLEMENTED_DESIGNERS",
+]
 
 
 @dataclass(frozen=True)

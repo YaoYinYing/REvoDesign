@@ -40,6 +40,28 @@ protein_letters_3to1 = {
     for k, v in IUPACData.protein_letters_1to3.items()
 }
 
+
+def aa3_to_aa1(three_letter_code: str) -> str:
+    """Convert a 3-letter amino acid code to its 1-letter equivalent.
+
+    Uses standard IUPAC codes (via Biopython) with non-standard codes
+    from ``REvoDesign.data.protein_code.rAA`` as a fallback.
+
+    Raises:
+        ValueError: If the 3-letter code is not recognised.
+    """
+    from REvoDesign.data.protein_code import rAA
+
+    code = three_letter_code.strip().upper()
+    one_letter = protein_letters_3to1.get(code)
+    if one_letter is not None:
+        return one_letter
+    one_letter = rAA.get(code)
+    if one_letter is not None:
+        return one_letter
+    raise ValueError(f"Unknown 3-letter amino acid code: {three_letter_code!r}")
+
+
 NOT_ALLOWED_GROUP_ID_PREFIX: tuple = (
     "RDPM",
     "multi_design",
@@ -862,12 +884,13 @@ def pick_design_from_profile(
     pix_per_block = 25
 
     button_matrix = QButtonMatrix(
-        df_matrix=df_button_matrix, sequence=sequence, cmap=cmap, flip_cmap=True, button_size=12
+        df_matrix=df_button_matrix, sequence=sequence, cmap=cmap, flip_cmap=True, button_size=pix_per_block
     )
     button_matrix.setObjectName("ProfileDesignButtonMatrix")
-    button_matrix.label_size = [18, 9]
+    button_matrix.label_size = [18, pix_per_block]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
+    button_matrix.setFixedSize(button_matrix.sizeHint())
 
     button_matrix.active_func = mutate_with_gridbuttons
 
@@ -883,7 +906,8 @@ def pick_design_from_profile(
 
     # Set window size constraints
     # - Adjust height and width to fit available screen size dynamically
-    fixed_height = pix_per_block * 21 + 110  # 110 for the banner and spacing
+    scroll_bar_height = QtWidgets.QScrollBar(QtCompat.Horizontal).sizeHint().height()
+    fixed_height = button_matrix.height() + scroll_bar_height + 130  # banner, frame, and layout spacing
     calculated_width = pix_per_block * (num_cols + 1)
     max_width = min(calculated_width, screen_width - 20)
 
@@ -909,10 +933,12 @@ View Highlight Nbr: {view_highlight_nbr}
 
     # Add a scroll area to the window
     scroll_area = QtWidgets.QScrollArea()
+    scroll_area.setObjectName("ProfileDesignButtonMatrixScrollArea")
     scroll_area.setWidget(button_matrix)
-    scroll_area.setWidgetResizable(True)
-    scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+    scroll_area.setWidgetResizable(False)
+    scroll_area.setHorizontalScrollBarPolicy(QtCompat.ScrollBarAsNeeded)
     scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  # Disable vertical scrollbar
+    scroll_area.setMinimumHeight(button_matrix.height() + scroll_bar_height + scroll_area.frameWidth() * 2)
 
     # Remove extra padding or margins to make buttons compact
     button_matrix.setContentsMargins(0, 0, 0, 0)

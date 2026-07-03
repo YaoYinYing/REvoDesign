@@ -79,6 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added modular integration guide `docs/modular/add_new_sidechain_solver.md` for adding and validating new sidechain solvers.
 - launch:
   - added splash label ("Loading REvoDesign…") shown immediately when the plugin is launched from PyMOL, giving instant feedback while the main window constructs.
+- UI:
+  - Added `button_matrix.hover_crosshair.color` and `button_matrix.hover_crosshair.width` to `appearence.yaml` for profile/GREMLIN matrix hover styling.
 
 ### Changed
 - Runtime UI loading:
@@ -106,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `has_docker_daemon()` helper for docker-dependent test guards.
 - Plugins/registries:
   - Sidechain solvers now use scoped auto-discovery registry in `sidechain_solver.py` while keeping compatibility symbols (`ALL_RUNNER_CLASSES`, `IMPLEMENTED_RUNNER`) and manager API.
+  - `PyMOL_mutate` (Dunbrack Rotamer Library) now derives the molecule name from the input PDB basename instead of receiving it as a constructor argument. Removed `molecule` field from `SidechainSolverConfig` — `SidechainSolver.setup()` reads the molecule directly from the config bus for `make_temperal_input_pdb()`.
   - Magician designers now use scoped auto-discovery registry in `magician/__init__.py` while keeping compatibility symbols (`ALL_DESIGNER_CLASSES`, `IMPLEMENTED_DESIGNERS`) and assistant API.
   - Cluster methods now use scoped auto-discovery registry in `cluster_sequence.py` while keeping compatibility symbols (`ALL_CLUSTER_METHOD_CLASSES`, `IMPLEMENTED_CLUSTER_METHOD`) and `ClusterMethodManager` API.
 - clusters:
@@ -136,8 +139,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - added `from __future__ import annotations` per repo header contract.
   - added empty-collection guard after discarding out-of-range pairs so `load_co_evolving_pairs()` cannot dereference `current_item` on an empty `IterableLoop`.
   - `run_gremlin_tool()`: added matching empty guard after `plot_coevolved_pair_in_pymol()` to skip button wiring when no pairs survive filtering.
+- OpenKinetics (`src/REvoDesign/magician/designers/openkinetics/`):
+  - Added retry logic (3 attempts with 1s backoff) to `_request()` for transient network failures; all transport errors now raise `OpenKineticsAPIError`.
+  - Added `parallel_scorer()` method on `OpenKineticsScorerAbstract` for batch submission in a single API call instead of one-per-mutant.
+  - Added configurable chain selection (`chain` parameter) and auto substrate SMILES resolution from PDB metadata on `initialize()`.
+  - Plumbed `pdb_path` from `VisualizingWorker` through to scorer initialization.
+  - `prefer_lower` is now a class attribute on each generated scorer class instead of an instance attribute (Km scorers: `True`; kcat and kcat/Km scorers: `False`).
+  - Added self-service API key generation via `/api/api-key/generate/` when no local `OPENKINETICS_API_KEY` is available.
+  - Added immediate API key persistence to `environ.yaml` and current-process environment registration so downstream scoring can continue without manual reload.
+  - Added info/debug logging for key source selection, key-generation requests, HTTP status, persistence path, and conflict handling while redacting secret values.
+  - Live-test gating now skips with an explicit warning when `REVODESIGN_RUN_OPENKINETICS_LIVE=1` is set without `OPENKINETICS_API_KEY`.
+  - Live OpenKinetics submit smoke now skips environment-dependent HTTP `4xx`/`5xx` service responses, such as bad VPS/IP `502` failures.
+- ci:
+  - Added `REVODESIGN_RUN_OPENKINETICS_LIVE=1` and `OPENKINETICS_API_KEY` secret wiring to tagged full unit tests for live OpenKinetics coverage when CI secrets are present.
+- Registries: Removed redundant explicit class-name import/re-export blocks from `magician/__init__.py`, `designers/__init__.py`, `openkinetics/__init__.py`, and `sidechain/sidechain_solver.py`. The auto-discovery registry is the sole source of truth; class re-exports use a dynamic `globals()` loop keyed off the registry.
+- `__all__` lists simplified to static literals only — dynamically-generated class names no longer appear in `__all__`, resolving Pylance/Pyright type-checking errors on unpacked tuples.
+- Docs: Merged `AGENTS.md` into `CLAUDE.md` — single canonical project instruction file. Added PR/commit guidelines, headless CI setup, and DGL install steps.
+- Docs: Added CLAUDE.md guidance for test-case-driven live/integration fixes: encode the smallest test or skip guard first, run the focused keyword gate, and changelog the result.
+- Tooling: Restricted black to `--target-version py310` so it does not emit PEP 701 multi-line f-strings (Python 3.12+ only). Added pre-commit hook `check-multiline-fstring` as defense in depth.
+- Tests:
+  - Added live OpenKinetics integration test `test_visualize_openkinetics_catapro_live_submit` (guarded by `REVODESIGN_RUN_OPENKINETICS_LIVE=1` and `OPENKINETICS_API_KEY` env var, no hardcoded paths).
+  - Added `test_openkinetics_client_wraps_transport_errors`, `test_openkinetics_parallel_scorer_batches_variants`, `test_openkinetics_sequence_selection_uses_configured_chain`.
+  - Added OpenKinetics API key auto-registration tests covering self-service generation, immediate `environ.yaml` persistence, active-key conflict handling, and redacted debug logging.
 
 ### Fixed
+- UI:
+  - Restored profile-design matrix layout after the painted `QButtonMatrix` refactor:
+    - profile matrices now stay horizontally scrollable instead of being squeezed into the dialog viewport.
+    - bottom residue-position labels are visible, centered, and no longer covered by the horizontal scrollbar.
+    - profile WT cells show the one-letter wild residue while GREMLIN matrices keep the `WT` label.
+    - hover crosshair is thicker and green by default for clearer row/column tracking.
+- Fixed 7 multi-line f-strings (PEP 701, Python 3.12+ only) across `package_manager.py`, `represents.py`, `citation_manager.py`, `menu_item.py`, and `test_rfd.py` that caused `SyntaxError` on Python 3.10/3.11. Replaced with implicit string concatenation.
 - packaging:
   - `pyproject.toml` sdist now explicitly includes `REvoDesign.ui` and `language/*.qm`/`.ts` so source distributions contain the runtime UI and translation binaries.
 - ci:
@@ -146,6 +178,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - server/dependencies:
   - bumped `Flask-HTTPAuth` from `4.8.0` to `4.8.1` across test/runtime env definitions to close dependabot alert `#10` (`GHSA-p44q-vqpr-4xmg` / `CVE-2026-34531`).
   - bumped runtime `requests` from `2.32.5` to `2.33.0` and raised the base dependency floor to `>=2.33.0` to close dependabot alert `#9` (`GHSA-gc5v-m9x4-r6x2` / `CVE-2026-25645`).
+- tests:
+  - `DockerServerStack.start()` now retries web container creation up to 3 times with a 5-second delay between attempts to mitigate transient Docker daemon failures on CI.
 - sidechain:
   - fixed DLPacker radius-based reconstruct target selection in
     `src/REvoDesign/sidechain/mutate_runner/DLPacker.py` to prevent rename-only mutate outputs:

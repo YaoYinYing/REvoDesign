@@ -1,0 +1,11 @@
+{
+  "ligand_atom_count": 12,
+  "ligand_chain_id": "A",
+  "ligand_identifier": "CPZ:A:600",
+  "ligand_residue_name": "CPZ",
+  "ligand_residue_number": 600,
+  "pdb_block_sha256": "c75e90979832733367a03376f778479adcf9a8bcd8f4f1e9860aa9b84143337a",
+  "smiles_resolution": "rdkit",
+  "structure_id": "1SUO",
+  "substrate_smiles": "ClC1CCC(C2CNCN2)CC1"
+}

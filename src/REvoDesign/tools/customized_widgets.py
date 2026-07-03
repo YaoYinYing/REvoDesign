@@ -449,6 +449,8 @@ class QButtonMatrix(QtWidgets.QWidget):
     label_margin: int = 4
     cell_gap: int = 0
     highlight_width: int = 2
+    hover_highlight_width: int = 4
+    hover_highlight_color: str = "#20c45a"
     tooltip_padding: int = 2
 
     # --- Class-level defaults ---
@@ -534,6 +536,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         # --- Geometry placeholders set in init_ui ---
         self._n_rows: int = 0
         self._n_cols: int = 0
+        self._load_crosshair_appearance()
 
     # -----------------------------------------------------------------
     # Public API (compatible with the old button-grid widget)
@@ -555,6 +558,26 @@ class QButtonMatrix(QtWidgets.QWidget):
         normalized = 1.0 - (value - self.min_value) / denom
         rgba = self.colormap(normalized)
         return QtGui.QColor.fromRgbF(rgba[0], rgba[1], rgba[2], rgba[3])
+
+    def _load_crosshair_appearance(self):
+        try:
+            from omegaconf import OmegaConf
+
+            from REvoDesign import reload_config_file
+
+            cfg = reload_config_file("appearence")
+            color = OmegaConf.select(cfg, "button_matrix.hover_crosshair.color", default=self.hover_highlight_color)
+            width = OmegaConf.select(cfg, "button_matrix.hover_crosshair.width", default=self.hover_highlight_width)
+        except Exception:
+            return
+
+        qcolor = QtGui.QColor(str(color))
+        if qcolor.isValid():
+            self.hover_highlight_color = qcolor.name()
+        try:
+            self.hover_highlight_width = max(1, int(width))
+        except (TypeError, ValueError):
+            pass
 
     def is_wt_button(self, row_name: str, col_name: str, row: int, col: int) -> bool:
         """Return True if the cell represents a wild-type pair."""
@@ -962,7 +985,9 @@ class QButtonMatrix(QtWidgets.QWidget):
 
         # 5. Hover crosshair (transient)
         if self._hover_index is not None and self._hover_index != self._pressed_index:
-            self._draw_crosshair(painter, self._hover_index, geo, QtGui.QColor(255, 80, 80, 140))
+            color = QtGui.QColor(self.hover_highlight_color)
+            color.setAlpha(230)
+            self._draw_crosshair(painter, self._hover_index, geo, color, self.hover_highlight_width)
 
         # 6. Pressed-cell overlay (momentary)
         if self._pressed_index is not None:
@@ -995,7 +1020,16 @@ class QButtonMatrix(QtWidgets.QWidget):
                     painter.save()
                     painter.setFont(wt_font)
                     painter.setPen(QtGui.QColor(0, 0, 0))
-                    painter.drawText(r, QtCompat.AlignCenter, "WT")
+                    painter.drawText(
+                        r,
+                        QtCompat.AlignCenter,
+                        self.get_WT_label(
+                            row_name=str(self.alphabet_row[row]),
+                            col_name=str(self.alphabet_col[col]),
+                            row=row,
+                            col=col,
+                        ),
+                    )
                     painter.restore()
 
     def _paint_review_annotations(self, painter: QtGui.QPainter, geo: MatrixGeometry):
@@ -1017,12 +1051,19 @@ class QButtonMatrix(QtWidgets.QWidget):
             painter.drawLine(r.topRight(), r.bottomLeft())
             painter.restore()
 
-    def _draw_crosshair(self, painter: QtGui.QPainter, idx: MatrixIndex, geo: MatrixGeometry, color: QtGui.QColor):
+    def _draw_crosshair(
+        self,
+        painter: QtGui.QPainter,
+        idx: MatrixIndex,
+        geo: MatrixGeometry,
+        color: QtGui.QColor,
+        width: int | None = None,
+    ):
         """Draw row+column crosshair bands centred on *idx*."""
         painter.save()
         h_bar = self._row_band_rect(idx.row, geo)
         v_bar = self._column_band_rect(idx.col, geo)
-        pen = QtGui.QPen(color, self.highlight_width)
+        pen = QtGui.QPen(color, width or self.highlight_width)
         painter.setPen(pen)
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.drawRect(h_bar)
@@ -1032,15 +1073,18 @@ class QButtonMatrix(QtWidgets.QWidget):
     def _paint_labels(self, painter: QtGui.QPainter, geo: MatrixGeometry):
         """Paint row labels (left) and column labels (bottom)."""
         painter.save()
-        painter.setFont(self._label_font)
         painter.setPen(QtGui.QColor(220, 220, 220))
         lm = self.label_margin
 
+        painter.setFont(self._label_font)
         for row, name in enumerate(self.alphabet_row):
             r = self._cell_rect(row, 0, geo)
             label_rect = QtCore.QRect(lm, r.top(), geo.row_label_width, r.height())
             painter.drawText(label_rect, QtCompat.AlignRight | QtCompat.AlignVCenter, str(name))
 
+        col_font = QtGui.QFont(self._label_font)
+        col_font.setPointSizeF(min(self.button_size * 0.45, 11))
+        painter.setFont(col_font)
         for col, name in enumerate(self.alphabet_col):
             r = self._cell_rect(0, col, geo)
             if self.zero_index_offset:
@@ -1054,7 +1098,7 @@ class QButtonMatrix(QtWidgets.QWidget):
                 r.width(),
                 geo.col_label_height,
             )
-            painter.drawText(label_rect, QtCompat.AlignTop | QtCompat.AlignLeft, str(name))
+            painter.drawText(label_rect, QtCompat.AlignCenter, str(name))
         painter.restore()
 
     # -----------------------------------------------------------------

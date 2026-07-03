@@ -34,19 +34,10 @@ class PyMOL_mutate(MutateRunnerAbstract):
     name: str = "Dunbrack Rotamer Library"
     installed: bool = True
 
-    # TODO: deprecate molecule argument as it's by default the same as input pdb basename w/o suffix
-
-    def __init__(self, pdb_file, molecule="", **kwargs):
-        """
-        Initialize PyMOL_mutate with a molecule and input session.
-
-        Args:
-        - molecule: Molecule object
-        - input_session: Input session information
-        """
+    def __init__(self, pdb_file, **kwargs):
         super().__init__(pdb_file)
         self.input_session = pdb_file
-        self.molecule = molecule
+        self.molecule = os.path.splitext(os.path.basename(pdb_file))[0]
 
         self.temp_dir = self.new_cache_dir
 

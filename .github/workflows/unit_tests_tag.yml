@@ -102,7 +102,7 @@ jobs:
         uses: styfle/cancel-workflow-action@85880fa0301c86cca9da44039ee3bb12d3bedbfa # 0.12.1
 
       - name: Checkout Repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: setup Qt headless Display on Ubuntu
         if: startsWith(matrix.os, 'ubuntu')
@@ -128,7 +128,7 @@ jobs:
         uses: pyvista/setup-headless-display-action@8b39741bba8c06652c7def81821b5841adc17582 # v2
       
       - name: Setup Conda on ${{ matrix.os }} 
-        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
+        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
         with:
             auto-update-conda: false
             activate-environment: ${{ env.conda_env }}
@@ -174,6 +174,9 @@ jobs:
           make install-dgl-win
 
       - name: Full Unit Test
+        env:
+          REVODESIGN_RUN_OPENKINETICS_LIVE: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' && '1' || '' }}
+          OPENKINETICS_API_KEY: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' && secrets.OPENKINETICS_API_KEY || '' }}
         run: |
           make prepare-test
           make all-test
@@ -183,7 +186,7 @@ jobs:
           coverage xml
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           files: ./coverage.xml
           env_vars: OS,PYTHON

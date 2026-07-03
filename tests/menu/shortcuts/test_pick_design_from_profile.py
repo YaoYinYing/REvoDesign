@@ -5,6 +5,7 @@
 
 import pytest
 
+from REvoDesign.Qt import QtCompat, QtWidgets
 from REvoDesign.tools.customized_widgets import QButtonBrick, QButtonMatrix
 from REvoDesign.tools.mutant_tools import pick_design_from_profile
 from tests.conftest import KeyData, TestWorker
@@ -39,6 +40,9 @@ def test_pick_design_from_profile(test_worker: TestWorker, KeyDataDuringTests: K
     test_worker.save_screenshot(widget=subwindow, basename=f"{test_worker.test_id}_opened_dialog")
 
     bm = subwindow.findChild(QButtonMatrix, "ProfileDesignButtonMatrix")
+    scroll_area = subwindow.findChild(QtWidgets.QScrollArea, "ProfileDesignButtonMatrixScrollArea")
+    assert scroll_area.horizontalScrollBarPolicy() == QtCompat.ScrollBarAsNeeded
+    assert bm.width() > scroll_area.viewport().width()
 
     test_worker.save_pymol_png(
         basename=f"{test_worker.test_id}_start_clicking",

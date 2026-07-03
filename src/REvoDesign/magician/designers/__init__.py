@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+from . import openkinetics as _ok  # noqa: F401 — triggers class creation
 from .cart_ddg import ddg
 from .colabdesign import ColabDesigner_MPNN
 

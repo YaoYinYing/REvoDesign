@@ -17,15 +17,8 @@ from REvoDesign.basic import build_plugin_registry
 from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.logger import ROOT_LOGGER
 
-# 1. implement the mutate runner and import then here
-from REvoDesign.sidechain.mutate_runner import MutateRelax_worker  # noqa: F401 -- registered via build_plugin_registry
-from REvoDesign.sidechain.mutate_runner import (
-    DiffPack_worker,
-    DLPacker_worker,
-    DLPackerPytorch_worker,
-    PIPPack_worker,
-    PyMOL_mutate,
-)
+# Trigger subpackage imports so the registry can discover all runner subclasses.
+from REvoDesign.sidechain import mutate_runner as _mutate_runner  # noqa: F401
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 from REvoDesign.tools.utils import timing
 
@@ -38,14 +31,13 @@ RUNNER_REGISTRY = build_plugin_registry(
 ALL_RUNNER_CLASSES: list[type[MutateRunnerAbstract]] = list(RUNNER_REGISTRY.all_classes)
 IMPLEMENTED_RUNNER: Mapping[str, type[MutateRunnerAbstract]] = RUNNER_REGISTRY.implemented_map
 
+# Re-export discovered classes so ``from REvoDesign.sidechain import <Name>`` still works.
+for _cls in ALL_RUNNER_CLASSES:
+    globals()[_cls.__name__] = _cls
+
 __all__ = [
     "MutateRunnerAbstract",
     "SidechainSolver",
-    "PyMOL_mutate",
-    "DLPacker_worker",
-    "DLPackerPytorch_worker",
-    "DiffPack_worker",
-    "PIPPack_worker",
     "ALL_RUNNER_CLASSES",
     "IMPLEMENTED_RUNNER",
 ]
@@ -62,7 +54,6 @@ class MutateRunnerManager:
 
 @dataclass(frozen=True)
 class SidechainSolverConfig:
-    molecule: str
     sidechain_solver_name: str
     sidechain_solver_radius: float | None
     sidechain_solver_model: str | None
@@ -89,7 +80,8 @@ class SidechainSolver(SingletonAbstract):
     def setup(self):
         logging.info(f"Using {self.cfg.sidechain_solver_name} as sidechain solver.")
 
-        input_pdb = make_temperal_input_pdb(molecule=self.cfg.molecule, reload=False)
+        molecule = self.bus.get_value("ui.header_panel.input.molecule", str, reject_none=True)
+        input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
 
         with timing("Setting up sidechain solver"):
             try:
@@ -98,7 +90,6 @@ class SidechainSolver(SingletonAbstract):
                     pdb_file=input_pdb,
                     use_model=self.cfg.sidechain_solver_model,
                     radius=self.cfg.sidechain_solver_radius,
-                    molecule=self.cfg.molecule,
                 )
                 return self
             except Exception as e:
@@ -106,7 +97,6 @@ class SidechainSolver(SingletonAbstract):
 
     def get_config(self) -> SidechainSolverConfig:
         cfg = SidechainSolverConfig(
-            molecule=self.bus.get_value("ui.header_panel.input.molecule", str, reject_none=True),
             sidechain_solver_name=self.bus.get_widget_value("ui.config.sidechain_solver.use", str),
             sidechain_solver_radius=self.bus.get_widget_value("ui.config.sidechain_solver.repack_radius", float),
             sidechain_solver_model=self.bus.get_widget_value("ui.config.sidechain_solver.model", str),

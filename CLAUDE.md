@@ -4,16 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workflow
 
-- **Before committing**: Run `make black` to format all files, then `git add -A` to stage the formatting changes together with your edits. This ensures pre-commit hooks (black, isort, autoflake, pyupgrade, autopep8) pass and keeps the diff reviewable.
+- **Before committing**: Run `make black` to format all files, then `git add -A` to stage the formatting changes together with your edits. This ensures pre-commit hooks (black, isort, autoflake, pyupgrade, autopep8) pass and keeps the diff reviewable. **The exit code of `make black` is advisory — if the hooks leave the code with improved syntax and style, the result is good regardless of the exit code.**
+- **Test-case-driven fixes**: For live/integration issues, first encode the observed behavior as the smallest test case or skip guard, then make the smallest production/test change, run the focused keyword gate (for example `make kw-test PYTEST_KW=openkinetics`), and update `CHANGELOG.md`. Treat environment-dependent live API responses such as expected HTTP `4xx`/`5xx` as explicit skips, while keeping non-HTTP client errors failing.
 
 ## Build and Test
 
 ```bash
 # Install dev environment
-conda create -n REvoDesign python=3.12 -y
-conda install -c conda-forge pymol-open-source pyqt=5 -n REvoDesign -y
+conda create -n REvoDesignTestFlight python=3.12 -y
+conda install -c conda-forge pymol-open-source pyqt=5 -n REvoDesignTestFlight -y
 make install-pytorch-cpu-non-mac
 make install
+
+# Optional: DGL (Linux only, failure is non-fatal)
+make install-dgl-linux
+
+# Test dependencies
 make prepare-test
 
 # Run tests (always inside a conda environment)
@@ -23,6 +29,10 @@ conda run -n <env> make slow-test          # slowest tests
 conda run -n <env> make all-test           # full test matrix
 conda run -n <env> make kw-test PYTEST_KW='<keyword>'          # single keyword
 conda run -n <env> make kw-test PYTEST_KW='"<kw1> or <kw2>"'   # multiple keywords
+
+# CI / headless environments
+make setup-display-gha                     # configure virtual display
+export ENABLE_ROSETTA_CONTAINER_NODE_TEST=NO  # skip Docker + Rosetta for basic testing
 
 # Formatting and linting
 make black          # runs pre-commit run --all-files
@@ -102,3 +112,10 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 - **Imports**: First-party package is `REvoDesign`; internal imports use fully-qualified paths (`from REvoDesign.Qt import QtCore`).
 - **Config files**: YAML under `src/REvoDesign/config/`, managed by OmegaConf/Hydra. The config directory is determined by `platformdirs` user config path.
 - **Version**: Set in `src/REvoDesign/__init__.py` (`__version__`). Use `make tag` to bump.
+
+## Commit and PR guidelines
+
+- **Commit messages**: Follow conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`). Use `[skip ci]` to skip CI for non-code changes.
+- **PR titles**: Must follow conventional commit format — `type(scope): description` or `type: description`. Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Enforced by `semantic-pr-check` workflow on PR open/edit/sync.
+- **Before pushing**: Run `make black`, then `git add -A` to stage formatting changes. Pre-commit hooks must pass.
+- **Documentation**: Stored as Markdown under `docs/` or within the relevant module directory; no build step required.

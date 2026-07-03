@@ -669,7 +669,8 @@ class CheckableListView(QtWidgets.QWidget):
                 if _e.python_version and python_version_filter:
                     if not _python_version_matches(_e.python_version, python_version_filter):
                         logging.debug(
-                            f"Skipping {_e.name} due to python version ({python_version_filter} requires {_e.python_version})",
+                            f"Skipping {_e.name} due to python version"
+                            f"({python_version_filter} requires {_e.python_version})",
                         )
                         continue
 
@@ -690,7 +691,7 @@ class CheckableListView(QtWidgets.QWidget):
         Returns:
             A list of strings representing the texts of items with the specified check state.
         """
-        items = ExtrasGroup(f'{"" if check_state else "un" }checked', "", [])
+        items = ExtrasGroup(f'{"" if check_state else "un"}checked', "", [])
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
             if item.isCheckable() and item.checkState() == check_state:
@@ -1873,7 +1874,10 @@ class REvoDesignPackageManager:
                     message="Installation succeeded. \nIf this is an upgrade, "
                     "please restart PyMOL for it to take effect.",
                     details=(
-                        f"CMD:\n{installed.args}\n\nRETURN_CODE:\n{installed.returncode}\n\nSTDOUT:\n{installed.stdout}\n\nSTDERR:\n{installed.stderr}"
+                        f"CMD: \n{installed.args}\n\n"
+                        f"RETURN_CODE: \n{installed.returncode}\n\n"
+                        f"STDOUT: \n{installed.stdout}\n\n"
+                        f"STDERR: \n{installed.stderr}"
                         if installed
                         else None
                     ),
@@ -1883,7 +1887,10 @@ class REvoDesignPackageManager:
             notify_box(
                 message=f"Installation failed from: {install_source} \n",
                 details=(
-                    f"CMD:\n{installed.args}\n\nRETURN_CODE:\n{installed.returncode}\n\nSTDOUT: \n{installed.stderr}\n\nSTDERR: \n{installed.stderr}"
+                    f"CMD: \n{installed.args}\n\n"
+                    f"RETURN_CODE: \n{installed.returncode}\n\n"
+                    f"STDOUT: \n{installed.stderr}\n\n"
+                    f"STDERR: \n{installed.stderr}"
                     if installed
                     else None
                 ),

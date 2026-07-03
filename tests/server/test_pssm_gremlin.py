@@ -1,3 +1,8 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+
 import base64
 import importlib.util
 import io
@@ -1461,10 +1466,28 @@ class DockerServerStack:
             "RESULT_BACKEND": redis_url,
         }
 
-    def start(self):
+    def start(self, server_ready_timeout: float = 120.0, max_attempts: int = 3):
         _run_command(["docker", "network", "create", self.network])
         self._start_redis()
-        self._start_web()
+
+        for attempt in range(max_attempts):
+            try:
+                self._start_web()
+                base_url = f"http://127.0.0.1:{self.port}"
+                _wait_for_server_ready(
+                    base_url,
+                    (self.username, self.password),
+                    timeout=server_ready_timeout,
+                    web_container=self.web_name,
+                )
+                break
+            except AssertionError:
+                if attempt < max_attempts - 1:
+                    # ponytail: Docker daemon flakiness on CI — retry container creation.
+                    self._stop_container(self.web_name)
+                    time.sleep(5)
+                else:
+                    raise
         self._start_worker()
 
     def _env_args(self) -> list[str]:
@@ -1560,6 +1583,12 @@ class DockerServerStack:
         ]
         _run_command(cmd, cwd=Path(REPO_DIR) / "server")
         self.containers.append(self.web_name)
+
+    def _stop_container(self, name: str) -> None:
+        """Stop and remove a single container by name (best-effort)."""
+        _run_command(["docker", "rm", "-f", name], check=False)
+        if name in self.containers:
+            self.containers.remove(name)
 
     def _relax_permissions(self) -> None:
         dirs = [
