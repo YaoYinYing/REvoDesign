@@ -64,7 +64,7 @@ Please refer to the [manual]([link_to_documentation](https://raw.githubuserconte
 
 For clustering method selection and extension details, see:
 
-- [docs/cluster_methods_guide.md](docs/cluster_methods_guide.md)
+- [docs/user-guide/cluster-methods.md](docs/user-guide/cluster-methods.md)
 
 ---
 

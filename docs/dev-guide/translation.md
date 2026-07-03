@@ -1,0 +1,126 @@
+# Translation (i18n)
+
+REvoDesign supports multiple languages via **Qt Linguist** (`.ts`/`.qm` files).
+The translation system is managed by `LanguageSwitch` in the
+`REvoDesign.application.i18n` package.
+
+## How It Works
+
+### Language Files
+
+Translation files live in `src/REvoDesign/UI/language/`:
+
+```
+UI/language/
+├── language.json    # Registry: maps language codes to display names and actions
+├── eng-chs.ts       # English → Chinese (Simplified) — Qt Linguist source
+├── eng-chs.qm       # English → Chinese (Simplified) — compiled binary
+├── eng-cht.ts       # English → Chinese (Traditional)
+└── eng-cht.qm       # English → Chinese (Traditional)
+```
+
+- **`.ts` files** are XML-based Qt Linguist source files. Edit these in
+  Qt Linguist to add or update translations.
+- **`.qm` files** are compiled binary translations loaded at runtime.
+- **`language.json`** is the registry that maps language codes to human-readable
+  names and PyMOL menu action IDs.
+
+### language.json format
+
+```json
+[
+  {
+    "code": "eng-chs",
+    "name": "English → Chinese (Simplified)",
+    "action": "actionSwitch_to_Chinese_Simplified"
+  },
+  {
+    "code": "eng-cht",
+    "name": "English → Chinese (Traditional)",
+    "action": "actionSwitch_to_Chinese_Traditional"
+  }
+]
+```
+
+### LanguageSwitch
+
+`LanguageSwitch` (in `application/i18n/language_settings.py`) manages the
+translator lifecycle:
+
+1. **`_ensure_translator()`** — Checks for an existing `QTranslator` on the
+   application. If none exists, creates one from the `.qm` file for the
+   configured language code.
+2. **`switch_language(code)`** — Removes the previous translator from the
+   application, loads the new `.qm` file, installs it, and calls
+   `ui.retranslateUi()` to refresh all widget text.
+3. **`_retranslate_language_actions()`** — Updates the dynamic language-switch
+   menu items to show the correct language name.
+
+## Adding a New Language
+
+1. **Create the `.ts` file** — Use Qt Linguist or `pylupdate5`:
+   ```bash
+   pylupdate5 src/REvoDesign/UI/REvoDesign.ui -ts src/REvoDesign/UI/language/eng-xxx.ts
+   ```
+
+2. **Add the new language to `language.json`** — Register it with a unique
+   `code`, `name`, and matching `action` ID:
+   ```json
+   {
+     "code": "eng-xxx",
+     "name": "English → New Language",
+     "action": "actionSwitch_to_New_Language"
+   }
+   ```
+
+3. **Add the language to `UI/linguist.pro`** — List the `.ts` file so it's
+   included in the translation pipeline.
+
+4. **Add a menu action** in `REvoDesign.ui` — Create a `QAction` with an ID
+   matching the `action` field in `language.json`.
+
+5. **Translate** — Open the `.ts` file in Qt Linguist, fill in translations for
+   each UI string.
+
+6. **Build** — Compile `.ts` → `.qm`:
+   ```bash
+   make translate
+   ```
+
+7. **Test** — Restart PyMOL and switch to the new language via the menu.
+
+## Runtime Behavior
+
+- The active language is stored in the config (`environ.yaml`) under
+  `ui.language.code`.
+- On plugin startup, `LanguageSwitch` reads this config and loads the
+  corresponding `.qm` file.
+- The language can be switched at runtime via **Menu > Language > ...**.
+- `retranslateUi()` refreshes all static UI text. Dynamic text (e.g., mutant
+  scores) is language-agnostic.
+- Package Manager currently has no translations.
+
+## Updating Translations After UI Changes
+
+When `.ui` files are modified:
+
+1. Regenerate the UI typing contract:
+   ```bash
+   python dev/tools/generate_ui_typing.py
+   ```
+
+2. Update `.ts` files with new/changed strings:
+   ```bash
+   pylupdate5 src/REvoDesign/UI/REvoDesign.ui -ts src/REvoDesign/UI/language/eng-chs.ts
+   pylupdate5 src/REvoDesign/UI/REvoDesign.ui -ts src/REvoDesign/UI/language/eng-cht.ts
+   ```
+
+3. Rebuild `.qm` files:
+   ```bash
+   make translate
+   ```
+
+## API Reference
+
+For the `LanguageSwitch`, `LanguageNameRegistry`, and `LanguageItem` API,
+see [Application API](../api/application.md).

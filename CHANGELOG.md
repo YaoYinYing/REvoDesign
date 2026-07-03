@@ -18,6 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```
 ## [Unreleased]
+### Added
+- Comprehensive API documentation site (46 pages) using MkDocs + Material for MkDocs + mkdocstrings:
+  - User Guide (3 pages): landing, cluster methods, OpenKinetics workflow.
+  - Developer Guide (18 pages): architecture, concepts, testing, CI/CD, PSSM/GREMLIN server, Monaco editor, Rosetta integration, translation (i18n), UI design, CGO graphics, Makefile reference, package manager, adding scorers/sidechain solvers, how-to guides (profile, config, shortcut), AI-assisted code quality fix playbooks (Codacy, DeepSource).
+  - API Reference (20 pages): auto-generated from Google-style docstrings for all public modules.
+  - GitHub Pages deploy workflow (`.github/workflows/docs.yml`) with `actions/deploy-pages@v4`.
+  - `docs` optional-dependency group in `pyproject.toml` (mkdocs, mkdocs-material, mkdocstrings[python]).
+  - Updated `[project.urls] Documentation` to `https://YaoYinYing.github.io/REvoDesign`.
+
+### Changed
+- Moved legacy `docs/` to `docs_old/` for archival; new docs are a fresh MkDocs site.
+- Updated README links to point to new docs structure.
 
 ## [1.9.0] - 2026-07-03
 ### Added
