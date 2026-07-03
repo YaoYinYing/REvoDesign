@@ -131,3 +131,4 @@ cluster_test.zip
 /.codex-tmp
 /kinetics-test
 /site
+docs_old/**/*
