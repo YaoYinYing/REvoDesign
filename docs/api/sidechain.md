@@ -57,11 +57,12 @@ Auto-discovered mutation runners indexed by name. Created at import time by `bui
 
 The following runners are discovered from `REvoDesign.sidechain.mutate_runner`:
 
-- **DLPacker_worker** — Mutation using DLPacker (deep learning sidechain packing)
-- **PIPPack_worker** — Mutation using PIPPack (rotamer-based packing)
-- **Dunbrack_worker** — Mutation using the Dunbrack rotamer library
-- **DiffPack_worker** — Mutation using DiffPack (diffusion-based sidechain packing)
-- **RosettaMutateRelax** — Mutation and relaxation using Rosetta
+- **DLPacker_worker** (`"DLPacker"`) — Deep learning sidechain packing
+- **DLPackerPytorch_worker** (`"DLPackerPytorch"`) — PyTorch port of DLPacker
+- **PIPPack_worker** (`"PIPPack"`) — Rotamer-based packing
+- **PyMOL_mutate** (`"Dunbrack Rotamer Library"`) — Dunbrack rotamer library via PyMOL
+- **DiffPack_worker** (`"DiffPack"`) — Diffusion-based sidechain packing
+- **MutateRelax_worker** (`"Rosetta-MutateRelax"`) — Rosetta mutation + relaxation
 
 ### Registry Access
 

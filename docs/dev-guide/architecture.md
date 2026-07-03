@@ -12,6 +12,10 @@ src/REvoDesign/
 │   ├── designer.py              # ExternalDesignerAbstract (scorer/designer plugin base)
 │   ├── mutate_runner.py         # MutateRunnerAbstract (sidechain solver base)
 │   ├── plugin_registry.py       # PluginRegistry (package-scoped auto-discovery)
+│   ├── data_structure.py        # IterableLoop, generic data structures
+│   ├── group_registries.py      # GroupRegistryItem for dynamic UI population
+│   ├── param_toggle.py          # ParamChangeRegistryItem, ParamChangeRegister
+│   ├── server_monitor.py        # ServerControlAbstract for service lifecycle
 │   ├── menu_item.py             # MenuCollection, MenuItem
 │   └── extensions.py            # FileExtension types
 ├── bootstrap/
@@ -20,12 +24,18 @@ src/REvoDesign/
 │   ├── ui_driver.py             # ConfigBus (UI ↔ OmegaConf bridge singleton)
 │   ├── widget_link.py           # Config2WidgetIds, PushButtons widget ↔ config maps
 │   ├── group_register.py        # Widget group registries (solver lists, etc.)
-│   └── param_toggle_register.py # Param-change toggle wiring
+│   ├── param_toggle_register.py # Param-change toggle wiring
+│   ├── environ_register.py      # Environment variable registration from config
+│   └── file_dialog.py           # FileDialog, IO_MODE, flattened compression
 ├── common/
 │   ├── mutant.py                # Mutant data model
 │   ├── mutant_tree.py           # MutantTree container
-│   └── multi_mutant_designer.py # MultiMutantDesigner
+│   ├── multi_mutant_designer.py # MultiMutantDesigner
+│   ├── mutant_visualise.py      # MutantVisualizer for PyMOL
+│   ├── profile_parsers.py       # ProfileParserAbstract + parsers (PSSM, CSV, TSV)
+│   └── file_extensions.py       # File extension registry (imported at bootstrap)
 ├── Qt/
+│   ├── __init__.py              # Qt package init
 │   ├── qt_wrapper.py            # Qt compat layer (QT_BACKEND, QT_MAJOR, QtCompat)
 │   └── ui_runtime_loader.py     # RuntimeUiProxy — load .ui without codegen
 ├── magician/
@@ -53,29 +63,73 @@ src/REvoDesign/
 ├── phylogenetics/
 │   ├── gremlin_tools.py         # GREMLIN MRF analysis
 │   ├── gremlin_pytorch.py       # PyTorch GREMLIN implementation
-│   └── evo_mutator.py           # Co-evolution mutation logic
+│   ├── evo_mutator.py           # Co-evolution mutation logic (GremlinAnalyser)
+│   └── revo_designer.py         # REvoDesigner iterative design engine
 ├── clusters/
-│   └── cluster_sequence.py      # Sequence clustering for mutant reduction
+│   ├── cluster_sequence.py      # Sequence clustering for mutant reduction
+│   ├── combine_positions.py     # Position combination utilities
+│   ├── score_clusters.py        # Rosetta-based cluster scoring
+│   └── methods/                 # Cluster algorithm implementations
 ├── evaluate/
+│   ├── __init__.py              # Package init
 │   └── evaluator.py             # Mutant evaluation and decision-making
+├── editor/                      # Monaco editor integration
+│   ├── __init__.py
+│   ├── README.md
+│   └── monaco/
+│       ├── monaco.py            # MonacoEditorManager (download, install)
+│       ├── server.py            # FastAPI server (file read/write, auth)
+│       └── config.py            # ConfigStore for editor backend
+├── issues/                      # Exception and warning hierarchy
+│   ├── exceptions.py            # REvoDesignException + subclasses
+│   └── warnings.py              # REvoDesignWarning + subclasses
+├── shortcuts/                   # PyMOL cmd.extend command infrastructure
+│   ├── __init__.py
+│   ├── utils.py                 # DialogWrapperRegistry, input resolution
+│   ├── wrappers.py              # Shortcut wrapper configs
+│   └── registry/                # YAML shortcut definitions
 ├── config/                      # YAML config hierarchy (OmegaConf/Hydra)
 │   ├── main.yaml                # Primary UI and workflow configuration
+│   ├── environ.yaml             # Environment variables and secrets
+│   ├── logger.yaml              # Logging configuration
+│   ├── runtime.yaml             # Runtime-specific settings
+│   ├── appearence.yaml          # Font and button matrix appearance
+│   ├── editor.yaml              # Monaco editor backend configuration
+│   ├── openmm.yaml              # OpenMM setup server config
+│   ├── rfdiffusion/             # RFdiffusion model configs
+│   ├── rosetta-node/            # Rosetta compute node definitions
 │   ├── third_party/
 │   │   └── scorers/
 │   │       └── openkinetics_api.yaml  # OpenKinetics API settings
 │   └── sidechain-solver/        # Per-solver config YAML files
 ├── UI/
+│   ├── __init__.py
 │   ├── REvoDesign.ui            # Qt Designer main window layout
-│   └── REvoDesign-PyMOL-entry.ui# Package manager installer UI
+│   ├── REvoDesign-PyMOL-entry.ui# Package manager installer UI
+│   ├── types.py                 # Auto-generated REvoDesignUiProtocol
+│   ├── preference.py            # UI preference utilities
+│   ├── socket.py                # Socket tab UI helpers
+│   └── language/                # Qt Linguist .ts/.qm translation files
 ├── logger/
+│   ├── __init__.py
 │   └── logger.py                # Root logger setup (initialized during import)
 ├── citations/
 │   └── citation_manager.py      # CitableModuleAbstract, CitationManager
+├── data/                        # Static data (protein codes, etc.)
+├── presets/                     # Style presets
 └── tools/
     ├── customized_widgets.py    # QButtonMatrix, dialogs, ParallelExecutor
     ├── mutant_tools.py          # Mutant serialization helpers
     ├── pymol_utils.py           # PyMOL session helper functions
-    └── download_registry.py     # File download with mirror fallback
+    ├── download_registry.py     # File download with mirror fallback
+    ├── cgo_utils.py             # CGO 3D graphics primitives
+    ├── rosetta_utils.py         # Rosetta environment detection helpers
+    ├── measure_utils.py         # PyMOL measurement object parsing
+    ├── system_tools.py          # System info and environment detection
+    ├── SessionMerger.py         # Safe PyMOL session merging
+    ├── package_manager.py       # Package Manager installer internals
+    ├── ssl_certificates.py      # SSL certificate management
+    └── REvoDesign-manager/      # Package manager sub-tools
 ```
 
 ## Plugin Lifecycle

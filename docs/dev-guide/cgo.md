@@ -189,9 +189,7 @@ Point.cross(a, b) # cross product
 Point.from_array(np.array([1,2,3]))  # from numpy
 
 c = Color('red')
-c.as_cgo          # [COLOR, 1.0, 0.0, 0.0]
-c.hex             # '#ff0000'
-Color.from_cgo([COLOR, 0.0, 1.0, 0.0])  # from raw CGO
+c.as_cgo          # [ALPHA, 1.0, COLOR, 1.0, 0.0, 0.0]
 ```
 
 Available color tables: `BASE_COLORS`, `TABLEAU_COLORS`, `CSS4_COLORS`, `XKCD_COLORS`.
@@ -212,8 +210,8 @@ Cylinder(Point(0,0,0), Point(5,0,0), radius=0.5,
 Arrow(Point(0,0,0), Point(5,0,0), shaft_radius=0.3,
       head_radius=0.8, head_length=1.2, color='green').load_as('arrow')
 
-# Torus (doughnut) at origin, R=3, r=1
-Doughnut(center=Point(0,0,0), major_radius=3.0, minor_radius=1.0,
+# Torus (doughnut) at origin, radius=3, cradius=1
+Doughnut(center=Point(0,0,0), radius=3.0, cradius=1.0,
          color='yellow').load_as('torus')
 ```
 

@@ -19,8 +19,8 @@ conda activate revodesign
 conda install -c conda-forge pymol-open-source pyqt=5 -y
 ```
 
-For PyQt6 testing, a separate environment with `pymol-open-source` (which
-ships PyQt6) can be used instead.
+For PyQt6 testing, a separate environment with the Schrödinger PyMOL incentive
+build (which ships PyQt6) can be used instead.
 
 ## 2. Install REvoDesign
 
@@ -69,7 +69,7 @@ Optional extras (rf diffusion, ESM2, etc.) are listed in `pyproject.toml`.
 ## 4. First Launch
 
 1. Fetch a structure (e.g. `fetch 1SUO`) in the PyMOL command line.
-2. Click **Menu > REvoDesign > Import PyMOL Session** (keyboard shortcut:
+2. Click **File > Import PyMOL Session** (keyboard shortcut:
    `Ctrl+N`) to let REvoDesign find a designable molecule.
 3. The main UI panel opens. You are ready to design.
 
@@ -83,38 +83,68 @@ Key files:
 
 | File | Purpose |
 |---|---|
+| `appearence.yaml` | Font and button appearance. |
+| `editor.yaml` | Monaco editor backend configuration. |
 | `environ.yaml` | Environment variables and secrets (API keys). **Never commit this file.** |
-| `main.yaml` | All REvoDesign UI settings, workflow parameters, and Rosetta options. |
 | `logger.yaml` | Logging verbosity and output destinations. |
+| `main.yaml` | All REvoDesign UI settings, workflow parameters, and Rosetta options. |
+| `openmm.yaml` | OpenMM setup server configuration. |
 | `runtime.yaml` | Runtime-specific settings. |
 
-Example `environ.yaml` for an OpenKinetics API key:
+Example `environ.yaml` (keys are commented out by default; uncomment and set
+your values):
 
 ```yaml
 variables:
-  OPENKINETICS_API_KEY: your-openkinetics-api-key
+  # OPENKINETICS_API_KEY: your-openkinetics-api-key   # auto-registers the key
+  # ROSETTA_BIN: /path/to/rosetta/main/source/bin      # Rosetta executable directory
 ```
 
-To apply changes to `main.yaml`, click **File > Reconfigure** in the REvoDesign
-menu. Secrets in `environ.yaml` take effect after restarting PyMOL.
+The OpenKinetics API key is auto-registered by default:
+`OpenKineticsScorerAbstract` will automatically generate and persist a key
+on first use, so manual setup in `environ.yaml` is optional and takes
+precedence only when set.
+
+To apply changes to `main.yaml`, click **Edit > Reconfigure** in the REvoDesign
+menu. Secrets in `environ.yaml` take effect after using
+**Edit > Environment Variables > RefreshEnvironVar** (or restarting PyMOL).
 
 ## 6. Basic Workflow
 
-A typical REvoDesign session follows five stages:
+A typical REvoDesign session follows these stages:
 
 1. **Prepare** — Load a structure, identify surface residues, define the
    binding pocket, and fetch a PSSM profile.
 2. **Mutate** — Score and filter mutations from the profile. Apply
    constraints (score thresholds, residue preferences, rejection rules).
-3. **Evaluate** — Review the mutant table, inspect variants in 3D, and
+3. **Interact** — Inspect co-evolved residue pairs and mutual information.
+4. **Evaluate** — Review the mutant table, inspect variants in 3D, and
    optionally run external scorers (Rosetta ddG, OpenKinetics, etc.).
-4. **Cluster** — Group similar mutants via sequence or evolution-aware
+5. **Cluster** — Group similar mutants via sequence or evolution-aware
    clustering to select representatives for validation.
-5. **Visualize** — Color the structure by mutation scores, generate PyMOL
+6. **Socket** — Collaborate with other users on shared sessions.
+7. **Visualize** — Color the structure by mutation scores, generate PyMOL
    sessions, and export results.
+8. **Config** — Inspect and edit all configuration files from the UI.
 
 Each stage has a dedicated tab in the REvoDesign UI. Detailed walkthroughs
 are available in the [User Guide](user-guide/index.md).
+
+## 6. Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+N` | Import PyMOL Session |
+| `Ctrl+S` | Save Configurations |
+| `Ctrl+Alt+S` | Save Configuration As… |
+| `Ctrl+Shift+S` | Save to Experiment |
+| `Ctrl+Shift+L` | Load Experiment |
+| `Ctrl+Shift+W` | Set Working Directory |
+| `Ctrl+R` | Render Picked Sidechain |
+| `Ctrl+Shift+R` | Render All Sidechains |
+| `Ctrl+D` | Open Documentation |
+| `Ctrl+Alt+V` | Version Info |
+| `Ctrl+W` | Close |
 
 ## Next Steps
 

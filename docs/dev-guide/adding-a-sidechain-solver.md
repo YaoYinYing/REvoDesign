@@ -2,7 +2,7 @@
 
 This document explains the full workflow to integrate a new sidechain solver
 into REvoDesign and validate it safely, based on the current live
-implementations (`DLPacker`, `DLPackerPytorch`, `DiffPack`, `PIPPack`,
+implementations (`DLPacker`, `DLPackerPytorch`, `DiffPack`, `Dunbrack Rotamer Library` (`PyMOL_mutate`), `PIPPack`,
 `Rosetta-MutateRelax`).
 
 ## 1. What "integrated" means

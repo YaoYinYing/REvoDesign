@@ -153,7 +153,7 @@ GREMLIN (Generative Reuglarized Model_s of_prote_INs) provides co-evolutionary a
 - **`GREMLIN_Tools`** (`REvoDesign.phylogenetics.gremlin_tools`): Loads GREMLIN output (co-evolution scores, PDB structural data). Core data class:
   - `CoevolvedPair` -- stores a pair of positions `(i, j)`, their amino acids, inter-chain distances (`homochains_dist`, supporting multi-chain/multi-state analysis), z-scores, and distance cutoffs. Methods like `is_out_of_range()`, `all_out_of_range`, and `min_dist` enable filtering.
 
-- **`GremlinAnalyser`** (`REvoDesign.phylogenetics.gremlin_analyser`): Wires co-evolved pairs into the REvoDesign workflow. Displays pair connections as PyMOL CGO (Cylinder-style) objects with state-based coloring (available / out-of-range / in-design).
+- **`GremlinAnalyser`** (`REvoDesign.phylogenetics.evo_mutator`): Wires co-evolved pairs into the REvoDesign workflow. Displays pair connections as PyMOL CGO (Cylinder-style) objects with state-based coloring (available / out-of-range / in-design).
 
 - **`MutateWorker` / `REvoDesigner`** (`REvoDesign.phylogenetics.evo_mutator`): Applies evolutionary constraints to drive mutagenesis using co-evolved pair information and the Magician's scoring gimmick. Supports multi-round iterative design.
 
@@ -282,7 +282,7 @@ The exact import and initialization sequence matters for correct behavior. It is
 REvoDesign defines a comprehensive hierarchy of custom exceptions and warnings for structured error handling.
 
 - **Exceptions** (`REvoDesign.issues.exceptions`): All inherit from `REvoDesignException`. Key types: `ConfigurationError`, `PluginError`, `DependencyError`, `InvalidInputError`, `NoResultsError`, `NetworkError`, `UninstalledPackageError`, `FileFormatError`, `InternalError`, `EnzymeDesignError`.
-- **Warnings** (`REvoDesign.issues.warnings`): All inherit from `REvoDesignWarning`. Key types: `DisabledFunctionWarning`, `NoInputWarning`, `ConflictWarning`, `BadDataWarning`, `ConfigureOutofDateWarning`.
+- **Warnings** (`REvoDesign.issues.warnings`): All inherit from `REvoDesignWarning`. Key types: `DisabledFunctionWarning`, `NoInputWarning`, `ConflictWarning`, `BadDataWarning`. `ConfigureOutofDateError` lives in exceptions.
 - **Usage**: Exceptions are raised with descriptive messages and are caught at the UI layer to show `notify_box` dialogs. Warnings use Python's `warnings.warn()`.
 
 [API reference: `REvoDesign.issues`](../api/issues.md)

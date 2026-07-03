@@ -73,26 +73,20 @@ translator lifecycle:
    }
    ```
 
-3. **Add the language to `UI/linguist.pro`** — List the `.ts` file so it's
-   included in the translation pipeline.
-
-4. **Add a menu action** in `REvoDesign.ui` — Create a `QAction` with an ID
-   matching the `action` field in `language.json`.
-
-5. **Translate** — Open the `.ts` file in Qt Linguist, fill in translations for
+3. **Translate** — Open the `.ts` file in Qt Linguist, fill in translations for
    each UI string.
 
-6. **Build** — Compile `.ts` → `.qm`:
+4. **Build** — Compile `.ts` → `.qm`:
    ```bash
    make translate
    ```
 
-7. **Test** — Restart PyMOL and switch to the new language via the menu.
+5. **Test** — Restart PyMOL and switch to the new language via the menu.
 
 ## Runtime Behavior
 
 - The active language is stored in the config (`environ.yaml`) under
-  `ui.language.code`.
+  `language`.
 - On plugin startup, `LanguageSwitch` reads this config and loads the
   corresponding `.qm` file.
 - The language can be switched at runtime via **Menu > Language > ...**.
