@@ -83,6 +83,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `button_matrix.hover_crosshair.color` and `button_matrix.hover_crosshair.width` to `appearence.yaml` for profile/GREMLIN matrix hover styling.
 
 ### Changed
+- OpenKinetics (`magician/designers/openkinetics/`):
+  - `_request()` default per-request timeout reduced to 30s (was 600s); `submit()` passes the full `timeout_seconds` explicitly.
+  - `poll_until_complete()` logs rich status on every ~30s elapsed: status, queue/compute seconds, queue position, and molecule/prediction progress counts.
+  - `submit()` resolves the substrate column name dynamically from the method's `requiredColumns` instead of hardcoding `"Substrate"`.
+  - `submit()` checks service health before posting the job.
+  - `get_result()` retries with backoff on 409 (result not yet ready) and transient network errors.
+  - `score_variants()` logs daily quota after fetching results and passes remaining timeout budget to `get_result()`.
+  - Removed hardcoded `cache_dir` from `openkinetics_api.yaml`; scorer now derives it from `set_cache_dir()`.
+  - Added `health` and `quota` endpoints to `OPENKINETICS_ENDPOINTS`.
 - Runtime UI loading:
   - `REvoDesignPlugin.make_window()` now uses `load_runtime_ui()` instead of the generated `Ui_REvoDesignPyMOL_UI.setupUi()`.  The `.ui` file is the single source of truth; `RuntimeUiProxy` exposes named children as attributes.
   - All business code continues to use `self.ui.<objectName>` — no interface change.
@@ -163,6 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added OpenKinetics API key auto-registration tests covering self-service generation, immediate `environ.yaml` persistence, active-key conflict handling, and redacted debug logging.
 
 ### Fixed
+- OpenKinetics: `poll_until_complete()` followed by `get_result()` could fail with 409 when the API reported `status=Completed` before the result file was materialized. `get_result()` now retries on 409 with exponential backoff bounded by the remaining timeout.
 - UI:
   - Restored profile-design matrix layout after the painted `QButtonMatrix` refactor:
     - profile matrices now stay horizontally scrollable instead of being squeezed into the dialog viewport.

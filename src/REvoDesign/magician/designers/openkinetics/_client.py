@@ -411,7 +411,7 @@ def _is_hard_http_error(error_message: str) -> bool:
     prefix = "OpenKinetics API request failed: "
     if not error_message.startswith(prefix):
         return False
-    tail = error_message[len(prefix):]
+    tail = error_message[len(prefix) :]
     code_str = tail.split(" ", 1)[0]
     return code_str.isdigit() and code_str != "409"
 
@@ -463,9 +463,7 @@ class OpenKineticsClient:
 
     # -- low-level request --------------------------------------------------
 
-    def _request(
-        self, method: str, path: str, *, json_payload: Any | None = None, timeout: float | None = None
-    ) -> Any:
+    def _request(self, method: str, path: str, *, json_payload: Any | None = None, timeout: float | None = None) -> Any:
         api_key = self._require_api_key()
         # Default to a short per-request timeout so a hung connection doesn't
         # block the caller for the full job timeout.  Submit/poll callers that
@@ -635,12 +633,8 @@ class OpenKineticsClient:
                         raise
                     # 409 or network — retryable.
                 if time.monotonic() + delay > deadline:
-                    raise OpenKineticsTimeoutError(
-                        f"Timed out waiting for OpenKinetics result {job_id}"
-                    )
-                logging.info(
-                    "OpenKinetics result not ready for job %s, retrying in %ds...", job_id, delay
-                )
+                    raise OpenKineticsTimeoutError(f"Timed out waiting for OpenKinetics result {job_id}")
+                logging.info("OpenKinetics result not ready for job %s, retrying in %ds...", job_id, delay)
                 time.sleep(delay)
                 delay = min(delay * 2, 30)
         if result_format == "csv":
@@ -685,9 +679,7 @@ class OpenKineticsClient:
             progress = status_payload.get("progress", {})
 
             # Log on every status change or every ~30 s of elapsed wall-clock.
-            if top_level_status and (
-                _last_logged_elapsed is None or abs((elapsed or 0) - _last_logged_elapsed) >= 30
-            ):
+            if top_level_status and (_last_logged_elapsed is None or abs((elapsed or 0) - _last_logged_elapsed) >= 30):
                 _last_logged_elapsed = int(elapsed or 0)
                 parts = [f"status={top_level_status}", f"elapsed={elapsed}s"]
                 if queue_s is not None:
@@ -699,8 +691,8 @@ class OpenKineticsClient:
                 if progress:
                     parts.append(
                         "progress="
-                        f"{progress.get('moleculesProcessed',0)}/{progress.get('moleculesTotal',0)} mol, "
-                        f"{progress.get('predictionsMade',0)}/{progress.get('predictionsTotal',0)} pred"
+                        f"{progress.get('moleculesProcessed', 0)}/{progress.get('moleculesTotal', 0)} mol, "
+                        f"{progress.get('predictionsMade', 0)}/{progress.get('predictionsTotal', 0)} pred"
                     )
                 logging.info("OpenKinetics job %s: %s", job_id, ", ".join(parts))
 
