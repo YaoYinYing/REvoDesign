@@ -81,17 +81,16 @@ The server (`monaco/server.py`) provides a REST API for the Monaco frontend:
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/` | Serve Monaco editor HTML |
-| `GET` | `/api/files` | List whitelisted files (editable + readonly) |
-| `GET` | `/api/files/{path}` | Read a whitelisted file |
-| `PUT` | `/api/files/{path}` | Write a whitelisted file (editable only) |
-| `GET` | `/api/static/{path}` | Serve static Monaco assets |
+| `GET` | `/editor` | Serve Monaco editor HTML |
+| `GET` | `/load_file?path=...&token=...` | Read a whitelisted file |
+| `POST` | `/save_file?path=...&token=...` | Write a whitelisted file |
+| `GET` | `/favicon.svg` | Logo |
 
 ### Security
 
 - **Token authentication**: A random 32-byte `SECRET_TOKEN` is generated on
   first launch, stored in `ConfigStore`. All mutating requests must include
-  `Authorization: Bearer <token>`.
+  `token=<token>` as a query parameter.
 - **Rate limiting**: 5 failed attempts per IP within a 60-second window
   triggers a 429 block.
 - **File whitelist**: Only files explicitly listed in the whitelist can be
