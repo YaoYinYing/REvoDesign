@@ -117,7 +117,7 @@ Your scorer will automatically appear in:
 
 - `MagicianAssistant.installed_worker` (if `installed = True`)
 - The UI's external scorer dropdown
-- `Magician.setup(name_cfg_item="ui.interact.use_external_scorer")`
+- `Magician.setup(name_cfg_term="ui.interact.use_external_scorer")`
 
 No manual registration or `__init__.py` export in `magician/designers/` is
 needed, as long as the subpackage is importable.

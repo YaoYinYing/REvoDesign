@@ -10,6 +10,11 @@ and WSL-based compute nodes.
 > objects. RosettaPy is a subprocess wrapper around the Rosetta command-line tools.
 > If you're looking for PyRosetta, see [pyrosetta.org](http://www.pyrosetta.org/).
 
+<figure markdown="span">
+![RosettaPy top-down design](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/RosettaPy_topdown_design@4x.png){ width="600" }
+<figcaption>RosettaPy architecture: multi-node Rosetta execution via Native, Docker, MPI, and WSL backends</figcaption>
+</figure>
+
 ## Architecture
 
 ```
@@ -26,8 +31,8 @@ and WSL-based compute nodes.
 │  │  ├── PROSS (stability design)          │  │
 │  │  ├── RosettaLigand (ligand docking)    │  │
 │  │  ├── Supercharge (surface charge opt)  │  │
-│  │  ├── CartesianddG (ΔΔG protocol)      │  │
-│  │  └── MutateRelax (point mutation)      │  │
+│  │  ├── CartesianDDG (ΔΔG protocol)      │  │
+│  │  └── ScoreClusters (point mutation)    │  │
 │  ├────────────────────────────────────────┤  │
 │  │  Rosetta (dataclass)                   │  │
 │  │  - Flag/option generation              │  │
@@ -76,10 +81,11 @@ A `@dataclass` that wraps a Rosetta binary invocation:
 | `job_id` | `str` | Unique job identifier (`"default"`) |
 | `output_dir` | `str` | Root output directory |
 | `save_all_together` | `bool` | Flatten PDB/score output into single dirs |
+| `enable_progressbar` | `bool` | Show progress bar during parallel runs |
 | `isolation` | `bool` | Run in isolated temp directory |
 | `verbose` | `bool` | Verbose logging |
 
-Key methods: `setup_tasks_native()`, `setup_tasks_mpi()`, `run()`.
+Key methods: `setup_tasks_native()`, `setup_tasks_with_node()`, `run()`.
 
 #### `RosettaBinary` and `RosettaFinder`
 
@@ -140,8 +146,8 @@ The `node` property can be updated at runtime via `app.node = (new_hint, new_con
 | `PROSS` | `RosettaPy.app.pross` | Protein Stability (PROSS) sequence design |
 | `RosettaLigand` | `RosettaPy.app.rosettaligand` | Ligand docking with flexible sidechains |
 | `Supercharge` | `RosettaPy.app.supercharge` | Surface charge optimization (AVNAPS) |
-| `CartesianddG` | `RosettaPy.app.cart_ddg` | Cartesian ΔΔG binding free energy |
-| `MutateRelax` | `RosettaPy.app.mutate_relax` | Point mutation + repacking + minimization |
+| `CartesianDDG` | `RosettaPy.app.cart_ddg` | Cartesian ΔΔG binding free energy |
+| `ScoreClusters` | `RosettaPy.app.mutate_relax` | Point mutation + repacking + minimization |
 
 #### Analysers
 
@@ -186,7 +192,7 @@ Key subclasses wrap the upstream apps for use as `cmd.extend` commands:
 Cartesian ddG (ΔΔG) scoring estimates the change in binding free energy from a
 mutation:
 
-1. **`CartesianddG`** in `RosettaPy.app.cart_ddg` — runs the Rosetta cartesian
+1. **`CartesianDDG`** in `RosettaPy.app.cart_ddg` — runs the Rosetta cartesian
    ΔΔG protocol with `RosettaCartesianddGAnalyser` for result parsing.
 2. The `ddg` gimmick in `REvoDesign.magician.designers` — an
    `ExternalDesignerAbstract` subclass that calls this protocol.
@@ -196,7 +202,7 @@ mutation:
 ### MutateRelax Worker
 
 `MutateRelax_worker` in `REvoDesign.sidechain.mutate_runner.RosettaMutateRelax`
-wraps `RosettaPy.app.MutateRelax` as a `MutateRunnerAbstract` subclass.
+wraps `RosettaPy.app.ScoreClusters` as a `MutateRunnerAbstract` subclass.
 Registered in `RUNNER_REGISTRY`.
 
 ## Configuration

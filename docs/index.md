@@ -16,6 +16,8 @@ greater confidence and less manual effort.
   wet-lab validation using one of several built-in clustering methods.
 - **Co-Evolution Analysis** — Search for co-evolved residue pairs via the
   GREMLIN Markov random field profile.
+- **Visualization** — Color structures by mutation scores, generate PyMOL
+  sessions, and export results.
 - **Multi-User Collaboration** — Share designs across a team with the socket
   broadcast system.
 

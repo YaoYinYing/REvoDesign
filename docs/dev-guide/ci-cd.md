@@ -6,12 +6,12 @@ The project uses GitHub Actions for continuous integration and delivery.
 
 ### `unit_tests_tag.yml` -- Bare Tests (primary)
 
-Triggered on push/PR to `main` and on release creation.
+Triggered on push/PR to `main`, release creation, and manual `workflow_dispatch`.
 
 | Aspect | Configuration | Notes |
 |--------|---------------|-------|
 | Platform | GitHub Actions | Matrix jobs with caching via `actions/cache` |
-| Operating systems | Ubuntu (primary), macOS, Windows | Linux runs daily; macOS/Windows on tagged releases |
+| Operating systems | Ubuntu (primary), macOS | Ubuntu and macOS on push/PR; Windows entries commented out |
 | Python versions | 3.10, 3.11, 3.12 | Matrix fan-out |
 | Environment managers | Conda, Pip | Conda for PyMOL + scientific stack; Pip for Python deps |
 | PyMOL channels | PyMOL Open Source (conda-forge), PyMOL Bundle (Schrödinger) v2 & v3 | OSS builds and official bundle (commented out for non-Linux) |
@@ -44,7 +44,7 @@ Triggered on push/PR to `main` and on release creation.
 
 ### `lint_badge.yml` -- Pylint
 
-Triggered on push/PR to `main` and on release creation. Runs `pylint` on the
+Triggered on push/PR to `main`, release creation, and manual `workflow_dispatch`. Runs `pylint` on the
 `src/` package using a custom GitHub Action
 (`YaoYinYing/pylint-github-action`) that posts a pylint score badge to
 Cloudflare R2.
@@ -69,7 +69,7 @@ refreshed from `server/README.md`.
 
 ### `schedule-update-actions.yml` -- GitHub Actions Version Updater
 
-Runs weekly (Sunday 00:00 UTC) via scheduled trigger. Uses
+Runs weekly (Sunday 00:00 UTC) via scheduled trigger, or manually via `workflow_dispatch`. Uses
 `saadmk11/github-actions-version-updater` to open a PR updating GitHub Action
 references to their latest versions. Requires a `PAT` secret with `workflow`
 scope.

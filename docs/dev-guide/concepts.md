@@ -55,7 +55,7 @@ Designers are external design/scoring tools wrapped as subclasses of `ExternalDe
 
 `Magician(SingletonAbstract)` is the central orchestrator for gimmicks:
 
-1. **Setup**: `magician.setup(name_cfg_item="ui.interact.use_external_scorer")` reads the config, resolves the gimmick name, and calls `initialize()` on the selected `ExternalDesignerAbstract` subclass.
+1. **Setup**: `magician.setup(name_cfg_term="ui.interact.use_external_scorer")` reads the config, resolves the gimmick name, and calls `initialize()` on the selected `ExternalDesignerAbstract` subclass.
 2. **Usage**: Access `magician.gimmick.scorer(mutant=...)` for scoring or `magician.gimmick.designer(...)` for sequence generation.
 3. **Cooldown**: Call `magician.setup()` with no arguments to clear the active gimmick.
 4. **Assistant**: `MagicianAssistant` (a frozen dataclass) holds the list of installed workers and provides `get(name, **kwargs)` to instantiate a gimmick by name.
@@ -175,6 +175,7 @@ Sequence clustering reduces large mutant sets to representative variants for exp
   - `AgglomerativeCluster` -- hierarchical agglomerative clustering.
   - `KMeansCluster` -- k-means clustering.
   - `EvoCluster` -- evolution-guided clustering that incorporates PSSM, ESM-1v, and spatial proximity weights.
+  - `LegacyCluster` -- **deprecated** original Ward-linkage clustering based on the score matrix; retained for compatibility only. Prefer `AgglomerativeCluster` or `EvoCluster` for new work.
 
 - **`ClusterRunner`**: The top-level orchestrator instantiated by the plugin. Reads all config values from the UI, configures the selected method, runs clustering, scores representatives (via Rosetta `score_clusters`), and writes output variant tables.
 

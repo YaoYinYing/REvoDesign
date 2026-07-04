@@ -27,20 +27,19 @@ UI/language/
 
 ### language.json format
 
+Each entry maps a language code to a display name and menu action:
+
 ```json
 [
-  {
-    "code": "eng-chs",
-    "name": "English → Chinese (Simplified)",
-    "action": "actionSwitch_to_Chinese_Simplified"
-  },
-  {
-    "code": "eng-cht",
-    "name": "English → Chinese (Traditional)",
-    "action": "actionSwitch_to_Chinese_Traditional"
-  }
+  {"code": "eng-eng", "name": "English",              "action": "actionEnglish"},
+  {"code": "eng-chs", "name": "中文",                  "action": "actionChinese"},
+  {"code": "eng-cht", "name": "繁體中文",              "action": "actionChineseTraditional"},
+  {"code": "eng-fr",  "name": "français",             "action": "actionFrench"}
 ]
 ```
+
+Not all entries require `.qm` files — `eng-eng` (English) has no translation
+binary, and some registered languages may lack completed translations.
 
 ### LanguageSwitch
 

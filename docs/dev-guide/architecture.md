@@ -107,16 +107,19 @@ src/REvoDesign/
 │   ├── REvoDesign.ui            # Qt Designer main window layout
 │   ├── REvoDesign-PyMOL-entry.ui# Package manager installer UI
 │   ├── types.py                 # Auto-generated REvoDesignUiProtocol
-│   ├── preference.py            # UI preference utilities
-│   ├── socket.py                # Socket tab UI helpers
+│   ├── preference.ui             # UI preference layout
+│   ├── socket.ui                # Socket tab UI layout
 │   └── language/                # Qt Linguist .ts/.qm translation files
 ├── logger/
 │   ├── __init__.py
 │   └── logger.py                # Root logger setup (initialized during import)
 ├── citations/
 │   └── citation_manager.py      # CitableModuleAbstract, CitationManager
-├── data/                        # Static data (protein codes, etc.)
-├── presets/                     # Style presets
+├── data/
+│   ├── __init__.py
+│   └── protein_code.py           # Static data (protein codes, etc.)
+├── presets/
+│   └── styles.py                 # Style presets
 └── tools/
     ├── customized_widgets.py    # QButtonMatrix, dialogs, ParallelExecutor
     ├── mutant_tools.py          # Mutant serialization helpers

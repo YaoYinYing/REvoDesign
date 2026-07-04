@@ -766,7 +766,7 @@ Thread management, process tracking, and background task execution infrastructur
 
 Command-line tool for merging multiple PyMOL session files into a single session.
 
-::: REvoDesign.tools.SessionMerger
+::: REvoDesign.tools.SessionMerger.PyMOLSessionMerger
     options:
       show_root_heading: true
       show_source: false
