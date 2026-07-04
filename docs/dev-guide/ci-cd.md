@@ -11,7 +11,7 @@ Triggered on push/PR to `main`, release creation, and manual `workflow_dispatch`
 | Aspect | Configuration | Notes |
 |--------|---------------|-------|
 | Platform | GitHub Actions | Matrix jobs with caching via `actions/cache` |
-| Operating systems | Ubuntu (primary), macOS | Linux runs daily; macOS on all pushes; Windows entries commented out |
+| Operating systems | Ubuntu (primary), macOS | Ubuntu and macOS on push/PR; Windows entries commented out |
 | Python versions | 3.10, 3.11, 3.12 | Matrix fan-out |
 | Environment managers | Conda, Pip | Conda for PyMOL + scientific stack; Pip for Python deps |
 | PyMOL channels | PyMOL Open Source (conda-forge), PyMOL Bundle (Schrödinger) v2 & v3 | OSS builds and official bundle (commented out for non-Linux) |

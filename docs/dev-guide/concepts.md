@@ -175,7 +175,7 @@ Sequence clustering reduces large mutant sets to representative variants for exp
   - `AgglomerativeCluster` -- hierarchical agglomerative clustering.
   - `KMeansCluster` -- k-means clustering.
   - `EvoCluster` -- evolution-guided clustering that incorporates PSSM, ESM-1v, and spatial proximity weights.
-  - `LegacyCluster` -- original sequence-based clustering (legacy algorithm).
+  - `LegacyCluster` -- **deprecated** original Ward-linkage clustering based on the score matrix; retained for compatibility only. Prefer `AgglomerativeCluster` or `EvoCluster` for new work.
 
 - **`ClusterRunner`**: The top-level orchestrator instantiated by the plugin. Reads all config values from the UI, configures the selected method, runs clustering, scores representatives (via Rosetta `score_clusters`), and writes output variant tables.
 

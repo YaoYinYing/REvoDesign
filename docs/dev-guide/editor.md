@@ -84,7 +84,7 @@ The server (`monaco/server.py`) provides a REST API for the Monaco frontend:
 |--------|------|---------|
 | `GET` | `/editor` | Serve Monaco editor HTML |
 | `GET` | `/load_file?file_path=...&token=...` | Read a whitelisted file |
-| `POST` | `/save_file?token=...` | Write a whitelisted file (path in JSON body) |
+| `POST` | `/save_file?token=...` | Write a whitelisted file (`file_path` in JSON body) |
 | `GET` | `/favicon.svg` | Logo |
 
 ### Security

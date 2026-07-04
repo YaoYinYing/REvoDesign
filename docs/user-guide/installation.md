@@ -43,7 +43,7 @@ If you already have a working PyMOL installation (2.5+), skip this step.
 3. Select **Install from PyMOLWiki or any URL**.
 4. Paste the Package Manager URL:
 
-    ```
+    ```text
     https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw/REvoDesign_PyMOL.py
     ```
 
