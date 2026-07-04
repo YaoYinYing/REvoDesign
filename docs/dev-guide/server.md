@@ -19,6 +19,16 @@ Users upload a FASTA file via the server's web UI or REST API. The server
 queues the job, dispatches it to a Docker container (the "runner"), and makes
 results available for download once finished.
 
+<figure markdown="span">
+![PSSM/GREMLIN server — task creation](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2a@4x.png){ width="600" }
+<figcaption>PSSM/GREMLIN server: upload a FASTA sequence to create a computation task</figcaption>
+</figure>
+
+<figure markdown="span">
+![PSSM/GREMLIN server — dashboard](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2b@4x.png){ width="600" }
+<figcaption>PSSM/GREMLIN server dashboard: monitor tasks, view status, and download results</figcaption>
+</figure>
+
 ## Architecture
 
 The server has four containerized services, orchestrated by Docker Compose:

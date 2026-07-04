@@ -73,6 +73,11 @@ Optional extras (rf diffusion, ESM2, etc.) are listed in `pyproject.toml`.
    `Ctrl+N`) to let REvoDesign find a designable molecule.
 3. The main UI panel opens. You are ready to design.
 
+<figure markdown="span">
+![REvoDesign main interface](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/GUI-judging-main@4x.png){ width="600" }
+<figcaption>REvoDesign main interface after loading a PyMOL session</figcaption>
+</figure>
+
 ## 5. Configuration
 
 REvoDesign stores its configuration in the platform-specific user data
@@ -108,6 +113,11 @@ precedence only when set.
 To apply changes to `main.yaml`, click **Edit > Reconfigure** in the REvoDesign
 menu. Secrets in `environ.yaml` take effect after using
 **Edit > Environment Variables > RefreshEnvironVar** (or restarting PyMOL).
+
+<figure markdown="span">
+![Recipe — YAML and JSON config files](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/recipe-yaml-json@4x.png){ width="550" }
+<figcaption>REvoDesign uses YAML for configuration and JSON for experiment recipes and task parameters</figcaption>
+</figure>
 
 ## 6. Basic Workflow
 

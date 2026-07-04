@@ -10,6 +10,11 @@ and WSL-based compute nodes.
 > objects. RosettaPy is a subprocess wrapper around the Rosetta command-line tools.
 > If you're looking for PyRosetta, see [pyrosetta.org](http://www.pyrosetta.org/).
 
+<figure markdown="span">
+![RosettaPy top-down design](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/RosettaPy_topdown_design@4x.png){ width="600" }
+<figcaption>RosettaPy architecture: multi-node Rosetta execution via Native, Docker, MPI, and WSL backends</figcaption>
+</figure>
+
 ## Architecture
 
 ```

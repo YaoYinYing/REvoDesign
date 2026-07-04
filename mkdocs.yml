@@ -55,8 +55,12 @@ nav:
   - Getting Started: getting-started.md
   - User Guide:
       - user-guide/index.md
+      - Installation: user-guide/installation.md
+      - Interface Overview: user-guide/interface-overview.md
+      - Workflow Tutorial: user-guide/workflow-tutorial.md
       - Cluster Methods: user-guide/cluster-methods.md
       - OpenKinetics: user-guide/openkinetics.md
+      - Advanced Design Tools: user-guide/advanced-design.md
   - Developer Guide:
       - dev-guide/index.md
       - Architecture: dev-guide/architecture.md
