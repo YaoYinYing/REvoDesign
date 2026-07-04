@@ -117,20 +117,21 @@ A typical REvoDesign session follows these stages:
    binding pocket, and fetch a PSSM profile.
 2. **Mutate** — Score and filter mutations from the profile. Apply
    constraints (score thresholds, residue preferences, rejection rules).
-3. **Interact** — Inspect co-evolved residue pairs and mutual information.
-4. **Evaluate** — Review the mutant table, inspect variants in 3D, and
+3. **Evaluate** — Review the mutant table, inspect variants in 3D, and
    optionally run external scorers (Rosetta ddG, OpenKinetics, etc.).
-5. **Cluster** — Group similar mutants via sequence or evolution-aware
+4. **Cluster** — Group similar mutants via sequence or evolution-aware
    clustering to select representatives for validation.
-6. **Socket** — Collaborate with other users on shared sessions.
-7. **Visualize** — Color the structure by mutation scores, generate PyMOL
+5. **Visualize** — Color the structure by mutation scores, generate PyMOL
    sessions, and export results.
+6. **Interact** — Inspect co-evolved residue pairs and mutual information
+   (GREMLIN analysis).
+7. **Socket** — Collaborate with other users on shared sessions.
 8. **Config** — Inspect and edit all configuration files from the UI.
 
 Each stage has a dedicated tab in the REvoDesign UI. Detailed walkthroughs
 are available in the [User Guide](user-guide/index.md).
 
-## 6. Keyboard Shortcuts
+## 7. Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
