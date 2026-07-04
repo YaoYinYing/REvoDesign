@@ -55,7 +55,7 @@ Designers are external design/scoring tools wrapped as subclasses of `ExternalDe
 
 `Magician(SingletonAbstract)` is the central orchestrator for gimmicks:
 
-1. **Setup**: `magician.setup(name_cfg_item="ui.interact.use_external_scorer")` reads the config, resolves the gimmick name, and calls `initialize()` on the selected `ExternalDesignerAbstract` subclass.
+1. **Setup**: `magician.setup(name_cfg_term="ui.interact.use_external_scorer")` reads the config, resolves the gimmick name, and calls `initialize()` on the selected `ExternalDesignerAbstract` subclass.
 2. **Usage**: Access `magician.gimmick.scorer(mutant=...)` for scoring or `magician.gimmick.designer(...)` for sequence generation.
 3. **Cooldown**: Call `magician.setup()` with no arguments to clear the active gimmick.
 4. **Assistant**: `MagicianAssistant` (a frozen dataclass) holds the list of installed workers and provides `get(name, **kwargs)` to instantiate a gimmick by name.
@@ -74,7 +74,7 @@ Mutate runners wrap sidechain packing and protein modeling tools. Each is a subc
 - **Runner registry**: `RUNNER_REGISTRY` (a `PluginRegistry`) auto-discovers subclasses in the `REvoDesign.sidechain.mutate_runner` package. `MutateRunnerManager` is a frozen dataclass providing `get(name, **kwargs)` for instantiation.
 
 - **Available runners**:
-  - `MutateRelax_worker` -- Rosetta `mutate_relax` protocol (requires Rosetta installation).
+  - `MutateRelax` -- Rosetta `mutate_relax` protocol (requires Rosetta installation).
   - `DLPacker_worker` -- DLPacker deep-learning sidechain packing.
   - `DLPackerPytorch_worker` -- PyTorch port of DLPacker.
   - `PIPPack_worker` -- PIPPack rotamer-based packing (configured via `pippack.yaml`).
@@ -153,7 +153,7 @@ GREMLIN (Generative Reuglarized Model_s of_prote_INs) provides co-evolutionary a
 - **`GREMLIN_Tools`** (`REvoDesign.phylogenetics.gremlin_tools`): Loads GREMLIN output (co-evolution scores, PDB structural data). Core data class:
   - `CoevolvedPair` -- stores a pair of positions `(i, j)`, their amino acids, inter-chain distances (`homochains_dist`, supporting multi-chain/multi-state analysis), z-scores, and distance cutoffs. Methods like `is_out_of_range()`, `all_out_of_range`, and `min_dist` enable filtering.
 
-- **`GremlinAnalyser`** (`REvoDesign.phylogenetics.gremlin_analyser`): Wires co-evolved pairs into the REvoDesign workflow. Displays pair connections as PyMOL CGO (Cylinder-style) objects with state-based coloring (available / out-of-range / in-design).
+- **`GremlinAnalyser`** (`REvoDesign.phylogenetics.evo_mutator`): Wires co-evolved pairs into the REvoDesign workflow. Displays pair connections as PyMOL CGO (Cylinder-style) objects with state-based coloring (available / out-of-range / in-design).
 
 - **`MutateWorker` / `REvoDesigner`** (`REvoDesign.phylogenetics.evo_mutator`): Applies evolutionary constraints to drive mutagenesis using co-evolved pair information and the Magician's scoring gimmick. Supports multi-round iterative design.
 
@@ -175,6 +175,7 @@ Sequence clustering reduces large mutant sets to representative variants for exp
   - `AgglomerativeCluster` -- hierarchical agglomerative clustering.
   - `KMeansCluster` -- k-means clustering.
   - `EvoCluster` -- evolution-guided clustering that incorporates PSSM, ESM-1v, and spatial proximity weights.
+  - `LegacyCluster` -- original sequence-based clustering (legacy algorithm).
 
 - **`ClusterRunner`**: The top-level orchestrator instantiated by the plugin. Reads all config values from the UI, configures the selected method, runs clustering, scores representatives (via Rosetta `score_clusters`), and writes output variant tables.
 
@@ -282,7 +283,7 @@ The exact import and initialization sequence matters for correct behavior. It is
 REvoDesign defines a comprehensive hierarchy of custom exceptions and warnings for structured error handling.
 
 - **Exceptions** (`REvoDesign.issues.exceptions`): All inherit from `REvoDesignException`. Key types: `ConfigurationError`, `PluginError`, `DependencyError`, `InvalidInputError`, `NoResultsError`, `NetworkError`, `UninstalledPackageError`, `FileFormatError`, `InternalError`, `EnzymeDesignError`.
-- **Warnings** (`REvoDesign.issues.warnings`): All inherit from `REvoDesignWarning`. Key types: `DisabledFunctionWarning`, `NoInputWarning`, `ConflictWarning`, `BadDataWarning`, `ConfigureOutofDateWarning`.
+- **Warnings** (`REvoDesign.issues.warnings`): All inherit from `REvoDesignWarning`. Key types: `DisabledFunctionWarning`, `NoInputWarning`, `ConflictWarning`, `BadDataWarning`. `ConfigureOutofDateError` lives in exceptions.
 - **Usage**: Exceptions are raised with descriptive messages and are caught at the UI layer to show `notify_box` dialogs. Warnings use Python's `warnings.warn()`.
 
 [API reference: `REvoDesign.issues`](../api/issues.md)

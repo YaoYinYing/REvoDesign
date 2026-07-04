@@ -19,6 +19,8 @@ openkinetics/
 
 Scorer classes are generated dynamically at import time from the `_SCORER_SPECS` tuple in `_scorers.py`. Each spec produces a concrete subclass of `OpenKineticsScorerAbstract` with a fixed `method`, `prediction_type`, and citation key. The `__init__.py` re-exports these classes by name.
 
+Beyond the core scoring workflow (submit, status, result), the `OpenKineticsClient` also wraps four additional service endpoints: `check_health()` (`/health/`), `list_methods()` (`/methods/`), `get_status()` (`/status/{job_id}/`), and `check_quota()` (`/quota/`). The `submit()` method accepts optional parameters `handle_long_sequences`, `use_experimental`, `include_similarity_columns`, and `canonicalize_substrates`.
+
 ---
 
 ## YAML Configuration
@@ -48,6 +50,13 @@ scorers:
 | `cache_enabled` | `bool` | `true` | Whether per-variant SQLite caching is on by default. |
 
 The config is loaded at runtime via `load_openkinetics_config()`.
+
+### API Key Configuration
+
+The API key is auto-registered by default. `OpenKineticsScorerAbstract`
+defaults `auto_register_api_key=True`, which triggers automatic key generation
+and persistence on first use (see `resolve_api_key()` below). Manual setup in
+`environ.yaml` is still supported as a fallback and takes precedence if set.
 
 ---
 
@@ -227,7 +236,7 @@ Base class for all OpenKinetics API-based kinetic scorers. Concrete subclasses f
 
 Rather than defining one class per prediction method, `_scorers.py` declares a `_SCORER_SPECS` tuple and creates concrete subclasses with `type()` at import time. Each subclass sets `name`, `prefer_lower`, `built_in_defaults`, and `__bibtex__`.
 
-The following 18 scorer classes are generated from the spec:
+The following 19 scorer classes are generated from the spec:
 
 | Class name | Scorer name | Method | Prediction type | Citation key |
 |---|---|---|---|---|

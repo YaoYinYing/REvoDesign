@@ -157,7 +157,7 @@ residue selectors (`expand_input_dict()`).
 
 ### Rosetta Utilities (`REvoDesign.tools.rosetta_utils`)
 
-All 11 functions verified against source:
+All 10 functions verified against source:
 
 | Function | Purpose |
 |----------|---------|

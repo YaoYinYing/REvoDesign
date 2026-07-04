@@ -27,20 +27,19 @@ UI/language/
 
 ### language.json format
 
+Each entry maps a language code to a display name and menu action:
+
 ```json
 [
-  {
-    "code": "eng-chs",
-    "name": "English → Chinese (Simplified)",
-    "action": "actionSwitch_to_Chinese_Simplified"
-  },
-  {
-    "code": "eng-cht",
-    "name": "English → Chinese (Traditional)",
-    "action": "actionSwitch_to_Chinese_Traditional"
-  }
+  {"code": "eng-eng", "name": "English",              "action": "actionEnglish"},
+  {"code": "eng-chs", "name": "中文",                  "action": "actionChinese"},
+  {"code": "eng-cht", "name": "繁體中文",              "action": "actionChineseTraditional"},
+  {"code": "eng-fr",  "name": "français",             "action": "actionFrench"}
 ]
 ```
+
+Not all entries require `.qm` files — `eng-eng` (English) has no translation
+binary, and some registered languages may lack completed translations.
 
 ### LanguageSwitch
 
@@ -73,26 +72,20 @@ translator lifecycle:
    }
    ```
 
-3. **Add the language to `UI/linguist.pro`** — List the `.ts` file so it's
-   included in the translation pipeline.
-
-4. **Add a menu action** in `REvoDesign.ui` — Create a `QAction` with an ID
-   matching the `action` field in `language.json`.
-
-5. **Translate** — Open the `.ts` file in Qt Linguist, fill in translations for
+3. **Translate** — Open the `.ts` file in Qt Linguist, fill in translations for
    each UI string.
 
-6. **Build** — Compile `.ts` → `.qm`:
+4. **Build** — Compile `.ts` → `.qm`:
    ```bash
    make translate
    ```
 
-7. **Test** — Restart PyMOL and switch to the new language via the menu.
+5. **Test** — Restart PyMOL and switch to the new language via the menu.
 
 ## Runtime Behavior
 
 - The active language is stored in the config (`environ.yaml`) under
-  `ui.language.code`.
+  `language`.
 - On plugin startup, `LanguageSwitch` reads this config and loads the
   corresponding `.qm` file.
 - The language can be switched at runtime via **Menu > Language > ...**.

@@ -46,7 +46,7 @@ Manager installer window.
 | `UI/REvoDesign-PyMOL-entry.ui` | Package Manager installer window |
 | `UI/types.py` | Auto-generated `REvoDesignUiProtocol` typing contract |
 | `UI/language/` | Translation `.ts`/`.qm` files and `language.json` registry |
-| `UI/language/linguist.pro` | Qt Linguist project file for translation pipeline |
+| `UI/liguist.pro` | Qt Linguist project file for translation pipeline |
 
 ## Runtime Loading
 

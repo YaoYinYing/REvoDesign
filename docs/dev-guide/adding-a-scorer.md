@@ -58,6 +58,7 @@ Required class attributes:
 | `installed` | `bool` | Signals availability to the registry (`installed_names`). |
 | `scorer_only` | `bool` | When `True`, only `scorer()` is implemented. |
 | `prefer_lower` | `bool` | If `True`, lower scores are treated as better. |
+| `no_need_to_score_wt` | `bool` | If `True`, the wild-type is not scored separately (default `False`). |
 
 Required methods:
 

@@ -9,12 +9,12 @@ graphics.
 ## Why CGO?
 
 CGO objects are rendered as PyMOL objects — you can zoom, rotate, clip, and
-color them like any molecule. They're used throughout REvoDesign for:
+color them like any molecule. They're used in REvoDesign for:
 
-- **GREMLIN co-evolution edges** — cylinders connecting residue pairs
-- **QButtonMatrix** — interactive residue grids in the GUI
-- **Axes, arrows, and annotations** — 3D visual aids in PyMOL
-- **Text boards and labels** — protein annotations in the viewer
+- **3D annotations** — axes, arrows, and coordinate frames in PyMOL
+- **Text boards and labels** — protein residue labels and annotations
+- **Custom geometry** — spheres, cylinders, torii, and curves for visual aids
+- **Easter eggs** — festive decorations and visual effects
 
 ## Two Ways to Use CGO
 
@@ -189,9 +189,7 @@ Point.cross(a, b) # cross product
 Point.from_array(np.array([1,2,3]))  # from numpy
 
 c = Color('red')
-c.as_cgo          # [COLOR, 1.0, 0.0, 0.0]
-c.hex             # '#ff0000'
-Color.from_cgo([COLOR, 0.0, 1.0, 0.0])  # from raw CGO
+c.as_cgo          # [ALPHA, 1.0, COLOR, 1.0, 0.0, 0.0]
 ```
 
 Available color tables: `BASE_COLORS`, `TABLEAU_COLORS`, `CSS4_COLORS`, `XKCD_COLORS`.
@@ -209,10 +207,10 @@ Cylinder(Point(0,0,0), Point(5,0,0), radius=0.5,
          color1='red', color2='blue').load_as('cyl')
 
 # Arrow (cylinder + cone tip)
-Arrow(Point(0,0,0), Point(5,0,0), shaft_radius=0.3,
-      head_radius=0.8, head_length=1.2, color='green').load_as('arrow')
+Arrow(Point(0,0,0), Point(5,0,0), radius=0.3,
+      header_height=1.2, color_tail='green', color_header='green').load_as('arrow')
 
-# Torus (doughnut) at origin, R=3, r=1
+# Torus (doughnut) at origin, major_radius=3, minor_radius=1
 Doughnut(center=Point(0,0,0), major_radius=3.0, minor_radius=1.0,
          color='yellow').load_as('torus')
 ```
@@ -234,7 +232,7 @@ Draws connected line segments through a list of points:
 from REvoDesign.tools.cgo_utils import PolyLines, Point
 
 points = [Point(i, i % 2, 0) for i in range(10)]
-PolyLines(points, color='cyan', linewidth=3.0).load_as('zigzag')
+PolyLines(width=3.0, color='cyan', points=points).load_as('zigzag')
 ```
 
 ### Curves

@@ -1,9 +1,10 @@
 # Monaco Editor
 
-REvoDesign embeds the [Monaco Editor](https://microsoft.github.io/monaco-editor/)
+REvoDesign provides a [Monaco Editor](https://microsoft.github.io/monaco-editor/)
 (the editor that powers VS Code) for editing YAML configuration files with
-syntax highlighting, code completion, and intention guides. The editor runs as a
-**local web app** served by a FastAPI backend, displayed in a PyMOL Qt widget.
+syntax highlighting, code completion, and intention guides. The editor is served
+as a **local web app** by a FastAPI backend and opened in the system's default
+web browser.
 
 ## Why Monaco?
 
@@ -16,7 +17,7 @@ requiring an external editor.
 
 ```
 ┌──────────────────────────────────────────┐
-│  PyMOL Qt Widget (QWebEngineView)        │
+│  System Web Browser                      │
 │  ┌────────────────────────────────────┐  │
 │  │  Monaco Editor (HTML/JS)           │  │
 │  │  - YAML syntax highlighting        │  │
@@ -62,8 +63,8 @@ src/REvoDesign/editor/
 `MonacoEditorManager` (in `monaco.py`) handles the lifecycle of the Monaco
 editor installation:
 
-1. **Download** — Fetches a specific version of `monaco-editor` from GitHub
-   releases as a `.tar.gz`.
+1. **Download** — Fetches a specific version of `monaco-editor` from the npm
+   registry (`registry.npmjs.org`) as a `.tgz` tarball.
 2. **Extract** — Unpacks into `$USER_DATA_DIR/monaco/`.
 3. **Template copy** — Copies `static/index.html` into the extracted editor
    directory, customizing it for the local backend.
@@ -81,17 +82,16 @@ The server (`monaco/server.py`) provides a REST API for the Monaco frontend:
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/` | Serve Monaco editor HTML |
-| `GET` | `/api/files` | List whitelisted files (editable + readonly) |
-| `GET` | `/api/files/{path}` | Read a whitelisted file |
-| `PUT` | `/api/files/{path}` | Write a whitelisted file (editable only) |
-| `GET` | `/api/static/{path}` | Serve static Monaco assets |
+| `GET` | `/editor` | Serve Monaco editor HTML |
+| `GET` | `/load_file?file_path=...&token=...` | Read a whitelisted file |
+| `POST` | `/save_file?token=...` | Write a whitelisted file (path in JSON body) |
+| `GET` | `/favicon.svg` | Logo |
 
 ### Security
 
 - **Token authentication**: A random 32-byte `SECRET_TOKEN` is generated on
   first launch, stored in `ConfigStore`. All mutating requests must include
-  `Authorization: Bearer <token>`.
+  `token=<token>` as a query parameter.
 - **Rate limiting**: 5 failed attempts per IP within a 60-second window
   triggers a 429 block.
 - **File whitelist**: Only files explicitly listed in the whitelist can be
@@ -140,6 +140,6 @@ The server lifecycle is managed by `StoresWidget`, which tracks the running
 1. Open REvoDesign in PyMOL.
 2. Click **Edit > Open Config Editor** or select a config file from the
    **File** menu.
-3. The Monaco editor opens in a new Qt window with the selected YAML file.
+3. The Monaco editor opens in your default web browser with the selected YAML file.
 4. Edit with syntax highlighting, save (`Ctrl+S`), and close.
 5. Click **File > Reconfigure** to apply the changes.

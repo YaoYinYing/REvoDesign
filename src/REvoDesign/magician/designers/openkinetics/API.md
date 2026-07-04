@@ -28,9 +28,9 @@ For normal use, add it under `variables` in the living REvoDesign
 
 | Method | Path | Purpose | REvoDesign client method |
 | --- | --- | --- | --- |
-| `GET` | `/health/` | Service health check | not wrapped |
+| `GET` | `/health/` | Service health check | `check_health()` |
 | `GET` | `/methods/` | Method registry grouped by prediction target | `list_methods()` |
-| `GET` | `/quota/` | Account quota | not wrapped |
+| `GET` | `/quota/` | Account quota | `check_quota()` |
 | `POST` | `/validate/` | Validate a CSV upload | `validate_file()` |
 | `POST` | `/submit/` | Submit a prediction job | `submit()` |
 | `GET` | `/status/{job_id}/` | Poll job status | `get_status()` |
