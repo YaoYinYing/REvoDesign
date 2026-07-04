@@ -74,7 +74,7 @@ Mutate runners wrap sidechain packing and protein modeling tools. Each is a subc
 - **Runner registry**: `RUNNER_REGISTRY` (a `PluginRegistry`) auto-discovers subclasses in the `REvoDesign.sidechain.mutate_runner` package. `MutateRunnerManager` is a frozen dataclass providing `get(name, **kwargs)` for instantiation.
 
 - **Available runners**:
-  - `MutateRelax` -- Rosetta `mutate_relax` protocol (requires Rosetta installation).
+  - `MutateRelax_worker` -- Rosetta `mutate_relax` protocol (requires Rosetta installation).
   - `DLPacker_worker` -- DLPacker deep-learning sidechain packing.
   - `DLPackerPytorch_worker` -- PyTorch port of DLPacker.
   - `PIPPack_worker` -- PIPPack rotamer-based packing (configured via `pippack.yaml`).

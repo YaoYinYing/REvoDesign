@@ -108,7 +108,7 @@ src/REvoDesign/
 │   ├── REvoDesign-PyMOL-entry.ui# Package manager installer UI
 │   ├── types.py                 # Auto-generated REvoDesignUiProtocol
 │   ├── preference.py            # UI preference utilities
-│   ├── socket.py                # Socket tab UI helpers
+│   ├── socket.ui                # Socket tab UI layout
 │   └── language/                # Qt Linguist .ts/.qm translation files
 ├── logger/
 │   ├── __init__.py
