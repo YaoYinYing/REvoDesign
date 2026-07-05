@@ -25,6 +25,16 @@ Use the computation service:
    a download button (if complete).
 5. When complete, download and unzip the archive for use in the Prepare step.
 
+<figure markdown="span">
+![PSSM/GREMLIN server — task submission page](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2a@4x.png){ width="600" }
+<figcaption>PSSM/GREMLIN server task submission: upload a single FASTA file or paste a sequence</figcaption>
+</figure>
+
+<figure markdown="span">
+![PSSM/GREMLIN server — task dashboard](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2b@4x.png){ width="600" }
+<figcaption>PSSM/GREMLIN server dashboard: monitor task status, cancel queued/running jobs, download completed results</figcaption>
+</figure>
+
 !!! example "Example FASTA"
     ```
     >1SUO_A
