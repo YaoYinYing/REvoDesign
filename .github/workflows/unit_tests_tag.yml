@@ -162,7 +162,9 @@ jobs:
             make install-pytorch-cpu-non-mac
           fi
           make install
-      
+          # uvicorn 0.50.0 causes Qt event loop abort (SIGABRT) during pytest-qt qtbot.wait()
+          pip install 'uvicorn<0.50.0'
+
       - name: Install DGL on Ubuntu
         if: startsWith(matrix.os, 'ubuntu')
         run: |
