@@ -25,26 +25,6 @@ Use the computation service:
    a download button (if complete).
 5. When complete, download and unzip the archive for use in the Prepare step.
 
-<figure markdown="span">
-![Submit sequence for computation](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/submit-sequence-pssm.png){ width="450" }
-<figcaption>Figure 17: Submit a FASTA sequence for PSSM/GREMLIN computation</figcaption>
-</figure>
-
-<figure markdown="span">
-![Job running status](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/job-running-status.png){ width="600" }
-<figcaption>Figure 18: Job status — running. Refresh the dashboard to monitor progress</figcaption>
-</figure>
-
-<figure markdown="span">
-![Cancel or download task](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/cancel-task.png){ width="600" }
-<figcaption>Figure 19: Hover over a task to cancel (if running/queued) or download (if complete)</figcaption>
-</figure>
-
-<figure markdown="span">
-![Download results](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/download-results.png){ width="600" }
-<figcaption>Figure 20: Download computed evolution data as a zip archive</figcaption>
-</figure>
-
 !!! example "Example FASTA"
     ```
     >1SUO_A
