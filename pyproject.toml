@@ -46,7 +46,7 @@ dependencies = [
     "bibtexparser==2.0.0b9",
     "platformdirs",
     "fastapi",
-    "uvicorn",
+    "uvicorn>=0.12.0,<0.50.0",
     "requests",
     "openpyxl",
     "tqdm",
