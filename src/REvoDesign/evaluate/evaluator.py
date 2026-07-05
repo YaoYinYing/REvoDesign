@@ -4,7 +4,7 @@
 
 
 """
-Evaluator for mutants
+Evalutator for mutants
 
 TODO: need refactor
 """
@@ -24,7 +24,7 @@ from REvoDesign.tools.mutant_tools import existed_mutant_tree, extract_mutant_fr
 logging = ROOT_LOGGER.getChild(__name__)
 
 
-class Evaluator:
+class Evalutator:
     def __init__(self):
         self.bus: ConfigBus = ConfigBus()
 

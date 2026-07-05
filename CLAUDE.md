@@ -80,7 +80,7 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 `REvoDesignPlugin(QtWidgets.QWidget)` is the main PyMOL plugin entry point:
 1. `load_runtime_ui()` loads `UI/REvoDesign.ui` → returns `(window, RuntimeUiProxy)`
 2. Sets `self.bus.ui = ui` on the `ConfigBus` singleton, which transitions it from headless to GUI mode
-3. Initializes sub-systems: `SurfaceFinder`, `PocketSearcher`, `ClusterRunner`, `MultiMutantDesigner`, `GremlinAnalyser`, `Evaluator`
+3. Initializes sub-systems: `SurfaceFinder`, `PocketSearcher`, `ClusterRunner`, `MultiMutantDesigner`, `GremlinAnalyser`, `Evalutator`
 4. Sets up i18n via `LanguageSwitch(window)`
 5. Wires keyboard shortcuts from `REvoDesign.shortcuts`
 
