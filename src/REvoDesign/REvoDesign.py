@@ -29,7 +29,7 @@ from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.multi_mutant_designer import MultiMutantDesigner
 from REvoDesign.driver.environ_register import register_environment_variables
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
-from REvoDesign.evaluate import Evalutator
+from REvoDesign.evaluate import Evaluator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import GremlinAnalyser, MutateWorker, VisualizingWorker
 from REvoDesign.Qt import QT_BACKEND, QtCore, QtGui, QtWidgets, has_qt_module
@@ -93,7 +93,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.design_sequence = ""
 
         self.gremlin_worker: GremlinAnalyser = None  # type: ignore
-        self.evaluator: Evalutator = None  # type: ignore
+        self.evaluator: Evaluator = None  # type: ignore
         global logging
         logging = ROOT_LOGGER.getChild(self.__class__.__name__)
 
@@ -854,7 +854,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def initialize_design_candidates(self):
         """Initialize Evaluator for human checks"""
 
-        self.evaluator = Evalutator()
+        self.evaluator = Evaluator()
 
         self.evaluator.initialize_design_candidates()
 
