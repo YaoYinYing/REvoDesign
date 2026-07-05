@@ -196,7 +196,6 @@ def plugin(qtbot: qtbot.QtBot, app, patch_config_user_data, patch_config_user_ca
 
     # reset all singleton classes
 
-    gc.collect()
     # check_real_config_dir() # passed
 
     plugin = REvoDesignPlugin()
@@ -660,8 +659,6 @@ class TestWorker:
 
         reset_singletons()
 
-        gc.collect()
-
 
 # fixtures to patch user cache/data dir are still required
 
@@ -708,7 +705,7 @@ def pm_test_worker(
     w = PmTestWorker(qtbot, pm_plugin)
 
     def final_action():
-        gc.collect()
+        pass
 
     yield w
     request.addfinalizer(final_action)
