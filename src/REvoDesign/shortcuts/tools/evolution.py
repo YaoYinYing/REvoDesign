@@ -7,7 +7,6 @@
 Shortcut for running GREMLIN on a given FASTA MSA file.
 """
 
-import gc
 import pickle  # nosec B403: MRF model serialization, trusted data
 
 from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract, TorchModuleAbstract
@@ -61,5 +60,3 @@ def run_gremlin(fasta_file: str, mrf_file_save: str, gremlin_iter: int = 100, de
     app = GremlinPytorch(device)
     app.run(fasta_file, mrf_file_save, gremlin_iter)
     app.cleanup()
-    del app
-    gc.collect()

@@ -72,7 +72,8 @@ Mutant M1_2 (compare to protein.WT): BD30E_AD30E
 
 ## Cleanup
 
-The runner creates intermediate files under `mutant_pdbs/`. Remove when done:
+REvoDesign writes mutant PDBs under `mutant_pdbs/` by default. After moving your
+files out, the directory is empty and can be removed:
 
 ```bash
 rm -r mutant_pdbs

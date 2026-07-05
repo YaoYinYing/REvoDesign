@@ -50,7 +50,7 @@ Mutants are specified as underscore-delimited strings in the format
 
 ## Step 3: Generate Mutant PDBs
 
-Open PyMOL and run the following in the Python prompt (`File → Python Prompt`):
+Open PyMOL and run the following in the built-in Python prompt:
 
 ```python
 from RosettaPy.common.mutation import RosettaPyProteinSequence
@@ -146,7 +146,8 @@ The generated PDB files are standard protein structures ready for:
 
 ## Cleanup
 
-The runner stores intermediate files under `mutant_pdbs/`. Remove when done:
+REvoDesign writes mutant PDBs under `mutant_pdbs/` by default. After moving your
+files out, the directory is empty and can be removed:
 
 ```bash
 rm -r mutant_pdbs
