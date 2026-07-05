@@ -5,7 +5,7 @@ zones around a tabbed workflow.
 
 <figure markdown="span">
 ![REvoDesign main interface zones](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/main-interface-zones.png){ width="500" }
-<figcaption>Figure 8: REvoDesign main interface with functional zones labeled</figcaption>
+<figcaption>REvoDesign main interface with functional zones labeled</figcaption>
 </figure>
 
 ## Interface Zones
@@ -22,7 +22,7 @@ zones around a tabbed workflow.
 
     <figure markdown="span">
     ![Color preset dropdown](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/color-preset-dropdown.png){ width="500" }
-    <figcaption>Figure 9: Color preset dropdown with gradient preview icons</figcaption>
+    <figcaption>Color preset dropdown with gradient preview icons</figcaption>
     </figure>
 
 4. **Core Function Tabs** — The main workspace, organized by workflow stage:
@@ -43,12 +43,12 @@ Auxiliary design tools are organized in the menu bar by function category.
 
 <figure markdown="span">
 ![Drop-down menus](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/dropdown-menus.png){ width="600" }
-<figcaption>Figure 10: Drop-down menus provide additional task functions</figcaption>
+<figcaption>Drop-down menus provide additional task functions</figcaption>
 </figure>
 
 <figure markdown="span">
 ![Menu functions overview](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/menu_functions@4x.png){ width="600" }
-<figcaption>Figure 10b: Complete menu function reference with categorized tool entries</figcaption>
+<figcaption>Complete menu function reference with categorized tool entries</figcaption>
 </figure>
 
 Many menu items open a parameter dialog for user input. For example,
@@ -57,12 +57,12 @@ Cα restraints.
 
 <figure markdown="span">
 ![Task parameter dialog](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/task-parameter-dialog.png){ width="350" }
-<figcaption>Figure 11: Task parameter window — fill in the fields and run</figcaption>
+<figcaption>Task parameter window — fill in the fields and run</figcaption>
 </figure>
 
 <figure markdown="span">
 ![Dialog wrapper examples](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/dialog-wrapper@4x.png){ width="500" }
-<figcaption>Figure 11b: Dialog wrapper pattern — parameter dialogs for various task configurations</figcaption>
+<figcaption>Dialog wrapper pattern — parameter dialogs for various task configurations</figcaption>
 </figure>
 
 !!! warning "Parameters are ephemeral"
@@ -74,7 +74,7 @@ the dialog window.
 
 <figure markdown="span">
 ![Drag-and-drop parameter loading](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/drag-drop-params.png){ width="600" }
-<figcaption>Figure 12: Save parameters to JSON; reload via Load button or drag-and-drop</figcaption>
+<figcaption>Save parameters to JSON; reload via Load button or drag-and-drop</figcaption>
 </figure>
 
 ## Language Switching
@@ -84,12 +84,12 @@ The language selector is in the top-right area.
 
 <figure markdown="span">
 ![Language switcher](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/language-switcher.png){ width="600" }
-<figcaption>Figure 13: Interface language switching</figcaption>
+<figcaption>Interface language switching</figcaption>
 </figure>
 
 <figure markdown="span">
 ![Chinese UI](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/chinese-ui.png){ width="600" }
-<figcaption>Figure 14: REvoDesign main interface in Chinese</figcaption>
+<figcaption>REvoDesign main interface in Chinese</figcaption>
 </figure>
 
 !!! note
@@ -103,12 +103,12 @@ persisted to disk automatically.
 
 <figure markdown="span">
 ![Save/load experiments](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/save-load-experiments.png){ width="600" }
-<figcaption>Figure 15: Configurations can be saved and loaded as experiment snapshots</figcaption>
+<figcaption>Configurations can be saved and loaded as experiment snapshots</figcaption>
 </figure>
 
 <figure markdown="span">
 ![Save configuration options](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/save-config-options.png){ width="600" }
-<figcaption>Figure 16: Configuration save options in the Edit menu</figcaption>
+<figcaption>Configuration save options in the Edit menu</figcaption>
 </figure>
 
 | Action | Shortcut | Description |

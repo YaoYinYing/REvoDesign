@@ -20,14 +20,25 @@ queues the job, dispatches it to a Docker container (the "runner"), and makes
 results available for download once finished.
 
 <figure markdown="span">
-![PSSM/GREMLIN server — task creation](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2a@4x.png){ width="600" }
-<figcaption>PSSM/GREMLIN server: upload a FASTA sequence to create a computation task</figcaption>
+![PSSM/GREMLIN server — task submission page](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2a@4x.png){ width="600" }
+<figcaption>PSSM/GREMLIN server: upload a FASTA file to submit a computation task</figcaption>
 </figure>
 
 <figure markdown="span">
-![PSSM/GREMLIN server — dashboard](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2b@4x.png){ width="600" }
+![PSSM/GREMLIN server — task dashboard overview](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2b@4x.png){ width="600" }
 <figcaption>PSSM/GREMLIN server dashboard: monitor tasks, view status, and download results</figcaption>
 </figure>
+
+The service uses an asynchronous task processing architecture to support
+concurrent multi-user submissions. When a user uploads a FASTA file, the
+system computes its MD5 hash as a unique task identifier, creates an isolated
+directory for input/output data, and enqueues the job onto a Celery message
+queue. Task state progresses through: **pending** → **running** → **packing
+results** → **finished** (or **failed**). The actual computation runs in an
+isolated Docker container per task, preventing interference between
+concurrent jobs. When complete, all result files (PSSM, co-evolution coupling
+scores, MSA files) are packaged into a ZIP archive for one-click download
+from the dashboard. Users can also cancel queued or running tasks.
 
 ## Architecture
 
@@ -67,6 +78,17 @@ The server has four containerized services, orchestrated by Docker Compose:
                     │  dirs, output dir         │
                     └──────────────────────────┘
 ```
+
+<figure markdown="span">
+![REvoDesign evolutionary data calculation service architecture](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/server-arch.png){ width="600" }
+<figcaption>Service architecture design: layered topology from reverse proxy down to Docker compute containers</figcaption>
+</figure>
+
+The service stack is fully containerized and orchestrated via Docker Compose.
+Deployment requires only database files, environment variables, and a single
+command. All services run as non-root users to prevent privilege escalation;
+database directories are mounted read-only for data safety. User task data is
+organized by user identity and task MD5, with strict permission isolation.
 
 ### Services
 

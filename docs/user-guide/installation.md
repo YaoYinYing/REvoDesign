@@ -51,17 +51,17 @@ If you already have a working PyMOL installation (2.5+), skip this step.
 
 <figure markdown="span">
 ![PyMOL Plugin Manager](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/plugin-manager-interface.png){ width="600" }
-<figcaption>Figure 1: PyMOL Plugin Manager interface</figcaption>
+<figcaption>PyMOL Plugin Manager interface</figcaption>
 </figure>
 
 <figure markdown="span">
 ![Paste Package Manager URL](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/paste-package-manager-url.png){ width="600" }
-<figcaption>Figure 2: Paste the REvoDesign Package Manager URL and click Fetch</figcaption>
+<figcaption>Paste the REvoDesign Package Manager URL and click Fetch</figcaption>
 </figure>
 
 <figure markdown="span">
 ![Confirm install location](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/confirm-install-location.png){ width="600" }
-<figcaption>Figure 3: Confirm plugin installation location</figcaption>
+<figcaption>Confirm plugin installation location</figcaption>
 </figure>
 
 6. The **REvoDesign Package Manager** appears in the Plugin menu.
@@ -83,17 +83,17 @@ If you already have a working PyMOL installation (2.5+), skip this step.
 
 <figure markdown="span">
 ![Package Manager menu entry](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/package-manager-menu.png){ width="600" }
-<figcaption>Figure 4: Package Manager appears in the Plugin menu after installation</figcaption>
+<figcaption>Package Manager appears in the Plugin menu after installation</figcaption>
 </figure>
 
 <figure markdown="span">
 ![Package Manager interface](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/package-manager-interface.png){ width="500" }
-<figcaption>Figure 5: Package Manager main interface</figcaption>
+<figcaption>Package Manager main interface</figcaption>
 </figure>
 
 <figure markdown="span">
 ![Package Manager — judging installer view](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/GUI-judging-installer@4x.png){ width="600" }
-<figcaption>Figure 5b: Package Manager judging installer — component selection and install progress</figcaption>
+<figcaption>Package Manager judging installer — component selection and install progress</figcaption>
 </figure>
 
 !!! tip "First-time installation"
@@ -137,12 +137,12 @@ Right-click in the empty area of the Package Manager for additional options:
 
 <figure markdown="span">
 ![Right-click menu](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/right-click-menu.png){ width="600" }
-<figcaption>Figure 6: Right-click menu in the Package Manager</figcaption>
+<figcaption>Right-click menu in the Package Manager</figcaption>
 </figure>
 
 <figure markdown="span">
 ![Diagnostic data collection](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/diagnostic-data.png){ width="600" }
-<figcaption>Figure 7: Diagnostic data collection options</figcaption>
+<figcaption>Diagnostic data collection options</figcaption>
 </figure>
 
 ## Self-Upgrade

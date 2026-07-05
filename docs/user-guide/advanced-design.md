@@ -20,14 +20,14 @@ individual mutations by clicking cells in a matrix.
 
 <figure markdown="span">
 ![Profile Design menu entry](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/profile-design-menu.png){ width="600" }
-<figcaption>Figure 71: Profile Design entry in the Design Tools menu</figcaption>
+<figcaption>Profile Design entry in the Design Tools menu</figcaption>
 </figure>
 
 3. Enter the residue range of interest.
 
 <figure markdown="span">
 ![Profile Design input](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/profile-design-input.png){ width="350" }
-<figcaption>Figure 72: Enter the residue range to design</figcaption>
+<figcaption>Enter the residue range to design</figcaption>
 </figure>
 
 !!! info "Residue range syntax"
@@ -51,7 +51,7 @@ The Profile Design window shows a matrix where:
 
 <figure markdown="span">
 ![Profile Design interface](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/profile-design-interface.png){ width="600" }
-<figcaption>Figure 73: Profile Design heatmap — columns are positions, rows are amino acids</figcaption>
+<figcaption>Profile Design heatmap — columns are positions, rows are amino acids</figcaption>
 </figure>
 
 - **Hover** over a cell to see the position and amino acid details with a
@@ -61,7 +61,7 @@ The Profile Design window shows a matrix where:
 
 <figure markdown="span">
 ![Profile Design mutation](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/profile-design-mutation.png){ width="600" }
-<figcaption>Figure 74: Click a cell to design and visualize a point mutant on the fly</figcaption>
+<figcaption>Click a cell to design and visualize a point mutant on the fly</figcaption>
 </figure>
 
 Profile Design uses the main UI's **color preset**, **invert flag**, and
@@ -79,14 +79,14 @@ protein thermal stability (ΔΔG), supporting both single-point and pairwise
 
 <figure markdown="span">
 ![ThermoMPNN menu entry](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/thermompnn-menu.png){ width="400" }
-<figcaption>Figure 75: ThermoMPNN menu entry</figcaption>
+<figcaption>ThermoMPNN menu entry</figcaption>
 </figure>
 
 2. Set the residue range and number of top-ranked results to display.
 
 <figure markdown="span">
 ![ThermoMPNN single point settings](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/thermompnn-single-point.png){ width="500" }
-<figcaption>Figure 76: ThermoMPNN single-point scan settings</figcaption>
+<figcaption>ThermoMPNN single-point scan settings</figcaption>
 </figure>
 
 3. Click **Run**.
@@ -101,7 +101,7 @@ main UI.
 
 <figure markdown="span">
 ![ThermoMPNN results](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/thermompnn-results.png){ width="550" }
-<figcaption>Figure 77: ThermoMPNN single-point prediction results mapped to structure</figcaption>
+<figcaption>ThermoMPNN single-point prediction results mapped to structure</figcaption>
 </figure>
 
 ### Double-Point (Epistatic) Scan
@@ -114,12 +114,12 @@ main UI.
 
 <figure markdown="span">
 ![ThermoMPNN double point mode](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/thermompnn-double-point.png){ width="450" }
-<figcaption>Figure 78: ThermoMPNN double-point combination modes</figcaption>
+<figcaption>ThermoMPNN double-point combination modes</figcaption>
 </figure>
 
 <figure markdown="span">
 ![ThermoMPNN double point results](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/thermompnn-double-results.png){ width="550" }
-<figcaption>Figure 79: ThermoMPNN double-point combination design results</figcaption>
+<figcaption>ThermoMPNN double-point combination design results</figcaption>
 </figure>
 
 ## RFdiffusion Backbone Design
@@ -130,7 +130,7 @@ or designing novel scaffolds.
 
 <figure markdown="span">
 ![RFdiffusion menu entry](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/rfdiffusion-menu.png){ width="450" }
-<figcaption>Figure 80: RFdiffusion entry in the Design Tools menu</figcaption>
+<figcaption>RFdiffusion entry in the Design Tools menu</figcaption>
 </figure>
 
 REvoDesign acts as a launcher — it runs RFdiffusion YAML configuration
@@ -164,7 +164,7 @@ For 1SUO, suppose a loop region at the N-terminus needs remodeling:
 
 <figure markdown="span">
 ![RFdiffusion parameters](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/rfdiffusion-params.png){ width="450" }
-<figcaption>Figure 81: RFdiffusion parameter dialog</figcaption>
+<figcaption>RFdiffusion parameter dialog</figcaption>
 </figure>
 
 3. Load the YAML file and set any additional parameters.
@@ -176,7 +176,7 @@ shows the adjusted backbone conformation.
 
 <figure markdown="span">
 ![RFdiffusion result](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/rfdiffusion-result.png){ width="400" }
-<figcaption>Figure 82: RFdiffusion result — gray: original, brick red: redesigned backbone</figcaption>
+<figcaption>RFdiffusion result — gray: original, brick red: redesigned backbone</figcaption>
 </figure>
 
 ## Third-Party Tool Citations
