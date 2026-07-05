@@ -45,7 +45,7 @@ print(registry.list_all_files)
 print(registry.has("file2.pkl"))
 
 # Extract compressed archives
-result.flatten_archieve             # extracts to {path}_flatten/
+result.flatten_archive              # extracts to {path}_flatten/
 ```
 
 ## Retry Mechanism

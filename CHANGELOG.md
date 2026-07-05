@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved legacy `docs/` to `docs_old/` for archival; new docs are a fresh MkDocs site.
 - Updated README links to point to new docs structure.
 
+### Fixed
+- Pinned `uvicorn>=0.12.0,<0.50.0` — uvicorn 0.50.0 changes import-time memory layout (replaced `click.style` with internal `_ansi` helper), exposing a latent C-level heap corruption that triggers SIGABRT in Qt's event loop during `pytest-qt`'s `qtbot.wait()`.
+- Renamed `Evalutator` → `Evaluator` and `flatten_archieve` → `flatten_archive` (typo fixes, no backward-compat aliases).
+
 ## [1.9.0] - 2026-07-03
 ### Added
 - Runtime UI loading:

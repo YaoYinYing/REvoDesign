@@ -225,8 +225,8 @@ class TestDownloadedFile:
 
     @patch("REvoDesign.tools.download_registry.extract_archive")
     @patch("REvoDesign.tools.download_registry.os.listdir")
-    def test_flatten_archieve_with_empty_dir(self, mock_listdir, mock_extract_archive, test_tmp_dir):
-        """Test flatten_archieve property when directory is empty"""
+    def test_flatten_archive_with_empty_dir(self, mock_listdir, mock_extract_archive, test_tmp_dir):
+        """Test flatten_archive property when directory is empty"""
         downloaded_file = DownloadedFile(
             name="test.zip", version="1.0", url="http://example.com/test.zip", downloaded=f"{test_tmp_dir}/test.zip"
         )
@@ -238,15 +238,15 @@ class TestDownloadedFile:
             ["file1.txt", "file2.txt"],  # Second call - after extraction
         ]
 
-        extracted_files = downloaded_file.flatten_archieve
+        extracted_files = downloaded_file.flatten_archive
 
         assert extracted_files == ["file1.txt", "file2.txt"]
         mock_extract_archive.assert_called_once_with(f"{test_tmp_dir}/test.zip", f"{test_tmp_dir}/test.zip_flatten/")
 
     @patch("REvoDesign.tools.download_registry.extract_archive")
     @patch("REvoDesign.tools.download_registry.os.listdir")
-    def test_flatten_archieve_with_non_empty_dir(self, mock_listdir, mock_extract_archive, test_tmp_dir):
-        """Test flatten_archieve property when directory is not empty"""
+    def test_flatten_archive_with_non_empty_dir(self, mock_listdir, mock_extract_archive, test_tmp_dir):
+        """Test flatten_archive property when directory is not empty"""
         downloaded_file = DownloadedFile(
             name="test.zip", version="1.0", url="http://example.com/test.zip", downloaded=f"{test_tmp_dir}/test.zip"
         )
@@ -254,7 +254,7 @@ class TestDownloadedFile:
         # Directory already has files
         mock_listdir.return_value = ["file1.txt", "file2.txt"]
 
-        extracted_files = downloaded_file.flatten_archieve
+        extracted_files = downloaded_file.flatten_archive
 
         assert extracted_files == ["file1.txt", "file2.txt"]
         mock_extract_archive.assert_not_called()

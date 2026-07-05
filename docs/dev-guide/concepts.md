@@ -22,7 +22,7 @@ A `Mutant` is the core data model representing a point mutation or a set of muta
 
 - **Structure**: A `dict[str, dict[str, Mutant]]` mapping branch IDs to mutant IDs to `Mutant` objects. Each branch corresponds to an exploration trajectory (e.g., one round of design).
 - **Navigation**: `current_branch_id` and `current_mutant_id` track the user's position in the tree. Utilities like `refresh_mutants()`, `all_mutant_objects`, `all_mutant_scores`, and `all_mutant_ids` provide bulk access.
-- **Integration**: The `MutateRunnerAbstract.mutated_pdb_mapping()` static method associates output PDB file paths back to their `Mutant` objects in the tree. The evaluator (`Evalutator`) uses the tree to walk through scored designs.
+- **Integration**: The `MutateRunnerAbstract.mutated_pdb_mapping()` static method associates output PDB file paths back to their `Mutant` objects in the tree. The evaluator (`Evaluator`) uses the tree to walk through scored designs.
 
 [API reference: `REvoDesign.common`](../api/common.md)
 
@@ -45,7 +45,7 @@ Designers are external design/scoring tools wrapped as subclasses of `ExternalDe
 
 - **Discovery**: Subclasses are auto-discovered in the `REvoDesign.magician.designers` package by `DESIGNER_REGISTRY` (a `PluginRegistry`). Each subclass must set `name: str` to a unique identifier. To be listed as installed, set `installed: bool = True`.
 
-- **Available designers**: `ColabDesigner_MPNN` (ProteinMPNN-based sequence design via ColabDesign), `ddg` (Cartesian ddG scoring), and the `openkinetics` OpenMM-based kinetic/thermodynamic scorer suite.
+- **Available designers**: `ProteinMPNN` (ProteinMPNN-based sequence design via ColabDesign, exported as `ColabDesigner_MPNN`), `Cartesian-ddG` (Cartesian ddG scoring, exported as `ddg`), and the `openkinetics` OpenMM-based kinetic/thermodynamic scorer suite.
 
 - **Magician orchestration**: The `Magician` singleton manages the lifecycle of the currently active gimmick. See *Magician Orchestration Protocol* below.
 
@@ -73,13 +73,13 @@ Mutate runners wrap sidechain packing and protein modeling tools. Each is a subc
 
 - **Runner registry**: `RUNNER_REGISTRY` (a `PluginRegistry`) auto-discovers subclasses in the `REvoDesign.sidechain.mutate_runner` package. `MutateRunnerManager` is a frozen dataclass providing `get(name, **kwargs)` for instantiation.
 
-- **Available runners**:
-  - `MutateRelax_worker` -- Rosetta `mutate_relax` protocol (requires Rosetta installation).
-  - `DLPacker_worker` -- DLPacker deep-learning sidechain packing.
-  - `DLPackerPytorch_worker` -- PyTorch port of DLPacker.
-  - `PIPPack_worker` -- PIPPack rotamer-based packing (configured via `pippack.yaml`).
-  - `DiffPack_worker` -- DiffPack diffusion-based packing.
-  - `PyMOL_mutate` -- Dunbrack rotamer library via PyMOL's `cmd.get_wizard().do_pick()`.
+- **Available runners** (class name → registration `name`):
+  - `MutateRelax_worker` (`"Rosetta-MutateRelax"`) — Rosetta `mutate_relax` protocol (requires Rosetta installation).
+  - `DLPacker_worker` (`"DLPacker"`) — DLPacker deep-learning sidechain packing.
+  - `DLPackerPytorch_worker` (`"DLPackerPytorch"`) — PyTorch port of DLPacker.
+  - `PIPPack_worker` (`"PIPPack"`) — PIPPack rotamer-based packing (configured via `pippack.yaml`).
+  - `DiffPack_worker` (`"DiffPack"`) — DiffPack diffusion-based packing.
+  - `PyMOL_mutate` (`"Dunbrack Rotamer Library"`) — Dunbrack rotamer library via PyMOL's `cmd.get_wizard().do_pick()`.
 
 [API reference: `REvoDesign.sidechain`](../api/sidechain.md) | [Mutate Runner README](https://github.com/YaoYinYing/REvoDesign/blob/main/src/REvoDesign/sidechain/mutate_runner/README.md)
 
@@ -136,7 +136,7 @@ Profiles provide external data that guides or constrains the mutagenesis search.
 
 ### 8. Evaluator
 
-`Evalutator` is the interactive decision-making engine that lets users walk through scored mutants, accept or reject them, and guide the design trajectory.
+`Evaluator` is the interactive decision-making engine that lets users walk through scored mutants, accept or reject them, and guide the design trajectory.
 
 - **Navigation**: Relies on a `MutantTree` to track branches and current position. `activate_focused()` highlights the current mutant in PyMOL (mesh/sticks representation), hides other branches, and centers the view.
 - **Decision flow**: `mutant_decision(decision_to_accept: bool)` records accept/reject choices into the `MutantTree`. Accepted mutants can seed the next design round.

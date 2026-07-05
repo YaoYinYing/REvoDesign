@@ -69,13 +69,13 @@ Profile Design uses the main UI's **color preset**, **invert flag**, and
 
 ## ThermoMPNN
 
-**ThermoMPNN** (menu: Design Tools) predicts the effect of mutations on
-protein thermal stability (ΔΔG), supporting both single-point and pairwise
-(epistatic) predictions.
+**ThermoMPNN** (menu: Predictor Tools → Mutant Effects) predicts the effect
+of mutations on protein thermal stability (ΔΔG), supporting both single-point
+and pairwise (epistatic) predictions.
 
 ### Single-Point Scan
 
-1. Open **Design Tools → ThermoMPNN → Single Point**.
+1. Open **Predictor Tools → Mutant Effects → ThermoMPNN → Single Point**.
 
 <figure markdown="span">
 ![ThermoMPNN menu entry](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/thermompnn-menu.png){ width="400" }
@@ -106,7 +106,7 @@ main UI.
 
 ### Double-Point (Epistatic) Scan
 
-1. Open **Design Tools → ThermoMPNN → Double Point**.
+1. Open **Predictor Tools → Mutant Effects → ThermoMPNN → Double Point**.
 2. Choose the combination mode:
     - **Additive** — sum of individual single-point ΔΔG values.
     - **Epistatic** — full pairwise prediction accounting for interaction
@@ -124,13 +124,13 @@ main UI.
 
 ## RFdiffusion Backbone Design
 
-**RFdiffusion** (menu: Design Tools) runs the RFdiffusion model for
-partial or full backbone generation, useful for remodeling flexible loops
+**RFdiffusion** (menu: Tools → Backbone Rebuild) runs the RFdiffusion model
+for partial or full backbone generation, useful for remodeling flexible loops
 or designing novel scaffolds.
 
 <figure markdown="span">
 ![RFdiffusion menu entry](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/rfdiffusion-menu.png){ width="450" }
-<figcaption>RFdiffusion entry in the Design Tools menu</figcaption>
+<figcaption>RFdiffusion entry in the Tools → Backbone Rebuild menu</figcaption>
 </figure>
 
 REvoDesign acts as a launcher — it runs RFdiffusion YAML configuration
@@ -160,7 +160,7 @@ For 1SUO, suppose a loop region at the N-terminus needs remodeling:
     This configuration applies partial diffusion to the first 20 residues
     (contig `20-20`) while keeping residues 48–492 (`A48-492`) fixed.
 
-2. In REvoDesign, go to **Design Tools → RFdiffusion**.
+2. In REvoDesign, go to **Tools → Backbone Rebuild → RFdiffusion**.
 
 <figure markdown="span">
 ![RFdiffusion parameters](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/rfdiffusion-params.png){ width="450" }

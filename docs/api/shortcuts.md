@@ -14,13 +14,13 @@ autocompletion through `cmd.auto_arg`.
 
 | Command | Function | Arguments |
 |---------|----------|-----------|
-| `pssm2csv` | `shortcut_pssm2csv` | -- |
-| `real_sc` | `shortcut_real_sc` | arg0: selection, arg1: representation |
+| `pssm2csv` | `shortcut_pssm2csv` | arg0: pssm file path |
+| `real_sc` | `shortcut_real_sc` | arg0: selection, arg1: representation, arg2: hydrogen (0/1) |
 | `color_by_mutation` | `shortcut_color_by_mutation` | arg0: target object, arg1: reference object, arg2: waters (0/1), arg3: labels (0/1) |
-| `color_by_plddt` | `shortcut_color_by_plddt` | -- |
-| `find_interface` | `shortcut_find_interface` | -- |
-| `dump_sidechains` | `shortcut_dump_sidechains` | -- |
-| `visualize_conformer_sdf` | `visualize_conformer_sdf` | -- |
+| `color_by_plddt` | `shortcut_color_by_plddt` | arg0: selection (default "all"), arg1: align_target (0/1), arg2: chain |
+| `find_interface` | `shortcut_find_interface` | arg0: selection (default "all"), arg1: interact_dist |
+| `dump_sidechains` | `shortcut_dump_sidechains` | arg0: sele, arg1: enabled_only, arg2: save_dir, ..., arg10: recenter |
+| `visualize_conformer_sdf` | `visualize_conformer_sdf` | arg0: sdf_file_path, arg1: show_conformer |
 | `getbox` | `getbox` | -- |
 | `get_pca_box` | `get_pca_box` | -- |
 | `showbox` | `showbox` | -- |

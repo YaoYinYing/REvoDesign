@@ -323,7 +323,7 @@ Cross(Point(5,5,0), size=4.0, color='yellow').load_as('my_cross')
 
 ```python
 Color('red').array       # (1.0, 0.0, 0.0)
-Color('tab:blue').hex    # '#1f77b4'
+Color('tab:blue').array  # (0.121..., 0.466..., 0.705...)
 Color('#ff0000').as_cgo  # [COLOR, 1.0, 0.0, 0.0]
 ```
 

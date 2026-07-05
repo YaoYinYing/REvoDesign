@@ -36,7 +36,8 @@ the Mutate and Visualize tabs via
 ## 3. Implement `parse()`
 
 Your `parse()` method must return a `pandas.DataFrame` whose columns are
-1-indexed residue positions (strings like `"0"`, `"1"`, ...) and whose rows
+residue positions (0-indexed strings like `"0"`, `"1"`, ...; the existing
+`PSSM_Parser` uses 1-indexed columns) and whose rows
 are the 20 standard amino acids in alphabetical order by one-letter code:
 
 ```python

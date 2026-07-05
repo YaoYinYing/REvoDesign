@@ -6,6 +6,14 @@
 src/REvoDesign/
 ├── __init__.py                  # Import stack: SingletonAbstract → bootstrap → ConfigBus → logger
 ├── REvoDesign.py                # Main PyMOL plugin entry point (REvoDesignPlugin)
+├── application/
+│   ├── cluster_tab.py            # ClusterTabController
+│   ├── icon.py                   # IconSetter
+│   ├── menu.py                   # MENU_LINKS, TOOLS_MENU_LINKS, CONFIG_EDIT_LINKS
+│   ├── font/
+│   │   └── font_manager.py       # Font manager for UI styling
+│   └── i18n/
+│       └── language_settings.py  # LanguageSwitch, LanguageItem, LanguageNameRegistry
 ├── basic/
 │   ├── abc_singleton.py         # SingletonAbstract (Borg-like singleton pattern)
 │   ├── abc_third_party_module.py# ThirdPartyModuleAbstract (name, installed, __bibtex__)
@@ -194,12 +202,13 @@ Key singleton subclasses:
 | `ConfigBus` | Central UI-to-Config bridge |
 | `Magician` | External designer/scorer gimmick manager |
 | `SidechainSolver` | Manages the active mutate runner |
+| `CitationManager` | Collects BibTeX citations from third-party tools |
 | `StoresWidget` | Holds server-switch references |
 
 ## Qt Compatibility Layer
 
 All Qt imports go through `REvoDesign.Qt` -- never import PyQt5 or PyQt6
-directly. The `check-qt-binding-imports.py` pre-commit hook enforces this.
+directly. The `check-qt-binding-imports` pre-commit hook (in `check_qt_binding_imports.py`) enforces this.
 
 - **Backend detection**: `qt_wrapper.py` imports `pymol.Qt` at runtime and
   inspects `pymol.Qt.PYQT_NAME`. This yields `QT_BACKEND` (e.g. `"PyQt5"`,

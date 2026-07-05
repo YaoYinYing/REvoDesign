@@ -3,6 +3,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-from .evaluator import Evalutator
+from .evaluator import Evaluator
 
-__all__ = ["Evalutator"]
+__all__ = ["Evaluator"]

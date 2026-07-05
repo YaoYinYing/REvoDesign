@@ -9,13 +9,13 @@ utility commands. Run `make help` to see all targets inline.
 |----------|--------|-------------|
 | **Installation** | `install` | Install from pip with basic extras (`dlpacker`, `pippack`, `colabdesign`, `thermompnn`, `test`) and optional extras (`rfdiffusion_cpu`, `esm2`) |
 | | `install-no-dept` | Install from pip with no dependencies (`--no-dependencies`) |
-| | `install-pytorch-cpu-mac` | Install PyTorch 2.3 CPU build for macOS CI images |
-| | `install-pytorch-cpu-non-mac` | Install PyTorch 2.3 CPU build (PyPI `--index-url https://download.pytorch.org/whl/cpu`) |
+| | `install-pytorch-cpu-mac` | Install PyTorch 2.3 CPU build for macOS (PyPI default index) |
+| | `install-pytorch-cpu-non-mac` | Install PyTorch 2.3 CPU build for Linux/Windows (PyPI `--index-url https://download.pytorch.org/whl/cpu`) |
 | | `install-dgl-linux` | Install DGL &lt;=2.4.0 (Linux, pip with `https://data.dgl.ai/wheels/torch-2.3/repo.html`) |
-| | `install-dgl-win` | Install DGL for Windows/macOS (pip with `https://data.dgl.ai/wheels/repo.html`) |
+| | `install-dgl-win` | Install DGL for Windows/macOS (pip with `https://data.dgl.ai/wheels/repo.html`; version `<=2.2.1` as noted in help) |
 | | `reinstall` | Clean, reformat, remove local config, then `pip install . -U` |
 | | `install-pymol-plugin` | Copy the package manager startup script to `~/.pymol/startup/` |
-| **Testing** | `test` | Run the `UnitTests.py` suite in an isolated temp directory |
+| **Testing** | `test` | Run the test suite (`$(PYTEST_CASES_PATH)`) in an isolated temp directory |
 | | `all-test` | Run all three test phases in sequence (fast parallel, serial, slow serial) and combine coverage |
 | | `fast-test` | Run fast tests in parallel with `xdist` (`-n 4 -m "not serial"`) |
 | | `serial-test` | Run serial tests (`-m "(serial and not very_slow) or bootstrap"`) |
@@ -40,7 +40,7 @@ utility commands. Run `make help` to see all targets inline.
 
 ## Usage Notes
 
-- **Temporary test directory**: All test targets run inside `tmp-test-dir-with-unique-name/` to ensure the *installed* package is tested, not the source tree. The conftest does `os.path.abspath("..")` relative to CWD, which fails outside this directory.
+- **Temporary test directory**: All test targets run inside `tmp-test-dir-with-unique-name/` to ensure the *installed* package is tested, not the source tree. The conftest resolves `REPO_DIR` via `os.path.dirname(__file__)` and `TEST_ROOT` via `os.path.abspath(".")` relative to CWD, which fails outside this directory.
 - **PYTEST_KW**: The keyword test target reads the `PYTEST_KW` variable. For multiple keywords use double quotes: `make kw-test PYTEST_KW='"citable or citation"'`.
 - **Condatest environment**: Most targets expect a conda environment with PyMOL and the scientific stack installed. See the CI workflows for the full setup sequence.
 - **Platform awareness**: PyTorch CPU wheels differ by platform (`install-pytorch-cpu-mac` vs `install-pytorch-cpu-non-mac`). DGL wheels also diverge between Linux and Windows/macOS.

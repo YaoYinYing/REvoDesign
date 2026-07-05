@@ -26,6 +26,15 @@ A set of built-in LogRecord attribute names, used by `REvoDesignLogFormatter` to
 
 ## Setup and Initialization
 
+!!! note "Import paths"
+    `ROOT_LOGGER`, `LoggerT`, `LOGGER_CONFIG`, and `setup_logging` are exported from
+    `REvoDesign.logger` (via `__init__.py`). All other documented symbols
+    (`setup_logging_from_dictconfig`, `REvoDesignLogFormatter`, `NonErrorFilter`,
+    `reload_logging_config`, `logger_level_setter`, `logger_level_setter_ng`,
+    `get_current_logger_level`, `get_current_channel_level`, `list_all_logger_levels`,
+    `list_all_logger_channels`, `list_all_logger_formatters_non_json`,
+    `LOG_RECORD_BUILTIN_ATTRS`) must be imported from `REvoDesign.logger.logger` directly.
+
 ### setup_logging
 
 Initializes the logging system by resolving `AUTO` paths via `platformdirs.user_log_path`, ensuring log directories exist, then delegating to `setup_logging_from_dictconfig`. Called once at module import time to create `ROOT_LOGGER`.

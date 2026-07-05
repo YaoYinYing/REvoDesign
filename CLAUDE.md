@@ -4,6 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workflow
 
+- **CI suddenly failing on unchanged code?** Re-run the last passing CI commit before chasing symptoms. Same commit, same pass → environment regression (pinned a dep too loose). Same commit, now fails → something external changed. Either way, you know which side the bug lives on before touching a line of code.
 - **Before committing**: Run `make black` to format all files, then `git add -A` to stage the formatting changes together with your edits. This ensures pre-commit hooks (black, isort, autoflake, pyupgrade, autopep8) pass and keeps the diff reviewable. **The exit code of `make black` is advisory — if the hooks leave the code with improved syntax and style, the result is good regardless of the exit code.**
 - **Test-case-driven fixes**: For live/integration issues, first encode the observed behavior as the smallest test case or skip guard, then make the smallest production/test change, run the focused keyword gate (for example `make kw-test PYTEST_KW=openkinetics`), and update `CHANGELOG.md`. Treat environment-dependent live API responses such as expected HTTP `4xx`/`5xx` as explicit skips, while keeping non-HTTP client errors failing.
 - **Version bumping**:
@@ -80,7 +81,7 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 `REvoDesignPlugin(QtWidgets.QWidget)` is the main PyMOL plugin entry point:
 1. `load_runtime_ui()` loads `UI/REvoDesign.ui` → returns `(window, RuntimeUiProxy)`
 2. Sets `self.bus.ui = ui` on the `ConfigBus` singleton, which transitions it from headless to GUI mode
-3. Initializes sub-systems: `SurfaceFinder`, `PocketSearcher`, `ClusterRunner`, `MultiMutantDesigner`, `GremlinAnalyser`, `Evalutator`
+3. Initializes sub-systems: `SurfaceFinder`, `PocketSearcher`, `ClusterRunner`, `MultiMutantDesigner`, `GremlinAnalyser`, `Evaluator`
 4. Sets up i18n via `LanguageSwitch(window)`
 5. Wires keyboard shortcuts from `REvoDesign.shortcuts`
 

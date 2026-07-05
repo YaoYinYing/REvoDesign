@@ -10,8 +10,9 @@ pair discovery, and mutation design driven by co-evolutionary signals.
 REvoDesign/phylogenetics/
     __init__.py              # Exports: GremlinAnalyser, MutateWorker, VisualizingWorker
     gremlin_tools.py         # CoevolvedPair, GREMLIN_Tools
-    gremlin_pytorch.py       # GremlinTorch (PyTorch), GREMLIN(), CustomAdamOpt
+    gremlin_pytorch.py       # GremlinTorch (PyTorch), GREMLIN(), CustomAdamOpt, get_mtx()
     evo_mutator.py           # GremlinAnalyser, MutateWorker, VisualizingWorker, ChainBinder
+    revo_designer.py         # REvoDesigner — iterative mutation design engine
 ```
 
 ## Core Classes
@@ -168,7 +169,10 @@ Returns an MRF dict compatible with `GREMLIN_Tools.load_mrf()`:
 ### Contact Map Utilities
 
 - `normalize()` -- Box-Cox + z-score normalization
-- `get_mtx()` -- Extracts contact scores from the MRF (raw, APC, z-score)
+- `get_mtx()` -- Extracts contact scores from the MRF (raw, APC, z-score).
+  Note: there are two implementations — a module-level function in
+  `gremlin_pytorch.py` and an instance method `GREMLIN_Tools.get_mtx()` in
+  `gremlin_tools.py`.
 - `plot_mtx()` -- Quick Matplotlib visualization of the contact map
 
 ## Workflow Summary
@@ -196,7 +200,7 @@ ChainBinder.bind_chains()   # Calculate CA-CA distances
     v
 GremlinAnalyser             # UI interaction, navigation, mutation
     |-- plot_coevolved_pair_in_pymol()  # Render as sticks
-    |-- load_co_evolving_pairs()        # Navigate pairs
-    |-- mutate_with_gridbuttons()       # Click-to-mutate
+    |-- load_co_evolving_pairs()        # Navigate pairs (contains nested
+    |                                   #   mutate_with_gridbuttons helper)
     |-- coevoled_mutant_decision()      # Accept/reject mutant
 ```

@@ -62,6 +62,7 @@ nav:
       - Cluster Methods: user-guide/cluster-methods.md
       - OpenKinetics: user-guide/openkinetics.md
       - Advanced Design Tools: user-guide/advanced-design.md
+      - Programmatic Mutagenesis: user-guide/programmatic-mutagenesis.md
   - Developer Guide:
       - dev-guide/index.md
       - Architecture: dev-guide/architecture.md

@@ -196,8 +196,7 @@ mutation:
    ΔΔG protocol with `RosettaCartesianddGAnalyser` for result parsing.
 2. The `ddg` gimmick in `REvoDesign.magician.designers` — an
    `ExternalDesignerAbstract` subclass that calls this protocol.
-3. `REvoDesign.shortcuts.tools.designs` — contains `predict_point_mutation_ddG`
-   and related functions.
+3. `REvoDesign.shortcuts.tools.designs` — contains design-related shortcut functions.
 
 ### MutateRelax Worker
 

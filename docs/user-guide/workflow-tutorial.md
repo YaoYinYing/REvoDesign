@@ -288,12 +288,12 @@ sidechain is shown in ball-and-stick with a mesh surface.
 
 Decision actions:
 
-| Button | Action | Shortcut |
-|--------|--------|----------|
-| **Previous** | Go to previous mutant | `Shift+Opt+[` |
-| **Next** | Go to next mutant | `Shift+Opt+]` |
-| **Accept** | Accept current mutant | `Shift+Opt+-` |
-| **Reject** | Reject current mutant | `Shift+Opt++` |
+| Button | Action | Description |
+|--------|--------|-------------|
+| **Previous** | Go to previous mutant | Tooltip: `Shift+Opt+[` |
+| **Next** | Go to next mutant | Tooltip: `Shift+Opt+]` |
+| **Accept** | Accept current mutant | Tooltip: `Shift+Opt+-` |
+| **Reject** | Reject current mutant | Tooltip: `Shift+Opt++` |
 
 <figure markdown="span">
 ![Selecting the best-scoring mutant](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/best-scoring-mutant.png){ width="600" }

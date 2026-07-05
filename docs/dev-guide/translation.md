@@ -84,7 +84,7 @@ translator lifecycle:
 
 ## Runtime Behavior
 
-- The active language is stored in the config (`environ.yaml`) under
+- The active language is stored in the config (`main.yaml`) under
   `language`.
 - On plugin startup, `LanguageSwitch` reads this config and loads the
   corresponding `.qm` file.

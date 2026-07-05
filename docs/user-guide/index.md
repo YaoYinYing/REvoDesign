@@ -33,6 +33,8 @@ REvoDesign's tabbed interface follows the stages of a rational design pipeline:
   external scoring of mutants.
 - **[Advanced Design Tools](advanced-design.md)** — Profile Design heatmap,
   ThermoMPNN stability prediction, and RFdiffusion backbone generation.
+- **[Programmatic Mutagenesis](programmatic-mutagenesis.md)** — Generate mutant
+  PDBs from Python for downstream MD, docking, and free energy calculations.
 
 ## Quick Reference
 
@@ -45,5 +47,6 @@ REvoDesign's tabbed interface follows the stages of a rational design pipeline:
 | Use the Profile Design heatmap | [Advanced Design Tools](advanced-design.md) |
 | Predict stability with ThermoMPNN | [Advanced Design Tools](advanced-design.md) |
 | Run RFdiffusion backbone design | [Advanced Design Tools](advanced-design.md) |
+| Generate mutant PDBs for MD/docking | [Programmatic Mutagenesis](programmatic-mutagenesis.md) |
 | Install Rosetta for energy scoring | [Rosetta Integration](../dev-guide/rosetta.md) |
 | Set up the PSSM/GREMLIN server | [PSSM/GREMLIN Server](../dev-guide/server.md) |
