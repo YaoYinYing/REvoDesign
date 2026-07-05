@@ -344,7 +344,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
     Methods:
         Non-headless Methods:
-            initialize_widget_with_group(): Initializes UI widgets with their corresponding configuration settings.
+            initialize_widget_with_cfg_group(): Initializes UI widgets with their corresponding configuration settings.
             update_cfg_item_from_widget(widget_id: str): Updates a configuration setting based on the value of a UI widget.
             register_widget_changes_to_cfg(): Registers UI widget changes to update the configuration settings.
             get_widget_from_id(widget_id: str): Retrieves a UI widget based on its ID.
@@ -356,13 +356,13 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             restore_widget_value(cfg_item: str): Restores the value of a UI widget to its default configuration setting.
             get_cfg_item(widget_id: str): Retrieves the configuration item corresponding to a UI widget ID.
             button(id: str): Retrieves a button widget based on its ID.
-            toggle_buttons(button_ids: tuple[str, ...]): Toggles the enabled state of a list of buttons.
+            toggle_buttons(buttons: Iterable, set_enabled: bool = False): Toggles the enabled state of a list of buttons.
 
         Headless Only Methods:
             get_value(cfg_item: str, typing=None): Retrieves the value of a configuration item, with optional type casting.
             set_value(cfg_item: str, value): Sets the value of a configuration item.
 
-        fp_lock(cfg_fps: tuple[str, ...], buttons_id_to_release: tuple[str, ...]): Locks or unlocks
+        fp_lock(cfg_fps: Union[list, tuple, str], buttons_id_to_release: Union[list, tuple, str]): Locks or unlocks
             buttons based on the existence of file paths in the configuration.
 
     """
