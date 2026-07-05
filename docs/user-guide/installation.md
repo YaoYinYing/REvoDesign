@@ -13,7 +13,7 @@ REvoDesign runs on all major operating systems:
 | Memory | 8 GB or above |
 | Disk | 2 GB free minimum |
 | Display | 1920×1080 or higher |
-| Software | PyMOL 2.5+, Python 3.9+ |
+| Software | PyMOL 2.5+, Python 3.10+ |
 
 Supported operating systems:
 

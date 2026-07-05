@@ -86,21 +86,26 @@ The following runners are discovered from `REvoDesign.sidechain.mutate_runner`:
 
 ## Usage from Python
 
-See `src/REvoDesign/sidechain/mutate_runner/README.md` for usage examples.
+See the **[Programmatic Mutagenesis](../user-guide/programmatic-mutagenesis.md)**
+guide for a full walkthrough of generating mutant PDBs for downstream MD,
+docking, and free energy calculations.
 
-Basic workflow:
+The in-repo README at `src/REvoDesign/sidechain/mutate_runner/README.md` has
+additional examples including homooligomeric multi-chain mutants.
+
+Basic workflow with any runner:
 
 ```python
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id
-from REvoDesign.sidechain.mutate_runner import DLPacker_worker
+from REvoDesign.sidechain.mutate_runner import PyMOL_mutate
 
-pdb_file = '8x3e.cleaned.pdb'
+pdb_file = 'protein.pdb'
 seq = RosettaPyProteinSequence.from_pdb(pdb_file, True)
 
-mut_lists = ['AQ122A', 'AQ266A', 'AL72M', 'AL72M_AQ122A', 'AQ122A_AQ266A']
+mut_lists = ['AR42K', 'AV196A', 'AL268R', 'AR42K_AV196A_AL268R']
 mut_objs = [extract_mutants_from_mutant_id(m, seq) for m in mut_lists]
 
-worker = DLPacker_worker(pdb_file, 6)
-pdb_paths = worker.run_mutate_parallel(mut_objs, 6)
+worker = PyMOL_mutate(pdb_file)
+pdb_paths = [worker.run_mutate(m) for m in mut_objs]
 ```

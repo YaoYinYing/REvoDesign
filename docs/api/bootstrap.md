@@ -11,7 +11,7 @@ These constants are set at import time by `REvoDesign.bootstrap.__init__`:
 - **`REVODESIGN_CONFIG_FILE`** (str) -- Absolute path to the user's `main.yaml` configuration file, determined by `set_REvoDesign_config_file()`.
 - **`REVODESIGN_CONFIG_DIR`** (str) -- Directory containing all user configuration YAML files (`os.path.dirname(REVODESIGN_CONFIG_FILE)`).
 - **`EXPERIMENTS_CONFIG_DIR`** (str) -- Directory for experiment-specific configuration files, created by `experiment_config("experiments")`.
-- **`CACHE_CONFIG_DIR`** (str) -- Directory for cached intermediate YAML files, created by `experiment_config("cache")`.
+- **`CACHE_CONFIG_DIR`** (str) -- Directory for cached intermediate YAML files, created by `experiment_config("cache")`. Note: set as a module-level variable but not included in `__all__`; import via `from REvoDesign.bootstrap import CACHE_CONFIG_DIR`.
 
 ---
 
@@ -67,6 +67,8 @@ The configuration tree lives under `src/REvoDesign/config/` as the template and 
 **`sidechain-solver/`** -- Sidechain solver configurations:
 
 - `pippack.yaml` -- PIPPack configuration for sidechain packing.
+- `diffpack.yaml` -- DiffPack configuration for diffusion-based packing.
+- `dlpacker_pytorch.yaml` -- DLPacker PyTorch configuration.
 
 **`third_party/scorers/`** -- Third-party scorer API configurations:
 

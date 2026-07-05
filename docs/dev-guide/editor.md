@@ -71,8 +71,9 @@ editor installation:
 4. **Version management** — Supports `version="latest"` or a specific tag.
    `no_upgrade=True` skips re-download if already installed.
 
-The manager is created and invoked by `ensure_monaco()` which is called during
-the ConfigBus initialization sequence.
+The manager is created and invoked by `ensure_monaco()` which is called inside
+the FastAPI `lifespan` context manager (at server startup) and from
+`edit_file_with_monaco()` (in `monaco.py`).
 
 ## FastAPI Server
 
@@ -98,8 +99,8 @@ The server (`monaco/server.py`) provides a REST API for the Monaco frontend:
   read or written. Whitelist sources:
   - **Editable**: All config files from `application.menu.all_config_files`
     (the same list shown in the File menu).
-  - **Readonly**: Log files (`REvoDesign.runtime.log`,
-    `REvoDesign.notebook.log`).
+  - **Readonly**: Log files (resolved from `logger.yaml` handlers'
+    `filename` keys, which may use `"AUTO"` and resolve via `user_log_path()`).
 - **`no_token` mode**: Set `editor.backend.no_token: true` in config to
   disable authentication (for local-only trusted environments).
 
@@ -130,7 +131,8 @@ the editor backend. It holds:
 
 The editor server is controlled via `ServerControlAbstract` in
 `REvoDesign.basic.server_monitor`. The server switch in the REvoDesign UI
-(config key: `ui.edit.use_editor_server`) toggles it on/off.
+is managed through `StoresWidget().server_switches["Editor_Backend"]` and
+the `menuEditor_Backend` menu actions (`actionStartEditor`/`actionStopEditor`).
 
 The server lifecycle is managed by `StoresWidget`, which tracks the running
 `WorkerThread` and can abort/restart the server on configuration changes.

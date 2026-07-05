@@ -59,7 +59,7 @@ class DownloadedFile:
         return flatten_dir
 
     @property
-    def flatten_archieve(self):
+    def flatten_archive(self):
         """
         Extract archive file to flatten directory
 
