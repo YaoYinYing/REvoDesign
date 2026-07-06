@@ -512,6 +512,8 @@ class REvoDesignUiProtocol(Protocol):
 
     horizontalLayout_design_case: QtWidgets.QHBoxLayout
 
+    horizontalLayout_topbar: QtWidgets.QHBoxLayout
+
     label: QtWidgets.QLabel
 
     label_2: QtWidgets.QLabel
@@ -1048,8 +1050,26 @@ class REvoDesignUiProtocol(Protocol):
 
     verticalLayout_9: QtWidgets.QVBoxLayout
 
+    verticalLayout_central: QtWidgets.QVBoxLayout
+
     verticalLayout_cluster_general: QtWidgets.QVBoxLayout
 
     verticalLayout_cluster_legacy: QtWidgets.QVBoxLayout
 
     verticalLayout_cluster_post: QtWidgets.QVBoxLayout
+
+    verticalLayout_tab_cluster: QtWidgets.QVBoxLayout
+
+    verticalLayout_tab_config: QtWidgets.QVBoxLayout
+
+    verticalLayout_tab_evaluate: QtWidgets.QVBoxLayout
+
+    verticalLayout_tab_interact: QtWidgets.QVBoxLayout
+
+    verticalLayout_tab_mutate: QtWidgets.QVBoxLayout
+
+    verticalLayout_tab_prepare: QtWidgets.QVBoxLayout
+
+    verticalLayout_tab_socket: QtWidgets.QVBoxLayout
+
+    verticalLayout_tab_visualize: QtWidgets.QVBoxLayout
