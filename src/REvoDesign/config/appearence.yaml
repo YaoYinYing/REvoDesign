@@ -1,21 +1,38 @@
 
-# REvoDesign appearance configuration
+# REvoDesign Appearance — Academic theme configuration
 # Applied by ThemeManager during plugin startup.
 # Changes take effect after restarting PyMOL or via Edit > Reconfigure.
 
-# Font family override.  Empty string = use OS default (set by FontSetter).
-# Platform defaults:
-#   Windows:  Microsoft YaHei, Century Gothic
-#   Linux:    Nimbus Sans, DejaVu Sans
-#   macOS:    system default (San Francisco)
-font_family: ""
+# ---- Semantic Colour Tokens ----
+# Interactive
+interactive: "#3B49DF"          # deep indigo — primary actions, focus, active tabs
+interactive_hover: "#2F3ABF"    # darker indigo — hover on primary buttons
+interactive_subtle: "#E8E9FF"   # pale indigo — selected rows, hover backgrounds
 
-# Global font size scale.  1.0 = system default, 1.2 = 120%.
-font_size_scale: 1.0
+# Status
+positive: "#0D9488"             # teal — accept, success
+warning: "#B45309"              # amber ochre — deprecated, caution
+danger: "#C53030"               # muted crimson — reject, destructive
 
-# Accent color used for run buttons, active tabs, and focus rings.
-accent_color: "#2563EB"
+# Surfaces
+bg: "#F4F5F7"                   # page background
+surface: "#FFFFFF"               # cards, group boxes, tab panes
+surface_alt: "#FAFBFC"          # alternate rows, subtle differentiation
 
+# Content
+text: "#1A1C2E"                 # primary text — near-black with blue undertone
+text_secondary: "#5B6080"       # secondary labels, muted content
+text_disabled: "#8E93A8"        # disabled, placeholder
+
+# Outlines
+border: "#E2E4EB"               # card/input borders
+border_hover: "#C5C8D4"
+
+# ---- Typography ----
+font_family: ""                  # empty = OS system font (recommended)
+font_size_scale: 1.0             # 1.0 = system default, 1.15 = 115%
+
+# ---- Button Matrix ----
 button_matrix:
   hover_crosshair:
     color: "#20c45a"
