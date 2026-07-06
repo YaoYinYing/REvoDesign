@@ -143,6 +143,17 @@ class SingletonAbstract(ABC):
 
     _instance = None
 
+
+    @property
+    def initialized(cls) -> bool:
+        """
+        Returns whether the singleton instance has been initialized.
+
+        Returns:
+            True if the singleton instance has been initialized, False otherwise.
+        """
+        return cls._instance is not None
+
     @classmethod
     def __new__(cls, *args, **kwargs):
         """
@@ -176,7 +187,6 @@ class SingletonAbstract(ABC):
         """
         if not hasattr(self, "initialized"):
             self.singleton_init(*args, **kwargs)
-            self.initialized = True
 
     @abstractmethod
     def singleton_init(self, *args, **kwargs):
@@ -188,6 +198,18 @@ class SingletonAbstract(ABC):
         Args:
             *args: Positional arguments for initialization.
             **kwargs: Keyword arguments for initialization.
+
+        Example: 
+
+            To elevate a normal class into a singleton class, you can simply rename the `__init__` method 
+            as `singleton_init`.
+
+            ```
+            class MySingleton(SingletonAbstract):
+                def singleton_init(self, *args, **kwargs):
+                    # Your custom initialization logic here
+                    pass
+            ```
         """
 
     @classmethod

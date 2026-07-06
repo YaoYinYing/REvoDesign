@@ -22,10 +22,25 @@ from REvoDesign.Qt import QtCompat, QtWidgets
 
 def decide(title="", description="", rich: bool = False, details: str | None = None):
     """
+    Displays a confirmation dialog box with Yes/No buttons and returns the user's choice.
+    
+    This function creates a QMessageBox with a question icon and allows customization
+    of the title, description, text format, and additional details.
+
     A copy of decide function from package_manager.py
+    
+    Args:
+        title (str): The window title for the confirmation dialog. Defaults to empty string.
+        description (str): The main text content displayed in the dialog. Defaults to empty string.
+        rich (bool): Whether to use rich text formatting for the message. Defaults to False.
+        details (str | None): Additional detailed text that can be expanded in the dialog. 
+                             Can be None for no additional details. Defaults to None.
+    
+    Returns:
+        bool: True if user clicks 'Yes', False if user clicks 'No'.
     """
 
-    # A confirmation message.
+    # Create and configure the confirmation message dialog
     msg = QtWidgets.QMessageBox()
     msg.setIcon(QtCompat.Question)
     msg.setWindowTitle(title)
@@ -38,7 +53,6 @@ def decide(title="", description="", rich: bool = False, details: str | None = N
     result = QtCompat.exec(msg)
 
     return result == QtCompat.Yes
-
 
 def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     """
@@ -177,13 +191,41 @@ def experiment_config(name: str = "experiments") -> str:
 
 
 def set_cache_dir() -> str:
+    """
+    Sets up and returns the cache directory path based on configuration settings.
+    
+    This function retrieves the cache directory configuration from the ConfigBus,
+    validates the configuration, and returns the appropriate cache directory path.
+    The cache directory can either be under the user's home directory or a 
+    customized path specified in the configuration.
+    
+    Returns:
+        str: The path to the cache directory
+        
+    Raises:
+        ValueError: If no custom cache directory is specified when required
+        UnexpectedWorkflowError: If the config bus is not initialized
+    """
+    # Retrieve configuration from ConfigBus
+    # WARNING: only when the config bus is initialized can we retrieve the config
+    # because the cache dir is ultimately defined by the user.
     from REvoDesign.driver.ui_driver import ConfigBus
 
+    # Check if ConfigBus is initialized before attempting to retrieve configuration
+    if not ConfigBus.initialized:
+        from REvoDesign.issues.exceptions import UnexpectedWorkflowError
+
+        raise UnexpectedWorkflowError(
+            "Only when the config bus is initialized can we know the cache directory."
+        )
+
+    # Get configuration from ConfigBus and validate cache directory settings
     bus: ConfigBus = ConfigBus()
     cfg: DictConfig = bus.cfg_group["main"].cfg
     if not cfg.cache_dir.under_home_dir and not cfg.cache_dir.customized:
         raise ValueError("You must specify a custom cache directory!")
 
+    # Determine cache directory based on configuration settings
     if cfg.cache_dir.under_home_dir:
         cache_dir = user_cache_dir(appname="REvoDesign", ensure_exists=True)
     else:
