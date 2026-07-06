@@ -492,6 +492,12 @@ class REvoDesignUiProtocol(Protocol):
 
     horizontalLayout_design_case: QtWidgets.QHBoxLayout
 
+    horizontalLayout_socket_row2: QtWidgets.QHBoxLayout
+
+    horizontalLayout_socket_row4: QtWidgets.QHBoxLayout
+
+    horizontalLayout_tab_cluster: QtWidgets.QHBoxLayout
+
     horizontalLayout_topbar: QtWidgets.QHBoxLayout
 
     label: QtWidgets.QLabel
@@ -1006,7 +1012,7 @@ class REvoDesignUiProtocol(Protocol):
 
     verticalLayout_cluster_post: QtWidgets.QVBoxLayout
 
-    verticalLayout_tab_cluster: QtWidgets.QVBoxLayout
+    verticalLayout_cluster_right: QtWidgets.QVBoxLayout
 
     verticalLayout_tab_config: QtWidgets.QVBoxLayout
 
