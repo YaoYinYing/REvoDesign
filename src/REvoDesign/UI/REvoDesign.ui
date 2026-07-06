@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ui version="4.0">
  <author>Yinying Yao</author>
  <class>REvoDesignPyMOL_UI</class>
@@ -15,7 +15,7 @@
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -28,7 +28,7 @@
   </property>
   <property name="maximumSize">
    <size>
-    <width>660</width>
+    <width>16777215</width>
     <height>16777215</height>
    </size>
   </property>
@@ -64,13 +64,13 @@
      </rect>
     </property>
     <property name="sizePolicy">
-     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
       <horstretch>0</horstretch>
       <verstretch>0</verstretch>
      </sizepolicy>
     </property>
     <property name="statusTip">
-     <string/>
+     <string />
     </property>
     <property name="currentIndex">
      <number>0</number>
@@ -135,7 +135,7 @@
                <string>Substrate/Product molecule. Comma separated if multiple, eg. `XXX,YYY`</string>
               </property>
               <property name="whatsThis">
-               <string/>
+               <string />
               </property>
               <property name="editable">
                <bool>true</bool>
@@ -145,7 +145,7 @@
             <item row="1" column="2">
              <widget class="QLabel" name="label_cofactor_radius">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -161,7 +161,7 @@
             <item row="1" column="0">
              <widget class="QLabel" name="label_cofactor_sel">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -177,7 +177,7 @@
             <item row="0" column="2">
              <widget class="QLabel" name="label_ligand_radius">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -193,7 +193,7 @@
             <item row="0" column="0">
              <widget class="QLabel" name="label_ligand_sel">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -334,7 +334,7 @@
              <string>Output session path</string>
             </property>
             <property name="text">
-             <string/>
+             <string />
             </property>
            </widget>
           </item>
@@ -387,7 +387,7 @@
               <item>
                <widget class="QLabel" name="label_surface_cutoff_2">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Maximum">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -479,7 +479,7 @@
               <item>
                <widget class="QLabel" name="label_surface_exclusion">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -516,7 +516,7 @@
                  <enum>QComboBox::AdjustToContentsOnFirstShow</enum>
                 </property>
                 <property name="placeholderText">
-                 <string/>
+                 <string />
                 </property>
                </widget>
               </item>
@@ -527,7 +527,7 @@
               <item>
                <widget class="QLabel" name="label_surface_cutoff">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -595,7 +595,7 @@
                  <string>Refresh PyMOL selection list in REvoDesign</string>
                 </property>
                 <property name="whatsThis">
-                 <string comment="Refresh to fetch PyMOL selections"/>
+                 <string comment="Refresh to fetch PyMOL selections" />
                 </property>
                 <property name="text">
                  <string>Refresh Selection</string>
@@ -648,7 +648,7 @@
              <string>Output session path</string>
             </property>
             <property name="text">
-             <string/>
+             <string />
             </property>
            </widget>
           </item>
@@ -682,7 +682,7 @@
        </rect>
       </property>
       <property name="title">
-       <string/>
+       <string>Input Profile</string>
       </property>
       <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
@@ -705,7 +705,7 @@
              <string>Input protein profile. eg. PSSM/DMS/CSV. Ignored if external designer is used.</string>
             </property>
             <property name="text">
-             <string/>
+             <string />
             </property>
            </widget>
           </item>
@@ -767,7 +767,7 @@
              <string>Output session path</string>
             </property>
             <property name="text">
-             <string/>
+             <string />
             </property>
            </widget>
           </item>
@@ -829,7 +829,7 @@
              <string>Design residue indices, text file or string like `16-78,99,103,192-199`</string>
             </property>
             <property name="text">
-             <string/>
+             <string />
             </property>
            </widget>
           </item>
@@ -905,7 +905,7 @@
              </font>
             </property>
             <property name="statusTip">
-             <string/>
+             <string />
             </property>
             <property name="inputMethodHints">
              <set>Qt::ImhDigitsOnly</set>
@@ -918,7 +918,7 @@
           <item>
            <widget class="QLabel" name="label_output_pse_3">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -927,7 +927,7 @@
              <string>Scoring criteria for profile designer.</string>
             </property>
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ &lt;/span&gt;&lt;span style=&quot; font-size:18pt; font-style:italic;&quot;&gt;Δ&lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Score &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;Sub-WT &lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=" font-size:18pt;"&gt;≤ &lt;/span&gt;&lt;span style=" font-size:18pt; font-style:italic;"&gt;Δ&lt;/span&gt;&lt;span style=" font-size:18pt;"&gt;Score &lt;/span&gt;&lt;span style=" font-size:18pt; vertical-align:sub;"&gt;Sub-WT &lt;/span&gt;&lt;span style=" font-size:18pt;"&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -999,7 +999,7 @@
           <item>
            <widget class="QLabel" name="label_3">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -1053,7 +1053,7 @@
           <item>
            <widget class="QLabel" name="label">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -1120,7 +1120,7 @@
           <item>
            <widget class="QLabel" name="label_4">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -1233,7 +1233,7 @@
           <item>
            <widget class="QLabel" name="label_2">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -1263,7 +1263,7 @@
           <item>
            <widget class="QLabel" name="label_5">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -1303,7 +1303,7 @@
       <property name="title">
        <string>Design Case</string>
       </property>
-      <widget class="QLineEdit" name="lineEdit_design_case">
+      <widget class="QWidget" name="horizontalLayoutWidget_design_case">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -1312,12 +1312,21 @@
          <height>21</height>
         </rect>
        </property>
-       <property name="statusTip">
-        <string>You should name this design case with a proper label.</string>
-       </property>
-       <property name="text">
+       <layout class="QHBoxLayout" name="horizontalLayout_design_case">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QLineEdit" name="lineEdit_design_case">
+          <property name="statusTip">
+           <string>You should name this design case with a proper label.</string>
+          </property>
+          <property name="text">
         <string>default</string>
        </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
      </widget>
     </widget>
@@ -1374,7 +1383,7 @@
         <item row="1" column="0">
          <widget class="QLabel" name="label_selected_mutant">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -1443,7 +1452,7 @@
        </rect>
       </property>
       <property name="title">
-       <string/>
+       <string>Save &amp; Load</string>
       </property>
       <widget class="QWidget" name="verticalLayoutWidget">
        <property name="geometry">
@@ -1478,7 +1487,7 @@
                <string>Output mutant table [*.mut.txt] path</string>
               </property>
               <property name="text">
-               <string/>
+               <string />
               </property>
              </widget>
             </item>
@@ -1618,7 +1627,7 @@
              <string>Go To Next Mutant. Shortcut: Shift+Opt+] </string>
             </property>
             <property name="whatsThis">
-             <string/>
+             <string />
             </property>
             <property name="text">
              <string>Next</string>
@@ -1659,7 +1668,7 @@
              <string>Reject This Mutant. Shortcut: Shift+Opt+- </string>
             </property>
             <property name="whatsThis">
-             <string/>
+             <string />
             </property>
             <property name="text">
              <string>Reject</string>
@@ -1697,7 +1706,7 @@
              <string>Accept This Mutant. Shortcut: Shift+Opt++ </string>
             </property>
             <property name="whatsThis">
-             <string/>
+             <string />
             </property>
             <property name="text">
              <string>Accept</string>
@@ -1808,7 +1817,7 @@
              <string>I'm Lucky!</string>
             </property>
             <property name="shortcut">
-             <string/>
+             <string />
             </property>
            </widget>
           </item>
@@ -1923,7 +1932,7 @@
            <item>
             <widget class="QLabel" name="label_28">
              <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ Num &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;MUT&lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt; ≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=" font-size:18pt;"&gt;≤ Num &lt;/span&gt;&lt;span style=" font-size:18pt; vertical-align:sub;"&gt;MUT&lt;/span&gt;&lt;span style=" font-size:18pt;"&gt; ≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignCenter</set>
@@ -2078,7 +2087,7 @@
         <property name="geometry">
          <rect>
           <x>0</x>
-          <y>-10</y>
+          <y>0</y>
           <width>331</width>
           <height>261</height>
          </rect>
@@ -2160,7 +2169,7 @@
           <item row="2" column="1" colspan="4">
            <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_structure">
             <item>
-             <widget class="QLineEdit" name="lineEdit_cluster_evo_structure_pdb"/>
+             <widget class="QLineEdit" name="lineEdit_cluster_evo_structure_pdb" />
             </item>
             <item>
              <widget class="QPushButton" name="pushButton_open_cluster_evo_structure_pdb">
@@ -2234,7 +2243,7 @@
           <item row="0" column="1" colspan="4">
            <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_pssm">
             <item>
-             <widget class="QLineEdit" name="lineEdit_cluster_evo_pssm_profile"/>
+             <widget class="QLineEdit" name="lineEdit_cluster_evo_pssm_profile" />
             </item>
             <item>
              <widget class="QPushButton" name="pushButton_open_cluster_evo_pssm_profile">
@@ -2285,7 +2294,7 @@
           <item row="1" column="1" colspan="4">
            <layout class="QHBoxLayout" name="horizontalLayout_cluster_evo_esm">
             <item>
-             <widget class="QLineEdit" name="lineEdit_cluster_evo_esm1v_table"/>
+             <widget class="QLineEdit" name="lineEdit_cluster_evo_esm1v_table" />
             </item>
             <item>
              <widget class="QPushButton" name="pushButton_open_cluster_evo_esm1v_table">
@@ -2473,8 +2482,8 @@
          <property name="currentIndex">
           <number>0</number>
          </property>
-         <widget class="QWidget" name="page"/>
-         <widget class="QWidget" name="page_2"/>
+         <widget class="QWidget" name="page" />
+         <widget class="QWidget" name="page_2" />
         </widget>
        </item>
        <item>
@@ -2507,7 +2516,7 @@
        </rect>
       </property>
       <property name="title">
-       <string/>
+       <string>Input &amp; Output</string>
       </property>
       <widget class="QWidget" name="horizontalLayoutWidget_7">
        <property name="geometry">
@@ -2542,7 +2551,7 @@
                <string>Input protein profile. eg. PSSM/DMS/CSV</string>
               </property>
               <property name="text">
-               <string/>
+               <string />
               </property>
              </widget>
             </item>
@@ -2588,7 +2597,7 @@
                <string>Input mutant table file [*.mut.txt / best_leaf.csv]</string>
               </property>
               <property name="text">
-               <string/>
+               <string />
               </property>
               <property name="dragEnabled">
                <bool>true</bool>
@@ -2612,7 +2621,7 @@
                <string>Output session path</string>
               </property>
               <property name="text">
-               <string/>
+               <string />
               </property>
              </widget>
             </item>
@@ -2813,7 +2822,7 @@
           <item row="0" column="0">
            <widget class="QLabel" name="label_53">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -2848,7 +2857,7 @@
             </property>
             <item>
              <property name="text">
-              <string/>
+              <string />
              </property>
             </item>
             <item>
@@ -2913,7 +2922,7 @@
                  <string>Input/Output mutant table file [*.mut.txt / best_leaf.csv]</string>
                 </property>
                 <property name="text">
-                 <string/>
+                 <string />
                 </property>
                </widget>
               </item>
@@ -2939,7 +2948,7 @@
                 <item>
                  <widget class="QLabel" name="label_ligand_radius_2">
                   <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>
@@ -3148,7 +3157,7 @@
              <string>Reinitialize</string>
             </property>
             <property name="text">
-             <string>⏏️</string>
+             <string>Init</string>
             </property>
            </widget>
           </item>
@@ -3178,7 +3187,7 @@
              <string>Start new design</string>
             </property>
             <property name="text">
-             <string>⏯️</string>
+             <string>▶ Start</string>
             </property>
            </widget>
           </item>
@@ -3208,7 +3217,7 @@
              <string>Disconnect the last pair.</string>
             </property>
             <property name="text">
-             <string>⏪️</string>
+             <string>◀ Prev</string>
             </property>
            </widget>
           </item>
@@ -3238,7 +3247,7 @@
              <string>Connect to the next pair.</string>
             </property>
             <property name="text">
-             <string>⏩️</string>
+             <string>▶ Next</string>
             </property>
            </widget>
           </item>
@@ -3268,7 +3277,7 @@
              <string>Stop current design</string>
             </property>
             <property name="text">
-             <string>⏹️</string>
+             <string>⏹ Stop</string>
             </property>
            </widget>
           </item>
@@ -3298,7 +3307,7 @@
              <string>Save designs to mutant table</string>
             </property>
             <property name="text">
-             <string>💾</string>
+             <string>💾 Save</string>
             </property>
            </widget>
           </item>
@@ -3407,7 +3416,7 @@
              <string>GREMLIN MRF profiles in pkl</string>
             </property>
             <property name="text">
-             <string/>
+             <string />
             </property>
            </widget>
           </item>
@@ -3440,7 +3449,7 @@
              <string>Mutant Table to save.</string>
             </property>
             <property name="text">
-             <string/>
+             <string />
             </property>
            </widget>
           </item>
@@ -3537,7 +3546,7 @@
                <string>Max distance to accept a co-evolved pair.</string>
               </property>
               <property name="prefix">
-               <string/>
+               <string />
               </property>
               <property name="suffix">
                <string>Å</string>
@@ -3939,6 +3948,9 @@
      </widget>
     </widget>
     <widget class="QWidget" name="tab_socket">
+     <property name="statusTip">
+      <string>Collaborate with other users on shared sessions</string>
+     </property>
      <attribute name="title">
       <string>Socket</string>
      </attribute>
@@ -4002,7 +4014,7 @@
         <item>
          <widget class="QLabel" name="label_molecule_14">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -4149,7 +4161,7 @@
             <item>
              <widget class="QLabel" name="label_molecule_13">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -4209,7 +4221,7 @@
              <string>Server key for client authentication.</string>
             </property>
             <property name="text">
-             <string/>
+             <string />
             </property>
            </widget>
           </item>
@@ -4232,9 +4244,9 @@
       <property name="geometry">
        <rect>
         <x>350</x>
-        <y>80</y>
+        <y>120</y>
         <width>271</width>
-        <height>281</height>
+        <height>241</height>
        </rect>
       </property>
       <property name="statusTip">
@@ -4382,6 +4394,9 @@
      </widget>
     </widget>
     <widget class="QWidget" name="tab_config">
+     <property name="statusTip">
+      <string>Inspect and edit configuration files from the UI</string>
+     </property>
      <attribute name="title">
       <string>Config</string>
      </attribute>
@@ -4410,7 +4425,7 @@
         <item>
          <widget class="QLabel" name="label_molecule_2">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -4451,7 +4466,7 @@
         <item>
          <widget class="QLabel" name="label_molecule_3">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -4480,7 +4495,7 @@
         <item>
          <widget class="QLabel" name="label_molecule_4">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -4546,7 +4561,7 @@
         <item>
          <widget class="QLabel" name="label_molecule_5">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -4617,7 +4632,7 @@
       <item>
        <widget class="QLabel" name="label_molecule">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Ignored">
+         <sizepolicy hsizetype="Preferred" vsizetype="Ignored">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -4806,7 +4821,7 @@
          <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
         </property>
         <property name="text">
-         <string/>
+         <string />
         </property>
        </widget>
       </item>
@@ -4844,8 +4859,8 @@
      <property name="title">
       <string>Experiment</string>
      </property>
-     <addaction name="action_LoadExperiment"/>
-     <addaction name="action_Save_to_Experiment"/>
+     <addaction name="action_LoadExperiment" />
+     <addaction name="action_Save_to_Experiment" />
     </widget>
     <widget class="QMenu" name="menuLanguage">
      <property name="title">
@@ -4856,9 +4871,9 @@
      <property name="title">
       <string>Log File</string>
      </property>
-     <addaction name="actionOpenLogFile"/>
-     <addaction name="actionSetLogLevel"/>
-     <addaction name="actionLogToCurrentDirectory"/>
+     <addaction name="actionOpenLogFile" />
+     <addaction name="actionSetLogLevel" />
+     <addaction name="actionLogToCurrentDirectory" />
     </widget>
     <widget class="QMenu" name="menuRecent_Experiments">
      <property name="title">
@@ -4870,28 +4885,28 @@
       <string>UI Preferences</string>
      </property>
     </widget>
-    <addaction name="actionCheck_PyMOL_session"/>
-    <addaction name="actionSet_Working_Directory"/>
-    <addaction name="separator"/>
-    <addaction name="menuExperiment"/>
-    <addaction name="menuRecent_Experiments"/>
-    <addaction name="separator"/>
-    <addaction name="menuLanguage"/>
-    <addaction name="separator"/>
-    <addaction name="menuLog_File"/>
-    <addaction name="menuUI_Preferences"/>
-    <addaction name="separator"/>
-    <addaction name="actionClose"/>
+    <addaction name="actionCheck_PyMOL_session" />
+    <addaction name="actionSet_Working_Directory" />
+    <addaction name="separator" />
+    <addaction name="menuExperiment" />
+    <addaction name="menuRecent_Experiments" />
+    <addaction name="separator" />
+    <addaction name="menuLanguage" />
+    <addaction name="separator" />
+    <addaction name="menuLog_File" />
+    <addaction name="menuUI_Preferences" />
+    <addaction name="separator" />
+    <addaction name="actionClose" />
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
      <string>About</string>
     </property>
-    <addaction name="actionSource_Code"/>
-    <addaction name="separator"/>
-    <addaction name="actionPublicattion"/>
-    <addaction name="separator"/>
-    <addaction name="actionVersion"/>
+    <addaction name="actionSource_Code" />
+    <addaction name="separator" />
+    <addaction name="actionPublicattion" />
+    <addaction name="separator" />
+    <addaction name="actionVersion" />
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -4901,7 +4916,7 @@
      <property name="title">
       <string>Environment Variables</string>
      </property>
-     <addaction name="actionRefreshEnvironVar"/>
+     <addaction name="actionRefreshEnvironVar" />
     </widget>
     <widget class="QMenu" name="menuEdit_Configuration">
      <property name="title">
@@ -4913,33 +4928,33 @@
       <string>Runtime</string>
      </property>
     </widget>
-    <addaction name="actionReconfigure"/>
-    <addaction name="separator"/>
-    <addaction name="menuEdit_Configuration"/>
-    <addaction name="actionSave_Configurations"/>
-    <addaction name="actionSave_Configuration_as"/>
-    <addaction name="separator"/>
-    <addaction name="menuEnvironment_Variables"/>
-    <addaction name="separator"/>
-    <addaction name="actionReinitialize"/>
-    <addaction name="separator"/>
-    <addaction name="menuRuntime"/>
+    <addaction name="actionReconfigure" />
+    <addaction name="separator" />
+    <addaction name="menuEdit_Configuration" />
+    <addaction name="actionSave_Configurations" />
+    <addaction name="actionSave_Configuration_as" />
+    <addaction name="separator" />
+    <addaction name="menuEnvironment_Variables" />
+    <addaction name="separator" />
+    <addaction name="actionReinitialize" />
+    <addaction name="separator" />
+    <addaction name="menuRuntime" />
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actionDocumentation"/>
-    <addaction name="actionContact"/>
+    <addaction name="actionDocumentation" />
+    <addaction name="actionContact" />
    </widget>
    <widget class="QMenu" name="menuStyle">
     <property name="title">
      <string>Style</string>
     </property>
-    <addaction name="actionStyle_Presets"/>
-    <addaction name="separator"/>
-    <addaction name="actionColor_by_pLDDT"/>
-    <addaction name="actionShow_Real_Sidechain"/>
+    <addaction name="actionStyle_Presets" />
+    <addaction name="separator" />
+    <addaction name="actionColor_by_pLDDT" />
+    <addaction name="actionShow_Real_Sidechain" />
    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
@@ -4949,45 +4964,45 @@
      <property name="title">
       <string>Editor Backend</string>
      </property>
-     <addaction name="actionStartEditor"/>
-     <addaction name="actionStopEditor"/>
-     <addaction name="separator"/>
+     <addaction name="actionStartEditor" />
+     <addaction name="actionStopEditor" />
+     <addaction name="separator" />
     </widget>
     <widget class="QMenu" name="menuStructure_Tools">
      <property name="title">
       <string>Structure Tools</string>
      </property>
-     <addaction name="actionRenumber_Residue_Index"/>
-     <addaction name="actionDump_Sequence"/>
-     <addaction name="actionColor_by_Mutations"/>
+     <addaction name="actionRenumber_Residue_Index" />
+     <addaction name="actionDump_Sequence" />
+     <addaction name="actionColor_by_Mutations" />
     </widget>
     <widget class="QMenu" name="menuRosetta_Tools">
      <property name="title">
       <string>Rosetta Tools</string>
      </property>
-     <addaction name="actionRosettaLigand"/>
-     <addaction name="actionFastRelax"/>
-     <addaction name="actionRelax_w_Ca_Constraints"/>
-     <addaction name="separator"/>
-     <addaction name="actionRosetta_Score_Analyser"/>
+     <addaction name="actionRosettaLigand" />
+     <addaction name="actionFastRelax" />
+     <addaction name="actionRelax_w_Ca_Constraints" />
+     <addaction name="separator" />
+     <addaction name="actionRosetta_Score_Analyser" />
     </widget>
     <widget class="QMenu" name="menuSmall_Molecule">
      <property name="title">
       <string>Small Molecule Tools</string>
      </property>
-     <addaction name="actionSMILES_Conformers"/>
-     <addaction name="actionSMILES_Conformers_Batch"/>
-     <addaction name="separator"/>
-     <addaction name="actionSDF_to_Rosetta_Parameters"/>
-     <addaction name="separator"/>
+     <addaction name="actionSMILES_Conformers" />
+     <addaction name="actionSMILES_Conformers_Batch" />
+     <addaction name="separator" />
+     <addaction name="actionSDF_to_Rosetta_Parameters" />
+     <addaction name="separator" />
     </widget>
     <widget class="QMenu" name="menuDesign_Tools">
      <property name="title">
       <string>Design Tools</string>
      </property>
-     <addaction name="actionProfile_Design"/>
-     <addaction name="actionPSSM_to_CSV"/>
-     <addaction name="actionPROSS"/>
+     <addaction name="actionProfile_Design" />
+     <addaction name="actionPSSM_to_CSV" />
+     <addaction name="actionPROSS" />
     </widget>
     <widget class="QMenu" name="menuExport_Tools">
      <property name="title">
@@ -4997,12 +5012,12 @@
       <property name="title">
        <string>Render Sidechains</string>
       </property>
-      <addaction name="separator"/>
-      <addaction name="actionRenderAllSidechains"/>
-      <addaction name="actionRenderPickedSidechainGroup"/>
-      <addaction name="actionRenderPickedSidechainObject"/>
+      <addaction name="separator" />
+      <addaction name="actionRenderAllSidechains" />
+      <addaction name="actionRenderPickedSidechainGroup" />
+      <addaction name="actionRenderPickedSidechainObject" />
      </widget>
-     <addaction name="menuRender_Sidechains"/>
+     <addaction name="menuRender_Sidechains" />
     </widget>
     <widget class="QMenu" name="menuPredictor_Tools">
      <property name="title">
@@ -5012,10 +5027,10 @@
       <property name="title">
        <string>Mutant Effects</string>
       </property>
-      <addaction name="actionThermoMPNN"/>
-      <addaction name="actionESM_1v"/>
+      <addaction name="actionThermoMPNN" />
+      <addaction name="actionESM_1v" />
      </widget>
-     <addaction name="menuMutant_Effects"/>
+     <addaction name="menuMutant_Effects" />
     </widget>
     <widget class="QMenu" name="menuMolecular_Dynamics">
      <property name="title">
@@ -5025,25 +5040,25 @@
       <property name="title">
        <string>OpenMM</string>
       </property>
-      <addaction name="actionStart_SetupOpenMM"/>
-      <addaction name="actionStop_SetupOpenMM"/>
+      <addaction name="actionStart_SetupOpenMM" />
+      <addaction name="actionStop_SetupOpenMM" />
      </widget>
      <widget class="QMenu" name="menuMD_analysis">
       <property name="title">
        <string>MD analysis</string>
       </property>
-      <addaction name="actionRMSF_to_b_factor"/>
+      <addaction name="actionRMSF_to_b_factor" />
      </widget>
      <widget class="QMenu" name="menuGromacs_Utils">
       <property name="title">
        <string>Gromacs Utils</string>
       </property>
-      <addaction name="actionMake_Residue_Range"/>
+      <addaction name="actionMake_Residue_Range" />
      </widget>
-     <addaction name="menuOpenMM"/>
-     <addaction name="menuMD_analysis"/>
-     <addaction name="separator"/>
-     <addaction name="menuGromacs_Utils"/>
+     <addaction name="menuOpenMM" />
+     <addaction name="menuMD_analysis" />
+     <addaction name="separator" />
+     <addaction name="menuGromacs_Utils" />
     </widget>
     <widget class="QMenu" name="menuModeling_Tools">
      <property name="title">
@@ -5053,20 +5068,20 @@
       <property name="title">
        <string>Vina Tools</string>
       </property>
-      <addaction name="actionRemove_Het_Atoms"/>
-      <addaction name="separator"/>
-      <addaction name="actionGet_Box"/>
-      <addaction name="actionAlter_Box"/>
-      <addaction name="actionGet_PCA_Box"/>
-      <addaction name="separator"/>
-      <addaction name="actionVina_Prepare_Ligand"/>
-      <addaction name="actionVina_Prepare_Receptor"/>
-      <addaction name="separator"/>
-      <addaction name="actionVina_Export_Results"/>
+      <addaction name="actionRemove_Het_Atoms" />
+      <addaction name="separator" />
+      <addaction name="actionGet_Box" />
+      <addaction name="actionAlter_Box" />
+      <addaction name="actionGet_PCA_Box" />
+      <addaction name="separator" />
+      <addaction name="actionVina_Prepare_Ligand" />
+      <addaction name="actionVina_Prepare_Receptor" />
+      <addaction name="separator" />
+      <addaction name="actionVina_Export_Results" />
      </widget>
-     <addaction name="actionVina"/>
-     <addaction name="menuVina_Tools"/>
-     <addaction name="separator"/>
+     <addaction name="actionVina" />
+     <addaction name="menuVina_Tools" />
+     <addaction name="separator" />
     </widget>
     <widget class="QMenu" name="menuBackbone_Rebuild">
      <property name="title">
@@ -5076,11 +5091,11 @@
       <property name="title">
        <string>RFdiffusion</string>
       </property>
-      <addaction name="actionRFdiffusion_General_Task"/>
-      <addaction name="separator"/>
-      <addaction name="actionSubstrate_Potential"/>
+      <addaction name="actionRFdiffusion_General_Task" />
+      <addaction name="separator" />
+      <addaction name="actionSubstrate_Potential" />
      </widget>
-     <addaction name="menuRFdiffusion"/>
+     <addaction name="menuRFdiffusion" />
     </widget>
     <widget class="QMenu" name="menuUtils">
      <property name="title">
@@ -5090,39 +5105,39 @@
       <property name="title">
        <string>Formatters</string>
       </property>
-      <addaction name="actionShorten_Range"/>
+      <addaction name="actionShorten_Range" />
      </widget>
-     <addaction name="menuFormatters"/>
+     <addaction name="menuFormatters" />
     </widget>
     <widget class="QMenu" name="menuEvolution">
      <property name="title">
       <string>Evolution Tools</string>
      </property>
-     <addaction name="actionRun_GREMLIN"/>
+     <addaction name="actionRun_GREMLIN" />
     </widget>
-    <addaction name="menuEvolution"/>
-    <addaction name="menuDesign_Tools"/>
-    <addaction name="menuSmall_Molecule"/>
-    <addaction name="menuStructure_Tools"/>
-    <addaction name="menuRosetta_Tools"/>
-    <addaction name="menuPredictor_Tools"/>
-    <addaction name="menuMolecular_Dynamics"/>
-    <addaction name="menuModeling_Tools"/>
-    <addaction name="menuExport_Tools"/>
-    <addaction name="menuBackbone_Rebuild"/>
-    <addaction name="separator"/>
-    <addaction name="menuEditor_Backend"/>
-    <addaction name="separator"/>
-    <addaction name="menuUtils"/>
+    <addaction name="menuEvolution" />
+    <addaction name="menuDesign_Tools" />
+    <addaction name="menuSmall_Molecule" />
+    <addaction name="menuStructure_Tools" />
+    <addaction name="menuRosetta_Tools" />
+    <addaction name="menuPredictor_Tools" />
+    <addaction name="menuMolecular_Dynamics" />
+    <addaction name="menuModeling_Tools" />
+    <addaction name="menuExport_Tools" />
+    <addaction name="menuBackbone_Rebuild" />
+    <addaction name="separator" />
+    <addaction name="menuEditor_Backend" />
+    <addaction name="separator" />
+    <addaction name="menuUtils" />
    </widget>
-   <addaction name="menuFile"/>
-   <addaction name="menuEdit"/>
-   <addaction name="menuStyle"/>
-   <addaction name="menuTools"/>
-   <addaction name="menuHelp"/>
-   <addaction name="menuAbout"/>
+   <addaction name="menuFile" />
+   <addaction name="menuEdit" />
+   <addaction name="menuStyle" />
+   <addaction name="menuTools" />
+   <addaction name="menuHelp" />
+   <addaction name="menuAbout" />
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QStatusBar" name="statusbar" />
   <action name="actionSource_Code">
    <property name="text">
     <string>Source Code</string>
@@ -5541,7 +5556,7 @@
    </property>
   </action>
  </widget>
- <resources/>
+ <resources />
  <connections>
   <connection>
    <sender>checkBox_ws_server_mode</sender>

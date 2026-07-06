@@ -1,17 +1,20 @@
 
-# TODO: font settings according to the current font settings
+# REvoDesign appearance configuration
+# Applied by ThemeManager during plugin startup.
+# Changes take effect after restarting PyMOL or via Edit > Reconfigure.
 
-# store the current font settings (QFont properties)
-font:
-  # primary setting
-  family: ...  # string
-  weight: ... # float
-  bold: ... # bool
-  italic: ... # bool
+# Font family override.  Empty string = use OS default (set by FontSetter).
+# Platform defaults:
+#   Windows:  Microsoft YaHei, Century Gothic
+#   Linux:    Nimbus Sans, DejaVu Sans
+#   macOS:    system default (San Francisco)
+font_family: ""
 
-  # secondary settings
-  letterSpacing: ...
-  # ...
+# Global font size scale.  1.0 = system default, 1.2 = 120%.
+font_size_scale: 1.0
+
+# Accent color used for run buttons, active tabs, and focus rings.
+accent_color: "#2563EB"
 
 button_matrix:
   hover_crosshair:

@@ -1,0 +1,302 @@
+/* ================================================================
+   REvoDesign Theme — centralized Qt stylesheet
+   Scoped to #REvoDesignPyMOL_UI to avoid affecting Package Manager
+   and other standalone dialogs.
+   ================================================================ */
+
+/* --- Color Palette ---
+   Primary:   #2563EB
+   Accent:    #10B981
+   Warning:   #D97706
+   Danger:    #DC2626
+   Bg:        #F8FAFC
+   Surface:   #FFFFFF
+   Text:      #1E293B
+   Muted:     #64748B
+   Border:    #CBD5E1
+*/
+
+/* ================================================================
+   Global — apply to all descendants of the main window
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI {
+    background-color: #F8FAFC;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QWidget#centralwidget {
+    background-color: #F8FAFC;
+}
+
+/* ================================================================
+   QTabWidget & QTabBar
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QTabWidget::pane {
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    background-color: #FFFFFF;
+    top: -1px;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QTabBar::tab {
+    background-color: #E2E8F0;
+    color: #64748B;
+    border: 1px solid #CBD5E1;
+    border-bottom: none;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    padding: 6px 14px;
+    margin-right: 2px;
+    font-weight: normal;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QTabBar::tab:selected {
+    background-color: #FFFFFF;
+    color: #1E293B;
+    font-weight: bold;
+    border-bottom: 2px solid #2563EB;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QTabBar::tab:hover:!selected {
+    background-color: #F1F5F9;
+    color: #1E293B;
+}
+
+/* ================================================================
+   QGroupBox
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QGroupBox {
+    border: 1px solid #CBD5E1;
+    border-radius: 6px;
+    margin-top: 14px;
+    padding: 12px 8px 8px 8px;
+    background-color: #FFFFFF;
+    font-weight: bold;
+    color: #1E293B;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 6px;
+    color: #2563EB;
+}
+
+/* ================================================================
+   QPushButton
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QPushButton {
+    background-color: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    padding: 4px 12px;
+    color: #1E293B;
+    min-height: 22px;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QPushButton:hover {
+    background-color: #F1F5F9;
+    border-color: #94A3B8;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QPushButton:pressed {
+    background-color: #E2E8F0;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QPushButton:disabled {
+    background-color: #F1F5F9;
+    color: #94A3B8;
+    border-color: #E2E8F0;
+}
+
+/* Primary action buttons ("Run", "Detect", "Find", etc.) */
+QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="run_"] {
+    background-color: #2563EB;
+    color: #FFFFFF;
+    border-color: #2563EB;
+    font-weight: bold;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="run_"]:hover {
+    background-color: #1D4ED8;
+    border-color: #1D4ED8;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="run_"]:pressed {
+    background-color: #1E40AF;
+}
+
+/* "..." browse buttons — compact */
+QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="open_"] {
+    padding: 4px 8px;
+    min-width: 28px;
+}
+
+/* ================================================================
+   QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QLineEdit,
+QMainWindow#REvoDesignPyMOL_UI QComboBox,
+QMainWindow#REvoDesignPyMOL_UI QSpinBox,
+QMainWindow#REvoDesignPyMOL_UI QDoubleSpinBox {
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    padding: 3px 6px;
+    background-color: #FFFFFF;
+    color: #1E293B;
+    min-height: 20px;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QLineEdit:focus,
+QMainWindow#REvoDesignPyMOL_UI QComboBox:focus,
+QMainWindow#REvoDesignPyMOL_UI QSpinBox:focus,
+QMainWindow#REvoDesignPyMOL_UI QDoubleSpinBox:focus {
+    border-color: #2563EB;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    border-left: 1px solid #CBD5E1;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QComboBox QAbstractItemView {
+    background-color: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    selection-background-color: #DBEAFE;
+    selection-color: #1E293B;
+}
+
+/* ================================================================
+   QLabel
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QLabel {
+    color: #1E293B;
+}
+
+/* Read-only / status labels */
+QMainWindow#REvoDesignPyMOL_UI QLabel[readOnly="true"],
+QMainWindow#REvoDesignPyMOL_UI QLineEdit[readOnly="true"] {
+    color: #64748B;
+}
+
+/* ================================================================
+   QCheckBox
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QCheckBox {
+    color: #1E293B;
+    spacing: 6px;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #CBD5E1;
+    border-radius: 3px;
+    background-color: #FFFFFF;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QCheckBox::indicator:checked {
+    background-color: #2563EB;
+    border-color: #2563EB;
+}
+
+/* ================================================================
+   QToolBox (Cluster tab)
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QToolBox::tab {
+    background-color: #E2E8F0;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    padding: 6px 12px;
+    margin: 2px 0;
+    font-weight: bold;
+    color: #1E293B;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QToolBox::tab:selected {
+    background-color: #DBEAFE;
+    color: #2563EB;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QToolBox::tab:hover:!selected {
+    background-color: #F1F5F9;
+}
+
+/* ================================================================
+   QStackedWidget
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QStackedWidget {
+    background-color: #FFFFFF;
+}
+
+/* ================================================================
+   QProgressBar
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QProgressBar {
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    background-color: #E2E8F0;
+    text-align: center;
+    color: #1E293B;
+    height: 18px;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QProgressBar::chunk {
+    background-color: #2563EB;
+    border-radius: 3px;
+}
+
+/* ================================================================
+   QTreeWidget (Socket tab — peer list)
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QTreeWidget {
+    background-color: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    color: #1E293B;
+    alternate-background-color: #F8FAFC;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QTreeWidget::item:selected {
+    background-color: #DBEAFE;
+    color: #1E293B;
+}
+
+QMainWindow#REvoDesignPyMOL_UI QTreeWidget QHeaderView::section {
+    background-color: #F1F5F9;
+    border: none;
+    border-bottom: 1px solid #CBD5E1;
+    padding: 4px 8px;
+    font-weight: bold;
+    color: #64748B;
+}
+
+/* ================================================================
+   QLCDNumber
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QLCDNumber {
+    background-color: #F1F5F9;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    color: #2563EB;
+}
+
+/* ================================================================
+   QFrame (separator lines)
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QFrame[frameShape="4"],  /* HLine */
+QMainWindow#REvoDesignPyMOL_UI QFrame[frameShape="5"]   /* VLine */
+{
+    color: #CBD5E1;
+}
+
+/* ================================================================
+   QScrollArea — transparent, no border
+   ================================================================ */
+QMainWindow#REvoDesignPyMOL_UI QScrollArea {
+    border: none;
+    background-color: transparent;
+}

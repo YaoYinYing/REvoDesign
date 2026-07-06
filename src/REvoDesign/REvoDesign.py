@@ -258,6 +258,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         FontSetter(main_window=main_window)
 
+        # apply centralized QSS theme
+        from REvoDesign.application.theme import ThemeManager
+
+        ThemeManager(self.bus).apply()
+
         # language switch for ui
         self.bus.ui.trans = QtCore.QTranslator(self)
         LanguageSwitch(window=main_window)

@@ -382,6 +382,8 @@ class REvoDesignUiProtocol(Protocol):
 
     horizontalLayoutWidget_8: QtWidgets.QWidget
 
+    horizontalLayoutWidget_design_case: QtWidgets.QWidget
+
     horizontalLayout_10: QtWidgets.QHBoxLayout
 
     horizontalLayout_11: QtWidgets.QHBoxLayout
@@ -507,6 +509,8 @@ class REvoDesignUiProtocol(Protocol):
     horizontalLayout_cluster_evo_structure: QtWidgets.QHBoxLayout
 
     horizontalLayout_cluster_method: QtWidgets.QHBoxLayout
+
+    horizontalLayout_design_case: QtWidgets.QHBoxLayout
 
     label: QtWidgets.QLabel
 
