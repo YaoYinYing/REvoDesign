@@ -292,12 +292,6 @@ class REvoDesignUiProtocol(Protocol):
 
     gridLayout: QtWidgets.QGridLayout
 
-    gridLayoutWidget: QtWidgets.QWidget
-
-    gridLayoutWidget_13: QtWidgets.QWidget
-
-    gridLayoutWidget_3: QtWidgets.QWidget
-
     gridLayout_16: QtWidgets.QGridLayout
 
     gridLayout_2: QtWidgets.QGridLayout
@@ -369,20 +363,6 @@ class REvoDesignUiProtocol(Protocol):
     groupBox_ws_server_settings: QtWidgets.QGroupBox
 
     horizontalLayout: QtWidgets.QHBoxLayout
-
-    horizontalLayoutWidget_2: QtWidgets.QWidget
-
-    horizontalLayoutWidget_4: QtWidgets.QWidget
-
-    horizontalLayoutWidget_5: QtWidgets.QWidget
-
-    horizontalLayoutWidget_6: QtWidgets.QWidget
-
-    horizontalLayoutWidget_7: QtWidgets.QWidget
-
-    horizontalLayoutWidget_8: QtWidgets.QWidget
-
-    horizontalLayoutWidget_design_case: QtWidgets.QWidget
 
     horizontalLayout_10: QtWidgets.QHBoxLayout
 
@@ -665,8 +645,6 @@ class REvoDesignUiProtocol(Protocol):
     label_surface_exclusion: QtWidgets.QLabel
 
     label_total_mutant: QtWidgets.QLabel
-
-    layoutWidget: QtWidgets.QWidget
 
     # WARNING: Unknown widget class 'QLCDNumber'; using QtWidgets.QWidget.
     lcdNumber_selected_mutant: QtWidgets.QWidget
@@ -981,36 +959,6 @@ class REvoDesignUiProtocol(Protocol):
     treeWidget_ws_peers: QtWidgets.QTreeWidget
 
     verticalLayout: QtWidgets.QVBoxLayout
-
-    verticalLayoutWidget: QtWidgets.QWidget
-
-    verticalLayoutWidget_10: QtWidgets.QWidget
-
-    verticalLayoutWidget_11: QtWidgets.QWidget
-
-    verticalLayoutWidget_12: QtWidgets.QWidget
-
-    verticalLayoutWidget_13: QtWidgets.QWidget
-
-    verticalLayoutWidget_14: QtWidgets.QWidget
-
-    verticalLayoutWidget_2: QtWidgets.QWidget
-
-    verticalLayoutWidget_4: QtWidgets.QWidget
-
-    verticalLayoutWidget_5: QtWidgets.QWidget
-
-    verticalLayoutWidget_6: QtWidgets.QWidget
-
-    verticalLayoutWidget_7: QtWidgets.QWidget
-
-    verticalLayoutWidget_8: QtWidgets.QWidget
-
-    verticalLayoutWidget_9: QtWidgets.QWidget
-
-    verticalLayoutWidget_cluster_general: QtWidgets.QWidget
-
-    verticalLayoutWidget_cluster_post: QtWidgets.QWidget
 
     verticalLayout_10: QtWidgets.QVBoxLayout
 
