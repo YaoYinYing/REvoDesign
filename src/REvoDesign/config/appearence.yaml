@@ -1,36 +1,40 @@
 
-# REvoDesign Appearance — Academic theme configuration
+# REvoDesign Appearance — Crystallography + Lab Notebook theme
 # Applied by ThemeManager during plugin startup.
 # Changes take effect after restarting PyMOL or via Edit > Reconfigure.
 
-# ---- Semantic Colour Tokens ----
-# Interactive
-interactive: "#3B49DF"          # deep indigo — primary actions, focus, active tabs
-interactive_hover: "#2F3ABF"    # darker indigo — hover on primary buttons
-interactive_subtle: "#E8E9FF"   # pale indigo — selected rows, hover backgrounds
+# ---- Semantic Colour Tokens (see theme.qss for usage) ----
+
+# Interactive — deep violet-indigo (X-ray diffraction pattern)
+interactive: "#4338CA"
+interactive_hover: "#3730A3"
+interactive_subtle: "#EEECFF"
 
 # Status
 positive: "#0D9488"             # teal — accept, success
-warning: "#B45309"              # amber ochre — deprecated, caution
-danger: "#C53030"               # muted crimson — reject, destructive
+warning: "#92400E"              # warm amber — deprecated, caution
+danger: "#B91C1C"               # muted red — reject, destructive
 
-# Surfaces
-bg: "#F4F5F7"                   # page background
-surface: "#FFFFFF"               # cards, group boxes, tab panes
-surface_alt: "#FAFBFC"          # alternate rows, subtle differentiation
+# Accent — copper (X-ray source metal, used sparingly)
+copper: "#C2410C"
 
-# Content
-text: "#1A1C2E"                 # primary text — near-black with blue undertone
-text_secondary: "#5B6080"       # secondary labels, muted content
-text_disabled: "#8E93A8"        # disabled, placeholder
+# Surfaces — warm paper / lab notebook
+bg: "#F6F4F0"
+surface: "#FFFFFF"
+surface_alt: "#FBF9F7"
 
-# Outlines
-border: "#E2E4EB"               # card/input borders
-border_hover: "#C5C8D4"
+# Content — warm near-black
+text: "#1E1B18"
+text_secondary: "#6B6560"
+text_disabled: "#A39D98"
+
+# Outlines — warm gray
+border: "#E6E2DD"
+border_hover: "#D4CFC9"
 
 # ---- Typography ----
-font_family: ""                  # empty = OS system font (recommended)
-font_size_scale: 1.0             # 1.0 = system default, 1.15 = 115%
+font_family: ""                  # empty = OS system font
+font_size_scale: 1.0             # 1.0 = system default
 
 # ---- Button Matrix ----
 button_matrix:

@@ -1,95 +1,108 @@
 /* ================================================================
-   REvoDesign Theme — Academic · Modern · Elegant
-   Journal-figure aesthetic for a protein design tool.
-   Scoped to #REvoDesignPyMOL_UI to avoid affecting Package Manager
-   and other standalone dialogs.
+   REvoDesign Theme — Crystallography · Lab Notebook
+   Palette drawn from X-ray diffraction, warm lab paper, copper accents.
+   Scoped to #REvoDesignPyMOL_UI.
    ================================================================ */
 
 /* --- Semantic Colour Tokens ---
    Interactive:
-     interactive           #3B49DF  (deep indigo — primary actions, focus)
-     interactive-hover     #2F3ABF
-     interactive-subtle    #E8E9FF  (hover tint, selected backgrounds)
+     interactive           #4338CA  (deep violet-indigo — diffraction pattern)
+     interactive-hover     #3730A3
+     interactive-subtle    #EEECFF  (barely-there violet tint)
    Status:
      positive              #0D9488  (teal — success, accept)
-     warning               #B45309  (amber ochre — deprecated, caution)
-     danger                #C53030  (muted crimson — reject, destructive)
+     warning               #92400E  (warm amber — deprecated, caution)
+     danger                #B91C1C  (red — reject, destructive)
+   Accent:
+     copper                #C2410C  (X-ray source metal — used sparingly)
    Surfaces:
-     bg                    #F4F5F7  (page background)
-     surface               #FFFFFF  (cards, group boxes, panes)
-     surface-raised        #FAFBFC  (alternate surface)
+     bg                    #F6F4F0  (warm paper — lab notebook)
+     surface               #FFFFFF  (cards, group boxes)
+     surface-alt           #FBF9F7  (alternate rows)
    Content:
-     text                  #1A1C2E  (primary text — near-black with blue undertone)
-     text-secondary        #5B6080  (secondary labels, muted content)
-     text-disabled         #8E93A8  (disabled, placeholder)
+     text                  #1E1B18  (warm near-black)
+     text-secondary        #6B6560  (muted warm gray)
+     text-disabled         #A39D98
    Outlines:
-     border                #E2E4EB  (card/input borders)
-     border-hover          #C5C8D4
-     divider               #EEF0F4
+     border                #E6E2DD  (warm gray — softer than slate)
+     border-hover          #D4CFC9
+     divider               #F0EDE9
 */
 
 /* ================================================================
-   Global
+   Global — warm paper background
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI {
-    background-color: #F4F5F7;
+    background-color: #F6F4F0;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QWidget#centralwidget {
-    background-color: #F4F5F7;
+    background-color: #F6F4F0;
+}
+
+/* ---- Top bar: molecule/chain/parallelism/colormap strip ---- */
+QMainWindow#REvoDesignPyMOL_UI QGroupBox#groupBox_6,
+QMainWindow#REvoDesignPyMOL_UI QGroupBox#groupBox_7,
+QMainWindow#REvoDesignPyMOL_UI QGroupBox#groupBox_8 {
+    background-color: #FFFFFF;
+    border: 1px solid #E6E2DD;
+    border-radius: 5px;
 }
 
 /* ================================================================
-   QTabWidget & QTabBar
+   QTabWidget & QTabBar — crystallization-plate well treatment
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QTabWidget::pane {
-    border: 1px solid #E2E4EB;
+    border: 1px solid #E6E2DD;
     border-radius: 0 6px 6px 6px;
     background-color: #FFFFFF;
     top: -1px;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QTabBar::tab {
-    background-color: #FAFBFC;
-    color: #5B6080;
-    border: 1px solid #E2E4EB;
+    background-color: #F6F4F0;
+    color: #6B6560;
+    border: 1px solid transparent;
     border-bottom: none;
     border-radius: 6px 6px 0 0;
-    padding: 7px 16px;
+    padding: 8px 18px;
     margin-right: 1px;
     font-weight: 500;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QTabBar::tab:selected {
     background-color: #FFFFFF;
-    color: #1A1C2E;
+    color: #1E1B18;
     font-weight: 600;
-    border-bottom: 2px solid #3B49DF;
+    border-color: #E6E2DD;
+    /* Signature: left-edge indigo accent bar — like a selected well marker */
+    border-left: 2px solid #4338CA;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QTabBar::tab:hover:!selected {
-    background-color: #E8E9FF;
-    color: #3B49DF;
+    background-color: #EEECFF;
+    color: #4338CA;
 }
 
 /* ================================================================
-   QGroupBox — card-like containers
+   QGroupBox — card-like, warm paper borders
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QGroupBox {
-    border: 1px solid #E2E4EB;
+    border: 1px solid #E6E2DD;
     border-radius: 6px;
     margin-top: 16px;
     padding: 14px 10px 10px 10px;
     background-color: #FFFFFF;
     font-weight: 600;
-    color: #1A1C2E;
+    color: #1E1B18;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
     padding: 0 8px;
-    color: #3B49DF;
+    color: #4338CA;
+    font-weight: 600;
 }
 
 /* ================================================================
@@ -97,43 +110,43 @@ QMainWindow#REvoDesignPyMOL_UI QGroupBox::title {
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QPushButton {
     background-color: #FFFFFF;
-    border: 1px solid #E2E4EB;
+    border: 1px solid #E6E2DD;
     border-radius: 5px;
     padding: 5px 14px;
-    color: #1A1C2E;
+    color: #1E1B18;
     min-height: 24px;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QPushButton:hover {
-    background-color: #E8E9FF;
-    border-color: #3B49DF;
+    background-color: #EEECFF;
+    border-color: #4338CA;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QPushButton:pressed {
-    background-color: #D8DAF5;
+    background-color: #DDDAF5;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QPushButton:disabled {
-    background-color: #F4F5F7;
-    color: #8E93A8;
-    border-color: #EEF0F4;
+    background-color: #F6F4F0;
+    color: #A39D98;
+    border-color: #F0EDE9;
 }
 
 /* Primary action buttons — filled indigo */
 QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="run_"] {
-    background-color: #3B49DF;
+    background-color: #4338CA;
     color: #FFFFFF;
-    border-color: #3B49DF;
+    border-color: #4338CA;
     font-weight: 600;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="run_"]:hover {
-    background-color: #2F3ABF;
-    border-color: #2F3ABF;
+    background-color: #3730A3;
+    border-color: #3730A3;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="run_"]:pressed {
-    background-color: #252EA3;
+    background-color: #312E81;
 }
 
 /* Compact browse buttons */
@@ -142,28 +155,39 @@ QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="open_"] {
     min-width: 28px;
 }
 
-/* Accept / positive actions */
+/* Accept — teal */
 QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="accept"] {
     background-color: #0D9488;
     color: #FFFFFF;
     border-color: #0D9488;
     font-weight: 600;
 }
-
 QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="accept"]:hover {
     background-color: #0F766E;
 }
 
-/* Reject / destructive actions */
+/* Reject — muted red */
 QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="reject"] {
-    background-color: #C53030;
+    background-color: #B91C1C;
     color: #FFFFFF;
-    border-color: #C53030;
+    border-color: #B91C1C;
     font-weight: 600;
 }
-
 QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="reject"]:hover {
-    background-color: #9B2C2C;
+    background-color: #991B1B;
+}
+
+/* Find/Detect — subtle copper accent (used sparingly, one per tab) */
+QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="dump_interfaces"],
+QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="lucky"] {
+    background-color: #FFFFFF;
+    color: #C2410C;
+    border-color: #C2410C;
+    font-weight: 500;
+}
+QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="dump_interfaces"]:hover,
+QMainWindow#REvoDesignPyMOL_UI QPushButton[name*="lucky"]:hover {
+    background-color: #FFF7ED;
 }
 
 /* ================================================================
@@ -173,37 +197,37 @@ QMainWindow#REvoDesignPyMOL_UI QLineEdit,
 QMainWindow#REvoDesignPyMOL_UI QComboBox,
 QMainWindow#REvoDesignPyMOL_UI QSpinBox,
 QMainWindow#REvoDesignPyMOL_UI QDoubleSpinBox {
-    border: 1px solid #E2E4EB;
+    border: 1px solid #E6E2DD;
     border-radius: 5px;
     padding: 4px 8px;
     background-color: #FFFFFF;
-    color: #1A1C2E;
+    color: #1E1B18;
     min-height: 22px;
-    selection-background-color: #E8E9FF;
-    selection-color: #1A1C2E;
+    selection-background-color: #EEECFF;
+    selection-color: #1E1B18;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QLineEdit:focus,
 QMainWindow#REvoDesignPyMOL_UI QComboBox:focus,
 QMainWindow#REvoDesignPyMOL_UI QSpinBox:focus,
 QMainWindow#REvoDesignPyMOL_UI QDoubleSpinBox:focus {
-    border-color: #3B49DF;
+    border-color: #4338CA;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QComboBox::drop-down {
     subcontrol-origin: padding;
     subcontrol-position: top right;
     width: 22px;
-    border-left: 1px solid #E2E4EB;
+    border-left: 1px solid #E6E2DD;
     border-radius: 0 5px 5px 0;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QComboBox QAbstractItemView {
     background-color: #FFFFFF;
-    border: 1px solid #E2E4EB;
+    border: 1px solid #E6E2DD;
     border-radius: 4px;
-    selection-background-color: #E8E9FF;
-    selection-color: #1A1C2E;
+    selection-background-color: #EEECFF;
+    selection-color: #1E1B18;
     outline: none;
 }
 
@@ -211,58 +235,57 @@ QMainWindow#REvoDesignPyMOL_UI QComboBox QAbstractItemView {
    QLabel
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QLabel {
-    color: #1A1C2E;
+    color: #1E1B18;
 }
 
-/* Read-only text displays */
 QMainWindow#REvoDesignPyMOL_UI QLabel[readOnly="true"],
 QMainWindow#REvoDesignPyMOL_UI QLineEdit[readOnly="true"] {
-    color: #5B6080;
+    color: #6B6560;
 }
 
 /* ================================================================
    QCheckBox
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QCheckBox {
-    color: #1A1C2E;
+    color: #1E1B18;
     spacing: 6px;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QCheckBox::indicator {
     width: 16px;
     height: 16px;
-    border: 1.5px solid #C5C8D4;
+    border: 1.5px solid #D4CFC9;
     border-radius: 3px;
     background-color: #FFFFFF;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QCheckBox::indicator:checked {
-    background-color: #3B49DF;
-    border-color: #3B49DF;
+    background-color: #4338CA;
+    border-color: #4338CA;
 }
 
 /* ================================================================
    QToolBox (Cluster tab)
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QToolBox::tab {
-    background-color: #FAFBFC;
-    border: 1px solid #E2E4EB;
+    background-color: #FBF9F7;
+    border: 1px solid #E6E2DD;
     border-radius: 5px;
     padding: 7px 14px;
     margin: 2px 0;
     font-weight: 600;
-    color: #1A1C2E;
+    color: #1E1B18;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QToolBox::tab:selected {
-    background-color: #E8E9FF;
-    color: #3B49DF;
-    border-color: #3B49DF;
+    background-color: #EEECFF;
+    color: #4338CA;
+    border-color: #4338CA;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QToolBox::tab:hover:!selected {
-    background-color: #F4F5F7;
-    border-color: #C5C8D4;
+    background-color: #F6F4F0;
+    border-color: #D4CFC9;
 }
 
 /* ================================================================
@@ -276,17 +299,17 @@ QMainWindow#REvoDesignPyMOL_UI QStackedWidget {
    QProgressBar
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QProgressBar {
-    border: 1px solid #E2E4EB;
+    border: 1px solid #E6E2DD;
     border-radius: 4px;
-    background-color: #EEF0F4;
+    background-color: #F0EDE9;
     text-align: center;
-    color: #5B6080;
+    color: #6B6560;
     height: 18px;
     font-size: 10pt;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QProgressBar::chunk {
-    background-color: #3B49DF;
+    background-color: #4338CA;
     border-radius: 3px;
 }
 
@@ -295,44 +318,44 @@ QMainWindow#REvoDesignPyMOL_UI QProgressBar::chunk {
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QTreeWidget {
     background-color: #FFFFFF;
-    border: 1px solid #E2E4EB;
+    border: 1px solid #E6E2DD;
     border-radius: 5px;
-    color: #1A1C2E;
-    alternate-background-color: #FAFBFC;
+    color: #1E1B18;
+    alternate-background-color: #FBF9F7;
     outline: none;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QTreeWidget::item:selected {
-    background-color: #E8E9FF;
-    color: #1A1C2E;
+    background-color: #EEECFF;
+    color: #1E1B18;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QTreeWidget QHeaderView::section {
-    background-color: #FAFBFC;
+    background-color: #FBF9F7;
     border: none;
-    border-bottom: 1px solid #E2E4EB;
+    border-bottom: 1px solid #E6E2DD;
     padding: 5px 8px;
     font-weight: 600;
-    color: #5B6080;
+    color: #6B6560;
 }
 
 /* ================================================================
-   QLCDNumber
+   QLCDNumber — data-display aesthetic
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QLCDNumber {
-    background-color: #FAFBFC;
-    border: 1px solid #E2E4EB;
+    background-color: #FBF9F7;
+    border: 1px solid #E6E2DD;
     border-radius: 5px;
-    color: #3B49DF;
+    color: #4338CA;
 }
 
 /* ================================================================
-   QFrame separators
+   QFrame separators — warm, subtle
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QFrame[frameShape="4"],
 QMainWindow#REvoDesignPyMOL_UI QFrame[frameShape="5"]
 {
-    color: #EEF0F4;
+    color: #F0EDE9;
 }
 
 /* ================================================================
@@ -344,7 +367,7 @@ QMainWindow#REvoDesignPyMOL_UI QScrollArea {
 }
 
 /* ================================================================
-   QScrollBar — subtle, academic
+   QScrollBar — subtle, warm
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QScrollBar:vertical {
     background: transparent;
@@ -353,13 +376,13 @@ QMainWindow#REvoDesignPyMOL_UI QScrollBar:vertical {
 }
 
 QMainWindow#REvoDesignPyMOL_UI QScrollBar::handle:vertical {
-    background: #C5C8D4;
+    background: #D4CFC9;
     border-radius: 4px;
     min-height: 24px;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QScrollBar::handle:vertical:hover {
-    background: #8E93A8;
+    background: #A39D98;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QScrollBar::add-line:vertical,
@@ -374,13 +397,13 @@ QMainWindow#REvoDesignPyMOL_UI QScrollBar:horizontal {
 }
 
 QMainWindow#REvoDesignPyMOL_UI QScrollBar::handle:horizontal {
-    background: #C5C8D4;
+    background: #D4CFC9;
     border-radius: 4px;
     min-width: 24px;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QScrollBar::handle:horizontal:hover {
-    background: #8E93A8;
+    background: #A39D98;
 }
 
 QMainWindow#REvoDesignPyMOL_UI QScrollBar::add-line:horizontal,
@@ -389,11 +412,11 @@ QMainWindow#REvoDesignPyMOL_UI QScrollBar::sub-line:horizontal {
 }
 
 /* ================================================================
-   QToolTip — clean, no window-chrome
+   QToolTip — dark pill, crisp
    ================================================================ */
 QMainWindow#REvoDesignPyMOL_UI QToolTip {
-    background-color: #1A1C2E;
-    color: #FFFFFF;
+    background-color: #1E1B18;
+    color: #F6F4F0;
     border: none;
     border-radius: 4px;
     padding: 4px 8px;
