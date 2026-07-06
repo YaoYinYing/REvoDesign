@@ -43,6 +43,11 @@ inside PyMOL. It is not distributed on PyPI.
    - **Local clone** — Install from a local source tree or cloned repo.
    - **Local file** — Install from a `.zip` or `.tar.gz` archive.
 
+<figure markdown="span">
+![Package Manager — judging installer view](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/GUI-judging-installer@4x.png){ width="600" }
+<figcaption>Package Manager — component selection and install progress</figcaption>
+</figure>
+
 For development work, the `Makefile` provides pip-based convenience targets:
 
 ```bash
@@ -53,20 +58,7 @@ make reinstall         # clean, reformat, reinstall
 
 Optional extras (rf diffusion, ESM2, etc.) are listed in `pyproject.toml`.
 
-## 3. Install the PyMOL Plugin
-
-1. Open PyMOL.
-2. Navigate to **Plugin > Plugin Manager > Install New Plugin**.
-3. Choose **Install from PyMOLWiki or any URL**.
-4. Paste the REvoDesign Package Manager URL:
-   ```
-   https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw/REvoDesign_PyMOL.py
-   ```
-5. Click **Fetch** and confirm the installation.
-6. The REvoDesign Package Manager will appear in the PyMOL menu. Use it to
-   install or update the core REvoDesign program.
-
-## 4. First Launch
+## 3. First Launch
 
 1. Fetch a structure (e.g. `fetch 1SUO`) in the PyMOL command line.
 2. Click **File > Import PyMOL Session** (keyboard shortcut:
@@ -78,7 +70,7 @@ Optional extras (rf diffusion, ESM2, etc.) are listed in `pyproject.toml`.
 <figcaption>REvoDesign main interface after loading a PyMOL session</figcaption>
 </figure>
 
-## 5. Configuration
+## 4. Configuration
 
 REvoDesign stores its configuration in the platform-specific user data
 directory (e.g. `~/Library/Application Support/REvoDesign/config/` on macOS).
@@ -116,10 +108,10 @@ menu. Secrets in `environ.yaml` take effect after using
 
 <figure markdown="span">
 ![Recipe — YAML and JSON config files](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/recipe-yaml-json@4x.png){ width="550" }
-<figcaption>REvoDesign uses YAML for configuration and JSON for experiment recipes and task parameters</figcaption>
+<figcaption>Task parameter windows and recipe mechanism — parameters can be saved as JSON recipes and reloaded via drag-and-drop</figcaption>
 </figure>
 
-## 6. Basic Workflow
+## 5. Basic Workflow
 
 A typical REvoDesign session follows these stages:
 
@@ -141,7 +133,7 @@ A typical REvoDesign session follows these stages:
 Each stage has a dedicated tab in the REvoDesign UI. Detailed walkthroughs
 are available in the [User Guide](user-guide/index.md).
 
-## 7. Keyboard Shortcuts
+## 6. Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|

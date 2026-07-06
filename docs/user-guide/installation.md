@@ -13,7 +13,7 @@ REvoDesign runs on all major operating systems:
 | Memory | 8 GB or above |
 | Disk | 2 GB free minimum |
 | Display | 1920×1080 or higher |
-| Software | PyMOL 2.5+, Python 3.10+ |
+| Software | PyMOL 2.5+, Python 3.10+ (3.12 recommended) |
 
 Supported operating systems:
 
@@ -28,9 +28,9 @@ conda-forge:
 
 ```bash
 # Install Miniconda first: https://www.anaconda.com/docs/getting-started/miniconda/install
-conda create -y -n REvoDesign python=3.11
-conda activate REvoDesign
-conda install -y -c conda-forge pymol-open-source
+conda create -y -n revodesign python=3.12
+conda activate revodesign
+conda install -y -c conda-forge pymol-open-source pyqt=5
 pymol
 ```
 

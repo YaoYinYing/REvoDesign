@@ -55,20 +55,35 @@ def _api_key_management_base_url(base_url: str) -> str:
 
 
 def persist_openkinetics_api_key(api_key: str) -> str:
-    """Persist an OpenKinetics API key and register it for this process."""
+    """
+    Persist an OpenKinetics API key and register it for this process.
+
+    Args:
+        api_key (str): The OpenKinetics API key to persist. Must be a non-empty string.
+
+    Returns:
+        str: The persisted API key that was passed in.
+
+    Raises:
+        OpenKineticsConfigurationError: If the API key is empty or if persistence to environ.yaml fails.
+    """
+    # Clean the API key by stripping whitespace and check if it's empty
     api_key = (api_key or "").strip()
     if not api_key:
         raise OpenKineticsConfigurationError("Cannot persist an empty OpenKinetics API key.")
 
+    # Set the API key in the current process environment
     logging.info("Persisting OpenKinetics API key as %s.", DEFAULT_OPENKINETICS_API_KEY_ENV)
     os.environ[DEFAULT_OPENKINETICS_API_KEY_ENV] = api_key
     logging.debug("OpenKinetics API key registered in the current process environment.")
 
     try:
+        # Attempt to persist the API key using ConfigBus if available
         from REvoDesign import ConfigBus
         from REvoDesign.driver.environ_register import register_environment_variables
 
         if ConfigBus._instance is not None:
+            # Update environ.yaml through ConfigBus when it's initialized
             logging.debug("ConfigBus is initialized; updating environ.yaml through ConfigBus.")
             bus = ConfigBus()
             bus.set_value(
@@ -85,6 +100,7 @@ def persist_openkinetics_api_key(api_key: str) -> str:
         logging.debug("OpenKinetics API key persistence through ConfigBus failed.", exc_info=True)
         raise OpenKineticsConfigurationError("Failed to persist OpenKinetics API key to environ.yaml.") from exc
 
+    # Fallback to direct file writing when ConfigBus is not available or initialized
     from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
 
     environ_path = Path(REVODESIGN_CONFIG_DIR) / "environ.yaml"
@@ -104,7 +120,23 @@ def fetch_openkinetics_api_key(
     session: requests.Session | None = None,
     replace_existing: bool = False,
 ) -> str:
-    """Generate a self-service OpenKinetics API key for the current client IP."""
+    """
+    Generate a self-service OpenKinetics API key for the current client IP.
+    
+    Args:
+        base_url: The base URL for the OpenKinetics API. If None, uses the configured default.
+        timeout_seconds: Request timeout in seconds. If None, uses the configured default.
+        session: Requests session to use for making HTTP requests. If None, creates a new session.
+        replace_existing: Whether to replace any existing API key if one exists for this IP.
+        
+    Returns:
+        str: The generated OpenKinetics API key.
+        
+    Raises:
+        OpenKineticsAPIError: If there's an error during API key generation or communication.
+        OpenKineticsConfigurationError: If an API key already exists but isn't available locally.
+    """
+    # Load configuration and resolve parameters
     config = load_openkinetics_config()
     resolved_base_url = str(base_url or config["base_url"]).rstrip("/")
     timeout = int(timeout_seconds or config["timeout_seconds"])
@@ -118,6 +150,7 @@ def fetch_openkinetics_api_key(
         replace_existing,
     )
 
+    # Helper function to make POST requests to the API
     def _post(path: str) -> requests.Response:
         logging.debug("OpenKinetics API key POST %s%s", key_base_url, path)
         try:
@@ -128,8 +161,10 @@ def fetch_openkinetics_api_key(
         logging.debug("OpenKinetics API key POST returned HTTP %s.", response.status_code)
         return response
 
+    # Make initial request to generate API key
     response = _post("/api-key/generate/")
     if response.status_code == 409 and replace_existing:
+        # Handle case where API key already exists and should be replaced
         logging.info("OpenKinetics reports an active API key; revoking because replace_existing=True.")
         revoke_response = _post("/api-key/revoke/")
         if revoke_response.status_code >= 400:
@@ -139,18 +174,21 @@ def fetch_openkinetics_api_key(
         logging.debug("OpenKinetics active API key revoked; generating a replacement.")
         response = _post("/api-key/generate/")
 
+    # Handle conflict when API key exists but shouldn't be replaced
     if response.status_code == 409:
         logging.info("OpenKinetics reports an active API key for this IP; not revoking automatically.")
         raise OpenKineticsConfigurationError(
             "OpenKinetics reports an active API key for this IP, but the full key is not available locally. "
             f"Add {DEFAULT_OPENKINETICS_API_KEY_ENV} to environ.yaml or regenerate with replace_existing=True."
         )
+    # Handle other HTTP errors
     if response.status_code >= 400:
         logging.debug("OpenKinetics API key generation failed with response body: %s", response.text[:200])
         raise OpenKineticsAPIError(
             f"OpenKinetics API key generation failed: {response.status_code} {response.text[:200]}"
         )
 
+    # Parse response JSON and extract the API key
     try:
         payload = response.json()
     except ValueError as exc:
@@ -172,16 +210,43 @@ def resolve_api_key(
     timeout_seconds: int | None = None,
     session: requests.Session | None = None,
 ) -> str:
+    """
+    Resolve the OpenKinetics API key from various sources in order of preference.
+    
+    This function attempts to find an OpenKinetics API key from multiple sources:
+    1. Directly supplied API key parameter
+    2. Environment variable
+    3. Auto-registration (if enabled)
+    
+    Args:
+        api_key: Direct API key provided as a parameter. If not provided or empty,
+                other sources will be checked.
+        auto_register: Whether to automatically register and persist a new API key
+                      if no existing key is found.
+        replace_existing: Whether to replace any existing API key during auto-registration.
+        base_url: Base URL for API calls when fetching a new key during auto-registration.
+        timeout_seconds: Timeout value for API requests during auto-registration.
+        session: Requests session object for making HTTP requests during auto-registration.
+        
+    Returns:
+        str: The resolved OpenKinetics API key as a string.
+        
+    Raises:
+        OpenKineticsConfigurationError: If no API key is found and auto_registration is disabled.
+    """
+    # Check for directly supplied API key
     direct_api_key = (api_key or "").strip()
     if direct_api_key:
         logging.debug("Using directly supplied OpenKinetics API key.")
         return direct_api_key
 
+    # Check for API key in environment variable
     env_api_key = os.environ.get(DEFAULT_OPENKINETICS_API_KEY_ENV, "").strip()
     if env_api_key:
         logging.debug("Using OpenKinetics API key from %s.", DEFAULT_OPENKINETICS_API_KEY_ENV)
         return env_api_key
 
+    # Handle auto-registration if enabled
     if auto_register:
         logging.info("No local OpenKinetics API key found; auto-registration is enabled.")
         return persist_openkinetics_api_key(
@@ -193,6 +258,7 @@ def resolve_api_key(
             )
         )
 
+    # Raise error if no API key found and auto-registration is disabled
     logging.info("No OpenKinetics API key found and auto-registration is disabled.")
     raise OpenKineticsConfigurationError(
         f"Missing OpenKinetics API key. Add {DEFAULT_OPENKINETICS_API_KEY_ENV} to environ.yaml or enable "
@@ -252,6 +318,17 @@ def build_openkinetics_data_rows(
     variant_rows: list[dict[str, str]],
     substrate_smiles: str,
 ) -> list[dict[str, str]]:
+    """
+    Builds OpenKinetics data rows by combining protein sequences from variant rows with a common substrate.
+    
+    Args:
+        variant_rows: A list of dictionaries containing variant data, each with a 'protein_sequence' key
+        substrate_smiles: The SMILES string representing the substrate to be used for all entries
+    
+    Returns:
+        A list of dictionaries where each dictionary contains 'Protein Sequence' and 'Substrate' keys
+    """
+    # Creates a new list of dictionaries with protein sequence and substrate information
     return [
         {
             "Protein Sequence": row["protein_sequence"],
@@ -267,20 +344,38 @@ def get_method_metadata(
     method: str,
     prediction_type: str,
 ) -> dict[str, Any]:
+    """
+    Extract metadata for a specific method from the OpenKinetics methods response.
+
+    Args:
+        methods_response: Dictionary containing the methods response from OpenKinetics API
+        method: The identifier or display name of the method to find
+        prediction_type: The type of prediction to filter methods by
+
+    Returns:
+        Dictionary containing the metadata for the requested method
+
+    Raises:
+        OpenKineticsValidationError: If the methods response is malformed or the requested method is not found
+    """
+    # Retrieve the methods mapping from the response and validate its structure
     methods_by_prediction = methods_response.get("methods", {})
     if not isinstance(methods_by_prediction, dict):
         raise OpenKineticsValidationError("OpenKinetics methods response did not include a methods mapping")
 
+    # Get the list of methods for the specified prediction type
     candidates = methods_by_prediction.get(prediction_type, [])
     if not isinstance(candidates, list):
         raise OpenKineticsValidationError(
             f"OpenKinetics methods response had an invalid entry for prediction type {prediction_type!r}"
         )
 
+    # Search through the candidates to find the method by id or displayName
     for candidate in candidates:
         if candidate.get("id") == method or candidate.get("displayName") == method:
             return candidate
 
+    # Raise an error if the method was not found for the given prediction type
     raise OpenKineticsValidationError(f"Method {method!r} is not available for prediction type {prediction_type!r}")
 
 
@@ -327,6 +422,7 @@ def build_openkinetics_request_payload(
 # real fixture collected from the live API.
 
 
+# Dead code ?
 def _normalize_result_rows(
     result_payload: Any,
     *,
@@ -498,6 +594,19 @@ class OpenKineticsClient:
     # -- public API methods -------------------------------------------------
 
     def list_methods(self) -> Any:
+        """
+        Retrieve a list of available methods from the OpenKinetics API.
+        
+        This method sends a GET request to the 'methods' endpoint to fetch
+        information about the available methods in the OpenKinetics service.
+        
+        Args:
+            None: This method does not take any parameters.
+            
+        Returns:
+            Any: The response from the OpenKinetics API containing method information.
+                    The exact type and structure depends on the API response format.
+        """
         return self._request("GET", OPENKINETICS_ENDPOINTS["methods"])
 
     def validate_file(
@@ -506,7 +615,23 @@ class OpenKineticsClient:
         *,
         run_similarity: bool = False,
     ) -> Any:
+        """
+        Validates a CSV file using the OpenKinetics API.
+        
+        Args:
+            csv_path: Path to the CSV file to be validated
+            run_similarity: Whether to run similarity analysis during validation (default: False)
+            
+        Returns:
+            JSON response from the OpenKinetics API
+            
+        Raises:
+            OpenKineticsAPIError: If the API request fails or returns an error status code
+        """
+        # Retrieve the required API key for authentication
         api_key = self._require_api_key()
+        
+        # Open and send the CSV file to the validation endpoint
         with Path(csv_path).open("rb") as handle:
             try:
                 response = self.session.post(
@@ -521,6 +646,8 @@ class OpenKineticsClient:
                 )
             except requests.RequestException as exc:
                 raise OpenKineticsAPIError(f"OpenKinetics API request failed: {exc}") from exc
+        
+        # Check for HTTP error responses and raise appropriate exception
         if response.status_code >= 400:
             raise OpenKineticsAPIError(f"OpenKinetics API request failed: {response.status_code} {response.text[:200]}")
         return response.json()
@@ -531,10 +658,25 @@ class OpenKineticsClient:
         *,
         run_similarity: bool = False,
     ) -> dict[str, Any]:
+        """
+        Validates a list of data rows by normalizing input and processing through temporary CSV file.
+        
+        Args:
+            rows: A list of dictionaries containing protein sequence and substrate information
+            run_similarity: Boolean flag to indicate whether similarity analysis should be performed
+            
+        Returns:
+            A dictionary containing validation results
+        """
+        # Normalize score variants in the input data
         self._normalize_score_variants_input(rows)
+        
+        # Create a temporary CSV file for processing
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="", suffix=".csv", delete=False) as handle:
             temp_path = Path(handle.name)
+        
         try:
+            # Write the protein sequence and substrate data to the temporary CSV file
             write_csv_rows(
                 temp_path,
                 [
@@ -545,16 +687,38 @@ class OpenKineticsClient:
                     for row in rows
                 ],
             )
+            
+            # Validate the temporary file and return results
             return self.validate_file(temp_path, run_similarity=run_similarity)
+        
         finally:
+            # Clean up the temporary file after processing
             temp_path.unlink(missing_ok=True)
 
     def check_health(self) -> dict[str, Any]:
-        """Check the OpenKinetics service health endpoint."""
+        """
+        Check the OpenKinetics service health endpoint.
+        
+        Args:
+            self: The instance of the class containing this method
+            
+        Returns:
+            dict[str, Any]: A dictionary containing the health status response 
+                            from the OpenKinetics service
+        """
         return self._request("GET", OPENKINETICS_ENDPOINTS["health"])
 
     def check_quota(self) -> dict[str, Any]:
-        """Check the account quota (daily usage / limit)."""
+        """
+        Check the account quota (daily usage / limit).
+        
+        Args:
+            self: The instance of the class containing this method
+            
+        Returns:
+            dict[str, Any]: A dictionary containing quota information including 
+                            daily usage and limit data
+        """
         return self._request("GET", OPENKINETICS_ENDPOINTS["quota"])
 
     def submit(
@@ -568,6 +732,25 @@ class OpenKineticsClient:
         include_similarity_columns: bool = True,
         canonicalize_substrates: bool = True,
     ) -> dict[str, Any]:
+        """
+        Submit a batch of protein sequence and substrate pairs to the OpenKinetics service for prediction.
+        
+        Args:
+            self: The instance of the class containing this method
+            rows: A list of dictionaries, each containing 'Protein Sequence' and 'Substrate' keys with corresponding values
+            method: The prediction method to be used for the analysis
+            prediction_type: The type of prediction to perform
+            handle_long_sequences: Strategy for handling long sequences, defaults to "truncate"
+            use_experimental: Whether to use experimental features, defaults to False
+            include_similarity_columns: Whether to include similarity columns in the output, defaults to True
+            canonicalize_substrates: Whether to canonicalize substrates, defaults to True
+            
+        Returns:
+            A dictionary containing the response from the OpenKinetics service, including job identifier
+            
+        Raises:
+            OpenKineticsValidationError: If no rows are provided or if the submit response doesn't contain a job identifier
+        """
         if not rows:
             raise OpenKineticsValidationError("At least one row is required for submission")
         methods_response = self.list_methods()
@@ -580,6 +763,8 @@ class OpenKineticsClient:
             if col not in ("Protein Sequence",) and "substrat" in col.lower():
                 substrate_col = col
                 break
+        
+        # Build the request payload with properly formatted data rows
         payload = build_openkinetics_request_payload(
             data_rows=[
                 {
@@ -592,6 +777,8 @@ class OpenKineticsClient:
             method=method,
             prediction_type=prediction_type,
         )
+        
+        # Add optional parameters to the payload
         payload["handleLongSequences"] = handle_long_sequences
         payload["useExperimental"] = use_experimental
         payload["includeSimilarityColumns"] = include_similarity_columns
@@ -601,6 +788,8 @@ class OpenKineticsClient:
         submit_response = self._request(
             "POST", OPENKINETICS_ENDPOINTS["submit"], json_payload=payload, timeout=self.timeout_seconds
         )
+        
+        # Extract and validate the job ID from the response
         job_id = submit_response.get("jobId")
         if not job_id:
             raise OpenKineticsValidationError("Submit response did not contain a job identifier (jobId)")
@@ -618,13 +807,29 @@ class OpenKineticsClient:
         poll_interval_seconds: int = 3,
         timeout_seconds: int | None = None,
     ) -> dict[str, Any] | str:
+        """
+        Retrieves the result of a job from the OpenKinetics API.
+        
+        Args:
+            job_id: The unique identifier of the job to retrieve results for
+            result_format: Format of the result, either 'json' or 'csv' (default is 'json')
+            poll_interval_seconds: Interval in seconds between polling attempts when result is not ready (default is 3)
+            timeout_seconds: Maximum time to wait for the result in seconds, None means default timeout (default is None)
+            
+        Returns:
+            A dictionary containing the result data if format is JSON, or a string containing CSV data if format is CSV
+            
+        Raises:
+            OpenKineticsAPIError: If the API request fails or returns an error status
+            OpenKineticsTimeoutError: If the timeout is exceeded while waiting for the result
+            OpenKineticsValidationError: If an unsupported result format is specified
+        """
         path = OPENKINETICS_ENDPOINTS["result"].format(job_id=job_id)
         if result_format == "json":
-            # ponytail: the API can report status=Completed a moment
-            # before /result/ is materialized (409).  Retry with
-            # backoff bounded by the remaining timeout budget.
-            # Transient network errors are also retried; hard HTTP
-            # errors (non-409 4xx/5xx) raise immediately.
+            # Handle JSON format with retry logic and exponential backoff
+            # The API can report status=Completed a moment before /result/ is materialized (409). 
+            # Retry with backoff bounded by the remaining timeout budget.
+            # Transient network errors are also retried; hard HTTP errors (non-409 4xx/5xx) raise immediately.
             deadline = time.monotonic() + (timeout_seconds if timeout_seconds is not None else 30)
             delay = poll_interval_seconds
             while True:
@@ -641,6 +846,7 @@ class OpenKineticsClient:
                 time.sleep(delay)
                 delay = min(delay * 2, 30)
         if result_format == "csv":
+            # Handle CSV format request with proper authentication
             api_key = self._require_api_key()
             try:
                 response = self.session.get(
@@ -667,6 +873,21 @@ class OpenKineticsClient:
         poll_interval_seconds: int = 3,
         timeout_seconds: int = 600,
     ) -> list[Any]:
+        """
+        Polls the job status until completion or timeout.
+        
+        Args:
+            job_id: The identifier of the job to poll
+            poll_interval_seconds: Time interval between status checks in seconds (default: 3)
+            timeout_seconds: Maximum time to wait for job completion in seconds (default: 600)
+            
+        Returns:
+            A list of status payloads collected during polling
+            
+        Raises:
+            OpenKineticsAPIError: If the job fails or encounters an error
+            OpenKineticsTimeoutError: If the timeout is reached before job completion
+        """
         started = time.monotonic()
         responses: list[Any] = []
         _last_logged_elapsed: int | None = None
@@ -681,7 +902,7 @@ class OpenKineticsClient:
             queue_pos = status_payload.get("queuePosition")
             progress = status_payload.get("progress", {})
 
-            # Log on every status change or every ~30 s of elapsed wall-clock.
+            # Log status information periodically based on status changes or elapsed time intervals
             if top_level_status and (_last_logged_elapsed is None or abs((elapsed or 0) - _last_logged_elapsed) >= 30):
                 _last_logged_elapsed = int(elapsed or 0)
                 parts = [f"status={top_level_status}", f"elapsed={elapsed}s"]
@@ -699,15 +920,13 @@ class OpenKineticsClient:
                     )
                 logging.info("OpenKinetics job %s: %s", job_id, ", ".join(parts))
 
-            # ponytail: status is authoritative — the API marks jobs
-            # "Completed" even when some variants lack predictions
-            # (e.g. 10/15).  The 409 race on /result/ is handled by
-            # get_result's retry loop.
+            # Check for job completion status and handle different outcome scenarios
             if top_level_status.lower() in ("completed",):
                 return responses
             if top_level_status.lower() in ("failed", "error"):
                 raise OpenKineticsAPIError(f"OpenKinetics job {job_id} failed: {status_payload}")
 
+            # Validate timeout condition and sleep for next polling cycle
             if time.monotonic() - started > timeout_seconds:
                 raise OpenKineticsTimeoutError(f"Timed out while waiting for OpenKinetics job {job_id}")
             time.sleep(poll_interval_seconds)
