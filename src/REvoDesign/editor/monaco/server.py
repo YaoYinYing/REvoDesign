@@ -386,7 +386,7 @@ class ServerControl(ServerControlAbstract):
         self.server = uvicorn.Server(config)
 
         # Start server in a plain thread — no QThread, no SIP wrappers
-        self.server_thread = threading.Thread(target=self._run_server, daemon=True)
+        self.server_thread = threading.Thread(target=self._run_server_and_mark_stopped, daemon=True)
         self.server_thread.start()
         self.is_running = True
         logging.debug(
@@ -408,6 +408,9 @@ class ServerControl(ServerControlAbstract):
             while self.server_thread.is_alive() and time.monotonic() < deadline:
                 QtWidgets.QApplication.processEvents()
                 self.server_thread.join(0.05)
+            if self.server_thread.is_alive():
+                logging.warning("Server thread did not stop within timeout")
+                return
         self.server_thread = None
         self.server = None
         self.is_running = False

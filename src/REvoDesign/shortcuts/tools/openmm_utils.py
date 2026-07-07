@@ -93,7 +93,7 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         self.server = uvicorn.Server(config)
 
         # Start server in a plain thread — no QThread, no SIP wrappers
-        self.server_thread = threading.Thread(target=self._run_server, daemon=True)
+        self.server_thread = threading.Thread(target=self._run_server_and_mark_stopped, daemon=True)
         self.server_thread.start()
         # Set the running status to True
         self.is_running = True

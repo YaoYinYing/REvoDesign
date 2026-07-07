@@ -63,12 +63,17 @@ class ServerControlAbstract(SingletonAbstract):
             self.server.should_exit = True
         if self.server_thread and self.server_thread.is_alive():
             # ponytail: join the plain threading.Thread (not QThread) while
-            # pumping Qt events so the UI doesn't freeze. No SIP wrapper
-            # lifetime issues because there is no QThread involved.
+            # pumping Qt events so the UI doesn't freeze.
             deadline = time.monotonic() + 5
             while self.server_thread.is_alive() and time.monotonic() < deadline:
                 QtWidgets.QApplication.processEvents()
                 self.server_thread.join(0.05)
+            if self.server_thread.is_alive():
+                # Thread didn't stop in time — leave references intact
+                # so a second start_server() can't proceed against an
+                # orphaned daemon thread.
+                print("Warning: server thread did not stop within timeout")
+                return
         self.server_thread = None
         self.server = None
         self.is_running = False
@@ -79,6 +84,13 @@ class ServerControlAbstract(SingletonAbstract):
         """
         if self.server:
             self.server.run()
+
+    def _run_server_and_mark_stopped(self):
+        """Wrap _run_server so is_running is cleared when the thread exits."""
+        try:
+            self._run_server()
+        finally:
+            self.is_running = False
 
 
 class MenuActionServerMonitor(QtCore.QObject):
