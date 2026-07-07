@@ -4,12 +4,13 @@
 
 
 import os
+import threading
+import time
 from abc import abstractmethod
 
 import uvicorn
 
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
-from REvoDesign.tools.package_manager import WorkerThread
 
 from ..basic import SingletonAbstract
 
@@ -21,7 +22,7 @@ class ServerControlAbstract(SingletonAbstract):
     A singleton class that manages the Monaco backend server lifecycle.
 
     Attributes:
-        server_thread (WorkerThread): The worker thread that runs the Uvicorn server.
+        server_thread (threading.Thread): The thread that runs the Uvicorn server.
         is_running (bool): Indicates whether the server is running.
         server (Uvicorn Server): The Uvicorn server instance.
 
@@ -36,9 +37,9 @@ class ServerControlAbstract(SingletonAbstract):
     """
 
     def singleton_init(self):
-        self.server_thread: WorkerThread = None  # type: ignore # WorkerThread instance
+        self.server_thread: threading.Thread | None = None
         self.is_running = False
-        self.server: uvicorn.Server = None  # type: ignore # Uvicorn Server instance
+        self.server: uvicorn.Server | None = None
 
     @abstractmethod
     def start_server(self):
@@ -60,8 +61,16 @@ class ServerControlAbstract(SingletonAbstract):
         print("Stopping server...")
         if self.server:
             self.server.should_exit = True
-        if self.server_thread:
-            self.server_thread.interrupt()
+        if self.server_thread and self.server_thread.is_alive():
+            # ponytail: join the plain threading.Thread (not QThread) while
+            # pumping Qt events so the UI doesn't freeze. No SIP wrapper
+            # lifetime issues because there is no QThread involved.
+            deadline = time.monotonic() + 5
+            while self.server_thread.is_alive() and time.monotonic() < deadline:
+                QtWidgets.QApplication.processEvents()
+                self.server_thread.join(0.05)
+        self.server_thread = None
+        self.server = None
         self.is_running = False
 
     def _run_server(self):
@@ -70,20 +79,6 @@ class ServerControlAbstract(SingletonAbstract):
         """
         if self.server:
             self.server.run()
-
-    @staticmethod
-    def _on_server_result(result):
-        """
-        Handle results from the WorkerThread.
-        """
-        print(f"Server result: {result}")
-
-    def _on_server_finished(self):
-        """
-        Handle the completion of the WorkerThread.
-        """
-        self.is_running = False
-        print("Server thread finished.")
 
 
 class MenuActionServerMonitor(QtCore.QObject):
