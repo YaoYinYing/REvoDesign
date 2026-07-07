@@ -9,7 +9,6 @@ import pytest
 
 from REvoDesign.basic.server_monitor import MenuActionServerMonitor, ServerControlAbstract
 from REvoDesign.Qt import QtCore, QtWidgets
-from REvoDesign.tools.package_manager import WorkerThread
 
 # -----------------------------------------------------------------------------
 # 1. Mock / Derived Test Class
@@ -27,26 +26,11 @@ class MockServerControl(ServerControlAbstract):
         if not self.is_running:
             print("Starting server... (Mock)")
             self.is_running = True
-            # In a real scenario, you might do the WorkerThread setup and uvicorn.Server here:
-            self.server_thread = MagicMock(spec=WorkerThread)
+            self.server_thread = MagicMock()
+            self.server_thread.is_alive.return_value = False
             self.server = MagicMock()
         else:
             print("Server is already running. (Mock)")
-
-    def stop_server(self):
-        super().stop_server()  # Will print "Server is not running." if is_running is False
-        if self.is_running:
-            print("Stopping server... (Mock)")
-            self.is_running = False
-            # Clean up
-            if self.server_thread:
-                self.server_thread.interrupt.assert_not_called()  # We can verify call if needed
-                self.server_thread = None
-            if self.server:
-                self.server.should_exit = True
-                self.server = None
-        else:
-            print("Server is not running. (Mock)")
 
 
 # -----------------------------------------------------------------------------
