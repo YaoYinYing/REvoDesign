@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated README links to point to new docs structure.
 
 ### Fixed
-- Pinned `uvicorn>=0.12.0,<0.50.0` — uvicorn 0.50.0 changes import-time memory layout (replaced `click.style` with internal `_ansi` helper), exposing a latent C-level heap corruption that triggers SIGABRT in Qt's event loop during `pytest-qt`'s `qtbot.wait()`.
+- Replaced `WorkerThread` (QThread subclass) with plain `threading.Thread` for uvicorn server lifecycle — uvicorn no longer runs inside a QThread, removing the SIP wrapper lifetime boundary that triggered `forgetObject` → `qFatal` → `SIGABRT` when cross-thread Qt signals were dispatched after QObject destruction. Loosened uvicorn pin to `>=0.12.0` (was `<0.50.0`).
 - Renamed `Evalutator` → `Evaluator` and `flatten_archieve` → `flatten_archive` (typo fixes, no backward-compat aliases).
 
 ## [1.9.0] - 2026-07-03

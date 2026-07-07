@@ -5,6 +5,7 @@
 
 import os
 import secrets
+import threading
 import time
 import warnings
 from collections import defaultdict
@@ -20,12 +21,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from REvoDesign import ConfigBus, issues
+from REvoDesign.Qt import QtWidgets
 from REvoDesign.basic.server_monitor import ServerControlAbstract
 from REvoDesign.editor.monaco.monaco import ensure_monaco
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
 
 from ...logger import ROOT_LOGGER
-from ...tools.package_manager import WorkerThread
 from .config import ConfigStore
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -296,9 +297,9 @@ class ServerControl(ServerControlAbstract):
     """
 
     def singleton_init(self):
-        self.server_thread: WorkerThread = None  # type: ignore # WorkerThread instance
+        self.server_thread: threading.Thread | None = None
         self.is_running = False
-        self.server: uvicorn.Server = None  # type: ignore # Uvicorn Server instance
+        self.server: uvicorn.Server | None = None
         self.config_store = ConfigStore()
 
     def start_server(self):
@@ -384,10 +385,8 @@ class ServerControl(ServerControlAbstract):
         config = uvicorn.Config(**uvicorn_config_kwargs)
         self.server = uvicorn.Server(config)
 
-        # Start server in a WorkerThread
-        self.server_thread = WorkerThread(func=self._run_server)
-        self.server_thread.result_signal.connect(self._on_server_result)
-        self.server_thread.finished_signal.connect(self._on_server_finished)
+        # Start server in a plain thread — no QThread, no SIP wrappers
+        self.server_thread = threading.Thread(target=self._run_server_and_mark_stopped, daemon=True)
         self.server_thread.start()
         self.is_running = True
         logging.debug(
@@ -404,7 +403,15 @@ class ServerControl(ServerControlAbstract):
         print("Stopping server...")
         if self.server:
             self.server.should_exit = True
-        if self.server_thread:
-            self.server_thread.interrupt()
+        if self.server_thread and self.server_thread.is_alive():
+            deadline = time.monotonic() + 5
+            while self.server_thread.is_alive() and time.monotonic() < deadline:
+                QtWidgets.QApplication.processEvents()
+                self.server_thread.join(0.05)
+            if self.server_thread.is_alive():
+                logging.warning("Server thread did not stop within timeout")
+                return
+        self.server_thread = None
+        self.server = None
         self.is_running = False
         distruct_token()

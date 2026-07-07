@@ -7,6 +7,7 @@
 OpenMM Setup Server Control
 """
 
+import threading
 import webbrowser
 
 import uvicorn
@@ -15,7 +16,7 @@ from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract
 from REvoDesign.basic.server_monitor import ServerControlAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.tools.package_manager import WorkerThread, run_worker_thread_in_pool
+from REvoDesign.tools.package_manager import run_worker_thread_in_pool
 from REvoDesign.tools.utils import require_installed
 
 
@@ -34,11 +35,11 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         This method initializes the server thread, running status, and server instance.
         """
         # Initialize the server thread as None
-        self.server_thread: WorkerThread = None  # type: ignore # WorkerThread instance
+        self.server_thread: threading.Thread | None = None
         # Initialize the running status as False
         self.is_running = False
         # Initialize the server as None
-        self.server: uvicorn.Server = None  # type: ignore # Uvicorn Server instance
+        self.server: uvicorn.Server | None = None
 
     def open_url(self, url):
 
@@ -91,13 +92,8 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         # Initialize the Uvicorn server instance
         self.server = uvicorn.Server(config)
 
-        # Start server in a WorkerThread
-        self.server_thread = WorkerThread(func=self._run_server)
-        # Connect the result signal of the server thread to the handling method
-        self.server_thread.result_signal.connect(self._on_server_result)
-        # Connect the finished signal of the server thread to the handling method
-        self.server_thread.finished_signal.connect(self._on_server_finished)
-        # Start the server thread
+        # Start server in a plain thread — no QThread, no SIP wrappers
+        self.server_thread = threading.Thread(target=self._run_server_and_mark_stopped, daemon=True)
         self.server_thread.start()
         # Set the running status to True
         self.is_running = True
