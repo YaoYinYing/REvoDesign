@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Workflow
 
 - **CI suddenly failing on unchanged code?** Re-run the last passing CI commit before chasing symptoms. Same commit, same pass → environment regression (pinned a dep too loose). Same commit, now fails → something external changed. Either way, you know which side the bug lives on before touching a line of code.
+- **Heisenbug debugging**: When a crash moves every time you change unrelated code (different stack trace, same SIGABRT), you're looking at heap-layout-sensitive corruption, not a deterministic logic bug. The signature: same commit bisects both passing AND failing → the commit is a layout perturbator, not the root cause. Stop chasing cleanup ordering. Ask: what two object-lifetime systems are mixing? The fix is removing the boundary, not getting the teardown order right. Each failed "fix" that only shifts the crash is evidence you're treating a symptom.
 - **Before committing**: Run `make black` to format all files, then `git add -A` to stage the formatting changes together with your edits. This ensures pre-commit hooks (black, isort, autoflake, pyupgrade, autopep8) pass and keeps the diff reviewable. **The exit code of `make black` is advisory — if the hooks leave the code with improved syntax and style, the result is good regardless of the exit code.**
 - **Test-case-driven fixes**: For live/integration issues, first encode the observed behavior as the smallest test case or skip guard, then make the smallest production/test change, run the focused keyword gate (for example `make kw-test PYTEST_KW=openkinetics`), and update `CHANGELOG.md`. Treat environment-dependent live API responses such as expected HTTP `4xx`/`5xx` as explicit skips, while keeping non-HTTP client errors failing.
 - **Version bumping**:
@@ -117,6 +118,18 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 - **Imports**: First-party package is `REvoDesign`; internal imports use fully-qualified paths (`from REvoDesign.Qt import QtCore`).
 - **Config files**: YAML under `src/REvoDesign/config/`, managed by OmegaConf/Hydra. The config directory is determined by `platformdirs` user config path.
 - **Version**: Set in `src/REvoDesign/__init__.py` (`__version__`). Use `make tag` to bump.
+
+### Threading: QThread vs `threading.Thread`
+
+**Rule: Long-lived event-loop servers (uvicorn, asyncio) MUST use `threading.Thread`, never `QThread`.**
+
+`WorkerThread` (`src/REvoDesign/tools/package_manager.py`) is a `QThread` subclass. QThread creates a SIP-managed C++ QObject whose Python wrapper can outlive the C++ object during GC. When cross-thread Qt signals touch the stale wrapper, `sipWrapper_dealloc` → `forgetObject` → `QMessageLogger::fatal` → SIGABRT. This is a Heisenbug: heap-layout-sensitive corruption that moves every time code changes.
+
+- **Use `threading.Thread`** for uvicorn servers, asyncio event loops, and any long-lived background work that isn't tightly coupled to Qt widgets.
+- **Use `WorkerThread` (QThread)** for short-lived Qt-adjacent background jobs (e.g. `RunningProcessRegistry`) where signals/slots are needed.
+- When joining a `threading.Thread` from the main thread, pump Qt events with `QApplication.processEvents()` so the UI doesn't freeze.
+- The `_run_server_and_mark_stopped` pattern wraps `server.run()` in a `try/finally` that clears `is_running`, so a thread exit (clean or crash) syncs state without Qt signals.
+- Mocking `threading.Thread` in tests: `MagicMock()` with `is_alive.return_value = False` — no `spec=WorkerThread` since `is_alive` is a `threading.Thread` API.
 
 ## Commit and PR guidelines
 
