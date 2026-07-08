@@ -26,8 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - GitHub Pages deploy workflow (`.github/workflows/docs.yml`) with `actions/deploy-pages@v4`.
   - `docs` optional-dependency group in `pyproject.toml` (mkdocs, mkdocs-material, mkdocstrings[python]).
   - Updated `[project.urls] Documentation` to `https://YaoYinYing.github.io/REvoDesign`.
-
-### Added
 - Launching page with bootstrap status indicator (`src/REvoDesign/UI/launching.ui`, `src/REvoDesign/application/launching.py`):
   - "REvoDesign is launching" title with dynamic subtitle updated at each bootstrap step (e.g. "Ensuring configurations", "Registering plugins").
   - Determinate progress bar tracking ~10 bootstrap steps.
@@ -37,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
 
 ### Changed
+- Refactored menu item registry to eliminate import-time filesystem scanning:
+  - `application/menu.py`: `config_edit_links()` and `menu_links()` are now builder functions called at binding time instead of module-level constants computed at import. Added `core_menu_links(app)` for the core application menu actions, and `static_menu_links()` combining tools + preferences + other links.
+  - `basic/menu_item.py`: extracted `bind_one()` and `_menu_section()` methods from `MenuCollection.bind()`; removed print-and-swallow error handling so binding failures propagate cleanly; added `MenuItem.separator()` classmethod.
+  - `REvoDesign.py`: core and deferred menu bindings now both route through `application.menu` builders — single ownership, no inline `MenuItem` construction.
 - Moved legacy `docs/` to `docs_old/` for archival; new docs are a fresh MkDocs site.
 - Updated README links to point to new docs structure.
 

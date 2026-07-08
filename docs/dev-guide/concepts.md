@@ -271,7 +271,7 @@ The exact import and initialization sequence matters for correct behavior. It is
 4. `ClusterTabController` -- install cluster tab.
 5. `FontSetter` -- set UI fonts.
 6. `LanguageSwitch` -- install i18n translator.
-7. `MenuCollection` -- bind menu actions (static + deferred config-file scanning).
+7. `MenuCollection` -- bind menu actions (core items wired immediately; tools + config-edit links deferred).
 8. `StoresWidget` -- server-switch references.
 
 [API reference: `REvoDesign.core`](../api/core.md)

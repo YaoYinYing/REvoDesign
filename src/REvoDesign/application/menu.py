@@ -2,136 +2,107 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
+"""Menu builders for the REvoDesign main window.
+
+Importing this module is cheap — all filesystem I/O is deferred until
+the builder functions (*config_edit_links*, *menu_links*) are called.
+"""
+
+from __future__ import annotations
 
 import os
+import re
+from typing import TYPE_CHECKING
 
 from REvoDesign.basic.menu_item import MenuItem
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
 from REvoDesign.bootstrap.set_config import list_all_config_files
 
-all_main_config_files = {
-    x.removeprefix(REVODESIGN_CONFIG_DIR + os.sep).removesuffix(".yaml"): x
-    for x in list_all_config_files(REVODESIGN_CONFIG_DIR)
-}
+if TYPE_CHECKING:
+    from REvoDesign.REvoDesign import REvoDesignPlugin
 
-# sort by config name
-all_main_config_files = {k: v for k, v in sorted(all_main_config_files.items())}
+# -- helpers ----------------------------------------------------------------
 
-# insert main config at first
-main_config = all_main_config_files.pop("main")
-all_main_config_files = {"main": main_config, **all_main_config_files}
-
-all_secondary_config_files = {
-    x.removeprefix(REVODESIGN_CONFIG_DIR + os.sep).removesuffix(".yaml"): x
-    for x in list_all_config_files(REVODESIGN_CONFIG_DIR, tree=True)
-}
-
-# join all configs
-all_config_files = {**all_main_config_files, **all_secondary_config_files}
+_SAFE_ACTION_CHARS = re.compile(r"[^A-Za-z0-9_]")
 
 
-def _clean_config_name(config_name: str):
-    invalid_chars = [
-        "/",
-        "\\",
-        ".",
-        " ",
-        "-",
-        "(",
-        ")",
-        "[",
-        "]",
-        "{",
-        "}",
-        "|",
-        ":",
-        ";",
-        "'",
-        '"',
-        ",<",
-        ">",
-        ",",
-        "?",
-        "!",
-        "@",
-        "#",
-        "$",
-        "%",
-        "^",
-        "&",
-        "*",
-        "+",
-        "=",
-        "~",
-        "`",
-    ]
-    return config_name.translate({ord(x): None for x in invalid_chars if len(x) == 1})
+def clean_config_name(config_name: str) -> str:
+    """Strip characters that are not valid in a QAction object name."""
+    return _SAFE_ACTION_CHARS.sub("", config_name)
 
 
-CONFIG_EDIT_LINKS = []
+def config_files() -> tuple[dict[str, str], dict[str, str]]:
+    """Return (main_configs, secondary_configs) from the user config directory."""
+    main = {
+        x.removeprefix(REVODESIGN_CONFIG_DIR + os.sep).removesuffix(".yaml"): x
+        for x in list_all_config_files(REVODESIGN_CONFIG_DIR)
+    }
+    main = dict(sorted(main.items()))
+    # "main" always exists — move it to the front.
+    main_config = main.pop("main", None)
+    if main_config is not None:
+        main = {"main": main_config, **main}
+
+    secondary = {
+        x.removeprefix(REVODESIGN_CONFIG_DIR + os.sep).removesuffix(".yaml"): x
+        for x in list_all_config_files(REVODESIGN_CONFIG_DIR, tree=True)
+    }
+    return main, secondary
 
 
-for config_name, config_file in all_main_config_files.items():
-    CONFIG_EDIT_LINKS.append(
-        MenuItem(
-            f"actionEditConf_{_clean_config_name(config_name)}",
-            "REvoDesign.editor.monaco.monaco:menu_edit_file",
-            kwargs={"file_path": config_file},
-            action_text=f"Edit {config_name}",
-            menu_section="menuEdit_Configuration",
-        )
+# ponytail: backward-compat shim — server.py imports all_config_files for the
+# editor whitelist.  Replaced the module-level dict with a function so the
+# filesystem scan still only happens on demand.
+def all_config_files() -> dict[str, str]:
+    """Return the merged dict of all config files (name → path)."""
+    main, secondary = config_files()
+    return {**main, **secondary}
+
+
+# -- dynamic config-edit links ----------------------------------------------
+
+
+def _edit_config_item(config_name: str, config_file: str, menu_section: str) -> MenuItem:
+    """A single ``Edit <config>`` menu item."""
+    return MenuItem(
+        f"actionEditConf_{clean_config_name(config_name)}",
+        "REvoDesign.editor.monaco.monaco:menu_edit_file",
+        kwargs={"file_path": config_file},
+        action_text=f"Edit {config_name}",
+        menu_section=menu_section,
     )
 
 
-last_section = ""
-for config_name, config_file in all_secondary_config_files.items():
-    # exclude cache files
-    if config_name.startswith(("cache", "experiments")):
-        continue
-    current_section = config_name.split("/")[0]
-    if current_section != last_section:
-        CONFIG_EDIT_LINKS.append(MenuItem("---", "---", menu_section="menuEdit_Configuration"))
-        last_section = current_section
+def config_edit_links() -> tuple[MenuItem, ...]:
+    """Build config-edit and recent-experiment menu items (scans filesystem)."""
+    main, secondary = config_files()
+    links: list[MenuItem] = []
 
-    CONFIG_EDIT_LINKS.append(
-        MenuItem(
-            f"actionEditConf_{_clean_config_name(config_name)}",
-            "REvoDesign.editor.monaco.monaco:menu_edit_file",
-            kwargs={"file_path": config_file},
-            action_text=f"Edit {config_name}",
-            menu_section="menuEdit_Configuration",
-        )
-    )
+    for config_name, config_file in main.items():
+        links.append(_edit_config_item(config_name, config_file, "menuEdit_Configuration"))
+
+    last_section = ""
+    for config_name, config_file in secondary.items():
+        if config_name.startswith(("cache", "experiments")):
+            continue
+        current_section = config_name.split("/")[0]
+        if current_section != last_section:
+            links.append(MenuItem.separator("menuEdit_Configuration"))
+            last_section = current_section
+        links.append(_edit_config_item(config_name, config_file, "menuEdit_Configuration"))
+
+    # recent experiments — sorted by mtime, newest first
+    recent = {name: path for name, path in secondary.items() if name.startswith("experiments")}
+    for config_name, config_file in sorted(recent.items(), key=lambda item: os.path.getmtime(item[1]), reverse=True):
+        links.append(_edit_config_item(config_name, config_file, "menuRecent_Experiments"))
+
+    return tuple(links)
 
 
-# recent experiments
-recent_experiments = {
-    config_name: config_file
-    for config_name, config_file in all_secondary_config_files.items()
-    if config_name.startswith("experiments")
-}
+# -- static menu-item groups ------------------------------------------------
 
-# sort by config file's modified time
-sorted_recent_experiments = {
-    config_name: config_file
-    for config_name, config_file in sorted(
-        recent_experiments.items(), key=lambda x: os.path.getmtime(x[1]), reverse=True
-    )
-}
 
-for config_name, config_file in sorted_recent_experiments.items():
-
-    CONFIG_EDIT_LINKS.append(
-        MenuItem(
-            f"actionEditConf_{_clean_config_name(config_name)}",
-            "REvoDesign.editor.monaco.monaco:menu_edit_file",
-            kwargs={"file_path": config_file},
-            action_text=f"Edit {config_name}",
-            menu_section="menuRecent_Experiments",
-        )
-    )
-
-TOOLS_MENU_LINKS = (
+TOOLS_MENU_LINKS: tuple[MenuItem, ...] = (
     MenuItem(
         "actionRenderPickedSidechainGroup",
         "REvoDesign.shortcuts.shortcuts_on_menu:menu_dump_sidechains",
@@ -186,7 +157,7 @@ TOOLS_MENU_LINKS = (
     MenuItem("actionRun_GREMLIN", "REvoDesign.shortcuts.wrappers.evolution:wrapped_gremlin"),
 )
 
-PREFERENCES_MENU_LINKS = (
+PREFERENCES_MENU_LINKS: tuple[MenuItem, ...] = (
     MenuItem(
         "actionPreferences_Font",
         "REvoDesign.application.font.font_manager:set_font_dialog",
@@ -195,7 +166,7 @@ PREFERENCES_MENU_LINKS = (
     ),
 )
 
-OTHER_MENU_LINKS = (
+OTHER_MENU_LINKS: tuple[MenuItem, ...] = (
     MenuItem("actionRefreshEnvironVar", "REvoDesign.driver.environ_register:register_environment_variables"),
     MenuItem(
         "actionThreadPoolDashboard",
@@ -205,9 +176,48 @@ OTHER_MENU_LINKS = (
     ),
 )
 
-MENU_LINKS = (
-    *TOOLS_MENU_LINKS,
-    *CONFIG_EDIT_LINKS,
-    *PREFERENCES_MENU_LINKS,
-    *OTHER_MENU_LINKS,
-)
+
+def static_menu_links() -> tuple[MenuItem, ...]:
+    """Return the union of all static (non-config-scanning) menu items."""
+    return (*TOOLS_MENU_LINKS, *PREFERENCES_MENU_LINKS, *OTHER_MENU_LINKS)
+
+
+# -- combined builders ------------------------------------------------------
+
+
+def menu_links() -> tuple[MenuItem, ...]:
+    """All deferred menu items: tools + config-edits + preferences + other."""
+    return (*static_menu_links(), *config_edit_links())
+
+
+def core_menu_links(app: REvoDesignPlugin) -> tuple[MenuItem, ...]:
+    """Core application menu items wired directly to *app* methods."""
+    import REvoDesign
+    from REvoDesign.Qt import QtCore, QtGui
+    from REvoDesign.tools.customized_widgets import notify_box
+
+    _REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
+
+    return (
+        MenuItem("actionSet_Working_Directory", app.set_working_directory),
+        MenuItem("actionReconfigure", app.reload_configurations),
+        MenuItem("actionSave_Configurations", app.bus.cfg_group["main"].save),
+        MenuItem("action_LoadExperiment", app.load_and_save_experiment, kwargs={"mode": "r"}),
+        MenuItem("action_Save_to_Experiment", app.load_and_save_experiment, kwargs={"mode": "w"}),
+        MenuItem("actionReinitialize", app.reinitialize, kwargs={"delete": True}),
+        MenuItem("actionSource_Code", QtGui.QDesktopServices.openUrl, (QtCore.QUrl(_REPO_URL),)),
+        MenuItem(
+            "actionVersion",
+            notify_box,
+            kwargs={"message": f"REvoDesign v.{REvoDesign.__version__}\nSrc: {_REPO_URL}"},
+        ),
+    )
+
+
+__all__ = [
+    "all_config_files",
+    "config_edit_links",
+    "core_menu_links",
+    "menu_links",
+    "static_menu_links",
+]
