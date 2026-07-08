@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>520</width>
-    <height>280</height>
+    <width>480</width>
+    <height>240</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,32 +16,61 @@
   <property name="modal">
    <bool>false</bool>
   </property>
+  <property name="styleSheet">
+   <string notr="true">
+    QDialog#LaunchingPage {
+        background-color: #1a1f2e;
+    }
+    QLabel#labelTitle {
+        color: #e8e8ec;
+        font-size: 20pt;
+        font-weight: bold;
+    }
+    QLabel#labelStatus {
+        color: #8b95a8;
+        font-size: 13pt;
+    }
+    QLabel#labelDot {
+        color: #4ecdc4;
+        font-size: 10pt;
+    }
+    QLabel#labelInfoLeft, QLabel#labelInfoRight {
+        color: #5a6578;
+        font-size: 9pt;
+    }
+    QProgressBar#progressBar {
+        background-color: #232a3a;
+        border: none;
+        border-radius: 2px;
+        min-height: 3px;
+        max-height: 3px;
+    }
+    QProgressBar#progressBar::chunk {
+        background-color: #4ecdc4;
+        border-radius: 2px;
+    }
+   </string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
-    <number>8</number>
+    <number>0</number>
    </property>
    <property name="leftMargin">
-    <number>36</number>
+    <number>56</number>
    </property>
    <property name="topMargin">
-    <number>32</number>
+    <number>56</number>
    </property>
    <property name="rightMargin">
-    <number>36</number>
+    <number>56</number>
    </property>
    <property name="bottomMargin">
-    <number>24</number>
+    <number>40</number>
    </property>
    <item>
     <widget class="QLabel" name="labelTitle">
-     <property name="font">
-      <font>
-       <pointsize>18</pointsize>
-       <bold>true</bold>
-      </font>
-     </property>
      <property name="text">
-      <string>REvoDesign is launching ...</string>
+      <string>REvoDesign is launching</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
@@ -49,19 +78,95 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="labelStatus">
-     <property name="font">
-      <font>
-       <pointsize>12</pointsize>
-      </font>
+    <spacer name="verticalSpacerTop">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
      </property>
-     <property name="text">
-      <string>Initializing</string>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
      </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>12</height>
+      </size>
      </property>
-    </widget>
+    </spacer>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayoutStatus">
+     <property name="spacing">
+      <number>8</number>
+     </property>
+     <item>
+      <spacer name="horizontalSpacerLeft">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelDot">
+       <property name="text">
+        <string>●</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>10</width>
+         <height>10</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelStatus">
+       <property name="text">
+        <string>Initializing</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacerRight">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="verticalSpacerMid">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>18</height>
+      </size>
+     </property>
+    </spacer>
    </item>
    <item>
     <widget class="QProgressBar" name="progressBar">
@@ -80,14 +185,14 @@
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer">
+    <spacer name="verticalSpacerBottom">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
        <width>20</width>
-       <height>16</height>
+       <height>28</height>
       </size>
      </property>
     </spacer>
@@ -95,15 +200,10 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayoutFooter">
      <property name="spacing">
-      <number>16</number>
+      <number>0</number>
      </property>
      <item>
       <widget class="QLabel" name="labelInfoLeft">
-       <property name="font">
-        <font>
-         <pointsize>9</pointsize>
-        </font>
-       </property>
        <property name="text">
         <string>REvoDesign</string>
        </property>
@@ -113,25 +213,7 @@
       </widget>
      </item>
      <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
       <widget class="QLabel" name="labelInfoRight">
-       <property name="font">
-        <font>
-         <pointsize>9</pointsize>
-        </font>
-       </property>
        <property name="text">
         <string/>
        </property>
