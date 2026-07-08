@@ -92,9 +92,20 @@ def install_translator_early() -> QtCore.QTranslator | None:
     if app is None:
         return None
 
-    bus = ConfigBus()
-    lan_id = bus.get_value("language", str, reject_none=True)
-    if not lan_id or lan_id.startswith("eng-eng"):
+    # Read the saved language directly from the config file — ConfigBus
+    # may still be headless at this point (its .ui hasn't been set yet).
+    from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
+
+    import yaml
+
+    main_yaml = os.path.join(REVODESIGN_CONFIG_DIR, "main.yaml")
+    lan_id = None
+    if os.path.exists(main_yaml):
+        with open(main_yaml, encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+        lan_id = cfg.get("language")
+
+    if not lan_id or not isinstance(lan_id, str) or lan_id.startswith("eng-eng"):
         return None
 
     with open(language_json_fp, encoding="utf-8") as f:
