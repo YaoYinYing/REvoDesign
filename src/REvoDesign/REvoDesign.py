@@ -307,7 +307,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         def _bind_menu_links():
             from REvoDesign.application.menu import menu_links
 
-            MenuCollection(self.bus.ui, menu_links())
+            try:
+                MenuCollection(self.bus.ui, menu_links())
+            except Exception:
+                logging.exception("Failed to bind deferred menu links")
 
         QtCore.QTimer.singleShot(0, _bind_menu_links)
 

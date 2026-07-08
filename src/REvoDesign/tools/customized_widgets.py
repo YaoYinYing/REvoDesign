@@ -2028,9 +2028,11 @@ class ValueDialog(REvoDesignWidget):
         from REvoDesign.Qt.ui_runtime_loader import apply_ui_to_widget
 
         self._ui_form, self._proxy = apply_ui_to_widget(ui_path, self)
-        # Restore object name and window title that setupUi may have overwritten
+        # Restore object name that setupUi may have overwritten
         self.setObjectName(f"ValueDialog - {title}")
-        self.setWindowTitle(title)
+        # Store English source for retranslation; translate on display
+        self._title_source_text: str = title
+        self.setWindowTitle(_tr("ValueDialog", title))
         # Expose the .ui's layout as self.layout for backward compat with
         # callers that use dialog.layout.itemAt(...) rather than .layout().
         self.layout = self.layout()
@@ -2045,14 +2047,11 @@ class ValueDialog(REvoDesignWidget):
 
         # -- dynamic configuration of .ui shell --
 
-        # Banner: show only when a banner text is set.  Store the original
-        # English for later retranslation (the *banner* argument may already
-        # be translated by the YAML reader — _banner_source_text keeps the
-        # lookup key so retranslateUi works after a language switch).
+        # Banner: store English source for retranslation, translate at display.
         self._banner_source_text: str | None = None
         if key_dict.banner:
             self._banner_source_text = key_dict.banner
-            self.banner_label.setText(key_dict.banner)
+            self.banner_label.setText(_tr("ValueDialog", key_dict.banner))
             self.banner_label.setVisible(True)
 
         # Table: configure columns, row count, and sizing
@@ -2110,6 +2109,10 @@ class ValueDialog(REvoDesignWidget):
         if self._ui_form is not None:
             self._ui_form.retranslateUi(self)
 
+        # (1b) Restore window title (overwritten by .ui retranslation above)
+        if self._title_source_text:
+            self.setWindowTitle(_tr("ValueDialog", self._title_source_text))
+
         # (2) Dynamic banner text
         if self._banner_source_text:
             self.banner_label.setText(_tr("ValueDialog", self._banner_source_text))
@@ -2141,20 +2144,22 @@ class ValueDialog(REvoDesignWidget):
         action_widget = self.table.cellWidget(row, 3)
         if action_widget is None:
             return
-        # Map objectName → English source text for retranslation.
-        _action_sources = {
-            "BrowseButton": "Browse",
-            "PickColorButton": "Pick Color",
-            "InputButton": "Input",
-            "LoadButton": "Load",
-            "SelectAllButton": "Select All",
-            "SelectNoneButton": "None",
-            "SelectInvertButton": "Invert",
-        }
-        for btn in action_widget.findChildren(QtWidgets.QPushButton):
-            source = _action_sources.get(btn.objectName())
-            if source is not None:
-                btn.setText(_tr("ValueDialog", source))
+
+        # Gather buttons: the widget itself if it IS a QPushButton
+        # (File/Files/Directory/ColorPicker), plus any QPushButton children
+        # inside a container (JsonInput, multiple_choices).
+        buttons: list[QtWidgets.QPushButton] = []
+        if isinstance(action_widget, QtWidgets.QPushButton):
+            buttons.append(action_widget)
+        buttons.extend(action_widget.findChildren(QtWidgets.QPushButton))
+
+        for btn in buttons:
+            src = btn.property("source_text")
+            if src:
+                btn.setText(_tr("ValueDialog", src))
+            tip = btn.property("source_tooltip")
+            if tip:
+                btn.setToolTip(_tr("ValueDialog", tip))
 
     def _on_real_time_update_changed(self, state: bool):
         self.enable_real_time_update = state
@@ -2281,29 +2286,37 @@ class ValueDialog(REvoDesignWidget):
 
         # Column 3: Action button if file=True
         if asked_value.source in ("File", "FileO"):
-            action_button = QtWidgets.QPushButton("Browse")
+            action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Browse"))
             action_button.setObjectName("BrowseButton")
-            action_button.setToolTip("Browse for a file")
+            action_button.setProperty("source_text", "Browse")
+            action_button.setToolTip(_tr("ValueDialog", "Browse for a file"))
+            action_button.setProperty("source_tooltip", "Browse for a file")
             action_button.clicked.connect(
                 lambda: self._browse_file(widget, asked_value.ext, mode="r" if asked_value.source == "File" else "w")
             )
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "Files":
-            action_button = QtWidgets.QPushButton("Browse")
+            action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Browse"))
             action_button.setObjectName("BrowseButton")
-            action_button.setToolTip("Browse for multiple files")
+            action_button.setProperty("source_text", "Browse")
+            action_button.setToolTip(_tr("ValueDialog", "Browse for multiple files"))
+            action_button.setProperty("source_tooltip", "Browse for multiple files")
             action_button.clicked.connect(lambda: self._browse_file(widget, multiple=True))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "Directory":
-            action_button = QtWidgets.QPushButton("Browse")
+            action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Browse"))
             action_button.setObjectName("BrowseButton")
-            action_button.setToolTip("Browse for a directory")
+            action_button.setProperty("source_text", "Browse")
+            action_button.setToolTip(_tr("ValueDialog", "Browse for a directory"))
+            action_button.setProperty("source_tooltip", "Browse for a directory")
             action_button.clicked.connect(lambda: widget.setText(getExistingDirectory()))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "ColorPicker":
-            action_button = QtWidgets.QPushButton("Pick Color")
+            action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Pick Color"))
             action_button.setObjectName("PickColorButton")
-            action_button.setToolTip("Pick a color and return it as a hexadecimal string")
+            action_button.setProperty("source_text", "Pick Color")
+            action_button.setToolTip(_tr("ValueDialog", "Pick a color and return it as a hexadecimal string"))
+            action_button.setProperty("source_tooltip", "Pick a color and return it as a hexadecimal string")
             action_button.clicked.connect(
                 lambda: widget.setText(pick_color(widget, widget.text() or "") or widget.text() or "")
             )
@@ -2315,18 +2328,22 @@ class ValueDialog(REvoDesignWidget):
             button_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for proper cell fit
 
             # Create and configure the "Input JSON" button
-            input_action_button = QtWidgets.QPushButton("Input")
+            input_action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Input"))
             input_action_button.setObjectName("InputButton")
-            input_action_button.setToolTip("Browse for an input JSON file")
+            input_action_button.setProperty("source_text", "Input")
+            input_action_button.setToolTip(_tr("ValueDialog", "Browse for an input JSON file"))
+            input_action_button.setProperty("source_tooltip", "Browse for an input JSON file")
             input_action_button.clicked.connect(lambda: widget.setText(ask_for_multiple_values_as_json()))
             # Set size policy to ResizeToContents
             input_action_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(input_action_button)
 
             # Create and configure the "Load" button
-            load_action_button = QtWidgets.QPushButton("Load")
+            load_action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Load"))
             load_action_button.setObjectName("LoadButton")
-            load_action_button.setToolTip("Load a auto-savedJSON file($PWD/json_multi_input/***.json)")
+            load_action_button.setProperty("source_text", "Load")
+            load_action_button.setToolTip(_tr("ValueDialog", "Load a auto-saved JSON file"))
+            load_action_button.setProperty("source_tooltip", "Load a auto-saved JSON file")
             load_action_button.clicked.connect(lambda: self._browse_file(widget, Fext.JSON))
             # Set size policy to ResizeToContents
             load_action_button.setSizePolicy(action_button_size_policy)
@@ -2342,23 +2359,29 @@ class ValueDialog(REvoDesignWidget):
             button_layout = QtWidgets.QHBoxLayout(container_widget)
             button_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for proper cell fit
 
-            select_all_button = QtWidgets.QPushButton("All")
+            select_all_button = QtWidgets.QPushButton(_tr("ValueDialog", "Select All"))
             select_all_button.setObjectName("SelectAllButton")
-            select_all_button.setToolTip("Select all")
+            select_all_button.setProperty("source_text", "Select All")
+            select_all_button.setToolTip(_tr("ValueDialog", "Select all"))
+            select_all_button.setProperty("source_tooltip", "Select all")
             select_all_button.clicked.connect(widget.select_all)
             select_all_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(select_all_button)
 
-            select_none_button = QtWidgets.QPushButton("None")
+            select_none_button = QtWidgets.QPushButton(_tr("ValueDialog", "None"))
             select_none_button.setObjectName("SelectNoneButton")
-            select_none_button.setToolTip("Unselect all")
+            select_none_button.setProperty("source_text", "None")
+            select_none_button.setToolTip(_tr("ValueDialog", "Unselect all"))
+            select_none_button.setProperty("source_tooltip", "Unselect all")
             select_none_button.clicked.connect(widget.unselect_all)
             select_none_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(select_none_button)
 
-            select_invert_button = QtWidgets.QPushButton("Invert")
+            select_invert_button = QtWidgets.QPushButton(_tr("ValueDialog", "Invert"))
             select_invert_button.setObjectName("SelectInvertButton")
-            select_invert_button.setToolTip("Invert selection")
+            select_invert_button.setProperty("source_text", "Invert")
+            select_invert_button.setToolTip(_tr("ValueDialog", "Invert selection"))
+            select_invert_button.setProperty("source_tooltip", "Invert selection")
             select_invert_button.clicked.connect(widget.invert_selection)
             select_invert_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(select_invert_button)

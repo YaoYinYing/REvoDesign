@@ -94,9 +94,9 @@ def install_translator_early() -> QtCore.QTranslator | None:
 
     # Read the saved language directly from the config file — ConfigBus
     # may still be headless at this point (its .ui hasn't been set yet).
-    from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
-
     import yaml
+
+    from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
 
     main_yaml = os.path.join(REVODESIGN_CONFIG_DIR, "main.yaml")
     lan_id = None

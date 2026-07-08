@@ -322,8 +322,11 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         logging.debug(f"Asked values: {asked_values}")
         logging.debug(f"Preparing dialog for {func_id}")
 
-        title = _translate("ValueDialog", conf.get("title", func_id))
-        banner = _translate("ValueDialog", conf.get("banner", "")) if conf.get("banner") else ""
+        # Pass English source strings — ValueDialog translates at display
+        # time via _tr("ValueDialog", ...) so retranslateUi works after a
+        # language switch.
+        title = conf.get("title", func_id)
+        banner = conf.get("banner", "")
         wrapped_func_window = dialog_wrapper(
             title=title,
             banner=banner,

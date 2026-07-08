@@ -97,6 +97,24 @@ translator lifecycle:
 | `ValueDialog` | `value_dialog.ui` + hand-maintained | Dialog column headers, buttons, YAML `title`/`banner`/`reason` |
 | `LaunchingPage` | `launching.ui` + hand-maintained | Splash page + 10 bootstrap status messages |
 
+### ValueDialog retranslation pattern
+
+`ValueDialog` defers translation to display time so that open dialogs
+retranslate correctly after a language switch:
+
+1. **Title and banner** — YAML strings are passed as raw English source
+   from `shortcuts/utils.py`.  `ValueDialog.__init__` stores the source
+   (`_title_source_text`, `_banner_source_text`) and translates via
+   `_tr("ValueDialog", source)` only for display.  `retranslateUi`
+   re-translates from the stored source.
+
+2. **Action buttons** — Each button stores its English source strings as
+   Qt dynamic properties (`source_text`, `source_tooltip`) in
+   `_add_field_to_table`.  `_retranslate_row` reads these properties
+   instead of maintaining a separate objectName→source mapping,
+   and handles both direct-`QPushButton` cell widgets (Browse,
+   Pick Color) and container-embedded buttons (JsonInput, multi-choice).
+
 ## Adding a New Language
 
 1. **Create the `.ts` file** — Use Qt Linguist or `pylupdate5`:
@@ -159,6 +177,10 @@ When `.ui` files are modified:
    and `launching.ui` for widget strings.  Dynamic-menu and dialog strings in
    Python source are hand-maintained — add or update their `<message>` entries
    directly in the `.ts` files.
+
+   The script uses portable `sed -i.bak` + `rm -f` (compatible with both
+   BSD/macOS and GNU/Linux) and iterates over `.ts` files via glob rather
+   than `ls` output.
 
 ### Adding a new Python-source string
 

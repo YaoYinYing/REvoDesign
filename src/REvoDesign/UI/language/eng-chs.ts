@@ -2340,6 +2340,76 @@
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Browse</source>
+        <translation>浏览</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Browse for a file</source>
+        <translation>浏览文件</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Browse for multiple files</source>
+        <translation>浏览多个文件</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Browse for a directory</source>
+        <translation>浏览目录</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Pick Color</source>
+        <translation>选择颜色</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Pick a color and return it as a hexadecimal string</source>
+        <translation>选择颜色并返回十六进制字符串</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Browse for an input JSON file</source>
+        <translation>浏览输入JSON文件</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Load a auto-saved JSON file</source>
+        <translation>加载自动保存的JSON文件</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Select All</source>
+        <translation>全选</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Select all</source>
+        <translation>全选</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>None</source>
+        <translation>全不选</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Unselect all</source>
+        <translation>取消全选</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Invert</source>
+        <translation>反选</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Invert selection</source>
+        <translation>反向选择</translation>
+    </message>
 </context>
 <context>
     <name>ValueDialogBase</name>

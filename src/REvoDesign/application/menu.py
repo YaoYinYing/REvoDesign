@@ -50,6 +50,7 @@ def config_files() -> tuple[dict[str, str], dict[str, str]]:
         x.removeprefix(REVODESIGN_CONFIG_DIR + os.sep).removesuffix(".yaml"): x
         for x in list_all_config_files(REVODESIGN_CONFIG_DIR, tree=True)
     }
+    secondary = dict(sorted(secondary.items()))
     return main, secondary
 
 
