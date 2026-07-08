@@ -94,21 +94,21 @@ class RuntimeUiProxy:
 
 def _load_with_pyuic(
     ui_path: Path, parent: QtWidgets.QWidget | None = None
-) -> tuple[QtWidgets.QMainWindow, RuntimeUiProxy]:
+) -> tuple[QtWidgets.QWidget, RuntimeUiProxy]:
     uic = _load_pyqt_uic_module()
     form_class, base_class = uic.loadUiType(str(ui_path))
     window = base_class(parent)
     ui_form = form_class()
     ui_form.setupUi(window)
-    if not isinstance(window, QtWidgets.QMainWindow):
-        raise TypeError(f"Expected runtime UI root to be QMainWindow, got {type(window)!r}")
+    if not isinstance(window, QtWidgets.QWidget):
+        raise TypeError(f"Expected runtime UI root to be a QWidget, got {type(window)!r}")
     return window, RuntimeUiProxy(window, retranslator=ui_form.retranslateUi, source_ui=ui_form)
 
 
 def _load_with_qtuitools(
     ui_path: Path,
     parent: QtWidgets.QWidget | None = None,
-) -> tuple[QtWidgets.QMainWindow, RuntimeUiProxy]:
+) -> tuple[QtWidgets.QWidget, RuntimeUiProxy]:
     if QtUiTools is None or not hasattr(QtUiTools, "QUiLoader"):
         raise ImportError(f"The active backend {QT_BACKEND!r} does not provide QtUiTools.QUiLoader.")
 
@@ -126,15 +126,15 @@ def _load_with_qtuitools(
     finally:
         ui_file.close()
 
-    if not isinstance(window, QtWidgets.QMainWindow):
-        raise TypeError(f"Expected runtime UI root to be QMainWindow, got {type(window)!r}")
+    if not isinstance(window, QtWidgets.QWidget):
+        raise TypeError(f"Expected runtime UI root to be a QWidget, got {type(window)!r}")
     return window, RuntimeUiProxy(window)
 
 
 def load_runtime_ui(
     ui_path: str | Path,
     parent: QtWidgets.QWidget | None = None,
-) -> tuple[QtWidgets.QMainWindow, RuntimeUiProxy]:
+) -> tuple[QtWidgets.QWidget, RuntimeUiProxy]:
     """Load a Qt Designer UI file at runtime and expose named objects through a proxy."""
 
     resolved_ui_path = Path(ui_path).resolve()

@@ -60,6 +60,7 @@ from REvoDesign.tools.pymol_utils import (
 from REvoDesign.tools.utils import generate_strong_password, require_not_none, run_worker_thread_in_pool, timing
 
 if TYPE_CHECKING:
+    from REvoDesign.Qt.ui_runtime_loader import RuntimeUiProxy
     from REvoDesign.UI.types import REvoDesignUiProtocol
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
@@ -155,26 +156,28 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.bus.set_value("work_dir", os.path.abspath(self.PWD))
 
+    @staticmethod
+    def _update_launch_status(splash_proxy: "RuntimeUiProxy | None", message: str) -> None:
+        """Update the launching page subtitle with the current bootstrap step."""
+        if splash_proxy is None:
+            return
+        splash_proxy.labelStatus.setText(message)
+        QtWidgets.QApplication.processEvents()
+
     def run_plugin_gui(self):
         """PyMOL entry for running the plugin"""
         if self.window is None:
-            # Show a lightweight splash label immediately so the user sees
-            # feedback while the full window is being constructed.
-            # Use Qt5-compatible enum access (flat) with Qt6 fallback (scoped).
-            _WindowType = getattr(QtCore.Qt, "WindowType", QtCore.Qt)
-            _splash_flag = getattr(_WindowType, "SplashScreen", 15)
-            _Alignment = getattr(QtCore.Qt, "AlignmentFlag", QtCore.Qt)
-            _align_center = getattr(_Alignment, "AlignCenter", 132)
-
-            splash = QtWidgets.QLabel("Loading REvoDesign...")
-            splash.setWindowFlags(_splash_flag)
-            splash.setAlignment(_align_center)
-            splash.setMinimumSize(300, 80)
-            splash.show()
+            ui_path = Path(__file__).resolve().parent / "UI" / "launching.ui"
+            splash_dialog, splash_proxy = load_runtime_ui(ui_path)
+            splash_dialog.setWindowFlags(QtCore.Qt.WindowType.SplashScreen)
+            self._update_launch_status(splash_proxy, "Initializing")
+            splash_dialog.show()
             QtWidgets.QApplication.processEvents()
 
-            self.window = self.make_window()
-            splash.close()
+            try:
+                self.window = self.make_window(splash_proxy)
+            finally:
+                splash_dialog.close()
 
         self.window.show()
         self.fix_wd()
@@ -220,8 +223,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.window = None
 
     # main function that makes the plugin window
-    def make_window(self):
+    def make_window(self, splash_proxy: "RuntimeUiProxy | None" = None):
         """make new window
+
+        Args:
+            splash_proxy: Optional RuntimeUiProxy for the launching page.
+                When provided, the subtitle label is updated at each bootstrap step.
 
         Returns:
             QtWidgets.QMainWindow: new main window object
@@ -238,27 +245,49 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         from REvoDesign.shortcuts.tools.openmm_utils import OpenmmSetupServerControl
         from REvoDesign.tools.system_tools import check_mac_rosetta2
 
+        _status = partial(self._update_launch_status, splash_proxy)
+
         installed_dir = os.path.dirname(__file__)
         logging.debug(f"REvoDesign is installed in {installed_dir}")
+
+        # Populate version / copyright and user / machine info on the launching page.
+        if splash_proxy is not None:
+            import getpass
+            import platform
+
+            splash_proxy.labelInfoLeft.setText(f"v{REvoDesign.__version__}  ·  GPL-3.0-only")
+            try:
+                user = getpass.getuser()
+            except (KeyError, ModuleNotFoundError):
+                user = "unknown"
+            splash_proxy.labelInfoRight.setText(f"{user}@{platform.node()}")
+
+        _status("Checking system environment")
         check_mac_rosetta2()
 
+        _status("Loading user interface")
         ui_path = Path(__file__).resolve().parent / "UI" / "REvoDesign.ui"
         main_window, ui_proxy = load_runtime_ui(ui_path)
         self.ui = cast("REvoDesignUiProtocol", ui_proxy)
         self._install_language_change_filter(main_window)
 
+        _status("Setting up icons")
         IconSetter(main_window=main_window)
 
         # create a bus btw cfg<---> ui
+        _status("Ensuring configurations")
         self.reload_configurations()
+        _status("Registering cluster plugins")
         self.cluster_tab_controller = ClusterTabController(self.ui, self.bus)
         self.cluster_tab_controller.install()
         # all ConfigBus related method calls must follow this
         # since the bus is initialized here
 
+        _status("Loading fonts")
         FontSetter(main_window=main_window)
 
         # language switch for ui
+        _status("Setting up language support")
         self.bus.ui.trans = QtCore.QTranslator(self)
         LanguageSwitch(window=main_window)
 
@@ -268,6 +297,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # TODO: need to be managed in menu tree system
         # TODO: issue: menu system translations
 
+        _status("Registering menu plugins")
         MenuCollection(
             self.bus.ui,
             (
@@ -322,6 +352,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # TODO: store to bus if not headless
         # TODO: move this to somewhere else
 
+        _status("Initializing services")
         stores = StoresWidget()
 
         # TODO: need to be managed in menu tree system

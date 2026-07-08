@@ -13,7 +13,9 @@ from tests.data.test_data import KeyData
 
 
 @pytest.mark.serial
-@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare", "tabs_prepare_pocket_session"], scope="session")
+@pytest.mark.dependency(
+    depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare", "tabs_prepare_pocket_session"], scope="session"
+)
 class TestREvoDesignPlugin_TabCluster:
     def test_cluster(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
