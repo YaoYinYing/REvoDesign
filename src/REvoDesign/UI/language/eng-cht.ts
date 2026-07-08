@@ -23,6 +23,51 @@
         <source>Initializing</source>
         <translation>正在初始化</translation>
     </message>
+    <message>
+        <location filename="../launching.ui" line="133"/>
+        <source>Checking system environment</source>
+        <translation>檢查系統環境</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="133"/>
+        <source>Loading user interface</source>
+        <translation>載入使用者介面</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="133"/>
+        <source>Setting up icons</source>
+        <translation>設定圖示</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="133"/>
+        <source>Ensuring configurations</source>
+        <translation>確認設定</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="133"/>
+        <source>Registering cluster plugins</source>
+        <translation>註冊聚類外掛</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="133"/>
+        <source>Loading fonts</source>
+        <translation>載入字型</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="133"/>
+        <source>Setting up language support</source>
+        <translation>設定語言支援</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="133"/>
+        <source>Registering menu plugins</source>
+        <translation>註冊選單外掛</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="133"/>
+        <source>Initializing services</source>
+        <translation>初始化服務</translation>
+    </message>
 </context>
 <context>
     <name>REvoDesignPyMOL_UI</name>
