@@ -26,7 +26,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="95"/>
         <source>Substrate/Product molecule. Use PyMOL selection syntax(eg. (LIG or PRD))</source>
-        <translation type="obsolete">底物或者产物分子。如果需要选择多个，使用英文逗号分隔，例如`XXX,YYY`</translation>
+        <translation>底物或者产物分子。如果需要选择多个，使用英文逗号分隔，例如`XXX,YYY`</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="4460"/>
@@ -46,7 +46,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="202"/>
         <source>Co-factor or co-enzyme, HEM/FAD/NAD, etc. Use PyMOL selection syntax (eg. (HEM or FAD))</source>
-        <translation type="obsolete">辅因子或者辅酶分子，例如HEM/FAD/NAD。如果需要选择多个，使用英文逗号分隔，例如`XXX,YYY`</translation>
+        <translation>辅因子或者辅酶分子，例如HEM/FAD/NAD。如果需要选择多个，使用英文逗号分隔，例如`XXX,YYY`</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="246"/>
@@ -121,7 +121,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="510"/>
         <source>Probe radius:</source>
-        <translation type="obsolete">探针半径：</translation>
+        <translation>探针半径：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="595"/>
@@ -216,7 +216,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="4806"/>
         <source>Reverse</source>
-        <translation type="obsolete">反转分数偏好</translation>
+        <translation>反转分数偏好</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="982"/>
@@ -401,7 +401,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="1514"/>
         <source>Rock the space while making choices.</source>
-        <translation type="obsolete">在评估突变体的时候开启PyMOL的Rock界面模式。</translation>
+        <translation>在评估突变体的时候开启PyMOL的Rock界面模式。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1527"/>
@@ -416,7 +416,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="1530"/>
         <source>Reversed</source>
-        <translation type="obsolete">反转分数偏好</translation>
+        <translation>反转分数偏好</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1552"/>
@@ -531,12 +531,12 @@
     <message>
         <location filename="../REvoDesign.ui" line="1826"/>
         <source>Calculating options</source>
-        <translation type="obsolete">计算选项</translation>
+        <translation>计算选项</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1826"/>
         <source>Mutants: </source>
-        <translation type="obsolete">突变表：</translation>
+        <translation>突变表：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1880"/>
@@ -546,12 +546,12 @@
     <message>
         <location filename="../REvoDesign.ui" line="1880"/>
         <source>MInimun number of mutations for each variant.</source>
-        <translation type="obsolete">每个个体中最少的突变数。</translation>
+        <translation>每个个体中最少的突变数。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1880"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ Num &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;MUT&lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;/&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="obsolete">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ 个数 &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;突变&lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;/&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ 个数 &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;突变&lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;/&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2964"/>
@@ -571,12 +571,12 @@
     <message>
         <location filename="../REvoDesign.ui" line="2012"/>
         <source>Batch number used in clustering.</source>
-        <translation type="obsolete">聚类的批次大小。</translation>
+        <translation>聚类的批次大小。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2012"/>
         <source>Matrix: </source>
-        <translation type="obsolete">打分矩阵：</translation>
+        <translation>打分矩阵：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2104"/>
@@ -586,7 +586,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="2104"/>
         <source>Shuffle the sequence.</source>
-        <translation type="obsolete">对序列顺序进行洗牌。</translation>
+        <translation>对序列顺序进行洗牌。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2053"/>
@@ -596,12 +596,12 @@
     <message>
         <location filename="../REvoDesign.ui" line="2053"/>
         <source>Run Mutate&apos;n&apos;Relax scoring via Rosetta</source>
-        <translation type="obsolete">对聚类结果使用Rosetta Mutate and Relax方法进行打分</translation>
+        <translation>对聚类结果使用Rosetta Mutate and Relax方法进行打分</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2053"/>
         <source>Mutate &amp; Relax</source>
-        <translation type="obsolete">Mutate&amp;Relax打分</translation>
+        <translation>Mutate&amp;Relax打分</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2495"/>
@@ -1076,7 +1076,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="5319"/>
         <source>Add</source>
-        <translation type="obsolete">增加</translation>
+        <translation>增加</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5329"/>
@@ -1267,7 +1267,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="5530"/>
         <source>Group these variant.</source>
-        <translation type="obsolete">分组新的突变体。</translation>
+        <translation>分组新的突变体。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2876"/>
@@ -1462,12 +1462,12 @@
     <message>
         <location filename="../REvoDesign.ui" line="3537"/>
         <source>Ignore WT-to-WT mutagenesis</source>
-        <translation type="obsolete">忽略野生型到野生型的突变个体</translation>
+        <translation>忽略野生型到野生型的突变个体</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3537"/>
         <source>Ignore WT</source>
-        <translation type="obsolete">忽略野生型</translation>
+        <translation>忽略野生型</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3651"/>
@@ -1582,72 +1582,72 @@
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Client</source>
-        <translation type="obsolete">客户端</translation>
+        <translation>客户端</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>GREMLIN-PSSM-Calculator</source>
-        <translation type="obsolete">GREMLIN-PSSM计算器</translation>
+        <translation>GREMLIN-PSSM计算器</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Sever:</source>
-        <translation type="obsolete">服务器：</translation>
+        <translation>服务器：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Server URL for PSSM GREMLIN calculation.</source>
-        <translation type="obsolete">PSSM GREMLIN计算服务器的ip/域名。</translation>
+        <translation>PSSM GREMLIN计算服务器的ip/域名。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Submit the selected molecule and chain.</source>
-        <translation type="obsolete">提交选择的蛋白分子链用于计算PSSM GREMLIN。</translation>
+        <translation>提交选择的蛋白分子链用于计算PSSM GREMLIN。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Submit</source>
-        <translation type="obsolete">提交</translation>
+        <translation>提交</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Cancel running/queuing task.</source>
-        <translation type="obsolete">取消在执行/排队的任务。</translation>
+        <translation>取消在执行/排队的任务。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Cancel</source>
-        <translation type="obsolete">取消</translation>
+        <translation>取消</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Download completed results.</source>
-        <translation type="obsolete">下载完整的分析结果。</translation>
+        <translation>下载完整的分析结果。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Download</source>
-        <translation type="obsolete">下载</translation>
+        <translation>下载</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>User: </source>
-        <translation type="obsolete">用户：</translation>
+        <translation>用户：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Server username for PSSM GREMLIN calculation.</source>
-        <translation type="obsolete">PSSM GREMLIN计算服务器的用户名。</translation>
+        <translation>PSSM GREMLIN计算服务器的用户名。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Passwd:</source>
-        <translation type="obsolete">口令：</translation>
+        <translation>口令：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3926"/>
         <source>Server password for PSSM GREMLIN calculation.</source>
-        <translation type="obsolete">PSSM GREMLIN服务器访问口令，同网站口令。</translation>
+        <translation>PSSM GREMLIN服务器访问口令，同网站口令。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3943"/>
@@ -2172,27 +2172,27 @@
     <message>
         <location filename="../REvoDesign.ui" line="5540"/>
         <source>Edit %1</source>
-        <translation type="obsolete">编辑 %1</translation>
+        <translation>编辑 %1</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5540"/>
         <source>Font Setting</source>
-        <translation type="obsolete">字体设置</translation>
+        <translation>字体设置</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5540"/>
         <source>Thread Pool Dashboard</source>
-        <translation type="obsolete">线程池仪表盘</translation>
+        <translation>线程池仪表盘</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5540"/>
         <source>Language Changed</source>
-        <translation type="obsolete">语言已更改</translation>
+        <translation>语言已更改</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5540"/>
         <source>The language has been changed. Some menu items require a restart to be fully translated. Please save your configuration and restart REvoDesign to see the complete translation.</source>
-        <translation type="obsolete">语言已更改。部分菜单项需要重启后才能完全翻译。请保存配置并重启 REvoDesign 以查看完整翻译。</translation>
+        <translation>语言已更改。部分菜单项需要重启后才能完全翻译。请保存配置并重启 REvoDesign 以查看完整翻译。</translation>
     </message>
 </context>
 </TS>

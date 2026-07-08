@@ -10,9 +10,12 @@ echo "Using lrelease at: $lrelease_path"
 
 # update translation files from .ui widget strings
 # Dynamic-menu and dialog strings in Python source are hand-maintained in the .ts files.
+# pylupdate5 marks hand-maintained entries as "obsolete" because they are not found in
+# the .ui file — strip the attribute so lrelease includes them in the compiled .qm.
 for i in $(ls src/REvoDesign/UI/language/*.ts); do
     echo "Updating $i"
     $pylupdate5_path src/REvoDesign/UI/REvoDesign.ui -ts "$i"
+    sed -i '' 's/ type="obsolete"//g' "$i"
 done
 echo "Translation files updated."
 if [ "$stage" == 'translate' ]; then echo Done with "$stage";exit 0; fi
