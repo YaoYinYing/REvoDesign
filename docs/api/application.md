@@ -22,6 +22,14 @@ the builder is called — importing the module is cheap.
     options:
       show_submodules: false
 
+::: REvoDesign.application.menu.preferences_menu_links
+    options:
+      show_submodules: false
+
+::: REvoDesign.application.menu.other_menu_links
+    options:
+      show_submodules: false
+
 ::: REvoDesign.application.menu.TOOLS_MENU_LINKS
     options:
       show_submodules: false

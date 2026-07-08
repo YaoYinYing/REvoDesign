@@ -2,30 +2,20 @@
 # stop at which stage, default is compile only
 stage=$stage || stage='compile'
 
-black_path=$(which black)
-pyuic5_path=$(which pyuic5)
-lupdate_path=$(which lupdate)
+pylupdate5_path=$(which pylupdate5)
 lrelease_path=$(which lrelease)
 
-echo "Using pyuic5 at: $pyuic5_path"
-echo "Using lupdate at: $lupdate_path"
+echo "Using pylupdate5 at: $pylupdate5_path"
 echo "Using lrelease at: $lrelease_path"
 
-# recompile ui to py
-echo "Compiling UI to Py code..."
-pyuic5 src/REvoDesign/UI/REvoDesign.ui -o src/REvoDesign/UI/Ui_REvoDesign.py
-echo Compiled UI to Py code at src/REvoDesign/UI/Ui_REvoDesign.py
-# format ui code
-echo Formatted UI code ...
-$black_path src/REvoDesign/UI/Ui_REvoDesign.py
-echo Done formatting UI code.
-
-if [ "$stage" == 'compile' ]; then echo Done with "$stage";exit 0; fi
-
-# update translation files
+# update translation files from .ui widget strings
+# Dynamic-menu and dialog strings in Python source are hand-maintained in the .ts files.
+# pylupdate5 marks hand-maintained entries as "obsolete" because they are not found in
+# the .ui file — strip the attribute so lrelease includes them in the compiled .qm.
 for i in $(ls src/REvoDesign/UI/language/*.ts); do
     echo "Updating $i"
-    lupdate  src/REvoDesign/UI/REvoDesign.ui -ts "$i"
+    $pylupdate5_path src/REvoDesign/UI/REvoDesign.ui -ts "$i"
+    sed -i '' 's/ type="obsolete"//g' "$i"
 done
 echo "Translation files updated."
 if [ "$stage" == 'translate' ]; then echo Done with "$stage";exit 0; fi

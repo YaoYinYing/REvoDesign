@@ -11,7 +11,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from REvoDesign import issues
-from REvoDesign.application.menu import config_edit_links, core_menu_links, menu_links, static_menu_links
+from REvoDesign.application.menu import (
+    config_edit_links,
+    core_menu_links,
+    menu_links,
+    other_menu_links,
+    preferences_menu_links,
+    static_menu_links,
+)
 from REvoDesign.basic.menu_item import MenuCollection, MenuItem
 from REvoDesign.Qt import QtWidgets
 
@@ -192,7 +199,6 @@ def test_config_edit_links_has_main_config_first():
     assert "main" in first_non_sep.action
 
 
-
 def test_core_menu_links_returns_tuple():
     """core_menu_links(app) returns a tuple with expected core action names."""
     app = MagicMock()
@@ -215,6 +221,26 @@ def test_core_menu_links_returns_tuple():
     assert "actionReinitialize" in action_names
     assert "actionSource_Code" in action_names
     assert "actionVersion" in action_names
+
+
+def test_preferences_menu_links_has_translated_action_text():
+    """preferences_menu_links() items carry action_text for display."""
+    links = preferences_menu_links()
+    assert len(links) == 1
+    font_item = links[0]
+    assert font_item.action_text is not None
+    assert len(font_item.action_text) > 0
+
+
+def test_other_menu_links_has_translated_action_text():
+    """other_menu_links() dynamic items carry action_text; static items do not."""
+    links = other_menu_links()
+    assert len(links) == 2
+    # actionRefreshEnvironVar: static .ui action — no action_text needed
+    assert links[0].action_text is None
+    # actionThreadPoolDashboard: dynamic — must have action_text
+    assert links[1].action_text is not None
+    assert len(links[1].action_text) > 0
 
 
 def test_menu_module_import_has_no_side_effects():

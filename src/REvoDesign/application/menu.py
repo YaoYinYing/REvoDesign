@@ -17,6 +17,9 @@ from typing import TYPE_CHECKING
 from REvoDesign.basic.menu_item import MenuItem
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
 from REvoDesign.bootstrap.set_config import list_all_config_files
+from REvoDesign.Qt import QtCore
+
+_tr = QtCore.QCoreApplication.translate
 
 if TYPE_CHECKING:
     from REvoDesign.REvoDesign import REvoDesignPlugin
@@ -62,13 +65,18 @@ def all_config_files() -> dict[str, str]:
 # -- dynamic config-edit links ----------------------------------------------
 
 
+def _edit_label(config_name: str) -> str:
+    """Return the translated display text for an ``Edit <config>`` action."""
+    return _tr("REvoDesignPyMOL_UI", "Edit %1").replace("%1", config_name)
+
+
 def _edit_config_item(config_name: str, config_file: str, menu_section: str) -> MenuItem:
     """A single ``Edit <config>`` menu item."""
     return MenuItem(
         f"actionEditConf_{clean_config_name(config_name)}",
         "REvoDesign.editor.monaco.monaco:menu_edit_file",
         kwargs={"file_path": config_file},
-        action_text=f"Edit {config_name}",
+        action_text=_edit_label(config_name),
         menu_section=menu_section,
     )
 
@@ -157,29 +165,35 @@ TOOLS_MENU_LINKS: tuple[MenuItem, ...] = (
     MenuItem("actionRun_GREMLIN", "REvoDesign.shortcuts.wrappers.evolution:wrapped_gremlin"),
 )
 
-PREFERENCES_MENU_LINKS: tuple[MenuItem, ...] = (
-    MenuItem(
-        "actionPreferences_Font",
-        "REvoDesign.application.font.font_manager:set_font_dialog",
-        menu_section="menuUI_Preferences",
-        action_text="Font Setting",
-    ),
-)
 
-OTHER_MENU_LINKS: tuple[MenuItem, ...] = (
-    MenuItem("actionRefreshEnvironVar", "REvoDesign.driver.environ_register:register_environment_variables"),
-    MenuItem(
-        "actionThreadPoolDashboard",
-        "REvoDesign.tools.package_manager:ThreadDashboard.show_thread_dashboard",
-        menu_section="menuRuntime",
-        action_text="Thread Pool Dashboard",
-    ),
-)
+def preferences_menu_links() -> tuple[MenuItem, ...]:
+    """Menu items with translated display text (lazy — translator must be installed)."""
+    return (
+        MenuItem(
+            "actionPreferences_Font",
+            "REvoDesign.application.font.font_manager:set_font_dialog",
+            menu_section="menuUI_Preferences",
+            action_text=_tr("REvoDesignPyMOL_UI", "Font Setting"),
+        ),
+    )
+
+
+def other_menu_links() -> tuple[MenuItem, ...]:
+    """Menu items with translated display text (lazy — translator must be installed)."""
+    return (
+        MenuItem("actionRefreshEnvironVar", "REvoDesign.driver.environ_register:register_environment_variables"),
+        MenuItem(
+            "actionThreadPoolDashboard",
+            "REvoDesign.tools.package_manager:ThreadDashboard.show_thread_dashboard",
+            menu_section="menuRuntime",
+            action_text=_tr("REvoDesignPyMOL_UI", "Thread Pool Dashboard"),
+        ),
+    )
 
 
 def static_menu_links() -> tuple[MenuItem, ...]:
     """Return the union of all static (non-config-scanning) menu items."""
-    return (*TOOLS_MENU_LINKS, *PREFERENCES_MENU_LINKS, *OTHER_MENU_LINKS)
+    return (*TOOLS_MENU_LINKS, *preferences_menu_links(), *other_menu_links())
 
 
 # -- combined builders ------------------------------------------------------
@@ -215,9 +229,12 @@ def core_menu_links(app: REvoDesignPlugin) -> tuple[MenuItem, ...]:
 
 
 __all__ = [
+    "TOOLS_MENU_LINKS",
     "all_config_files",
     "config_edit_links",
     "core_menu_links",
     "menu_links",
+    "other_menu_links",
+    "preferences_menu_links",
     "static_menu_links",
 ]

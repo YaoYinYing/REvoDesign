@@ -14,9 +14,7 @@ from dataclasses import dataclass
 from functools import cached_property
 
 from REvoDesign import issues
-from REvoDesign.Qt import QtCore, QtWidgets
-
-_translate = QtCore.QCoreApplication.translate
+from REvoDesign.Qt import QtWidgets
 
 
 @dataclass(frozen=True)
@@ -103,7 +101,7 @@ class MenuCollection:
 
         action = QtWidgets.QAction(item.action_text or item.action, parent=menu)
         action.setObjectName(item.action)
-        action.setText(_translate("REvoDesignPyMOL_UI", item.action_text or item.action))
+        action.setText(item.action_text or item.action)
         action.triggered.connect(item.trigger)
         menu.addAction(action)
 

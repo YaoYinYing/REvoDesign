@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - User Guide (3 pages): landing, cluster methods, OpenKinetics workflow.
   - Developer Guide (18 pages): architecture, concepts, testing, CI/CD, PSSM/GREMLIN server, Monaco editor, Rosetta integration, translation (i18n), UI design, CGO graphics, Makefile reference, package manager, adding scorers/sidechain solvers, how-to guides (profile, config, shortcut), AI-assisted code quality fix playbooks (Codacy, DeepSource).
   - API Reference (20 pages): auto-generated from Google-style docstrings for all public modules.
+- Translation entries for dynamic menu items: `Edit %1`, `Font Setting`, `Thread Pool Dashboard` (zh_CN + zh_TW).
   - GitHub Pages deploy workflow (`.github/workflows/docs.yml`) with `actions/deploy-pages@v4`.
   - `docs` optional-dependency group in `pyproject.toml` (mkdocs, mkdocs-material, mkdocstrings[python]).
   - Updated `[project.urls] Documentation` to `https://YaoYinYing.github.io/REvoDesign`.
@@ -40,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `basic/menu_item.py`: extracted `bind_one()` and `_menu_section()` methods from `MenuCollection.bind()`; removed print-and-swallow error handling so binding failures propagate cleanly; added `MenuItem.separator()` classmethod.
   - `REvoDesign.py`: core and deferred menu bindings now both route through `application.menu` builders — single ownership, no inline `MenuItem` construction.
 - Moved legacy `docs/` to `docs_old/` for archival; new docs are a fresh MkDocs site.
+- Moved menu-item translation responsibility from `MenuItem.bind_one()` to builder functions:
+  - `basic/menu_item.py`: removed `_translate()` wrapper — `bind_one()` now sets `action_text` directly.
+  - `application/menu.py`: `PREFERENCES_MENU_LINKS`/`OTHER_MENU_LINKS` converted to builder functions (`preferences_menu_links()`/`other_menu_links()`) with lazy `QCoreApplication.translate()` calls discoverable by `pylupdate5`.
+  - `tools/translate.sh`: removed deprecated `pyuic5` UI-to-Python step; switched from `lupdate` to `pylupdate5` to scan both `.ui` and `.py` sources.
 - Updated README links to point to new docs structure.
 
 ### Fixed
