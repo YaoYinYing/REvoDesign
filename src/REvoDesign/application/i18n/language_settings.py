@@ -76,6 +76,48 @@ class LanguageItem:
         return os.path.abspath(os.path.join(language_dir, f"{self.id}.qm"))
 
 
+def install_translator_early() -> QtCore.QTranslator | None:
+    """Install the saved-language translator before the main window exists.
+
+    Call this before showing the launching/splash page so that static
+    .ui strings are translated from the first paint.  Returns the
+    translator instance so that :class:`LanguageSwitch` can adopt it
+    later via :meth:`_ensure_translator`.
+
+    Returns:
+        QTranslator | None: The installed translator, or ``None`` if
+        no saved language is available (English or missing .qm).
+    """
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        return None
+
+    bus = ConfigBus()
+    lan_id = bus.get_value("language", str, reject_none=True)
+    if not lan_id or lan_id.startswith("eng-eng"):
+        return None
+
+    with open(language_json_fp, encoding="utf-8") as f:
+        registry: list[LanguageNameRegistry] = json.load(f)
+
+    qm_path = None
+    for entry in registry:
+        if entry["code"] == lan_id:
+            qm_path = os.path.abspath(os.path.join(language_dir, f"{lan_id}.qm"))
+            break
+
+    if not qm_path or not os.path.exists(qm_path):
+        return None
+
+    translator = QtCore.QTranslator(app)
+    if translator.load(qm_path):
+        app.installTranslator(translator)
+        logging.info("Early translator installed: %s (%s)", lan_id, qm_path)
+        return translator
+
+    return None
+
+
 class LanguageSwitch(QtWidgets.QWidget):
     """
     Language switching component, manages the language settings and switching for the application.
@@ -158,10 +200,9 @@ class LanguageSwitch(QtWidgets.QWidget):
     def _ensure_translator(self) -> QtCore.QTranslator:
         """Return the persistent translator used by the language switcher.
 
-        The old generated-UI implementation stored the translator on
-        ``bus.ui.trans``.  Runtime-loaded UIs still expose this attribute
-        for compatibility, but LanguageSwitch should use its own
-        ``self.trans`` reference internally.
+        Checks ``bus.ui.trans`` (legacy path), then the QApplication for
+        an early-installed translator from :func:`install_translator_early`,
+        and creates a fresh one only as a last resort.
         """
         existing = getattr(self.bus.ui, "trans", None)
         if (
@@ -171,6 +212,16 @@ class LanguageSwitch(QtWidgets.QWidget):
             and hasattr(existing, "translate")
         ):
             return existing
+
+        # Reuse the translator that install_translator_early installed so
+        # removeTranslator / installTranslator work on the same instance.
+        app = QtWidgets.QApplication.instance()
+        if app is not None:
+            for child in app.children():
+                if isinstance(child, QtCore.QTranslator):
+                    # attach to bus.ui.trans for legacy callers
+                    setattr(self.bus.ui, "trans", child)
+                    return child
 
         translator = QtCore.QTranslator(self.window)
         setattr(self.bus.ui, "trans", translator)

@@ -157,6 +157,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """PyMOL entry for running the plugin"""
         if self.window is None:
             from REvoDesign.application import launching
+            from REvoDesign.application.i18n.language_settings import install_translator_early
+
+            # Install saved-language translator before the splash so its
+            # .ui strings and status messages show translated from the start.
+            install_translator_early()
 
             launching.init(total_steps=10)  # "Initializing" + 9 _status calls in make_window
 
