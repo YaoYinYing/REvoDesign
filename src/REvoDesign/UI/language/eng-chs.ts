@@ -621,212 +621,212 @@
     <message>
         <location filename="../REvoDesign.ui" line="1850"/>
         <source>General Cluster Inputs</source>
-        <translation type="unfinished"></translation>
+        <translation>通用聚类输入</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1910"/>
         <source>Minimum number of mutations for each variant.</source>
-        <translation type="unfinished"></translation>
+        <translation>每个变体的最小突变数量。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1926"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ Num &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;MUT&lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt; ≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ 突变数 &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;MUT&lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt; ≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;&gt;</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1959"/>
         <source>Alignment workload per clustering minibatch.</source>
-        <translation type="unfinished"></translation>
+        <translation>每个聚类小批次的比对工作量。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1985"/>
         <source>Random seed:</source>
-        <translation type="unfinished"></translation>
+        <translation>随机种子：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1992"/>
         <source>Batch size:</source>
-        <translation type="unfinished"></translation>
+        <translation>批次大小：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1999"/>
         <source>Seed used when variant shuffling is enabled.</source>
-        <translation type="unfinished"></translation>
+        <translation>启用变体随机化时使用的种子。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2034"/>
         <source>Method:</source>
-        <translation type="unfinished"></translation>
+        <translation>方法：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2041"/>
         <source>Select the clustering backend to use for this run.</source>
-        <translation type="unfinished"></translation>
+        <translation>选择本次运行使用的聚类后端。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2050"/>
         <source>Shuffle variants before clustering.</source>
-        <translation type="unfinished"></translation>
+        <translation>聚类前随机化变体顺序。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2075"/>
         <source>Advanced Cluster Settings</source>
-        <translation type="unfinished"></translation>
+        <translation>高级聚类设置</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2091"/>
         <source>Agglomerative clustering uses the sequence distance matrix with average linkage and precomputed metric.</source>
-        <translation type="unfinished"></translation>
+        <translation>凝聚聚类使用序列距离矩阵，采用平均连接和预计算度量。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2097"/>
         <source>Substitution matrix</source>
-        <translation type="unfinished"></translation>
+        <translation>替换矩阵</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2111"/>
         <source>Linkage</source>
-        <translation type="unfinished"></translation>
+        <translation>连接方式</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2118"/>
         <source>average</source>
-        <translation type="unfinished"></translation>
+        <translation>平均</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2125"/>
         <source>Metric</source>
-        <translation type="unfinished"></translation>
+        <translation>度量</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2132"/>
         <source>precomputed</source>
-        <translation type="unfinished"></translation>
+        <translation>预计算</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2367"/>
         <source>Representatives</source>
-        <translation type="unfinished"></translation>
+        <translation>代表</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2146"/>
         <source>Representatives are selected as the nearest centroid among clustered variants. This is not a medoid policy.</source>
-        <translation type="unfinished"></translation>
+        <translation>代表选择为聚类变体中最接近质心的成员。注意这不是中心点策略。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2377"/>
         <source>Nearest centroid</source>
-        <translation type="unfinished"></translation>
+        <translation>最近质心</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2157"/>
         <source>Optional Evo inputs with positive weights are used when available; missing optional inputs are skipped and remaining weights are renormalized.</source>
-        <translation type="unfinished"></translation>
+        <translation>具有正权重的可选进化输入在可用时被使用；缺失的可选输入将被跳过，剩余权重重新归一化。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2183"/>
         <source>ESM:</source>
-        <translation type="unfinished"></translation>
+        <translation>ESM：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2315"/>
         <source>PSSM:</source>
-        <translation type="unfinished"></translation>
+        <translation>PSSM：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2220"/>
         <source>Physchem:</source>
-        <translation type="unfinished"></translation>
+        <translation>物理化学：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2257"/>
         <source>Sequence:</source>
-        <translation type="unfinished"></translation>
+        <translation>序列：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2264"/>
         <source>Structure:</source>
-        <translation type="unfinished"></translation>
+        <translation>结构：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2281"/>
         <source>ESM-1v:</source>
-        <translation type="unfinished"></translation>
+        <translation>ESM-1v：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2308"/>
         <source>Spatial:</source>
-        <translation type="unfinished"></translation>
+        <translation>空间：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2332"/>
         <source>mutation</source>
-        <translation type="unfinished"></translation>
+        <translation>突变</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2339"/>
         <source>ESM mutation column:</source>
-        <translation type="unfinished"></translation>
+        <translation>ESM 突变列：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2347"/>
         <source>KMeansCluster uses score-profile feature vectors instead of a precomputed distance matrix.</source>
-        <translation type="unfinished"></translation>
+        <translation>KMeansCluster 使用评分特征向量而非预计算距离矩阵。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2353"/>
         <source>Feature space</source>
-        <translation type="unfinished"></translation>
+        <translation>特征空间</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2360"/>
         <source>Score profile</source>
-        <translation type="unfinished"></translation>
+        <translation>评分特征</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2374"/>
         <source>Representatives are selected by nearest centroid in score-profile feature space.</source>
-        <translation type="unfinished"></translation>
+        <translation>代表通过评分特征空间中的最近质心选择。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2385"/>
         <source>LegacyCluster is a deprecated compatibility mode that uses Ward linkage on the score matrix.</source>
-        <translation type="unfinished"></translation>
+        <translation>LegacyCluster 是已弃用的兼容模式，在评分矩阵上使用 Ward 连接。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2391"/>
         <source>Use this only to reproduce historical behavior. Prefer AgglomerativeCluster or EvoCluster for new analyses.</source>
-        <translation type="unfinished"></translation>
+        <translation>仅用于复现历史行为。新分析推荐使用 AgglomerativeCluster 或 EvoCluster。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2397"/>
         <source>Deprecated compatibility mode</source>
-        <translation type="unfinished"></translation>
+        <translation>已弃用的兼容模式</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2407"/>
         <source>Post-Clustering Rosetta Scorings</source>
-        <translation type="unfinished"></translation>
+        <translation>聚类后 Rosetta 评分</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2425"/>
         <source>Run Mutate&apos;n&apos;Relax scoring after clustering.</source>
-        <translation type="unfinished"></translation>
+        <translation>聚类后运行 Mutate'n'Relax 评分。&gt;</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2428"/>
         <source>Mutate/Relax</source>
-        <translation type="unfinished"></translation>
+        <translation>突变/弛豫</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2438"/>
         <source>Rosetta scoring normally exports score tables only. Representative FASTA files are rewritten only when this explicit override option is enabled.</source>
-        <translation type="unfinished"></translation>
+        <translation>Rosetta 评分通常仅导出评分表。代表 FASTA 文件仅在此显式覆盖选项启用时重写。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2441"/>
         <source>Rosetta representatives</source>
-        <translation type="unfinished"></translation>
+        <translation>Rosetta 代表</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2542"/>
@@ -921,42 +921,42 @@
     <message>
         <location filename="../REvoDesign.ui" line="5033"/>
         <source>MD analysis</source>
-        <translation type="unfinished"></translation>
+        <translation>分子动力学分析</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5039"/>
         <source>Gromacs Utils</source>
-        <translation type="unfinished"></translation>
+        <translation>Gromacs 工具</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5050"/>
         <source>Modeling Tools</source>
-        <translation type="unfinished"></translation>
+        <translation>建模工具</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5054"/>
         <source>Vina Tools</source>
-        <translation type="unfinished"></translation>
+        <translation>Vina 工具</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5073"/>
         <source>Backbone Rebuild</source>
-        <translation type="unfinished"></translation>
+        <translation>主链重建</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5077"/>
         <source>RFdiffusion</source>
-        <translation type="unfinished"></translation>
+        <translation>RFdiffusion</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5520"/>
         <source>Utils</source>
-        <translation type="unfinished"></translation>
+        <translation>实用工具</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5091"/>
         <source>Formatters</source>
-        <translation type="unfinished"></translation>
+        <translation>格式化</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="4908"/>
@@ -1197,72 +1197,72 @@
     <message>
         <location filename="../REvoDesign.ui" line="5460"/>
         <source>Vina</source>
-        <translation type="unfinished"></translation>
+        <translation>Vina</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5465"/>
         <source>Prepare Ligand</source>
-        <translation type="unfinished"></translation>
+        <translation>准备配体</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5470"/>
         <source>Prepare Receptor</source>
-        <translation type="unfinished"></translation>
+        <translation>准备受体</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5475"/>
         <source>Export Results</source>
-        <translation type="unfinished"></translation>
+        <translation>导出结果</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5480"/>
         <source>Get Box</source>
-        <translation type="unfinished"></translation>
+        <translation>获取对接盒</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5485"/>
         <source>Alter Box</source>
-        <translation type="unfinished"></translation>
+        <translation>修改对接盒</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5490"/>
         <source>Change Box</source>
-        <translation type="unfinished"></translation>
+        <translation>更改对接盒</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5495"/>
         <source>Get PCA Box</source>
-        <translation type="unfinished"></translation>
+        <translation>获取 PCA 对接盒</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5500"/>
         <source>Remove Het Atoms</source>
-        <translation type="unfinished"></translation>
+        <translation>移除杂原子</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5505"/>
         <source>Substrate Potential</source>
-        <translation type="unfinished"></translation>
+        <translation>底物电位</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5510"/>
         <source>General Task</source>
-        <translation type="unfinished"></translation>
+        <translation>通用任务</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5515"/>
         <source>RMSF to b-factor</source>
-        <translation type="unfinished"></translation>
+        <translation>RMSF 转 b-factor</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5525"/>
         <source>Make Residue Range</source>
-        <translation type="unfinished"></translation>
+        <translation>生成残基范围</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5530"/>
         <source>Shorten Range</source>
-        <translation type="unfinished"></translation>
+        <translation>缩短范围</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5530"/>
@@ -1512,17 +1512,17 @@
     <message>
         <location filename="../REvoDesign.ui" line="561"/>
         <source>Surface area exposure cutoff.</source>
-        <translation type="unfinished"></translation>
+        <translation>溶剂可及表面积暴露阈值。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="539"/>
         <source>Exposure area ≧</source>
-        <translation type="unfinished"></translation>
+        <translation>暴露面积 ≧</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="564"/>
         <source>Å²</source>
-        <translation type="unfinished"></translation>
+        <translation>Å²</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3563"/>
@@ -1952,7 +1952,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="4870"/>
         <source>UI Preferences</source>
-        <translation type="unfinished"></translation>
+        <translation>界面偏好</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="4888"/>
@@ -1972,7 +1972,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="4913"/>
         <source>Runtime</source>
-        <translation type="unfinished"></translation>
+        <translation>运行时</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="4930"/>
@@ -2047,7 +2047,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="5099"/>
         <source>Evolution Tools</source>
-        <translation type="unfinished"></translation>
+        <translation>进化工具</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5128"/>
@@ -2157,17 +2157,17 @@
     <message>
         <location filename="../REvoDesign.ui" line="5324"/>
         <source>Refresh</source>
-        <translation type="unfinished"></translation>
+        <translation>刷新</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5535"/>
         <source>Run GREMLIN</source>
-        <translation type="unfinished"></translation>
+        <translation>运行 GREMLIN</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5540"/>
         <source>Font</source>
-        <translation type="unfinished"></translation>
+        <translation>字体</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5540"/>
