@@ -189,7 +189,7 @@ class LanguageSwitch(QtWidgets.QWidget):
             self.bus.set_value("language", lan.id)
             return
 
-        self.switch_language(language=lan, show_restart_warning=False)
+        self.switch_language(language=lan)
         self._set_action_checked(language=lan)
 
     def get_language_items(self) -> tuple[LanguageItem, ...]:
@@ -271,15 +271,12 @@ class LanguageSwitch(QtWidgets.QWidget):
             logging.debug(f"Registering language {lan.name} by {lan.id} from {lan.language_file}")
             self._bind_to_action(language=lan)
 
-    def switch_language(self, language: LanguageItem, *, show_restart_warning: bool = True):
+    def switch_language(self, language: LanguageItem):
         """
         Switches to the specified language.
 
         Args:
             language: Language item to switch to.
-            show_restart_warning: If True, show a dialog reminding the user
-                that dynamic menu items require a restart.  Set to False
-                during initial config restore.
         """
         app = QtWidgets.QApplication.instance()
         if app is None:
@@ -316,19 +313,6 @@ class LanguageSwitch(QtWidgets.QWidget):
         self._retranslate_language_actions()
         self._set_action_checked(language=language)
         self.bus.set_value("language", language.id)
-
-        if show_restart_warning:
-            # Dynamic menu items (config-edit links, tools, preferences) are created
-            # once at startup and not re-translated on language switch — only static
-            # .ui actions are.  Warn the user to restart for a full retranslation.
-            QtWidgets.QMessageBox.information(
-                self.window,
-                _translate("REvoDesignPyMOL_UI", "Language Changed"),
-                _translate(
-                    "REvoDesignPyMOL_UI",
-                    "The language has been changed. Some menu items require a restart to be fully translated. Please save your configuration and restart REvoDesign to see the complete translation.",
-                ),
-            )
 
     def _retranslate_language_actions(self) -> None:
         """Retranslate dynamically created language menu actions.

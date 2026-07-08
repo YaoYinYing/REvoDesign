@@ -8,16 +8,33 @@ The translation system is managed by `LanguageSwitch` in the
 
 ### Translation sources
 
-REvoDesign has two sources of translatable strings:
+REvoDesign has three sources of translatable strings:
 
 1. **`.ui` widget strings** — Labels, tooltips, and menu section titles defined in
-   `REvoDesign.ui`.  These are extracted by `pylupdate5` and stored in the `.ts`
-   files with `<location>` tags pointing back to the `.ui` file.
+   `REvoDesign.ui`, `value_dialog.ui`, and `launching.ui`.  These are extracted
+   by `pylupdate5` and stored in `.ts` files with `<location>` tags.
 
 2. **Python-source strings** — Dynamic menu items (config-edit links, font settings,
    runtime tools) and dialog messages that use `_translate()` in builder functions.
    These are **hand-maintained** in the `.ts` files — `pylupdate5` cannot reliably
    extract them from Python source (it does not follow aliases or resolve variables).
+
+3. **YAML dialog strings** — `title`, `banner`, and `reason` fields in
+   `shortcuts/registry/*.yaml` are translated at display time by `ValueDialog`
+   via `_translate("ValueDialog", ...)`.  `reason` strings are kept as English
+   source on the `AskedValue` dataclass so that open dialogs can retranslate
+   after a language switch.
+
+### Translator lifecycle
+
+`install_translator_early()` (in `language_settings.py`) reads the saved
+language from `main.yaml` directly and installs the translator on the
+`QApplication` **before** the launching/splash page is shown, so the splash
+appears in the correct language from the first paint.
+
+When `LanguageSwitch` is later created during `make_window()`, its
+`_ensure_translator()` finds and reuses the early-installed translator,
+preventing duplicate translator instances.
 
 ### Language Files
 
@@ -59,32 +76,32 @@ binary, and some registered languages may lack completed translations.
 `LanguageSwitch` (in `application/i18n/language_settings.py`) manages the
 translator lifecycle:
 
-1. **`_ensure_translator()`** — Checks for an existing `QTranslator` on the
-   application. If none exists, creates one from the `.qm` file for the
-   configured language code.
-2. **`switch_language(language, *, show_restart_warning=True)`** — Removes the
-   previous translator from the application, loads the new `.qm` file, installs
-   it, and calls `ui.retranslateUi()` to refresh all static widget text.  On
-   user-triggered switches, shows a QMessageBox warning that dynamic menu items
-   require a restart.  During startup (`restore_from_config()`), the warning is
-   suppressed via `show_restart_warning=False`.
+1. **`_ensure_translator()`** — Checks `bus.ui.trans` (legacy path), then the
+   `QApplication` for an early-installed translator from `install_translator_early()`,
+   and creates a fresh translator only as a last resort.
+2. **`switch_language(language)`** — Removes the previous translator from the
+   application, loads the new `.qm` file, installs it, calls `ui.retranslateUi()`
+   to refresh all static widget text, then iterates `open_windows` and calls
+   `retranslateUi()` on each window that supports it (e.g. `ValueDialog`).
+   Dynamic menu items created at startup are not re-created, but their
+   `action_text` strings are translated at binding time via lazy builder
+   functions (see `application/menu.py`).
 3. **`_retranslate_language_actions()`** — Updates the dynamic language-switch
    menu items to show the correct language name.
 
-### Known limitation
+### Translation contexts
 
-Dynamic menu items (config-edit links, font settings, runtime tools) are created
-once at startup by builder functions in `application/menu.py`.  They use
-`_translate()` at creation time to set the display text, so they capture the
-language that was active when the app started.  Switching language mid-session
-retranslates static `.ui` actions via `retranslateUi()`, but dynamic items
-stay in the original language until the next restart.
+| `.ts` context | Source | Strings |
+|---|---|---|
+| `REvoDesignPyMOL_UI` | `REvoDesign.ui` + hand-maintained | Main window, menu items |
+| `ValueDialog` | `value_dialog.ui` + hand-maintained | Dialog column headers, buttons, YAML `title`/`banner`/`reason` |
+| `LaunchingPage` | `launching.ui` + hand-maintained | Splash page + 10 bootstrap status messages |
 
 ## Adding a New Language
 
 1. **Create the `.ts` file** — Use Qt Linguist or `pylupdate5`:
    ```bash
-   pylupdate5 src/REvoDesign/UI/REvoDesign.ui -ts src/REvoDesign/UI/language/eng-xxx.ts
+   pylupdate5 src/REvoDesign/UI/REvoDesign.ui src/REvoDesign/UI/value_dialog.ui src/REvoDesign/UI/launching.ui -ts src/REvoDesign/UI/language/eng-xxx.ts
    ```
 
 2. **Add the new language to `language.json`** — Register it with a unique
@@ -109,13 +126,15 @@ stay in the original language until the next restart.
 
 ## Runtime Behavior
 
-- The active language is stored in the config (`main.yaml`) under
-  `language`.
-- On plugin startup, `LanguageSwitch` reads this config and loads the
-  corresponding `.qm` file.
+- The active language is stored in the config (`main.yaml`) under `language`.
+- On plugin startup, `install_translator_early()` reads this config and loads
+  the corresponding `.qm` file **before** the splash dialog is shown.
+- When `LanguageSwitch` is later initialized, it reuses the early-installed
+  translator.
 - The language can be switched at runtime via **Menu > Language > ...**.
-- `retranslateUi()` refreshes all static UI text. Dynamic text (e.g., mutant
-  scores) is language-agnostic.
+- `retranslateUi()` refreshes all static UI text and any open `ValueDialog`
+  instances. There is no restart warning — all visible strings update immediately.
+- Dynamic text (e.g., mutant scores) is language-agnostic.
 - Package Manager currently has no translations.
 
 ## Updating Translations After UI Changes
@@ -127,27 +146,28 @@ When `.ui` files are modified:
    python dev/tools/generate_ui_typing.py
    ```
 
-2. Run `make translate` — this runs `pylupdate5` on `REvoDesign.ui` to
+2. Run `make translate` — this runs `pylupdate5` on all three `.ui` files to
    update the `.ts` files with new/changed widget strings, strips
-   `type="obsolete"` from hand-maintained Python-source entries so they
-   are not dropped, then compiles `.ts` → `.qm` via `lrelease`.
+   `type="obsolete"` and `type="unfinished"` from hand-maintained entries so
+   they are not dropped, then compiles `.ts` → `.qm` via `lrelease`.
 
    ```bash
    make translate
    ```
 
-   The script (`tools/translate.sh`) scans only `REvoDesign.ui` for
-   widget strings.  Dynamic-menu and dialog strings in Python source are
-   hand-maintained — add or update their `<message>` entries directly in
-   the `.ts` files.
+   The script (`tools/translate.sh`) scans `REvoDesign.ui`, `value_dialog.ui`,
+   and `launching.ui` for widget strings.  Dynamic-menu and dialog strings in
+   Python source are hand-maintained — add or update their `<message>` entries
+   directly in the `.ts` files.
 
 ### Adding a new Python-source string
 
-When you add a `_translate()` call in Python source (e.g., a new menu
-item in `application/menu.py` or a dialog in `language_settings.py`):
+When you add a `_translate()` call in Python source (e.g., a new menu item
+in `menu.py`, a dialog in `language_settings.py`, or a YAML `reason` field):
 
 1. Add a `<message>` entry by hand to both `eng-chs.ts` and `eng-cht.ts`
-   inside the `REvoDesignPyMOL_UI` context:
+   inside the appropriate context (`REvoDesignPyMOL_UI`, `ValueDialog`, or
+   `LaunchingPage`):
    ```xml
    <message>
        <source>Your English string</source>
@@ -155,14 +175,14 @@ item in `application/menu.py` or a dialog in `language_settings.py`):
    </message>
    ```
 
-2. Rebuild:
+2. Omit the `<location>` tag — `pylupdate5` will mark the entry `type="obsolete"`,
+   but the `sed` step in `translate.sh` strips that attribute so the translation
+   survives into the compiled `.qm`.
+
+3. Rebuild:
    ```bash
    make translate
    ```
-
-   The `sed` step in `translate.sh` strips `type="obsolete"` so
-   hand-maintained entries without `<location>` tags are included in the
-   compiled `.qm`.
 
 ## API Reference
 

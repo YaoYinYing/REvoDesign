@@ -128,7 +128,6 @@ class TestLanguageSwitchSwitchLanguage:
             patch("REvoDesign.application.i18n.language_settings.language_dir", str(tmp_path)),
             patch("REvoDesign.application.i18n.language_settings.ConfigBus") as mock_bus_cls,
             patch("REvoDesign.application.i18n.language_settings.QtWidgets.QAction", MagicMock()),
-            patch("REvoDesign.application.i18n.language_settings.QtWidgets.QMessageBox.information"),
             patch.object(QtWidgets.QApplication, "instance", return_value=mock_app),
         ):
             mock_bus = MagicMock()
@@ -158,7 +157,6 @@ class TestLanguageSwitchSwitchLanguage:
             patch("REvoDesign.application.i18n.language_settings.language_dir", str(tmp_path)),
             patch("REvoDesign.application.i18n.language_settings.ConfigBus") as mock_bus_cls,
             patch("REvoDesign.application.i18n.language_settings.QtWidgets.QAction", MagicMock()),
-            patch("REvoDesign.application.i18n.language_settings.QtWidgets.QMessageBox.information"),
             patch.object(QtWidgets.QApplication, "instance", return_value=mock_app),
         ):
             mock_bus = MagicMock()
@@ -188,7 +186,6 @@ class TestLanguageSwitchSwitchLanguage:
             patch("REvoDesign.application.i18n.language_settings.language_dir", str(tmp_path)),
             patch("REvoDesign.application.i18n.language_settings.ConfigBus") as mock_bus_cls,
             patch("REvoDesign.application.i18n.language_settings.QtWidgets.QAction", MagicMock()),
-            patch("REvoDesign.application.i18n.language_settings.QtWidgets.QMessageBox.information"),
             patch.object(QtWidgets.QApplication, "instance", return_value=mock_app),
         ):
             mock_bus = MagicMock()
