@@ -80,7 +80,11 @@ class TestREvoDesignPlugin_TabPrepare:
         test_worker.pse_snapshot("fin")
 
     @pytest.mark.bootstrap
-    @pytest.mark.dependency(name="tabs_prepare_surface_session", depends=["tabs_bootstrap_prepare", "tabs_prepare_pocket_session"], scope="session")
+    @pytest.mark.dependency(
+        name="tabs_prepare_surface_session",
+        depends=["tabs_bootstrap_prepare", "tabs_prepare_pocket_session"],
+        scope="session",
+    )
     def test_surface(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()

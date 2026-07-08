@@ -21,9 +21,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from REvoDesign import ConfigBus, issues
-from REvoDesign.Qt import QtWidgets
 from REvoDesign.basic.server_monitor import ServerControlAbstract
 from REvoDesign.editor.monaco.monaco import ensure_monaco
+from REvoDesign.Qt import QtWidgets
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
 
 from ...logger import ROOT_LOGGER
