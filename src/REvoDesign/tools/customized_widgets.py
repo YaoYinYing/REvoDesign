@@ -2032,6 +2032,7 @@ class ValueDialog(REvoDesignWidget):
         self.setObjectName(f"ValueDialog - {title}")
         # Store English source for retranslation; translate on display
         self._title_source_text: str = title
+        _tr = QtCore.QCoreApplication.translate
         self.setWindowTitle(_tr("ValueDialog", title))
         # Expose the .ui's layout as self.layout for backward compat with
         # callers that use dialog.layout.itemAt(...) rather than .layout().
