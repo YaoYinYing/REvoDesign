@@ -2,6 +2,29 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_CN">
 <context>
+    <name>LaunchingPage</name>
+    <message>
+        <location filename="../launching.ui" line="208"/>
+        <source>REvoDesign</source>
+        <translation>REvoDesign</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="73"/>
+        <source>REvoDesign is launching</source>
+        <translation>REvoDesign 正在启动</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="117"/>
+        <source>●</source>
+        <translation>●</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="133"/>
+        <source>Initializing</source>
+        <translation>正在初始化</translation>
+    </message>
+</context>
+<context>
     <name>REvoDesignPyMOL_UI</name>
     <message>
         <location filename="../REvoDesign.ui" line="80"/>

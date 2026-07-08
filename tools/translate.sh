@@ -14,7 +14,7 @@ echo "Using lrelease at: $lrelease_path"
 # the .ui file — strip the attribute so lrelease includes them in the compiled .qm.
 for i in $(ls src/REvoDesign/UI/language/*.ts); do
     echo "Updating $i"
-    $pylupdate5_path src/REvoDesign/UI/REvoDesign.ui src/REvoDesign/UI/value_dialog.ui -ts "$i"
+    $pylupdate5_path src/REvoDesign/UI/REvoDesign.ui src/REvoDesign/UI/value_dialog.ui src/REvoDesign/UI/launching.ui -ts "$i"
     sed -i '' 's/ type="obsolete"//g' "$i"
     # pylupdate5 marks entries "unfinished" when .ui line numbers shift
     # even though the translation text is still valid.  Strip the flag so
