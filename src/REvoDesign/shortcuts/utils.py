@@ -19,6 +19,7 @@ from immutabledict import immutabledict
 from REvoDesign import issues
 from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.basic.extensions import resolve_extension
+from REvoDesign.Qt import QtCore
 from REvoDesign.tools.customized_widgets import AskedValue, AskedValueDynamic, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_in_pool
 from REvoDesign.tools.utils import (
@@ -30,6 +31,9 @@ from REvoDesign.tools.utils import (
 )
 
 from ..logger import ROOT_LOGGER
+
+_translate = QtCore.QCoreApplication.translate
+
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -317,9 +321,12 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         asked_values = [_build_asked_value(opt) for opt in conf["options"]] if conf.get("options") else []
         logging.debug(f"Asked values: {asked_values}")
         logging.debug(f"Preparing dialog for {func_id}")
+
+        title = _translate("ValueDialog", conf.get("title", func_id))
+        banner = _translate("ValueDialog", conf.get("banner", "")) if conf.get("banner") else ""
         wrapped_func_window = dialog_wrapper(
-            title=conf.get("title", func_id),
-            banner=conf.get("banner", ""),
+            title=title,
+            banner=banner,
             allow_real_time_update=conf.get("real_time", False),
             options=tuple(asked_values),
         )(self.funcs[func_id])

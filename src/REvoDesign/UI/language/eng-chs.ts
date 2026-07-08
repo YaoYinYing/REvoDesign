@@ -54,11 +54,6 @@
         <translation>底物分子到口袋的最大距离。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3543"/>
-        <source>Å</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="274"/>
         <source>Max distance from cofactor to pocket residue.</source>
         <translation>辅因子到口袋的最大距离。</translation>
@@ -77,11 +72,6 @@
         <location filename="../REvoDesign.ui" line="2612"/>
         <source>Output session path</source>
         <translation>保存PyMOL会话到文件</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="3462"/>
-        <source>...</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="366"/>
@@ -149,11 +139,6 @@
         <translation>突变数据集路径。可用的数据来源/类型：PSSM/DMS/CSV</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3679"/>
-        <source>Format of profile, automatically determined. Profile will be ignored if choosing external designer.</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="749"/>
         <source>Residue ID: </source>
         <translation>残基位置：</translation>
@@ -184,11 +169,6 @@
         <translation>打分的上下限</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="914"/>
-        <source>-2</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="957"/>
         <source>Scoring criteria for profile designer.</source>
         <translation>设计点突变的打分约束</translation>
@@ -197,11 +177,6 @@
         <location filename="../REvoDesign.ui" line="930"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ &lt;/span&gt;&lt;span style=&quot; font-size:18pt; font-style:italic;&quot;&gt;Δ&lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Score &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;Sub-WT &lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ &lt;/span&gt;&lt;span style=&quot; font-size:18pt; font-style:italic;&quot;&gt;Δ&lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;得分 &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;突变-野生 &lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="963"/>
-        <source>10</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2844"/>
@@ -329,11 +304,6 @@
         <translation>用合适的标签来命名每次设计。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="2856"/>
-        <source>default</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="1326"/>
         <source>Choose mutant from structural insights</source>
         <translation>根据结构见解选择合适的点突变设计。</translation>
@@ -444,11 +414,6 @@
         <translation>下一个</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="1627"/>
-        <source>Alt+Shift+]</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="1659"/>
         <source>Reject This Mutant. Shortcut: Shift+Opt+- </source>
         <translation>拒绝这个点突变。快捷键：Shift+Opt+- </translation>
@@ -457,11 +422,6 @@
         <location filename="../REvoDesign.ui" line="3735"/>
         <source>Reject</source>
         <translation>拒绝</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="1668"/>
-        <source>Alt+Shift+-</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1697"/>
@@ -474,11 +434,6 @@
         <translation>接受</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="1706"/>
-        <source>Alt+Shift+=</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="1735"/>
         <source>Go To Previous Mutant. Shortcut: Shift+Opt+[ </source>
         <translation>上一个点突变。快捷键：Shortcut: Shift+Opt+[ </translation>
@@ -489,11 +444,6 @@
         <translation>上一个</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="1741"/>
-        <source>Alt+Shift+[</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="1783"/>
         <source>Jump to the best hit in this mutant group. Shortcut: Shift+Opt+\</source>
         <translation>挑选最优突变</translation>
@@ -502,11 +452,6 @@
         <location filename="../REvoDesign.ui" line="1786"/>
         <source>Find the Best Hit</source>
         <translation>选择组内最优</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="1789"/>
-        <source>Alt+Shift+\</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1805"/>
@@ -969,11 +914,6 @@
         <translation>文档</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="5227"/>
-        <source>Ctrl+D</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="4865"/>
         <source>Recent Experiments</source>
         <translation>近期实验配置</translation>
@@ -984,19 +924,9 @@
         <translation>保存配置为</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="5235"/>
-        <source>Ctrl+Alt+S</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="5240"/>
         <source>Close</source>
         <translation>关闭</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="5243"/>
-        <source>Ctrl+W</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5248"/>
@@ -1014,11 +944,6 @@
         <translation>风格预设</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="5263"/>
-        <source>To Current Directory</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="5268"/>
         <source>Render to Clipboard</source>
         <translation>渲染至剪贴板</translation>
@@ -1027,11 +952,6 @@
         <location filename="../REvoDesign.ui" line="5273"/>
         <source>Render to File</source>
         <translation>渲染至文件</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="5278"/>
-        <source>All Group</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5298"/>
@@ -1049,19 +969,9 @@
         <translation>选择绘制侧链</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="5301"/>
-        <source>Ctrl+Shift+R</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="5306"/>
         <source>Picked Group</source>
         <translation>选中的分组</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="5309"/>
-        <source>Ctrl+R</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5314"/>
@@ -1345,19 +1255,9 @@
         <translation>初始化</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3151"/>
-        <source>⏏️</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="3178"/>
         <source>Start new design</source>
         <translation>开始新的设计</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="3181"/>
-        <source>⏯️</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3208"/>
@@ -1365,19 +1265,9 @@
         <translation>断开上一个</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3211"/>
-        <source>⏪️</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="3238"/>
         <source>Connect to the next pair.</source>
         <translation>连接下一个</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="3241"/>
-        <source>⏩️</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3268"/>
@@ -1385,19 +1275,9 @@
         <translation>停止当前设计</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3271"/>
-        <source>⏹️</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="3298"/>
         <source>Save designs to mutant table</source>
         <translation>保存设计的点突变到突变表。</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="3301"/>
-        <source>💾</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3339"/>
@@ -1700,11 +1580,6 @@
         <translation>主机IP/域名</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4067"/>
-        <source>localhost</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="4078"/>
         <source>Join the network</source>
         <translation>加入互联的网络</translation>
@@ -1880,11 +1755,6 @@
         <translation>节点类型：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4583"/>
-        <source>Node Hint for Rosetta.</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="4602"/>
         <source>Molecule and Chain</source>
         <translation>蛋白分子和肽链</translation>
@@ -2040,11 +1910,6 @@
         <translation>分子动力学</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="5026"/>
-        <source>OpenMM</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="5099"/>
         <source>Evolution Tools</source>
         <translation>进化工具</translation>
@@ -2065,11 +1930,6 @@
         <translation>导入PyMOL会话</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="5141"/>
-        <source>Ctrl+N</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="5146"/>
         <source>Citations</source>
         <translation>引用</translation>
@@ -2080,11 +1940,6 @@
         <translation>设置工作路径</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="5154"/>
-        <source>Ctrl+Shift+W</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="5159"/>
         <source>Debug</source>
         <translation>调试</translation>
@@ -2093,11 +1948,6 @@
         <location filename="../REvoDesign.ui" line="5164"/>
         <source>Warning</source>
         <translation>告警</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="5169"/>
-        <source>Info</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5174"/>
@@ -2115,11 +1965,6 @@
         <translation>保存配置</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="5185"/>
-        <source>Ctrl+S</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="5190"/>
         <source>Load Demo</source>
         <translation>加载实例</translation>
@@ -2130,29 +1975,14 @@
         <translation>加载</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="5198"/>
-        <source>Ctrl+Shift+L</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="5203"/>
         <source>Save to ...</source>
         <translation>保存到...</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="5206"/>
-        <source>Ctrl+Shift+S</source>
-        <translation></translation>
-    </message>
-    <message>
         <location filename="../REvoDesign.ui" line="5216"/>
         <source>Version</source>
         <translation>版本</translation>
-    </message>
-    <message>
-        <location filename="../REvoDesign.ui" line="5219"/>
-        <source>Ctrl+Alt+V</source>
-        <translation></translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="5324"/>
@@ -2193,6 +2023,267 @@
         <location filename="../REvoDesign.ui" line="5540"/>
         <source>The language has been changed. Some menu items require a restart to be fully translated. Please save your configuration and restart REvoDesign to see the complete translation.</source>
         <translation>语言已更改。部分菜单项需要重启后才能完全翻译。请保存配置并重启 REvoDesign 以查看完整翻译。</translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3543"/>
+        <source>Å</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3462"/>
+        <source>...</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3679"/>
+        <source>Format of profile, automatically determined. Profile will be ignored if choosing external designer.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="914"/>
+        <source>-2</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="963"/>
+        <source>10</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="2856"/>
+        <source>default</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="1627"/>
+        <source>Alt+Shift+]</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="1668"/>
+        <source>Alt+Shift+-</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="1706"/>
+        <source>Alt+Shift+=</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="1741"/>
+        <source>Alt+Shift+[</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="1789"/>
+        <source>Alt+Shift+\</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3151"/>
+        <source>⏏️</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3181"/>
+        <source>⏯️</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3211"/>
+        <source>⏪️</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3241"/>
+        <source>⏩️</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3271"/>
+        <source>⏹️</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3301"/>
+        <source>💾</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="4067"/>
+        <source>localhost</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="4583"/>
+        <source>Node Hint for Rosetta.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5026"/>
+        <source>OpenMM</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5141"/>
+        <source>Ctrl+N</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5154"/>
+        <source>Ctrl+Shift+W</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5169"/>
+        <source>Info</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5185"/>
+        <source>Ctrl+S</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5198"/>
+        <source>Ctrl+Shift+L</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5206"/>
+        <source>Ctrl+Shift+S</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5219"/>
+        <source>Ctrl+Alt+V</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5227"/>
+        <source>Ctrl+D</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5235"/>
+        <source>Ctrl+Alt+S</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5243"/>
+        <source>Ctrl+W</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5263"/>
+        <source>To Current Directory</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5278"/>
+        <source>All Group</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5301"/>
+        <source>Ctrl+Shift+R</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5309"/>
+        <source>Ctrl+R</source>
+        <translation></translation>
+    </message>
+</context>
+<context>
+    <name>ValueDialog</name>
+    <message>
+        <location filename="../value_dialog.ui" line="6"/>
+        <source>ValueDialog</source>
+        <translation>数值对话框</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="50"/>
+        <source>Field</source>
+        <translation>字段</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="55"/>
+        <source>Type</source>
+        <translation>类型</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="60"/>
+        <source>Input</source>
+        <translation>输入</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="65"/>
+        <source>Action</source>
+        <translation>操作</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="75"/>
+        <source>Real-Time Update</source>
+        <translation>实时更新</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="78"/>
+        <source>When enabled, the dialog will be run in real-time as you type or change the values.</source>
+        <translation>启用后，对话框将在您输入或更改值时实时运行。</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="85"/>
+        <source>Apply Now</source>
+        <translation>立即应用</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="88"/>
+        <source>Click to apply the current values to the dialog.</source>
+        <translation>点击以将当前值应用到对话框。</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="99"/>
+        <source>Load</source>
+        <translation>加载</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="102"/>
+        <source>Load the previous saved recipe to replicate the same settings. Also, you can drag and drop the recipe file (json) into this window here.</source>
+        <translation>加载之前保存的配方以复制相同设置。也可以将配方文件（json）拖放到此窗口中。</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="109"/>
+        <source>Save</source>
+        <translation>保存</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="112"/>
+        <source>Save the current values as a new recipe.</source>
+        <translation>将当前值保存为新配方。</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="123"/>
+        <source>OK</source>
+        <translation>确定</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+</context>
+<context>
+    <name>ValueDialogBase</name>
+    <message>
+        <location filename="../value_dialog.ui" line="99"/>
+        <source>Load</source>
+        <translation>加载</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Cancel</source>
+        <translation>取消</translation>
     </message>
 </context>
 </TS>

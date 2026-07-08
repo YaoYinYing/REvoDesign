@@ -131,6 +131,29 @@ def _load_with_qtuitools(
     return window, RuntimeUiProxy(window)
 
 
+def apply_ui_to_widget(
+    ui_path: str | Path,
+    widget: QtWidgets.QWidget,
+) -> tuple[object, RuntimeUiProxy]:
+    """Load a Qt Designer .ui file and apply it to an existing widget.
+
+    Unlike :func:`load_runtime_ui`, this does **not** create a new widget.
+    Instead it calls ``setupUi(widget)`` so the .ui's child widgets become
+    children of *widget*.  Returns the form object (for ``retranslateUi``
+    access) and a :class:`RuntimeUiProxy` for named-widget lookups.
+
+    Only the PyQt uic path is supported — QUiLoader always creates a new
+    widget and cannot apply to an existing one.
+    """
+    resolved_ui_path = Path(ui_path).resolve()
+    uic = _load_pyqt_uic_module()
+    form_class, _ = uic.loadUiType(str(resolved_ui_path))
+    ui_form = form_class()
+    ui_form.setupUi(widget)
+    proxy = RuntimeUiProxy(widget, retranslator=ui_form.retranslateUi, source_ui=ui_form)
+    return ui_form, proxy
+
+
 def load_runtime_ui(
     ui_path: str | Path,
     parent: QtWidgets.QWidget | None = None,
@@ -158,4 +181,4 @@ def load_runtime_ui(
     )
 
 
-__all__ = ["RuntimeUiProxy", "is_language_change_event", "load_runtime_ui"]
+__all__ = ["RuntimeUiProxy", "apply_ui_to_widget", "is_language_change_event", "load_runtime_ui"]

@@ -2195,4 +2195,82 @@
         <translation>語言已更改。部分選單項目需要重啟後才能完全翻譯。請儲存配置並重啟 REvoDesign 以查看完整翻譯。</translation>
     </message>
 </context>
+<context>
+    <name>ValueDialog</name>
+    <message>
+        <location filename="../value_dialog.ui" line="6"/>
+        <source>ValueDialog</source>
+        <translation>數值對話框</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="50"/>
+        <source>Field</source>
+        <translation>欄位</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="55"/>
+        <source>Type</source>
+        <translation>類型</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="60"/>
+        <source>Input</source>
+        <translation>輸入</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="65"/>
+        <source>Action</source>
+        <translation>操作</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="75"/>
+        <source>Real-Time Update</source>
+        <translation>即時更新</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="78"/>
+        <source>When enabled, the dialog will be run in real-time as you type or change the values.</source>
+        <translation>啟用後，對話框將在您輸入或更改值時即時運行。</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="85"/>
+        <source>Apply Now</source>
+        <translation>立即應用</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="88"/>
+        <source>Click to apply the current values to the dialog.</source>
+        <translation>點擊以將當前值應用到對話框。</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="99"/>
+        <source>Load</source>
+        <translation>載入</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="102"/>
+        <source>Load the previous saved recipe to replicate the same settings. Also, you can drag and drop the recipe file (json) into this window here.</source>
+        <translation>載入之前儲存的配方以複製相同設定。也可以將配方檔案（json）拖放到此視窗中。</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="109"/>
+        <source>Save</source>
+        <translation>儲存</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="112"/>
+        <source>Save the current values as a new recipe.</source>
+        <translation>將當前值儲存為新配方。</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="123"/>
+        <source>OK</source>
+        <translation>確定</translation>
+    </message>
+    <message>
+        <location filename="../value_dialog.ui" line="130"/>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+</context>
 </TS>

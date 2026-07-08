@@ -241,6 +241,14 @@ class LanguageSwitch(QtWidgets.QWidget):
             )
 
         self.bus.ui.retranslateUi(self.window)
+
+        # Retranslate any open dialogs that support it (e.g. ValueDialog).
+        if hasattr(self.bus.ui, "open_windows"):
+            for window in list(self.bus.ui.open_windows):
+                retranslate = getattr(window, "retranslateUi", None)
+                if retranslate is not None:
+                    retranslate()
+
         self._retranslate_language_actions()
         self._set_action_checked(language=language)
         self.bus.set_value("language", language.id)
