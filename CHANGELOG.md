@@ -27,6 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `docs` optional-dependency group in `pyproject.toml` (mkdocs, mkdocs-material, mkdocstrings[python]).
   - Updated `[project.urls] Documentation` to `https://YaoYinYing.github.io/REvoDesign`.
 
+### Added
+- Launching page with bootstrap status indicator (`src/REvoDesign/UI/launching.ui`, `src/REvoDesign/application/launching.py`):
+  - "REvoDesign is launching" title with dynamic subtitle updated at each bootstrap step (e.g. "Ensuring configurations", "Registering plugins").
+  - Determinate progress bar tracking ~10 bootstrap steps.
+  - Dark theme by default; auto-switches to light via system palette luminance detection.
+  - Footer showing version · license (left) and user@host (right).
+  - `load_runtime_ui` relaxed from `QMainWindow` to `QWidget` so dialog-based `.ui` files load.
+  - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
+
 ### Changed
 - Moved legacy `docs/` to `docs_old/` for archival; new docs are a fresh MkDocs site.
 - Updated README links to point to new docs structure.

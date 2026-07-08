@@ -156,21 +156,18 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.bus.set_value("work_dir", os.path.abspath(self.PWD))
 
-    @staticmethod
-    def _update_launch_status(splash_proxy: "RuntimeUiProxy | None", message: str) -> None:
-        """Update the launching page subtitle with the current bootstrap step."""
-        if splash_proxy is None:
-            return
-        splash_proxy.labelStatus.setText(message)
-        QtWidgets.QApplication.processEvents()
-
     def run_plugin_gui(self):
         """PyMOL entry for running the plugin"""
         if self.window is None:
+            from REvoDesign.application import launching
+
+            launching.init(total_steps=10)  # "Initializing" + 9 _status calls in make_window
+
             ui_path = Path(__file__).resolve().parent / "UI" / "launching.ui"
             splash_dialog, splash_proxy = load_runtime_ui(ui_path)
+            splash_dialog.setStyleSheet(launching.stylesheet())
             splash_dialog.setWindowFlags(QtCore.Qt.WindowType.SplashScreen)
-            self._update_launch_status(splash_proxy, "Initializing")
+            launching.update_status(splash_proxy, "Initializing")
             splash_dialog.show()
             QtWidgets.QApplication.processEvents()
 
@@ -233,6 +230,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         Returns:
             QtWidgets.QMainWindow: new main window object
         """
+        from REvoDesign.application import launching
         from REvoDesign.application.cluster_tab import ClusterTabController
         from REvoDesign.application.font import FontSetter
         from REvoDesign.application.i18n import LanguageSwitch
@@ -245,7 +243,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         from REvoDesign.shortcuts.tools.openmm_utils import OpenmmSetupServerControl
         from REvoDesign.tools.system_tools import check_mac_rosetta2
 
-        _status = partial(self._update_launch_status, splash_proxy)
+        _status = partial(launching.update_status, splash_proxy)
 
         installed_dir = os.path.dirname(__file__)
         logging.debug(f"REvoDesign is installed in {installed_dir}")
