@@ -9,7 +9,7 @@ src/REvoDesign/
 ├── application/
 │   ├── cluster_tab.py            # ClusterTabController
 │   ├── icon.py                   # IconSetter
-│   ├── menu.py                   # MENU_LINKS, TOOLS_MENU_LINKS, CONFIG_EDIT_LINKS
+│   ├── menu.py                   # Menu builders: core_menu_links(), menu_links(), config_edit_links()
 │   ├── font/
 │   │   └── font_manager.py       # Font manager for UI styling
 │   └── i18n/
@@ -174,8 +174,8 @@ reload_configurations()          # Initialize ConfigBus (headless → GUI mode),
 ClusterTabController(ui, bus)    # Manage clustering tab state
 FontSetter(main_window)          # Apply application font
 LanguageSwitch(window)           # i18n translator setup
-MenuCollection(...)              # Wire static menu items (working dir, reconfigure, etc.)
-QtCore.QTimer → _bind_menu_links # Deferred: scan config files for edit/recent-experiment links
+MenuCollection(..., core_menu_links(self))  # Wire core menu items (working dir, reconfigure, etc.)
+QtCore.QTimer → _bind_menu_links           # Deferred: call menu_links() (scans config files for edit/recent-experiment links)
 StoresWidget()                   # Server switch monitors (Editor, OpenMM)
 # Wire tab-specific button signals, combo-box connections, and WebSocket setup
 ```

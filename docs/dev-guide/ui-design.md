@@ -86,8 +86,9 @@ Widget object names in Qt Designer follow these patterns:
 3. If the widget needs signal wiring, add the connection in
    `REvoDesignPlugin.__init__()` or a deferred `QTimer` callback.
 4. Regenerate `types.py` and update translations.
-5. If it's a new menu action, add a `MenuItem` registration in
-   `REvoDesignPlugin._bind_menu_links()`.
+5. If it's a new menu action, add a `MenuItem` to the appropriate tuple
+   in `application/menu.py` (e.g. `TOOLS_MENU_LINKS`, `OTHER_MENU_LINKS`)
+   or to `core_menu_links()` for core application actions.
 
 ## Package Manager UI
 
