@@ -32,7 +32,7 @@ from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.evaluate import Evaluator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import GremlinAnalyser, MutateWorker, VisualizingWorker
-from REvoDesign.Qt import QT_BACKEND, QtCore, QtGui, QtWidgets, has_qt_module
+from REvoDesign.Qt import QT_BACKEND, QtCore, QtWidgets, has_qt_module
 from REvoDesign.Qt.ui_runtime_loader import is_language_change_event, load_runtime_ui
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (
@@ -40,7 +40,6 @@ from REvoDesign.tools.customized_widgets import (
     decide,
     getExistingDirectory,
     hold_trigger_button,
-    notify_box,
     set_widget_value,
 )
 from REvoDesign.tools.mutant_tools import (
@@ -62,8 +61,6 @@ from REvoDesign.tools.utils import generate_strong_password, require_not_none, r
 if TYPE_CHECKING:
     from REvoDesign.Qt.ui_runtime_loader import RuntimeUiProxy
     from REvoDesign.UI.types import REvoDesignUiProtocol
-
-REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
 # only when the window is activated by user can this logger be initialized.
 logging: LoggerT = None  # type: ignore
@@ -235,7 +232,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         from REvoDesign.application.font import FontSetter
         from REvoDesign.application.i18n import LanguageSwitch
         from REvoDesign.application.icon import IconSetter
-        from REvoDesign.basic.menu_item import MenuCollection, MenuItem
+        from REvoDesign.application.menu import core_menu_links
+        from REvoDesign.basic.menu_item import MenuCollection
         from REvoDesign.basic.server_monitor import MenuActionServerMonitor
         from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketClient, REvoDesignWebSocketServer
         from REvoDesign.driver.ui_driver import StoresWidget
@@ -296,51 +294,15 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # TODO: issue: menu system translations
 
         _status("Registering menu plugins")
-        MenuCollection(
-            self.bus.ui,
-            (
-                MenuItem(
-                    "actionSet_Working_Directory",
-                    self.set_working_directory,
-                ),
-                MenuItem(
-                    "actionReconfigure",
-                    self.reload_configurations,
-                ),
-                MenuItem("actionSave_Configurations", self.bus.cfg_group["main"].save),
-                MenuItem(
-                    "action_LoadExperiment",
-                    self.load_and_save_experiment,
-                    kwargs={"mode": "r"},
-                ),
-                MenuItem(
-                    "action_Save_to_Experiment",
-                    self.load_and_save_experiment,
-                    kwargs={"mode": "w"},
-                ),
-                MenuItem(
-                    "actionReinitialize",
-                    self.reinitialize,
-                    kwargs={"delete": True},
-                ),
-                MenuItem("actionSource_Code", QtGui.QDesktopServices.openUrl, (QtCore.QUrl(REPO_URL),)),
-                MenuItem(
-                    "actionVersion",
-                    notify_box,
-                    kwargs={"message": f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"},
-                ),
-            ),
-        )
-        # TODO: dynamic created menu item tree system
-        # The application/menu module scans the config directory at import
-        # time to build config-edit and recent-experiment links.  Defer its
-        # import and binding until the window is painted so that startup
-        # latency is not gated on filesystem I/O.
+        MenuCollection(self.bus.ui, core_menu_links(self))
 
+        # Defer filesystem-scanning menu items (config-edit links, recent
+        # experiments) until the window is painted so startup latency is
+        # not gated on directory I/O.
         def _bind_menu_links():
-            from REvoDesign.application.menu import MENU_LINKS
+            from REvoDesign.application.menu import menu_links
 
-            MenuCollection(self.bus.ui, MENU_LINKS)
+            MenuCollection(self.bus.ui, menu_links())
 
         QtCore.QTimer.singleShot(0, _bind_menu_links)
 

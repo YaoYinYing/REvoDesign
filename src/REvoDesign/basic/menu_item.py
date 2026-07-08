@@ -7,6 +7,8 @@
 Data classes for menu items and menu collections.
 """
 
+from __future__ import annotations
+
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import cached_property
@@ -19,22 +21,19 @@ _translate = QtCore.QCoreApplication.translate
 
 @dataclass(frozen=True)
 class MenuItem:
-    """
-    A data class representing a menu item.
-
-    This class is used to define the properties of a menu item, including its name, associated function, and optional arguments.
-    The use of the @dataclass decorator automatically generates special methods such as __init__(), __repr__(), and __eq__().
-    The frozen parameter ensures that instances of the class are immutable, enhancing thread safety and consistency.
+    """A data class representing a menu item.
 
     Attributes:
-        action (str): The action attr name associated with the menu item. Set to '---' for a separator to a menu section.
-        func (Callable|str): The function associated with the menu item, which is executed when the item is selected.
-        args (Optional[Tuple]): Optional arguments passed to the associated function when it is executed. Defaults to None.
-        kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
-        action_text (Optional[str]): The text to display in the menu item if we need to build the action from scratch. Defaults to None.
-        menu_section (Optional[str]): The menu section to which the menu item belongs if we need to build the action from scratch. Defaults to None.
-
-
+        action: The action attr name associated with the menu item.
+            Set to ``'---'`` for a separator.
+        func: The function associated with the menu item, executed when
+            the item is selected.  May be a callable, a dotted-string
+            reference (``"pkg.mod:func"``), or ``"LAMBDA:..."``.
+        args: Positional arguments passed to *func* on trigger.
+        kwargs: Keyword arguments passed to *func* on trigger.
+        action_text: Display text for dynamically-created actions.
+        menu_section: Target QMenu (or its object name) for dynamically-
+            created actions.
     """
 
     action: str
@@ -44,19 +43,19 @@ class MenuItem:
     action_text: str | None = None
     menu_section: str | QtWidgets.QMenu | None = None
 
+    @classmethod
+    def separator(cls, menu_section: str | QtWidgets.QMenu) -> MenuItem:
+        """Shorthand for a menu separator in *menu_section*."""
+        return cls("---", "---", menu_section=menu_section)
+
     @cached_property
     def is_separator(self) -> bool:
-        """
-        Returns True if the menu item is a separator, False otherwise.
-        """
+        """Return True if this item is a menu separator."""
         return self.action == "---"
 
     @cached_property
     def func_to_call(self) -> Callable:
-        """
-        Returns the real callable function to be executed.
-        If the function is a string, it will be resolved to a callable function.
-        """
+        """Return the resolved callable for this menu item."""
         if isinstance(self.func, str):
             from REvoDesign.tools.utils import resolve_dotted_function, resolve_lambda_expression
 
@@ -66,87 +65,61 @@ class MenuItem:
         return self.func
 
     @cached_property
-    def trigger(self):
-        """
-        Returns a triggered function that is lazy resolved
-        """
+    def trigger(self) -> Callable:
+        """Return a zero-argument callable that invokes *func_to_call*."""
         return lambda: self.func_to_call(*self.args or (), **self.kwargs or {})
 
 
 @dataclass(frozen=True)
 class MenuCollection:
-    """
-    A data class representing a collection of menu items.
-    This class registers the menu items and their associated functions while instantiating the class.
-
-    """
+    """Bind a collection of MenuItems to a UI proxy's named QActions / QMenus."""
 
     ui: QtWidgets.QWidget
     menu_items: tuple[MenuItem, ...]
 
-    def __post_init__(self):
-        """
-        Post-initialization method.
-        This method is called after the object is created and initialized.
-        It checks if the menu items are valid, raising an error if they are not.
-        """
+    def __post_init__(self) -> None:
         self.bind()
 
-    def bind(self):
+    def bind(self) -> None:
+        """Bind every menu item to its QAction (static or dynamically-created)."""
+        for item in self.menu_items:
+            self.bind_one(item)
+
+    def bind_one(self, item: MenuItem) -> None:
+        """Bind a single *item* to the UI.
+
+        When a QAction with *item.action* already exists on the UI it is
+        connected directly.  Otherwise a new QAction is created and added
+        to the menu section named by *item.menu_section*.
         """
-        Binds the menu items to their respective functions.
-        This method iterates over the menu items and binds their functions to the associated actions.
-        """
+        if hasattr(self.ui, item.action):
+            getattr(self.ui, item.action).triggered.connect(item.trigger)  # type: ignore[union-attr]
+            return
 
-        for m in self.menu_items:
-            # if the action does not exist in the ui, we need to create it first
-            if not hasattr(self.ui, m.action):
+        menu = self._menu_section(item)
+        if item.is_separator:
+            menu.addSeparator()
+            return
 
-                # print(f"Try to build the menu action {m.action} because it is missing in the {self.ui}. ")
-                # Falling back to the menu section if provided.
+        action = QtWidgets.QAction(item.action_text or item.action, parent=menu)
+        action.setObjectName(item.action)
+        action.setText(_translate("REvoDesignPyMOL_UI", item.action_text or item.action))
+        action.triggered.connect(item.trigger)
+        menu.addAction(action)
 
-                if m.menu_section is None:
-                    raise issues.InternalError(
-                        f"To build a menu action({m.action})"
-                        f" that does not exist in the menu section, a menu section must be provided."
-                    )
-                # print(f"Menu Section: {m.menu_section}")
+    def _menu_section(self, item: MenuItem) -> QtWidgets.QMenu:
+        """Resolve and validate the QMenu target for a dynamic *item*."""
+        if item.menu_section is None:
+            raise issues.InternalError(f"Missing menu section for dynamic menu action: {item.action!r}")
 
-                # Get the menu section object
-                if isinstance(m.menu_section, str):
-                    menu_section_obj = getattr(self.ui, m.menu_section)
-                else:
-                    menu_section_obj: QtWidgets.QMenu = m.menu_section
+        if isinstance(item.menu_section, str):
+            menu = getattr(self.ui, item.menu_section)
+        else:
+            menu = item.menu_section
 
-                # double check the menu section object type
-                if not isinstance(menu_section_obj, QtWidgets.QMenu):
-                    raise issues.InternalError(
-                        f"Menu section must be a QMenu object, instead of {type(menu_section_obj)}"
-                    )
-                try:
-                    if m.is_separator:
-                        # add a separator to the menu
-                        menu_section_obj.addSeparator()
-                        # print(f"Successfully added separator to menu section {m.menu_section} ({menu_section_obj}).")
-                        continue
+        if not isinstance(menu, QtWidgets.QMenu):
+            raise issues.InternalError(f"Menu section must be a QMenu, got {type(menu).__name__!r}")
+        return menu
 
-                    # build a new action and add it to the menu
-                    action = QtWidgets.QAction(m.action_text or m.action, parent=menu_section_obj)
-                    action.setObjectName(m.action)
-                    action.setText(_translate("REvoDesignPyMOL_UI", m.action_text or m.action))
-                    action.triggered.connect(m.trigger)
-                    menu_section_obj.addAction(action)
 
-                    # print(
-                    #     f"Successfully bound menu item {m} ({action}) to menu section {m.menu_section} ({menu_section_obj})."
-                    # )
-                except Exception as e:
-                    print(f"Skipping binding menu item due to error: {m}: {e}")
-                    continue
-            # otherwise, we can just bind the function to the existing action
-            else:
-                try:
-                    action: QtWidgets.QAction = getattr(self.ui, m.action)
-                    action.triggered.connect(m.trigger)
-                except AttributeError as e:
-                    print(f"Skipping binding menu item due to error: {m}: {e}")
+__all__ = ["MenuCollection", "MenuItem"]

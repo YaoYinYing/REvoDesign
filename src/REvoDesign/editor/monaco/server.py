@@ -57,7 +57,7 @@ def get_file_whitelist():
         notebookfile = os.path.join(notebookfile_dir, "REvoDesign.notebook.log")
 
     # Example hardcoded lists:
-    editable_files = (*all_config_files.values(),)
+    editable_files = (*all_config_files().values(),)
     readonly_files = (
         logfile,
         notebookfile,
