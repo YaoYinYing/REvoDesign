@@ -147,8 +147,10 @@ class LanguageSwitch(QtWidgets.QWidget):
         # Own the translator reference so that LanguageSwitch does not depend on
         # bus.ui.trans being present at every call site.  bus.ui.trans is still
         # consulted as a legacy alias via _ensure_translator().
-        self.trans = self._ensure_translator()
         self._translator_installed = False
+        self.trans = self._ensure_translator()
+        # _ensure_translator may flip the flag to True when reusing an
+        # early-installed translator from install_translator_early().
 
         self.register_language()
         self._set_action_clickable()
@@ -219,8 +221,8 @@ class LanguageSwitch(QtWidgets.QWidget):
         if app is not None:
             for child in app.children():
                 if isinstance(child, QtCore.QTranslator):
-                    # attach to bus.ui.trans for legacy callers
                     setattr(self.bus.ui, "trans", child)
+                    self._translator_installed = True
                     return child
 
         translator = QtCore.QTranslator(self.window)
