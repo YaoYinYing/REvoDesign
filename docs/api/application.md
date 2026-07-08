@@ -1,20 +1,28 @@
 # Application Layer
 
-## Menu Links
+## Menu Builders
 
-The following module-level constants define the application's menu structure.
-These are built at import time from YAML configuration files and registered
-shortcut wrappers.
+The menu system uses builder functions that generate `MenuItem` tuples on demand.
+Filesystem scanning (for config-edit and recent-experiment links) is deferred until
+the builder is called — importing the module is cheap.
 
-::: REvoDesign.application.menu.CONFIG_EDIT_LINKS
+::: REvoDesign.application.menu.core_menu_links
+    options:
+      show_submodules: false
+
+::: REvoDesign.application.menu.menu_links
+    options:
+      show_submodules: false
+
+::: REvoDesign.application.menu.config_edit_links
+    options:
+      show_submodules: false
+
+::: REvoDesign.application.menu.static_menu_links
     options:
       show_submodules: false
 
 ::: REvoDesign.application.menu.TOOLS_MENU_LINKS
-    options:
-      show_submodules: false
-
-::: REvoDesign.application.menu.MENU_LINKS
     options:
       show_submodules: false
 

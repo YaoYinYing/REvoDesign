@@ -192,13 +192,6 @@ def test_config_edit_links_has_main_config_first():
     assert "main" in first_non_sep.action
 
 
-def test_config_edit_links_includes_recent_experiments():
-    """config_edit_links() includes recent-experiment items when experiments exist."""
-    links = config_edit_links()
-    recent = [item for item in links if item.menu_section == "menuRecent_Experiments"]
-    # At least some experiments should exist (test infrastructure creates them)
-    assert len(recent) >= 0  # may be empty in clean test env, that's fine
-
 
 def test_core_menu_links_returns_tuple():
     """core_menu_links(app) returns a tuple with expected core action names."""
