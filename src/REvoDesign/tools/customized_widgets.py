@@ -2013,7 +2013,6 @@ class ValueDialog(REvoDesignWidget):
         """
         super().__init__(f"ValueDialog - {title}", allow_repeat=False, parent=parent)
 
-        self.setWindowTitle(title)
         self.key_dict = key_dict.asked_values
         self.allow_real_time_update: bool = key_dict.allow_real_time_update
         self.enable_real_time_update: bool = False
@@ -2025,13 +2024,16 @@ class ValueDialog(REvoDesignWidget):
 
         # Load static .ui shell (banner, table, buttons) — setupUi populates
         # self with child widgets from the Designer form.
-        _tr = QtCore.QCoreApplication.translate
         ui_path = os.path.join(os.path.dirname(__file__), "..", "UI", "value_dialog.ui")
         from REvoDesign.Qt.ui_runtime_loader import apply_ui_to_widget
 
         self._ui_form, self._proxy = apply_ui_to_widget(ui_path, self)
-        # Restore object name that setupUi may have overwritten
+        # Restore object name and window title that setupUi may have overwritten
         self.setObjectName(f"ValueDialog - {title}")
+        self.setWindowTitle(title)
+        # Expose the .ui's layout as self.layout for backward compat with
+        # callers that use dialog.layout.itemAt(...) rather than .layout().
+        self.layout = self.layout()
         self.banner_label: QtWidgets.QLabel = self._proxy.banner_label
         self.table: QtWidgets.QTableWidget = self._proxy.table
         self.realtime_checkbox: QtWidgets.QCheckBox = self._proxy.enable_real_time_update_checkbox
