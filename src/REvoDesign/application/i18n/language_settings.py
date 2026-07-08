@@ -245,14 +245,14 @@ class LanguageSwitch(QtWidgets.QWidget):
         # Dynamic menu items (config-edit links, tools, preferences) are created
         # once at startup and not re-translated on language switch — only static
         # .ui actions are.  Warn the user to restart for a full retranslation.
+        # pylupdate5 does not handle implicit string concatenation — keep the
+        # translatable message as a single string literal.
         QtWidgets.QMessageBox.information(
             self.window,
             _translate("REvoDesignPyMOL_UI", "Language Changed"),
             _translate(
                 "REvoDesignPyMOL_UI",
-                "The language has been changed. Some menu items require a restart "
-                "to be fully translated. Please save your configuration and restart "
-                "REvoDesign to see the complete translation.",
+                "The language has been changed. Some menu items require a restart to be fully translated. Please save your configuration and restart REvoDesign to see the complete translation.",
             ),
         )
 

@@ -2170,19 +2170,29 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../application/menu.py" line="70"/>
+        <location filename="../REvoDesign.ui" line="5540"/>
         <source>Edit %1</source>
-        <translation type="unfinished">編輯 %1</translation>
+        <translation type="obsolete">編輯 %1</translation>
     </message>
     <message>
-        <location filename="../../application/menu.py" line="171"/>
+        <location filename="../REvoDesign.ui" line="5540"/>
         <source>Font Setting</source>
-        <translation type="unfinished">字體設定</translation>
+        <translation type="obsolete">字體設定</translation>
     </message>
     <message>
-        <location filename="../../application/menu.py" line="183"/>
+        <location filename="../REvoDesign.ui" line="5540"/>
         <source>Thread Pool Dashboard</source>
-        <translation type="unfinished">執行緒池儀表板</translation>
+        <translation type="obsolete">執行緒池儀表板</translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5540"/>
+        <source>Language Changed</source>
+        <translation type="obsolete">語言已更改</translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="5540"/>
+        <source>The language has been changed. Some menu items require a restart to be fully translated. Please save your configuration and restart REvoDesign to see the complete translation.</source>
+        <translation type="obsolete">語言已更改。部分選單項目需要重啟後才能完全翻譯。請儲存配置並重啟 REvoDesign 以查看完整翻譯。</translation>
     </message>
 </context>
 </TS>

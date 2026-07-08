@@ -8,16 +8,11 @@ lrelease_path=$(which lrelease)
 echo "Using pylupdate5 at: $pylupdate5_path"
 echo "Using lrelease at: $lrelease_path"
 
-# update translation files
-# Scans REvoDesign.ui for widget strings, and application/ for QCoreApplication.translate()
-# calls (menu.py, language_settings.py, etc.)
+# update translation files from .ui widget strings
+# Dynamic-menu and dialog strings in Python source are hand-maintained in the .ts files.
 for i in $(ls src/REvoDesign/UI/language/*.ts); do
     echo "Updating $i"
-    $pylupdate5_path \
-        src/REvoDesign/UI/REvoDesign.ui \
-        src/REvoDesign/application/menu.py \
-        src/REvoDesign/application/i18n/language_settings.py \
-        -ts "$i"
+    $pylupdate5_path src/REvoDesign/UI/REvoDesign.ui -ts "$i"
 done
 echo "Translation files updated."
 if [ "$stage" == 'translate' ]; then echo Done with "$stage";exit 0; fi

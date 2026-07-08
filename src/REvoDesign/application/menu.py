@@ -19,7 +19,7 @@ from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
 from REvoDesign.bootstrap.set_config import list_all_config_files
 from REvoDesign.Qt import QtCore
 
-QCoreApplication = QtCore.QCoreApplication
+_tr = QtCore.QCoreApplication.translate
 
 if TYPE_CHECKING:
     from REvoDesign.REvoDesign import REvoDesignPlugin
@@ -67,7 +67,7 @@ def all_config_files() -> dict[str, str]:
 
 def _edit_label(config_name: str) -> str:
     """Return the translated display text for an ``Edit <config>`` action."""
-    return QCoreApplication.translate("REvoDesignPyMOL_UI", "Edit %1").replace("%1", config_name)
+    return _tr("REvoDesignPyMOL_UI", "Edit %1").replace("%1", config_name)
 
 
 def _edit_config_item(config_name: str, config_file: str, menu_section: str) -> MenuItem:
@@ -173,7 +173,7 @@ def preferences_menu_links() -> tuple[MenuItem, ...]:
             "actionPreferences_Font",
             "REvoDesign.application.font.font_manager:set_font_dialog",
             menu_section="menuUI_Preferences",
-            action_text=QCoreApplication.translate("REvoDesignPyMOL_UI", "Font Setting"),
+            action_text=_tr("REvoDesignPyMOL_UI", "Font Setting"),
         ),
     )
 
@@ -186,7 +186,7 @@ def other_menu_links() -> tuple[MenuItem, ...]:
             "actionThreadPoolDashboard",
             "REvoDesign.tools.package_manager:ThreadDashboard.show_thread_dashboard",
             menu_section="menuRuntime",
-            action_text=QCoreApplication.translate("REvoDesignPyMOL_UI", "Thread Pool Dashboard"),
+            action_text=_tr("REvoDesignPyMOL_UI", "Thread Pool Dashboard"),
         ),
     )
 
