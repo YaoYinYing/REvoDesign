@@ -26,8 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - GitHub Pages deploy workflow (`.github/workflows/docs.yml`) with `actions/deploy-pages@v4`.
   - `docs` optional-dependency group in `pyproject.toml` (mkdocs, mkdocs-material, mkdocstrings[python]).
   - Updated `[project.urls] Documentation` to `https://YaoYinYing.github.io/REvoDesign`.
-
-### Added
 - Launching page with bootstrap status indicator (`src/REvoDesign/UI/launching.ui`, `src/REvoDesign/application/launching.py`):
   - "REvoDesign is launching" title with dynamic subtitle updated at each bootstrap step (e.g. "Ensuring configurations", "Registering plugins").
   - Determinate progress bar tracking ~10 bootstrap steps.
