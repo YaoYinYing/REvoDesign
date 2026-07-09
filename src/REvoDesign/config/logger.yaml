@@ -52,3 +52,12 @@ loggers:
   root:
     level: DEBUG
 
+# Standard Python logging levels — used by list_all_logger_levels() at runtime.
+# Cached after first read; update this list and call reload_logging_config() to refresh.
+levels:
+  - DEBUG
+  - INFO
+  - WARNING
+  - ERROR
+  - CRITICAL
+

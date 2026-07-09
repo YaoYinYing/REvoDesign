@@ -10,10 +10,6 @@ The logging system provides JSON-formatted structured logging with support for m
 
 The root `logging.Logger` instance for the application. All child loggers should be obtained via `ROOT_LOGGER.getChild(__name__)`. Created by `setup_logging()` at module import time.
 
-### LoggerT
-
-Type alias for `logging.Logger`. Useful for type annotations throughout the codebase.
-
 ### LOGGER_CONFIG
 
 The `DictConfig` loaded from `logger.yaml` via `reload_config_file("logger")`. Holds the structured logging configuration (formatters, handlers, loggers). Modified at runtime by `logger_level_setter_ng` to persist level changes.
@@ -27,7 +23,7 @@ A set of built-in LogRecord attribute names, used by `REvoDesignLogFormatter` to
 ## Setup and Initialization
 
 !!! note "Import paths"
-    `ROOT_LOGGER`, `LoggerT`, `LOGGER_CONFIG`, and `setup_logging` are exported from
+    `ROOT_LOGGER`, `LOGGER_CONFIG`, and `setup_logging` are exported from
     `REvoDesign.logger` (via `__init__.py`). All other documented symbols
     (`setup_logging_from_dictconfig`, `REvoDesignLogFormatter`, `NonErrorFilter`,
     `reload_logging_config`, `logger_level_setter`, `logger_level_setter_ng`,

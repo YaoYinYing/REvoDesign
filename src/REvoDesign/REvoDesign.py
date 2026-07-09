@@ -174,6 +174,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             try:
                 self.window = self.make_window(splash_proxy)
             finally:
+                launching.stop_elapsed_timer()
                 splash_dialog.close()
 
         self.window.show()
@@ -231,23 +232,25 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             QtWidgets.QMainWindow: new main window object
         """
         from REvoDesign.application import launching
+
         _status = partial(launching.update_status, splash_proxy)
 
         # Populate version / copyright and user / machine info on the launching page.
+        # These are dynamic/technical values (version numbers, hostnames) and
+        # do not need translation — they are set directly rather than via _tr().
         if splash_proxy is not None:
             import getpass
             import platform
 
-            splash_proxy.labelInfoLeft.setText(f"v{REvoDesign.__version__}  ·  GPL-3.0-only") # type: ignore
+            splash_proxy.labelInfoLeft.setText(f"v{REvoDesign.__version__}  ·  GPL-3.0-only")  # type: ignore
             try:
                 user = getpass.getuser()
             except (KeyError, ModuleNotFoundError):
                 user = "unknown"
-            splash_proxy.labelInfoRight.setText(f"{user}@{platform.node()}") # type: ignore
+            splash_proxy.labelInfoRight.setText(f"{user}@{platform.node()}")  # type: ignore
 
-        # TODO need to update the translations
         _status("Loading window module")
-        
+
         from REvoDesign.application.cluster_tab import ClusterTabController
         from REvoDesign.application.font import FontSetter
         from REvoDesign.application.i18n import LanguageSwitch
