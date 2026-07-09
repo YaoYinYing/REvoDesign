@@ -19,11 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
-- Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
-
-### Fixed
-- Language menu actions disappearing when a non-English language was saved in config: language QActions were created orphan (no QObject parent) and lost after `retranslateUi` → `refresh_bindings()` rescanned the widget tree. Fixed by parenting each action to `menuLanguage`.
-- Switching back to English not reverting translated strings: `_ensure_translator()` checked the fresh `bus.ui.trans` before the early-installed translator from `install_translator_early()`, so `removeTranslator()` removed the wrong instance. Fixed by checking for an early-installed translator first.
 - Comprehensive API documentation site (46 pages) using MkDocs + Material for MkDocs + mkdocstrings:
   - User Guide (3 pages): landing, cluster methods, OpenKinetics workflow.
   - Developer Guide (18 pages): architecture, concepts, testing, CI/CD, PSSM/GREMLIN server, Monaco editor, Rosetta integration, translation (i18n), UI design, CGO graphics, Makefile reference, package manager, adding scorers/sidechain solvers, how-to guides (profile, config, shortcut), AI-assisted code quality fix playbooks (Codacy, DeepSource).
@@ -51,8 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `application/menu.py`: `PREFERENCES_MENU_LINKS`/`OTHER_MENU_LINKS` converted to builder functions (`preferences_menu_links()`/`other_menu_links()`) with lazy `QCoreApplication.translate()` calls discoverable by `pylupdate5`.
   - `tools/translate.sh`: removed deprecated `pyuic5` UI-to-Python step; switched from `lupdate` to `pylupdate5` to scan both `.ui` and `.py` sources.
 - Updated README links to point to new docs structure.
+- Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
+- Language menu actions disappearing when a non-English language was saved in config: language QActions were created orphan (no QObject parent) and lost after `retranslateUi` → `refresh_bindings()` rescanned the widget tree. Fixed by parenting each action to `menuLanguage`.
+- Switching back to English not reverting translated strings: `_ensure_translator()` checked the fresh `bus.ui.trans` before the early-installed translator from `install_translator_early()`, so `removeTranslator()` removed the wrong instance. Fixed by checking for an early-installed translator first.
 - Replaced `WorkerThread` (QThread subclass) with plain `threading.Thread` for uvicorn server lifecycle — uvicorn no longer runs inside a QThread, removing the SIP wrapper lifetime boundary that triggered `forgetObject` → `qFatal` → `SIGABRT` when cross-thread Qt signals were dispatched after QObject destruction. Loosened uvicorn pin to `>=0.12.0` (was `<0.50.0`).
 - Renamed `Evalutator` → `Evaluator` and `flatten_archieve` → `flatten_archive` (typo fixes, no backward-compat aliases).
 - ValueDialog YAML window-pop translation and retranslation:
