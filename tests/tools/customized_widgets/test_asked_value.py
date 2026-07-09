@@ -99,7 +99,7 @@ def test_value_dialog_initialization(qtbot, sample_asked_value_collection, test_
 
     # Verify table population
     assert dialog.table.rowCount() == 3
-    assert dialog.table.columnCount() == 3
+    assert dialog.table.columnCount() == 4
 
 
 def test_value_dialog_ok_button(qtbot, sample_asked_value_collection):

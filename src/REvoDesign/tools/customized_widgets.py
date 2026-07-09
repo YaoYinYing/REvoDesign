@@ -127,7 +127,9 @@ class REvoDesignWidget(QtWidgets.QWidget):
             a0 (QCloseEvent): The close event object.
         """
         logging.debug(f"[closeEvent] Window {self.objectName()} closing...")
-        self.detach()
+        from REvoDesign.driver.ui_driver import ConfigBus as _ConfigBus
+        if not _ConfigBus().headless:
+            self.detach()
         return super().closeEvent(a0)
 
     def show(self):
