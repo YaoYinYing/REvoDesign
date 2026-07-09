@@ -104,9 +104,17 @@ def setup_logging_from_dictconfig(
     notebook_maxBytes = log_config.handlers.notebook.maxBytes
     notebook_backupCount = log_config.handlers.notebook.backupCount
 
+    # ponytail: SQLite handler deferred — RotatingFileHandler covers
+    # persistence; add when structured query access to historical logs
+    # is needed (e.g. log analytics, time-range filtering).
+
     log_handlers = []
 
-    # Create a queue for the QueueHandler
+    # Create a queue for the QueueHandler.
+    # ponytail: multiprocessing support deferred. When parallel workers need
+    # to write to the same log file, switch from queue.Queue to a
+    # multiprocessing.Queue + socket-based log server or use a dedicated
+    # log aggregator (e.g. syslog, file-per-worker).
     log_queue = queue.Queue(10_000)
 
     # Initialize handlers
@@ -168,6 +176,9 @@ def setup_logging_from_dictconfig(
     # modeling via ProcessPoolExecutor) may race on the rotating log file.
     # The QueueHandler serialises writes within a single process but does not
     # coordinate across processes.
+    # ponytail: fix when it hurts. If this becomes a real issue, the upgrade
+    # path is: socket-based log server (logging.handlers.SocketHandler) with a
+    # single listener process, or file-per-worker naming to avoid contention.
     atexit.register(listener.stop)
 
     return python_logging.getLogger()
@@ -340,10 +351,26 @@ def list_all_logger_levels():
 
 
 def list_all_logger_channels():
+    """Return the available logging channels from the logger config.
+
+    Cached after first read from ``logger.yaml``; falls back to the
+    hardcoded list if the config key is missing.
+    """
+    cfg = reload_config_file("logger")
+    if hasattr(cfg, "channels") and cfg.channels:
+        return list(cfg.channels)
     return ["stdout", "stderr", "file", "notebook", "root"]
 
 
 def list_all_logger_formatters_non_json():
+    """Return the non-JSON formatter names from the logger config.
+
+    Cached after first read from ``logger.yaml``; falls back to the
+    hardcoded list if the config key is missing.
+    """
+    cfg = reload_config_file("logger")
+    if hasattr(cfg, "formatters_non_json") and cfg.formatters_non_json:
+        return list(cfg.formatters_non_json)
     return ["simple", "complex", "detailed"]
 
 
