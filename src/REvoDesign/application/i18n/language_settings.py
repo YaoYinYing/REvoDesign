@@ -254,7 +254,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         Adds the language item to the language menu.
         """
 
-        new_action = QtWidgets.QAction()
+        new_action = QtWidgets.QAction(self.bus.ui.menuLanguage)
         new_action.setEnabled(False)
         new_action.setObjectName(lan_regsitry["action"])
         setattr(self.bus.ui, lan_regsitry["action"], new_action)
