@@ -430,6 +430,11 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         self.write_method_report()
 
 
+# Deferred imports to break circular dependency: the method modules import
+# ClusterMethodAbstract from this module, so they can only be loaded after
+# the class is defined.  CLUSTER_METHOD_REGISTRY (below) also discovers
+# these via pkgutil, but the explicit imports make the names available for
+# __all__ and the Clustering alias without extra registry lookups.
 from REvoDesign.clusters.methods.agglomerative import AgglomerativeCluster  # noqa: E402 — deferred for circular-import
 from REvoDesign.clusters.methods.evo import EvoCluster  # noqa: E402
 from REvoDesign.clusters.methods.kmeans import KMeansCluster  # noqa: E402

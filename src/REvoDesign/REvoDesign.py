@@ -161,7 +161,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             # .ui strings and status messages show translated from the start.
             install_translator_early()
 
-            launching.init(total_steps=10)  # "Initializing" + 9 _status calls in make_window
+            launching.init(total_steps=11)  # "Initializing" + 10 _status calls in make_window
 
             ui_path = Path(__file__).resolve().parent / "UI" / "launching.ui"
             splash_dialog, splash_proxy = load_runtime_ui(ui_path)
@@ -216,7 +216,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def __del__(self):
         """Shutting down."""
         # self.reinitialize()
-        self.logging.warning("REvoDesign is shutting down.")
+        logging = getattr(self, "logging", None)
+        if logging is not None:
+            logging.warning("REvoDesign is shutting down.")
         if self.window:
             self.window = None
 

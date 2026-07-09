@@ -25,6 +25,11 @@
     </message>
     <message>
         <location filename="../launching.ui" line="133"/>
+        <source>Loading window module</source>
+        <translation>載入視窗模組</translation>
+    </message>
+    <message>
+        <location filename="../launching.ui" line="133"/>
         <source>Checking system environment</source>
         <translation>檢查系統環境</translation>
     </message>
