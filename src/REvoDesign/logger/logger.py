@@ -111,7 +111,7 @@ def setup_logging_from_dictconfig(
 
     # Initialize handlers
     stdout_handler = python_logging.StreamHandler()
-    # TODO: if pytest is installed, use DEBUG level instead
+
     stdout_handler.setLevel(log_config.handlers.stdout.level)
     stdout_handler.setFormatter(python_logging.Formatter(log_config.formatters.simple.format))
     log_handlers.append(stdout_handler)
@@ -164,6 +164,7 @@ def setup_logging_from_dictconfig(
     listener.start()
 
     # Ensure the listener is stopped gracefully on program exit
+    # TODO: bug: logging race of files, Windows specific at parallel tasks like sidechain modeling
     atexit.register(listener.stop)
 
     return python_logging.getLogger()
@@ -201,10 +202,15 @@ def setup_logging() -> python_logging.Logger:
 # 3. initialize logging config and root logger, depending on config
 ROOT_LOGGER = setup_logging()
 
+# logger module scoped child logger
+# TODO add logging section to dev docs, describe the usage of the loggers for each module.
+# basic modules starts before the logger so no child logger shall be used (circular import).
+# eg:
+# ```python
+# from REvoDesign.logger import ROOT_LOGGER
+# logging = ROOT_LOGGER.getChild(__name__)
+# ```
 logging = ROOT_LOGGER.getChild(__name__)
-
-LoggerT = python_logging.Logger
-
 
 def logger_level_setter(**kwargs) -> None:
     """
@@ -317,6 +323,7 @@ def get_current_logger_level(channel: str = "root"):
         raise e
 
 
+# TODO store these specs to logger config? then cache it at runtime
 def list_all_logger_levels():
     return ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 

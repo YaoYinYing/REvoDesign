@@ -58,6 +58,7 @@ def stylesheet() -> str:
     return _STYLESHEET_DARK
 
 
+# TODO add time elapsed, refresh per 100 ms
 def update_status(splash_proxy: RuntimeUiProxy | None, message: str) -> None:
     """Update the launching page subtitle and advance the progress bar."""
     if splash_proxy is None:
