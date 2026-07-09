@@ -76,6 +76,59 @@ class LanguageItem:
         return os.path.abspath(os.path.join(language_dir, f"{self.id}.qm"))
 
 
+def install_translator_early() -> QtCore.QTranslator | None:
+    """Install the saved-language translator before the main window exists.
+
+    Call this before showing the launching/splash page so that static
+    .ui strings are translated from the first paint.  Returns the
+    translator instance so that :class:`LanguageSwitch` can adopt it
+    later via :meth:`_ensure_translator`.
+
+    Returns:
+        QTranslator | None: The installed translator, or ``None`` if
+        no saved language is available (English or missing .qm).
+    """
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        return None
+
+    # Read the saved language directly from the config file — ConfigBus
+    # may still be headless at this point (its .ui hasn't been set yet).
+    import yaml
+
+    from REvoDesign.bootstrap import REVODESIGN_CONFIG_DIR
+
+    main_yaml = os.path.join(REVODESIGN_CONFIG_DIR, "main.yaml")
+    lan_id = None
+    if os.path.exists(main_yaml):
+        with open(main_yaml, encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+        lan_id = cfg.get("language")
+
+    if not lan_id or not isinstance(lan_id, str) or lan_id.startswith("eng-eng"):
+        return None
+
+    with open(language_json_fp, encoding="utf-8") as f:
+        registry: list[LanguageNameRegistry] = json.load(f)
+
+    qm_path = None
+    for entry in registry:
+        if entry["code"] == lan_id:
+            qm_path = os.path.abspath(os.path.join(language_dir, f"{lan_id}.qm"))
+            break
+
+    if not qm_path or not os.path.exists(qm_path):
+        return None
+
+    translator = QtCore.QTranslator(app)
+    if translator.load(qm_path):
+        app.installTranslator(translator)
+        logging.info("Early translator installed: %s (%s)", lan_id, qm_path)
+        return translator
+
+    return None
+
+
 class LanguageSwitch(QtWidgets.QWidget):
     """
     Language switching component, manages the language settings and switching for the application.
@@ -105,8 +158,10 @@ class LanguageSwitch(QtWidgets.QWidget):
         # Own the translator reference so that LanguageSwitch does not depend on
         # bus.ui.trans being present at every call site.  bus.ui.trans is still
         # consulted as a legacy alias via _ensure_translator().
-        self.trans = self._ensure_translator()
         self._translator_installed = False
+        self.trans = self._ensure_translator()
+        # _ensure_translator may flip the flag to True when reusing an
+        # early-installed translator from install_translator_early().
 
         self.register_language()
         self._set_action_clickable()
@@ -134,7 +189,7 @@ class LanguageSwitch(QtWidgets.QWidget):
             self.bus.set_value("language", lan.id)
             return
 
-        self.switch_language(language=lan, show_restart_warning=False)
+        self.switch_language(language=lan)
         self._set_action_checked(language=lan)
 
     def get_language_items(self) -> tuple[LanguageItem, ...]:
@@ -158,11 +213,21 @@ class LanguageSwitch(QtWidgets.QWidget):
     def _ensure_translator(self) -> QtCore.QTranslator:
         """Return the persistent translator used by the language switcher.
 
-        The old generated-UI implementation stored the translator on
-        ``bus.ui.trans``.  Runtime-loaded UIs still expose this attribute
-        for compatibility, but LanguageSwitch should use its own
-        ``self.trans`` reference internally.
+        Reuses the early-installed translator from
+        :func:`install_translator_early` when present, then falls back
+        to ``bus.ui.trans`` (legacy path), and creates a fresh one only
+        as a last resort.
         """
+        # Reuse the translator that install_translator_early installed so
+        # removeTranslator / installTranslator work on the same instance.
+        app = QtWidgets.QApplication.instance()
+        if app is not None:
+            for child in app.children():
+                if isinstance(child, QtCore.QTranslator):
+                    setattr(self.bus.ui, "trans", child)
+                    self._translator_installed = True
+                    return child
+
         existing = getattr(self.bus.ui, "trans", None)
         if (
             existing is not None
@@ -190,7 +255,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         Adds the language item to the language menu.
         """
 
-        new_action = QtWidgets.QAction()
+        new_action = QtWidgets.QAction(self.bus.ui.menuLanguage)
         new_action.setEnabled(False)
         new_action.setObjectName(lan_regsitry["action"])
         setattr(self.bus.ui, lan_regsitry["action"], new_action)
@@ -207,15 +272,12 @@ class LanguageSwitch(QtWidgets.QWidget):
             logging.debug(f"Registering language {lan.name} by {lan.id} from {lan.language_file}")
             self._bind_to_action(language=lan)
 
-    def switch_language(self, language: LanguageItem, *, show_restart_warning: bool = True):
+    def switch_language(self, language: LanguageItem):
         """
         Switches to the specified language.
 
         Args:
             language: Language item to switch to.
-            show_restart_warning: If True, show a dialog reminding the user
-                that dynamic menu items require a restart.  Set to False
-                during initial config restore.
         """
         app = QtWidgets.QApplication.instance()
         if app is None:
@@ -241,22 +303,17 @@ class LanguageSwitch(QtWidgets.QWidget):
             )
 
         self.bus.ui.retranslateUi(self.window)
+
+        # Retranslate any open dialogs that support it (e.g. ValueDialog).
+        if hasattr(self.bus.ui, "open_windows"):
+            for window in list(self.bus.ui.open_windows):
+                retranslate = getattr(window, "retranslateUi", None)
+                if retranslate is not None:
+                    retranslate()
+
         self._retranslate_language_actions()
         self._set_action_checked(language=language)
         self.bus.set_value("language", language.id)
-
-        if show_restart_warning:
-            # Dynamic menu items (config-edit links, tools, preferences) are created
-            # once at startup and not re-translated on language switch — only static
-            # .ui actions are.  Warn the user to restart for a full retranslation.
-            QtWidgets.QMessageBox.information(
-                self.window,
-                _translate("REvoDesignPyMOL_UI", "Language Changed"),
-                _translate(
-                    "REvoDesignPyMOL_UI",
-                    "The language has been changed. Some menu items require a restart to be fully translated. Please save your configuration and restart REvoDesign to see the complete translation.",
-                ),
-            )
 
     def _retranslate_language_actions(self) -> None:
         """Retranslate dynamically created language menu actions.

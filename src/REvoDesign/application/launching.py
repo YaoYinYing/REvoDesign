@@ -8,10 +8,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from REvoDesign.Qt import QtGui, QtWidgets
+from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 
 if TYPE_CHECKING:
     from REvoDesign.Qt.ui_runtime_loader import RuntimeUiProxy
+
+_tr = QtCore.QCoreApplication.translate
 
 # Dark theme (default) — stylesheet matching launching.ui design-time values.
 _STYLESHEET_DARK = """
@@ -62,7 +64,7 @@ def update_status(splash_proxy: RuntimeUiProxy | None, message: str) -> None:
         return
     global _step
     _step += 1
-    splash_proxy.labelStatus.setText(message)
+    splash_proxy.labelStatus.setText(_tr("LaunchingPage", message))
     splash_proxy.progressBar.setRange(0, _total_steps)
     splash_proxy.progressBar.setValue(_step)
     QtWidgets.QApplication.processEvents()

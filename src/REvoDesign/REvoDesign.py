@@ -157,6 +157,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """PyMOL entry for running the plugin"""
         if self.window is None:
             from REvoDesign.application import launching
+            from REvoDesign.application.i18n.language_settings import install_translator_early
+
+            # Install saved-language translator before the splash so its
+            # .ui strings and status messages show translated from the start.
+            install_translator_early()
 
             launching.init(total_steps=10)  # "Initializing" + 9 _status calls in make_window
 
@@ -302,7 +307,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         def _bind_menu_links():
             from REvoDesign.application.menu import menu_links
 
-            MenuCollection(self.bus.ui, menu_links())
+            try:
+                MenuCollection(self.bus.ui, menu_links())
+            except Exception:
+                logging.exception("Failed to bind deferred menu links")
 
         QtCore.QTimer.singleShot(0, _bind_menu_links)
 

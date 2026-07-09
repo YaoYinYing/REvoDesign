@@ -127,7 +127,9 @@ class REvoDesignWidget(QtWidgets.QWidget):
             a0 (QCloseEvent): The close event object.
         """
         logging.debug(f"[closeEvent] Window {self.objectName()} closing...")
-        self.detach()
+        from REvoDesign.driver.ui_driver import ConfigBus as _ConfigBus
+        if not _ConfigBus().headless:
+            self.detach()
         return super().closeEvent(a0)
 
     def show(self):
@@ -2013,7 +2015,6 @@ class ValueDialog(REvoDesignWidget):
         """
         super().__init__(f"ValueDialog - {title}", allow_repeat=False, parent=parent)
 
-        self.setWindowTitle(title)
         self.key_dict = key_dict.asked_values
         self.allow_real_time_update: bool = key_dict.allow_real_time_update
         self.enable_real_time_update: bool = False
@@ -2023,52 +2024,49 @@ class ValueDialog(REvoDesignWidget):
         # Check if any AskedValue has file=True
         self.need_action = key_dict.need_action
 
-        # Main layout
-        self.layout = QtWidgets.QVBoxLayout()
+        # Load static .ui shell (banner, table, buttons) — setupUi populates
+        # self with child widgets from the Designer form.
+        ui_path = os.path.join(os.path.dirname(__file__), "..", "UI", "value_dialog.ui")
+        from REvoDesign.Qt.ui_runtime_loader import apply_ui_to_widget
 
-        # Add banner at the top
+        self._ui_form, self._proxy = apply_ui_to_widget(ui_path, self)
+        # Restore object name that setupUi may have overwritten
+        self.setObjectName(f"ValueDialog - {title}")
+        # Store English source for retranslation; translate on display
+        self._title_source_text: str = title
+        _tr = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_tr("ValueDialog", title))
+        # Expose the .ui's layout as self.layout for backward compat with
+        # callers that use dialog.layout.itemAt(...) rather than .layout().
+        self.layout = self.layout()
+        self.banner_label: QtWidgets.QLabel = self._proxy.banner_label
+        self.table: QtWidgets.QTableWidget = self._proxy.table
+        self.realtime_checkbox: QtWidgets.QCheckBox = self._proxy.enable_real_time_update_checkbox
+        self.apply_now_button: QtWidgets.QPushButton = self._proxy.apply_now_button
+        self.load_button: QtWidgets.QPushButton = self._proxy.load_button
+        self.save_button: QtWidgets.QPushButton = self._proxy.save_button
+        self.ok_button: QtWidgets.QPushButton = self._proxy.ok_button
+        self.cancel_button: QtWidgets.QPushButton = self._proxy.cancel_button
+
+        # -- dynamic configuration of .ui shell --
+
+        # Banner: store English source for retranslation, translate at display.
+        self._banner_source_text: str | None = None
         if key_dict.banner:
-            banner_label = QtWidgets.QLabel(key_dict.banner)
-            banner_label.setWordWrap(True)
-            banner_label.setAlignment(QtCompat.AlignTop | QtCompat.AlignLeft)
-            banner_label.setStyleSheet(
-                """
-                font-size: 14px;
-                font-weight: bold;
-                color: #333;
-                padding: 10px;
-                background-color: #f9f9f9;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-            """
-            )
-            self.layout.addWidget(banner_label)
+            self._banner_source_text = key_dict.banner
+            self.banner_label.setText(_tr("ValueDialog", key_dict.banner))
+            self.banner_label.setVisible(True)
 
-        # Create the table with four columns
-        if self.need_action:
-            self.table = QtWidgets.QTableWidget(len(self.key_dict), 4)
-            self.table.setHorizontalHeaderLabels(["Field", "Type", "Input", "Action"])
-        else:
-            self.table = QtWidgets.QTableWidget(len(self.key_dict), 3)
-            self.table.setHorizontalHeaderLabels(["Field", "Type", "Input"])
+        # Table: configure columns, row count, and sizing
+        self.table.setColumnHidden(3, not self.need_action)
+        self.table.setRowCount(len(self.key_dict))
         self.table.horizontalHeader().setStretchLastSection(True)
-
-        # Configure horizontal size policy for compact width
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column
-        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column
-        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)  # Input column
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
         if self.need_action:
-            header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
-
-        self.table.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Minimum,  # Compact width
-            QtWidgets.QSizePolicy.Policy.Expanding,  # Expanding height
-        )
-
-        self.table.verticalHeader().setVisible(False)  # Hide row numbers
-        self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)  # Disable row selection
-        self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)  # Prevent label editing
+            header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
 
         # Vertical behavior: Adjust for row count
         max_visible_rows = 8
@@ -2083,73 +2081,88 @@ class ValueDialog(REvoDesignWidget):
         self.input_fields: dict[str, Any] = {}
         self.input_fields_data_pair: dict[str, AskedValue] = {}
 
-        # Add fields to the table
+        # Populate dynamic rows
         for row, item in enumerate(key_dict.asked_values):
             self._add_field_to_table(row, item)
 
-        self.layout.addWidget(self.table)
-
-        apply_now_layout = QtWidgets.QHBoxLayout()
-
+        # Real-time update checkbox: show only when applicable
+        self.realtime_checkbox.setVisible(key_dict.allow_real_time_update)
         if key_dict.allow_real_time_update:
-            logging.debug("Real-time update is enabled for this dialog.")
+            self.realtime_checkbox.stateChanged.connect(self._on_real_time_update_changed)
 
-            enable_real_time_update_checkbox = QtWidgets.QCheckBox("Real-Time Update")
-            enable_real_time_update_checkbox.setChecked(self.enable_real_time_update)
-            enable_real_time_update_checkbox.stateChanged.connect(self._on_real_time_update_changed)
-            enable_real_time_update_checkbox.setToolTip(
-                "When enabled, the dialog will be run in real-time as you type or change the values."
-            )
-            enable_real_time_update_checkbox.setObjectName("EnableRealTimeUpdateCheckbox")
-            apply_now_layout.addWidget(enable_real_time_update_checkbox)
-        else:
-            # a placeholder to ensure the layout is not empty
-            placeholder = QtWidgets.QLabel("")
-            placeholder.setObjectName("Placeholder")
-            apply_now_layout.addWidget(placeholder)
+        self.apply_now_button.clicked.connect(self._on_apply_now_clicked)
+        self.load_button.clicked.connect(self._on_load_clicked)
+        self.save_button.clicked.connect(self._on_save_clicked)
+        self.ok_button.clicked.connect(self._on_ok_clicked)
+        self.cancel_button.clicked.connect(self._on_cancel_clicked)
 
-        apply_now_button = QtWidgets.QPushButton("Apply Now")
-        apply_now_button.setObjectName("ApplyNow")
-        apply_now_button.setToolTip("Click to apply the current values to the dialog. ")
-        apply_now_button.clicked.connect(self._on_apply_now_clicked)
-        apply_now_layout.addWidget(apply_now_button)
+        # Ensure proxy sees dynamically-created children
+        self._proxy.refresh_bindings()
 
-        self.layout.addLayout(apply_now_layout)
+    # -- retranslation --------------------------------------------------------
 
-        # Add a load and save button layout
-        load_save_layout = QtWidgets.QHBoxLayout()
-        load_button = QtWidgets.QPushButton("Load")
-        load_button.clicked.connect(self._on_load_clicked)
-        load_button.setObjectName("Load")
-        load_button.setToolTip(
-            "Load the previous saved recipe to replicate the same settings. "
-            "Also, you can drag and drop the recipe file (json) into this window here."
-        )
+    def retranslateUi(self):
+        """Re-apply translations after a language switch.
 
-        save_button = QtWidgets.QPushButton("Save")
-        save_button.clicked.connect(self._on_save_clicked)
-        save_button.setObjectName("Save")
-        save_button.setToolTip("Save the current values as a new recipe.")
+        Called automatically for open ValueDialogs by
+        :meth:`LanguageSwitch.switch_language`.
+        """
+        _tr = QtCore.QCoreApplication.translate
+        # (1) Auto-generated retranslateUi for .ui static strings
+        if self._ui_form is not None:
+            self._ui_form.retranslateUi(self)
 
-        load_save_layout.addWidget(load_button)
-        load_save_layout.addWidget(save_button)
+        # (1b) Restore window title (overwritten by .ui retranslation above)
+        if self._title_source_text:
+            self.setWindowTitle(_tr("ValueDialog", self._title_source_text))
 
-        self.layout.addLayout(load_save_layout)
+        # (2) Dynamic banner text
+        if self._banner_source_text:
+            self.banner_label.setText(_tr("ValueDialog", self._banner_source_text))
 
-        # Add OK and Cancel buttons
-        button_layout = QtWidgets.QHBoxLayout()
-        ok_button = QtWidgets.QPushButton("OK")
-        ok_button.setObjectName("OK")
-        cancel_button = QtWidgets.QPushButton("Cancel")
-        cancel_button.setObjectName("Cancel")
-        ok_button.clicked.connect(self._on_ok_clicked)
-        cancel_button.clicked.connect(self._on_cancel_clicked)
+        # (3) Per-row tooltips and action button labels
+        for row, asked in enumerate(self.key_dict):
+            self._retranslate_row(row, asked)
 
-        button_layout.addWidget(ok_button)
-        button_layout.addWidget(cancel_button)
-        self.layout.addLayout(button_layout)
+    def _retranslate_row(self, row: int, asked_value: AskedValue):
+        """Re-translate a single table row after language switch."""
+        _tr = QtCore.QCoreApplication.translate
 
-        self.setLayout(self.layout)
+        # Field label tooltip
+        label = self.table.cellWidget(row, 0)
+        if label and isinstance(label, QtWidgets.QLabel):
+            tooltip_parts = []
+            if asked_value.required:
+                tooltip_parts.append("[REQUIRED]")
+            if asked_value.reason:
+                tooltip_parts.append(_tr("ValueDialog", asked_value.reason))
+            label.setToolTip(" ".join(tooltip_parts))
+
+        # Input widget tooltip
+        input_widget = self.table.cellWidget(row, 2)
+        if input_widget and asked_value.reason:
+            input_widget.setToolTip(_tr("ValueDialog", asked_value.reason))
+
+        # Action column buttons
+        action_widget = self.table.cellWidget(row, 3)
+        if action_widget is None:
+            return
+
+        # Gather buttons: the widget itself if it IS a QPushButton
+        # (File/Files/Directory/ColorPicker), plus any QPushButton children
+        # inside a container (JsonInput, multiple_choices).
+        buttons: list[QtWidgets.QPushButton] = []
+        if isinstance(action_widget, QtWidgets.QPushButton):
+            buttons.append(action_widget)
+        buttons.extend(action_widget.findChildren(QtWidgets.QPushButton))
+
+        for btn in buttons:
+            src = btn.property("source_text")
+            if src:
+                btn.setText(_tr("ValueDialog", src))
+            tip = btn.property("source_tooltip")
+            if tip:
+                btn.setToolTip(_tr("ValueDialog", tip))
 
     def _on_real_time_update_changed(self, state: bool):
         self.enable_real_time_update = state
@@ -2180,9 +2193,15 @@ class ValueDialog(REvoDesignWidget):
             asked_value (AskedValue): The field details.
         """
         # Column 0: Field label
+        _tr = QtCore.QCoreApplication.translate
         required_star = '<span style=" font-weight:600; color:#ff0000;">*</span> '
         key_label = QtWidgets.QLabel(f"{required_star if asked_value.required else ''}{asked_value.key}")
-        key_label.setToolTip(f"{'[REQUIRED] ' if asked_value.required else ''}{asked_value.reason}" or "")
+        tooltip_parts = []
+        if asked_value.required:
+            tooltip_parts.append("[REQUIRED]")
+        if asked_value.reason:
+            tooltip_parts.append(_tr("ValueDialog", asked_value.reason))
+        key_label.setToolTip(" ".join(tooltip_parts) or "")
         self.table.setCellWidget(row, 0, key_label)
 
         # Column 1: Typing information
@@ -2257,7 +2276,7 @@ class ValueDialog(REvoDesignWidget):
 
         # Column 2: Input widget common properties
         widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        widget.setToolTip(asked_value.reason or "")
+        widget.setToolTip(_tr("ValueDialog", asked_value.reason) if asked_value.reason else "")
         self.input_fields[asked_value.key] = widget
         self.input_fields_data_pair[asked_value.key] = asked_value
         self.table.setCellWidget(row, 2, widget)
@@ -2270,25 +2289,37 @@ class ValueDialog(REvoDesignWidget):
 
         # Column 3: Action button if file=True
         if asked_value.source in ("File", "FileO"):
-            action_button = QtWidgets.QPushButton("Browse")
-            action_button.setToolTip("Browse for a file")
+            action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Browse"))
+            action_button.setObjectName("BrowseButton")
+            action_button.setProperty("source_text", "Browse")
+            action_button.setToolTip(_tr("ValueDialog", "Browse for a file"))
+            action_button.setProperty("source_tooltip", "Browse for a file")
             action_button.clicked.connect(
                 lambda: self._browse_file(widget, asked_value.ext, mode="r" if asked_value.source == "File" else "w")
             )
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "Files":
-            action_button = QtWidgets.QPushButton("Browse")
-            action_button.setToolTip("Browse for multiple files")
+            action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Browse"))
+            action_button.setObjectName("BrowseButton")
+            action_button.setProperty("source_text", "Browse")
+            action_button.setToolTip(_tr("ValueDialog", "Browse for multiple files"))
+            action_button.setProperty("source_tooltip", "Browse for multiple files")
             action_button.clicked.connect(lambda: self._browse_file(widget, multiple=True))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "Directory":
-            action_button = QtWidgets.QPushButton("Browse")
-            action_button.setToolTip("Browse for a directory")
+            action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Browse"))
+            action_button.setObjectName("BrowseButton")
+            action_button.setProperty("source_text", "Browse")
+            action_button.setToolTip(_tr("ValueDialog", "Browse for a directory"))
+            action_button.setProperty("source_tooltip", "Browse for a directory")
             action_button.clicked.connect(lambda: widget.setText(getExistingDirectory()))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "ColorPicker":
-            action_button = QtWidgets.QPushButton("Pick Color")
-            action_button.setToolTip("Pick a color and return it as a hexadecimal string")
+            action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Pick Color"))
+            action_button.setObjectName("PickColorButton")
+            action_button.setProperty("source_text", "Pick Color")
+            action_button.setToolTip(_tr("ValueDialog", "Pick a color and return it as a hexadecimal string"))
+            action_button.setProperty("source_tooltip", "Pick a color and return it as a hexadecimal string")
             action_button.clicked.connect(
                 lambda: widget.setText(pick_color(widget, widget.text() or "") or widget.text() or "")
             )
@@ -2300,16 +2331,22 @@ class ValueDialog(REvoDesignWidget):
             button_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for proper cell fit
 
             # Create and configure the "Input JSON" button
-            input_action_button = QtWidgets.QPushButton("Input")
-            input_action_button.setToolTip("Browse for an input JSON file")
+            input_action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Input"))
+            input_action_button.setObjectName("InputButton")
+            input_action_button.setProperty("source_text", "Input")
+            input_action_button.setToolTip(_tr("ValueDialog", "Browse for an input JSON file"))
+            input_action_button.setProperty("source_tooltip", "Browse for an input JSON file")
             input_action_button.clicked.connect(lambda: widget.setText(ask_for_multiple_values_as_json()))
             # Set size policy to ResizeToContents
             input_action_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(input_action_button)
 
             # Create and configure the "Load" button
-            load_action_button = QtWidgets.QPushButton("Load")
-            load_action_button.setToolTip("Load a auto-savedJSON file($PWD/json_multi_input/***.json)")
+            load_action_button = QtWidgets.QPushButton(_tr("ValueDialog", "Load"))
+            load_action_button.setObjectName("LoadButton")
+            load_action_button.setProperty("source_text", "Load")
+            load_action_button.setToolTip(_tr("ValueDialog", "Load a auto-saved JSON file"))
+            load_action_button.setProperty("source_tooltip", "Load a auto-saved JSON file")
             load_action_button.clicked.connect(lambda: self._browse_file(widget, Fext.JSON))
             # Set size policy to ResizeToContents
             load_action_button.setSizePolicy(action_button_size_policy)
@@ -2325,20 +2362,29 @@ class ValueDialog(REvoDesignWidget):
             button_layout = QtWidgets.QHBoxLayout(container_widget)
             button_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for proper cell fit
 
-            select_all_button = QtWidgets.QPushButton("All")
-            select_all_button.setToolTip("Select all")
+            select_all_button = QtWidgets.QPushButton(_tr("ValueDialog", "Select All"))
+            select_all_button.setObjectName("SelectAllButton")
+            select_all_button.setProperty("source_text", "Select All")
+            select_all_button.setToolTip(_tr("ValueDialog", "Select all"))
+            select_all_button.setProperty("source_tooltip", "Select all")
             select_all_button.clicked.connect(widget.select_all)
             select_all_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(select_all_button)
 
-            select_none_button = QtWidgets.QPushButton("None")
-            select_none_button.setToolTip("Unselect all")
+            select_none_button = QtWidgets.QPushButton(_tr("ValueDialog", "None"))
+            select_none_button.setObjectName("SelectNoneButton")
+            select_none_button.setProperty("source_text", "None")
+            select_none_button.setToolTip(_tr("ValueDialog", "Unselect all"))
+            select_none_button.setProperty("source_tooltip", "Unselect all")
             select_none_button.clicked.connect(widget.unselect_all)
             select_none_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(select_none_button)
 
-            select_invert_button = QtWidgets.QPushButton("Invert")
-            select_invert_button.setToolTip("Invert selection")
+            select_invert_button = QtWidgets.QPushButton(_tr("ValueDialog", "Invert"))
+            select_invert_button.setObjectName("SelectInvertButton")
+            select_invert_button.setProperty("source_text", "Invert")
+            select_invert_button.setToolTip(_tr("ValueDialog", "Invert selection"))
+            select_invert_button.setProperty("source_tooltip", "Invert selection")
             select_invert_button.clicked.connect(widget.invert_selection)
             select_invert_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(select_invert_button)

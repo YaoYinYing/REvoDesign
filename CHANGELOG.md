@@ -46,10 +46,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `application/menu.py`: `PREFERENCES_MENU_LINKS`/`OTHER_MENU_LINKS` converted to builder functions (`preferences_menu_links()`/`other_menu_links()`) with lazy `QCoreApplication.translate()` calls discoverable by `pylupdate5`.
   - `tools/translate.sh`: removed deprecated `pyuic5` UI-to-Python step; switched from `lupdate` to `pylupdate5` to scan both `.ui` and `.py` sources.
 - Updated README links to point to new docs structure.
+- Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
+- Language menu actions disappearing when a non-English language was saved in config: language QActions were created orphan (no QObject parent) and lost after `retranslateUi` → `refresh_bindings()` rescanned the widget tree. Fixed by parenting each action to `menuLanguage`.
+- Switching back to English not reverting translated strings: `_ensure_translator()` checked the fresh `bus.ui.trans` before the early-installed translator from `install_translator_early()`, so `removeTranslator()` removed the wrong instance. Fixed by checking for an early-installed translator first.
 - Replaced `WorkerThread` (QThread subclass) with plain `threading.Thread` for uvicorn server lifecycle — uvicorn no longer runs inside a QThread, removing the SIP wrapper lifetime boundary that triggered `forgetObject` → `qFatal` → `SIGABRT` when cross-thread Qt signals were dispatched after QObject destruction. Loosened uvicorn pin to `>=0.12.0` (was `<0.50.0`).
 - Renamed `Evalutator` → `Evaluator` and `flatten_archieve` → `flatten_archive` (typo fixes, no backward-compat aliases).
+- ValueDialog YAML window-pop translation and retranslation:
+  - Moved title/banner translation from `shortcuts/utils.py` to `ValueDialog.__init__` and `retranslateUi` so English source strings are preserved for language-switch retranslation.
+  - Fixed `_retranslate_row` to handle direct `QPushButton` cell widgets (Browse, Pick Color) — `findChildren` missed the widget itself when the cell widget IS the button.
+  - Action button text and tooltips are now translated on initial creation in `_add_field_to_table`, not only on retranslation.
+  - Button labels made consistent with retranslation sources (e.g. "All" → "Select All").
+  - Action button source strings stored as dynamic Qt properties (`source_text`, `source_tooltip`) for dict-free retranslation.
+- Menu builder fixes (from PR #184 review):
+  - Sorted secondary config entries in `config_edit_links()` so section-based separator insertion is deterministic.
+  - `MenuCollection._menu_section` now uses `getattr(..., None)` so missing menu sections raise `InternalError` instead of raw `AttributeError`.
+  - Deferred `_bind_menu_links` callback wrapped in try/except with logging so filesystem or binding failures are user-visible.
+- Translation tooling fixes (from PR #185 review):
+  - `tools/translate.sh` now uses portable `sed -i.bak` + `rm -f` for cross-platform compatibility (BSD/macOS and GNU/Linux).
+  - `tools/translate.sh` now iterates over glob directly instead of `ls` output (SC2045).
+  - Removed redundant `action.setText()` in `MenuItem.bind_one` (constructor already sets the text).
+- Added 15 hand-maintained translation entries for ValueDialog action buttons (Browse, Pick Color, Select All, etc.) in zh_CN + zh_TW.
 
 ## [1.9.0] - 2026-07-03
 ### Added

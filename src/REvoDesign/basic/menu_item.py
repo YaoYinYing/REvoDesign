@@ -101,7 +101,6 @@ class MenuCollection:
 
         action = QtWidgets.QAction(item.action_text or item.action, parent=menu)
         action.setObjectName(item.action)
-        action.setText(item.action_text or item.action)
         action.triggered.connect(item.trigger)
         menu.addAction(action)
 
@@ -111,7 +110,7 @@ class MenuCollection:
             raise issues.InternalError(f"Missing menu section for dynamic menu action: {item.action!r}")
 
         if isinstance(item.menu_section, str):
-            menu = getattr(self.ui, item.menu_section)
+            menu = getattr(self.ui, item.menu_section, None)
         else:
             menu = item.menu_section
 
