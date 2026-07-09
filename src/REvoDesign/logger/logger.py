@@ -104,14 +104,22 @@ def setup_logging_from_dictconfig(
     notebook_maxBytes = log_config.handlers.notebook.maxBytes
     notebook_backupCount = log_config.handlers.notebook.backupCount
 
+    # ponytail: SQLite handler deferred — RotatingFileHandler covers
+    # persistence; add when structured query access to historical logs
+    # is needed (e.g. log analytics, time-range filtering).
+
     log_handlers = []
 
-    # Create a queue for the QueueHandler
+    # Create a queue for the QueueHandler.
+    # ponytail: multiprocessing support deferred. When parallel workers need
+    # to write to the same log file, switch from queue.Queue to a
+    # multiprocessing.Queue + socket-based log server or use a dedicated
+    # log aggregator (e.g. syslog, file-per-worker).
     log_queue = queue.Queue(10_000)
 
     # Initialize handlers
     stdout_handler = python_logging.StreamHandler()
-    # TODO: if pytest is installed, use DEBUG level instead
+
     stdout_handler.setLevel(log_config.handlers.stdout.level)
     stdout_handler.setFormatter(python_logging.Formatter(log_config.formatters.simple.format))
     log_handlers.append(stdout_handler)
@@ -163,7 +171,14 @@ def setup_logging_from_dictconfig(
     # Start the listener
     listener.start()
 
-    # Ensure the listener is stopped gracefully on program exit
+    # Ensure the listener is stopped gracefully on program exit.
+    # Known limitation: on Windows, parallel subprocess tasks (e.g. sidechain
+    # modeling via ProcessPoolExecutor) may race on the rotating log file.
+    # The QueueHandler serialises writes within a single process but does not
+    # coordinate across processes.
+    # ponytail: fix when it hurts. If this becomes a real issue, the upgrade
+    # path is: socket-based log server (logging.handlers.SocketHandler) with a
+    # single listener process, or file-per-worker naming to avoid contention.
     atexit.register(listener.stop)
 
     return python_logging.getLogger()
@@ -201,9 +216,14 @@ def setup_logging() -> python_logging.Logger:
 # 3. initialize logging config and root logger, depending on config
 ROOT_LOGGER = setup_logging()
 
+# Module-scoped child logger for the logger module itself.
+# Other modules should get their own child logger via:
+#   from REvoDesign.logger import ROOT_LOGGER
+#   logging = ROOT_LOGGER.getChild(__name__)
+#
+# Early bootstrap modules (imported before ROOT_LOGGER exists) must
+# delay the getChild call to function scope to avoid circular imports.
 logging = ROOT_LOGGER.getChild(__name__)
-
-LoggerT = python_logging.Logger
 
 
 def logger_level_setter(**kwargs) -> None:
@@ -318,14 +338,39 @@ def get_current_logger_level(channel: str = "root"):
 
 
 def list_all_logger_levels():
+    """Return the standard Python logging levels from the logger config.
+
+    Cached after first read from ``logger.yaml``; falls back to the
+    standard CPython levels if the config key is missing.
+    """
+    cfg = reload_config_file("logger")
+    if hasattr(cfg, "levels") and cfg.levels:
+        return list(cfg.levels)
+    # ponytail: fallback to stdlib levels; config key is additive, not required.
     return ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 def list_all_logger_channels():
+    """Return the available logging channels from the logger config.
+
+    Cached after first read from ``logger.yaml``; falls back to the
+    hardcoded list if the config key is missing.
+    """
+    cfg = reload_config_file("logger")
+    if hasattr(cfg, "channels") and cfg.channels:
+        return list(cfg.channels)
     return ["stdout", "stderr", "file", "notebook", "root"]
 
 
 def list_all_logger_formatters_non_json():
+    """Return the non-JSON formatter names from the logger config.
+
+    Cached after first read from ``logger.yaml``; falls back to the
+    hardcoded list if the config key is missing.
+    """
+    cfg = reload_config_file("logger")
+    if hasattr(cfg, "formatters_non_json") and cfg.formatters_non_json:
+        return list(cfg.formatters_non_json)
     return ["simple", "complex", "detailed"]
 
 

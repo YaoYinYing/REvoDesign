@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>480</width>
+    <width>560</width>
     <height>240</height>
    </rect>
   </property>
@@ -56,13 +56,13 @@
     <number>0</number>
    </property>
    <property name="leftMargin">
-    <number>56</number>
+    <number>40</number>
    </property>
    <property name="topMargin">
     <number>56</number>
    </property>
    <property name="rightMargin">
-    <number>56</number>
+    <number>40</number>
    </property>
    <property name="bottomMargin">
     <number>40</number>
@@ -103,9 +103,12 @@
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Fixed</enum>
+       </property>
        <property name="sizeHint" stdset="0">
         <size>
-         <width>40</width>
+         <width>12</width>
          <height>20</height>
         </size>
        </property>
@@ -129,11 +132,17 @@
      </item>
      <item>
       <widget class="QLabel" name="labelStatus">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+         <horstretch>1</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="text">
         <string>Initializing</string>
        </property>
        <property name="alignment">
-        <set>Qt::AlignCenter</set>
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
        </property>
       </widget>
      </item>
@@ -142,9 +151,12 @@
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Fixed</enum>
+       </property>
        <property name="sizeHint" stdset="0">
         <size>
-         <width>40</width>
+         <width>12</width>
          <height>20</height>
         </size>
        </property>

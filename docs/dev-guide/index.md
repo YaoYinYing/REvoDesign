@@ -25,6 +25,8 @@ solvers, or make changes to the core infrastructure.
   minimization, ddG scoring, ligand docking, and sidechain packing.
 - **[Translation (i18n)](translation.md)** -- Qt Linguist-based multi-language
   support, adding new languages, and the translation pipeline.
+- **[Logging](logging.md)** -- How to use child loggers, structured JSON
+  output, and log level management in REvoDesign modules.
 - **[UI Design](ui-design.md)** -- Qt Designer workflow, `.ui` files, object
   naming conventions, and the runtime UI loading system.
 - **[CGO Graphics](cgo.md)** -- Compiled Graphics Objects: PyMOL's low-level

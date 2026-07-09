@@ -52,3 +52,26 @@ loggers:
   root:
     level: DEBUG
 
+# Standard Python logging levels — used by list_all_logger_levels() at runtime.
+# Cached after first read; update this list and call reload_config_file("logger") to refresh.
+levels:
+  - DEBUG
+  - INFO
+  - WARNING
+  - ERROR
+  - CRITICAL
+
+# Available log channels — used by list_all_logger_channels() at runtime.
+channels:
+  - stdout
+  - stderr
+  - file
+  - notebook
+  - root
+
+# Non-JSON formatter names — used by list_all_logger_formatters_non_json() at runtime.
+formatters_non_json:
+  - simple
+  - complex
+  - detailed
+

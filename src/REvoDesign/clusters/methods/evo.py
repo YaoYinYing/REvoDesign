@@ -24,7 +24,7 @@ class EvoCluster(ClusterMethodAbstract):
     name = "EvoCluster"
     spec = ClusterMethodSpec(
         name=name,
-        display_name="EvoCluster",
+        display_name="EvoCluster (experimental)",
         description=(
             "Average-linkage clustering on a renormalized weighted distance model combining sequence, "
             "physicochemical, spatial, PSSM, and ESM components when available."

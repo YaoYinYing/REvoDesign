@@ -30,7 +30,7 @@ from REvoDesign.common.multi_mutant_designer import MultiMutantDesigner
 from REvoDesign.driver.environ_register import register_environment_variables
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.evaluate import Evaluator
-from REvoDesign.logger import ROOT_LOGGER, LoggerT
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.phylogenetics import GremlinAnalyser, MutateWorker, VisualizingWorker
 from REvoDesign.Qt import QT_BACKEND, QtCore, QtWidgets, has_qt_module
 from REvoDesign.Qt.ui_runtime_loader import is_language_change_event, load_runtime_ui
@@ -62,9 +62,6 @@ if TYPE_CHECKING:
     from REvoDesign.Qt.ui_runtime_loader import RuntimeUiProxy
     from REvoDesign.UI.types import REvoDesignUiProtocol
 
-# only when the window is activated by user can this logger be initialized.
-logging: LoggerT = None  # type: ignore
-
 
 class REvoDesignPlugin(QtWidgets.QWidget):
     if TYPE_CHECKING:
@@ -92,15 +89,16 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.gremlin_worker: GremlinAnalyser = None  # type: ignore
         self.evaluator: Evaluator = None  # type: ignore
-        global logging
-        logging = ROOT_LOGGER.getChild(self.__class__.__name__)
+
+        # Plugin-window-scoped child logger
+        self.logging = ROOT_LOGGER.getChild(self.__class__.__name__)
 
         self.multi_designer: MultiMutantDesigner = None  # type: ignore
         self.cluster_tab_controller = None
         self._language_change_filter: QtCore.QObject | None = None
 
         if has_qt_module("QtWebSockets"):
-            logging.info("QtWebSockets detected via PyMOL Qt backend: %s", QT_BACKEND)
+            self.logging.info("QtWebSockets detected via PyMOL Qt backend: %s", QT_BACKEND)
             self.teamwork_enabled = True
         else:
             warnings.warn(
@@ -163,7 +161,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             # .ui strings and status messages show translated from the start.
             install_translator_early()
 
-            launching.init(total_steps=10)  # "Initializing" + 9 _status calls in make_window
+            launching.init(total_steps=11)  # "Initializing" + 10 _status calls in make_window
 
             ui_path = Path(__file__).resolve().parent / "UI" / "launching.ui"
             splash_dialog, splash_proxy = load_runtime_ui(ui_path)
@@ -176,6 +174,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             try:
                 self.window = self.make_window(splash_proxy)
             finally:
+                launching.stop_elapsed_timer()
                 splash_dialog.close()
 
         self.window.show()
@@ -217,7 +216,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def __del__(self):
         """Shutting down."""
         # self.reinitialize()
-        logging.warning("REvoDesign is shutting down.")
+        logging = getattr(self, "logging", None)
+        if logging is not None:
+            logging.warning("REvoDesign is shutting down.")
         if self.window:
             self.window = None
 
@@ -233,6 +234,25 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             QtWidgets.QMainWindow: new main window object
         """
         from REvoDesign.application import launching
+
+        _status = partial(launching.update_status, splash_proxy)
+
+        # Populate version / copyright and user / machine info on the launching page.
+        # These are dynamic/technical values (version numbers, hostnames) and
+        # do not need translation — they are set directly rather than via _tr().
+        if splash_proxy is not None:
+            import getpass
+            import platform
+
+            splash_proxy.labelInfoLeft.setText(f"v{REvoDesign.__version__}  ·  GPL-3.0-only")  # type: ignore
+            try:
+                user = getpass.getuser()
+            except (KeyError, ModuleNotFoundError):
+                user = "unknown"
+            splash_proxy.labelInfoRight.setText(f"{user}@{platform.node()}")  # type: ignore
+
+        _status("Loading window module")
+
         from REvoDesign.application.cluster_tab import ClusterTabController
         from REvoDesign.application.font import FontSetter
         from REvoDesign.application.i18n import LanguageSwitch
@@ -246,23 +266,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         from REvoDesign.shortcuts.tools.openmm_utils import OpenmmSetupServerControl
         from REvoDesign.tools.system_tools import check_mac_rosetta2
 
-        _status = partial(launching.update_status, splash_proxy)
-
         installed_dir = os.path.dirname(__file__)
-        logging.debug(f"REvoDesign is installed in {installed_dir}")
+        self.logging.debug(f"REvoDesign is installed in {installed_dir}")
 
-        # Populate version / copyright and user / machine info on the launching page.
-        if splash_proxy is not None:
-            import getpass
-            import platform
-
-            splash_proxy.labelInfoLeft.setText(f"v{REvoDesign.__version__}  ·  GPL-3.0-only")
-            try:
-                user = getpass.getuser()
-            except (KeyError, ModuleNotFoundError):
-                user = "unknown"
-            splash_proxy.labelInfoRight.setText(f"{user}@{platform.node()}")
-
+        # for the freshly installed PyMOL and REvoDesign, the splash screen frozen a very long time
+        # to reach the calling of _status. not a good experience. macOS uses XProtectService to protect
+        # the system from malicious software but make the very first launch very slow.
         _status("Checking system environment")
         check_mac_rosetta2()
 
@@ -310,7 +319,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             try:
                 MenuCollection(self.bus.ui, menu_links())
             except Exception:
-                logging.exception("Failed to bind deferred menu links")
+                self.logging.exception("Failed to bind deferred menu links")
 
         QtCore.QTimer.singleShot(0, _bind_menu_links)
 
@@ -689,7 +698,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
         if output_pse_fn and os.path.exists(os.path.dirname(output_pse_fn)):
-            logging.info(f"Output file is set as {output_pse_fn}")
+            self.logging.info(f"Output file is set as {output_pse_fn}")
             self.bus.set_widget_value(cfg_to_pse, output_pse_fn)
         else:
             warnings.warn(issues.NoInputWarning(f"Invalid output path: {output_pse_fn}."))
@@ -758,7 +767,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         small_molecules = [""]
         if more_hetatm := find_small_molecules_in_protein(molecule):
             small_molecules.extend(more_hetatm)
-            logging.info(f"Small molecules found: {more_hetatm}")
+            self.logging.info(f"Small molecules found: {more_hetatm}")
         else:
             warnings.warn(issues.NoResultsWarning("No small molecule found."))
 
@@ -984,17 +993,17 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         mutant_table_fp = self.bus.get_value(cfg_mutant_table_fp)
 
         if not os.path.exists(mutant_table_fp):
-            logging.warning("Mutant table path is not available. Now we will create one.")
+            self.logging.warning("Mutant table path is not available. Now we will create one.")
 
         all_available_groups = cmd.get_names(type="group_objects", enabled_only=0)
         if group_name not in all_available_groups:
-            logging.error(f"Group {group_name} is not correct. Available group: {all_available_groups}")
+            self.logging.error(f"Group {group_name} is not correct. Available group: {all_available_groups}")
             return
 
-        logging.info("Instantializing MutantTree for current selection ... ")
+        self.logging.info("Instantializing MutantTree for current selection ... ")
         self.visualizing_mutant_tree = existed_mutant_tree(sequences=self.designable_sequences, enabled_only=1)
 
-        logging.info(f"Saving mutant table to {mutant_table_fp} ...")
+        self.logging.info(f"Saving mutant table to {mutant_table_fp} ...")
 
         save_mutant_choices(
             self.bus.get_value(cfg_mutant_table_fp),
@@ -1051,7 +1060,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             all_items = cmd.get_names("nongroup_objects", enabled_only=0)
             for item in all_items:
                 if item not in enabled_items:
-                    logging.warning(f"Reducing item {item} from current session ...")
+                    self.logging.warning(f"Reducing item {item} from current session ...")
                     cmd.delete(item)
                     cmd.refresh()
 
@@ -1088,7 +1097,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.multi_designer.refresh_options()
 
             if not self.multi_designer.in_design_multi_design_case.empty:
-                logging.warning("Your current mutant multi-mutagenesis will be discarded!")
+                self.logging.warning("Your current mutant multi-mutagenesis will be discarded!")
 
                 # Ask whether to overide
                 confirmed = decide(
@@ -1098,7 +1107,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
 
                 if not confirmed:
-                    logging.warning("Cancelled.")
+                    self.logging.warning("Cancelled.")
                     return
             self.multi_designer.start_new_design()
 
@@ -1161,11 +1170,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         ):
             try:
                 for i in range(max_num_multi_design_cases):
-                    logging.info(f"Starting {i}-th mutagenesis variant case")
+                    self.logging.info(f"Starting {i}-th mutagenesis variant case")
                     self.multi_mutagenesis_design_start()
                     # pick mutant until it reaches the required number
                     for j in range(maximal_mutant_num):
-                        logging.info(f"Picking {j}-th mutagenesis")
+                        self.logging.info(f"Picking {j}-th mutagenesis")
                         self.multi_mutagenesis_design_pick_next_mut()
                     self.multi_mutagenesis_design_stop_design()
                 self.multi_mutagenesis_design_save_design()
@@ -1230,7 +1239,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         # not instantialized or not running
         if not self.ws_server or not self.ws_server.is_running:
-            logging.warning("Server is not in service.")
+            self.logging.warning("Server is not in service.")
             return
 
         # do changes
@@ -1242,20 +1251,20 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             if self.ws_server.view_broadcast_on_air:
                 self.ws_server.view_broadcast_worker.interrupt()
                 self.ws_server.view_broadcast_on_air = False
-                logging.warning("Stop broadcasting view.")
+                self.logging.warning("Stop broadcasting view.")
                 return
-            logging.warning("Server is not broadcasting view changes. Do nothing.")
+            self.logging.warning("Server is not broadcasting view changes. Do nothing.")
             return
 
         # no clients
         if not self.ws_server.meetingroom:
-            logging.warning("Server has no client, ignore view updating. Do nothing.")
+            self.logging.warning("Server has no client, ignore view updating. Do nothing.")
             self.ws_server.view_broadcast_on_air = False
             return
 
         # already on air
         if self.ws_server.view_broadcast_on_air:
-            logging.warning("Server is broadcasting view changes! Do nothing.")
+            self.logging.warning("Server is broadcasting view changes! Do nothing.")
             return
 
         # start broadcaster
@@ -1266,7 +1275,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.ws_server.view_broadcast_on_air = True
         self.ws_server.view_broadcast_worker.run()
 
-        logging.warning("Start broadcasting view.")
+        self.logging.warning("Start broadcasting view.")
         return
 
     # Assuming toggle_ws_server_mode gets triggered on
@@ -1286,22 +1295,22 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
             if toggled:
                 if self.ws_server.is_running:
-                    logging.warning("Server is already in running state. Do nothing.")
+                    self.logging.warning("Server is already in running state. Do nothing.")
                     return
 
-                logging.info("Server is launching...")
+                self.logging.info("Server is launching...")
                 self.setup_ws_server()
 
             else:
                 if not self.ws_server.is_running:
-                    logging.warning("Server is already stopped. Do nothing.")
+                    self.logging.warning("Server is already stopped. Do nothing.")
                     return
                 self.ws_server.stop_server()
         except Exception as e:
-            logging.warning(e)
+            self.logging.warning(e)
             traceback.print_exc()
 
-        logging.warning(f'Server status: {"ON" if self.ws_server.is_running else "OFF"}')
+        self.logging.warning(f'Server status: {"ON" if self.ws_server.is_running else "OFF"}')
 
     async def ws_broadcast_from_server(self, data: Any, data_type: str):
         """Broadcasts data of a specified type from the server to connected
@@ -1325,7 +1334,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         connected.
         """
         if not self.ws_client or not self.ws_client.connected:
-            logging.warning("Client is not connected")
+            self.logging.warning("Client is not connected")
             return
 
         self.ws_client.receive_view_broadcast = self.bus.get_widget_value("ui.socket.receive.view", bool)
@@ -1344,10 +1353,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             else:
                 self.ws_client_disconnect_from_server()
         except Exception as e:
-            logging.warning(e)
+            self.logging.warning(e)
             traceback.print_exc()
 
-        logging.warning(f'Client status: {"ON" if self.ws_client.connected else "OFF"}')
+        self.logging.warning(f'Client status: {"ON" if self.ws_client.connected else "OFF"}')
 
     def ws_client_connect_to_server(self):
         """
@@ -1356,7 +1365,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         self.setup_ws_client()
         if self.ws_client.connected:
-            logging.warning("Client has already connected. Do noting.")
+            self.logging.warning("Client has already connected. Do noting.")
             return
         self.ws_client.connect_to_server()
 
@@ -1366,10 +1375,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         closing the connection.
         """
         if not self.ws_client.initialized:
-            logging.warning("Client is not initialized. Do noting.")
+            self.logging.warning("Client is not initialized. Do noting.")
             return
         if not self.ws_client.connected:
-            logging.warning("Client has already disconneced. Do noting.")
+            self.logging.warning("Client has already disconneced. Do noting.")
             return
         self.ws_client.close_connection()
 
@@ -1384,10 +1393,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             configurations need to be reloaded. Defaults to None.
         """
         if self.bus:
-            logging.warning("Reconfiguring with changes...")
+            self.logging.warning("Reconfiguring with changes...")
             reconfigure = True
         else:
-            logging.warning("Configuration initialized.")
+            self.logging.warning("Configuration initialized.")
             reconfigure = False
 
         if not reconfigure:
@@ -1442,7 +1451,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             exts=(file_extensions.YAML, file_extensions.Any),
         )
         if not new_cfg_file:
-            logging.debug("No file selected. Aborting operation on experiment loading/saving.")
+            self.logging.debug("No file selected. Aborting operation on experiment loading/saving.")
             return
 
         if mode == "r":
@@ -1457,6 +1466,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 backup = self.bus.cfg_group["main"].save_to_experiment(
                     experiment=f"experiments/{new_cfg_basename[:-5]}"
                 )
-                logging.info(f"Backup of current experiment saved to {backup}")
+                self.logging.info(f"Backup of current experiment saved to {backup}")
             # save again to the custom experiment file
             self.bus.cfg_group["main"].save_as(file_path=new_cfg_file)
