@@ -213,19 +213,11 @@ class LanguageSwitch(QtWidgets.QWidget):
     def _ensure_translator(self) -> QtCore.QTranslator:
         """Return the persistent translator used by the language switcher.
 
-        Checks ``bus.ui.trans`` (legacy path), then the QApplication for
-        an early-installed translator from :func:`install_translator_early`,
-        and creates a fresh one only as a last resort.
+        Reuses the early-installed translator from
+        :func:`install_translator_early` when present, then falls back
+        to ``bus.ui.trans`` (legacy path), and creates a fresh one only
+        as a last resort.
         """
-        existing = getattr(self.bus.ui, "trans", None)
-        if (
-            existing is not None
-            and hasattr(existing, "load")
-            and hasattr(existing, "isEmpty")
-            and hasattr(existing, "translate")
-        ):
-            return existing
-
         # Reuse the translator that install_translator_early installed so
         # removeTranslator / installTranslator work on the same instance.
         app = QtWidgets.QApplication.instance()
@@ -235,6 +227,15 @@ class LanguageSwitch(QtWidgets.QWidget):
                     setattr(self.bus.ui, "trans", child)
                     self._translator_installed = True
                     return child
+
+        existing = getattr(self.bus.ui, "trans", None)
+        if (
+            existing is not None
+            and hasattr(existing, "load")
+            and hasattr(existing, "isEmpty")
+            and hasattr(existing, "translate")
+        ):
+            return existing
 
         translator = QtCore.QTranslator(self.window)
         setattr(self.bus.ui, "trans", translator)
