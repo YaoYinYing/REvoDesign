@@ -62,7 +62,7 @@ Each entry maps a language code to a display name and menu action:
 ```json
 [
   {"code": "eng-eng", "name": "English",              "action": "actionEnglish"},
-  {"code": "eng-chs", "name": "中文",                  "action": "actionChinese"},
+  {"code": "eng-chs", "name": "简体中文",              "action": "actionChinese"},
   {"code": "eng-cht", "name": "繁體中文",              "action": "actionChineseTraditional"},
   {"code": "eng-fr",  "name": "français",             "action": "actionFrench"}
 ]
@@ -76,9 +76,10 @@ binary, and some registered languages may lack completed translations.
 `LanguageSwitch` (in `application/i18n/language_settings.py`) manages the
 translator lifecycle:
 
-1. **`_ensure_translator()`** — Checks `bus.ui.trans` (legacy path), then the
-   `QApplication` for an early-installed translator from `install_translator_early()`,
-   and creates a fresh translator only as a last resort.
+1. **`_ensure_translator()`** — Checks the `QApplication` for an early-installed
+   translator from `install_translator_early()`, then falls back to
+   `bus.ui.trans` (legacy path), and creates a fresh translator only as a last
+   resort.
 2. **`switch_language(language)`** — Removes the previous translator from the
    application, loads the new `.qm` file, installs it, calls `ui.retranslateUi()`
    to refresh all static widget text, then iterates `open_windows` and calls

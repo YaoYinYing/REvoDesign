@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
+
+### Fixed
+- Language menu actions disappearing when a non-English language was saved in config: language QActions were created orphan (no QObject parent) and lost after `retranslateUi` → `refresh_bindings()` rescanned the widget tree. Fixed by parenting each action to `menuLanguage`.
+- Switching back to English not reverting translated strings: `_ensure_translator()` checked the fresh `bus.ui.trans` before the early-installed translator from `install_translator_early()`, so `removeTranslator()` removed the wrong instance. Fixed by checking for an early-installed translator first.
 - Comprehensive API documentation site (46 pages) using MkDocs + Material for MkDocs + mkdocstrings:
   - User Guide (3 pages): landing, cluster methods, OpenKinetics workflow.
   - Developer Guide (18 pages): architecture, concepts, testing, CI/CD, PSSM/GREMLIN server, Monaco editor, Rosetta integration, translation (i18n), UI design, CGO graphics, Makefile reference, package manager, adding scorers/sidechain solvers, how-to guides (profile, config, shortcut), AI-assisted code quality fix playbooks (Codacy, DeepSource).
