@@ -26,12 +26,22 @@ import docker
 from celery import Celery
 from celery.result import AsyncResult
 from docker import types
-from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
-from flask_httpauth import HTTPBasicAuth
+from flask import Flask, current_app, g, jsonify, redirect, render_template, request, send_from_directory
+from pssm_gremlin.auth import UserDatabase
+from pssm_gremlin.auth import _env_bool as _auth_env_bool  # noqa: E402  (late import after app creation)
+from pssm_gremlin.auth import (
+    _env_str,
+    generate_token,
+    login_required,
+    migrate_users_file,
+    optional_user,
+    send_verification_email,
+    validate_email_token,
+)
 from sqlalchemy import Column, Float, Index, Integer, MetaData, String, Table, Text, create_engine, desc, select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import OperationalError
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 
 THIS_FILE = os.path.abspath(__file__)
@@ -39,7 +49,19 @@ THIS_DIR = os.path.dirname(THIS_FILE)
 TEMPLATE_IMAGE_DIR = os.path.join(THIS_DIR, "templates", "images")
 
 app = Flask(__name__, template_folder="./templates")
-auth = HTTPBasicAuth()
+
+# ---------------------------------------------------------------------------
+# Auth initialisation — replaces the old HTTPBasicAuth + users.txt model
+# ---------------------------------------------------------------------------
+_user_db = UserDatabase()
+app.config["user_db"] = _user_db
+ENABLE_REGISTER = _auth_env_bool("ENABLE_REGISTER", False)
+
+# Secrets for token signing — reuse a shared secret or generate a random one.
+# In production set AUTH_SECRET_KEY to a fixed, high-entropy value so tokens
+# survive process restarts.
+_token_key = _env_str("AUTH_SECRET_KEY", os.urandom(32).hex())
+app.secret_key = app.secret_key or _token_key
 
 
 class TaskDatabase:
@@ -322,25 +344,37 @@ class GremlinConfig:
 CONFIG = GremlinConfig.from_env()
 
 
-user_file = os.environ.get("USERS_FILE", os.path.join(THIS_DIR, "users.txt"))
-user_file = os.path.abspath(user_file)
-
-if not os.path.exists(user_file):
-    raise FileNotFoundError(f"Unable to start GREMLIN server without user credentials. Expected file at {user_file}")
-
-# A dictionary of users and their hashed passwords
-users = {}
-
-with open(user_file) as f:
-    for line in f:
-        if line.strip() == "":
-            continue
-        if line.strip().startswith(("#", ";")):
-            continue
-        username, password = line.strip().split(":")
-        users[username] = generate_password_hash(password)
-
 ADMIN_USERS = set(_env_csv("ADMIN_USERS", "admin"))
+
+# Migrate legacy users.txt entries into the SQLite user database on startup.
+# The file is optional — if absent, the server relies on registered users
+# (or the first-run bootstrap user created below).
+_user_file = os.environ.get("USERS_FILE", os.path.join(THIS_DIR, "users.txt"))
+_user_file = os.path.abspath(_user_file)
+if os.path.exists(_user_file):
+    _imported = migrate_users_file(_user_db, _user_file, ADMIN_USERS)
+    logging.info("Migrated %d user(s) from %s", _imported, _user_file)
+else:
+    logging.info("No legacy users file at %s — skipping migration", _user_file)
+
+# Bootstrap: if the user database is still empty, create a default admin account
+# so the server is not locked out on first run.
+if _user_db.user_count() == 0:
+    _default_admin = _env_str("DEFAULT_ADMIN_USERNAME", "admin")
+    _default_pass = _env_str("DEFAULT_ADMIN_PASSWORD", os.urandom(16).hex())
+    _user_db.create_user(
+        username=_default_admin,
+        email=f"{_default_admin}@revodesign.local",
+        password=_default_pass,
+        is_admin=True,
+    )
+    _user_db.verify_email(1)  # auto-verify the bootstrap admin
+    logging.warning(
+        "No users found — created default admin user %r. "
+        "Set DEFAULT_ADMIN_PASSWORD in the environment and restart, "
+        "or log in and change it immediately.",
+        _default_admin,
+    )
 
 
 # Celery configurations
@@ -430,13 +464,19 @@ def _sanitize_headers_for_log(raw_headers: dict[str, str]) -> str:
     return json.dumps(sanitized, ensure_ascii=True, sort_keys=True)
 
 
+def _current_username() -> str:
+    """Return the current authenticated username, or empty string."""
+    user = g.get("current_user")
+    return user["username"] if user else ""
+
+
 def _request_metadata() -> dict[str, str | None]:
     ip = request.headers.get("CF-Connecting-IP") or request.headers.get("CF-Connecting-IPv6") or request.remote_addr
     headers = {str(k): str(v) for k, v in request.headers.items()}
     return {
         "ip": ip,
         "user_agent": request.headers.get("User-Agent", "unknown"),
-        "username": auth.current_user() or "anonymous",
+        "username": _current_username() or "anonymous",
         "headers_json": _sanitize_headers_for_log(headers),
     }
 
@@ -559,15 +599,8 @@ except BaseException:
     os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 
 
-@auth.verify_password
-def verify_password(username, password):
-    if username in users and check_password_hash(users.get(username), password):
-        return username
-    return None
-
-
 def _is_admin_user(username: str | None = None) -> bool:
-    target = (username if username is not None else auth.current_user()) or ""
+    target = (username if username is not None else _current_username()) or ""
     return target in ADMIN_USERS
 
 
@@ -576,7 +609,7 @@ def _task_access_allowed(task: dict[str, Any]) -> bool:
         return True
     if CONFIG.public_dashboard:
         return True
-    current_user = auth.current_user() or ""
+    current_user = _current_username() or ""
     return bool(current_user) and task.get("username") == current_user
 
 
@@ -601,7 +634,7 @@ def _task_id_for_upload(content_md5: str, username: str | None) -> str:
 
 
 def _task_delete_allowed(task: dict[str, Any]) -> bool:
-    current_user = auth.current_user() or ""
+    current_user = _current_username() or ""
     if _is_admin_user(current_user):
         return True
     return bool(current_user) and task.get("username") == current_user
@@ -932,8 +965,20 @@ def run_gremlin_task(md5sum):
         logging.exception("Unexpected failure while running GREMLIN task %s", md5sum)
 
 
+@app.route("/PSSM_GREMLIN/login", methods=["GET"])
+def login_page():
+    return render_template("login.html")
+
+
+@app.route("/PSSM_GREMLIN/register", methods=["GET"])
+def register_page():
+    if not ENABLE_REGISTER:
+        return jsonify({"error": "Registration is disabled on this server"}), 403
+    return render_template("register.html")
+
+
 @app.route("/PSSM_GREMLIN/create_task", methods=["GET"])
-@auth.login_required
+@login_required
 def create_task():
     return render_template("create_task.html")
 
@@ -949,7 +994,7 @@ def logo_svg():
 
 
 @app.route("/PSSM_GREMLIN/api/post", methods=["POST"])
-@auth.login_required
+@login_required
 def upload_file():
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
@@ -1042,7 +1087,7 @@ def upload_file():
 
 
 @app.route("/PSSM_GREMLIN/api/running/<md5sum>", methods=["GET"])
-@auth.login_required
+@login_required
 def run_gremlin(md5sum):
     md5sum = _normalize_task_id(md5sum)
     if md5sum is None:
@@ -1081,7 +1126,7 @@ def run_gremlin(md5sum):
 
 
 @app.route("/PSSM_GREMLIN/api/results/<md5sum>", methods=["GET"])
-@auth.login_required
+@login_required
 def get_results(md5sum):
     md5sum = _normalize_task_id(md5sum)
     if md5sum is None:
@@ -1099,7 +1144,7 @@ def get_results(md5sum):
 
 
 @app.route("/PSSM_GREMLIN/api/download/<md5sum>", methods=["GET"])
-@auth.login_required
+@login_required
 def download_results(md5sum):
     md5sum = _normalize_task_id(md5sum)
     if md5sum is None:
@@ -1144,7 +1189,7 @@ def download_results(md5sum):
 
 
 @app.route("/PSSM_GREMLIN/api/cancel/<md5sum>", methods=["POST"])
-@auth.login_required
+@login_required
 def cancel_task(md5sum):
     md5sum = _normalize_task_id(md5sum)
     if md5sum is None:
@@ -1183,9 +1228,9 @@ def cancel_task(md5sum):
 
 
 @app.route("/PSSM_GREMLIN/dashboard", methods=["GET"])
-@auth.login_required
+@login_required
 def task_dashboard():
-    current_user = auth.current_user() or ""
+    current_user = _current_username() or ""
     is_admin = _is_admin_user(current_user)
     all_tasks = task_store.list_tasks()
     if is_admin or CONFIG.public_dashboard:
@@ -1245,7 +1290,7 @@ def task_dashboard():
 
 
 @app.route("/PSSM_GREMLIN/api/delete/<md5sum>", methods=["DELETE"])
-@auth.login_required
+@login_required
 def delete_task(md5sum):
     md5sum = _normalize_task_id(md5sum)
     if md5sum is None:
@@ -1281,7 +1326,7 @@ def delete_task(md5sum):
 
 
 @app.route("/PSSM_GREMLIN/api/delete", methods=["POST"])
-@auth.login_required
+@login_required
 def delete_tasks_batch():
     payload = request.get_json(silent=True) or {}
     md5sums = payload.get("md5sums")
@@ -1343,6 +1388,119 @@ def delete_tasks_batch():
                 "not_found": not_found,
                 "ignored": ignored,
                 "forbidden": forbidden,
+            }
+        ),
+        200,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Auth API endpoints
+# ---------------------------------------------------------------------------
+
+
+def _get_user_db() -> UserDatabase:
+    return current_app.config["user_db"]  # type: ignore[no-any-return]
+
+
+@app.route("/PSSM_GREMLIN/api/auth/login", methods=["POST"])
+def auth_login():
+    """Exchange username+password for a Bearer token."""
+    payload = request.get_json(silent=True) or {}
+    username = str(payload.get("username", "")).strip()
+    password = str(payload.get("password", "") or "")
+
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
+
+    db = _get_user_db()
+    user = db.get_user_by_username(username)
+    if user is None or not check_password_hash(user["password_hash"], password):
+        return jsonify({"error": "Invalid username or password"}), 401
+
+    token = generate_token(user["id"])
+    return jsonify({"token": token, "username": user["username"]}), 200
+
+
+@app.route("/PSSM_GREMLIN/api/auth/register", methods=["POST"])
+def auth_register():
+    """Register a new user account.
+
+    Requires ``ENABLE_REGISTER=true`` in the environment.  Sends a verification
+    email when SMTP is configured, otherwise auto-verifies.
+    """
+    if not ENABLE_REGISTER:
+        return jsonify({"error": "Registration is disabled on this server"}), 403
+
+    payload = request.get_json(silent=True) or {}
+    username = str(payload.get("username", "")).strip()
+    email = str(payload.get("email", "")).strip().lower()
+    password = str(payload.get("password", "") or "")
+
+    # Basic validation
+    if not username or not email or not password:
+        return jsonify({"error": "Username, email, and password are required"}), 400
+    if len(username) < 3 or len(username) > 64:
+        return jsonify({"error": "Username must be between 3 and 64 characters"}), 400
+    if len(password) < 8:
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return jsonify({"error": "Invalid email address"}), 400
+
+    db = _get_user_db()
+    if db.get_user_by_username(username):
+        return jsonify({"error": "Username already taken"}), 409
+    if db.get_user_by_email(email):
+        return jsonify({"error": "Email address already registered"}), 409
+
+    user = db.create_user(username=username, email=email, password=password)
+
+    # Send verification email (or auto-verify if SMTP is not configured)
+    if _env_str("SMTP_HOST", ""):
+        sent = send_verification_email(user)
+        if not sent:
+            # Don't fail registration — just warn and auto-verify
+            db.verify_email(user["id"])
+            logging.warning("Email verification failed for %r; account auto-verified", username)
+    else:
+        db.verify_email(user["id"])
+        logging.info("SMTP not configured — auto-verified account for %r", username)
+
+    return jsonify({"message": "Registration successful", "username": username}), 201
+
+
+@app.route("/PSSM_GREMLIN/api/auth/verify-email", methods=["GET"])
+def auth_verify_email():
+    """Verify an email address via a one-time token."""
+    token = request.args.get("token", "").strip()
+    if not token:
+        return jsonify({"error": "Missing verification token"}), 400
+
+    user_id = validate_email_token(token)
+    if user_id is None:
+        return jsonify({"error": "Invalid or expired verification token"}), 400
+
+    db = _get_user_db()
+    user = db.get_user(user_id)
+    if user is None:
+        return jsonify({"error": "User not found"}), 404
+
+    db.verify_email(user_id)
+    return jsonify({"message": "Email verified successfully", "username": user["username"]}), 200
+
+
+@app.route("/PSSM_GREMLIN/api/auth/me", methods=["GET"])
+@login_required
+def auth_me():
+    """Return the current authenticated user's profile."""
+    user = g.current_user
+    return (
+        jsonify(
+            {
+                "username": user["username"],
+                "email": user["email"],
+                "email_verified": user["email_verified"],
+                "is_admin": user["is_admin"],
             }
         ),
         200,

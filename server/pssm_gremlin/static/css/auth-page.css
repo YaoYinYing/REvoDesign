@@ -1,0 +1,101 @@
+/* REvoDesign GREMLIN Server — Auth page styles (login / register) */
+/* SPDX-License-Identifier: GPL-3.0-only */
+
+.page { max-width: 560px; }
+
+.panel + .panel { margin-top: 1rem; }
+
+.field { margin-bottom: 1rem; }
+
+.field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  color: var(--ink);
+}
+
+.field input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.12);
+}
+
+.field .hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.status-msg {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  display: none;
+}
+
+.status-msg.error   { display: block; background: #fce4d0; color: var(--warn); }
+.status-msg.success { display: block; background: #d6efe6; color: var(--accent-2); }
+
+.nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.nav-row a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.nav-row a:hover { text-decoration: underline; }
+
+hr { border: none; border-top: 1px solid var(--line); margin: 1.25rem 0; }
+
+.info-note {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.info-note code {
+  font-size: 0.8rem;
+  background: var(--line);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+/* dark */
+html[data-theme="dark"] .field input {
+  background: #17252c;
+  border-color: #324751;
+  color: #d8e4e9;
+}
+
+html[data-theme="dark"] .status-msg.error { background: #3c211d; color: #e8ada7; }
+html[data-theme="dark"] .status-msg.success { background: #1d3524; color: #9fd8aa; }
+html[data-theme="dark"] .info-note { background: #16242b; }
