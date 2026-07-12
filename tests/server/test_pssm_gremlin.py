@@ -98,6 +98,11 @@ def _load_pssm_module(
     users_text: str | None = None,
 ):
     _configure_pssm_env(monkeypatch, tmp_path, extra_env, users_text)
+    # The refactored pssm_gremlin module imports from sibling packages
+    # (pssm_gremlin.db, pssm_gremlin.auth), so server/ must be on sys.path.
+    server_dir = str(Path(REPO_DIR) / "server")
+    if server_dir not in sys.path:
+        sys.path.insert(0, server_dir)
     module_path = Path(REPO_DIR) / "server" / "pssm_gremlin" / "pssm_gremlin.py"
     module_name = f"pssm_gremlin_config_test_{uuid.uuid4().hex}"
     spec = importlib.util.spec_from_file_location(module_name, module_path)
