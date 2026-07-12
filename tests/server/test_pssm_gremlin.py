@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-import base64
 import importlib.util
 import io
 import json
@@ -167,7 +166,7 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
         },
     )
     client = module.app.test_client()
-    auth_header = _basic_auth_header("tester", "password")
+    auth_header = _module_bearer_headers(module)
 
     favicon = client.get("/favicon.ico")
     assert favicon.status_code == 200
@@ -483,14 +482,12 @@ def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
     monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
 
     client = module.app.test_client()
-    auth_header = base64.b64encode(b"tester:password").decode("ascii")
+    headers = _module_bearer_headers(module)
+    headers["X-Test-Header"] = "abc\tdef"
     response = client.post(
         "/PSSM_GREMLIN/api/post",
         data={"file": (io.BytesIO(b">test\nACDE\n"), "upload.fasta")},
-        headers={
-            "Authorization": f"Basic {auth_header}",
-            "X-Test-Header": "abc\tdef",
-        },
+        headers=headers,
     )
     assert response.status_code == 302
     md5sum = _extract_md5(response.headers["Location"])
@@ -506,9 +503,32 @@ def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
     assert "\r" not in task["request_headers"]
 
 
-def _basic_auth_header(username: str, password: str) -> dict[str, str]:
-    token = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
-    return {"Authorization": f"Basic {token}"}
+def _bearer_headers(base_url: str, username: str, password: str) -> dict[str, str]:
+    """Log in via the token endpoint and return a Bearer authorization header."""
+    resp = requests.post(
+        f"{base_url}/PSSM_GREMLIN/api/auth/login",
+        json={"username": username, "password": password},
+        timeout=10,
+    )
+    if resp.status_code != 200:
+        raise AssertionError(f"Login failed ({resp.status_code}): {resp.text}")
+    return {"Authorization": f"Bearer {resp.json()['token']}"}
+
+
+def _module_bearer_headers(module, username: str = "tester", password: str = "password") -> dict[str, str]:
+    """Create a test user and return Bearer token headers for Flask test-client tests.
+
+    Unlike :func:`_bearer_headers`, this works without a running HTTP server —
+    it creates the user directly in the DB and generates a token locally.
+    """
+    db = module.app.config["user_db"]
+    user = db.get_user_by_username(username)
+    if not user:
+        user = db.create_user(username=username, email=f"{username}@test.local", password=password)
+        db.verify_email(user["id"])
+    from pssm_gremlin.auth import generate_token
+
+    return {"Authorization": f"Bearer {generate_token(user['id'])}"}
 
 
 def _upsert_task_for_user(
@@ -550,7 +570,7 @@ def test_dashboard_masks_host_file_paths_on_read_errors(monkeypatch, tmp_path):
         },
     )
     client = module.app.test_client()
-    auth_header = _basic_auth_header("tester", "password")
+    auth_header = _module_bearer_headers(module)
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "result"
@@ -584,7 +604,7 @@ def test_failed_status_masks_host_paths_in_api_error(monkeypatch, tmp_path):
         },
     )
     client = module.app.test_client()
-    auth_header = _basic_auth_header("tester", "password")
+    auth_header = _module_bearer_headers(module)
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "result"
@@ -630,8 +650,8 @@ def test_private_dashboard_blocks_non_owner_access(monkeypatch, tmp_path):
     monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
 
     client = module.app.test_client()
-    owner_header = _basic_auth_header("tester", "password")
-    other_header = _basic_auth_header("other", "password2")
+    owner_header = _module_bearer_headers(module)
+    other_header = _module_bearer_headers(module, "other", "password2")
 
     upload = client.post(
         "/PSSM_GREMLIN/api/post",
@@ -677,8 +697,8 @@ def test_public_dashboard_allows_cross_user_task_access(monkeypatch, tmp_path):
     monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
 
     client = module.app.test_client()
-    owner_header = _basic_auth_header("tester", "password")
-    other_header = _basic_auth_header("other", "password2")
+    owner_header = _module_bearer_headers(module)
+    other_header = _module_bearer_headers(module, "other", "password2")
 
     upload = client.post(
         "/PSSM_GREMLIN/api/post",
@@ -707,7 +727,7 @@ def test_dashboard_running_trace_reflects_log_progress(monkeypatch, tmp_path):
         },
     )
     client = module.app.test_client()
-    auth_header = _basic_auth_header("tester", "password")
+    auth_header = _module_bearer_headers(module)
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "trace_result"
@@ -753,8 +773,8 @@ def test_public_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
     monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
 
     client = module.app.test_client()
-    owner_header = _basic_auth_header("tester", "password")
-    other_header = _basic_auth_header("other", "password2")
+    owner_header = _module_bearer_headers(module)
+    other_header = _module_bearer_headers(module, "other", "password2")
 
     owner_upload = client.post(
         "/PSSM_GREMLIN/api/post",
@@ -787,7 +807,7 @@ def test_admin_can_manage_other_users_tasks_in_private_mode(monkeypatch, tmp_pat
         users_text="tester:password\nadmin:admin_password\n",
     )
     client = module.app.test_client()
-    admin_header = _basic_auth_header("admin", "admin_password")
+    admin_header = _module_bearer_headers(module, "admin", "admin_password")
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "admin_manage_other_user"
@@ -831,8 +851,8 @@ def test_private_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
     monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
 
     client = module.app.test_client()
-    owner_header = _basic_auth_header("tester", "password")
-    other_header = _basic_auth_header("other", "password2")
+    owner_header = _module_bearer_headers(module)
+    other_header = _module_bearer_headers(module, "other", "password2")
 
     payload = {"file": (io.BytesIO(b">test\nACDE\n"), "same.fasta")}
     owner_upload = client.post("/PSSM_GREMLIN/api/post", data=payload, headers=owner_header)
@@ -862,7 +882,7 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
     )
 
     client = module.app.test_client()
-    owner_header = _basic_auth_header("tester", "password")
+    owner_header = _module_bearer_headers(module)
 
     md5sum = uuid.uuid4().hex
     upload_dir = tmp_path / "upload_owner"
@@ -912,7 +932,7 @@ def test_dashboard_hides_deleted_tasks_until_resubmitted(monkeypatch, tmp_path):
     )
 
     client = module.app.test_client()
-    auth_header = _basic_auth_header("tester", "password")
+    auth_header = _module_bearer_headers(module)
 
     md5sum = uuid.uuid4().hex
     upload_file = tmp_path / "deleted_hidden.fasta"
@@ -961,7 +981,7 @@ def test_delete_pending_task_marks_deleted_cancel(monkeypatch, tmp_path):
         users_text="tester:password\n",
     )
     client = module.app.test_client()
-    owner_header = _basic_auth_header("tester", "password")
+    owner_header = _module_bearer_headers(module)
 
     md5sum = uuid.uuid4().hex
     upload_file = tmp_path / "upload_pending.fasta"
@@ -1001,7 +1021,7 @@ def test_non_owner_cannot_delete_task_results(monkeypatch, tmp_path):
     )
 
     client = module.app.test_client()
-    other_header = _basic_auth_header("other", "password2")
+    other_header = _module_bearer_headers(module, "other", "password2")
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "delete_denied"
@@ -1034,7 +1054,7 @@ def test_single_delete_rejects_invalid_task_id(monkeypatch, tmp_path):
     )
 
     client = module.app.test_client()
-    auth_header = _basic_auth_header("tester", "password")
+    auth_header = _module_bearer_headers(module)
 
     response = client.delete("/PSSM_GREMLIN/api/delete/not-a-md5", headers=auth_header)
     assert response.status_code == 400
@@ -1054,7 +1074,7 @@ def test_admin_can_batch_delete_tasks(monkeypatch, tmp_path):
     )
 
     client = module.app.test_client()
-    admin_header = _basic_auth_header("admin", "admin_password")
+    admin_header = _module_bearer_headers(module, "admin", "admin_password")
 
     md5_a = uuid.uuid4().hex
     md5_b = uuid.uuid4().hex
@@ -1114,7 +1134,7 @@ def test_batch_delete_guards_and_normalizes_each_md5sum(monkeypatch, tmp_path):
     )
 
     client = module.app.test_client()
-    admin_header = _basic_auth_header("admin", "admin_password")
+    admin_header = _module_bearer_headers(module, "admin", "admin_password")
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "batch_guard_normalize"
@@ -1159,7 +1179,7 @@ def test_non_admin_batch_delete_only_deletes_owned_tasks(monkeypatch, tmp_path):
     )
 
     client = module.app.test_client()
-    user_header = _basic_auth_header("tester", "password")
+    user_header = _module_bearer_headers(module)
 
     own_md5 = uuid.uuid4().hex
     other_md5 = uuid.uuid4().hex
@@ -1215,7 +1235,7 @@ def test_download_uses_safe_fasta_prefix_filename(monkeypatch, tmp_path):
         users_text="tester:password\n",
     )
     client = module.app.test_client()
-    auth_header = _basic_auth_header("tester", "password")
+    auth_header = _module_bearer_headers(module)
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "download_safe_name"
@@ -1435,11 +1455,9 @@ class DockerServerStack:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.users_dir = self.state_dir / "server_test"
         self.users_dir.mkdir(parents=True, exist_ok=True)
-        self.users_file = self.users_dir / "users.txt"
         password = f"test_password_{secrets.token_hex(32)}"
-        self.username = "test_username"
+        self.username = "admin"
         self.password = password
-        self.users_file.write_text(f"{self.username}:{self.password}\n", encoding="utf-8")
         self.db_path = self.state_dir / "pssm_gremlin.sqlite3"
         self.db_path.touch()
         if self._needs_relaxed_permissions:
@@ -1457,7 +1475,7 @@ class DockerServerStack:
             "DB_PATH": str(self.db_path),
             "DB_UNIREF30": self.miniuc["uniref30_prefix"],
             "DB_UNIREF90": self.miniuc["uniref90_prefix"],
-            "USERS_FILE": str(self.users_file),
+            "DEFAULT_ADMIN_PASSWORD": self.password,
             "LOG_DIR": str(self.log_dir),
             "NPROC": "4",
             "GUNICORN_WORKERS": "2",
@@ -1481,7 +1499,7 @@ class DockerServerStack:
                 base_url = f"http://127.0.0.1:{self.port}"
                 _wait_for_server_ready(
                     base_url,
-                    (self.username, self.password),
+                    _bearer_headers(base_url, self.username, self.password),
                     timeout=server_ready_timeout,
                     web_container=self.web_name,
                 )
@@ -1606,8 +1624,7 @@ class DockerServerStack:
         ]
         for directory in dirs:
             self._safe_chmod(directory, 0o777)
-        for file_path in (self.db_path, self.users_file):
-            self._safe_chmod(file_path, 0o666)
+        self._safe_chmod(self.db_path, 0o666)
 
     @staticmethod
     def _safe_chmod(path: Path, mode: int) -> None:
@@ -1639,11 +1656,11 @@ class DockerServerStack:
 
 
 def _wait_for_server_ready(
-    base_url: str, auth: tuple[str, str], timeout: float = 120.0, web_container: str | None = None
+    base_url: str, headers: dict[str, str], timeout: float = 120.0, web_container: str | None = None
 ) -> None:
     deadline = time.time() + timeout
     session = requests.Session()
-    session.auth = auth
+    session.headers.update(headers)
     url = f"{base_url}/PSSM_GREMLIN/create_task"
     last_error = ""
     while time.time() < deadline:
@@ -1689,10 +1706,10 @@ def _extract_md5(location: str) -> str:
     return location.rstrip("/").rsplit("/", 1)[-1]
 
 
-def _wait_for_task(base_url: str, auth: tuple[str, str], md5sum: str, timeout: float = 900.0) -> None:
+def _wait_for_task(base_url: str, headers: dict[str, str], md5sum: str, timeout: float = 900.0) -> None:
     deadline = time.time() + timeout
     session = requests.Session()
-    session.auth = auth
+    session.headers.update(headers)
     url = f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}"
     while time.time() < deadline:
         response = session.get(url, timeout=10)
@@ -1706,10 +1723,10 @@ def _wait_for_task(base_url: str, auth: tuple[str, str], md5sum: str, timeout: f
     raise AssertionError("Timed out waiting for GREMLIN task to finish")
 
 
-def _wait_for_failed_task(base_url: str, auth: tuple[str, str], md5sum: str, timeout: float = 900.0) -> dict:
+def _wait_for_failed_task(base_url: str, headers: dict[str, str], md5sum: str, timeout: float = 900.0) -> dict:
     deadline = time.time() + timeout
     with requests.Session() as session:
-        session.auth = auth
+        session.headers.update(headers)
         url = f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}"
         while time.time() < deadline:
             response = session.get(url, timeout=10)
@@ -1733,14 +1750,14 @@ def test_server_image_handles_authenticated_requests(miniuc_databases, runner_im
     try:
         stack.start()
         base_url = f"http://127.0.0.1:{stack.port}"
-        auth = (stack.username, stack.password)
-        _wait_for_server_ready(base_url, auth, web_container=stack.web_name)
+        headers = _bearer_headers(base_url, stack.username, stack.password)
+        _wait_for_server_ready(base_url, headers, web_container=stack.web_name)
 
         fasta_path = MSA_ROOT / "2KL8.fasta"
         _require_path(fasta_path, "Validation FASTA file")
 
         session = requests.Session()
-        session.auth = auth
+        session.headers.update(headers)
         with open(fasta_path, "rb") as handle:
             response = session.post(
                 f"{base_url}/PSSM_GREMLIN/api/post",
@@ -1752,7 +1769,7 @@ def test_server_image_handles_authenticated_requests(miniuc_databases, runner_im
         location = response.headers["Location"]
         md5sum = _extract_md5(location)
 
-        _wait_for_task(base_url, auth, md5sum)
+        _wait_for_task(base_url, headers, md5sum)
 
         results_resp = session.get(
             f"{base_url}/PSSM_GREMLIN/api/results/{md5sum}",
@@ -1787,8 +1804,8 @@ def running_gremlin_server(miniuc_databases, runner_image_tag, server_image_tag)
     )
     stack.start()
     base_url = f"http://127.0.0.1:{stack.port}"
-    auth = (stack.username, stack.password)
-    _wait_for_server_ready(base_url, auth, web_container=stack.web_name)
+    headers = _bearer_headers(base_url, stack.username, stack.password)
+    _wait_for_server_ready(base_url, headers, web_container=stack.web_name)
     try:
         yield {"stack": stack, "base_url": base_url, "auth": auth}
     finally:
@@ -1833,7 +1850,7 @@ def test_server_rejects_invalid_uploads(running_gremlin_server):
     base_url = running_gremlin_server["base_url"]
     auth = running_gremlin_server["auth"]
     with requests.Session() as session:
-        session.auth = auth
+        session.headers.update(headers)
         missing_resp = session.post(
             f"{base_url}/PSSM_GREMLIN/api/post",
             data={"foo": "bar"},
@@ -1868,7 +1885,7 @@ def test_server_reports_invalid_task_ids(running_gremlin_server):
     auth = running_gremlin_server["auth"]
     md5sum = secrets.token_hex(16)
     with requests.Session() as session:
-        session.auth = auth
+        session.headers.update(headers)
         running_resp = session.get(
             f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}",
             timeout=10,
@@ -1891,7 +1908,7 @@ def test_server_reports_invalid_task_ids(running_gremlin_server):
 #     failed_fasta = _create_invalid_residue_fasta(tmp_path)
 
 #     with requests.Session() as session:
-#         session.auth = auth
+#         session.headers.update(headers)
 #         with open(failed_fasta, "rb") as handle:
 #             response = session.post(
 #                 f"{base_url}/PSSM_GREMLIN/api/post",
