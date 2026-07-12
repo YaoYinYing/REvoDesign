@@ -15,10 +15,11 @@ import logging
 import os
 import smtplib
 import time
+from collections.abc import Callable
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 import sqlalchemy as sa
 from flask import current_app, g, jsonify, request
@@ -76,7 +77,11 @@ def _get_user_db_path() -> str:
     Uses ``USER_DB_PATH`` env var, falling back to ``{SERVER_DIR}/users.sqlite3``.
     """
     from_server_dir = os.environ.get("SERVER_DIR", "")
-    default = os.path.join(from_server_dir, "users.sqlite3") if from_server_dir else os.path.join(os.getcwd(), "users.sqlite3")
+    default = (
+        os.path.join(from_server_dir, "users.sqlite3")
+        if from_server_dir
+        else os.path.join(os.getcwd(), "users.sqlite3")
+    )
     return _env_str("USER_DB_PATH", default)
 
 
@@ -104,16 +109,13 @@ class UserDatabase:
     def create_user(self, username: str, email: str, password: str, *, is_admin: bool = False) -> dict[str, Any]:
         """Insert a new user.  Returns the row as a dict."""
         now = time.time()
-        stmt = (
-            sa.insert(_users_table)
-            .values(
-                username=username,
-                email=email.lower().strip(),
-                password_hash=generate_password_hash(password),
-                email_verified=False,
-                is_admin=is_admin,
-                created_at=now,
-            )
+        stmt = sa.insert(_users_table).values(
+            username=username,
+            email=email.lower().strip(),
+            password_hash=generate_password_hash(password),
+            email_verified=False,
+            is_admin=is_admin,
+            created_at=now,
         )
         with self.engine.begin() as conn:
             result = conn.execute(stmt)
@@ -221,7 +223,15 @@ def login_required(f: Callable) -> Callable:
     def decorated(*args: Any, **kwargs: Any) -> Any:
         user = load_current_user()
         if user is None:
-            return jsonify({"error": "Authentication required", "message": "Provide a valid Bearer token via the Authorization header"}), 401
+            return (
+                jsonify(
+                    {
+                        "error": "Authentication required",
+                        "message": "Provide a valid Bearer token via the Authorization header",
+                    }
+                ),
+                401,
+            )
         g.current_user = user
         return f(*args, **kwargs)
 

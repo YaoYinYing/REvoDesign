@@ -346,35 +346,53 @@ CONFIG = GremlinConfig.from_env()
 
 ADMIN_USERS = set(_env_csv("ADMIN_USERS", "admin"))
 
-# Migrate legacy users.txt entries into the SQLite user database on startup.
-# The file is optional — if absent, the server relies on registered users
-# (or the first-run bootstrap user created below).
+# Seed the user database on first run.  The USERS_FILE (legacy users.txt
+# format) is read ONLY when the database is empty; it does not affect
+# subsequent startups.  Once seeded, all user management happens through
+# the API — the text file is a bootstrap artefact, not a live credential
+# store.
 _user_file = os.environ.get("USERS_FILE", os.path.join(THIS_DIR, "users.txt"))
 _user_file = os.path.abspath(_user_file)
-if os.path.exists(_user_file):
-    _imported = migrate_users_file(_user_db, _user_file, ADMIN_USERS)
-    logging.info("Migrated %d user(s) from %s", _imported, _user_file)
-else:
-    logging.info("No legacy users file at %s — skipping migration", _user_file)
 
-# Bootstrap: if the user database is still empty, create a default admin account
-# so the server is not locked out on first run.
 if _user_db.user_count() == 0:
-    _default_admin = _env_str("DEFAULT_ADMIN_USERNAME", "admin")
-    _default_pass = _env_str("DEFAULT_ADMIN_PASSWORD", os.urandom(16).hex())
-    _user_db.create_user(
-        username=_default_admin,
-        email=f"{_default_admin}@revodesign.local",
-        password=_default_pass,
-        is_admin=True,
-    )
-    _user_db.verify_email(1)  # auto-verify the bootstrap admin
-    logging.warning(
-        "No users found — created default admin user %r. "
-        "Set DEFAULT_ADMIN_PASSWORD in the environment and restart, "
-        "or log in and change it immediately.",
-        _default_admin,
-    )
+    _seeded = False
+
+    if os.path.exists(_user_file):
+        _imported = migrate_users_file(_user_db, _user_file, ADMIN_USERS)
+        if _imported > 0:
+            _seeded = True
+            logging.warning(
+                "Seeded %d user(s) from %s.  These accounts use the "
+                "plaintext passwords from that file — EVERY USER LISTED "
+                "THERE SHOULD CHANGE THEIR PASSWORD IMMEDIATELY via the "
+                "login page or API.  This file will NOT be re-read on "
+                "future startups.",
+                _imported,
+                _user_file,
+            )
+        else:
+            logging.info("Users file %r is empty or unparseable — no users imported.", _user_file)
+    else:
+        logging.info("No users file at %r — skipping seed import.", _user_file)
+
+    # Fallback: if we still have zero users (no txt file, or it was empty),
+    # create a single bootstrap admin so the server isn't locked out.
+    if not _seeded:
+        _default_admin = _env_str("DEFAULT_ADMIN_USERNAME", "admin")
+        _default_pass = _env_str("DEFAULT_ADMIN_PASSWORD", os.urandom(16).hex())
+        _user_db.create_user(
+            username=_default_admin,
+            email=f"{_default_admin}@revodesign.local",
+            password=_default_pass,
+            is_admin=True,
+        )
+        _user_db.verify_email(1)
+        logging.warning(
+            "No users found — created default admin user %r with a "
+            "random password.  Set DEFAULT_ADMIN_PASSWORD in the "
+            "environment and restart, or log in and change it immediately.",
+            _default_admin,
+        )
 
 
 # Celery configurations

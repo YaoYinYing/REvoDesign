@@ -1,4 +1,15 @@
-# REvoDesign PSSM_GREMLIN server authentication file
+# REvoDesign PSSM_GREMLIN server — initial user seed file
+#
+# This file is read ONCE when the user database is first created.
+# After the initial import it is ignored on subsequent startups.
+# All user management thereafter happens through the API / web UI.
+#
+# IMPORTANT: Passwords here are plaintext.  Every user imported from
+# this file MUST change their password immediately after first login.
+#
+# Format:  username:password
+# Comments: lines starting with # or ; are skipped.
+#
 # DO NOT UPLOAD THIS FILE TO GITHUB
 admin:admin_password
 guest:guess_password
