@@ -135,3 +135,7 @@ docs_old/**/*
 docs_old/
 test_sc/
 src/REvoDesign/UI/Ui_REvoDesign.py
+# loopkit — keep installable scaffolding, ignore runtime artifacts
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
