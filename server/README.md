@@ -130,7 +130,20 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `LOG_DIR` | Host directory for Gunicorn/Celery logs. |
 | `DB_UNIREF30` | UniRef30 prefix path. |
 | `DB_UNIREF90` | UniRef90 BLAST prefix path. |
-| `USERS_FILE` | Basic-auth credential file path. |
+| `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |
+| `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
+| `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`). |
+| `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires SMTP). |
+| `DEFAULT_ADMIN_PASSWORD` | Password for the default admin account (created on first run if user DB is empty). |
+| `SMTP_HOST` | SMTP server hostname (required for registration + email verification). |
+| `SMTP_PORT` | SMTP port (default: 587). |
+| `SMTP_USERNAME` | SMTP authentication username. |
+| `SMTP_PASSWORD` | SMTP authentication password. |
+| `SMTP_USE_TLS` | Use STARTTLS (default: `true`). |
+| `SMTP_FROM_ADDR` | Sender address for verification emails. |
+| `SMTP_FROM_NAME` | Sender display name. |
+| `SERVER_BASE_URL` | Public base URL for generating verification links. |
+| `REDIS_PASSWORD` | Optional Redis authentication password. |
 | `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID (non-root required). |
 | `DOCKER_GID` | Group ID of Docker socket on host. |
 | `NPROC` | CPU threads passed to runner. |
@@ -142,19 +155,79 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `TZ` | Timezone for logs. |
 
-## 4. Configure Basic Auth Users
+## 4. Authentication
 
-Create the users file referenced by `USERS_FILE`.
+The server uses Bearer-token authentication (replaces the old HTTP Basic Auth + `users.txt` model).
 
-Format:
+### First run
 
-```text
-# comment lines are allowed
-username:password
-admin:strong_admin_password
+If the user database is empty, a default admin account is created automatically:
+
+- Username: `admin` (customize with `DEFAULT_ADMIN_USERNAME`)
+- Password: from `DEFAULT_ADMIN_PASSWORD` env var, or a random password logged to stdout
+
+Change the password immediately after first login.
+
+### Registration (optional)
+
+Set `ENABLE_REGISTER=true` and configure SMTP to allow self-registration.
+Users receive a verification email; accounts must be verified before use.
+Without SMTP, registration is disabled — use the admin API to create accounts.
+
+### API authentication
+
+```bash
+# Login to get a token
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"..."}' \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/login"
+
+# Use the token for subsequent requests
+curl -H "Authorization: Bearer <token>" \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me"
 ```
 
-Protect this file with strict permissions.
+### Admin user management
+
+```bash
+# Admin creates a new user (requires admin token)
+curl -X POST -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"newuser","email":"user@example.com","password":"...","is_admin":false}' \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/admin/users"
+```
+
+### API keys (programmatic access)
+
+Long-lived API keys are available for scripted/programmatic access. Generate and revoke
+them from the Profile page (`/PSSM_GREMLIN/profile`), or via the API:
+
+```bash
+# Generate (returns plaintext key once — store it securely)
+curl -X POST -H "Authorization: Bearer <token>" \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me/api-key"
+
+# Check status
+curl -H "Authorization: Bearer <token>" \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me/api-key"
+
+# Revoke
+curl -X DELETE -H "Authorization: Bearer <token>" \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me/api-key"
+```
+
+Use the key via the `X-API-Key` header:
+
+```bash
+curl -H "X-API-Key: revodesign_<hex>" \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me"
+```
+
+API keys never expire but have **restricted privileges**: they can submit tasks and
+read results, but **cannot** change passwords, manage API keys, or perform admin
+actions. Use a Bearer token (web login) for those operations.
+
+Rate limits: 5 login attempts/minute per IP, 3 registrations/hour per IP.
 
 ## 5. Build and Run
 
@@ -200,10 +273,13 @@ REVODESIGN_SERVER_ENV=server/.env.production bash server/run/hot_fix.sh
 
 - `http://<server-ip>:<port>/PSSM_GREMLIN/dashboard`
 
-### Upload via curl (with basic auth)
+### Upload via curl (with token auth)
 
 ```bash
-curl -u "username:password" \
+# Obtain a token first (see Authentication section above)
+TOKEN="<your-token>"
+
+curl -H "Authorization: Bearer ${TOKEN}" \
   -X POST \
   -F "file=@/path/to/input.fasta" \
   "http://<server-ip>:<port>/PSSM_GREMLIN/api/post"
@@ -213,7 +289,7 @@ curl -u "username:password" \
 
 ```bash
 for f in *.fasta; do
-  curl -u "username:password" -X POST -F "file=@${f}" \
+  curl -H "Authorization: Bearer ${TOKEN}" -X POST -F "file=@${f}" \
     "http://<server-ip>:<port>/PSSM_GREMLIN/api/post"
 done
 ```
@@ -222,14 +298,14 @@ done
 
 ```bash
 TASK_MD5="<task-md5>"
-curl -u "username:password" -X DELETE \
+curl -H "Authorization: Bearer ${TOKEN}" -X DELETE \
   "http://<server-ip>:<port>/PSSM_GREMLIN/api/delete/${TASK_MD5}"
 ```
 
 ### Delete multiple tasks (batch API)
 
 ```bash
-curl -u "username:password" -X POST \
+curl -H "Authorization: Bearer ${TOKEN}" -X POST \
   -H "Content-Type: application/json" \
   -d '{"md5sums":["<task-md5-a>","<task-md5-b>"]}' \
   "http://<server-ip>:<port>/PSSM_GREMLIN/api/delete"
@@ -267,14 +343,45 @@ You can start from:
 
 - `server/nginx_sites/REvoDesign_PSSM_GREMLIN.app`
 
-## 9. Operations Notes
+## 9. Security
+
+### Docker socket
+
+The web and worker containers mount `/var/run/docker.sock` to spawn runner containers. This is a security boundary:
+
+- The web/worker run as a non-root user with group-based Docker access.
+- The runner container has a SETUID `ldconfig.real` binary for shared-library cache updates.
+- Consider using a Docker socket proxy (e.g. `docker-socket-proxy`) to restrict API access in untrusted environments.
+- Never expose the Docker socket to a public network.
+
+### Authentication
+
+- Tokens are signed with `itsdangerous.URLSafeTimedSerializer` (HMAC-SHA1).
+- Set `AUTH_SECRET_KEY` to a fixed, high-entropy value in production; otherwise tokens are lost on restart.
+- Rate limiting: 5 login attempts/minute/IP, 3 registrations/hour/IP.
+- All state-changing endpoints require a valid Bearer token.
+- CSRF is mitigated: all state-changing requests use `fetch()` with JSON content-type and Bearer tokens from `sessionStorage`.
+
+### Redis
+
+- Set `REDIS_PASSWORD` in production to enable Redis authentication.
+- Redis is on an internal Docker network; do not expose its port publicly.
+
+### Data
+
+- User passwords are hashed with `werkzeug.security.generate_password_hash` (pbkdf2:sha256).
+- User database (`users.sqlite3`) and task database (`pssm_gremlin.sqlite3`) are stored under `SERVER_DIR`, not in the web root.
+- Task IDs are validated against `[a-f0-9]{32}` before any filesystem access.
+- File paths are validated with `_safe_join` / `_path_is_within` to prevent directory traversal.
+
+## 10. Operations Notes
 
 - Restrict Docker socket access to trusted operators only.
 - Keep `PUBLIC_DASHBOARD=false` for private per-user isolation.
 - Regularly back up sqlite and result archives.
-- If a task is deleted, result artifacts are removed, but sqlite record and uploaded source file remain for debugging.
+- If a task is deleted, result artifacts are removed, but the sqlite record remains for audit.
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 ### Network issues
 

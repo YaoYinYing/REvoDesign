@@ -48,11 +48,9 @@ x-common-env: &common-env
   SERVER_BASE_URL: ${SERVER_BASE_URL:-http://localhost:8080}
 
 x-docker-socket-access: &docker-socket-access
-  # Least privilege by default: only grant Docker socket group access.
-  # Add root to group access ("0") to allow correct permission for now. TODO: remove this root if fix is possible.
+  # Docker socket group access only — no root group.
   group_add:
     - "${DOCKER_GID:-998}"
-    - "0"
 
 services:
   redis:

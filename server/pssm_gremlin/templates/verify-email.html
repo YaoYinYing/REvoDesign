@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Verification — REvoDesign GREMLIN</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/auth-page.css">
+</head>
+<body>
+<div class="page">
+  <div class="panel">
+    <h1>Email Verification</h1>
+
+    {% if success %}
+    <div class="status-msg success">
+      <p>Your email <strong>{{ email }}</strong> has been verified.</p>
+      <p>You can now <a href="/PSSM_GREMLIN/login">log in</a> to your account.</p>
+    </div>
+    {% else %}
+    <div class="status-msg error">
+      <p>{{ error }}</p>
+      <p><a href="/PSSM_GREMLIN/login">Return to login</a></p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<script src="/static/js/theme.js"></script>
+</body>
+</html>

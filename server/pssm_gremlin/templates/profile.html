@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | Profile</title>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/PSSM_GREMLIN/logo.svg"/>
+<link rel="mask-icon" href="/PSSM_GREMLIN/logo.svg" color="#000000"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/auth-page.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="page">
+  <div class="nav-row">
+    <a href="/PSSM_GREMLIN/dashboard">← Dashboard</a>
+    <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme"><span class="theme-icon" aria-hidden="true">◐</span></button>
+  </div>
+  <div class="panel">
+    <h1 class="headline">Profile</h1>
+    <p class="subline" id="userInfo">Loading…</p>
+
+    <h2>Change Password</h2>
+    <form id="passwordForm">
+      <div class="field">
+        <label for="currentPassword">Current password</label>
+        <input type="password" id="currentPassword" required autocomplete="current-password">
+      </div>
+      <div class="field">
+        <label for="newPassword">New password</label>
+        <input type="password" id="newPassword" required minlength="8" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="confirmPassword">Confirm new password</label>
+        <input type="password" id="confirmPassword" required minlength="8" autocomplete="new-password">
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" id="submitBtn">Update Password</button>
+      </div>
+      <div class="status-msg" id="status" role="alert"></div>
+    </form>
+
+    <h2>API Key</h2>
+    <p class="subline">Use an API key for programmatic access — it never expires. Store it securely; it is shown only once.</p>
+    <div id="apiKeySection">
+      <p id="apiKeyStatus">Loading…</p>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="generateKeyBtn" style="display:none">Generate API Key</button>
+        <button class="btn btn-soft" type="button" id="revokeKeyBtn" style="display:none">Revoke API Key</button>
+      </div>
+      <div class="field" id="apiKeyDisplay" style="display:none">
+        <label for="apiKeyValue">Your new API key (copy it now — it will not be shown again)</label>
+        <input type="text" id="apiKeyValue" readonly>
+      </div>
+      <div class="status-msg" id="apiKeyMsg" role="alert"></div>
+    </div>
+  </div>
+</main>
+<script src="/static/js/auth-api.js"></script>
+<script src="/static/js/profile.js"></script>
+</body>
+</html>

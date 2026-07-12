@@ -68,6 +68,7 @@ _users_table = sa.Table(
     sa.Column("email_verified", sa.Boolean, nullable=False, default=False),
     sa.Column("is_admin", sa.Boolean, nullable=False, default=False),
     sa.Column("created_at", sa.Float, nullable=False),
+    sa.Column("api_key_hash", sa.String(256), nullable=True),
 )
 
 
@@ -103,6 +104,13 @@ class UserDatabase:
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
             _metadata.create_all(conn, checkfirst=True)
+            self._ensure_columns(conn)
+
+    @staticmethod
+    def _ensure_columns(conn) -> None:
+        existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()}
+        if "api_key_hash" not in existing:
+            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN api_key_hash TEXT;")
 
     # -- write helpers -------------------------------------------------------
 
@@ -126,6 +134,48 @@ class UserDatabase:
         stmt = sa.update(_users_table).where(_users_table.c.id == user_id).values(email_verified=True)
         with self.engine.begin() as conn:
             conn.execute(stmt)
+
+    def update_user(self, user_id: int, **fields: Any) -> None:
+        """Update allowed user fields in-place.
+
+        Allowed keys: ``username``, ``email``, ``password_hash``,
+        ``email_verified``, ``is_admin``, ``api_key_hash``.
+        Password and API key values must be pre-hashed by the caller.
+        """
+        _allowed = {"username", "email", "password_hash", "email_verified", "is_admin", "api_key_hash"}
+        values = {k: v for k, v in fields.items() if k in _allowed}
+        if not values:
+            return
+        stmt = sa.update(_users_table).where(_users_table.c.id == user_id).values(**values)
+        with self.engine.begin() as conn:
+            conn.execute(stmt)
+
+    # -- API key helpers -----------------------------------------------------
+
+    def generate_api_key(self, user_id: int) -> str:
+        """Generate a new API key for *user_id*.
+
+        Returns the *plaintext* key — store only its hash.  The caller is
+        responsible for showing the plaintext once.
+        """
+        raw = "revodesign_" + os.urandom(32).hex()
+        self.update_user(user_id, api_key_hash=generate_password_hash(raw))
+        return raw
+
+    def revoke_api_key(self, user_id: int) -> None:
+        """Remove the API key for *user_id*."""
+        self.update_user(user_id, api_key_hash=None)
+
+    def validate_api_key(self, key: str) -> dict[str, Any] | None:
+        """Return the user dict if *key* matches a stored API key, or ``None``."""
+        if not key or not key.startswith("revodesign_"):
+            return None
+        users = sa.select(_users_table).where(_users_table.c.api_key_hash.isnot(None))
+        with self.engine.connect() as conn:
+            for row in conn.execute(users).mappings():
+                if check_password_hash(row["api_key_hash"], key):
+                    return dict(row)
+        return None
 
     # -- read helpers --------------------------------------------------------
 
@@ -196,19 +246,44 @@ def _extract_bearer_token() -> str | None:
 def load_current_user() -> dict[str, Any] | None:
     """Resolve the authenticated user from the current request.
 
+    Tries (in order):
+    1. ``Authorization: Bearer <token>`` — web session token (time-limited).
+    2. ``X-API-Key: <key>`` — long-lived API key (never expires).
+
     Returns the user dict or ``None``.
     """
-    token = _extract_bearer_token()
-    if not token:
-        return None
-    user_id = validate_token(token)
-    if user_id is None:
-        return None
     db: UserDatabase = current_app.config["user_db"]
-    user = db.get_user(user_id)
-    if user is None:
-        return None
-    return user
+
+    # 1. Bearer token (web login — full privileges)
+    token = _extract_bearer_token()
+    if token:
+        user_id = validate_token(token)
+        if user_id is not None:
+            user = db.get_user(user_id)
+            if user is not None:
+                g.auth_method = "token"
+                return user
+
+    # 2. API key (programmatic access — restricted privileges)
+    api_key = request.headers.get("X-API-Key", "").strip()
+    if api_key:
+        user = db.validate_api_key(api_key)
+        if user is not None:
+            g.auth_method = "api_key"
+            return user
+
+    return None
+
+
+def require_web_login():
+    """Return a 403 error if the current request was authenticated via API key.
+
+    Call inside route handlers that need full web-login privileges
+    (profile changes, admin actions, API key management).
+    """
+    if g.get("auth_method") == "api_key":
+        return jsonify({"error": "API keys cannot perform this action — use web login"}), 403
+    return None
 
 
 # ---------------------------------------------------------------------------

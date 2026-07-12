@@ -19,7 +19,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- **GREMLIN server: token-based authentication** (replaces HTTP Basic Auth):
+  - SQLite-backed user store (`users.sqlite3`) with hashed passwords (pbkdf2:sha256).
+  - Bearer-token auth via `itsdangerous.URLSafeTimedSerializer` (zero new dependencies).
+  - Self-registration workflow gated by `ENABLE_REGISTER` env var, with SMTP email verification.
+  - Admin user management endpoint (`POST /api/auth/admin/users`) for creating users without registration.
+  - Self-service password change (`PUT /api/auth/me`) with profile page at `/PSSM_GREMLIN/profile`.
+  - HTML email verification page at `/PSSM_GREMLIN/api/auth/verify-email`.
+  - Rate limiting on login (5/min/IP) and registration (3/hr/IP).
+  - Redis password support via `REDIS_PASSWORD` env var.
+  - Default admin bootstrap on first run (no seeding files needed).
+  - Long-lived API keys (`X-API-Key` header) with restricted privileges — manageable via Profile page and REST API.
+- **GREMLIN server: static asset extraction** — JS and CSS extracted from HTML templates into standalone files under `static/`.
 - Comprehensive API documentation site (46 pages) using MkDocs + Material for MkDocs + mkdocstrings:
+
+### Changed
+- **GREMLIN server: module split** — `pssm_gremlin.py` refactored from ~1500 lines into `db.py` (TaskDatabase), `routes.py` (HTTP handlers), `ratelimit.py` (rate limiter), and slimmed-down main module.
+- **GREMLIN server: SMTP-gated registration** — self-registration and email verification now require SMTP to be configured.
+- Docker Compose: removed `group_add: "0"` (root group) from `x-docker-socket-access`.
+
+### Fixed
+- Cancelled tasks now clean up their result directories (previously leaked on disk).
+- **AUTH_SECRET_KEY duplication**: `auth.py` and `pssm_gremlin.py` independently generated different random signing keys when `AUTH_SECRET_KEY` was unset, breaking token validation across gunicorn workers. Fixed by seeding `os.environ` before the auth import.
+
+### Security
+- SQL injection: all queries use SQLAlchemy ORM parameterized queries.
+- XSS: Jinja2 auto-escaping + `| tojson` filter for JSON + `escapeHtml()` in dashboard JS.
+- Path traversal: `_safe_join()` / `_path_is_within()` guard all filesystem paths.
+- Task IDs: validated against `[a-f0-9]{32}` regex before filesystem access.
+- CSRF: all state-changing requests use `fetch()` with JSON content-type + Bearer tokens.
+- Docker: non-root user, group-based socket access, SETUID `ldconfig.real` documented.
+- Removed HTTP Basic Auth dependency (`flask_httpauth`) and `users.txt` file.
+
+### Removed
+- `flask_httpauth` dependency and `USERS_FILE` / `users.txt` credential storage.
   - User Guide (3 pages): landing, cluster methods, OpenKinetics workflow.
   - Developer Guide (18 pages): architecture, concepts, testing, CI/CD, PSSM/GREMLIN server, Monaco editor, Rosetta integration, translation (i18n), UI design, CGO graphics, Makefile reference, package manager, adding scorers/sidechain solvers, how-to guides (profile, config, shortcut), AI-assisted code quality fix playbooks (Codacy, DeepSource).
   - API Reference (20 pages): auto-generated from Google-style docstrings for all public modules.

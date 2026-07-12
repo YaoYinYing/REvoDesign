@@ -55,7 +55,7 @@ The server has four containerized services, orchestrated by Docker Compose:
 │              web (Flask + Gunicorn)     │
 │  - REST API (/PSSM_GREMLIN/api/...)    │
 │  - Web UI (create_task, dashboard)     │
-│  - Basic-auth via Flask-HTTPAuth       │
+│  - Bearer-token auth + API keys        │
 │  - Dispatches runner containers        │
 │  - Needs /var/run/docker.sock          │
 └────┬────────────────────────────────┬───┘
@@ -114,7 +114,7 @@ organized by user identity and task MD5, with strict permission isolation.
 
 ## API Endpoints
 
-All endpoints are behind HTTP Basic Authentication (Flask-HTTPAuth) and are
+All endpoints use Bearer-token authentication and are
 mounted under the `/PSSM_GREMLIN` path prefix.
 
 ### Task Management
@@ -135,8 +135,24 @@ mounted under the `/PSSM_GREMLIN` path prefix.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/PSSM_GREMLIN/dashboard` | HTML dashboard showing task list, status, wall time |
+| `GET` | `/PSSM_GREMLIN/profile` | User profile page with password change and API key management |
 | `GET` | `/favicon.ico` | Server favicon |
 | `GET` | `/PSSM_GREMLIN/logo.svg` | REvoDesign logo |
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/PSSM_GREMLIN/api/auth/me` | Return current user info |
+| `PUT` | `/PSSM_GREMLIN/api/auth/me` | Change password (requires `current_password` + `new_password`) |
+| `POST` | `/PSSM_GREMLIN/api/auth/login` | Login, returns Bearer token |
+| `GET` | `/PSSM_GREMLIN/api/auth/verify-email` | Verify email via token query param |
+| `GET` | `/PSSM_GREMLIN/api/auth/me/api-key` | Check API key status |
+| `POST` | `/PSSM_GREMLIN/api/auth/me/api-key` | Generate API key (returns plaintext once) |
+| `DELETE` | `/PSSM_GREMLIN/api/auth/me/api-key` | Revoke API key |
+| `POST` | `/PSSM_GREMLIN/api/auth/admin/users` | Admin: create user (requires admin token) |
+| `GET` | `/PSSM_GREMLIN/login` | Login page |
+| `GET` | `/PSSM_GREMLIN/register` | Registration page (requires `ENABLE_REGISTER` + SMTP) |
 
 ### Task States
 
@@ -185,7 +201,20 @@ Required environment variables (defined in `docker-compose.yml`):
 | `LOG_DIR` | Host directory for Gunicorn/Celery logs |
 | `DB_UNIREF30` | UniRef30 HHsuite database prefix path |
 | `DB_UNIREF90` | UniRef90 BLAST database prefix path |
-| `USERS_FILE` | Path to basic-auth credentials file |
+| `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens (set in production) |
+| `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days) |
+| `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`) |
+| `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires SMTP) |
+| `DEFAULT_ADMIN_PASSWORD` | Password for the default admin account (created on first run) |
+| `SMTP_HOST` | SMTP server hostname |
+| `SMTP_PORT` | SMTP port (default: 587) |
+| `SMTP_USERNAME` | SMTP auth username |
+| `SMTP_PASSWORD` | SMTP auth password |
+| `SMTP_USE_TLS` | Use STARTTLS (default: `true`) |
+| `SMTP_FROM_ADDR` | Sender address for verification emails |
+| `SMTP_FROM_NAME` | Sender display name |
+| `SERVER_BASE_URL` | Public base URL for verification links |
+| `REDIS_PASSWORD` | Optional Redis authentication password |
 | `RUNNER_UID` / `RUNNER_GID` | Non-root user for runner containers |
 | `DOCKER_GID` | Group ID of the Docker socket on the host |
 | `NPROC` | CPU threads for runner |
@@ -207,10 +236,10 @@ Required environment variables (defined in `docker-compose.yml`):
    # Edit .env.production with your paths and settings
    ```
 
-3. **Configure basic auth users** in the file referenced by `USERS_FILE`:
-   ```
-   username:password
-   ```
+3. **Configure authentication**:
+   - On first run, a default admin user is created automatically (username: `admin`, password: from `DEFAULT_ADMIN_PASSWORD`).
+   - Change the admin password immediately via the Profile page.
+   - Optionally enable self-registration with `ENABLE_REGISTER=true` and SMTP settings.
 
 4. **Build and run** using the helper script:
    ```bash
