@@ -527,6 +527,29 @@ def _smtp_configured() -> bool:
     return bool(_env_str("SMTP_HOST", ""))
 
 
+def _allowed_email_domains() -> set[str]:
+    """Return the set of allowed email domains from ``ALLOWED_EMAIL_DOMAINS``.
+
+    Empty set means all domains are allowed.
+    """
+    raw = _env_str("ALLOWED_EMAIL_DOMAINS", "")
+    if not raw.strip():
+        return set()
+    return {d.strip().lower() for d in raw.split(",") if d.strip()}
+
+
+def _normalize_email(email: str) -> str:
+    """Normalize an email address: lowercase, strip ``+suffix`` from local part.
+
+    ``user+tag@domain.com`` → ``user@domain.com`` — prevents one person
+    from creating multiple accounts via plus-aliased addresses.
+    """
+    email = email.strip().lower()
+    local, at, domain = email.partition("@")
+    local = local.split("+")[0]
+    return f"{local}{at}{domain}"
+
+
 def _get_user_db() -> UserDatabase:
     return current_app.config["user_db"]  # type: ignore[no-any-return]
 
@@ -565,7 +588,7 @@ def auth_register():
 
     payload = request.get_json(silent=True) or {}
     username = str(payload.get("username", "")).strip()
-    email = str(payload.get("email", "")).strip().lower()
+    email = _normalize_email(str(payload.get("email", "")))
     password = str(payload.get("password", "") or "")
 
     # Basic validation
@@ -577,6 +600,13 @@ def auth_register():
         return jsonify({"error": "Password must be at least 8 characters"}), 400
     if "@" not in email or "." not in email.split("@")[-1]:
         return jsonify({"error": "Invalid email address"}), 400
+
+    # Domain allowlist
+    allowed = _allowed_email_domains()
+    if allowed:
+        domain = email.partition("@")[2]
+        if domain not in allowed:
+            return jsonify({"error": f"Email domain @{domain} is not allowed"}), 400
 
     db = _get_user_db()
     if db.get_user_by_username(username):
@@ -711,7 +741,7 @@ def admin_create_user():
 
     payload = request.get_json(silent=True) or {}
     username = str(payload.get("username", "")).strip()
-    email = str(payload.get("email", "")).strip().lower()
+    email = _normalize_email(str(payload.get("email", "")))
     password = str(payload.get("password", "") or "")
 
     if not username or not email or not password:
