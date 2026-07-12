@@ -1,6 +1,6 @@
 ---
 name: using-loopkit
-description: Use when starting any conversation in a loopkit-enabled project - establishes how to find and use loopkit's 49 skills, requiring skill invocation before ANY response including clarifying questions.
+description: Use when starting any conversation in a loopkit-enabled project — establishes how to find and use loopkit's skills, requiring skill invocation before ANY response including clarifying questions.
 ---
 
 # Using Loopkit
@@ -23,53 +23,62 @@ Then announce "Using [skill] to [purpose]" and follow the skill exactly. If it h
 
 Skills are files at `.claude/skills/<name>/SKILL.md`. Each has YAML frontmatter with `name` and `description` (the description is a trigger phrase, not a summary). Load a skill by reading its SKILL.md when its trigger matches your task.
 
-## Skill routing (49 skills, 10 tracks)
+Claude built-in skills (like `frontend-design:frontend-design`) are invoked directly — no SKILL.md in the repo.
 
-| Task shape                                           | First skill                                                                          |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| "Fix this bug" / test failing / crash                | `systematic-debugging`, then `read-the-trace`                                        |
-| "It broke between two commits"                       | `bisect-regression`                                                                  |
-| "Flaky test"                                         | `flaky-hunter`                                                                       |
-| "Add a feature" / write anything new                 | `spec-first`, then `write-failing-test-first`                                        |
-| "Refactor" / dead code / deep nesting                | `kill-dead-code`, `simplify`, `reduce-nesting`                                       |
-| About to claim done / commit / open PR               | `adversarial-verify` + `verification-before-completion` + `self-eval-bias`           |
-| Review a diff                                        | `adversarial-verify`, `pr-from-diff`                                                 |
-| Frontend / UI work                                   | `design-system`, `a11y-pass`, `loading-empty-error-states`                           |
-| Security touch                                       | `owasp-review`, `authz-check`, `input-validation`, `secret-scan`, `dependency-audit` |
-| Data / SQL / migrations                              | `sql-review`, `migration-writer`, `schema-diff`                                      |
-| Docs / changelog / README                            | `changelog-from-diff`, `decision-record`, `readme-audit`                             |
-| Git ops                                              | `clean-commits`, `pr-from-diff`, `rebase-safely`, `revert-surgical`                  |
-| Test suite gaps                                      | `coverage-gaps`, `contract-test`                                                     |
-| Running out of context                               | `context-budget`, `tool-restraint`                                                   |
-| Parallel work                                        | `subagent-fanout`                                                                    |
-| Starting a fresh project / major feature             | `planner-spec-expand`, then `feature-list-json`, then `init-script-contract`         |
-| Bootstrapping into an existing multi-session project | `progress-reading-protocol`                                                          |
-| Entering an implementation sprint                    | `sprint-contract`                                                                    |
-| Calibrating a reviewer / evaluator                   | `evaluator-calibration`                                                              |
-| New Claude/Sonnet/Opus model landed                  | `harness-stripping`                                                                  |
+## Skill routing (30 repo skills + built-ins)
+
+| Task shape | First skill |
+|---|---|
+| "Fix this bug" / test failing / crash | `systematic-debugging`, then `read-the-trace` |
+| "It broke between two commits" | `bisect-regression` |
+| "Flaky test" | `flaky-hunter` |
+| "Add a feature" / write anything new | `spec-first`, then `write-failing-test-first` |
+| "Refactor" / dead code / deep nesting | `kill-dead-code`, `simplify`, `reduce-nesting` |
+| About to claim done / commit / open PR | `adversarial-verify` + `verification-before-completion` + `self-eval-bias` |
+| Review a diff / PR description | `adversarial-verify`, `pr-from-diff` |
+| **REvoDesign domain skills:** | |
+| Qt/PyMOL/threading/UI loading/i18n | `qt-pymol-guardrails` |
+| Rosetta/sidechain solver/scoring/design | `rosetta-infrastructure` |
+| ConfigBus/widgets/shortcuts/menus/tests | `ui-config-patterns` |
+| **Server (`./server/`) skills:** | |
+| Web UI / templates / dashboard design | `design-system`, `loading-empty-error-states`, `frontend-design:frontend-design` |
+| Security / auth / API hardening | `owasp-review`, `authz-check`, `input-validation`, `secret-scan` |
+| Database / SQL / schema / migrations | `sql-review`, `migration-writer`, `schema-diff` |
+| **General skills:** | |
+| Docs / changelog | `changelog-from-diff` |
+| Git ops | `clean-commits`, `pr-from-diff` |
+| Running out of context | `context-budget`, `tool-restraint` |
 
 Full list: `ls .claude/skills/`.
 
 ## Red Flags — STOP and check for a skill
 
-| Thought                                   | Reality                                                                                    |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------ |
-| "This is just a simple question"          | Questions are tasks. Check first.                                                          |
-| "Let me explore the codebase first"       | Skills tell you HOW to explore. Check first.                                               |
-| "I remember this skill"                   | Skills evolve. Read the current SKILL.md.                                                  |
-| "The skill is overkill"                   | Simple things become complex. Use it.                                                      |
-| "I'll just do this one thing first"       | Check BEFORE doing anything.                                                               |
-| "Tests pass, we're good"                  | `verification-before-completion` says: run the exact command, read the output, then claim. |
-| "I'll do both features while I'm in here" | `single-feature-discipline` says: one per session. Never two.                              |
-| "The reviewer will let this slide"        | `self-eval-bias` says: assume it will confidently praise. Calibrate first.                 |
+| Thought | Reality |
+|---|---|
+| "This is just a simple question" | Questions are tasks. Check first. |
+| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
+| "I remember this skill" | Skills evolve. Read the current SKILL.md. |
+| "The skill is overkill" | Simple things become complex. Use it. |
+| "I'll just do this one thing first" | Check BEFORE doing anything. |
+| "Tests pass, we're good" | `verification-before-completion` says: run the exact command, read the output, then claim. |
+| "I'll do both features while I'm in here" | One feature per session. Never two. |
+| "The reviewer will let this slide" | `self-eval-bias` says: assume it will confidently praise. Calibrate first. |
 
 ## Priority when multiple skills apply
 
-Process skills first (spec-first, systematic-debugging, planner-spec-expand, sprint-contract), then implementation skills (design-system, sql-review, etc.), then finishers (adversarial-verify, verification-before-completion, self-eval-bias, clean-commits).
+Process first → domain guardrails → implementation → finishers:
 
-- "Let's build X" → `planner-spec-expand` → `feature-list-json` → `sprint-contract` → domain skills → `adversarial-verify`.
+1. **Process**: `spec-first`, `systematic-debugging`, `bisect-regression`
+2. **Domain guardrails**: `qt-pymol-guardrails`, `rosetta-infrastructure`, `ui-config-patterns`
+3. **Implementation**: `design-system`, `sql-review`, `migration-writer`, etc.
+4. **Finishers**: `adversarial-verify`, `verification-before-completion`, `self-eval-bias`, `clean-commits`
+
+- "Let's build X" → `spec-first` → domain skills → implementation → `adversarial-verify`.
 - "Fix bug Y" → `systematic-debugging` → `read-the-trace` → fix → `verification-before-completion`.
-- "Session open in existing project" → `progress-reading-protocol` → `sprint-contract` → work.
+- "Qt or PyMOL work" → `qt-pymol-guardrails` first.
+- "Rosetta or scoring work" → `rosetta-infrastructure` first.
+- "Config or UI work" → `ui-config-patterns` first.
+- "Server endpoint / template / DB" → relevant server skill first.
 
 ## User instructions win
 
