@@ -10,8 +10,6 @@ x-common-env: &common-env
   DB_UNIREF30: ${DB_UNIREF30}
   DB_UNIREF90: ${DB_UNIREF90}
 
-  USERS_FILE: ${USERS_FILE}
-
   REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
   BROKER_URL: ${BROKER_URL:-redis://redis:6379/0}
   RESULT_BACKEND: ${RESULT_BACKEND:-redis://redis:6379/0}
@@ -96,7 +94,6 @@ services:
       - ${SERVER_DIR}:${SERVER_DIR}
       - ${DB_UNIREF30}:${DB_UNIREF30}:ro
       - ${DB_UNIREF90}:${DB_UNIREF90}:ro
-      - ${USERS_FILE}:${USERS_FILE}:ro
       - ${LOG_DIR}:${LOG_DIR}
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -119,7 +116,6 @@ services:
       - ${SERVER_DIR}:${SERVER_DIR}
       - ${DB_UNIREF30}:${DB_UNIREF30}:ro
       - ${DB_UNIREF90}:${DB_UNIREF90}:ro
-      - ${USERS_FILE}:${USERS_FILE}:ro
       - ${LOG_DIR}:${LOG_DIR}
       - /var/run/docker.sock:/var/run/docker.sock
 
