@@ -37,7 +37,7 @@ os.environ.setdefault("AUTH_SECRET_KEY", os.urandom(32).hex())
 
 from pssm_gremlin.auth import UserDatabase  # noqa: E402
 from pssm_gremlin.auth import _env_str  # noqa: E402
-from pssm_gremlin.auth import _env_bool as _auth_env_bool  # noqa: E402
+from pssm_gremlin.auth import _env_bool  # noqa: E402
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
@@ -50,7 +50,7 @@ app = Flask(__name__, template_folder="./templates")
 # ---------------------------------------------------------------------------
 _user_db = UserDatabase()
 app.config["user_db"] = _user_db
-ENABLE_REGISTER = _auth_env_bool("ENABLE_REGISTER", False)
+ENABLE_REGISTER = _env_bool("ENABLE_REGISTER", False)
 
 # Secrets for token signing — reuse a shared secret or generate a random one.
 # In production set AUTH_SECRET_KEY to a fixed, high-entropy value so tokens
@@ -80,20 +80,6 @@ def _env_csv(var_name: str, default: str) -> list[str]:
     raw = os.environ.get(var_name, default)
     values = [value.strip() for value in raw.split(",")]
     return [value for value in values if value]
-
-
-def _env_bool(var_name: str, default: bool) -> bool:
-    raw = os.environ.get(var_name)
-    if raw is None or raw == "":
-        return default
-    value = raw.strip().lower()
-    if value in {"1", "true", "yes", "on"}:
-        return True
-    if value in {"0", "false", "no", "off"}:
-        return False
-    raise ValueError(
-        f"Environment variable {var_name} must be a boolean value " "(one of: true/false/1/0/yes/no/on/off)."
-    )
 
 
 def _format_runner_identity(user_value: str, group_value: str) -> str:

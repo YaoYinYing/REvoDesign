@@ -32,10 +32,18 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 
 def _env_bool(var: str, default: bool) -> bool:
-    raw = os.environ.get(var, "").strip().lower()
-    if not raw:
+    raw = os.environ.get(var)
+    if raw is None or raw == "":
         return default
-    return raw in {"1", "true", "yes", "on"}
+    value = raw.strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(
+        f"Environment variable {var} must be a boolean value "
+        "(one of: true/false/1/0/yes/no/on/off)."
+    )
 
 
 def _env_str(var: str, default: str) -> str:

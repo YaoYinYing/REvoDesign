@@ -380,16 +380,11 @@ def task_dashboard():
                 with open(task["file_path"]) as f:
                     fasta_seq = f.read().strip()
             except (OSError, UnicodeDecodeError) as exc:
-                if isinstance(exc, FileNotFoundError):
-                    fasta_seq = (
-                        "Unable to read sequence: "
-                        f"file not found at {_virtual_upload_path(task.get('filename', 'unknown.fasta'))}"
-                    )
-                else:
-                    fasta_seq = (
-                        "Unable to read sequence: "
-                        f"file unavailable at {_virtual_upload_path(task.get('filename', 'unknown.fasta'))}"
-                    )
+                reason = "file not found" if isinstance(exc, FileNotFoundError) else "file unavailable"
+                fasta_seq = (
+                    f"Unable to read sequence: {reason} at "
+                    f"{_virtual_upload_path(task.get('filename', 'unknown.fasta'))}"
+                )
 
         task_statuses.append(
             {
