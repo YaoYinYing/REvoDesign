@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Redis password support via `REDIS_PASSWORD` env var.
   - Default admin bootstrap on first run (no seeding files needed).
   - Long-lived API keys (`X-API-Key` header) with restricted privileges — manageable via Profile page and REST API.
+  - Email domain allowlisting (`ALLOWED_EMAIL_DOMAINS`) and plus-address normalisation (`user+tag@domain` → `user@domain`).
 - **GREMLIN server: static asset extraction** — JS and CSS extracted from HTML templates into standalone files under `static/`.
 - Comprehensive API documentation site (46 pages) using MkDocs + Material for MkDocs + mkdocstrings:
 
@@ -41,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Cancelled tasks now clean up their result directories (previously leaked on disk).
 - **AUTH_SECRET_KEY duplication**: `auth.py` and `pssm_gremlin.py` independently generated different random signing keys when `AUTH_SECRET_KEY` was unset, breaking token validation across gunicorn workers. Fixed by seeding `os.environ` before the auth import.
+- **Test module loading**: `spec_from_file_location` loader in server tests now adds `server/` to `sys.path` so the refactored `pssm_gremlin` package (with sibling imports from `db`, `auth`) is importable.
 
 ### Security
 - SQL injection: all queries use SQLAlchemy ORM parameterized queries.
