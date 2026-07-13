@@ -86,12 +86,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Admin password**: the bootstrap-generated admin password was logged to
   gunicorn stderr (inaccessible to the operator). The restart script now
   generates and displays it on the console before bringing services up.
-- **File upload button not triggering dialog**: create-task FASTA upload now
-  uses the native visible ``<input type="file">`` control instead of delegated
-  clicks to hidden/off-screen controls, avoiding embedded-browser file-dialog
-  restrictions.
-- **GREMLIN server GitHub links**: server-page GitHub actions now navigate in
-  the same window for embedded-browser compatibility.
+- **Chrome file picker not opening**: native ``<input type="file">`` click
+  fails to open the file dialog in Chrome (works in Safari).  Added
+  drag-and-drop file upload as a browser-agnostic workaround — drop a
+  ``.fasta`` file anywhere on the input card.  Removed ``backdrop-filter``
+  from ``.panel`` (known Chrome hit-testing regression on replaced elements).
 - **Download button not triggering download**: the dashboard download
   button used ``window.location.href`` (cookie-only page navigation) which
   could silently redirect to login on auth failure.  Switched to
