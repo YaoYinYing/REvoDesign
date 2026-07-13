@@ -1,6 +1,26 @@
-# PSSM GREMLIN Server (Production Guide)
+# PSSM GREMLIN Server
 
-This document describes the production Docker deployment for the PSSM GREMLIN server.
+The server is a pip-installable package (`pssm_gremlin_server`) providing a
+Flask + Celery + Docker-runner web service for GREMLIN co-evolution analysis.
+
+## Development
+
+```bash
+# Install in editable mode with test dependencies
+pip install -e "server/[test]"
+
+# Run non-Docker tests from the repo root
+pytest server/tests/ -v -k "not Docker and not docker"
+
+# Run the server directly (no Docker)
+python -m pssm_gremlin_server.pssm_gremlin
+```
+
+---
+
+## Production Deployment
+
+This section describes the production Docker deployment.
 Native/manual deployment is intentionally excluded.
 
 ## Overview

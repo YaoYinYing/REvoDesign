@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "pssm_gremlin_server"
+version = "0.1.0"
+description = "REvoDesign GREMLIN PSSM web server — Flask + Celery + Docker runner"
+readme = "README.md"
+license = { text = "GPL-3.0-only" }
+requires-python = ">=3.10"
+dependencies = [
+    "biopython>=1.86",
+    "celery[redis]>=5.3",
+    "click>=8.3",
+    "docker>=7.1",
+    "Flask>=3.1",
+    "gunicorn>=25.1",
+    "matplotlib>=3.10",
+    "numpy>=2.2",
+    "pandas>=2.3",
+    "pydantic>=2.0",
+    "redis>=4.6",
+    "requests>=2.33",
+    "six>=1.17",
+    "SQLAlchemy>=2.0",
+    "werkzeug",
+    "itsdangerous",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8",
+    "pytest-mock>=3.14",
+]
+
+[tool.setuptools.packages.find]
+include = ["pssm_gremlin_server*"]
+
+[tool.setuptools.package-data]
+pssm_gremlin_server = [
+    "templates/**",
+    "templates/images/*",
+    "static/css/*",
+    "static/js/*",
+]

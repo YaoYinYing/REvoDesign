@@ -1,0 +1,47 @@
+name: Server Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "server/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "server/**"
+
+jobs:
+  ServerTests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      OS: ubuntu-latest
+      PYTHON: "3.12"
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@85880fa0301c86cca9da44039ee3bb12d3bedbfa # 0.12.1
+
+      - name: Checkout Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Python
+        uses: actions/setup-python@2f17f13ef37957a9bc7461aa1a61b211e3c1c3ae # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Server and Test Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "server/[test]"
+
+      - name: Run Server Tests (non-Docker)
+        run: |
+          python -m pytest server/tests/ -v \
+            -k "not Docker and not docker and not runner_image and not server_image and not test_server_image and not test_runner_image and not test_server_rejects and not test_server_reports and not running_gremlin"

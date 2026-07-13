@@ -27,7 +27,7 @@ from celery import Celery
 from celery.result import AsyncResult
 from docker import types
 from flask import Flask, current_app, g, jsonify, request
-from pssm_gremlin.db import TaskDatabase
+from pssm_gremlin_server.db import TaskDatabase
 from werkzeug.utils import secure_filename
 
 # Ensure AUTH_SECRET_KEY is set *before* auth.py initialises its token
@@ -36,9 +36,9 @@ from werkzeug.utils import secure_filename
 if not os.environ.get("AUTH_SECRET_KEY"):
     os.environ["AUTH_SECRET_KEY"] = os.urandom(32).hex()
 
-from pssm_gremlin.auth import UserDatabase  # noqa: E402
-from pssm_gremlin.auth import _env_bool  # noqa: E402
-from pssm_gremlin.auth import _env_str  # noqa: E402
+from pssm_gremlin_server.auth import UserDatabase  # noqa: E402
+from pssm_gremlin_server.auth import _env_bool  # noqa: E402
+from pssm_gremlin_server.auth import _env_str  # noqa: E402
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
@@ -788,7 +788,7 @@ def run_gremlin_task(md5sum):
 # Register HTTP routes (imported late to avoid circular imports — routes.py
 # needs ``app`` and helpers that are only available after this module loads).
 # ---------------------------------------------------------------------------
-from pssm_gremlin import routes  # noqa: E402, F401
+from pssm_gremlin_server import routes  # noqa: E402, F401
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=CONFIG.port)  # nosec B104: containerized server, binding to all interfaces by design

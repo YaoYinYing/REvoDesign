@@ -89,7 +89,7 @@ services:
       --access-logfile ${LOG_DIR}/gunicorn-access.log
       --error-logfile ${LOG_DIR}/gunicorn-error.log
       --access-logformat '%({CF-Connecting-IP}i)s (%({Cf-Ipcountry}i)s) - %(u)s %(t)s "%(r)s" %(s)s %(B)s "%(a)s"'
-      pssm_gremlin.pssm_gremlin:app
+      pssm_gremlin_server.pssm_gremlin:app
     working_dir: /app/server
     ports:
       - "${PORT:-8080}:${PORT:-8080}"
@@ -111,7 +111,7 @@ services:
     depends_on:
       - redis
     command: >-
-      celery -A pssm_gremlin.pssm_gremlin.celery worker
+      celery -A pssm_gremlin_server.pssm_gremlin.celery worker
       --loglevel=info
       --concurrency=${WORKER_CONCURRENCY:-2}
       --logfile ${LOG_DIR}/celery-worker.log

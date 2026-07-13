@@ -5,7 +5,7 @@
 """HTTP route handlers for the GREMLIN server.
 
 All ``@app.route`` decorators live here.  The module is imported by
-``pssm_gremlin.__init__`` *after* ``pssm_gremlin.pssm_gremlin`` has
+``pssm_gremlin_server.__init__`` *after* ``pssm_gremlin_server.pssm_gremlin`` has
 created the Flask ``app``, so the decorators register against an
 already-initialised application.
 """
@@ -20,7 +20,7 @@ import time
 
 from celery.result import AsyncResult
 from flask import current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
-from pssm_gremlin.auth import (
+from pssm_gremlin_server.auth import (
     UserDatabase,
     _env_str,
     generate_token,
@@ -33,7 +33,7 @@ from pssm_gremlin.auth import (
     validate_email_token,
     validate_reset_token,
 )
-from pssm_gremlin.pssm_gremlin import (
+from pssm_gremlin_server.pssm_gremlin import (
     CONFIG,
     ENABLE_REGISTER,
     TEMPLATE_IMAGE_DIR,
@@ -63,8 +63,8 @@ from pssm_gremlin.pssm_gremlin import (
     run_gremlin_task,
     task_store,
 )
-from pssm_gremlin.ratelimit import rate_limit
-from pssm_gremlin.schemas import (
+from pssm_gremlin_server.ratelimit import rate_limit
+from pssm_gremlin_server.schemas import (
     AdminCreateUserRequest,
     AdminUpdateUserRequest,
     BatchUserRequest,

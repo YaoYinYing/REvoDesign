@@ -14,7 +14,7 @@ RUN groupadd -o -r ${RUNNER_GROUP} -g ${RUNNER_GID} && groupadd docker  && \
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PSSM_GREMLIN_LOG_DIR=/var/log/pssm_gremlin
+    PSSM_GREMLIN_LOG_DIR=/var/log/pssm_gremlin_server
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential curl procps \
@@ -31,11 +31,11 @@ COPY --chown=${RUNNER_UID}:${RUNNER_GID} . /app/server
 
 
 ENV PYTHONPATH=/app/server
-# ponytail: WORKDIR must be /app/server, not /app/server/pssm_gremlin.
+# ponytail: WORKDIR must be /app/server, not /app/server/pssm_gremlin_server.
 # When CWD is inside the package dir, Python's '' sys.path entry finds
-# pssm_gremlin.py as a top-level module, shadowing the pssm_gremlin package.
+# pssm_gremlin.py as a top-level module, shadowing the pssm_gremlin_server package.
 WORKDIR /app/server
 
 USER ${RUNNER_UID}:${RUNNER_GID}
 
-CMD ["sh", "-c", "exec gunicorn -w 2 -b 0.0.0.0:${PORT:-8080} pssm_gremlin.pssm_gremlin:app"]
+CMD ["sh", "-c", "exec gunicorn -w 2 -b 0.0.0.0:${PORT:-8080} pssm_gremlin_server.pssm_gremlin:app"]
