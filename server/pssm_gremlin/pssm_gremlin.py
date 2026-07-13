@@ -182,6 +182,8 @@ if _user_db.user_count() == 0:
         email=f"{_default_admin}@revodesign.local",
         password=_default_pass,
         is_admin=True,
+        registration_status="approved",
+        user_status="active",
     )
     _user_db.verify_email(1)
     logging.warning(

@@ -77,6 +77,13 @@ _users_table = sa.Table(
     sa.Column("is_admin", sa.Boolean, nullable=False, default=False),
     sa.Column("created_at", sa.Float, nullable=False),
     sa.Column("api_key_hash", sa.String(256), nullable=True),
+    sa.Column("affiliation", sa.String(256), nullable=True),
+    sa.Column("terms_agreed", sa.Boolean, nullable=False, default=False),
+    sa.Column("registration_status", sa.String(32), nullable=False, default="email_sent"),
+    sa.Column("user_status", sa.String(32), nullable=False, default="pending"),
+    sa.Column("approved_by", sa.Integer, nullable=True),
+    sa.Column("approved_at", sa.Float, nullable=True),
+    sa.Column("deleted", sa.Boolean, nullable=False, default=False),
 )
 
 
@@ -117,12 +124,33 @@ class UserDatabase:
     @staticmethod
     def _ensure_columns(conn) -> None:
         existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()}
-        if "api_key_hash" not in existing:
-            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN api_key_hash TEXT;")
+        for col, coltype in [
+            ("api_key_hash", "TEXT"),
+            ("affiliation", "TEXT"),
+            ("terms_agreed", "INTEGER"),
+            ("registration_status", "TEXT"),
+            ("user_status", "TEXT"),
+            ("approved_by", "INTEGER"),
+            ("approved_at", "FLOAT"),
+            ("deleted", "INTEGER"),
+        ]:
+            if col not in existing:
+                conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype};")
 
     # -- write helpers -------------------------------------------------------
 
-    def create_user(self, username: str, email: str, password: str, *, is_admin: bool = False) -> dict[str, Any]:
+    def create_user(
+        self,
+        username: str,
+        email: str,
+        password: str,
+        *,
+        is_admin: bool = False,
+        affiliation: str | None = None,
+        terms_agreed: bool = False,
+        registration_status: str = "email_sent",
+        user_status: str = "pending",
+    ) -> dict[str, Any]:
         """Insert a new user.  Returns the row as a dict."""
         now = time.time()
         stmt = sa.insert(_users_table).values(
@@ -132,6 +160,10 @@ class UserDatabase:
             email_verified=False,
             is_admin=is_admin,
             created_at=now,
+            affiliation=affiliation,
+            terms_agreed=terms_agreed,
+            registration_status=registration_status,
+            user_status=user_status,
         )
         with self.engine.begin() as conn:
             result = conn.execute(stmt)
@@ -147,10 +179,26 @@ class UserDatabase:
         """Update allowed user fields in-place.
 
         Allowed keys: ``username``, ``email``, ``password_hash``,
-        ``email_verified``, ``is_admin``, ``api_key_hash``.
+        ``email_verified``, ``is_admin``, ``api_key_hash``,
+        ``affiliation``, ``terms_agreed``, ``registration_status``,
+        ``user_status``, ``approved_by``, ``approved_at``.
         Password and API key values must be pre-hashed by the caller.
         """
-        _allowed = {"username", "email", "password_hash", "email_verified", "is_admin", "api_key_hash"}
+        _allowed = {
+            "username",
+            "email",
+            "password_hash",
+            "email_verified",
+            "is_admin",
+            "api_key_hash",
+            "affiliation",
+            "terms_agreed",
+            "registration_status",
+            "user_status",
+            "approved_by",
+            "approved_at",
+            "deleted",
+        }
         values = {k: v for k, v in fields.items() if k in _allowed}
         if not values:
             return
@@ -204,6 +252,19 @@ class UserDatabase:
         with self.engine.connect() as conn:
             row = conn.execute(stmt).mappings().first()
         return dict(row) if row else None
+
+    # ponytail: full table scan — paginate or index if users exceed ~10k
+    def list_users(self, *, include_deleted: bool = False) -> list[dict[str, Any]]:
+        """Return all users ordered by ``created_at`` descending.
+
+        Soft-deleted users are excluded by default.
+        """
+        stmt = sa.select(_users_table).order_by(sa.desc(_users_table.c.created_at))
+        if not include_deleted:
+            stmt = stmt.where(_users_table.c.deleted == False)  # noqa: E712
+        with self.engine.connect() as conn:
+            rows = conn.execute(stmt).mappings().all()
+        return [dict(row) for row in rows]
 
     def user_count(self) -> int:
         stmt = sa.select(sa.func.count()).select_from(_users_table)
@@ -368,14 +429,14 @@ def send_verification_email(user: dict[str, Any]) -> bool:
     cfg = _smtp_config()
     token = _serializer.dumps({"uid": user["id"], "purpose": "verify-email"})
     verify_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
-    verify_url = f"{verify_url}/PSSM_GREMLIN/api/auth/verify-email?token={token}"
+    verify_url = f"{verify_url}/PSSM_GREMLIN/user_verify?c={token}"
 
     subject = "Verify your REvoDesign GREMLIN account"
     body = (
         f"Hello {user['username']},\n\n"
         f"Please verify your email address by clicking the link below.\n\n"
         f"{verify_url}\n\n"
-        f"This link will expire in 1 hour.\n\n"
+        f"This link will expire in 2 days.\n\n"
         f"If you did not create this account, please ignore this message.\n\n"
         f"— REvoDesign GREMLIN Server\n"
     )
@@ -405,7 +466,7 @@ def send_verification_email(user: dict[str, Any]) -> bool:
 def validate_email_token(token: str) -> int | None:
     """Validate an email-verification token.  Returns *user_id* or ``None``."""
     try:
-        payload = _serializer.loads(token, max_age=3600)  # 1-hour expiry
+        payload = _serializer.loads(token, max_age=172800)  # 2-day expiry
     except (SignatureExpired, BadSignature):
         return None
     if payload.get("purpose") != "verify-email":

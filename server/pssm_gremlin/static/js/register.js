@@ -20,7 +20,9 @@
     var payload = {
       username: document.getElementById("username").value.trim(),
       email: document.getElementById("email").value.trim(),
-      password: document.getElementById("password").value
+      password: document.getElementById("password").value,
+      affiliation: document.getElementById("affiliation").value.trim(),
+      terms_agreed: document.getElementById("termsAgreed").checked,
     };
 
     fetch("/PSSM_GREMLIN/api/auth/register", {

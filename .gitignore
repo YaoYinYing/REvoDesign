@@ -141,3 +141,4 @@ src/REvoDesign/UI/Ui_REvoDesign.py
 .claude/settings.local.json
 users.sqlite3
 testerror.txt
+/server/server_state

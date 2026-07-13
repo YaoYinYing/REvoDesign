@@ -37,6 +37,16 @@
         <input type="password" id="password" class="text-input" placeholder="At least 8 characters" minlength="8" required autocomplete="new-password">
         <p class="hint">Minimum 8 characters.</p>
       </div>
+      <div class="field">
+        <label for="affiliation">Affiliation <span class="muted">(optional)</span></label>
+        <input type="text" id="affiliation" class="text-input" placeholder="University / Institute / Company">
+      </div>
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="termsAgreed" required>
+          <span>I agree to the <a href="#" target="_blank" rel="noopener noreferrer">Terms of Service</a></span>
+        </label>
+      </div>
       <div class="actions">
         <button class="btn btn-primary btn-full" type="submit" id="submitBtn">Register</button>
       </div>

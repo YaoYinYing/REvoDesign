@@ -100,6 +100,15 @@ def profile_page():
     return render_template("profile.html")
 
 
+@app.route("/PSSM_GREMLIN/user_control", methods=["GET"])
+@login_required
+def user_control_page():
+    """Admin-only user management page."""
+    if not g.current_user.get("is_admin"):
+        return render_template("error.html", code=403, message="Admin access required"), 403
+    return render_template("user_control.html", is_admin_user=True)
+
+
 @app.route("/favicon.ico", methods=["GET"])
 def favicon():
     return send_from_directory(TEMPLATE_IMAGE_DIR, "logo.ico", mimetype="image/vnd.microsoft.icon")
@@ -549,6 +558,15 @@ def _get_user_db() -> UserDatabase:
     return current_app.config["user_db"]  # type: ignore[no-any-return]
 
 
+def require_admin():
+    """Return 403 if the current user is not an admin (DB ``is_admin`` column)."""
+    if _blocked := require_web_login():
+        return _blocked
+    if not g.current_user.get("is_admin"):
+        return jsonify({"error": "Admin access required"}), 403
+    return None
+
+
 @app.route("/PSSM_GREMLIN/api/auth/login", methods=["POST"])
 @rate_limit(max_requests=5, window_seconds=60)
 def auth_login():
@@ -597,6 +615,8 @@ def auth_register():
     username = str(payload.get("username", "")).strip()
     email = _normalize_email(str(payload.get("email", "")))
     password = str(payload.get("password", "") or "")
+    affiliation = str(payload.get("affiliation", "")).strip() or None
+    terms_agreed = bool(payload.get("terms_agreed", False))
 
     # Basic validation
     if not username or not email or not password:
@@ -607,6 +627,8 @@ def auth_register():
         return jsonify({"error": "Password must be at least 8 characters"}), 400
     if "@" not in email or "." not in email.split("@")[-1]:
         return jsonify({"error": "Invalid email address"}), 400
+    if not terms_agreed:
+        return jsonify({"error": "You must agree to the Terms of Service"}), 400
 
     # Domain allowlist
     allowed = _allowed_email_domains()
@@ -621,7 +643,13 @@ def auth_register():
     if db.get_user_by_email(email):
         return jsonify({"error": "Email address already registered"}), 409
 
-    user = db.create_user(username=username, email=email, password=password)
+    user = db.create_user(
+        username=username,
+        email=email,
+        password=password,
+        affiliation=affiliation,
+        terms_agreed=terms_agreed,
+    )
 
     sent = send_verification_email(user)
     if not sent:
@@ -660,6 +688,36 @@ def auth_verify_email():
         return render_template("verify-email.html", success=False, error="User not found."), 404
 
     db.verify_email(user_id)
+    db.update_user(user_id, registration_status="verified")
+    return render_template("verify-email.html", success=True, email=user["email"]), 200
+
+
+@app.route("/PSSM_GREMLIN/user_verify", methods=["GET"])
+def auth_user_verify():
+    """Verify email via serializer token (2-day expiry)."""
+    token = request.args.get("c", "").strip()
+    if not token:
+        return render_template("verify-email.html", success=False, error="Missing verification token."), 400
+
+    user_id = validate_email_token(token)
+    if user_id is None:
+        return (
+            render_template(
+                "verify-email.html",
+                success=False,
+                error="Invalid or expired verification token (valid for 2 days).",
+            ),
+            400,
+        )
+
+    db = _get_user_db()
+    user = db.get_user(user_id)
+    if user is None:
+        return render_template("verify-email.html", success=False, error="User not found."), 404
+
+    db.verify_email(user_id)
+    db.update_user(user_id, registration_status="verified")
+    # user_status stays "pending" — admin must approve
     return render_template("verify-email.html", success=True, email=user["email"]), 200
 
 
@@ -744,22 +802,50 @@ def auth_revoke_api_key():
     return jsonify({"message": "API key revoked"}), 200
 
 
-@app.route("/PSSM_GREMLIN/api/auth/admin/users", methods=["POST"])
+@app.route("/PSSM_GREMLIN/api/auth/admin/users", methods=["GET", "POST"])
 @login_required
-def admin_create_user():
-    """Admin-only: create a new user account.
+def admin_users():
+    """Admin-only user management.
 
-    Auto-verifies the email so the account is usable immediately.
+    ``GET`` — list all users (safe fields only).
+    ``POST`` — create a new user (auto-verified, immediately active).
     """
-    if _blocked := require_web_login():
+    if _blocked := require_admin():
         return _blocked
-    if not g.current_user.get("is_admin"):
-        return jsonify({"error": "Admin access required"}), 403
 
+    db = _get_user_db()
+
+    if request.method == "GET":
+        users = db.list_users()
+        safe = [
+            {
+                "id": u["id"],
+                "username": u["username"],
+                "email": u["email"],
+                "email_verified": u["email_verified"],
+                "is_admin": u["is_admin"],
+                "affiliation": u.get("affiliation"),
+                "registration_status": u.get("registration_status", "email_sent"),
+                "user_status": u.get("user_status", "pending"),
+                "created_at": u.get("created_at"),
+                "approved_by": u.get("approved_by"),
+                "approved_at": u.get("approved_at"),
+            }
+            for u in users
+        ]
+        return jsonify({"users": safe}), 200
+
+    # POST
     payload = request.get_json(silent=True) or {}
     username = str(payload.get("username", "")).strip()
     email = _normalize_email(str(payload.get("email", "")))
     password = str(payload.get("password", "") or "")
+    affiliation = str(payload.get("affiliation", "")).strip() or None
+
+    # ponytail: derive username from email local-part if not provided
+    # (Tab B admin add-user form only asks for email + password + affiliation)
+    if not username and email:
+        username = email.split("@")[0]
 
     if not username or not email or not password:
         return jsonify({"error": "Username, email, and password are required"}), 400
@@ -770,7 +856,6 @@ def admin_create_user():
     if "@" not in email or "." not in email.split("@")[-1]:
         return jsonify({"error": "Invalid email address"}), 400
 
-    db = _get_user_db()
     if db.get_user_by_username(username):
         return jsonify({"error": "Username already taken"}), 409
     if db.get_user_by_email(email):
@@ -781,8 +866,109 @@ def admin_create_user():
         email=email,
         password=password,
         is_admin=payload.get("is_admin", False),
+        affiliation=affiliation,
+        registration_status="approved",
+        user_status="active",
     )
     db.verify_email(new_user["id"])  # admin-created accounts are pre-verified
 
     logging.info("Admin %r created user %r", g.current_user["username"], username)
     return jsonify({"message": "User created", "username": username}), 201
+
+
+@app.route("/PSSM_GREMLIN/api/auth/admin/users/<int:user_id>", methods=["PUT", "DELETE"])
+@login_required
+def admin_manage_user(user_id):
+    """Admin-only: update user status or delete a user.
+
+    ``PUT`` — update ``registration_status``, ``user_status``, or ``is_admin``.
+    ``DELETE`` — permanently remove the user.
+    """
+    if _blocked := require_admin():
+        return _blocked
+
+    db = _get_user_db()
+    user = db.get_user(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if request.method == "DELETE":
+        # ponytail: soft-delete — hides from user table, recoverable.
+        db.update_user(user_id, deleted=True)
+        logging.info("Admin %r soft-deleted user %r", g.current_user["username"], user.get("username"))
+        return jsonify({"message": "User deleted"}), 200
+
+    # PUT
+    payload = request.get_json(silent=True) or {}
+
+    allowed_actions = {"registration_status", "user_status", "is_admin"}
+    update_fields: dict[str, Any] = {}
+    for key in allowed_actions:
+        if key in payload:
+            update_fields[key] = payload[key]
+
+    new_reg = update_fields.get("registration_status")
+    if new_reg is not None and new_reg not in {"approved", "rejected"}:
+        return jsonify({"error": f"Invalid registration_status: {new_reg}"}), 400
+    new_user_status = update_fields.get("user_status")
+    if new_user_status is not None and new_user_status not in {"active", "banned"}:
+        return jsonify({"error": f"Invalid user_status: {new_user_status}"}), 400
+
+    if update_fields:
+        update_fields["approved_by"] = g.current_user["id"]
+        update_fields["approved_at"] = time.time()
+        db.update_user(user_id, **update_fields)
+
+    return jsonify({"message": "User updated"}), 200
+
+
+@app.route("/PSSM_GREMLIN/api/auth/admin/users/batch", methods=["POST"])
+@login_required
+def admin_batch_users():
+    """Admin-only batch operations on users.
+
+    Accepts ``{"action": "enable"|"disable"|"delete", "user_ids": [...]}``.
+    """
+    if _blocked := require_admin():
+        return _blocked
+
+    payload = request.get_json(silent=True) or {}
+    action = str(payload.get("action", "")).strip()
+    user_ids = payload.get("user_ids")
+    if not isinstance(user_ids, list) or not user_ids:
+        return jsonify({"error": "user_ids must be a non-empty list"}), 400
+    if action not in {"enable", "disable", "delete"}:
+        return jsonify({"error": f"Invalid action: {action}"}), 400
+
+    db = _get_user_db()
+    now = time.time()
+    admin_id = g.current_user["id"]
+
+    if action == "enable":
+        updates = {
+            "user_status": "active",
+            "registration_status": "approved",
+            "deleted": False,
+            "approved_by": admin_id,
+            "approved_at": now,
+        }
+    elif action == "disable":
+        updates = {"user_status": "banned", "approved_by": admin_id, "approved_at": now}
+    else:  # delete
+        updates = {"deleted": True}
+
+    count = 0
+    for uid in user_ids:
+        try:
+            uid_int = int(uid)
+        except (TypeError, ValueError):
+            continue
+        user = db.get_user(uid_int)
+        if user is None:
+            continue
+        if user.get("is_admin") and action == "disable":
+            continue  # don't disable other admins
+        db.update_user(uid_int, **updates)
+        count += 1
+
+    return jsonify({"message": f"{action} action applied to {count} user(s)", "count": count}), 200
