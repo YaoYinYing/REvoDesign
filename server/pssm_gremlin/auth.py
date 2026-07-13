@@ -472,3 +472,67 @@ def validate_email_token(token: str) -> int | None:
     if payload.get("purpose") != "verify-email":
         return None
     return payload.get("uid")
+
+
+# ---------------------------------------------------------------------------
+# Password reset (same serializer, 1-hour expiry)
+# ---------------------------------------------------------------------------
+
+
+def send_password_reset_email(email: str, db: UserDatabase) -> bool:
+    """Send a password-reset link to *email* if a user with that address exists.
+
+    Returns ``True`` if an email was sent, ``False`` otherwise (no user, or
+    SMTP failure).  Does not reveal whether the email is registered.
+    """
+    user = db.get_user_by_email(email)
+    if user is None:
+        # Don't leak whether the email is registered — pretend success
+        return True
+
+    cfg = _smtp_config()
+    token = _serializer.dumps({"uid": user["id"], "purpose": "reset-password"})
+    base_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
+    reset_url = f"{base_url}/PSSM_GREMLIN/reset_password?c={token}"
+
+    subject = "Reset your REvoDesign GREMLIN password"
+    body = (
+        f"Hello {user['username']},\n\n"
+        f"A password reset was requested for your account.  Click the link below to set a new password.\n\n"
+        f"{reset_url}\n\n"
+        f"This link will expire in 1 hour.\n\n"
+        f"If you did not request this, please ignore this message — your password will not change.\n\n"
+        f"— REvoDesign GREMLIN Server\n"
+    )
+
+    msg = MIMEMultipart()
+    msg["From"] = f"{cfg['from_name']} <{cfg['from_addr']}>"
+    msg["To"] = email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+
+    try:
+        if cfg["use_tls"]:
+            server = smtplib.SMTP(cfg["host"], cfg["port"], timeout=15)
+            server.starttls()
+        else:
+            server = smtplib.SMTP(cfg["host"], cfg["port"], timeout=15)
+        if cfg["username"] and cfg["password"]:
+            server.login(cfg["username"], cfg["password"])
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception:
+        logging.exception("Failed to send password-reset email to %s", email)
+        return False
+
+
+def validate_reset_token(token: str) -> int | None:
+    """Validate a password-reset token.  Returns *user_id* or ``None``."""
+    try:
+        payload = _serializer.loads(token, max_age=3600)  # 1-hour expiry
+    except (SignatureExpired, BadSignature):
+        return None
+    if payload.get("purpose") != "reset-password":
+        return None
+    return payload.get("uid")

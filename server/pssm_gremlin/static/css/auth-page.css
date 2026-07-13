@@ -271,6 +271,23 @@ html[data-theme="dark"] .checkbox-label a {
   color: #8fd0e8;
 }
 
+/* ---- forgot password ---- */
+
+.forgot-row {
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.forgot-section {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+html[data-theme="dark"] .forgot-section {
+  border-top-color: #30444f;
+}
+
 /* ---- responsive ---- */
 
 @media (max-width: 640px) {

@@ -49,4 +49,50 @@
       statusEl.textContent = "Network error. Please try again.";
     });
   });
+
+  // ---- Forgot password ----
+
+  var forgotLink = document.getElementById("forgotLink");
+  var forgotSection = document.getElementById("forgotSection");
+  var forgotForm = document.getElementById("forgotForm");
+  var forgotStatus = document.getElementById("forgotStatus");
+  var forgotSubmitBtn = document.getElementById("forgotSubmitBtn");
+
+  forgotLink.addEventListener("click", function (e) {
+    e.preventDefault();
+    forgotSection.style.display = forgotSection.style.display === "none" ? "block" : "none";
+  });
+
+  forgotForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    forgotStatus.className = "status-msg";
+    forgotStatus.textContent = "";
+    forgotSubmitBtn.disabled = true;
+    forgotSubmitBtn.textContent = "Sending…";
+
+    fetch("/PSSM_GREMLIN/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: document.getElementById("forgotEmail").value.trim() }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (result) {
+        forgotSubmitBtn.disabled = false;
+        forgotSubmitBtn.textContent = "Send Reset Link";
+        if (result.ok) {
+          forgotStatus.className = "status-msg ok";
+          forgotStatus.textContent = result.data.message;
+          forgotForm.reset();
+        } else {
+          forgotStatus.className = "status-msg error";
+          forgotStatus.textContent = result.data.error || "Request failed.";
+        }
+      })
+      .catch(function () {
+        forgotSubmitBtn.disabled = false;
+        forgotSubmitBtn.textContent = "Send Reset Link";
+        forgotStatus.className = "status-msg error";
+        forgotStatus.textContent = "Network error. Please try again.";
+      });
+  });
 })();

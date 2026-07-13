@@ -38,6 +38,23 @@
       </div>
       <div class="status-msg" id="status" role="alert"></div>
     </form>
+
+    <div class="forgot-row">
+      <a href="#" id="forgotLink" class="alt-link">Forgot your password?</a>
+    </div>
+    <div id="forgotSection" style="display:none" class="forgot-section">
+      <p class="subline">Enter your email and we&rsquo;ll send you a reset link.</p>
+      <form id="forgotForm" class="auth-form">
+        <div class="field">
+          <label for="forgotEmail">Email</label>
+          <input type="email" id="forgotEmail" class="text-input" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary btn-full" type="submit" id="forgotSubmitBtn">Send Reset Link</button>
+        </div>
+        <div class="status-msg" id="forgotStatus" role="alert"></div>
+      </form>
+    </div>
   </section>
 
   <details class="dev-note">

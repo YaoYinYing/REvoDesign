@@ -28,8 +28,10 @@ from pssm_gremlin.auth import (
     login_required,
     optional_user,
     require_web_login,
+    send_password_reset_email,
     send_verification_email,
     validate_email_token,
+    validate_reset_token,
 )
 from pssm_gremlin.pssm_gremlin import (
     CONFIG,
@@ -597,6 +599,60 @@ def auth_login():
     # carry the auth token.  HttpOnly; SameSite=Lax prevents CSRF.
     response.set_cookie("auth_token", token, httponly=True, samesite="Lax")
     return response
+
+
+@app.route("/PSSM_GREMLIN/api/auth/forgot-password", methods=["POST"])
+@rate_limit(max_requests=3, window_seconds=3600)
+def auth_forgot_password():
+    """Send a password-reset link to the given email address."""
+    if not _smtp_configured():
+        return jsonify({"error": "Password reset requires SMTP to be configured"}), 503
+
+    payload = request.get_json(silent=True) or {}
+    email = _normalize_email(str(payload.get("email", "")))
+    if not email or "@" not in email:
+        # Don't leak whether the email is registered
+        return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
+
+    db = _get_user_db()
+    send_password_reset_email(email, db)
+    return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
+
+
+@app.route("/PSSM_GREMLIN/reset_password", methods=["GET", "POST"])
+def auth_reset_password():
+    """Password-reset page.
+
+    ``GET`` — renders the new-password form (requires ``?c=`` token).
+    ``POST`` — sets the new password.
+    """
+    if request.method == "GET":
+        token = request.args.get("c", "").strip()
+        if not token:
+            return render_template("error.html", code=400, message="Missing reset token."), 400
+        user_id = validate_reset_token(token)
+        if user_id is None:
+            return render_template("error.html", code=400, message="Invalid or expired reset token."), 400
+        return render_template("reset-password.html", token=token), 200
+
+    # POST
+    payload = request.get_json(silent=True) or {}
+    token = str(payload.get("token", "")).strip()
+    new_password = str(payload.get("password", "") or "")
+
+    if not token or not new_password:
+        return jsonify({"error": "Token and new password are required"}), 400
+    if len(new_password) < 8:
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+
+    user_id = validate_reset_token(token)
+    if user_id is None:
+        return jsonify({"error": "Invalid or expired reset token"}), 400
+
+    db = _get_user_db()
+    db.update_user(user_id, password_hash=generate_password_hash(new_password))
+    logging.info("User %d reset their password", user_id)
+    return jsonify({"message": "Password updated — you can now log in."}), 200
 
 
 @app.route("/PSSM_GREMLIN/api/auth/logout", methods=["POST"])
