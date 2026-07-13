@@ -33,6 +33,24 @@
   font-weight: 700;
 }
 
+.file-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.file-name {
+  font-size: 0.84rem;
+}
+
+/* drag-and-drop highlight */
+.drop-highlight {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--accent) 6%, transparent 94%) !important;
+}
+
 /* ponytail: simple full-width field — matches main branch.
    No ::file-selector-button styling — let the browser render the
    native button naturally.  Complex pseudo-element styling on
@@ -158,6 +176,12 @@ html[data-theme="dark"] .field-label,
 html[data-theme="dark"] .info-list { color: #a2b4bc; }
 
 html[data-theme="dark"] .input-zone { border-color: #30444f; background: #132128; }
+
+html[data-theme="dark"] .file-name { color: var(--muted); }
+
+html[data-theme="dark"] .drop-highlight {
+  background: color-mix(in srgb, var(--accent) 10%, transparent 90%) !important;
+}
 
 html[data-theme="dark"] .file-input,
 html[data-theme="dark"] .text-input,

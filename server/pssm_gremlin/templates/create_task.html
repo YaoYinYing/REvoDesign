@@ -33,12 +33,12 @@
       <div class="input-zone">
         <p class="field-label">FASTA Upload</p>
         <form id="uploadForm" enctype="multipart/form-data">
-          <input class="visually-hidden" type="file" name="file" id="fileInput" accept=".fasta">
+          <input type="file" name="file" id="fileInput" accept=".fasta" class="sr-only">
           <div class="file-upload-row">
             <button class="btn btn-soft" type="button" id="fileButton">Choose FASTA file</button>
             <span class="file-name muted" id="fileNameDisplay">No file selected</span>
           </div>
-          <p class="muted">Upload a <code>.fasta</code> file, or use the optional editor below.</p>
+          <p class="muted">Upload a <code>.fasta</code> file, or drag &amp; drop one anywhere on this card. Use the optional editor below to paste a sequence instead.</p>
 
           <div class="editor-zone">
             <p class="field-label">Optional Sequence Editor</p>

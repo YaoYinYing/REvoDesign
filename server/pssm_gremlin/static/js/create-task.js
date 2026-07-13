@@ -7,12 +7,16 @@
 
   var form = document.getElementById("uploadForm");
   var fileInput = document.getElementById("fileInput");
+  var fileButton = document.getElementById("fileButton");
+  var fileNameDisplay = document.getElementById("fileNameDisplay");
   var taskNameInput = document.getElementById("taskNameInput");
   var sequenceInput = document.getElementById("sequenceInput");
   var sequencePreview = document.getElementById("sequencePreview");
   var statusDiv = document.getElementById("uploadStatus");
   var clearButton = document.getElementById("clearButton");
   var uploadButton = document.getElementById("uploadButton");
+
+  // -- helpers ---------------------------------------------------------------
 
   function setStatus(message, kind) {
     statusDiv.className = "status" + (kind ? " " + kind : "");
@@ -56,8 +60,81 @@
     return cleaned || "sequence";
   }
 
+  function setSelectedFile(file) {
+    // ponytail: DataTransfer is the only way to programmatically set
+    // a FileList on a file input.  Create a new FileList-like object.
+    var dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+    fileNameDisplay.textContent = file.name;
+  }
+
+  // -- file selection --------------------------------------------------------
+
+  fileButton.addEventListener("click", function () {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener("change", function () {
+    if (fileInput.files && fileInput.files.length > 0) {
+      fileNameDisplay.textContent = fileInput.files[0].name;
+    } else {
+      fileNameDisplay.textContent = "No file selected";
+    }
+  });
+
+  // -- drag-and-drop (works around Chrome file-dialog bug) -------------------
+
+  // ponytail: use the entire .input-zone as the drop target so the user
+  // can drop a .fasta file anywhere on the card, not just the button.
+  var dropZone = form.closest(".input-zone");
+
+  function isFastaFile(file) {
+    return file.name.toLowerCase().endsWith(".fasta");
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
+    dropZone.classList.add("drop-highlight");
+  }
+
+  function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only remove highlight when leaving the drop zone itself
+    if (e.target === dropZone || !dropZone.contains(e.relatedTarget)) {
+      dropZone.classList.remove("drop-highlight");
+    }
+  }
+
+  dropZone.addEventListener("dragover", handleDragOver);
+  dropZone.addEventListener("dragenter", handleDragOver);
+  dropZone.addEventListener("dragleave", handleDragLeave);
+  dropZone.addEventListener("drop", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove("drop-highlight");
+    var file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (!isFastaFile(file)) {
+      setStatus("Only .fasta files are accepted.", "error");
+      return;
+    }
+    setSelectedFile(file);
+    setStatus("File ready: " + file.name + " (" + file.size + " bytes)", "ok");
+  });
+
+  // Also drop on the whole document to catch files dropped outside the card
+  document.addEventListener("dragover", function (e) { e.preventDefault(); });
+  document.addEventListener("drop", function (e) { e.preventDefault(); });
+
+  // -- theme & system --------------------------------------------------------
+
   clearButton.addEventListener("click", function () {
     fileInput.value = "";
+    fileNameDisplay.textContent = "No file selected";
     taskNameInput.value = "";
     sequenceInput.value = "";
     refreshSequencePreview();
@@ -79,6 +156,8 @@
   }
 
   refreshSequencePreview();
+
+  // -- submit ----------------------------------------------------------------
 
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
