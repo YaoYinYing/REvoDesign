@@ -33,7 +33,11 @@
       <div class="input-zone">
         <p class="field-label">FASTA Upload</p>
         <form id="uploadForm" enctype="multipart/form-data">
-          <input class="file-input" type="file" name="file" id="fileInput" accept=".fasta">
+          <input class="file-input-hidden" type="file" name="file" id="fileInput" accept=".fasta">
+          <div class="file-upload-row">
+            <label class="btn btn-soft" for="fileInput" id="fileLabel">Choose FASTA file</label>
+            <span class="file-name muted" id="fileNameDisplay">No file selected</span>
+          </div>
           <p class="muted">Upload a <code>.fasta</code> file, or use the optional editor below.</p>
 
           <div class="editor-zone">
