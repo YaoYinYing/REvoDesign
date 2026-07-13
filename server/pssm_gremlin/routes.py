@@ -64,6 +64,18 @@ from pssm_gremlin.pssm_gremlin import (
     task_store,
 )
 from pssm_gremlin.ratelimit import rate_limit
+from pssm_gremlin.schemas import (
+    AdminCreateUserRequest,
+    AdminUpdateUserRequest,
+    BatchUserRequest,
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+    UserResponse,
+)
+from pydantic import ValidationError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -544,18 +556,6 @@ def _allowed_email_domains() -> set[str]:
     return {d.strip().lower() for d in raw.split(",") if d.strip()}
 
 
-def _normalize_email(email: str) -> str:
-    """Normalize an email address: lowercase, strip ``+suffix`` from local part.
-
-    ``user+tag@domain.com`` → ``user@domain.com`` — prevents one person
-    from creating multiple accounts via plus-aliased addresses.
-    """
-    email = email.strip().lower()
-    local, at, domain = email.partition("@")
-    local = local.split("+")[0]
-    return f"{local}{at}{domain}"
-
-
 def _get_user_db() -> UserDatabase:
     return current_app.config["user_db"]  # type: ignore[no-any-return]
 
@@ -569,6 +569,15 @@ def require_admin():
     return None
 
 
+def _parse_body(model_cls: type):
+    """Validate request JSON against *model_cls*.  Returns the model instance
+    or a ``(json_response, status_code)`` error tuple."""
+    try:
+        return model_cls.model_validate(request.get_json(silent=True) or {})
+    except ValidationError as e:
+        return jsonify({"error": e.errors()[0]["msg"]}), 400
+
+
 @app.route("/PSSM_GREMLIN/api/auth/login", methods=["POST"])
 @rate_limit(max_requests=5, window_seconds=60)
 def auth_login():
@@ -577,20 +586,16 @@ def auth_login():
     Accepts a ``username`` field that may be either a username or an email
     address — admin-created users may only know their email.
     """
-    payload = request.get_json(silent=True) or {}
-    login_id = str(payload.get("username", "")).strip()
-    password = str(payload.get("password", "") or "")
-
-    if not login_id or not password:
-        return jsonify({"error": "Username/email and password are required"}), 400
+    req = _parse_body(LoginRequest)
+    if isinstance(req, tuple):
+        return req
 
     db = _get_user_db()
-    # Try username first, then email
-    if "@" in login_id:
-        user = db.get_user_by_email(_normalize_email(login_id))
+    if "@" in req.login_id:
+        user = db.get_user_by_email(req.login_id)  # already normalised by schema
     else:
-        user = db.get_user_by_username(login_id)
-    if user is None or not check_password_hash(user["password_hash"], password):
+        user = db.get_user_by_username(req.login_id)
+    if user is None or not check_password_hash(user["password_hash"], req.password):
         return jsonify({"error": "Invalid username or password"}), 401
 
     token = generate_token(user["id"])
@@ -608,8 +613,11 @@ def auth_forgot_password():
     if not _smtp_configured():
         return jsonify({"error": "Password reset requires SMTP to be configured"}), 503
 
-    payload = request.get_json(silent=True) or {}
-    email = _normalize_email(str(payload.get("email", "")))
+    req = _parse_body(ForgotPasswordRequest)
+    if isinstance(req, tuple):
+        return req
+    email = req.email
+
     if not email or "@" not in email:
         # Don't leak whether the email is registered
         return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
@@ -636,21 +644,16 @@ def auth_reset_password():
         return render_template("reset-password.html", token=token), 200
 
     # POST
-    payload = request.get_json(silent=True) or {}
-    token = str(payload.get("token", "")).strip()
-    new_password = str(payload.get("password", "") or "")
+    req = _parse_body(ResetPasswordRequest)
+    if isinstance(req, tuple):
+        return req
 
-    if not token or not new_password:
-        return jsonify({"error": "Token and new password are required"}), 400
-    if len(new_password) < 8:
-        return jsonify({"error": "Password must be at least 8 characters"}), 400
-
-    user_id = validate_reset_token(token)
+    user_id = validate_reset_token(req.token)
     if user_id is None:
         return jsonify({"error": "Invalid or expired reset token"}), 400
 
     db = _get_user_db()
-    db.update_user(user_id, password_hash=generate_password_hash(new_password))
+    db.update_user(user_id, password_hash=generate_password_hash(req.password))
     logging.info("User %d reset their password", user_id)
     return jsonify({"message": "Password updated — you can now log in."}), 200
 
@@ -675,52 +678,39 @@ def auth_register():
     if not _smtp_configured():
         return jsonify({"error": "Registration requires SMTP to be configured"}), 403
 
-    payload = request.get_json(silent=True) or {}
-    username = str(payload.get("username", "")).strip()
-    email = _normalize_email(str(payload.get("email", "")))
-    password = str(payload.get("password", "") or "")
-    affiliation = str(payload.get("affiliation", "")).strip() or None
-    terms_agreed = bool(payload.get("terms_agreed", False))
-
-    # Basic validation
-    if not username or not email or not password:
-        return jsonify({"error": "Username, email, and password are required"}), 400
-    if len(username) < 3 or len(username) > 64:
-        return jsonify({"error": "Username must be between 3 and 64 characters"}), 400
-    if len(password) < 8:
-        return jsonify({"error": "Password must be at least 8 characters"}), 400
-    if "@" not in email or "." not in email.split("@")[-1]:
-        return jsonify({"error": "Invalid email address"}), 400
-    if not terms_agreed:
-        return jsonify({"error": "You must agree to the Terms of Service"}), 400
+    req = _parse_body(RegisterRequest)
+    if isinstance(req, tuple):
+        return req
 
     # Domain allowlist
     allowed = _allowed_email_domains()
     if allowed:
-        domain = email.partition("@")[2]
+        domain = req.email.partition("@")[2]
         if domain not in allowed:
             return jsonify({"error": f"Email domain @{domain} is not allowed"}), 400
 
     db = _get_user_db()
-    if db.get_user_by_username(username):
+    if db.get_user_by_username(req.username):
         return jsonify({"error": "Username already taken"}), 409
-    if db.get_user_by_email(email):
+    if db.get_user_by_email(req.email):
         return jsonify({"error": "Email address already registered"}), 409
 
     user = db.create_user(
-        username=username,
-        email=email,
-        password=password,
-        affiliation=affiliation,
-        terms_agreed=terms_agreed,
+        username=req.username,
+        email=req.email,
+        password=req.password,
+        affiliation=req.affiliation,
+        terms_agreed=req.terms_agreed,
     )
 
     sent = send_verification_email(user)
     if not sent:
-        logging.warning("Email verification failed for %r; account created but not verified", username)
+        logging.warning("Email verification failed for %r; account created but not verified", req.username)
 
     return (
-        jsonify({"message": "Registration successful — check your email to verify your account", "username": username}),
+        jsonify(
+            {"message": "Registration successful — check your email to verify your account", "username": req.username}
+        ),
         201,
     )
 
@@ -810,20 +800,15 @@ def auth_update_me():
     if _blocked := require_web_login():
         return _blocked
     user = g.current_user
-    payload = request.get_json(silent=True) or {}
+    req = _parse_body(ChangePasswordRequest)
+    if isinstance(req, tuple):
+        return req
 
-    current_password = str(payload.get("current_password", "") or "")
-    new_password = str(payload.get("new_password", "") or "")
-
-    if not current_password or not new_password:
-        return jsonify({"error": "current_password and new_password are required"}), 400
-    if len(new_password) < 8:
-        return jsonify({"error": "Password must be at least 8 characters"}), 400
-    if not check_password_hash(user["password_hash"], current_password):
+    if not check_password_hash(user["password_hash"], req.current_password):
         return jsonify({"error": "Current password is incorrect"}), 401
 
     db = _get_user_db()
-    db.update_user(user["id"], password_hash=generate_password_hash(new_password))
+    db.update_user(user["id"], password_hash=generate_password_hash(req.new_password))
     return jsonify({"message": "Password updated"}), 200
 
 
@@ -881,58 +866,32 @@ def admin_users():
 
     if request.method == "GET":
         users = db.list_users()
-        safe = [
-            {
-                "id": u["id"],
-                "username": u["username"],
-                "email": u["email"],
-                "email_verified": u["email_verified"],
-                "is_admin": u["is_admin"],
-                "affiliation": u.get("affiliation"),
-                "registration_status": u.get("registration_status", "email_sent"),
-                "user_status": u.get("user_status", "pending"),
-                "created_at": u.get("created_at"),
-                "approved_by": u.get("approved_by"),
-                "approved_at": u.get("approved_at"),
-            }
-            for u in users
-        ]
+        safe = [UserResponse.model_validate(u).model_dump() for u in users]
         return jsonify({"users": safe}), 200
 
     # POST
-    payload = request.get_json(silent=True) or {}
-    username = str(payload.get("username", "")).strip()
-    email = _normalize_email(str(payload.get("email", "")))
-    password = str(payload.get("password", "") or "")
-    affiliation = str(payload.get("affiliation", "")).strip() or None
+    req = _parse_body(AdminCreateUserRequest)
+    if isinstance(req, tuple):
+        return req
 
-    if not username or not email or not password:
-        return jsonify({"error": "Username, email, and password are required"}), 400
-    if len(username) < 3 or len(username) > 64:
-        return jsonify({"error": "Username must be between 3 and 64 characters"}), 400
-    if len(password) < 8:
-        return jsonify({"error": "Password must be at least 8 characters"}), 400
-    if "@" not in email or "." not in email.split("@")[-1]:
-        return jsonify({"error": "Invalid email address"}), 400
-
-    if db.get_user_by_username(username):
+    if db.get_user_by_username(req.username):
         return jsonify({"error": "Username already taken"}), 409
-    if db.get_user_by_email(email):
+    if db.get_user_by_email(req.email):
         return jsonify({"error": "Email address already registered"}), 409
 
     new_user = db.create_user(
-        username=username,
-        email=email,
-        password=password,
-        is_admin=payload.get("is_admin", False),
-        affiliation=affiliation,
+        username=req.username,
+        email=req.email,
+        password=req.password,
+        is_admin=req.is_admin,
+        affiliation=req.affiliation,
         registration_status="approved",
         user_status="active",
     )
     db.verify_email(new_user["id"])  # admin-created accounts are pre-verified
 
-    logging.info("Admin %r created user %r", g.current_user["username"], username)
-    return jsonify({"message": "User created", "username": username}), 201
+    logging.info("Admin %r created user %r", g.current_user["username"], req.username)
+    return jsonify({"message": "User created", "username": req.username}), 201
 
 
 @app.route("/PSSM_GREMLIN/api/auth/admin/users/<int:user_id>", methods=["PUT", "DELETE"])
@@ -958,35 +917,26 @@ def admin_manage_user(user_id):
         return jsonify({"message": "User deleted"}), 200
 
     # PUT
-    payload = request.get_json(silent=True) or {}
+    req = _parse_body(AdminUpdateUserRequest)
+    if isinstance(req, tuple):
+        return req
 
-    allowed_actions = {"registration_status", "user_status", "is_admin", "email", "affiliation"}
+    # Build update dict from set fields only (all optional)
     update_fields: dict[str, Any] = {}
-    for key in allowed_actions:
-        if key in payload:
-            update_fields[key] = payload[key]
-
-    # Password: only update if non-empty
-    new_password = str(payload.get("password", "") or "")
-    if new_password:
-        if len(new_password) < 8:
-            return jsonify({"error": "Password must be at least 8 characters"}), 400
-        update_fields["password_hash"] = generate_password_hash(new_password)
-
-    # Email: normalise and check uniqueness
-    if "email" in update_fields:
-        email = _normalize_email(str(update_fields["email"]))
+    if req.email is not None:
+        email = req.email
         existing = db.get_user_by_email(email)
         if existing and existing["id"] != user_id:
             return jsonify({"error": "Email address already in use"}), 409
         update_fields["email"] = email
-
-    new_reg = update_fields.get("registration_status")
-    if new_reg is not None and new_reg not in {"approved", "rejected"}:
-        return jsonify({"error": f"Invalid registration_status: {new_reg}"}), 400
-    new_user_status = update_fields.get("user_status")
-    if new_user_status is not None and new_user_status not in {"active", "banned"}:
-        return jsonify({"error": f"Invalid user_status: {new_user_status}"}), 400
+    if req.affiliation is not None:
+        update_fields["affiliation"] = req.affiliation
+    if req.password is not None:
+        update_fields["password_hash"] = generate_password_hash(req.password)
+    if req.registration_status is not None:
+        update_fields["registration_status"] = req.registration_status
+    if req.user_status is not None:
+        update_fields["user_status"] = req.user_status
 
     if update_fields:
         update_fields["approved_by"] = g.current_user["id"]
@@ -1006,19 +956,15 @@ def admin_batch_users():
     if _blocked := require_admin():
         return _blocked
 
-    payload = request.get_json(silent=True) or {}
-    action = str(payload.get("action", "")).strip()
-    user_ids = payload.get("user_ids")
-    if not isinstance(user_ids, list) or not user_ids:
-        return jsonify({"error": "user_ids must be a non-empty list"}), 400
-    if action not in {"enable", "disable", "delete"}:
-        return jsonify({"error": f"Invalid action: {action}"}), 400
+    req = _parse_body(BatchUserRequest)
+    if isinstance(req, tuple):
+        return req
 
     db = _get_user_db()
     now = time.time()
     admin_id = g.current_user["id"]
 
-    if action == "enable":
+    if req.action == "enable":
         updates = {
             "user_status": "active",
             "registration_status": "approved",
@@ -1026,23 +972,19 @@ def admin_batch_users():
             "approved_by": admin_id,
             "approved_at": now,
         }
-    elif action == "disable":
+    elif req.action == "disable":
         updates = {"user_status": "banned", "approved_by": admin_id, "approved_at": now}
     else:  # delete
         updates = {"deleted": True}
 
     count = 0
-    for uid in user_ids:
-        try:
-            uid_int = int(uid)
-        except (TypeError, ValueError):
-            continue
-        user = db.get_user(uid_int)
+    for uid in req.user_ids:
+        user = db.get_user(uid)
         if user is None:
             continue
-        if user.get("is_admin") and action == "disable":
+        if user.get("is_admin") and req.action == "disable":
             continue  # don't disable other admins
-        db.update_user(uid_int, **updates)
+        db.update_user(uid, **updates)
         count += 1
 
-    return jsonify({"message": f"{action} action applied to {count} user(s)", "count": count}), 200
+    return jsonify({"message": f"{req.action} action applied to {count} user(s)", "count": count}), 200
