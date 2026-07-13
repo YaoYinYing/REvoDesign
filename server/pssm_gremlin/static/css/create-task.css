@@ -33,6 +33,18 @@
   font-weight: 700;
 }
 
+/* ponytail: visually hidden but still clickable — required because
+   browsers block .click() on input[type=file] with display:none */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .file-upload-row {
   display: flex;
   align-items: center;
