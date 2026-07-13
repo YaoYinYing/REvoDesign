@@ -210,6 +210,10 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     assert 'class="btn btn-soft theme-toggle mode-auto"' in html
     assert 'class="theme-icon" aria-hidden="true">◐</span>' in html
     assert 'src="/static/js/theme.js"' in html
+    assert 'class="file-input" type="file"' in html
+    assert 'id="fileButton"' not in html
+    assert "file-input-offscreen" not in html
+    assert 'href="https://github.com/YaoYinYing/REvoDesign" target="_blank"' not in html
 
 
 def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta") -> str:
@@ -618,6 +622,7 @@ def test_dashboard_masks_host_file_paths_on_read_errors(monkeypatch, tmp_path):
     body = response.get_data(as_text=True)
     assert "00:00:01" in body
     assert 'id="logoutBtn"' in body
+    assert 'href="https://github.com/YaoYinYing/REvoDesign" target="_blank"' not in body
 
 
 def test_failed_status_masks_host_paths_in_api_error(monkeypatch, tmp_path):

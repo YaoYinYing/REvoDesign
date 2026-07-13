@@ -10,85 +10,8 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/base.css">
 <link rel="stylesheet" href="/static/css/auth-page.css">
+<link rel="stylesheet" href="/static/css/error-page.css">
 <script src="/static/js/theme.js"></script>
-<style>
-  .error-page {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 55vh;
-    text-align: center;
-    padding: 2.5rem 1rem;
-  }
-
-  /* ponytail: the code is the hero — a large, measured typographic reading.
-     Source Serif 4 at display scale, with a subtle etched shadow that gives
-     it the depth of an instrument panel. */
-  .error-code {
-    font-family: "Source Serif 4", serif;
-    font-size: clamp(4rem, 10vw, 7rem);
-    font-weight: 700;
-    color: var(--failed);
-    margin: 0;
-    line-height: 1;
-    letter-spacing: -0.02em;
-    /* ponytail: the etched shadow — instrument-panel depth, not decoration */
-    text-shadow:
-      0 1px 0 rgba(255,255,255,0.08),
-      0 -1px 0 rgba(0,0,0,0.18);
-  }
-
-  /* ponytail: the hairline rule — like a spectrometer readout line.
-     Deliberately thin and constrained in width. */
-  .error-rule {
-    width: min(60%, 18rem);
-    height: 1px;
-    background: var(--line);
-    margin: 1.6rem 0;
-    border: none;
-  }
-
-  .error-message {
-    font-family: "IBM Plex Sans", sans-serif;
-    font-size: 1.05rem;
-    color: var(--muted);
-    margin: 0 0 0.35rem;
-    max-width: 32rem;
-    line-height: 1.45;
-  }
-
-  .error-action {
-    font-size: 0.88rem;
-    color: var(--muted);
-    margin: 0.25rem 0 1.6rem;
-    max-width: 32rem;
-  }
-
-  .error-back {
-    display: inline-block;
-    padding: 0.58rem 1.4rem;
-    background: var(--accent);
-    color: #f6fbff;
-    border-radius: 999px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.88rem;
-    transition: transform 160ms ease, box-shadow 160ms ease;
-  }
-
-  .error-back:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 18px rgba(15, 79, 99, 0.22);
-  }
-
-  /* dark */
-  html[data-theme="dark"] .error-code {
-    text-shadow:
-      0 1px 0 rgba(255,255,255,0.04),
-      0 -1px 0 rgba(0,0,0,0.35);
-  }
-</style>
 </head>
 <body>
 <main class="page auth-page">
@@ -118,11 +41,12 @@
     {% endif %}
     </p>
     {% if code == 401 %}
-    <a class="error-back" href="/PSSM_GREMLIN/login">Sign in</a>
+    <a class="btn btn-primary" href="/PSSM_GREMLIN/login">Sign in</a>
     {% else %}
-    <a class="error-back" href="/PSSM_GREMLIN/dashboard">Back to Dashboard</a>
+    <a class="btn btn-primary" href="/PSSM_GREMLIN/dashboard">Back to Dashboard</a>
     {% endif %}
   </section>
 </main>
+<script src="/static/js/error-page.js"></script>
 </body>
 </html>

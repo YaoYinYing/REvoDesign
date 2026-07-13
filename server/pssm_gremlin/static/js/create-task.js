@@ -7,8 +7,6 @@
 
   var form = document.getElementById("uploadForm");
   var fileInput = document.getElementById("fileInput");
-  var fileButton = document.getElementById("fileButton");
-  var fileNameDisplay = document.getElementById("fileNameDisplay");
   var taskNameInput = document.getElementById("taskNameInput");
   var sequenceInput = document.getElementById("sequenceInput");
   var sequencePreview = document.getElementById("sequencePreview");
@@ -58,21 +56,8 @@
     return cleaned || "sequence";
   }
 
-  fileButton.addEventListener("click", function () {
-    fileInput.click();
-  });
-
-  fileInput.addEventListener("change", function () {
-    if (fileInput.files && fileInput.files.length > 0) {
-      fileNameDisplay.textContent = fileInput.files[0].name;
-    } else {
-      fileNameDisplay.textContent = "No file selected";
-    }
-  });
-
   clearButton.addEventListener("click", function () {
     fileInput.value = "";
-    fileNameDisplay.textContent = "No file selected";
     taskNameInput.value = "";
     sequenceInput.value = "";
     refreshSequencePreview();

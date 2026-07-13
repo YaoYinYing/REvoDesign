@@ -188,8 +188,26 @@
     renderTasks();
   }
 
-  function downloadFile(md5sum) {
-    window.location.href = "/PSSM_GREMLIN/api/results/" + encodeURIComponent(md5sum);
+  async function downloadFile(md5sum) {
+    try {
+      var response = await A.authFetch("/PSSM_GREMLIN/api/download/" + encodeURIComponent(md5sum));
+      if (!response.ok) {
+        var data = await response.json().catch(function () { return {}; });
+        throw new Error(data.message || data.error || "Download failed (HTTP " + response.status + ")");
+      }
+      var blob = await response.blob();
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      // ponytail: let the server's Content-Disposition header name the file
+      a.download = "";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 100);
+    } catch (error) {
+      showToast(error.message || "Download failed", "error");
+    }
   }
 
   function removeTaskFromClientState(md5sum) {
@@ -236,8 +254,11 @@
   }
 
   function triggerLogout() {
-    A.clearToken();
-    window.location.href = "/PSSM_GREMLIN/login";
+    A.authFetch("/PSSM_GREMLIN/api/auth/logout", { method: "POST" })
+      .finally(function () {
+        A.clearToken();
+        window.location.href = "/PSSM_GREMLIN/login";
+      });
   }
 
   async function deleteSelectedTasks() {

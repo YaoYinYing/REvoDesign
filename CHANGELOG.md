@@ -86,6 +86,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Admin password**: the bootstrap-generated admin password was logged to
   gunicorn stderr (inaccessible to the operator). The restart script now
   generates and displays it on the console before bringing services up.
+- **File upload button not triggering dialog**: create-task FASTA upload now
+  uses the native visible ``<input type="file">`` control instead of delegated
+  clicks to hidden/off-screen controls, avoiding embedded-browser file-dialog
+  restrictions.
+- **GREMLIN server GitHub links**: server-page GitHub actions now navigate in
+  the same window for embedded-browser compatibility.
+- **Download button not triggering download**: the dashboard download
+  button used ``window.location.href`` (cookie-only page navigation) which
+  could silently redirect to login on auth failure.  Switched to
+  ``A.authFetch`` (Bearer token + cookie fallback) with blob download via
+  ``URL.createObjectURL``, matching the page's existing fetch-based auth
+  model.
 
 ### Security
 - SQL injection: all queries use SQLAlchemy ORM parameterized queries.

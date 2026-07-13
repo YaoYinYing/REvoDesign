@@ -19,7 +19,7 @@ import shutil
 import time
 
 from celery.result import AsyncResult
-from flask import current_app, g, jsonify, redirect, render_template, request, send_from_directory
+from flask import current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 from pssm_gremlin.auth import (
     UserDatabase,
     _env_str,
@@ -92,6 +92,21 @@ def register_page():
 @login_required
 def create_task():
     return render_template("create_task.html")
+
+
+@app.route("/PSSM_GREMLIN/test-click", methods=["GET"])
+def test_click():
+    """Diagnostic: bare HTML, no CSS/JS/templates — does a file input work?"""
+    return """<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Click Test</title></head>
+<body>
+  <h1>Click Test</h1>
+  <p>File input: <input type="file"></p>
+  <p>Link: <a href="https://example.com">Example link</a></p>
+  <p>Button: <button type="button" onclick="alert('works')">JS Alert</button></p>
+</body>
+</html>"""
 
 
 @app.route("/PSSM_GREMLIN/profile", methods=["GET"])

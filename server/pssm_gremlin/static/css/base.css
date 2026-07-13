@@ -31,6 +31,17 @@ html[data-theme="dark"] {
   box-sizing: border-box;
 }
 
+/* ponytail: clip-based hide — not display:none so label[for] click delegation works in all browsers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 body {
   margin: 0;
   font-family: "IBM Plex Sans", sans-serif;
@@ -54,7 +65,6 @@ body {
   border: 1px solid var(--line);
   border-radius: 18px;
   box-shadow: 0 12px 28px rgba(29, 42, 47, 0.08);
-  backdrop-filter: blur(5px);
 }
 
 .hero {

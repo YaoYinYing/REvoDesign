@@ -33,27 +33,24 @@
   font-weight: 700;
 }
 
-/* ponytail: visually hidden but still clickable — required because
-   browsers block .click() on input[type=file] with display:none */
-.visually-hidden {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden;
-  clip: rect(0,0,0,0);
-  white-space: nowrap;
-  border: 0;
+/* ponytail: simple full-width field — matches main branch.
+   No ::file-selector-button styling — let the browser render the
+   native button naturally.  Complex pseudo-element styling on
+   replaced elements is fragile across browsers. */
+.file-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0.58rem;
+  font-size: 0.9rem;
 }
 
-.file-upload-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.file-name {
-  font-size: 0.84rem;
+.file-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 58%, white 42%);
+  box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
 }
 
 .text-input {
@@ -162,6 +159,7 @@ html[data-theme="dark"] .info-list { color: #a2b4bc; }
 
 html[data-theme="dark"] .input-zone { border-color: #30444f; background: #132128; }
 
+html[data-theme="dark"] .file-input,
 html[data-theme="dark"] .text-input,
 html[data-theme="dark"] .sequence-input {
   border-color: #324751;
