@@ -54,12 +54,25 @@ def _runner_build_args() -> dict[str, str]:
     }
 
 
-def _configure_pssm_env(
-    monkeypatch,
-    tmp_path,
-    extra_env: dict | None = None,
-    users_text: str | None = None,
-) -> None:
+# ==================================================================
+# helpers
+# ==================================================================
+
+
+def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
+    """Load a fresh copy of ``pssm_gremlin.py`` with test-isolated env vars.
+
+    ``pssm_gremlin.py`` creates ``app``, ``celery``, ``CONFIG``, and
+    ``task_store`` at import time — each test needs its own copy.  We use
+    ``spec_from_file_location`` so the module is loaded under a unique name,
+    avoiding Python's import cache.
+
+    The ``sys.modules`` dance below patches ``pssm_gremlin.pssm_gremlin`` so
+    ``routes.py``'s ``from pssm_gremlin.pssm_gremlin import app`` resolves to
+    THIS test's module rather than loading a second copy from disk (which
+    would register routes on a different Flask ``app``).
+    """
+    # -- env setup --
     env_root = tmp_path / "pssm_env"
     env_root.mkdir(parents=True, exist_ok=True)
     db_path = env_root / "pssm.sqlite3"
@@ -67,15 +80,12 @@ def _configure_pssm_env(
     log_dir.mkdir(exist_ok=True)
     for folder in ("uniref30", "uniref90"):
         (env_root / folder).mkdir(exist_ok=True)
-    users_file = env_root / "users.txt"
-    users_file.write_text(users_text or "tester:password\n", encoding="utf-8")
 
     base_env = {
         "SERVER_DIR": str(env_root),
         "DB_PATH": str(db_path),
         "DB_UNIREF30": str(env_root / "uniref30"),
         "DB_UNIREF90": str(env_root / "uniref90"),
-        "USERS_FILE": str(users_file),
         "LOG_DIR": str(log_dir),
     }
     for key, value in base_env.items():
@@ -89,16 +99,7 @@ def _configure_pssm_env(
             else:
                 monkeypatch.setenv(key, value)
 
-
-def _load_pssm_module(
-    monkeypatch,
-    tmp_path,
-    extra_env: dict | None = None,
-    users_text: str | None = None,
-):
-    _configure_pssm_env(monkeypatch, tmp_path, extra_env, users_text)
-    # The refactored pssm_gremlin module imports from sibling packages
-    # (pssm_gremlin.db, pssm_gremlin.auth), so server/ must be on sys.path.
+    # -- module load with import isolation --
     server_dir = str(Path(REPO_DIR) / "server")
     if server_dir not in sys.path:
         sys.path.insert(0, server_dir)
@@ -107,12 +108,32 @@ def _load_pssm_module(
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     assert spec is not None and spec.loader is not None
+    # Force routes.py to re-import for each test so its @app.route decorators
+    # bind to THIS test's app instance.  Popping sys.modules alone is not
+    # enough — Python also caches submodules as attributes on the parent pkg.
+    # ponytail: three lines, one per cached sub-module that binds app.
+    _pg = sys.modules.get("pssm_gremlin")
+    if _pg is not None:
+        _pg.__dict__.pop("routes", None)
+        _pg.__dict__.pop("pssm_gremlin", None)
+    sys.modules.pop("pssm_gremlin.routes", None)
     sys.modules[module_name] = module
+    sys.modules["pssm_gremlin.pssm_gremlin"] = module
     try:
         spec.loader.exec_module(module)  # type: ignore[attr-defined]
         return module
     finally:
         sys.modules.pop(module_name, None)
+        sys.modules.pop("pssm_gremlin.pssm_gremlin", None)
+        sys.modules.pop("pssm_gremlin.routes", None)
+        if _pg is not None:
+            _pg.__dict__.pop("routes", None)
+            _pg.__dict__.pop("pssm_gremlin", None)
+
+
+# ==================================================================
+# config tests
+# ==================================================================
 
 
 def test_pssm_config_uses_numeric_runner_identity(monkeypatch, tmp_path):
@@ -156,6 +177,11 @@ def test_pssm_config_rejects_root_runner(monkeypatch, tmp_path):
         )
 
 
+# ==================================================================
+# Flask test-client tests
+# ==================================================================
+
+
 def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -166,7 +192,7 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
         },
     )
     client = module.app.test_client()
-    auth_header = _module_bearer_headers(module)
+    auth_header = _test_client_auth(module)
 
     favicon = client.get("/favicon.ico")
     assert favicon.status_code == 200
@@ -183,7 +209,7 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     assert 'href="/PSSM_GREMLIN/logo.svg"' in html
     assert 'class="btn btn-soft theme-toggle mode-auto"' in html
     assert 'class="theme-icon" aria-hidden="true">◐</span>' in html
-    assert "applyThemeMode(nextMode, true, true);" in html
+    assert 'src="/static/js/theme.js"' in html
 
 
 def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta") -> str:
@@ -474,7 +500,7 @@ def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
             "RUNNER_GID": "5678",
         },
     )
-    monkeypatch.setattr(module, "_local_user_identity", lambda: "pytest:staff-1000:20")
+    monkeypatch.setattr(module.routes, "_local_user_identity", lambda: "pytest:staff-1000:20")
 
     class _DummyAsyncResult:
         id = "celery-test-id"
@@ -482,7 +508,7 @@ def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
     monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
 
     client = module.app.test_client()
-    headers = _module_bearer_headers(module)
+    headers = _test_client_auth(module)
     headers["X-Test-Header"] = "abc\tdef"
     response = client.post(
         "/PSSM_GREMLIN/api/post",
@@ -515,7 +541,7 @@ def _bearer_headers(base_url: str, username: str, password: str) -> dict[str, st
     return {"Authorization": f"Bearer {resp.json()['token']}"}
 
 
-def _module_bearer_headers(module, username: str = "tester", password: str = "password") -> dict[str, str]:
+def _test_client_auth(module, username: str = "tester", password: str = "password") -> dict[str, str]:
     """Create a test user and return Bearer token headers for Flask test-client tests.
 
     Unlike :func:`_bearer_headers`, this works without a running HTTP server —
@@ -570,7 +596,7 @@ def test_dashboard_masks_host_file_paths_on_read_errors(monkeypatch, tmp_path):
         },
     )
     client = module.app.test_client()
-    auth_header = _module_bearer_headers(module)
+    auth_header = _test_client_auth(module)
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "result"
@@ -604,7 +630,7 @@ def test_failed_status_masks_host_paths_in_api_error(monkeypatch, tmp_path):
         },
     )
     client = module.app.test_client()
-    auth_header = _module_bearer_headers(module)
+    auth_header = _test_client_auth(module)
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "result"
@@ -641,7 +667,6 @@ def test_private_dashboard_blocks_non_owner_access(monkeypatch, tmp_path):
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
         },
-        users_text="tester:password\nother:password2\n",
     )
 
     class _DummyAsyncResult:
@@ -650,8 +675,8 @@ def test_private_dashboard_blocks_non_owner_access(monkeypatch, tmp_path):
     monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
 
     client = module.app.test_client()
-    owner_header = _module_bearer_headers(module)
-    other_header = _module_bearer_headers(module, "other", "password2")
+    owner_header = _test_client_auth(module)
+    other_header = _test_client_auth(module, "other", "password2")
 
     upload = client.post(
         "/PSSM_GREMLIN/api/post",
@@ -688,7 +713,6 @@ def test_public_dashboard_allows_cross_user_task_access(monkeypatch, tmp_path):
             "RUNNER_GID": "5678",
             "PUBLIC_DASHBOARD": "true",
         },
-        users_text="tester:password\nother:password2\n",
     )
 
     class _DummyAsyncResult:
@@ -697,8 +721,8 @@ def test_public_dashboard_allows_cross_user_task_access(monkeypatch, tmp_path):
     monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
 
     client = module.app.test_client()
-    owner_header = _module_bearer_headers(module)
-    other_header = _module_bearer_headers(module, "other", "password2")
+    owner_header = _test_client_auth(module)
+    other_header = _test_client_auth(module, "other", "password2")
 
     upload = client.post(
         "/PSSM_GREMLIN/api/post",
@@ -727,7 +751,7 @@ def test_dashboard_running_trace_reflects_log_progress(monkeypatch, tmp_path):
         },
     )
     client = module.app.test_client()
-    auth_header = _module_bearer_headers(module)
+    auth_header = _test_client_auth(module)
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "trace_result"
@@ -764,7 +788,6 @@ def test_public_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
             "RUNNER_GID": "5678",
             "PUBLIC_DASHBOARD": "true",
         },
-        users_text="tester:password\nother:password2\n",
     )
 
     class _DummyAsyncResult:
@@ -773,8 +796,8 @@ def test_public_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
     monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
 
     client = module.app.test_client()
-    owner_header = _module_bearer_headers(module)
-    other_header = _module_bearer_headers(module, "other", "password2")
+    owner_header = _test_client_auth(module)
+    other_header = _test_client_auth(module, "other", "password2")
 
     owner_upload = client.post(
         "/PSSM_GREMLIN/api/post",
@@ -804,10 +827,9 @@ def test_admin_can_manage_other_users_tasks_in_private_mode(monkeypatch, tmp_pat
             "RUNNER_GID": "5678",
             "ADMIN_USERS": "admin",
         },
-        users_text="tester:password\nadmin:admin_password\n",
     )
     client = module.app.test_client()
-    admin_header = _module_bearer_headers(module, "admin", "admin_password")
+    admin_header = _test_client_auth(module, "admin", "admin_password")
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "admin_manage_other_user"
@@ -842,7 +864,6 @@ def test_private_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
         },
-        users_text="tester:password\nother:password2\n",
     )
 
     class _DummyAsyncResult:
@@ -851,8 +872,8 @@ def test_private_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
     monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
 
     client = module.app.test_client()
-    owner_header = _module_bearer_headers(module)
-    other_header = _module_bearer_headers(module, "other", "password2")
+    owner_header = _test_client_auth(module)
+    other_header = _test_client_auth(module, "other", "password2")
 
     payload = {"file": (io.BytesIO(b">test\nACDE\n"), "same.fasta")}
     owner_upload = client.post("/PSSM_GREMLIN/api/post", data=payload, headers=owner_header)
@@ -878,11 +899,10 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
         },
-        users_text="tester:password\nother:password2\nadmin:admin_password\n",
     )
 
     client = module.app.test_client()
-    owner_header = _module_bearer_headers(module)
+    owner_header = _test_client_auth(module)
 
     md5sum = uuid.uuid4().hex
     upload_dir = tmp_path / "upload_owner"
@@ -928,11 +948,10 @@ def test_dashboard_hides_deleted_tasks_until_resubmitted(monkeypatch, tmp_path):
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
         },
-        users_text="tester:password\n",
     )
 
     client = module.app.test_client()
-    auth_header = _module_bearer_headers(module)
+    auth_header = _test_client_auth(module)
 
     md5sum = uuid.uuid4().hex
     upload_file = tmp_path / "deleted_hidden.fasta"
@@ -978,10 +997,9 @@ def test_delete_pending_task_marks_deleted_cancel(monkeypatch, tmp_path):
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
         },
-        users_text="tester:password\n",
     )
     client = module.app.test_client()
-    owner_header = _module_bearer_headers(module)
+    owner_header = _test_client_auth(module)
 
     md5sum = uuid.uuid4().hex
     upload_file = tmp_path / "upload_pending.fasta"
@@ -1017,11 +1035,10 @@ def test_non_owner_cannot_delete_task_results(monkeypatch, tmp_path):
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
         },
-        users_text="tester:password\nother:password2\nadmin:admin_password\n",
     )
 
     client = module.app.test_client()
-    other_header = _module_bearer_headers(module, "other", "password2")
+    other_header = _test_client_auth(module, "other", "password2")
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "delete_denied"
@@ -1050,11 +1067,10 @@ def test_single_delete_rejects_invalid_task_id(monkeypatch, tmp_path):
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
         },
-        users_text="tester:password\n",
     )
 
     client = module.app.test_client()
-    auth_header = _module_bearer_headers(module)
+    auth_header = _test_client_auth(module)
 
     response = client.delete("/PSSM_GREMLIN/api/delete/not-a-md5", headers=auth_header)
     assert response.status_code == 400
@@ -1070,11 +1086,10 @@ def test_admin_can_batch_delete_tasks(monkeypatch, tmp_path):
             "RUNNER_GID": "5678",
             "ADMIN_USERS": "admin",
         },
-        users_text="tester:password\nother:password2\nadmin:admin_password\n",
     )
 
     client = module.app.test_client()
-    admin_header = _module_bearer_headers(module, "admin", "admin_password")
+    admin_header = _test_client_auth(module, "admin", "admin_password")
 
     md5_a = uuid.uuid4().hex
     md5_b = uuid.uuid4().hex
@@ -1130,11 +1145,10 @@ def test_batch_delete_guards_and_normalizes_each_md5sum(monkeypatch, tmp_path):
             "RUNNER_GID": "5678",
             "ADMIN_USERS": "admin",
         },
-        users_text="tester:password\nadmin:admin_password\n",
     )
 
     client = module.app.test_client()
-    admin_header = _module_bearer_headers(module, "admin", "admin_password")
+    admin_header = _test_client_auth(module, "admin", "admin_password")
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "batch_guard_normalize"
@@ -1175,11 +1189,10 @@ def test_non_admin_batch_delete_only_deletes_owned_tasks(monkeypatch, tmp_path):
             "RUNNER_GID": "5678",
             "ADMIN_USERS": "admin",
         },
-        users_text="tester:password\nother:password2\nadmin:admin_password\n",
     )
 
     client = module.app.test_client()
-    user_header = _module_bearer_headers(module)
+    user_header = _test_client_auth(module)
 
     own_md5 = uuid.uuid4().hex
     other_md5 = uuid.uuid4().hex
@@ -1232,10 +1245,9 @@ def test_download_uses_safe_fasta_prefix_filename(monkeypatch, tmp_path):
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
         },
-        users_text="tester:password\n",
     )
     client = module.app.test_client()
-    auth_header = _module_bearer_headers(module)
+    auth_header = _test_client_auth(module)
 
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "download_safe_name"
@@ -1264,6 +1276,11 @@ def test_download_uses_safe_fasta_prefix_filename(monkeypatch, tmp_path):
     assert expected_prefix in disposition
     assert "\r" not in disposition
     assert "\n" not in disposition
+
+
+# ==================================================================
+# Docker helpers
+# ==================================================================
 
 
 def _run_command(
@@ -1568,7 +1585,7 @@ class DockerServerStack:
             self.server_image_tag,
             "celery",
             "-A",
-            "pssm_gremlin.celery",
+            "pssm_gremlin.pssm_gremlin.celery",
             "worker",
             "--loglevel=info",
             "--concurrency=1",
@@ -1602,7 +1619,7 @@ class DockerServerStack:
             f"{self.log_dir}/gunicorn-access.log",
             "--error-logfile",
             f"{self.log_dir}/gunicorn-error.log",
-            "pssm_gremlin:app",
+            "pssm_gremlin.pssm_gremlin:app",
         ]
         _run_command(cmd, cwd=Path(REPO_DIR) / "server")
         self.containers.append(self.web_name)
@@ -1739,6 +1756,11 @@ def _wait_for_failed_task(base_url: str, headers: dict[str, str], md5sum: str, t
     raise AssertionError("Timed out waiting for GREMLIN task to fail")
 
 
+# ==================================================================
+# Docker integration tests
+# ==================================================================
+
+
 @REQUIRES_DOCKER
 def test_server_image_handles_authenticated_requests(miniuc_databases, runner_image_tag, server_image_tag, tmp_path):
     stack = DockerServerStack(
@@ -1807,7 +1829,7 @@ def running_gremlin_server(miniuc_databases, runner_image_tag, server_image_tag)
     headers = _bearer_headers(base_url, stack.username, stack.password)
     _wait_for_server_ready(base_url, headers, web_container=stack.web_name)
     try:
-        yield {"stack": stack, "base_url": base_url, "auth": auth}
+        yield {"stack": stack, "base_url": base_url, "headers": headers}
     finally:
         stack.cleanup()
 
@@ -1848,7 +1870,7 @@ def test_server_rejects_unauthenticated_requests(running_gremlin_server):
 @REQUIRES_DOCKER
 def test_server_rejects_invalid_uploads(running_gremlin_server):
     base_url = running_gremlin_server["base_url"]
-    auth = running_gremlin_server["auth"]
+    headers = running_gremlin_server["headers"]
     with requests.Session() as session:
         session.headers.update(headers)
         missing_resp = session.post(
@@ -1882,7 +1904,7 @@ def test_server_rejects_invalid_uploads(running_gremlin_server):
 @REQUIRES_DOCKER
 def test_server_reports_invalid_task_ids(running_gremlin_server):
     base_url = running_gremlin_server["base_url"]
-    auth = running_gremlin_server["auth"]
+    headers = running_gremlin_server["headers"]
     md5sum = secrets.token_hex(16)
     with requests.Session() as session:
         session.headers.update(headers)

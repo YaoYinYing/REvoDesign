@@ -11,20 +11,7 @@ import os
 import time
 from typing import Any
 
-from sqlalchemy import (
-    Column,
-    Float,
-    Index,
-    Integer,
-    MetaData,
-    String,
-    Table,
-    Text,
-    create_engine,
-    desc,
-    select,
-    update,
-)
+from sqlalchemy import Column, Float, Index, Integer, MetaData, String, Table, Text, create_engine, desc, select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import OperationalError
 

@@ -38,15 +38,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GREMLIN server: module split** — `pssm_gremlin.py` refactored from ~1500 lines into `db.py` (TaskDatabase), `routes.py` (HTTP handlers), `ratelimit.py` (rate limiter), and slimmed-down main module.
 - **GREMLIN server: SMTP-gated registration** — self-registration and email verification now require SMTP to be configured.
 - Docker Compose: removed `group_add: "0"` (root group) from `x-docker-socket-access`.
+- **GREMLIN server UI**: redesigned login, profile, and register pages with
+  card-based layout, section headings, full-width buttons, and contextual
+  navigation.  Profile page gains a logout button and copy-to-clipboard for
+  API keys.  The developer curl snippet on the login page is now collapsed
+  behind a `<details>` element.
+- **GREMLIN server error pages**: HTTP error responses (4xx/5xx) render as
+  styled HTML pages for browser requests with contextual help text and
+  actions (e.g. 401 links to login).  API requests continue to receive JSON.
+- **Gunicorn `--preload`**: the WSGI app is loaded before forking workers,
+  ensuring consistent `AUTH_SECRET_KEY` across all workers and eliminating
+  cross-worker token validation failures.
 
 ### Fixed
+- **GREMLIN server test suite**: removed dead `users.txt`/`USERS_FILE` code
+  leftover from Basic Auth era. Merged `_configure_pssm_env` into
+  `_load_pssm_module`. Fixed Docker test entry points (`_start_web`,
+  `_start_worker`) for the package-refactored module path. Renamed
+  `_module_bearer_headers` → `_test_client_auth` for clarity.
 - Cancelled tasks now clean up their result directories (previously leaked on disk).
-- **AUTH_SECRET_KEY duplication**: `auth.py` and `pssm_gremlin.py` independently generated different random signing keys when `AUTH_SECRET_KEY` was unset, breaking token validation across gunicorn workers. Fixed by seeding `os.environ` before the auth import.
-- **Test module loading**: `spec_from_file_location` loader in server tests now adds `server/` to `sys.path` so the refactored `pssm_gremlin` package (with sibling imports from `db`, `auth`) is importable.
+- **AUTH_SECRET_KEY duplication**: `auth.py` and `pssm_gremlin.py`
+  independently generated different random signing keys when
+  `AUTH_SECRET_KEY` was unset, breaking token validation across gunicorn
+  workers. Fixed by seeding `os.environ` before the auth import.
+- **Test module loading**: `spec_from_file_location` loader in server tests
+  now adds `server/` to `sys.path` so the refactored `pssm_gremlin` package
+  (with sibling imports from `db`, `auth`) is importable.
+- **Docker compose empty env vars**: `${VAR:-}` substitutions pass empty
+  strings when unset, which `os.environ.get()` returned as valid values,
+  bypassing defaults. `_env_str` now treats empty strings as unset, preventing
+  SQLite paths from resolving to CWD.
+- **Package shadowing on import**: when the Docker WORKDIR was inside
+  `pssm_gremlin/`, Python's `sys.path` entry `''` resolved to the package
+  directory, finding `pssm_gremlin.py` as a top-level module that shadowed
+  the `pssm_gremlin` package. Fixed by setting `WORKDIR /app/server` and
+  `working_dir: /app/server` in docker-compose.
+- **Browser auth after login**: page navigations (dashboard, profile) don't
+  carry the `Authorization` header. Login now sets an `HttpOnly` cookie and
+  `load_current_user` checks it, so browser pages authenticate without manual
+  token management.
+- **Logout**: JS cannot clear `HttpOnly` cookies. Added
+  `POST /api/auth/logout` server endpoint; profile page calls it to clear
+  the cookie.
+- **API key display race**: `refreshApiKeyStatus()` was hiding the
+  freshly-generated key before the user could copy it. Fixed to preserve the
+  display when a new key is visible.
+- **Admin password**: the bootstrap-generated admin password was logged to
+  gunicorn stderr (inaccessible to the operator). The restart script now
+  generates and displays it on the console before bringing services up.
 
 ### Security
 - SQL injection: all queries use SQLAlchemy ORM parameterized queries.
 - XSS: Jinja2 auto-escaping + `| tojson` filter for JSON + `escapeHtml()` in dashboard JS.
+- Auth cookie: `HttpOnly` + `SameSite=Lax`; inaccessible to JavaScript.
+- API keys: restricted privileges (task operations only); Bearer token
+  required for profile changes and admin actions.
 - Path traversal: `_safe_join()` / `_path_is_within()` guard all filesystem paths.
 - Task IDs: validated against `[a-f0-9]{32}` regex before filesystem access.
 - CSRF: all state-changing requests use `fetch()` with JSON content-type + Bearer tokens.

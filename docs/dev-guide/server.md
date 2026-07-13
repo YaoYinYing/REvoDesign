@@ -109,13 +109,20 @@ organized by user identity and task MD5, with strict permission isolation.
 - **Celery for async tasks**: Long-running jobs (potentially hours) are
   dispatched via Celery so the HTTP request returns immediately with a task
   ID for polling.
+- **Gunicorn `--preload`**: The WSGI application is loaded in the arbiter
+  before workers are forked, ensuring shared module state (especially the
+  `AUTH_SECRET_KEY` used for token signing) is consistent across workers.
 - **SQLite persistence**: A lightweight SQLite database (via SQLAlchemy)
-  tracks task state, metadata, and results locations.
+  tracks task state, metadata, and results locations.  Two databases:
+  `users.sqlite3` (auth) and `pssm_gremlin.sqlite3` (tasks).
 
 ## API Endpoints
 
-All endpoints use Bearer-token authentication and are
-mounted under the `/PSSM_GREMLIN` path prefix.
+All endpoints use Bearer-token authentication (or API keys for task-only
+access) and are mounted under the `/PSSM_GREMLIN` path prefix.  Browser page
+navigations use an `HttpOnly` cookie set on login; API clients send the
+`Authorization: Bearer <token>` header.  Browser requests without auth are
+redirected to the login page; API requests without auth receive JSON 4xx errors.
 
 ### Task Management
 
@@ -145,7 +152,8 @@ mounted under the `/PSSM_GREMLIN` path prefix.
 |--------|----------|-------------|
 | `GET` | `/PSSM_GREMLIN/api/auth/me` | Return current user info |
 | `PUT` | `/PSSM_GREMLIN/api/auth/me` | Change password (requires `current_password` + `new_password`) |
-| `POST` | `/PSSM_GREMLIN/api/auth/login` | Login, returns Bearer token |
+| `POST` | `/PSSM_GREMLIN/api/auth/login` | Login, returns Bearer token and sets auth cookie |
+| `POST` | `/PSSM_GREMLIN/api/auth/logout` | Logout, clears auth cookie |
 | `GET` | `/PSSM_GREMLIN/api/auth/verify-email` | Verify email via token query param |
 | `GET` | `/PSSM_GREMLIN/api/auth/me/api-key` | Check API key status |
 | `POST` | `/PSSM_GREMLIN/api/auth/me/api-key` | Generate API key (returns plaintext once) |

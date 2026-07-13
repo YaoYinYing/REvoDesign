@@ -13,34 +13,38 @@
 <script src="/static/js/theme.js"></script>
 </head>
 <body>
-<main class="page">
+<main class="page auth-page">
   <div class="nav-row">
-    <a href="/PSSM_GREMLIN/dashboard">← Dashboard</a>
-    <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme"><span class="theme-icon" aria-hidden="true">◐</span></button>
-    <a href="/PSSM_GREMLIN/register">Create account</a>
+    <a href="/PSSM_GREMLIN/dashboard" class="back-link">&larr;&nbsp;Dashboard</a>
+    <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme"><span class="theme-icon" aria-hidden="true">&#9680;</span></button>
+    <a href="/PSSM_GREMLIN/register" class="alt-link">Create account</a>
   </div>
-  <div class="panel">
+
+  <section class="panel auth-panel">
     <h1 class="headline">Log In</h1>
-    <p class="subline">Sign in to access your GREMLIN tasks.</p>
-    <form id="loginForm">
+    <p class="subline">Sign in to access your GREMLIN workspace.</p>
+
+    <form id="loginForm" class="auth-form">
       <div class="field">
         <label for="username">Username</label>
-        <input type="text" id="username" required autocomplete="username">
+        <input type="text" id="username" class="text-input" required autocomplete="username" placeholder="admin" autofocus>
       </div>
       <div class="field">
         <label for="password">Password</label>
-        <input type="password" id="password" required autocomplete="current-password">
+        <input type="password" id="password" class="text-input" required autocomplete="current-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;">
       </div>
       <div class="actions">
-        <button class="btn btn-primary" type="submit" id="submitBtn">Log In</button>
+        <button class="btn btn-primary btn-full" type="submit" id="submitBtn">Log In</button>
       </div>
       <div class="status-msg" id="status" role="alert"></div>
     </form>
-  </div>
-  <div class="info-note">
-    After logging in, use the token for API requests:<br>
-    <code>curl -H "Authorization: Bearer &lt;token&gt;" ...</code>
-  </div>
+  </section>
+
+  <details class="dev-note">
+    <summary>Developer access</summary>
+    <p>After logging in, use the token for API requests:</p>
+    <code>curl -H "Authorization: Bearer &lt;token&gt;" http://localhost:8080/PSSM_GREMLIN/api/auth/me</code>
+  </details>
 </main>
 <script src="/static/js/auth-api.js"></script>
 <script src="/static/js/login.js"></script>

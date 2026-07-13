@@ -193,20 +193,36 @@ cmd_down() {
 }
 
 cmd_restart() {
-  cmd_down
-  cmd_build
-  cmd_up
-
+  # Resolve env early so we can set DEFAULT_ADMIN_PASSWORD for first boot.
   set +u
   set -a
   source "${ENV_FILE}"
   set +a
   set -u
 
+  _show_admin_pw="no"
+  _user_db="${SERVER_DIR}/users.sqlite3"
+  if [[ -n "${DEFAULT_ADMIN_PASSWORD:-}" ]]; then
+    # Explicitly configured — always show it.
+    _show_admin_pw="yes"
+  elif [[ ! -f "${_user_db}" ]]; then
+    # First boot — generate a password and show it.
+    _generated_pw="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
+    export DEFAULT_ADMIN_PASSWORD="${_generated_pw}"
+    _show_admin_pw="yes"
+  fi
+
+  cmd_down
+  cmd_build
+  cmd_up
+
   DOMAIN="0.0.0.0"
   PORT="${PORT:-8080}"
   echo "Deployment completed."
   echo "Flask app is now running at http://${DOMAIN}:${PORT}/PSSM_GREMLIN/dashboard"
+  if [[ "${_show_admin_pw}" == "yes" ]]; then
+    echo "Admin login — username: admin  password: ${DEFAULT_ADMIN_PASSWORD}"
+  fi
 }
 
 SUBCOMMAND="${1:-restart}"

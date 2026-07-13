@@ -19,6 +19,9 @@
   async function authFetch(url, options) {
     options = options || {};
     options.headers = options.headers || {};
+    // ponytail: send the auth cookie so API calls work even when
+    // sessionStorage is unavailable (private browsing, cleared, etc.).
+    options.credentials = "same-origin";
     var token = getToken();
     if (token) {
       options.headers["Authorization"] = "Bearer " + token;

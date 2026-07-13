@@ -33,11 +33,12 @@ from werkzeug.utils import secure_filename
 # Ensure AUTH_SECRET_KEY is set *before* auth.py initialises its token
 # serializer, otherwise multi-worker gunicorn generates independent signing
 # keys per worker and tokens from one worker fail validation on another.
-os.environ.setdefault("AUTH_SECRET_KEY", os.urandom(32).hex())
+if not os.environ.get("AUTH_SECRET_KEY"):
+    os.environ["AUTH_SECRET_KEY"] = os.urandom(32).hex()
 
 from pssm_gremlin.auth import UserDatabase  # noqa: E402
-from pssm_gremlin.auth import _env_str  # noqa: E402
 from pssm_gremlin.auth import _env_bool  # noqa: E402
+from pssm_gremlin.auth import _env_str  # noqa: E402
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
@@ -184,9 +185,9 @@ if _user_db.user_count() == 0:
     )
     _user_db.verify_email(1)
     logging.warning(
-        "No users found — created default admin user %r with a "
-        "random password.  Set DEFAULT_ADMIN_PASSWORD in the "
-        "environment and restart, or log in and change it immediately.",
+        "No users found — created default admin user %r. "
+        "Set DEFAULT_ADMIN_PASSWORD in the environment and restart, "
+        "or log in and change it immediately.",
         _default_admin,
     )
 

@@ -22,7 +22,7 @@ from functools import wraps
 from typing import Any
 
 import sqlalchemy as sa
-from flask import current_app, g, jsonify, request
+from flask import current_app, g, jsonify, redirect, render_template, request, url_for
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -40,14 +40,14 @@ def _env_bool(var: str, default: bool) -> bool:
         return True
     if value in {"0", "false", "no", "off"}:
         return False
-    raise ValueError(
-        f"Environment variable {var} must be a boolean value "
-        "(one of: true/false/1/0/yes/no/on/off)."
-    )
+    raise ValueError(f"Environment variable {var} must be a boolean value " "(one of: true/false/1/0/yes/no/on/off).")
 
 
 def _env_str(var: str, default: str) -> str:
-    return os.environ.get(var, default)
+    # ponytail: treat empty string as unset — docker compose passes
+    # ${VAR:-} which yields "" when VAR is absent in the env file.
+    value = os.environ.get(var)
+    return value if value else default
 
 
 def _env_int(var: str, default: int) -> int:
@@ -256,7 +256,8 @@ def load_current_user() -> dict[str, Any] | None:
 
     Tries (in order):
     1. ``Authorization: Bearer <token>`` — web session token (time-limited).
-    2. ``X-API-Key: <key>`` — long-lived API key (never expires).
+    2. ``auth_token`` cookie — browser page navigations (same time-limited token).
+    3. ``X-API-Key: <key>`` — long-lived API key (never expires).
 
     Returns the user dict or ``None``.
     """
@@ -264,6 +265,9 @@ def load_current_user() -> dict[str, Any] | None:
 
     # 1. Bearer token (web login — full privileges)
     token = _extract_bearer_token()
+    # 2. Cookie — browser page navigations after login
+    if not token:
+        token = request.cookies.get("auth_token")
     if token:
         user_id = validate_token(token)
         if user_id is not None:
@@ -272,7 +276,7 @@ def load_current_user() -> dict[str, Any] | None:
                 g.auth_method = "token"
                 return user
 
-    # 2. API key (programmatic access — restricted privileges)
+    # 3. API key (programmatic access — restricted privileges)
     api_key = request.headers.get("X-API-Key", "").strip()
     if api_key:
         user = db.validate_api_key(api_key)
@@ -300,12 +304,18 @@ def require_web_login():
 
 
 def login_required(f: Callable) -> Callable:
-    """Decorator that requires a valid Bearer token."""
+    """Decorator that requires a valid Bearer token.
+
+    Browser requests (``Accept: text/html``) are redirected to the login
+    page.  API requests receive a JSON error so JavaScript can handle it.
+    """
 
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
         user = load_current_user()
         if user is None:
+            if "text/html" in request.headers.get("Accept", ""):
+                return redirect(url_for("login_page"))
             return (
                 jsonify(
                     {

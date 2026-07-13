@@ -13,35 +13,36 @@
 <script src="/static/js/theme.js"></script>
 </head>
 <body>
-<main class="page">
+<main class="page auth-page">
   <div class="nav-row">
-    <a href="/PSSM_GREMLIN/dashboard">← Dashboard</a>
-    <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme"><span class="theme-icon" aria-hidden="true">◐</span></button>
-    <a href="/PSSM_GREMLIN/login">Log in</a>
+    <a href="/PSSM_GREMLIN/dashboard" class="back-link">&larr;&nbsp;Dashboard</a>
+    <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme"><span class="theme-icon" aria-hidden="true">&#9680;</span></button>
+    <a href="/PSSM_GREMLIN/login" class="alt-link">Log in</a>
   </div>
-  <div class="panel">
+
+  <section class="panel auth-panel">
     <h1 class="headline">Create an Account</h1>
     <p class="subline">Register to submit and track your GREMLIN jobs.</p>
-    <form id="registerForm">
+    <form id="registerForm" class="auth-form">
       <div class="field">
         <label for="username">Username</label>
-        <input type="text" id="username" placeholder="3–64 characters" minlength="3" maxlength="64" required autocomplete="username">
+        <input type="text" id="username" class="text-input" placeholder="3&ndash;64 characters" minlength="3" maxlength="64" required autocomplete="username">
       </div>
       <div class="field">
         <label for="email">Email</label>
-        <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
+        <input type="email" id="email" class="text-input" placeholder="you@example.com" required autocomplete="email">
       </div>
       <div class="field">
         <label for="password">Password</label>
-        <input type="password" id="password" placeholder="At least 8 characters" minlength="8" required autocomplete="new-password">
+        <input type="password" id="password" class="text-input" placeholder="At least 8 characters" minlength="8" required autocomplete="new-password">
         <p class="hint">Minimum 8 characters.</p>
       </div>
       <div class="actions">
-        <button class="btn btn-primary" type="submit" id="submitBtn">Register</button>
+        <button class="btn btn-primary btn-full" type="submit" id="submitBtn">Register</button>
       </div>
       <div class="status-msg" id="status" role="alert"></div>
     </form>
-  </div>
+  </section>
 </main>
 <script src="/static/js/register.js"></script>
 </body>

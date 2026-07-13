@@ -31,8 +31,11 @@ COPY --chown=${RUNNER_UID}:${RUNNER_GID} . /app/server
 
 
 ENV PYTHONPATH=/app/server
-WORKDIR /app/server/pssm_gremlin
+# ponytail: WORKDIR must be /app/server, not /app/server/pssm_gremlin.
+# When CWD is inside the package dir, Python's '' sys.path entry finds
+# pssm_gremlin.py as a top-level module, shadowing the pssm_gremlin package.
+WORKDIR /app/server
 
 USER ${RUNNER_UID}:${RUNNER_GID}
 
-CMD ["sh", "-c", "exec gunicorn -w 2 -b 0.0.0.0:${PORT:-8080} pssm_gremlin:app"]
+CMD ["sh", "-c", "exec gunicorn -w 2 -b 0.0.0.0:${PORT:-8080} pssm_gremlin.pssm_gremlin:app"]

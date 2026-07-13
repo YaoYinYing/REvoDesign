@@ -17,42 +17,28 @@ import logging
 import os
 import shutil
 import time
-from typing import Any
 
 from celery.result import AsyncResult
-from flask import (
-    current_app,
-    g,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    send_from_directory,
-)
-from werkzeug.security import check_password_hash, generate_password_hash
-from werkzeug.utils import secure_filename
-
+from flask import current_app, g, jsonify, redirect, render_template, request, send_from_directory
 from pssm_gremlin.auth import (
     UserDatabase,
     _env_str,
     generate_token,
+    load_current_user,
     login_required,
     optional_user,
     require_web_login,
     send_verification_email,
     validate_email_token,
 )
-from pssm_gremlin.ratelimit import rate_limit
 from pssm_gremlin.pssm_gremlin import (
     CONFIG,
     ENABLE_REGISTER,
     TEMPLATE_IMAGE_DIR,
-    app,
-    task_store,
     _build_running_trace,
     _current_username,
-    _deleted_status_from_task,
     _delete_task_artifacts,
+    _deleted_status_from_task,
     _is_admin_user,
     _is_binary_file,
     _is_deleted_status,
@@ -69,10 +55,15 @@ from pssm_gremlin.pssm_gremlin import (
     _task_zip_download_name,
     _task_zip_path,
     _virtual_upload_path,
+    app,
     format_times,
     format_walltime,
     run_gremlin_task,
+    task_store,
 )
+from pssm_gremlin.ratelimit import rate_limit
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 # ---------------------------------------------------------------------------
 # Page routes
@@ -81,15 +72,19 @@ from pssm_gremlin.pssm_gremlin import (
 
 @app.route("/PSSM_GREMLIN/login", methods=["GET"])
 def login_page():
+    if load_current_user() is not None:
+        return redirect(url_for("task_dashboard"))
     return render_template("login.html")
 
 
 @app.route("/PSSM_GREMLIN/register", methods=["GET"])
 def register_page():
+    if load_current_user() is not None:
+        return redirect(url_for("task_dashboard"))
     if not ENABLE_REGISTER:
-        return jsonify({"error": "Registration is disabled on this server"}), 403
+        return render_template("error.html", code=403, message="Registration is disabled on this server"), 403
     if not _smtp_configured():
-        return jsonify({"error": "Registration requires SMTP to be configured"}), 403
+        return render_template("error.html", code=403, message="Registration requires SMTP to be configured"), 403
     return render_template("register.html")
 
 
@@ -571,7 +566,19 @@ def auth_login():
         return jsonify({"error": "Invalid username or password"}), 401
 
     token = generate_token(user["id"])
-    return jsonify({"token": token, "username": user["username"]}), 200
+    response = jsonify({"token": token, "username": user["username"]})
+    # ponytail: set cookie so browser page navigations (not just fetch())
+    # carry the auth token.  HttpOnly; SameSite=Lax prevents CSRF.
+    response.set_cookie("auth_token", token, httponly=True, samesite="Lax")
+    return response
+
+
+@app.route("/PSSM_GREMLIN/api/auth/logout", methods=["POST"])
+def auth_logout():
+    """Clear the auth cookie.  No auth required — idempotent."""
+    response = jsonify({"status": "logged_out"})
+    response.set_cookie("auth_token", "", max_age=0, path="/")
+    return response
 
 
 @app.route("/PSSM_GREMLIN/api/auth/register", methods=["POST"])
@@ -620,14 +627,24 @@ def auth_register():
     if not sent:
         logging.warning("Email verification failed for %r; account created but not verified", username)
 
-    return jsonify({"message": "Registration successful — check your email to verify your account", "username": username}), 201
+    return (
+        jsonify({"message": "Registration successful — check your email to verify your account", "username": username}),
+        201,
+    )
 
 
 @app.route("/PSSM_GREMLIN/api/auth/verify-email", methods=["GET"])
 def auth_verify_email():
     """Verify an email address via a one-time token (renders an HTML page)."""
     if not _smtp_configured():
-        return render_template("verify-email.html", success=False, error="Email verification is not available — SMTP is not configured."), 403
+        return (
+            render_template(
+                "verify-email.html",
+                success=False,
+                error="Email verification is not available — SMTP is not configured.",
+            ),
+            403,
+        )
 
     token = request.args.get("token", "").strip()
     if not token:

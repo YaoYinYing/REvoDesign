@@ -99,7 +99,11 @@
           revokeBtn.style.display = "none";
           generateBtn.textContent = "Generate API Key";
         }
-        apiKeyDisplay.style.display = "none";
+        /* ponytail: only hide the key display if the user is NOT currently
+           looking at a freshly-generated key (the value input is empty). */
+        if (!apiKeyValue.value) {
+          apiKeyDisplay.style.display = "none";
+        }
       })
       .catch(function () {
         apiKeyStatus.textContent = "Unable to load API key status.";
@@ -164,4 +168,38 @@
   });
 
   refreshApiKeyStatus();
+
+  /* ---- Logout ---- */
+  var logoutBtn = document.getElementById("logoutBtn");
+  logoutBtn.addEventListener("click", function () {
+    /* The cookie is HttpOnly — JS can't touch it.  Ask the server to clear it. */
+    A.authFetch("/PSSM_GREMLIN/api/auth/logout", { method: "POST" })
+      .then(function () {
+        A.clearToken();
+        window.location.href = "/PSSM_GREMLIN/login";
+      })
+      .catch(function () {
+        /* Even if the request fails (network), clear local state and move on. */
+        A.clearToken();
+        window.location.href = "/PSSM_GREMLIN/login";
+      });
+  });
+
+  /* ---- Copy API key ---- */
+  var copyBtn = document.getElementById("copyKeyBtn");
+  copyBtn.addEventListener("click", function () {
+    var input = document.getElementById("apiKeyValue");
+    input.select();
+    input.setSelectionRange(0, 99999); /* mobile */
+    try {
+      navigator.clipboard.writeText(input.value).then(function () {
+        copyBtn.textContent = "✓";
+        setTimeout(function () { copyBtn.textContent = "⨏"; }, 1600);
+      });
+    } catch (_) {
+      /* fallback: selection above already copied for manual Ctrl+C */
+      copyBtn.textContent = "✓";
+      setTimeout(function () { copyBtn.textContent = "⨏"; }, 1600);
+    }
+  });
 })();

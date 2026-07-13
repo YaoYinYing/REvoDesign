@@ -151,6 +151,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `PORT` | Public HTTP port. |
+| `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for registration (empty = all allowed). Also normalises plus-aliased addresses. |
 | `PUBLIC_DASHBOARD` | `false` by default; scopes task visibility to owner unless admin. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `TZ` | Timezone for logs. |
@@ -159,16 +160,36 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 
 The server uses Bearer-token authentication (replaces the old HTTP Basic Auth + `users.txt` model).
 
+### How auth works
+
+- **Browser access**: Logging in sets an `HttpOnly` cookie so page navigations
+  (dashboard, profile, create task) are authenticated without manual header
+  management.  Already-authenticated visitors to `/login` or `/register` are
+  redirected to the dashboard.
+- **API access**: Clients send `Authorization: Bearer <token>` for full access,
+  or `X-API-Key: <key>` for long-lived programmatic access with restricted
+  privileges (tasks only — no profile changes or admin actions).
+- **Logout**: `POST /PSSM_GREMLIN/api/auth/logout` clears the server-side
+  cookie.  The profile page includes a logout button.
+
+### Gunicorn `--preload`
+
+Gunicorn workers are started with `--preload` so the auth secret key is
+generated once in the arbiter before forking.  Without this, each worker
+independently generates its own signing key, making tokens from one worker
+fail validation on another.
+
 ### First run
 
 If the user database is empty, a default admin account is created automatically:
 
 - Username: `admin` (customize with `DEFAULT_ADMIN_USERNAME`)
-- Password: from `DEFAULT_ADMIN_PASSWORD` env var, or a random password logged to stdout
+- Password: from `DEFAULT_ADMIN_PASSWORD` env var, or a random password
+  displayed in the restart script output
 
-Change the password immediately after first login.
-
-### Registration (optional)
+Change the password immediately after first login.  The `restart_pssm_flask.sh`
+script generates and displays the admin password on first boot when
+`DEFAULT_ADMIN_PASSWORD` is unset.
 
 Set `ENABLE_REGISTER=true` and configure SMTP to allow self-registration.
 Users receive a verification email; accounts must be verified before use.
@@ -185,6 +206,10 @@ curl -X POST -H "Content-Type: application/json" \
 # Use the token for subsequent requests
 curl -H "Authorization: Bearer <token>" \
   "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me"
+
+# Logout (clears the auth cookie)
+curl -X POST -H "Authorization: Bearer <token>" \
+  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/logout"
 ```
 
 ### Admin user management
@@ -357,10 +382,15 @@ The web and worker containers mount `/var/run/docker.sock` to spawn runner conta
 ### Authentication
 
 - Tokens are signed with `itsdangerous.URLSafeTimedSerializer` (HMAC-SHA1).
+- Gunicorn uses `--preload` so the auth secret key is generated once in the
+  arbiter; all workers share the same key and tokens validate consistently.
 - Set `AUTH_SECRET_KEY` to a fixed, high-entropy value in production; otherwise tokens are lost on restart.
+- Browser page navigations use an `HttpOnly`/`SameSite=Lax` cookie; JavaScript
+  cannot read it, so logout requires the server endpoint (`POST /api/auth/logout`).
 - Rate limiting: 5 login attempts/minute/IP, 3 registrations/hour/IP.
-- All state-changing endpoints require a valid Bearer token.
-- CSRF is mitigated: all state-changing requests use `fetch()` with JSON content-type and Bearer tokens from `sessionStorage`.
+- All state-changing endpoints require a valid Bearer token or API key.
+- API keys have restricted privileges (task operations only) — Bearer tokens are required for profile changes and admin actions.
+- CSRF is mitigated: all state-changing requests use `fetch()` with JSON content-type and Bearer tokens or the HttpOnly cookie.
 
 ### Redis
 
@@ -371,6 +401,9 @@ The web and worker containers mount `/var/run/docker.sock` to spawn runner conta
 
 - User passwords are hashed with `werkzeug.security.generate_password_hash` (pbkdf2:sha256).
 - User database (`users.sqlite3`) and task database (`pssm_gremlin.sqlite3`) are stored under `SERVER_DIR`, not in the web root.
+- Environment variables that are empty strings (e.g. from docker compose
+  `${VAR:-}`) are treated as unset, not as valid empty values that would
+  silently resolve to CWD or bypass defaults.
 - Task IDs are validated against `[a-f0-9]{32}` before any filesystem access.
 - File paths are validated with `_safe_join` / `_path_is_within` to prevent directory traversal.
 
