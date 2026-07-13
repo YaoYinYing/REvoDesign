@@ -960,11 +960,26 @@ def admin_manage_user(user_id):
     # PUT
     payload = request.get_json(silent=True) or {}
 
-    allowed_actions = {"registration_status", "user_status", "is_admin"}
+    allowed_actions = {"registration_status", "user_status", "is_admin", "email", "affiliation"}
     update_fields: dict[str, Any] = {}
     for key in allowed_actions:
         if key in payload:
             update_fields[key] = payload[key]
+
+    # Password: only update if non-empty
+    new_password = str(payload.get("password", "") or "")
+    if new_password:
+        if len(new_password) < 8:
+            return jsonify({"error": "Password must be at least 8 characters"}), 400
+        update_fields["password_hash"] = generate_password_hash(new_password)
+
+    # Email: normalise and check uniqueness
+    if "email" in update_fields:
+        email = _normalize_email(str(update_fields["email"]))
+        existing = db.get_user_by_email(email)
+        if existing and existing["id"] != user_id:
+            return jsonify({"error": "Email address already in use"}), 409
+        update_fields["email"] = email
 
     new_reg = update_fields.get("registration_status")
     if new_reg is not None and new_reg not in {"approved", "rejected"}:

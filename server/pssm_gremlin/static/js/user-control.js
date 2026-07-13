@@ -126,12 +126,14 @@
 
     tr.innerHTML =
       '<td class="col-select"><input type="checkbox" class="user-select" data-uid="' + u.id + '"></td>' +
-      '<td>' + escapeHtml(u.email || "—") + '</td>' +
-      '<td class="muted">—</td>' +
-      '<td>' + escapeHtml(u.affiliation || "—") + '</td>' +
-      '<td><span class="status-badge ' + escapeAttr(u.registration_status) + '">' + escapeHtml(regLabel) + '</span></td>' +
-      '<td><span class="status-badge ' + escapeAttr(u.user_status) + '">' + escapeHtml(userLabel) + '</span></td>' +
-      '<td>' + actionsHtml + '</td>';
+      '<td class="col-email">' + escapeHtml(u.email || "—") + '</td>' +
+      '<td class="col-ip muted">—</td>' +
+      '<td class="col-affil">' + escapeHtml(u.affiliation || "—") + '</td>' +
+      '<td class="col-reg"><span class="status-badge ' + escapeAttr(u.registration_status) + '">' + escapeHtml(regLabel) + '</span></td>' +
+      '<td class="col-user"><span class="status-badge ' + escapeAttr(u.user_status) + '">' + escapeHtml(userLabel) + '</span></td>' +
+      '<td class="col-actions">' + actionsHtml + '</td>';
+    // Store full user data for inline edit
+    tr._userData = u;
     userTableBody.appendChild(tr);
 
     // ponytail: attach listener per-row so checkbox updates batch bar
@@ -156,7 +158,9 @@
     if (us === "banned" || reg === "rejected") {
       buttons += '<button class="user-action-btn enable" data-id="' + u.id + '" data-action="enable">Enable</button>';
     }
-    return buttons || '<span class="muted">—</span>';
+    // Always show Modify
+    buttons += '<button class="user-action-btn modify" data-id="' + u.id + '" data-action="modify">Modify</button>';
+    return buttons;
   }
 
   // ---- Action button handler (delegated) ----
@@ -166,6 +170,12 @@
     if (!btn) return;
     var userId = btn.dataset.id;
     var action = btn.dataset.action;
+
+    if (action === "modify") {
+      var tr = btn.closest("tr");
+      showEditRow(tr, tr._userData);
+      return;
+    }
 
     var payload = {};
     if (action === "approve") {
@@ -194,6 +204,77 @@
       })
       .catch(function () { alert("Network error."); btn.disabled = false; });
   });
+
+  // ---- Inline edit (Modify button) ----
+
+  function showEditRow(tr, u) {
+    var origHTML = tr.innerHTML;
+    tr.innerHTML =
+      '<td class="col-select">—</td>' +
+      '<td><input type="email" class="text-input edit-input" id="editEmail" value="' + escapeAttr(u.email || "") + '"></td>' +
+      '<td class="muted">—</td>' +
+      '<td><input type="text" class="text-input edit-input" id="editAffiliation" value="' + escapeAttr(u.affiliation || "") + '"></td>' +
+      '<td><select class="text-input edit-input" id="editRegStatus">' +
+        '<option value="approved"' + (u.registration_status === "approved" ? " selected" : "") + '>Approved</option>' +
+        '<option value="rejected"' + (u.registration_status === "rejected" ? " selected" : "") + '>Rejected</option>' +
+      '</select></td>' +
+      '<td><select class="text-input edit-input" id="editUserStatus">' +
+        '<option value="active"' + (u.user_status === "active" ? " selected" : "") + '>Active</option>' +
+        '<option value="banned"' + (u.user_status === "banned" ? " selected" : "") + '>Banned</option>' +
+      '</select></td>' +
+      '<td>' +
+        '<button class="user-action-btn approve edit-save" data-id="' + u.id + '">Save</button>' +
+        '<button class="user-action-btn reject edit-cancel">Cancel</button>' +
+      '</td>';
+    // Append password row
+    var pwRow = document.createElement("tr");
+    pwRow.className = "edit-row";
+    pwRow.innerHTML =
+      '<td></td>' +
+      '<td colspan="2"><input type="password" class="text-input edit-input" id="editPassword" placeholder="New password (leave empty to keep)" minlength="8" autocomplete="new-password"></td>' +
+      '<td colspan="4" class="muted" style="font-size:0.76rem">Leave blank to keep current password</td>';
+    tr.parentNode.insertBefore(pwRow, tr.nextSibling);
+
+    tr._origHTML = origHTML;
+    tr._editPwRow = pwRow;
+
+    // Save handler
+    tr.querySelector(".edit-save").addEventListener("click", function () {
+      var payload = {
+        email: document.getElementById("editEmail").value.trim(),
+        affiliation: document.getElementById("editAffiliation").value.trim(),
+        registration_status: document.getElementById("editRegStatus").value,
+        user_status: document.getElementById("editUserStatus").value,
+      };
+      var pw = document.getElementById("editPassword").value;
+      if (pw) payload.password = pw;
+
+      A.authFetch("/PSSM_GREMLIN/api/auth/admin/users/" + u.id, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+        .then(function (result) {
+          if (result.ok) { loadUsers(); }
+          else { alert(result.data.error || "Update failed."); }
+        })
+        .catch(function () { alert("Network error."); });
+    });
+
+    // Cancel handler
+    tr.querySelector(".edit-cancel").addEventListener("click", function () {
+      cancelEdit(tr);
+    });
+  }
+
+  function cancelEdit(tr) {
+    if (tr._editPwRow) { tr._editPwRow.remove(); tr._editPwRow = null; }
+    if (tr._origHTML) { tr.innerHTML = tr._origHTML; tr._origHTML = null; }
+    // Re-attach checkbox listener
+    var cb = tr.querySelector(".user-select");
+    if (cb) cb.addEventListener("change", updateBatchBar);
+  }
 
   // ---- Add user form (Tab B) ----
 

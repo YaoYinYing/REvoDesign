@@ -154,6 +154,37 @@ html[data-theme="dark"] .btn-batch-delete {
   color: #d96a5a !important;
 }
 
+/* ---- Inline edit ---- */
+
+.edit-input {
+  width: 100%;
+  padding: 0.35rem 0.45rem !important;
+  font-size: 0.82rem !important;
+  border-radius: 6px !important;
+}
+
+.edit-row td {
+  border-bottom-style: dashed;
+}
+
+.user-action-btn.modify {
+  border-color: #2e6b9e;
+  color: #2e6b9e;
+}
+
+.user-action-btn.modify:hover {
+  background: #e8f1f8;
+}
+
+html[data-theme="dark"] .user-action-btn.modify {
+  border-color: #6aa8d8;
+  color: #6aa8d8;
+}
+
+html[data-theme="dark"] .user-action-btn.modify:hover {
+  background: #1a3040;
+}
+
 /* ---- Action buttons ---- */
 
 .user-action-btn {
