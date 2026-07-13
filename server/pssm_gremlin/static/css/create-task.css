@@ -33,15 +33,6 @@
   font-weight: 700;
 }
 
-/* ponytail: hide the native file input — the label triggers it */
-.file-input-hidden {
-  position: absolute;
-  width: 1px; height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
 .file-upload-row {
   display: flex;
   align-items: center;

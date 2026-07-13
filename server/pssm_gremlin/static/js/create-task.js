@@ -7,6 +7,7 @@
 
   var form = document.getElementById("uploadForm");
   var fileInput = document.getElementById("fileInput");
+  var fileButton = document.getElementById("fileButton");
   var fileNameDisplay = document.getElementById("fileNameDisplay");
   var taskNameInput = document.getElementById("taskNameInput");
   var sequenceInput = document.getElementById("sequenceInput");
@@ -56,6 +57,10 @@
     var cleaned = String(name || "").trim().replace(/\s+/g, "_").replace(/[^A-Za-z0-9_.-]/g, "");
     return cleaned || "sequence";
   }
+
+  fileButton.addEventListener("click", function () {
+    fileInput.click();
+  });
 
   fileInput.addEventListener("change", function () {
     if (fileInput.files && fileInput.files.length > 0) {
