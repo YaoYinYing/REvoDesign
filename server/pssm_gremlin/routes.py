@@ -850,11 +850,6 @@ def admin_users():
     password = str(payload.get("password", "") or "")
     affiliation = str(payload.get("affiliation", "")).strip() or None
 
-    # ponytail: derive username from email local-part if not provided
-    # (Tab B admin add-user form only asks for email + password + affiliation)
-    if not username and email:
-        username = email.split("@")[0]
-
     if not username or not email or not password:
         return jsonify({"error": "Username, email, and password are required"}), 400
     if len(username) < 3 or len(username) > 64:

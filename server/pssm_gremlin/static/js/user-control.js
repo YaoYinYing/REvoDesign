@@ -207,6 +207,7 @@
     addStatus.textContent = "";
 
     var payload = {
+      username: document.getElementById("newUsername").value.trim(),
       email: document.getElementById("newEmail").value.trim(),
       password: document.getElementById("newPassword").value,
       affiliation: document.getElementById("newAffiliation").value.trim(),
