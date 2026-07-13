@@ -15,7 +15,10 @@ bioinformatics analyses on protein sequences:
   HHblits against UniRef30), revealing structurally or functionally coupled
   sites.
 
-Users upload a FASTA file via the server's web UI or REST API. The server
+Users upload a FASTA file via the server's web UI or REST API. The web UI
+supports both a **Choose File** button (native file picker) and **drag-and-drop**
+(drop a ``.fasta`` file anywhere on the upload card) as a browser-agnostic
+fallback. The server
 queues the job, dispatches it to a Docker container (the "runner"), and makes
 results available for download once finished.
 
@@ -98,6 +101,22 @@ organized by user identity and task MD5, with strict permission isolation.
 | **worker** | Same as `web` | Celery worker that receives `run_gremlin_task` jobs from Redis. |
 | **redis** | `redis:7.2-alpine` | Celery message broker and result backend. |
 | **runner** | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `web`/`worker` via the Docker socket. |
+
+### Code Structure
+
+The server Python package (``server/pssm_gremlin/``) was refactored from
+a single ~1500-line module into focused sub-modules:
+
+| Module | Purpose |
+|--------|---------|
+| ``pssm_gremlin.py`` | Flask app factory, Celery instance, configuration, and Docker runner helpers |
+| ``routes.py`` | All ``@app.route`` HTTP handlers (page routes, task API, auth API, admin) |
+| ``auth.py`` | Token serialisation, user database (SQLite/SQLAlchemy), ``login_required`` decorator, email verification |
+| ``db.py`` | Task database — SQLite-backed task tracker for GREMLIN jobs |
+| ``ratelimit.py`` | In-memory rate limiter for login and registration endpoints |
+
+Static assets (CSS, JS) are served from ``server/pssm_gremlin/static/``.
+HTML templates are in ``server/pssm_gremlin/templates/``.
 
 ### Key Design Decisions
 

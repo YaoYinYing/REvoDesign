@@ -293,6 +293,8 @@ REVODESIGN_SERVER_ENV=server/.env.production bash server/run/hot_fix.sh
 ### Create task page
 
 - `http://<server-ip>:<port>/PSSM_GREMLIN/create_task`
+- Upload ``.fasta`` files via the **Choose File** button or by **dragging and dropping** a file anywhere on the card.
+- An optional sequence editor lets you paste raw protein sequences as text instead of uploading a file.
 
 ### Dashboard
 
