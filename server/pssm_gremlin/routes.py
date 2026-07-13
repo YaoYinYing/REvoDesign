@@ -570,16 +570,24 @@ def require_admin():
 @app.route("/PSSM_GREMLIN/api/auth/login", methods=["POST"])
 @rate_limit(max_requests=5, window_seconds=60)
 def auth_login():
-    """Exchange username+password for a Bearer token."""
+    """Exchange username+password for a Bearer token.
+
+    Accepts a ``username`` field that may be either a username or an email
+    address — admin-created users may only know their email.
+    """
     payload = request.get_json(silent=True) or {}
-    username = str(payload.get("username", "")).strip()
+    login_id = str(payload.get("username", "")).strip()
     password = str(payload.get("password", "") or "")
 
-    if not username or not password:
-        return jsonify({"error": "Username and password are required"}), 400
+    if not login_id or not password:
+        return jsonify({"error": "Username/email and password are required"}), 400
 
     db = _get_user_db()
-    user = db.get_user_by_username(username)
+    # Try username first, then email
+    if "@" in login_id:
+        user = db.get_user_by_email(_normalize_email(login_id))
+    else:
+        user = db.get_user_by_username(login_id)
     if user is None or not check_password_hash(user["password_hash"], password):
         return jsonify({"error": "Invalid username or password"}), 401
 
