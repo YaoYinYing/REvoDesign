@@ -104,19 +104,23 @@ organized by user identity and task MD5, with strict permission isolation.
 
 ### Code Structure
 
-The server Python package (``server/pssm_gremlin/``) was refactored from
-a single ~1500-line module into focused sub-modules:
+The server is a pip-installable package at ``server/pssm_gremlin_server/``
+(``pip install -e "server/[test]"``).  It was refactored from a single
+~1500-line module into focused sub-modules:
 
 | Module | Purpose |
 |--------|---------|
-| ``pssm_gremlin.py`` | Flask app factory, Celery instance, configuration, and Docker runner helpers |
-| ``routes.py`` | All ``@app.route`` HTTP handlers (page routes, task API, auth API, admin) |
-| ``auth.py`` | Token serialisation, user database (SQLite/SQLAlchemy), ``login_required`` decorator, email verification |
-| ``db.py`` | Task database — SQLite-backed task tracker for GREMLIN jobs |
-| ``ratelimit.py`` | In-memory rate limiter for login and registration endpoints |
+| ``pssm_gremlin.py`` | Flask app factory, Celery instance, ``GremlinConfig``, Docker runner helpers |
+| ``routes.py`` | All ``@app.route`` HTTP handlers — page routes, task API, auth API, admin API |
+| ``auth.py`` | Token serialisation, ``UserDatabase`` (SQLite/SQLAlchemy), ``login_required`` decorator, email verification, password reset |
+| ``schemas.py`` | Pydantic request/response models — ``LoginRequest``, ``RegisterRequest``, ``AdminCreateUserRequest``, ``AdminUpdateUserRequest``, ``BatchUserRequest``, ``UserResponse``, and more |
+| ``db.py`` | ``TaskDatabase`` — SQLite-backed task tracker for GREMLIN jobs |
+| ``ratelimit.py`` | In-memory per-IP sliding-window rate limiter for login and registration endpoints |
 
-Static assets (CSS, JS) are served from ``server/pssm_gremlin/static/``.
-HTML templates are in ``server/pssm_gremlin/templates/``.
+Static assets (CSS, JS) are served from ``server/pssm_gremlin_server/static/``.
+HTML templates are in ``server/pssm_gremlin_server/templates/``.
+Tests live at ``server/tests/`` with a dedicated CI workflow
+(``.github/workflows/server-test.yml``).
 
 ### Key Design Decisions
 
@@ -131,6 +135,10 @@ HTML templates are in ``server/pssm_gremlin/templates/``.
 - **Gunicorn `--preload`**: The WSGI application is loaded in the arbiter
   before workers are forked, ensuring shared module state (especially the
   `AUTH_SECRET_KEY` used for token signing) is consistent across workers.
+- **Pydantic at the API boundary**: All inbound request payloads are
+  validated through typed Pydantic models (``schemas.py``) before reaching
+  business logic.  Response serialisation uses ``UserResponse`` to guarantee
+  sensitive fields (``password_hash``, ``api_key_hash``) are never leaked.
 - **SQLite persistence**: A lightweight SQLite database (via SQLAlchemy)
   tracks task state, metadata, and results locations.  Two databases:
   `users.sqlite3` (auth) and `pssm_gremlin.sqlite3` (tasks).
@@ -169,16 +177,35 @@ redirected to the login page; API requests without auth receive JSON 4xx errors.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/PSSM_GREMLIN/api/auth/me` | Return current user info |
-| `PUT` | `/PSSM_GREMLIN/api/auth/me` | Change password (requires `current_password` + `new_password`) |
 | `POST` | `/PSSM_GREMLIN/api/auth/login` | Login, returns Bearer token and sets auth cookie |
 | `POST` | `/PSSM_GREMLIN/api/auth/logout` | Logout, clears auth cookie |
-| `GET` | `/PSSM_GREMLIN/api/auth/verify-email` | Verify email via token query param |
+| `POST` | `/PSSM_GREMLIN/api/auth/register` | Self-registration (requires `ENABLE_REGISTER` + SMTP) |
+| `POST` | `/PSSM_GREMLIN/api/auth/forgot-password` | Send password-reset email (rate-limited: 3/hr/IP) |
+| `GET` `/POST` | `/PSSM_GREMLIN/reset_password?c=` | Password-reset form (GET) and new-password submission (POST) |
+| `GET` | `/PSSM_GREMLIN/user_verify?c=` | Verify email via serializer token (2-day expiry) |
+| `GET` | `/PSSM_GREMLIN/api/auth/verify-email?token=` | Legacy email verification (1-hour expiry) |
+| `GET` | `/PSSM_GREMLIN/api/auth/me` | Return current user info |
+| `PUT` | `/PSSM_GREMLIN/api/auth/me` | Change password (requires `current_password` + `new_password`) |
 | `GET` | `/PSSM_GREMLIN/api/auth/me/api-key` | Check API key status |
 | `POST` | `/PSSM_GREMLIN/api/auth/me/api-key` | Generate API key (returns plaintext once) |
 | `DELETE` | `/PSSM_GREMLIN/api/auth/me/api-key` | Revoke API key |
-| `POST` | `/PSSM_GREMLIN/api/auth/admin/users` | Admin: create user (requires admin token) |
-| `GET` | `/PSSM_GREMLIN/login` | Login page |
+
+### Admin User Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/PSSM_GREMLIN/user_control` | Admin-only user management page (web UI) |
+| `GET` | `/PSSM_GREMLIN/api/auth/admin/users` | List all users (safe fields, excludes soft-deleted) |
+| `POST` | `/PSSM_GREMLIN/api/auth/admin/users` | Create user (pre-verified, immediately active) |
+| `PUT` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Update user fields (email, affiliation, password, statuses) |
+| `DELETE` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Soft-delete user (record kept for audit) |
+| `POST` | `/PSSM_GREMLIN/api/auth/admin/users/batch` | Batch enable / disable / delete |
+
+### Page Routes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/PSSM_GREMLIN/login` | Login page (redirects to dashboard if already authenticated) |
 | `GET` | `/PSSM_GREMLIN/register` | Registration page (requires `ENABLE_REGISTER` + SMTP) |
 
 ### Task States
@@ -314,9 +341,30 @@ The runner conda environment is defined at
 - BLAST 2.13, HHsuite 3.3, HMMER 3.3.2
 - Channels: defaults, conda-forge, bioconda
 
-The server's Python dependencies are in
-`server/docker/server/requirements.txt` and include Flask 3.x, Celery 5.x
-(with Redis), SQLAlchemy 2.x, and the Docker SDK for Python.
+The server's Python dependencies are declared in ``server/pyproject.toml``
+and pinned in ``server/docker/server/requirements.txt``.  They include
+Flask 3.x, Celery 5.x (with Redis), SQLAlchemy 2.x, Pydantic 2.x,
+itsdangerous, werkzeug, and the Docker SDK for Python.
+
+## Testing
+
+Server tests live under ``server/tests/`` and are run from the repo root:
+
+```bash
+# Install the server package in editable mode with test deps
+pip install -e "server/[test]"
+
+# Run non-Docker tests (fast, no external services needed)
+pytest server/tests/ -v -k "not Docker and not docker"
+
+# Run all tests including Docker integration tests
+pytest server/tests/ -v
+```
+
+The test suite uses the same ``_load_pssm_module`` pattern to create isolated
+Flask test clients with temporary SQLite databases and environment variables.
+A dedicated CI workflow (``.github/workflows/server-test.yml``) runs non-Docker
+tests on every push touching ``server/**``.
 
 ## REvoDesign Plugin Integration
 

@@ -31,12 +31,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Default admin bootstrap on first run (no seeding files needed).
   - Long-lived API keys (`X-API-Key` header) with restricted privileges — manageable via Profile page and REST API.
   - Email domain allowlisting (`ALLOWED_EMAIL_DOMAINS`) and plus-address normalisation (`user+tag@domain` → `user@domain`).
+- **GREMLIN server: admin user control panel** — `/PSSM_GREMLIN/user_control` page with two sub-tabs:
+  - Tab A: registration audit table (email, affiliation, registration status, user status) with per-row Approve/Reject/Ban/Modify actions and batch Enable/Disable/Delete.
+  - Tab B: manual add-user form with explicit username, email, password, and affiliation fields.
+  - Inline row editing: Modify button replaces row with editable form (email, affiliation, status dropdowns, optional password change).
+- **GREMLIN server: forgot/reset password flow** — login page includes "Forgot My Password" link; sends email with 1-hour reset token; dedicated `/PSSM_GREMLIN/reset_password` form.
+- **GREMLIN server: email verification** — 2-day expiry verification links at `/PSSM_GREMLIN/user_verify?c=`, with backward-compatible legacy route at `/PSSM_GREMLIN/api/auth/verify-email`.
+- **GREMLIN server: login accepts email** — the login field accepts either a username or email address, detected by `@` presence.
 - **GREMLIN server: static asset extraction** — JS and CSS extracted from HTML templates into standalone files under `static/`.
 - Comprehensive API documentation site (46 pages) using MkDocs + Material for MkDocs + mkdocstrings:
 
 ### Changed
 - **GREMLIN server: pip package** — renamed from `pssm_gremlin` to `pssm_gremlin_server` with `pyproject.toml` for pip-installability. Server tests moved from `tests/server/` to `server/tests/` with dedicated CI workflow (`.github/workflows/server-test.yml`).
 - **GREMLIN server: Pydantic data models** — request/response validation hardened with typed Pydantic models at the API boundary (`schemas.py`), replacing ad-hoc `str(payload.get(...))` validation across all auth/admin route handlers.
+- **REvoDesign test suite** — removed server-test dependencies (Celery, Flask, Flask-HTTPAuth, SQLAlchemy, Docker SDK) from `make prepare-test`; server tests are now self-contained under `server/tests/` with their own `pyproject.toml`.
 - **GREMLIN server: module split** — `pssm_gremlin.py` refactored from ~1500 lines into `db.py` (TaskDatabase), `routes.py` (HTTP handlers), `ratelimit.py` (rate limiter), and slimmed-down main module.
 - **GREMLIN server: SMTP-gated registration** — self-registration and email verification now require SMTP to be configured.
 - Docker Compose: removed `group_add: "0"` (root group) from `x-docker-socket-access`.

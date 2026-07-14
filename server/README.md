@@ -422,7 +422,11 @@ The web and worker containers mount `/var/run/docker.sock` to spawn runner conta
 ### Data
 
 - User passwords are hashed with `werkzeug.security.generate_password_hash` (pbkdf2:sha256).
-- User database (`users.sqlite3`) and task database (`pssm_gremlin.sqlite3`) are stored under `SERVER_DIR`, not in the web root.
+- User database (`users.sqlite3`) and task database (`pssm_gremlin.sqlite3`) are
+  stored under `SERVER_DIR`, not in the web root.
+- All API request payloads are validated through typed Pydantic models
+  (``schemas.py``) before reaching business logic — malformed input is rejected
+  at the boundary.
 - Environment variables that are empty strings (e.g. from docker compose
   `${VAR:-}`) are treated as unset, not as valid empty values that would
   silently resolve to CWD or bypass defaults.
