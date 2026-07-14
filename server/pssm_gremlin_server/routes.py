@@ -97,6 +97,11 @@ def login_page():
     return render_template("login.html")
 
 
+@app.route("/PSSM_GREMLIN/terms", methods=["GET"])
+def terms_page():
+    return render_template("terms.html")
+
+
 @app.route("/PSSM_GREMLIN/register", methods=["GET"])
 def register_page():
     if load_current_user() is not None:

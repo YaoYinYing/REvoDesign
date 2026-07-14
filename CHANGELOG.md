@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GREMLIN server: admin notification emails** — users receive an email when an admin approves or rejects their registration. Bans are silent.
 - **GREMLIN server: email templates redesigned** — all four email types (verification, password reset, approval, rejection) share a consistent plain-text structure with clearer subject lines.
 - **GREMLIN server: verify-email page redesigned** — custom SVG status icons (checkmark for success, X for failure) with clear next-step messaging depending on whether admin approval is still pending.
+- **GREMLIN server: Terms of Service page** — dedicated `/PSSM_GREMLIN/terms` page linked from the registration form. Covers acceptable use, data privacy, service availability, account policies, and GPL-3.0 licensing.
 - Comprehensive API documentation site (46 pages) using MkDocs + Material for MkDocs + mkdocstrings:
 
 ### Changed

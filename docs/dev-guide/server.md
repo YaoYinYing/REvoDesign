@@ -220,6 +220,7 @@ still applying the requested action to other selected users.
 |--------|----------|-------------|
 | `GET` | `/PSSM_GREMLIN/login` | Login page (redirects to dashboard if already authenticated) |
 | `GET` | `/PSSM_GREMLIN/register` | Registration page (requires `ENABLE_REGISTER` + email service) |
+| `GET` | `/PSSM_GREMLIN/terms` | Terms of Service page (public) |
 
 ### Task States
 
