@@ -42,6 +42,13 @@ repos:
         language: script
         pass_filenames: false
 
+      - id: check-changelog-duplicates
+        name: Reject duplicate section headers in CHANGELOG.md
+        entry: python dev/tools/check_changelog_duplicates.py CHANGELOG.md
+        language: system
+        pass_filenames: false
+        files: ^CHANGELOG\.md$
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:

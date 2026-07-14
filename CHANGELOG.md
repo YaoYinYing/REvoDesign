@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- **Dev tooling**: `check_changelog_duplicates.py` validates CHANGELOG.md for duplicate `### Section` headers within a version block. Wired into pre-commit as `check-changelog-duplicates`.
 - **GREMLIN server: token-based authentication** (replaces HTTP Basic Auth):
   - SQLite-backed user store (`users.sqlite3`) with hashed passwords (pbkdf2:sha256).
   - Bearer-token auth via `itsdangerous.URLSafeTimedSerializer` (zero new dependencies).
@@ -47,6 +48,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GREMLIN server: verify-email page redesigned** — custom SVG status icons (checkmark for success, X for failure) with clear next-step messaging depending on whether admin approval is still pending.
 - **GREMLIN server: Terms of Service page** — dedicated `/PSSM_GREMLIN/terms` page linked from the registration form. Covers acceptable use, data privacy, service availability, account policies, and GPL-3.0 licensing.
 - Comprehensive API documentation site (46 pages) using MkDocs + Material for MkDocs + mkdocstrings:
+  - User Guide (3 pages): landing, cluster methods, OpenKinetics workflow.
+  - Developer Guide (18 pages): architecture, concepts, testing, CI/CD, PSSM/GREMLIN server, Monaco editor, Rosetta integration, translation (i18n), UI design, CGO graphics, Makefile reference, package manager, adding scorers/sidechain solvers, how-to guides (profile, config, shortcut), AI-assisted code quality fix playbooks (Codacy, DeepSource).
+  - API Reference (20 pages): auto-generated from Google-style docstrings for all public modules.
+- Translation entries for dynamic menu items: `Edit %1`, `Font Setting`, `Thread Pool Dashboard` (zh_CN + zh_TW).
+  - GitHub Pages deploy workflow (`.github/workflows/docs.yml`) with `actions/deploy-pages@v4`.
+  - `docs` optional-dependency group in `pyproject.toml` (mkdocs, mkdocs-material, mkdocstrings[python]).
+  - Updated `[project.urls] Documentation` to `https://YaoYinYing.github.io/REvoDesign`.
+- Launching page with bootstrap status indicator (`src/REvoDesign/UI/launching.ui`, `src/REvoDesign/application/launching.py`):
+  - "REvoDesign is launching" title with dynamic subtitle updated at each bootstrap step (e.g. "Ensuring configurations", "Registering plugins").
+  - Determinate progress bar tracking ~10 bootstrap steps.
+  - Dark theme by default; auto-switches to light via system palette luminance detection.
+  - Footer showing version · license (left) and user@host (right).
+  - `load_runtime_ui` relaxed from `QMainWindow` to `QWidget` so dialog-based `.ui` files load.
+  - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
 
 ### Changed
 - **GREMLIN server: pip package** — renamed from `pssm_gremlin` to `pssm_gremlin_server` with `pyproject.toml` for pip-installability. Server tests moved from `tests/server/` to `server/tests/` with dedicated CI workflow (`.github/workflows/server-test.yml`).
@@ -75,6 +90,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GREMLIN server email**: optional Resend SDK (`pip install "server/[resend]"`)
   as an alternative email backend. Takes priority over SMTP when
   `RESEND_API_KEY` is set; SMTP (stdlib) remains the default fallback.
+- Refactored menu item registry to eliminate import-time filesystem scanning:
+  - `application/menu.py`: `config_edit_links()` and `menu_links()` are now builder functions called at binding time instead of module-level constants computed at import. Added `core_menu_links(app)` for the core application menu actions, and `static_menu_links()` combining tools + preferences + other links.
+  - `basic/menu_item.py`: extracted `bind_one()` and `_menu_section()` methods from `MenuCollection.bind()`; removed print-and-swallow error handling so binding failures propagate cleanly; added `MenuItem.separator()` classmethod.
+  - `REvoDesign.py`: core and deferred menu bindings now both route through `application.menu` builders — single ownership, no inline `MenuItem` construction.
+- Moved legacy `docs/` to `docs_old/` for archival; new docs are a fresh MkDocs site.
+- Moved menu-item translation responsibility from `MenuItem.bind_one()` to builder functions:
+  - `basic/menu_item.py`: removed `_translate()` wrapper — `bind_one()` now sets `action_text` directly.
+  - `application/menu.py`: `PREFERENCES_MENU_LINKS`/`OTHER_MENU_LINKS` converted to builder functions (`preferences_menu_links()`/`other_menu_links()`) with lazy `QCoreApplication.translate()` calls discoverable by `pylupdate5`.
+  - `tools/translate.sh`: removed deprecated `pyuic5` UI-to-Python step; switched from `lupdate` to `pylupdate5` to scan both `.ui` and `.py` sources.
+- Updated README links to point to new docs structure.
+- Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
 - **GREMLIN server test suite**: removed dead `users.txt`/`USERS_FILE` code
@@ -143,6 +169,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   env files.  On Docker Desktop/OrbStack for macOS it uses the
   container-visible socket group (`0`), preventing runner launch failures with
   `PermissionError(13, 'Permission denied')`.
+- Language menu actions disappearing when a non-English language was saved in config: language QActions were created orphan (no QObject parent) and lost after `retranslateUi` → `refresh_bindings()` rescanned the widget tree. Fixed by parenting each action to `menuLanguage`.
+- Switching back to English not reverting translated strings: `_ensure_translator()` checked the fresh `bus.ui.trans` before the early-installed translator from `install_translator_early()`, so `removeTranslator()` removed the wrong instance. Fixed by checking for an early-installed translator first.
+- Replaced `WorkerThread` (QThread subclass) with plain `threading.Thread` for uvicorn server lifecycle — uvicorn no longer runs inside a QThread, removing the SIP wrapper lifetime boundary that triggered `forgetObject` → `qFatal` → `SIGABRT` when cross-thread Qt signals were dispatched after QObject destruction. Loosened uvicorn pin to `>=0.12.0` (was `<0.50.0`).
+- Renamed `Evalutator` → `Evaluator` and `flatten_archieve` → `flatten_archive` (typo fixes, no backward-compat aliases).
+- ValueDialog YAML window-pop translation and retranslation:
+  - Moved title/banner translation from `shortcuts/utils.py` to `ValueDialog.__init__` and `retranslateUi` so English source strings are preserved for language-switch retranslation.
+  - Fixed `_retranslate_row` to handle direct `QPushButton` cell widgets (Browse, Pick Color) — `findChildren` missed the widget itself when the cell widget IS the button.
+  - Action button text and tooltips are now translated on initial creation in `_add_field_to_table`, not only on retranslation.
+  - Button labels made consistent with retranslation sources (e.g. "All" → "Select All").
+  - Action button source strings stored as dynamic Qt properties (`source_text`, `source_tooltip`) for dict-free retranslation.
+- Menu builder fixes (from PR #184 review):
+  - Sorted secondary config entries in `config_edit_links()` so section-based separator insertion is deterministic.
+  - `MenuCollection._menu_section` now uses `getattr(..., None)` so missing menu sections raise `InternalError` instead of raw `AttributeError`.
+  - Deferred `_bind_menu_links` callback wrapped in try/except with logging so filesystem or binding failures are user-visible.
+- Translation tooling fixes (from PR #185 review):
+  - `tools/translate.sh` now uses portable `sed -i.bak` + `rm -f` for cross-platform compatibility (BSD/macOS and GNU/Linux).
+  - `tools/translate.sh` now iterates over glob directly instead of `ls` output (SC2045).
+  - Removed redundant `action.setText()` in `MenuItem.bind_one` (constructor already sets the text).
+- Added 15 hand-maintained translation entries for ValueDialog action buttons (Browse, Pick Color, Select All, etc.) in zh_CN + zh_TW.
 
 ### Security
 - SQL injection: all queries use SQLAlchemy ORM parameterized queries.
@@ -168,54 +213,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - `flask_httpauth` dependency and `USERS_FILE` / `users.txt` credential storage.
-  - User Guide (3 pages): landing, cluster methods, OpenKinetics workflow.
-  - Developer Guide (18 pages): architecture, concepts, testing, CI/CD, PSSM/GREMLIN server, Monaco editor, Rosetta integration, translation (i18n), UI design, CGO graphics, Makefile reference, package manager, adding scorers/sidechain solvers, how-to guides (profile, config, shortcut), AI-assisted code quality fix playbooks (Codacy, DeepSource).
-  - API Reference (20 pages): auto-generated from Google-style docstrings for all public modules.
-- Translation entries for dynamic menu items: `Edit %1`, `Font Setting`, `Thread Pool Dashboard` (zh_CN + zh_TW).
-  - GitHub Pages deploy workflow (`.github/workflows/docs.yml`) with `actions/deploy-pages@v4`.
-  - `docs` optional-dependency group in `pyproject.toml` (mkdocs, mkdocs-material, mkdocstrings[python]).
-  - Updated `[project.urls] Documentation` to `https://YaoYinYing.github.io/REvoDesign`.
-- Launching page with bootstrap status indicator (`src/REvoDesign/UI/launching.ui`, `src/REvoDesign/application/launching.py`):
-  - "REvoDesign is launching" title with dynamic subtitle updated at each bootstrap step (e.g. "Ensuring configurations", "Registering plugins").
-  - Determinate progress bar tracking ~10 bootstrap steps.
-  - Dark theme by default; auto-switches to light via system palette luminance detection.
-  - Footer showing version · license (left) and user@host (right).
-  - `load_runtime_ui` relaxed from `QMainWindow` to `QWidget` so dialog-based `.ui` files load.
-  - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
-
-### Changed
-- Refactored menu item registry to eliminate import-time filesystem scanning:
-  - `application/menu.py`: `config_edit_links()` and `menu_links()` are now builder functions called at binding time instead of module-level constants computed at import. Added `core_menu_links(app)` for the core application menu actions, and `static_menu_links()` combining tools + preferences + other links.
-  - `basic/menu_item.py`: extracted `bind_one()` and `_menu_section()` methods from `MenuCollection.bind()`; removed print-and-swallow error handling so binding failures propagate cleanly; added `MenuItem.separator()` classmethod.
-  - `REvoDesign.py`: core and deferred menu bindings now both route through `application.menu` builders — single ownership, no inline `MenuItem` construction.
-- Moved legacy `docs/` to `docs_old/` for archival; new docs are a fresh MkDocs site.
-- Moved menu-item translation responsibility from `MenuItem.bind_one()` to builder functions:
-  - `basic/menu_item.py`: removed `_translate()` wrapper — `bind_one()` now sets `action_text` directly.
-  - `application/menu.py`: `PREFERENCES_MENU_LINKS`/`OTHER_MENU_LINKS` converted to builder functions (`preferences_menu_links()`/`other_menu_links()`) with lazy `QCoreApplication.translate()` calls discoverable by `pylupdate5`.
-  - `tools/translate.sh`: removed deprecated `pyuic5` UI-to-Python step; switched from `lupdate` to `pylupdate5` to scan both `.ui` and `.py` sources.
-- Updated README links to point to new docs structure.
-- Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
-
-### Fixed
-- Language menu actions disappearing when a non-English language was saved in config: language QActions were created orphan (no QObject parent) and lost after `retranslateUi` → `refresh_bindings()` rescanned the widget tree. Fixed by parenting each action to `menuLanguage`.
-- Switching back to English not reverting translated strings: `_ensure_translator()` checked the fresh `bus.ui.trans` before the early-installed translator from `install_translator_early()`, so `removeTranslator()` removed the wrong instance. Fixed by checking for an early-installed translator first.
-- Replaced `WorkerThread` (QThread subclass) with plain `threading.Thread` for uvicorn server lifecycle — uvicorn no longer runs inside a QThread, removing the SIP wrapper lifetime boundary that triggered `forgetObject` → `qFatal` → `SIGABRT` when cross-thread Qt signals were dispatched after QObject destruction. Loosened uvicorn pin to `>=0.12.0` (was `<0.50.0`).
-- Renamed `Evalutator` → `Evaluator` and `flatten_archieve` → `flatten_archive` (typo fixes, no backward-compat aliases).
-- ValueDialog YAML window-pop translation and retranslation:
-  - Moved title/banner translation from `shortcuts/utils.py` to `ValueDialog.__init__` and `retranslateUi` so English source strings are preserved for language-switch retranslation.
-  - Fixed `_retranslate_row` to handle direct `QPushButton` cell widgets (Browse, Pick Color) — `findChildren` missed the widget itself when the cell widget IS the button.
-  - Action button text and tooltips are now translated on initial creation in `_add_field_to_table`, not only on retranslation.
-  - Button labels made consistent with retranslation sources (e.g. "All" → "Select All").
-  - Action button source strings stored as dynamic Qt properties (`source_text`, `source_tooltip`) for dict-free retranslation.
-- Menu builder fixes (from PR #184 review):
-  - Sorted secondary config entries in `config_edit_links()` so section-based separator insertion is deterministic.
-  - `MenuCollection._menu_section` now uses `getattr(..., None)` so missing menu sections raise `InternalError` instead of raw `AttributeError`.
-  - Deferred `_bind_menu_links` callback wrapped in try/except with logging so filesystem or binding failures are user-visible.
-- Translation tooling fixes (from PR #185 review):
-  - `tools/translate.sh` now uses portable `sed -i.bak` + `rm -f` for cross-platform compatibility (BSD/macOS and GNU/Linux).
-  - `tools/translate.sh` now iterates over glob directly instead of `ls` output (SC2045).
-  - Removed redundant `action.setText()` in `MenuItem.bind_one` (constructor already sets the text).
-- Added 15 hand-maintained translation entries for ValueDialog action buttons (Browse, Pick Color, Select All, etc.) in zh_CN + zh_TW.
 
 ## [1.9.0] - 2026-07-03
 ### Added

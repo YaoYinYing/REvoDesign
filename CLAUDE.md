@@ -110,6 +110,7 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 | `validate-ui-i18n` | Smoke-test runtime UI loading + i18n pipeline |
 | `reject-generated-main-ui` | Ensure `Ui_REvoDesign.py` is never re-introduced |
 | `check-qt-binding-imports` | Reject direct PyQt5/PyQt6 imports |
+| `check-changelog-duplicates` | Reject duplicate `### Section` headers within a version block in CHANGELOG.md |
 
 ### Key conventions
 
