@@ -575,13 +575,28 @@ def validate_captcha(token: str, answer: str) -> bool:
         return False
 
 
+def _public_base_url() -> str:
+    """Return the public-facing base URL for email links.
+
+    Uses the current request's ``Host`` header so email links point to the
+    same domain the user is accessing.  Falls back to ``SERVER_BASE_URL``
+    env var, then ``http://localhost:8080`` (dev).
+    """
+    # ponytail: request.host_url already has scheme+host from the Host header
+    try:
+        return request.host_url.rstrip("/")
+    except RuntimeError:
+        pass  # outside request context (tests, scripts)
+    return _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
+
+
 def send_verification_email(user: dict[str, Any]) -> bool:
     """Send an email-verification message to *user*.
 
     Returns ``True`` on success, ``False`` on failure (logged).
     """
     token = _serializer.dumps({"uid": user["id"], "purpose": "verify-email"})
-    base_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
+    base_url = _public_base_url()
     verify_url = f"{base_url}/PSSM_GREMLIN/user_verify?c={token}"
 
     return _send_email(
@@ -632,7 +647,7 @@ def send_password_reset_email(email: str, db: UserDatabase) -> bool:
         return True
 
     token = _serializer.dumps({"uid": user["id"], "purpose": "reset-password"})
-    base_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
+    base_url = _public_base_url()
     reset_url = f"{base_url}/PSSM_GREMLIN/reset_password?c={token}"
 
     return _send_email(
@@ -658,7 +673,7 @@ def send_password_reset_email(email: str, db: UserDatabase) -> bool:
 
 def send_approval_email(user: dict[str, Any]) -> bool:
     """Notify *user* that their registration has been approved."""
-    base_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
+    base_url = _public_base_url()
 
     return _send_email(
         to=user["email"],

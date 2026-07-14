@@ -1548,8 +1548,12 @@ def test_register_with_affiliation_and_terms(monkeypatch, tmp_path):
             "SMTP_HOST": "localhost",
         },
     )
+    from pssm_gremlin_server.auth import _serializer
+
     client = module.app.test_client()
     db = module.app.config["user_db"]
+
+    captcha_token: str = _serializer.dumps({"answer": 7, "purpose": "captcha"})
 
     # Registration with all fields
     resp = client.post(
@@ -1562,6 +1566,8 @@ def test_register_with_affiliation_and_terms(monkeypatch, tmp_path):
                 "password": "regpass123",
                 "affiliation": "Stanford",
                 "terms_agreed": True,
+                "captcha_token": captcha_token,
+                "captcha_answer": "7",
             }
         ),
     )
@@ -1587,7 +1593,11 @@ def test_register_rejects_without_terms(monkeypatch, tmp_path):
             "SMTP_HOST": "localhost",
         },
     )
+    from pssm_gremlin_server.auth import _serializer
+
     client = module.app.test_client()
+
+    captcha_token: str = _serializer.dumps({"answer": 7, "purpose": "captcha"})
 
     resp = client.post(
         "/PSSM_GREMLIN/api/auth/register",
@@ -1597,6 +1607,8 @@ def test_register_rejects_without_terms(monkeypatch, tmp_path):
                 "username": "noterms",
                 "email": "noterms@test.local",
                 "password": "regpass123",
+                "captcha_token": captcha_token,
+                "captcha_answer": "7",
             }
         ),
     )
