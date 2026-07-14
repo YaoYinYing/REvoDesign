@@ -107,6 +107,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ``A.authFetch`` (Bearer token + cookie fallback) with blob download via
   ``URL.createObjectURL``, matching the page's existing fetch-based auth
   model.
+- **Login rate-limit feedback**: when login throttling returns HTTP 429 with
+  `retry_after_seconds`, the login page now disables the submit button and
+  displays a second-by-second retry countdown instead of a generic error.
 
 ### Security
 - SQL injection: all queries use SQLAlchemy ORM parameterized queries.
@@ -114,10 +117,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auth cookie: `HttpOnly` + `SameSite=Lax`; inaccessible to JavaScript.
 - API keys: restricted privileges (task operations only); Bearer token
   required for profile changes and admin actions.
+- Account-status enforcement: banned or deleted users cannot authenticate with
+  new logins, old Bearer tokens, or existing API keys.
+- Admin self-lockout protection: admins cannot ban/delete their own account;
+  batch Disable/Delete skips the acting admin while still applying to other
+  selected users.
+- Admin approval now implies email verification, and all active users must have
+  verified email before authentication.
 - Path traversal: `_safe_join()` / `_path_is_within()` guard all filesystem paths.
 - Task IDs: validated against `[a-f0-9]{32}` regex before filesystem access.
-- CSRF: all state-changing requests use `fetch()` with JSON content-type + Bearer tokens.
-- Docker: non-root user, group-based socket access, SETUID `ldconfig.real` documented.
+- CSRF: all state-changing routes require Bearer token or API-key auth as
+  appropriate; cookie-only writes are rejected.
+- Docker: Docker socket access is documented as host-root-equivalent; A/B
+  attack-test guidance covers socket exposure, low-privilege API probes, and
+  task-submission boundaries.
 - Removed HTTP Basic Auth dependency (`flask_httpauth`) and `users.txt` file.
 
 ### Removed

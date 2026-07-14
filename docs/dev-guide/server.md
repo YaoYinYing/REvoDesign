@@ -150,6 +150,8 @@ access) and are mounted under the `/PSSM_GREMLIN` path prefix.  Browser page
 navigations use an `HttpOnly` cookie set on login; API clients send the
 `Authorization: Bearer <token>` header.  Browser requests without auth are
 redirected to the login page; API requests without auth receive JSON 4xx errors.
+State-changing endpoints require a Bearer token or API key as appropriate;
+cookie-only writes are rejected to avoid CSRF on browser sessions.
 
 ### Task Management
 
@@ -200,6 +202,10 @@ redirected to the login page; API requests without auth receive JSON 4xx errors.
 | `PUT` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Update user fields (email, affiliation, password, statuses) |
 | `DELETE` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Soft-delete user (record kept for audit) |
 | `POST` | `/PSSM_GREMLIN/api/auth/admin/users/batch` | Batch enable / disable / delete |
+
+Admins cannot ban or delete their own account.  Direct self-ban/self-delete
+requests return HTTP 400, and batch Disable/Delete skips the acting admin while
+still applying the requested action to other selected users.
 
 ### Page Routes
 
@@ -365,6 +371,30 @@ The test suite uses the same ``_load_pssm_module`` pattern to create isolated
 Flask test clients with temporary SQLite databases and environment variables.
 A dedicated CI workflow (``.github/workflows/server-test.yml``) runs non-Docker
 tests on every push touching ``server/**``.
+
+## Security Validation
+
+Run these checks after auth, account-status, Docker Compose, user/group, or
+runner-launch changes:
+
+- **Docker socket A/B attack test**: verify whether web/worker can access
+  `/var/run/docker.sock`.  If they can, prove the HTTP API still cannot expose
+  Docker control: low-privilege users must not reach admin APIs, cookie-only
+  task writes must fail with Bearer-token errors, Docker-like routes such as
+  `/containers/json` must not exist on the Flask port, and uploads must not let
+  users choose image, command, privileged mode, bind source paths, or socket
+  mounts.  Treat any HTTP path from an authenticated low-privilege user to
+  Docker daemon control as a host-root escape risk.
+- **Banned-user authentication check**: create a temporary user, log in, issue
+  an API key, ban the user, then verify new login returns HTTP 403 and both the
+  old Bearer token and old API key return HTTP 401.
+- **Admin self-lockout check**: verify an admin cannot directly ban or delete
+  their own account, and that batch Disable/Delete with `[self, other]` reports
+  `count == 1`, leaves self active/undeleted, and applies the action to the
+  other user.
+- **Login throttling check**: after 5 failed login attempts per minute from the
+  same IP, the login endpoint returns HTTP 429 with `retry_after_seconds`; the
+  login page should disable the submit button and count down until retry.
 
 ## REvoDesign Plugin Integration
 

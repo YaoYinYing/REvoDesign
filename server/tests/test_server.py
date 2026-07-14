@@ -1384,6 +1384,99 @@ def test_admin_can_update_user_status(monkeypatch, tmp_path):
     assert updated["user_status"] == "banned"
 
 
+def test_banned_user_cannot_authenticate_with_existing_credentials(monkeypatch, tmp_path):
+    """Banning a user invalidates login, old Bearer tokens, and API keys."""
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+    db = module.app.config["user_db"]
+    user = db.create_user(
+        username="bancheck",
+        email="bancheck@test.local",
+        password="pass1234",
+        registration_status="approved",
+        user_status="active",
+    )
+    db.verify_email(user["id"])
+
+    from pssm_gremlin_server.auth import generate_token
+
+    old_bearer = {"Authorization": f"Bearer {generate_token(user['id'])}"}
+    api_key = db.generate_api_key(user["id"])
+
+    resp = client.put(
+        f"/PSSM_GREMLIN/api/auth/admin/users/{user['id']}",
+        headers={**admin_header, "Content-Type": "application/json"},
+        data=json.dumps({"user_status": "banned"}),
+    )
+    assert resp.status_code == 200
+
+    resp = client.post(
+        "/PSSM_GREMLIN/api/auth/login",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"username": "bancheck", "password": "pass1234"}),
+    )
+    assert resp.status_code == 403
+    assert resp.json["error"] == "Account has been suspended"
+
+    resp = client.get("/PSSM_GREMLIN/api/auth/me", headers=old_bearer)
+    assert resp.status_code == 401
+    assert resp.json["error"] == "Authentication required"
+
+    resp = client.get("/PSSM_GREMLIN/api/auth/me", headers={"X-API-Key": api_key})
+    assert resp.status_code == 401
+    assert resp.json["error"] == "Authentication required"
+
+
+def test_login_rate_limit_returns_retry_after_seconds(monkeypatch, tmp_path):
+    """Login throttling returns a countdown value for the login page."""
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    payload = {"username": "missing-user", "password": "wrong"}
+
+    for _ in range(5):
+        resp = client.post(
+            "/PSSM_GREMLIN/api/auth/login",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(payload),
+            environ_base={"REMOTE_ADDR": "198.51.100.77"},
+        )
+        assert resp.status_code == 401
+
+    resp = client.post(
+        "/PSSM_GREMLIN/api/auth/login",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(payload),
+        environ_base={"REMOTE_ADDR": "198.51.100.77"},
+    )
+    assert resp.status_code == 429
+    assert resp.json["error"] == "Too many requests"
+    assert isinstance(resp.json["retry_after_seconds"], int)
+    assert resp.json["retry_after_seconds"] > 0
+
+
+def test_admin_cannot_lock_out_self(monkeypatch, tmp_path):
+    """Admin cannot ban or delete their own account."""
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+    db = module.app.config["user_db"]
+    admin = db.get_user_by_username("sysadmin")
+    assert admin is not None
+
+    resp = client.put(
+        f"/PSSM_GREMLIN/api/auth/admin/users/{admin['id']}",
+        headers={**admin_header, "Content-Type": "application/json"},
+        data=json.dumps({"user_status": "banned"}),
+    )
+    assert resp.status_code == 400
+    assert db.get_user(admin["id"])["user_status"] == "active"
+
+    resp = client.delete(f"/PSSM_GREMLIN/api/auth/admin/users/{admin['id']}", headers=admin_header)
+    assert resp.status_code == 400
+    assert db.get_user(admin["id"])["deleted"] is False
+
+
 def test_admin_update_rejects_invalid_status(monkeypatch, tmp_path):
     """PUT with invalid status values returns 400."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
@@ -1588,6 +1681,37 @@ def test_admin_batch_operations(monkeypatch, tmp_path):
     assert resp.status_code == 200
     assert db.get_user(u1["id"])["deleted"] is True
     assert db.get_user(u2["id"])["deleted"] is True
+
+
+def test_admin_batch_operations_skip_self_lockout(monkeypatch, tmp_path):
+    """Batch disable/delete skips the acting admin account."""
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+    db = module.app.config["user_db"]
+    admin = db.get_user_by_username("sysadmin")
+    assert admin is not None
+    user = db.create_user(username="batch_target", email="batch_target@test.local", password="pass1234")
+
+    resp = client.post(
+        "/PSSM_GREMLIN/api/auth/admin/users/batch",
+        headers={**admin_header, "Content-Type": "application/json"},
+        data=json.dumps({"action": "disable", "user_ids": [admin["id"], user["id"]]}),
+    )
+    assert resp.status_code == 200
+    assert resp.json["count"] == 1
+    assert db.get_user(admin["id"])["user_status"] == "active"
+    assert db.get_user(user["id"])["user_status"] == "banned"
+
+    resp = client.post(
+        "/PSSM_GREMLIN/api/auth/admin/users/batch",
+        headers={**admin_header, "Content-Type": "application/json"},
+        data=json.dumps({"action": "delete", "user_ids": [admin["id"], user["id"]]}),
+    )
+    assert resp.status_code == 200
+    assert resp.json["count"] == 1
+    assert db.get_user(admin["id"])["deleted"] is False
+    assert db.get_user(user["id"])["deleted"] is True
 
 
 def test_bootstrap_admin_has_correct_statuses(monkeypatch, tmp_path):

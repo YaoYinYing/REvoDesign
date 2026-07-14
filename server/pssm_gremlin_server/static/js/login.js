@@ -8,11 +8,44 @@
   var form = document.getElementById("loginForm");
   var statusEl = document.getElementById("status");
   var submitBtn = document.getElementById("submitBtn");
+  var loginRetryTimer = null;
 
   T.initToggle(document.getElementById("themeToggle"));
 
+  function resetSubmitButton() {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Log In";
+  }
+
+  function startRetryCountdown(seconds) {
+    var remaining = Math.max(parseInt(seconds, 10) || 1, 1);
+    if (loginRetryTimer) clearInterval(loginRetryTimer);
+
+    function render() {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Try again in " + remaining + "s";
+      statusEl.className = "status-msg error";
+      statusEl.textContent = "Too many login attempts. Try again in " + remaining + " second" + (remaining === 1 ? "." : "s.");
+    }
+
+    render();
+    loginRetryTimer = setInterval(function () {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(loginRetryTimer);
+        loginRetryTimer = null;
+        resetSubmitButton();
+        statusEl.className = "status-msg";
+        statusEl.textContent = "";
+        return;
+      }
+      render();
+    }, 1000);
+  }
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
+    if (loginRetryTimer) return;
     statusEl.className = "status-msg";
     statusEl.textContent = "";
     submitBtn.disabled = true;
@@ -30,21 +63,22 @@
     })
     .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
     .then(function (result) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Log In";
       if (result.ok) {
+        resetSubmitButton();
         A.setToken(result.data.token);
         statusEl.className = "status-msg success";
         statusEl.textContent = "Logged in as " + result.data.username + ". Redirecting to dashboard…";
         setTimeout(function () { window.location.href = "/PSSM_GREMLIN/dashboard"; }, 800);
+      } else if (result.data && result.data.retry_after_seconds) {
+        startRetryCountdown(result.data.retry_after_seconds);
       } else {
+        resetSubmitButton();
         statusEl.className = "status-msg error";
         statusEl.textContent = result.data.error || "Login failed.";
       }
     })
     .catch(function () {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Log In";
+      resetSubmitButton();
       statusEl.className = "status-msg error";
       statusEl.textContent = "Network error. Please try again.";
     });

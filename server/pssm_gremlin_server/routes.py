@@ -932,8 +932,11 @@ def admin_manage_user(user_id):
     user = db.get_user(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
+    is_self = user_id == g.current_user["id"]
 
     if request.method == "DELETE":
+        if is_self:
+            return jsonify({"error": "Administrators cannot delete their own account"}), 400
         # ponytail: soft-delete — hides from user table, recoverable.
         db.update_user(user_id, deleted=True)
         logging.info("Admin %r soft-deleted user %r", g.current_user["username"], user.get("username"))
@@ -952,6 +955,8 @@ def admin_manage_user(user_id):
         if existing and existing["id"] != user_id:
             return jsonify({"error": "Email address already in use"}), 409
         update_fields["email"] = email
+    if is_self and req.user_status == "banned":
+        return jsonify({"error": "Administrators cannot ban their own account"}), 400
     if req.affiliation is not None:
         update_fields["affiliation"] = req.affiliation
     if req.password is not None:
@@ -1012,6 +1017,8 @@ def admin_batch_users():
         user = db.get_user(uid)
         if user is None:
             continue
+        if uid == admin_id and req.action in {"disable", "delete"}:
+            continue  # don't let an admin lock themselves out
         if user.get("is_admin") and req.action == "disable":
             continue  # don't disable other admins
         db.update_user(uid, **updates)

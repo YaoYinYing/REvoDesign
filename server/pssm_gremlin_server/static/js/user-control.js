@@ -46,9 +46,10 @@
   var batchBar = document.getElementById("batchBar");
   var batchCount = document.getElementById("batchCount");
   var selectAll = document.getElementById("selectAll");
+  var currentUsername = null;
 
   selectAll.addEventListener("change", function () {
-    var checks = document.querySelectorAll(".user-select");
+    var checks = document.querySelectorAll(".user-select:not(:disabled)");
     checks.forEach(function (cb) { cb.checked = selectAll.checked; });
     updateBatchBar();
   });
@@ -96,6 +97,17 @@
   var userTableBody = document.getElementById("userTableBody");
   var COLSPAN = 7;
 
+  function loadCurrentUser() {
+    return A.authFetch("/PSSM_GREMLIN/api/auth/me")
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        currentUsername = data.username || null;
+      });
+  }
+
   function loadUsers() {
     userTableBody.innerHTML = '<tr><td colspan="' + COLSPAN + '" class="empty">Loading&hellip;</td></tr>';
     selectAll.checked = false;
@@ -118,14 +130,21 @@
       });
   }
 
+  function isCurrentUser(u) {
+    return currentUsername && u.username === currentUsername;
+  }
+
   function renderUserRow(u) {
     var tr = document.createElement("tr");
     var regLabel = REG_LABELS[u.registration_status] || u.registration_status || "—";
     var userLabel = USER_LABELS[u.user_status] || u.user_status || "—";
     var actionsHtml = buildActionButtons(u);
+    var self = isCurrentUser(u);
+    var selectAttrs = ' class="user-select" data-uid="' + u.id + '"';
+    if (self) selectAttrs += ' disabled title="You cannot batch-disable or delete your own account"';
 
     tr.innerHTML =
-      '<td class="col-select"><input type="checkbox" class="user-select" data-uid="' + u.id + '"></td>' +
+      '<td class="col-select"><input type="checkbox"' + selectAttrs + '></td>' +
       '<td class="col-email">' + escapeHtml(u.email || "—") + '</td>' +
       '<td class="col-ip muted">—</td>' +
       '<td class="col-affil">' + escapeHtml(u.affiliation || "—") + '</td>' +
@@ -145,13 +164,14 @@
     var buttons = "";
     var reg = u.registration_status;
     var us = u.user_status;
+    var self = isCurrentUser(u);
     // Approve / Reject during registration flow
     if (reg === "email_sent" || reg === "verified") {
       buttons += '<button class="user-action-btn approve" data-id="' + u.id + '" data-action="approve">Approve</button>';
       buttons += '<button class="user-action-btn reject" data-id="' + u.id + '" data-action="reject">Reject</button>';
     }
     // Ban active users
-    if (us === "active") {
+    if (us === "active" && !self) {
       buttons += '<button class="user-action-btn ban" data-id="' + u.id + '" data-action="ban">Ban</button>';
     }
     // Re-enable banned or rejected users
@@ -209,6 +229,7 @@
 
   function showEditRow(tr, u) {
     var origHTML = tr.innerHTML;
+    var self = isCurrentUser(u);
     tr.innerHTML =
       '<td class="col-select">—</td>' +
       '<td><input type="email" class="text-input edit-input" id="editEmail" value="' + escapeAttr(u.email || "") + '"></td>' +
@@ -220,7 +241,7 @@
       '</select></td>' +
       '<td><select class="text-input edit-input" id="editUserStatus">' +
         '<option value="active"' + (u.user_status === "active" ? " selected" : "") + '>Active</option>' +
-        '<option value="banned"' + (u.user_status === "banned" ? " selected" : "") + '>Banned</option>' +
+        '<option value="banned"' + (u.user_status === "banned" ? " selected" : "") + (self ? " disabled" : "") + '>Banned</option>' +
       '</select></td>' +
       '<td>' +
         '<button class="user-action-btn approve edit-save" data-id="' + u.id + '">Save</button>' +
@@ -248,6 +269,10 @@
       };
       var pw = document.getElementById("editPassword").value;
       if (pw) payload.password = pw;
+      if (self && payload.user_status === "banned") {
+        alert("You cannot ban your own account.");
+        return;
+      }
 
       A.authFetch("/PSSM_GREMLIN/api/auth/admin/users/" + u.id, {
         method: "PUT",
@@ -343,5 +368,7 @@
   }
 
   // Initial load
-  loadUsers();
+  loadCurrentUser()
+    .catch(function () { currentUsername = null; })
+    .then(loadUsers);
 })();
