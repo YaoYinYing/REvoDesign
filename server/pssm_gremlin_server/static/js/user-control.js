@@ -21,6 +21,11 @@
     active: "Active",
     banned: "Banned",
   };
+  var ROLE_LABELS = {
+    admin: "Admin",
+    user: "User",
+    guest: "Guest",
+  };
 
   // ---- Tab switching ----
 
@@ -148,6 +153,7 @@
       '<td class="col-email">' + escapeHtml(u.email || "—") + '</td>' +
       '<td class="col-ip muted">—</td>' +
       '<td class="col-affil">' + escapeHtml(u.affiliation || "—") + '</td>' +
+      '<td class="col-role"><span class="status-badge ' + escapeAttr(u.role || "user") + '">' + escapeHtml(ROLE_LABELS[u.role] || u.role || "User") + '</span></td>' +
       '<td class="col-reg"><span class="status-badge ' + escapeAttr(u.registration_status) + '">' + escapeHtml(regLabel) + '</span></td>' +
       '<td class="col-user"><span class="status-badge ' + escapeAttr(u.user_status) + '">' + escapeHtml(userLabel) + '</span></td>' +
       '<td class="col-actions">' + actionsHtml + '</td>';
@@ -235,6 +241,11 @@
       '<td><input type="email" class="text-input edit-input" id="editEmail" value="' + escapeAttr(u.email || "") + '"></td>' +
       '<td class="muted">—</td>' +
       '<td><input type="text" class="text-input edit-input" id="editAffiliation" value="' + escapeAttr(u.affiliation || "") + '"></td>' +
+      '<td><select class="text-input edit-input" id="editRole">' +
+        '<option value="admin"' + ((u.role || "user") === "admin" ? " selected" : "") + (self ? " disabled" : "") + '>Admin</option>' +
+        '<option value="user"' + ((u.role || "user") === "user" ? " selected" : "") + '>User</option>' +
+        '<option value="guest"' + ((u.role || "user") === "guest" ? " selected" : "") + '>Guest</option>' +
+      '</select></td>' +
       '<td><select class="text-input edit-input" id="editRegStatus">' +
         '<option value="approved"' + (u.registration_status === "approved" ? " selected" : "") + '>Approved</option>' +
         '<option value="rejected"' + (u.registration_status === "rejected" ? " selected" : "") + '>Rejected</option>' +
@@ -253,7 +264,7 @@
     pwRow.innerHTML =
       '<td></td>' +
       '<td colspan="2"><input type="password" class="text-input edit-input" id="editPassword" placeholder="New password (leave empty to keep)" minlength="8" autocomplete="new-password"></td>' +
-      '<td colspan="4" class="muted" style="font-size:0.76rem">Leave blank to keep current password</td>';
+      '<td colspan="5" class="muted" style="font-size:0.76rem">Leave blank to keep current password</td>';
     tr.parentNode.insertBefore(pwRow, tr.nextSibling);
 
     tr._origHTML = origHTML;
@@ -264,6 +275,7 @@
       var payload = {
         email: document.getElementById("editEmail").value.trim(),
         affiliation: document.getElementById("editAffiliation").value.trim(),
+        role: document.getElementById("editRole").value,
         registration_status: document.getElementById("editRegStatus").value,
         user_status: document.getElementById("editUserStatus").value,
       };
@@ -317,6 +329,7 @@
       email: document.getElementById("newEmail").value.trim(),
       password: document.getElementById("newPassword").value,
       affiliation: document.getElementById("newAffiliation").value.trim(),
+      role: document.getElementById("newRole").value,
     };
 
     A.authFetch("/PSSM_GREMLIN/api/auth/admin/users", {

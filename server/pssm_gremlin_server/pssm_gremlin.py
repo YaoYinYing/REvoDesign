@@ -435,7 +435,7 @@ except BaseException:
 def _is_admin_user(username: str | None = None) -> bool:
     # DB-based admin check — covers admins created through the user-control UI
     user = g.get("current_user")
-    if user and user.get("is_admin"):
+    if user and (user.get("role") == "admin" or user.get("is_admin")):
         return True
     # Legacy env-var-based check
     target = (username if username is not None else _current_username()) or ""

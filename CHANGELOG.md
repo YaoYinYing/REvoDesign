@@ -39,6 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GREMLIN server: email verification** — 2-day expiry verification links at `/PSSM_GREMLIN/user_verify?c=`, with backward-compatible legacy route at `/PSSM_GREMLIN/api/auth/verify-email`.
 - **GREMLIN server: login accepts email** — the login field accepts either a username or email address, detected by `@` presence.
 - **GREMLIN server: static asset extraction** — JS and CSS extracted from HTML templates into standalone files under `static/`.
+- **GREMLIN server: role system** — `admin`, `user`, and `guest` roles with a `role` column in the user database. Guest accounts can only use cookie-based web login; Bearer tokens and API keys are rejected. Guests cannot change passwords or manage API keys. Admin user-control panel includes role selector and role badges.
+- **GREMLIN server: CAPTCHA on registration** — self-registration requires solving a server-generated math challenge (5-min expiry). Effectively blocks programmatic/bot registration. CAPTCHA reloads on failure.
+- **GREMLIN server: resend verification email** — after registration, a "Resend verification email" button appears with per-email backoff: first resend is immediate, then 10×n minutes between subsequent resends.
+- **GREMLIN server: admin notification emails** — users receive an email when an admin approves or rejects their registration. Bans are silent.
+- **GREMLIN server: email templates redesigned** — all four email types (verification, password reset, approval, rejection) share a consistent plain-text structure with clearer subject lines.
+- **GREMLIN server: verify-email page redesigned** — custom SVG status icons (checkmark for success, X for failure) with clear next-step messaging depending on whether admin approval is still pending.
 - Comprehensive API documentation site (46 pages) using MkDocs + Material for MkDocs + mkdocstrings:
 
 ### Changed
@@ -59,6 +65,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Gunicorn `--preload`**: the WSGI app is loaded before forking workers,
   ensuring consistent `AUTH_SECRET_KEY` across all workers and eliminating
   cross-worker token validation failures.
+- **GREMLIN server UI**: auth pages (login, register, profile, user-control,
+  verify-email) redesigned with increased vertical rhythm — panel padding,
+  field spacing, and section gaps bumped 20-40% for a more breathable layout.
+- **GREMLIN server build**: `pyproject.toml` build backend changed from
+  `setuptools.backends._legacy` (removed in newer setuptools) to standard
+  `setuptools.build_meta`. Dockerfile uses `pip install "/app/server[resend]"`.
+- **GREMLIN server email**: optional Resend SDK (`pip install "server/[resend]"`)
+  as an alternative email backend. Takes priority over SMTP when
+  `RESEND_API_KEY` is set; SMTP (stdlib) remains the default fallback.
 
 ### Fixed
 - **GREMLIN server test suite**: removed dead `users.txt`/`USERS_FILE` code
@@ -67,6 +82,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `_start_worker`) for the package-refactored module path. Renamed
   `_module_bearer_headers` → `_test_client_auth` for clarity.
 - Cancelled tasks now clean up their result directories (previously leaked on disk).
+- **GREMLIN server**: `ALLOWED_EMAIL_DOMAINS` was defined in `.env.example` but
+  never passed through `docker-compose.yml`'s `x-common-env` block — the domain
+  allowlist would never activate. Added to the shared env block.
+- **GREMLIN server**: registration endpoint no longer returns the same success
+  message when email delivery fails. Frontend now shows whether the
+  verification email was actually sent.
+- **GREMLIN server**: resend-verification endpoint was incorrectly blocking
+  pending/unverified users via `_is_account_blocked`. Replaced with a narrower
+  gate that only rejects deleted and banned accounts.
 - **AUTH_SECRET_KEY duplication**: `auth.py` and `pssm_gremlin.py`
   independently generated different random signing keys when
   `AUTH_SECRET_KEY` was unset, breaking token validation across gunicorn

@@ -100,6 +100,7 @@ _users_table = sa.Table(
     sa.Column("approved_by", sa.Integer, nullable=True),
     sa.Column("approved_at", sa.Float, nullable=True),
     sa.Column("deleted", sa.Boolean, nullable=False, default=False),
+    sa.Column("role", sa.String(32), nullable=False, default="user"),
 )
 
 
@@ -149,6 +150,9 @@ class UserDatabase:
             ("approved_by", "INTEGER"),
             ("approved_at", "FLOAT"),
             ("deleted", "INTEGER"),
+            ("verification_resend_count", "INTEGER"),
+            ("verification_resend_at", "FLOAT"),
+            ("role", "TEXT"),
         ]:
             if col not in existing:
                 conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype};")
@@ -162,6 +166,7 @@ class UserDatabase:
         password: str,
         *,
         is_admin: bool = False,
+        role: str = "user",
         affiliation: str | None = None,
         terms_agreed: bool = False,
         registration_status: str = "email_sent",
@@ -175,6 +180,7 @@ class UserDatabase:
             password_hash=generate_password_hash(password),
             email_verified=False,
             is_admin=is_admin,
+            role=role,
             created_at=now,
             affiliation=affiliation,
             terms_agreed=terms_agreed,
@@ -214,6 +220,9 @@ class UserDatabase:
             "approved_by",
             "approved_at",
             "deleted",
+            "verification_resend_count",
+            "verification_resend_at",
+            "role",
         }
         values = {k: v for k, v in fields.items() if k in _allowed}
         if not values:
@@ -364,15 +373,17 @@ def load_current_user() -> dict[str, Any] | None:
     db: UserDatabase = current_app.config["user_db"]
 
     # 1. Bearer token (Authorization header — full privileges, CSRF-safe)
+    #    Guest accounts are not permitted to use Bearer tokens.
     token = _extract_bearer_token()
     if token:
         user_id = validate_token(token)
         if user_id is not None:
             user = db.get_user(user_id)
-            if user is not None and _is_account_blocked(user) is None:
+            if user is not None and _is_account_blocked(user) is None and user.get("role") != "guest":
                 g.auth_method = "bearer"
                 return user
     # 2. Cookie — browser page navigations after login (read-only; CSRF-prone)
+    #    Guest accounts ARE permitted to use cookie-based web access.
     token = request.cookies.get("auth_token")
     if token:
         user_id = validate_token(token)
@@ -383,10 +394,11 @@ def load_current_user() -> dict[str, Any] | None:
                 return user
 
     # 3. API key (programmatic access — restricted privileges)
+    #    Guest accounts are not permitted to use API keys.
     api_key = request.headers.get("X-API-Key", "").strip()
     if api_key:
         user = db.validate_api_key(api_key)
-        if user is not None and _is_account_blocked(user) is None:
+        if user is not None and _is_account_blocked(user) is None and user.get("role") != "guest":
             g.auth_method = "api_key"
             return user
 
@@ -533,24 +545,61 @@ def _send_email(*, to: str, subject: str, text: str) -> bool:
         return False
 
 
+# ---------------------------------------------------------------------------
+# CAPTCHA — simple math challenge, signed token (5-min expiry)
+# ---------------------------------------------------------------------------
+
+
+def generate_captcha() -> tuple[str, str]:
+    """Return ``(question, token)`` for a math CAPTCHA challenge."""
+    import secrets
+
+    a = secrets.randbelow(10)
+    b = secrets.randbelow(9) + 1  # avoid zero — makes the answer less trivial
+    answer = a + b
+    question = f"What is {a} + {b}?"
+    token: str = _serializer.dumps({"answer": answer, "purpose": "captcha"})  # type: ignore[assignment]
+    return question, token
+
+
+def validate_captcha(token: str, answer: str) -> bool:
+    """Validate a CAPTCHA token and answer.  Tokens expire after 5 minutes."""
+    try:
+        payload = _serializer.loads(token, max_age=300)
+    except (SignatureExpired, BadSignature):
+        return False
+    if payload.get("purpose") != "captcha":
+        return False
+    try:
+        return int(payload.get("answer", -1)) == int(answer.strip())
+    except (TypeError, ValueError):
+        return False
+
+
 def send_verification_email(user: dict[str, Any]) -> bool:
     """Send an email-verification message to *user*.
 
     Returns ``True`` on success, ``False`` on failure (logged).
     """
     token = _serializer.dumps({"uid": user["id"], "purpose": "verify-email"})
-    verify_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
-    verify_url = f"{verify_url}/PSSM_GREMLIN/user_verify?c={token}"
+    base_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
+    verify_url = f"{base_url}/PSSM_GREMLIN/user_verify?c={token}"
 
     return _send_email(
         to=user["email"],
-        subject="Verify your REvoDesign GREMLIN account",
+        subject="Verify your email — REvoDesign GREMLIN",
         text=(
-            f"Hello {user['username']},\n\n"
-            f"Please verify your email address by clicking the link below.\n\n"
-            f"{verify_url}\n\n"
-            f"This link will expire in 2 days.\n\n"
-            f"If you did not create this account, please ignore this message.\n\n"
+            f"Hello {user['username']},\n"
+            f"\n"
+            f"Welcome to REvoDesign GREMLIN. Please confirm your email address to\n"
+            f"activate your account.\n"
+            f"\n"
+            f"  {verify_url}\n"
+            f"\n"
+            f"This link expires in 2 days.\n"
+            f"\n"
+            f"If you did not create this account, you can ignore this message.\n"
+            f"\n"
             f"— REvoDesign GREMLIN Server\n"
         ),
     )
@@ -589,13 +638,56 @@ def send_password_reset_email(email: str, db: UserDatabase) -> bool:
 
     return _send_email(
         to=email,
-        subject="Reset your REvoDesign GREMLIN password",
+        subject="Reset your password — REvoDesign GREMLIN",
         text=(
-            f"Hello {user['username']},\n\n"
-            f"A password reset was requested for your account.  Click the link below to set a new password.\n\n"
-            f"{reset_url}\n\n"
-            f"This link will expire in 1 hour.\n\n"
-            f"If you did not request this, please ignore this message — your password will not change.\n\n"
+            f"Hello {user['username']},\n"
+            f"\n"
+            f"A password reset was requested for your account. Click the link\n"
+            f"below to set a new password.\n"
+            f"\n"
+            f"  {reset_url}\n"
+            f"\n"
+            f"This link expires in 1 hour.\n"
+            f"\n"
+            f"If you did not request this, you can ignore this message — your\n"
+            f"password will not change.\n"
+            f"\n"
+            f"— REvoDesign GREMLIN Server\n"
+        ),
+    )
+
+
+def send_approval_email(user: dict[str, Any]) -> bool:
+    """Notify *user* that their registration has been approved."""
+    base_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
+
+    return _send_email(
+        to=user["email"],
+        subject="Registration approved — REvoDesign GREMLIN",
+        text=(
+            f"Hello {user['username']},\n"
+            f"\n"
+            f"Your REvoDesign GREMLIN registration has been approved.\n"
+            f"\n"
+            f"  {base_url}/PSSM_GREMLIN/login\n"
+            f"\n"
+            f"— REvoDesign GREMLIN Server\n"
+        ),
+    )
+
+
+def send_rejection_email(user: dict[str, Any]) -> bool:
+    """Notify *user* that their registration has been declined."""
+    return _send_email(
+        to=user["email"],
+        subject="Registration update — REvoDesign GREMLIN",
+        text=(
+            f"Hello {user['username']},\n"
+            f"\n"
+            f"Your REvoDesign GREMLIN registration has been declined.\n"
+            f"If you believe this is an error, please contact the\n"
+            f"administrator who manages this server.\n"
+            f"\n"
             f"— REvoDesign GREMLIN Server\n"
         ),
     )

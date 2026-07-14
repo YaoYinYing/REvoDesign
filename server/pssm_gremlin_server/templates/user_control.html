@@ -37,6 +37,7 @@
             <th>Email</th>
             <th>IP</th>
             <th>Affiliation</th>
+            <th>Role</th>
             <th>Reg. Status</th>
             <th>Status</th>
             <th>Actions</th>
@@ -46,7 +47,7 @@
         </tbody>
         <tfoot id="batchBar" style="display:none">
           <tr>
-            <td colspan="6">
+            <td colspan="7">
               <span class="batch-label" id="batchCount">0 selected</span>
               <button class="btn btn-soft batch-action" data-action="enable">Enable</button>
               <button class="btn btn-soft batch-action" data-action="disable">Disable</button>
@@ -76,6 +77,15 @@
       <div class="field">
         <label for="newAffiliation">Affiliation <span class="muted">(optional)</span></label>
         <input type="text" id="newAffiliation" class="text-input" placeholder="University / Institute / Company">
+      </div>
+      <div class="field">
+        <label for="newRole">Role</label>
+        <select id="newRole" class="text-input">
+          <option value="user" selected>User</option>
+          <option value="admin">Admin</option>
+          <option value="guest">Guest</option>
+        </select>
+        <p class="hint">Guest accounts cannot use API keys or change their password.</p>
       </div>
       <div class="actions">
         <button class="btn btn-primary btn-full" type="submit">Create User</button>

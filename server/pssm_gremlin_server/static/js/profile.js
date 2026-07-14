@@ -16,7 +16,12 @@
   A.authFetch("/PSSM_GREMLIN/api/auth/me")
     .then(function (r) { return r.json(); })
     .then(function (user) {
-      infoEl.textContent = "Logged in as " + user.username + " (" + user.email + ")";
+      var label = user.role === "guest" ? " (guest account)" : "";
+      infoEl.textContent = "Logged in as " + user.username + " (" + user.email + ")" + label;
+      if (user.role === "guest") {
+        document.getElementById("passwordSection").style.display = "none";
+        document.getElementById("apiKeySection").style.display = "none";
+      }
     })
     .catch(function () {
       infoEl.textContent = "Unable to load profile.";

@@ -93,6 +93,11 @@ command. Services run as non-root users with group-based Docker socket access.
 User task data is organized by user identity and task MD5, with strict
 permission isolation.
 
+User accounts have three roles: `admin` (full access), `user` (registered user
+with API and web access), and `guest` (publicly shared, web-dashboard-only —
+no Bearer tokens, no API keys, no password/profile changes). Self-registration
+requires a server-generated math CAPTCHA to prevent automated signups.
+
 ### Services
 
 | Service | Base Image | Role |
@@ -181,7 +186,9 @@ cookie-only writes are rejected to avoid CSRF on browser sessions.
 |--------|----------|-------------|
 | `POST` | `/PSSM_GREMLIN/api/auth/login` | Login, returns Bearer token and sets auth cookie |
 | `POST` | `/PSSM_GREMLIN/api/auth/logout` | Logout, clears auth cookie |
-| `POST` | `/PSSM_GREMLIN/api/auth/register` | Self-registration (requires `ENABLE_REGISTER` + email service) |
+| `POST` | `/PSSM_GREMLIN/api/auth/register` | Self-registration (requires `ENABLE_REGISTER` + email service + CAPTCHA) |
+| `GET` | `/PSSM_GREMLIN/api/auth/captcha` | Get a math CAPTCHA challenge (5-min expiry) |
+| `POST` | `/PSSM_GREMLIN/api/auth/resend-verification` | Resend verification email (per-email backoff: 10×n min) |
 | `POST` | `/PSSM_GREMLIN/api/auth/forgot-password` | Send password-reset email (rate-limited: 3/hr/IP) |
 | `GET` `/POST` | `/PSSM_GREMLIN/reset_password?c=` | Password-reset form (GET) and new-password submission (POST) |
 | `GET` | `/PSSM_GREMLIN/user_verify?c=` | Verify email via serializer token (2-day expiry) |
@@ -285,6 +292,7 @@ Required environment variables (defined in `docker-compose.yml`):
 | `PORT` | Public HTTP port (default: 8080) |
 | `PUBLIC_DASHBOARD` | Per-user task isolation (default: `false`) |
 | `ADMIN_USERS` | Comma-separated admin usernames |
+| `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
 | `TZ` | Timezone for logs |
 
 ### Setup Steps
@@ -351,7 +359,7 @@ The runner conda environment is defined at
 - Channels: defaults, conda-forge, bioconda
 
 The server's Python dependencies are declared in ``server/pyproject.toml``
-and pinned in ``server/docker/server/requirements.txt``.  They include
+with an optional ``[resend]`` extra for the Resend email SDK.  They include
 Flask 3.x, Celery 5.x (with Redis), SQLAlchemy 2.x, Pydantic 2.x,
 itsdangerous, werkzeug, and the Docker SDK for Python.
 

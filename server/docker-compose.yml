@@ -49,6 +49,7 @@ x-common-env: &common-env
   RESEND_FROM_ADDR: ${RESEND_FROM_ADDR:-onboarding@resend.dev}
   RESEND_FROM_NAME: ${RESEND_FROM_NAME:-REvoDesign GREMLIN Server}
   SERVER_BASE_URL: ${SERVER_BASE_URL:-http://localhost:8080}
+  ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
 
 x-docker-socket-access: &docker-socket-access
   # Docker socket group access is host-root-equivalent — the Docker API

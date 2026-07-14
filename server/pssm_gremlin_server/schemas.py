@@ -59,6 +59,8 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8)
     affiliation: str | None = None
     terms_agreed: bool = False
+    captcha_token: str
+    captcha_answer: str
 
     @field_validator("email", mode="before")
     @classmethod
@@ -81,6 +83,7 @@ class AdminCreateUserRequest(BaseModel):
     password: str = Field(min_length=8)
     affiliation: str | None = None
     is_admin: bool = False
+    role: str = "user"
 
     @field_validator("email", mode="before")
     @classmethod
@@ -90,6 +93,8 @@ class AdminCreateUserRequest(BaseModel):
     @model_validator(mode="after")
     def _validate(self) -> AdminCreateUserRequest:
         _check_email_format(self.email)
+        if self.role not in ("admin", "user", "guest"):
+            raise ValueError("role must be 'admin', 'user', or 'guest'")
         return self
 
 
@@ -101,6 +106,7 @@ class AdminUpdateUserRequest(BaseModel):
     password: str | None = Field(default=None, min_length=8)
     registration_status: Literal["approved", "rejected"] | None = None
     user_status: Literal["active", "banned"] | None = None
+    role: Literal["admin", "user", "guest"] | None = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -154,6 +160,7 @@ class UserResponse(BaseModel):
     email: str
     email_verified: bool
     is_admin: bool
+    role: str
     affiliation: str | None
     registration_status: str
     user_status: str

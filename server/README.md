@@ -170,6 +170,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for registration (empty = all allowed). Also normalises plus-aliased addresses. |
 | `PUBLIC_DASHBOARD` | `false` by default; scopes task visibility to owner unless admin. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
+| `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Also normalises plus-aliased addresses (`user+tag@domain` → `user@domain`). |
 | `TZ` | Timezone for logs. |
 
 ## 4. Authentication
@@ -187,6 +188,13 @@ The server uses Bearer-token authentication (replaces the old HTTP Basic Auth + 
   privileges (tasks only — no profile changes or admin actions).
 - **Logout**: `POST /PSSM_GREMLIN/api/auth/logout` clears the server-side
   cookie.  The profile page includes a logout button.
+- **Roles**: Three account types — `admin` (full access), `user` (registered
+  user with API access), `guest` (publicly shared account, web-login only).
+  Guest accounts cannot use Bearer tokens or API keys and cannot change
+  passwords or manage API credentials.
+- **CAPTCHA**: Self-registration requires solving a math challenge to prevent
+  automated signups.  The CAPTCHA token expires after 5 minutes and is
+  regenerated after each failed attempt.
 
 ### Gunicorn `--preload`
 
@@ -234,9 +242,11 @@ curl -X POST -H "Authorization: Bearer <token>" \
 # Admin creates a new user (requires admin token)
 curl -X POST -H "Authorization: Bearer <admin-token>" \
   -H "Content-Type: application/json" \
-  -d '{"username":"newuser","email":"user@example.com","password":"...","is_admin":false}' \
+  -d '{"username":"newuser","email":"user@example.com","password":"...","role":"user"}' \
   "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/admin/users"
 ```
+
+`role` may be `admin`, `user`, or `guest`.
 
 Admins cannot ban or delete their own account.  Direct self-ban/self-delete
 requests return HTTP 400, and batch Disable/Delete skips the acting admin while
@@ -270,7 +280,8 @@ curl -H "X-API-Key: revodesign_<hex>" \
 
 API keys never expire but have **restricted privileges**: they can submit tasks and
 read results, but **cannot** change passwords, manage API keys, or perform admin
-actions. Use a Bearer token (web login) for those operations.
+actions. Use a Bearer token (web login) for those operations.  **Guest accounts
+cannot use API keys at all** — they are web-dashboard-only accounts.
 
 Rate limits: 5 login attempts/minute per IP, 3 registrations/hour per IP.  The
 login endpoint returns HTTP 429 with `retry_after_seconds`; the login page uses

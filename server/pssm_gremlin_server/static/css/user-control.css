@@ -14,7 +14,7 @@
 
 .sub-tab {
   flex: 1;
-  padding: 0.6rem 1rem;
+  padding: 0.7rem 1.2rem;
   border: none;
   background: var(--paper);
   color: var(--muted);
@@ -44,7 +44,7 @@
 
 .user-panel {
   border-radius: 0 0 14px 14px;
-  padding: 1rem;
+  padding: 1.6rem;
   margin-top: 0;
 }
 
@@ -62,7 +62,7 @@
 
 .user-table th {
   text-align: left;
-  padding: 0.5rem 0.6rem;
+  padding: 0.6rem 0.75rem;
   border-bottom: 2px solid var(--line);
   color: var(--muted);
   font-size: 0.74rem;
@@ -72,7 +72,7 @@
 }
 
 .user-table td {
-  padding: 0.45rem 0.6rem;
+  padding: 0.55rem 0.75rem;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
@@ -84,7 +84,7 @@
 .user-table .empty {
   text-align: center;
   color: var(--muted);
-  padding: 2rem 0.6rem;
+  padding: 2.5rem 0.75rem;
   font-size: 0.88rem;
 }
 
@@ -102,6 +102,9 @@
   font-weight: 600;
 }
 
+.status-badge.admin  { background: #e3eff8; color: #1e5272; }
+.status-badge.user   { background: #eef3f7; color: #3f5b6d; }
+.status-badge.guest  { background: #f9f4e8; color: #6d5a1c; }
 .status-badge.email_sent { background: #eef3f7; color: #3f5b6d; }
 .status-badge.verified   { background: #e3eff8; color: #1e5272; }
 .status-badge.approved   { background: #e8f5eb; color: #1a582c; }
@@ -127,7 +130,7 @@
 /* ---- Batch bar ---- */
 
 #batchBar td {
-  padding: 0.6rem;
+  padding: 0.7rem 0.75rem;
   background: var(--bg);
   border-top: 2px solid var(--accent);
   border-bottom: none;
@@ -266,6 +269,9 @@ html[data-theme="dark"] .user-action-btn {
   border-color: #324751;
 }
 
+html[data-theme="dark"] .status-badge.admin  { background: #1a3040; color: #a8d0e8; }
+html[data-theme="dark"] .status-badge.user   { background: #1c2a35; color: #aac2d4; }
+html[data-theme="dark"] .status-badge.guest  { background: #3a3020; color: #dac87c; }
 html[data-theme="dark"] .status-badge.email_sent { background: #1c2a35; color: #aac2d4; }
 html[data-theme="dark"] .status-badge.verified   { background: #1a3040; color: #a8d0e8; }
 html[data-theme="dark"] .status-badge.approved   { background: #173427; color: #b6e1c1; }

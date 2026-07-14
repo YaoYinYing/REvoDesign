@@ -47,10 +47,23 @@
           <span>I agree to the <a href="#" target="_blank" rel="noopener noreferrer">Terms of Service</a></span>
         </label>
       </div>
+      <div class="field">
+        <label for="captchaAnswer">Verify you&rsquo;re human</label>
+        <div class="captcha-row">
+          <span class="captcha-question" id="captchaQuestion">Loading&hellip;</span>
+          <input type="hidden" id="captchaToken">
+          <input type="text" id="captchaAnswer" class="text-input captcha-input" placeholder="Enter answer" required autocomplete="off">
+        </div>
+        <p class="hint">Solve the math question to prove you&rsquo;re not a bot.</p>
+      </div>
       <div class="actions">
         <button class="btn btn-primary btn-full" type="submit" id="submitBtn">Register</button>
       </div>
       <div class="status-msg" id="status" role="alert"></div>
+      <div class="resend-row" id="resendRow" style="display:none">
+        <p class="resend-hint">Didn&rsquo;t get the email? Check your spam folder, or</p>
+        <button class="btn btn-soft" type="button" id="resendBtn">Resend verification email</button>
+      </div>
     </form>
   </section>
 </main>

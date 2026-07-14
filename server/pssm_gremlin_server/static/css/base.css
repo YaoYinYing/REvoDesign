@@ -57,7 +57,7 @@ body {
 
 .page {
   width: min(1200px, calc(100% - 2rem));
-  margin: 1.2rem auto 2.4rem;
+  margin: 1.8rem auto 3rem;
 }
 
 .panel {
@@ -333,7 +333,7 @@ html[data-theme="dark"] .text-input::placeholder {
 @media (max-width: 640px) {
   .page {
     width: calc(100% - 1rem);
-    margin-top: 0.8rem;
+    margin-top: 1rem;
   }
   .hero {
     border-radius: 14px;

@@ -24,14 +24,18 @@ from pssm_gremlin_server.auth import (
     UserDatabase,
     _env_str,
     _is_account_blocked,
+    generate_captcha,
     generate_token,
     load_current_user,
     login_required,
     optional_user,
     require_bearer_auth,
     require_web_login,
+    send_approval_email,
     send_password_reset_email,
+    send_rejection_email,
     send_verification_email,
+    validate_captcha,
     validate_email_token,
     validate_reset_token,
 )
@@ -583,6 +587,13 @@ def require_admin():
     return None
 
 
+def _reject_guest():
+    """Return 403 if the current user is a guest account."""
+    if g.current_user.get("role") == "guest":
+        return jsonify({"error": "Guest accounts cannot perform this action"}), 403
+    return None
+
+
 def _parse_body(model_cls: type):
     """Validate request JSON against *model_cls*.  Returns the model instance
     or a ``(json_response, status_code)`` error tuple."""
@@ -683,6 +694,13 @@ def auth_logout():
     return response
 
 
+@app.route("/PSSM_GREMLIN/api/auth/captcha", methods=["GET"])
+def auth_captcha():
+    """Return a math CAPTCHA challenge with a signed token (5-min expiry)."""
+    question, token = generate_captcha()
+    return jsonify({"question": question, "token": token}), 200
+
+
 @app.route("/PSSM_GREMLIN/api/auth/register", methods=["POST"])
 @rate_limit(max_requests=3, window_seconds=3600)
 def auth_register():
@@ -698,6 +716,10 @@ def auth_register():
     req = _parse_body(RegisterRequest)
     if isinstance(req, tuple):
         return req
+
+    # CAPTCHA — block bot / programmatic registration
+    if not validate_captcha(req.captcha_token, req.captcha_answer):
+        return jsonify({"error": "CAPTCHA validation failed. Please try again."}), 400
 
     # Domain allowlist
     allowed = _allowed_email_domains()
@@ -724,12 +746,65 @@ def auth_register():
     if not sent:
         logging.warning("Email verification failed for %r; account created but not verified", req.username)
 
-    return (
-        jsonify(
-            {"message": "Registration successful — check your email to verify your account", "username": req.username}
-        ),
-        201,
-    )
+    if sent:
+        message = "Registration successful — check your email to verify your account."
+    else:
+        message = (
+            "Account created, but the verification email could not be sent. "
+            + "Contact an administrator to verify your account."
+        )
+
+    return jsonify({"message": message, "username": req.username, "email_sent": sent}), 201
+
+
+@app.route("/PSSM_GREMLIN/api/auth/resend-verification", methods=["POST"])
+@rate_limit(max_requests=10, window_seconds=3600)
+def auth_resend_verification():
+    """Resend the verification email for an unverified account.
+
+    Per-email backoff: first resend is immediate, then 10×n minutes where
+    *n* is the number of previous resends.
+    """
+    req = _parse_body(ForgotPasswordRequest)
+    if isinstance(req, tuple):
+        return req
+
+    email = req.email
+    if not email or "@" not in email:
+        return (
+            jsonify({"message": "If that email is registered and unverified, a new verification email has been sent."}),
+            200,
+        )
+
+    db = _get_user_db()
+    user = db.get_user_by_email(email)
+    if user is None:
+        return jsonify({"error": "No account found with this email address"}), 404
+
+    if user.get("deleted"):
+        return jsonify({"error": "Account has been deleted"}), 403
+    if user.get("user_status") == "banned":
+        return jsonify({"error": "Account has been suspended"}), 403
+
+    if user.get("email_verified"):
+        return jsonify({"message": "This email is already verified. You can log in."}), 200
+
+    # Per-email backoff: 10×n minutes since last resend
+    count = user.get("verification_resend_count") or 0
+    last_at = user.get("verification_resend_at")
+    if last_at and count > 0:
+        cooldown = 10 * 60 * count  # seconds
+        elapsed = time.time() - last_at
+        if elapsed < cooldown:
+            remaining = int((cooldown - elapsed) / 60) + 1
+            return jsonify({"error": f"Please wait {remaining} min before requesting another verification email"}), 429
+
+    sent = send_verification_email(user)
+    if not sent:
+        return jsonify({"error": "Failed to send verification email. Contact an administrator."}), 500
+
+    db.update_user(user["id"], verification_resend_count=count + 1, verification_resend_at=time.time())
+    return jsonify({"message": "Verification email sent. Check your inbox."}), 200
 
 
 @app.route("/PSSM_GREMLIN/api/auth/verify-email", methods=["GET"])
@@ -760,7 +835,15 @@ def auth_verify_email():
 
     db.verify_email(user_id)
     db.update_user(user_id, registration_status="verified")
-    return render_template("verify-email.html", success=True, email=user["email"]), 200
+    return (
+        render_template(
+            "verify-email.html",
+            success=True,
+            email=user["email"],
+            registration_pending=user.get("user_status") != "active",
+        ),
+        200,
+    )
 
 
 @app.route("/PSSM_GREMLIN/user_verify", methods=["GET"])
@@ -789,7 +872,15 @@ def auth_user_verify():
     db.verify_email(user_id)
     db.update_user(user_id, registration_status="verified")
     # user_status stays "pending" — admin must approve
-    return render_template("verify-email.html", success=True, email=user["email"]), 200
+    return (
+        render_template(
+            "verify-email.html",
+            success=True,
+            email=user["email"],
+            registration_pending=user.get("user_status") != "active",
+        ),
+        200,
+    )
 
 
 @app.route("/PSSM_GREMLIN/api/auth/me", methods=["GET"])
@@ -804,6 +895,7 @@ def auth_me():
                 "email": user["email"],
                 "email_verified": user["email_verified"],
                 "is_admin": user["is_admin"],
+                "role": user.get("role", "user"),
             }
         ),
         200,
@@ -815,6 +907,8 @@ def auth_me():
 def auth_update_me():
     """Change the current user's password."""
     if _blocked := require_web_login():
+        return _blocked
+    if _blocked := _reject_guest():
         return _blocked
     if _blocked := require_bearer_auth():
         return _blocked
@@ -854,6 +948,8 @@ def auth_generate_api_key():
     """Generate a new API key — returns the plaintext key once."""
     if _blocked := require_web_login():
         return _blocked
+    if _blocked := _reject_guest():
+        return _blocked
     if _blocked := require_bearer_auth():
         return _blocked
     db = _get_user_db()
@@ -866,6 +962,8 @@ def auth_generate_api_key():
 def auth_revoke_api_key():
     """Revoke the current user's API key."""
     if _blocked := require_web_login():
+        return _blocked
+    if _blocked := _reject_guest():
         return _blocked
     if _blocked := require_bearer_auth():
         return _blocked
@@ -908,7 +1006,8 @@ def admin_users():
         username=req.username,
         email=req.email,
         password=req.password,
-        is_admin=req.is_admin,
+        is_admin=req.is_admin or (req.role == "admin"),
+        role=req.role,
         affiliation=req.affiliation,
         registration_status="approved",
         user_status="active",
@@ -974,11 +1073,26 @@ def admin_manage_user(user_id):
             db.verify_email(user_id)
     if req.user_status is not None:
         update_fields["user_status"] = req.user_status
+    if req.role is not None:
+        if is_self:
+            return jsonify({"error": "Administrators cannot change their own role"}), 400
+        update_fields["role"] = req.role
+        if req.role == "admin":
+            update_fields["is_admin"] = True
 
     if update_fields:
         update_fields["approved_by"] = g.current_user["id"]
         update_fields["approved_at"] = time.time()
         db.update_user(user_id, **update_fields)
+
+        # Notify user on approval or rejection
+        new_reg = update_fields.get("registration_status")
+        if new_reg == "approved":
+            if not send_approval_email(user):
+                logging.warning("Approval email failed for %r", user["email"])
+        elif new_reg == "rejected":
+            if not send_rejection_email(user):
+                logging.warning("Rejection email failed for %r", user["email"])
 
     return jsonify({"message": "User updated"}), 200
 
