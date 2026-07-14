@@ -95,7 +95,7 @@ permission isolation.
 
 User accounts have three roles: `admin` (full access), `user` (registered user
 with API and web access), and `guest` (publicly shared, web-dashboard-only —
-no Bearer tokens, no API keys, no password/profile changes). Self-registration
+no API keys, no password/profile changes, no task deletion). Self-registration
 requires a server-generated math CAPTCHA to prevent automated signups.
 
 ### Services

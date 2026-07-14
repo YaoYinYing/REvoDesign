@@ -188,6 +188,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `tools/translate.sh` now iterates over glob directly instead of `ls` output (SC2045).
   - Removed redundant `action.setText()` in `MenuItem.bind_one` (constructor already sets the text).
 - Added 15 hand-maintained translation entries for ValueDialog action buttons (Browse, Pick Color, Select All, etc.) in zh_CN + zh_TW.
+- **GREMLIN server: guest task submission broken** — guest accounts were blocked from Bearer-token auth in `load_current_user`, forcing cookie-only auth which the CSRF gate (`require_bearer_auth`) rejects on state-changing endpoints. Removed the guest exclusion from the Bearer-token path (Bearer tokens are CSRF-safe by browser policy regardless of role). Added `_reject_guest()` guards to both delete endpoints so guests cannot delete tasks.
 
 ### Security
 - SQL injection: all queries use SQLAlchemy ORM parameterized queries.

@@ -373,13 +373,12 @@ def load_current_user() -> dict[str, Any] | None:
     db: UserDatabase = current_app.config["user_db"]
 
     # 1. Bearer token (Authorization header — full privileges, CSRF-safe)
-    #    Guest accounts are not permitted to use Bearer tokens.
     token = _extract_bearer_token()
     if token:
         user_id = validate_token(token)
         if user_id is not None:
             user = db.get_user(user_id)
-            if user is not None and _is_account_blocked(user) is None and user.get("role") != "guest":
+            if user is not None and _is_account_blocked(user) is None:
                 g.auth_method = "bearer"
                 return user
     # 2. Cookie — browser page navigations after login (read-only; CSRF-prone)
