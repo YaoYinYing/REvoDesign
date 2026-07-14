@@ -23,6 +23,7 @@ from flask import current_app, g, jsonify, redirect, render_template, request, s
 from pssm_gremlin_server.auth import (
     UserDatabase,
     _env_str,
+    _is_account_blocked,
     generate_token,
     load_current_user,
     login_required,
@@ -597,6 +598,9 @@ def auth_login():
         user = db.get_user_by_username(req.login_id)
     if user is None or not check_password_hash(user["password_hash"], req.password):
         return jsonify({"error": "Invalid username or password"}), 401
+
+    if blocked := _is_account_blocked(user):
+        return jsonify({"error": blocked}), 403
 
     token = generate_token(user["id"])
     response = jsonify({"token": token, "username": user["username"]})

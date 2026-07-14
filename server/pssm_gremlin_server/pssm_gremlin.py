@@ -45,6 +45,7 @@ THIS_DIR = os.path.dirname(THIS_FILE)
 TEMPLATE_IMAGE_DIR = os.path.join(THIS_DIR, "templates", "images")
 
 app = Flask(__name__, template_folder="./templates")
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MiB upload limit
 
 # ---------------------------------------------------------------------------
 # Auth initialisation — replaces the old HTTPBasicAuth + users.txt model
@@ -273,13 +274,17 @@ def _sanitize_for_log(value: str, max_len: int = 4096) -> str:
     return cleaned
 
 
+_REDACTED_HEADERS = frozenset({"authorization", "cookie", "x-api-key"})
+
+
 def _sanitize_headers_for_log(raw_headers: dict[str, str]) -> str:
     sanitized: dict[str, str] = {}
     for key, value in raw_headers.items():
         safe_key = _sanitize_for_log(str(key), max_len=256)
+        if not safe_key or safe_key.lower() in _REDACTED_HEADERS:
+            continue
         safe_value = _sanitize_for_log(str(value), max_len=2048)
-        if safe_key:
-            sanitized[safe_key] = safe_value
+        sanitized[safe_key] = safe_value
     return json.dumps(sanitized, ensure_ascii=True, sort_keys=True)
 
 
@@ -419,6 +424,11 @@ except BaseException:
 
 
 def _is_admin_user(username: str | None = None) -> bool:
+    # DB-based admin check — covers admins created through the user-control UI
+    user = g.get("current_user")
+    if user and user.get("is_admin"):
+        return True
+    # Legacy env-var-based check
     target = (username if username is not None else _current_username()) or ""
     return target in ADMIN_USERS
 

@@ -553,7 +553,13 @@ def _test_client_auth(module, username: str = "tester", password: str = "passwor
     db = module.app.config["user_db"]
     user = db.get_user_by_username(username)
     if not user:
-        user = db.create_user(username=username, email=f"{username}@test.local", password=password)
+        user = db.create_user(
+            username=username,
+            email=f"{username}@test.local",
+            password=password,
+            user_status="active",
+            registration_status="approved",
+        )
         db.verify_email(user["id"])
     from pssm_gremlin_server.auth import generate_token
 

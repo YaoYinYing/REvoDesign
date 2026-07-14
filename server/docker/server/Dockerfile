@@ -38,4 +38,4 @@ WORKDIR /app/server
 
 USER ${RUNNER_UID}:${RUNNER_GID}
 
-CMD ["sh", "-c", "exec gunicorn -w 2 -b 0.0.0.0:${PORT:-8080} pssm_gremlin_server.pssm_gremlin:app"]
+CMD ["sh", "-c", "exec gunicorn --preload -w 2 -b 0.0.0.0:${PORT:-8080} pssm_gremlin_server.pssm_gremlin:app"]

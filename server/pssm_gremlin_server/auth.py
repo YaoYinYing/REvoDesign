@@ -312,6 +312,24 @@ def _extract_bearer_token() -> str | None:
     return auth_header[7:].strip()
 
 
+def _is_account_blocked(user: dict[str, Any]) -> str | None:
+    """Return an error message if *user* is not allowed to authenticate, or ``None``.
+
+    Backward-compatible: ``user_status`` of ``None`` (pre-migration users) is
+    treated as ``"active"``.
+    """
+    if user.get("deleted"):
+        return "Account has been deleted"
+    if user.get("user_status") == "banned":
+        return "Account has been suspended"
+    # ponytail: pending users (self-registered, not yet admin-approved)
+    # cannot authenticate.  NULL = pre-migration → grandfathered as active.
+    status = user.get("user_status")
+    if status is not None and status != "active":
+        return "Account is not yet active"
+    return None
+
+
 def load_current_user() -> dict[str, Any] | None:
     """Resolve the authenticated user from the current request.
 
@@ -333,7 +351,7 @@ def load_current_user() -> dict[str, Any] | None:
         user_id = validate_token(token)
         if user_id is not None:
             user = db.get_user(user_id)
-            if user is not None:
+            if user is not None and _is_account_blocked(user) is None:
                 g.auth_method = "token"
                 return user
 
@@ -341,7 +359,7 @@ def load_current_user() -> dict[str, Any] | None:
     api_key = request.headers.get("X-API-Key", "").strip()
     if api_key:
         user = db.validate_api_key(api_key)
-        if user is not None:
+        if user is not None and _is_account_blocked(user) is None:
             g.auth_method = "api_key"
             return user
 
