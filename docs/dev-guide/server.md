@@ -276,7 +276,7 @@ Required environment variables (defined in `docker-compose.yml`):
 | `SERVER_BASE_URL` | Public base URL for verification links |
 | `REDIS_PASSWORD` | Optional Redis authentication password |
 | `RUNNER_UID` / `RUNNER_GID` | Non-root user for runner containers |
-| `DOCKER_GID` | Group ID of the Docker socket on the host |
+| `DOCKER_GID` | Runtime value auto-detected by `restart_pssm_flask.sh` for Docker Compose interpolation. Override only as a shell variable when detection is wrong |
 | `NPROC` | CPU threads for runner |
 | `MAXMEM` | Memory cap (GB) for HHblits (`-maxmem`) |
 | `PORT` | Public HTTP port (default: 8080) |
@@ -385,6 +385,10 @@ runner-launch changes:
   users choose image, command, privileged mode, bind source paths, or socket
   mounts.  Treat any HTTP path from an authenticated low-privilege user to
   Docker daemon control as a host-root escape risk.
+  If tasks fail before runner launch with `PermissionError(13, 'Permission
+  denied')`, compare the helper's auto-detected `DOCKER_GID` with
+  `docker exec server-worker-1 ls -ln /var/run/docker.sock`; rerun the helper
+  after changing Docker runtimes.
 - **Banned-user authentication check**: create a temporary user, log in, issue
   an API key, ban the user, then verify new login returns HTTP 403 and both the
   old Bearer token and old API key return HTTP 401.

@@ -165,7 +165,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `SERVER_BASE_URL` | Public base URL for generating verification links. |
 | `REDIS_PASSWORD` | Optional Redis authentication password. |
 | `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID (non-root required). |
-| `DOCKER_GID` | Group ID of Docker socket on host. |
+| `DOCKER_GID` | Auto-detected by `restart_pssm_flask.sh` at runtime for Docker Compose interpolation. Override only as a shell variable when detection is wrong. |
 | `NPROC` | CPU threads passed to runner. |
 | `MAXMEM` | Memory cap (GB) passed to hhblits (`-maxmem`) inside runner script. |
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
@@ -287,7 +287,7 @@ that value to disable the submit button and count down until retry.
 No sudo required.
 
 ```bash
-# initialize env values (for example DOCKER_GID)
+# initialize the env file and print detected Docker socket group
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh setup
 
 # full restart cycle (down + build + up)
@@ -403,6 +403,13 @@ You can start from:
 The web and worker containers mount `/var/run/docker.sock` to spawn runner containers. This is a security boundary:
 
 - The web/worker run as a non-root user with group-based Docker access.
+- `restart_pssm_flask.sh` auto-detects `DOCKER_GID` at runtime and exports it
+  for Docker Compose.  Do not persist host-specific socket groups in the env
+  file.  If tasks fail with `PermissionError(13, 'Permission denied')`, compare
+  the helper output with `docker exec server-worker-1 ls -ln
+  /var/run/docker.sock`.  On Docker Desktop/OrbStack for macOS the bind-mounted
+  socket commonly appears as group `0`, even when the host socket target has a
+  user-owned group.
 - The runner container has a SETUID `ldconfig.real` binary for shared-library cache updates.
 - Consider using a Docker socket proxy (e.g. `docker-socket-proxy`) to restrict API access in untrusted environments.
 - Never expose the Docker socket to a public network.

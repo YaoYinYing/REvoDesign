@@ -28,6 +28,7 @@ from celery.result import AsyncResult
 from docker import types
 from flask import Flask, current_app, g, jsonify, request
 from pssm_gremlin_server.db import TaskDatabase
+from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
 # Ensure AUTH_SECRET_KEY is set *before* auth.py initialises its token
@@ -178,21 +179,29 @@ ADMIN_USERS = set(_env_csv("ADMIN_USERS", "admin"))
 if _user_db.user_count() == 0:
     _default_admin = _env_str("DEFAULT_ADMIN_USERNAME", "admin")
     _default_pass = _env_str("DEFAULT_ADMIN_PASSWORD", os.urandom(16).hex())
-    _user_db.create_user(
-        username=_default_admin,
-        email=f"{_default_admin}@revodesign.local",
-        password=_default_pass,
-        is_admin=True,
-        registration_status="approved",
-        user_status="active",
-    )
-    _user_db.verify_email(1)
-    logging.warning(
-        "No users found — created default admin user %r. "
-        "Set DEFAULT_ADMIN_PASSWORD in the environment and restart, "
-        "or log in and change it immediately.",
-        _default_admin,
-    )
+    try:
+        _created_admin = _user_db.create_user(
+            username=_default_admin,
+            email=f"{_default_admin}@revodesign.local",
+            password=_default_pass,
+            is_admin=True,
+            registration_status="approved",
+            user_status="active",
+        )
+        _user_db.verify_email(_created_admin["id"])
+        logging.warning(
+            "No users found — created default admin user %r. "
+            "Set DEFAULT_ADMIN_PASSWORD in the environment and restart, "
+            "or log in and change it immediately.",
+            _default_admin,
+        )
+    except IntegrityError:
+        # Web and Celery can import the app concurrently on first boot.  If
+        # another process won the bootstrap insert race, continue with it.
+        _created_admin = _user_db.get_user_by_username(_default_admin)
+        if _created_admin and not _created_admin.get("email_verified"):
+            _user_db.verify_email(_created_admin["id"])
+        logging.info("Default admin user %r already exists after bootstrap race.", _default_admin)
 
 
 # Celery configurations

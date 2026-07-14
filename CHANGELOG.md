@@ -110,6 +110,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Login rate-limit feedback**: when login throttling returns HTTP 429 with
   `retry_after_seconds`, the login page now disables the submit button and
   displays a second-by-second retry countdown instead of a generic error.
+- **Fresh server setup**: default-admin bootstrap now tolerates concurrent
+  web/worker first-boot imports, avoiding a unique-constraint crash when both
+  processes see an empty user database.
+- **Docker socket setup**: `restart_pssm_flask.sh` now auto-detects and exports
+  `DOCKER_GID` at runtime instead of persisting host-specific socket groups in
+  env files.  On Docker Desktop/OrbStack for macOS it uses the
+  container-visible socket group (`0`), preventing runner launch failures with
+  `PermissionError(13, 'Permission denied')`.
 
 ### Security
 - SQL injection: all queries use SQLAlchemy ORM parameterized queries.

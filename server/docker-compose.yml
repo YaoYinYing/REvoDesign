@@ -21,7 +21,7 @@ x-common-env: &common-env
   
   RUNNER_UID: ${RUNNER_UID:-1000}
   RUNNER_GID: ${RUNNER_GID:-1000}
-  DOCKER_GID: ${DOCKER_GID:-998}
+  DOCKER_GID: ${DOCKER_GID:?Run server/run/restart_pssm_flask.sh so DOCKER_GID is auto-detected, or export it explicitly}
   RUNNER_USERNAME: ${RUNNER_USERNAME:-revodesign}
   RUNNER_GROUP: ${RUNNER_GROUP:-revodesign}
 
@@ -52,9 +52,11 @@ x-docker-socket-access: &docker-socket-access
   # can start privileged containers or bind-mount host paths.  This is
   # an accepted architecture choice; constrain it with a socket proxy or
   # separate runner service for a stronger boundary.
-  # Set DOCKER_GID to the host's docker group id: getent group docker | cut -d: -f3
+  # Set DOCKER_GID to the socket group as seen inside containers.  On Linux
+  # this is usually the host docker group id; on Docker Desktop/OrbStack for
+  # macOS the bind-mounted socket commonly appears as group 0.
   group_add:
-    - "${DOCKER_GID:-998}"
+    - "${DOCKER_GID:?Run server/run/restart_pssm_flask.sh so DOCKER_GID is auto-detected, or export it explicitly}"
 
 services:
   redis:
