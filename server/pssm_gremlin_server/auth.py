@@ -327,6 +327,10 @@ def _is_account_blocked(user: dict[str, Any]) -> str | None:
     status = user.get("user_status")
     if status is not None and status != "active":
         return "Account is not yet active"
+    # Self-registered users must verify email before use.  Admin-created
+    # users (registration_status == "approved") skip this requirement.
+    if not user.get("email_verified") and user.get("registration_status") != "approved":
+        return "Email not verified"
     return None
 
 
