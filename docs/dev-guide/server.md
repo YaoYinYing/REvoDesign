@@ -89,9 +89,9 @@ The server has four containerized services, orchestrated by Docker Compose:
 
 The service stack is fully containerized and orchestrated via Docker Compose.
 Deployment requires only database files, environment variables, and a single
-command. All services run as non-root users to prevent privilege escalation;
-database directories are mounted read-only for data safety. User task data is
-organized by user identity and task MD5, with strict permission isolation.
+command. Services run as non-root users with group-based Docker socket access.
+User task data is organized by user identity and task MD5, with strict
+permission isolation.
 
 ### Services
 

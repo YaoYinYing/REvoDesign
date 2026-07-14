@@ -28,6 +28,7 @@ from pssm_gremlin_server.auth import (
     load_current_user,
     login_required,
     optional_user,
+    require_bearer_auth,
     require_web_login,
     send_password_reset_email,
     send_verification_email,
@@ -803,6 +804,8 @@ def auth_update_me():
     """Change the current user's password."""
     if _blocked := require_web_login():
         return _blocked
+    if _blocked := require_bearer_auth():
+        return _blocked
     user = g.current_user
     req = _parse_body(ChangePasswordRequest)
     if isinstance(req, tuple):
@@ -839,6 +842,8 @@ def auth_generate_api_key():
     """Generate a new API key — returns the plaintext key once."""
     if _blocked := require_web_login():
         return _blocked
+    if _blocked := require_bearer_auth():
+        return _blocked
     db = _get_user_db()
     plaintext = db.generate_api_key(g.current_user["id"])
     return jsonify({"api_key": plaintext, "message": "Store this key securely — it will not be shown again."}), 201
@@ -849,6 +854,8 @@ def auth_generate_api_key():
 def auth_revoke_api_key():
     """Revoke the current user's API key."""
     if _blocked := require_web_login():
+        return _blocked
+    if _blocked := require_bearer_auth():
         return _blocked
     db = _get_user_db()
     db.revoke_api_key(g.current_user["id"])
@@ -873,7 +880,9 @@ def admin_users():
         safe = [UserResponse.model_validate(u).model_dump() for u in users]
         return jsonify({"users": safe}), 200
 
-    # POST
+    # POST — state-changing, require Bearer token for CSRF protection
+    if _blocked := require_bearer_auth():
+        return _blocked
     req = _parse_body(AdminCreateUserRequest)
     if isinstance(req, tuple):
         return req
@@ -908,6 +917,8 @@ def admin_manage_user(user_id):
     """
     if _blocked := require_admin():
         return _blocked
+    if _blocked := require_bearer_auth():
+        return _blocked
 
     db = _get_user_db()
     user = db.get_user(user_id)
@@ -939,6 +950,11 @@ def admin_manage_user(user_id):
         update_fields["password_hash"] = generate_password_hash(req.password)
     if req.registration_status is not None:
         update_fields["registration_status"] = req.registration_status
+        # Admin approval implies email verification — avoid the gap where
+        # an unverified self-registered account becomes active without
+        # proving email ownership.
+        if req.registration_status == "approved" and not user.get("email_verified"):
+            db.verify_email(user_id)
     if req.user_status is not None:
         update_fields["user_status"] = req.user_status
 
@@ -958,6 +974,8 @@ def admin_batch_users():
     Accepts ``{"action": "enable"|"disable"|"delete", "user_ids": [...]}``.
     """
     if _blocked := require_admin():
+        return _blocked
+    if _blocked := require_bearer_auth():
         return _blocked
 
     req = _parse_body(BatchUserRequest)

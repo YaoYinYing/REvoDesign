@@ -327,9 +327,10 @@ def _is_account_blocked(user: dict[str, Any]) -> str | None:
     status = user.get("user_status")
     if status is not None and status != "active":
         return "Account is not yet active"
-    # Self-registered users must verify email before use.  Admin-created
-    # users (registration_status == "approved") skip this requirement.
-    if not user.get("email_verified") and user.get("registration_status") != "approved":
+    # All active users must have a verified email address.  Admin-created
+    # and admin-approved users get verify_email() called automatically in
+    # the admin routes.
+    if user.get("email_verified") is False:
         return "Email not verified"
     return None
 
@@ -346,17 +347,23 @@ def load_current_user() -> dict[str, Any] | None:
     """
     db: UserDatabase = current_app.config["user_db"]
 
-    # 1. Bearer token (web login — full privileges)
+    # 1. Bearer token (Authorization header — full privileges, CSRF-safe)
     token = _extract_bearer_token()
-    # 2. Cookie — browser page navigations after login
-    if not token:
-        token = request.cookies.get("auth_token")
     if token:
         user_id = validate_token(token)
         if user_id is not None:
             user = db.get_user(user_id)
             if user is not None and _is_account_blocked(user) is None:
-                g.auth_method = "token"
+                g.auth_method = "bearer"
+                return user
+    # 2. Cookie — browser page navigations after login (read-only; CSRF-prone)
+    token = request.cookies.get("auth_token")
+    if token:
+        user_id = validate_token(token)
+        if user_id is not None:
+            user = db.get_user(user_id)
+            if user is not None and _is_account_blocked(user) is None:
+                g.auth_method = "cookie"
                 return user
 
     # 3. API key (programmatic access — restricted privileges)
@@ -378,6 +385,19 @@ def require_web_login():
     """
     if g.get("auth_method") == "api_key":
         return jsonify({"error": "API keys cannot perform this action — use web login"}), 403
+    return None
+
+
+def require_bearer_auth():
+    """Return a 403 error if the current request was authenticated via cookie.
+
+    CSRF gate: cookie-authenticated requests can be triggered cross-origin
+    by top-level navigations.  State-changing endpoints must present a Bearer
+    token in the ``Authorization`` header, which the browser same-origin
+    policy prevents cross-origin requests from setting.
+    """
+    if g.get("auth_method") == "cookie":
+        return jsonify({"error": "Bearer token required for this action"}), 403
     return None
 
 
