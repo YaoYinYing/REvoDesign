@@ -23,11 +23,8 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/server/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt \
-    && rm -f /tmp/requirements.txt
-
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} . /app/server
+RUN pip install --no-cache-dir "/app/server[resend]"
 
 
 ENV PYTHONPATH=/app/server

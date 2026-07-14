@@ -99,8 +99,11 @@ def register_page():
         return redirect(url_for("task_dashboard"))
     if not ENABLE_REGISTER:
         return render_template("error.html", code=403, message="Registration is disabled on this server"), 403
-    if not _smtp_configured():
-        return render_template("error.html", code=403, message="Registration requires SMTP to be configured"), 403
+    if not _email_configured():
+        return (
+            render_template("error.html", code=403, message="Registration requires email service to be configured"),
+            403,
+        )
     return render_template("register.html")
 
 
@@ -551,8 +554,9 @@ def delete_tasks_batch():
 # ---------------------------------------------------------------------------
 
 
-def _smtp_configured() -> bool:
-    return bool(_env_str("SMTP_HOST", ""))
+def _email_configured() -> bool:
+    """Return True if email sending is configured (Resend or SMTP)."""
+    return bool(_env_str("RESEND_API_KEY", "") or _env_str("SMTP_HOST", ""))
 
 
 def _allowed_email_domains() -> set[str]:
@@ -623,8 +627,8 @@ def auth_login():
 @rate_limit(max_requests=3, window_seconds=3600)
 def auth_forgot_password():
     """Send a password-reset link to the given email address."""
-    if not _smtp_configured():
-        return jsonify({"error": "Password reset requires SMTP to be configured"}), 503
+    if not _email_configured():
+        return jsonify({"error": "Password reset requires email service to be configured"}), 503
 
     req = _parse_body(ForgotPasswordRequest)
     if isinstance(req, tuple):
@@ -684,12 +688,12 @@ def auth_logout():
 def auth_register():
     """Register a new user account.
 
-    Requires ``ENABLE_REGISTER=true`` AND a configured SMTP server.
+    Requires ``ENABLE_REGISTER=true`` AND a configured email service (Resend).
     """
     if not ENABLE_REGISTER:
         return jsonify({"error": "Registration is disabled on this server"}), 403
-    if not _smtp_configured():
-        return jsonify({"error": "Registration requires SMTP to be configured"}), 403
+    if not _email_configured():
+        return jsonify({"error": "Registration requires email service to be configured"}), 403
 
     req = _parse_body(RegisterRequest)
     if isinstance(req, tuple):
@@ -731,12 +735,12 @@ def auth_register():
 @app.route("/PSSM_GREMLIN/api/auth/verify-email", methods=["GET"])
 def auth_verify_email():
     """Verify an email address via a one-time token (renders an HTML page)."""
-    if not _smtp_configured():
+    if not _email_configured():
         return (
             render_template(
                 "verify-email.html",
                 success=False,
-                error="Email verification is not available — SMTP is not configured.",
+                error="Email verification is not available — email service is not configured.",
             ),
             403,
         )

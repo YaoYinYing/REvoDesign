@@ -27,6 +27,22 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
 
 # ---------------------------------------------------------------------------
+# Resend email (optional extra — falls back to stdlib SMTP when not installed)
+# ---------------------------------------------------------------------------
+
+try:
+    import resend as _resend_module
+
+    _resend_key = os.environ.get("RESEND_API_KEY", "")
+    if _resend_key:
+        _resend_module.api_key = _resend_key
+    _HAS_RESEND = True
+except ImportError:
+    _resend_module = None  # type: ignore[assignment]
+    _resend_key = ""
+    _HAS_RESEND = False
+
+# ---------------------------------------------------------------------------
 # Configuration helpers
 # ---------------------------------------------------------------------------
 
@@ -447,7 +463,7 @@ def optional_user(f: Callable) -> Callable:
 
 
 # ---------------------------------------------------------------------------
-# Email verification (stdlib smtplib — no new dependency)
+# Email delivery — Resend (optional pip extra) with SMTP fallback
 # ---------------------------------------------------------------------------
 
 
@@ -463,31 +479,43 @@ def _smtp_config() -> dict[str, Any]:
     }
 
 
-def send_verification_email(user: dict[str, Any]) -> bool:
-    """Send an email-verification message to *user*.
+def _use_resend() -> bool:
+    """Return True if Resend is installed and configured."""
+    return _HAS_RESEND and bool(_resend_key)
+
+
+def _resend_from() -> str:
+    name = _env_str("RESEND_FROM_NAME", "REvoDesign GREMLIN Server")
+    addr = _env_str("RESEND_FROM_ADDR", "onboarding@resend.dev")
+    return f"{name} <{addr}>"
+
+
+def _send_email(*, to: str, subject: str, text: str) -> bool:
+    """Send a plain-text email.  Uses Resend if available+configured, else SMTP.
 
     Returns ``True`` on success, ``False`` on failure (logged).
     """
+    # Resend path (optional pip extra)
+    if _use_resend():
+        try:
+            params: _resend_module.Emails.SendParams = {  # type: ignore[union-attr]
+                "from": _resend_from(),
+                "to": [to],
+                "subject": subject,
+                "text": text,
+            }
+            _resend_module.Emails.send(params)  # type: ignore[union-attr]
+            return True
+        except Exception:
+            logging.exception("Resend failed for %s, trying SMTP fallback", to)
+
+    # SMTP path (stdlib, always available)
     cfg = _smtp_config()
-    token = _serializer.dumps({"uid": user["id"], "purpose": "verify-email"})
-    verify_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
-    verify_url = f"{verify_url}/PSSM_GREMLIN/user_verify?c={token}"
-
-    subject = "Verify your REvoDesign GREMLIN account"
-    body = (
-        f"Hello {user['username']},\n\n"
-        f"Please verify your email address by clicking the link below.\n\n"
-        f"{verify_url}\n\n"
-        f"This link will expire in 2 days.\n\n"
-        f"If you did not create this account, please ignore this message.\n\n"
-        f"— REvoDesign GREMLIN Server\n"
-    )
-
     msg = MIMEMultipart()
     msg["From"] = f"{cfg['from_name']} <{cfg['from_addr']}>"
-    msg["To"] = user["email"]
+    msg["To"] = to
     msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
+    msg.attach(MIMEText(text, "plain"))
 
     try:
         if cfg["use_tls"]:
@@ -501,8 +529,31 @@ def send_verification_email(user: dict[str, Any]) -> bool:
         server.quit()
         return True
     except Exception:
-        logging.exception("Failed to send verification email to %s", user["email"])
+        logging.exception("Failed to send email to %s", to)
         return False
+
+
+def send_verification_email(user: dict[str, Any]) -> bool:
+    """Send an email-verification message to *user*.
+
+    Returns ``True`` on success, ``False`` on failure (logged).
+    """
+    token = _serializer.dumps({"uid": user["id"], "purpose": "verify-email"})
+    verify_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
+    verify_url = f"{verify_url}/PSSM_GREMLIN/user_verify?c={token}"
+
+    return _send_email(
+        to=user["email"],
+        subject="Verify your REvoDesign GREMLIN account",
+        text=(
+            f"Hello {user['username']},\n\n"
+            f"Please verify your email address by clicking the link below.\n\n"
+            f"{verify_url}\n\n"
+            f"This link will expire in 2 days.\n\n"
+            f"If you did not create this account, please ignore this message.\n\n"
+            f"— REvoDesign GREMLIN Server\n"
+        ),
+    )
 
 
 def validate_email_token(token: str) -> int | None:
@@ -525,48 +576,29 @@ def send_password_reset_email(email: str, db: UserDatabase) -> bool:
     """Send a password-reset link to *email* if a user with that address exists.
 
     Returns ``True`` if an email was sent, ``False`` otherwise (no user, or
-    SMTP failure).  Does not reveal whether the email is registered.
+    delivery failure).  Does not reveal whether the email is registered.
     """
     user = db.get_user_by_email(email)
     if user is None:
         # Don't leak whether the email is registered — pretend success
         return True
 
-    cfg = _smtp_config()
     token = _serializer.dumps({"uid": user["id"], "purpose": "reset-password"})
     base_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
     reset_url = f"{base_url}/PSSM_GREMLIN/reset_password?c={token}"
 
-    subject = "Reset your REvoDesign GREMLIN password"
-    body = (
-        f"Hello {user['username']},\n\n"
-        f"A password reset was requested for your account.  Click the link below to set a new password.\n\n"
-        f"{reset_url}\n\n"
-        f"This link will expire in 1 hour.\n\n"
-        f"If you did not request this, please ignore this message — your password will not change.\n\n"
-        f"— REvoDesign GREMLIN Server\n"
+    return _send_email(
+        to=email,
+        subject="Reset your REvoDesign GREMLIN password",
+        text=(
+            f"Hello {user['username']},\n\n"
+            f"A password reset was requested for your account.  Click the link below to set a new password.\n\n"
+            f"{reset_url}\n\n"
+            f"This link will expire in 1 hour.\n\n"
+            f"If you did not request this, please ignore this message — your password will not change.\n\n"
+            f"— REvoDesign GREMLIN Server\n"
+        ),
     )
-
-    msg = MIMEMultipart()
-    msg["From"] = f"{cfg['from_name']} <{cfg['from_addr']}>"
-    msg["To"] = email
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
-
-    try:
-        if cfg["use_tls"]:
-            server = smtplib.SMTP(cfg["host"], cfg["port"], timeout=15)
-            server.starttls()
-        else:
-            server = smtplib.SMTP(cfg["host"], cfg["port"], timeout=15)
-        if cfg["username"] and cfg["password"]:
-            server.login(cfg["username"], cfg["password"])
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception:
-        logging.exception("Failed to send password-reset email to %s", email)
-        return False
 
 
 def validate_reset_token(token: str) -> int | None:

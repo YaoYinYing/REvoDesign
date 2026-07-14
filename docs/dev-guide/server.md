@@ -181,7 +181,7 @@ cookie-only writes are rejected to avoid CSRF on browser sessions.
 |--------|----------|-------------|
 | `POST` | `/PSSM_GREMLIN/api/auth/login` | Login, returns Bearer token and sets auth cookie |
 | `POST` | `/PSSM_GREMLIN/api/auth/logout` | Logout, clears auth cookie |
-| `POST` | `/PSSM_GREMLIN/api/auth/register` | Self-registration (requires `ENABLE_REGISTER` + SMTP) |
+| `POST` | `/PSSM_GREMLIN/api/auth/register` | Self-registration (requires `ENABLE_REGISTER` + email service) |
 | `POST` | `/PSSM_GREMLIN/api/auth/forgot-password` | Send password-reset email (rate-limited: 3/hr/IP) |
 | `GET` `/POST` | `/PSSM_GREMLIN/reset_password?c=` | Password-reset form (GET) and new-password submission (POST) |
 | `GET` | `/PSSM_GREMLIN/user_verify?c=` | Verify email via serializer token (2-day expiry) |
@@ -212,7 +212,7 @@ still applying the requested action to other selected users.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/PSSM_GREMLIN/login` | Login page (redirects to dashboard if already authenticated) |
-| `GET` | `/PSSM_GREMLIN/register` | Registration page (requires `ENABLE_REGISTER` + SMTP) |
+| `GET` | `/PSSM_GREMLIN/register` | Registration page (requires `ENABLE_REGISTER` + email service) |
 
 ### Task States
 
@@ -264,15 +264,18 @@ Required environment variables (defined in `docker-compose.yml`):
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens (set in production) |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days) |
 | `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`) |
-| `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires SMTP) |
+| `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires email service) |
 | `DEFAULT_ADMIN_PASSWORD` | Password for the default admin account (created on first run) |
-| `SMTP_HOST` | SMTP server hostname |
+| `SMTP_HOST` | SMTP server hostname (stdlib, always available) |
 | `SMTP_PORT` | SMTP port (default: 587) |
 | `SMTP_USERNAME` | SMTP auth username |
 | `SMTP_PASSWORD` | SMTP auth password |
 | `SMTP_USE_TLS` | Use STARTTLS (default: `true`) |
 | `SMTP_FROM_ADDR` | Sender address for verification emails |
 | `SMTP_FROM_NAME` | Sender display name |
+| `RESEND_API_KEY` | Resend API key (optional; takes priority over SMTP when set) |
+| `RESEND_FROM_ADDR` | Sender address for Resend (default: onboarding@resend.dev) |
+| `RESEND_FROM_NAME` | Sender display name for Resend |
 | `SERVER_BASE_URL` | Public base URL for verification links |
 | `REDIS_PASSWORD` | Optional Redis authentication password |
 | `RUNNER_UID` / `RUNNER_GID` | Non-root user for runner containers |

@@ -45,6 +45,9 @@ x-common-env: &common-env
   SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
   SMTP_FROM_ADDR: ${SMTP_FROM_ADDR:-noreply@revodesign.local}
   SMTP_FROM_NAME: ${SMTP_FROM_NAME:-REvoDesign GREMLIN Server}
+  RESEND_API_KEY: ${RESEND_API_KEY:-}
+  RESEND_FROM_ADDR: ${RESEND_FROM_ADDR:-onboarding@resend.dev}
+  RESEND_FROM_NAME: ${RESEND_FROM_NAME:-REvoDesign GREMLIN Server}
   SERVER_BASE_URL: ${SERVER_BASE_URL:-http://localhost:8080}
 
 x-docker-socket-access: &docker-socket-access

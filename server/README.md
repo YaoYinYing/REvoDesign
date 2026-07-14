@@ -153,15 +153,11 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
 | `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`). |
-| `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires SMTP). |
+| `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires Resend API key). |
 | `DEFAULT_ADMIN_PASSWORD` | Password for the default admin account (created on first run if user DB is empty). |
-| `SMTP_HOST` | SMTP server hostname (required for registration + email verification). |
-| `SMTP_PORT` | SMTP port (default: 587). |
-| `SMTP_USERNAME` | SMTP authentication username. |
-| `SMTP_PASSWORD` | SMTP authentication password. |
-| `SMTP_USE_TLS` | Use STARTTLS (default: `true`). |
-| `SMTP_FROM_ADDR` | Sender address for verification emails. |
-| `SMTP_FROM_NAME` | Sender display name. |
+| `RESEND_API_KEY` | Resend API key for sending verification and password-reset emails. |
+| `RESEND_FROM_ADDR` | Sender email address (verified domain in Resend). |
+| `RESEND_FROM_NAME` | Sender display name (default: REvoDesign GREMLIN Server). |
 | `SERVER_BASE_URL` | Public base URL for generating verification links. |
 | `REDIS_PASSWORD` | Optional Redis authentication password. |
 | `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID (non-root required). |
@@ -211,9 +207,9 @@ Change the password immediately after first login.  The `restart_pssm_flask.sh`
 script generates and displays the admin password on first boot when
 `DEFAULT_ADMIN_PASSWORD` is unset.
 
-Set `ENABLE_REGISTER=true` and configure SMTP to allow self-registration.
+Set `ENABLE_REGISTER=true` and `RESEND_API_KEY` to allow self-registration.
 Users receive a verification email; accounts must be verified before use.
-Without SMTP, registration is disabled — use the admin API to create accounts.
+Without a Resend API key, registration is disabled — use the admin API to create accounts.
 
 ### API authentication
 
