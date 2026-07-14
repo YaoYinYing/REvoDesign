@@ -412,7 +412,10 @@ The web and worker containers mount `/var/run/docker.sock` to spawn runner conta
 - Rate limiting: 5 login attempts/minute/IP, 3 registrations/hour/IP.
 - All state-changing endpoints require a valid Bearer token or API key.
 - API keys have restricted privileges (task operations only) — Bearer tokens are required for profile changes and admin actions.
-- CSRF is mitigated: all state-changing requests use `fetch()` with JSON content-type and Bearer tokens or the HttpOnly cookie.
+- CSRF is mitigated: state-changing endpoints require a Bearer token in the
+  `Authorization` header (browser same-origin policy prevents cross-origin
+  requests from setting custom headers).  The `HttpOnly` cookie is used for
+  read-only page navigations only.
 
 ### Redis
 

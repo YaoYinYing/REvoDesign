@@ -143,6 +143,8 @@ def logo_svg():
 @app.route("/PSSM_GREMLIN/api/post", methods=["POST"])
 @login_required
 def upload_file():
+    if _blocked := require_bearer_auth():
+        return _blocked
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
 
@@ -338,6 +340,8 @@ def download_results(md5sum):
 @app.route("/PSSM_GREMLIN/api/cancel/<md5sum>", methods=["POST"])
 @login_required
 def cancel_task(md5sum):
+    if _blocked := require_bearer_auth():
+        return _blocked
     md5sum = _normalize_task_id(md5sum)
     if md5sum is None:
         return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
@@ -436,6 +440,8 @@ def task_dashboard():
 @app.route("/PSSM_GREMLIN/api/delete/<md5sum>", methods=["DELETE"])
 @login_required
 def delete_task(md5sum):
+    if _blocked := require_bearer_auth():
+        return _blocked
     md5sum = _normalize_task_id(md5sum)
     if md5sum is None:
         return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
@@ -472,6 +478,8 @@ def delete_task(md5sum):
 @app.route("/PSSM_GREMLIN/api/delete", methods=["POST"])
 @login_required
 def delete_tasks_batch():
+    if _blocked := require_bearer_auth():
+        return _blocked
     payload = request.get_json(silent=True) or {}
     md5sums = payload.get("md5sums")
     if not isinstance(md5sums, list):

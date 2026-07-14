@@ -48,7 +48,10 @@ x-common-env: &common-env
   SERVER_BASE_URL: ${SERVER_BASE_URL:-http://localhost:8080}
 
 x-docker-socket-access: &docker-socket-access
-  # Least privilege: only grant Docker socket group access.
+  # Docker socket group access is host-root-equivalent — the Docker API
+  # can start privileged containers or bind-mount host paths.  This is
+  # an accepted architecture choice; constrain it with a socket proxy or
+  # separate runner service for a stronger boundary.
   # Set DOCKER_GID to the host's docker group id: getent group docker | cut -d: -f3
   group_add:
     - "${DOCKER_GID:-998}"
