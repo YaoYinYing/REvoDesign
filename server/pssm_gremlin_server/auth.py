@@ -103,6 +103,7 @@ _users_table = sa.Table(
     sa.Column("deleted", sa.Boolean, nullable=False, default=False),
     sa.Column("role", sa.String(32), nullable=False, default="user"),
     sa.Column("admin_notified", sa.Boolean, nullable=False, default=False),
+    sa.Column("registration_ip", sa.String(45), nullable=True),
 )
 
 
@@ -156,6 +157,7 @@ class UserDatabase:
             ("verification_resend_at", "FLOAT"),
             ("role", "TEXT"),
             ("admin_notified", "INTEGER"),
+            ("registration_ip", "TEXT"),
         ]:
             if col not in existing:
                 conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype};")
@@ -181,6 +183,7 @@ class UserDatabase:
         terms_agreed: bool = False,
         registration_status: str = "email_sent",
         user_status: str = "pending",
+        registration_ip: str | None = None,
     ) -> dict[str, Any]:
         """Insert a new user.  Returns the row as a dict."""
         now = time.time()
@@ -195,6 +198,7 @@ class UserDatabase:
             affiliation=affiliation,
             terms_agreed=terms_agreed,
             registration_status=registration_status,
+            registration_ip=registration_ip,
             user_status=user_status,
         )
         with self.engine.begin() as conn:

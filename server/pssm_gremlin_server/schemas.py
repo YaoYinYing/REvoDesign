@@ -167,3 +167,4 @@ class UserResponse(BaseModel):
     created_at: float | None
     approved_by: int | None
     approved_at: float | None
+    registration_ip: str | None = None

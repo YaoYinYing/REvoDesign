@@ -613,6 +613,18 @@ def _get_user_db() -> UserDatabase:
     return current_app.config["user_db"]  # type: ignore[no-any-return]
 
 
+def _client_ip() -> str | None:
+    """Return the best-guess client IP, preferring proxy headers over remote_addr."""
+    forwarded = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+    if forwarded:
+        return forwarded
+    real_ip = request.headers.get("X-Real-IP", "").strip()
+    if real_ip:
+        return real_ip
+    remote = request.remote_addr
+    return remote if remote else None
+
+
 def require_admin():
     """Return 403 if the current user is not an admin (DB ``is_admin`` column)."""
     if _blocked := require_web_login():
@@ -778,6 +790,7 @@ def auth_register():
         password=req.password,
         affiliation=req.affiliation,
         terms_agreed=req.terms_agreed,
+        registration_ip=_client_ip(),
     )
 
     sent = send_verification_email(user)

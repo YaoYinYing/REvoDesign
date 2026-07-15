@@ -151,7 +151,7 @@
     tr.innerHTML =
       '<td class="col-select"><input type="checkbox"' + selectAttrs + '></td>' +
       '<td class="col-email">' + escapeHtml(u.email || "—") + '</td>' +
-      '<td class="col-ip muted">—</td>' +
+      '<td class="col-ip muted">' + escapeHtml(u.registration_ip || "—") + '</td>' +
       '<td class="col-affil">' + escapeHtml(u.affiliation || "—") + '</td>' +
       '<td class="col-role"><span class="status-badge ' + escapeAttr(u.role || "user") + '">' + escapeHtml(ROLE_LABELS[u.role] || u.role || "User") + '</span></td>' +
       '<td class="col-reg"><span class="status-badge ' + escapeAttr(u.registration_status) + '">' + escapeHtml(regLabel) + '</span></td>' +
