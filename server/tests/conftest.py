@@ -11,11 +11,34 @@ Run from the repo root::
 
 from __future__ import annotations
 
+import os
+import subprocess
 import sys
 from pathlib import Path
 
-# Ensure the server directory is on sys.path so test helpers can import
-# from pssm_gremlin_server without installing the package first.
+# ── path setup ────────────────────────────────────────────────────────────────
+
 SERVER_DIR = Path(__file__).resolve().parent.parent
 if str(SERVER_DIR) not in sys.path:
     sys.path.insert(0, str(SERVER_DIR))
+
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+REPO_DIR = str(ROOT_DIR)
+TEST_ROOT = os.path.abspath(".")
+
+
+# ── Docker availability ────────────────────────────────────────────────────────
+
+def has_docker_daemon() -> bool:
+    """Check whether a local Docker daemon is reachable."""
+    try:
+        subprocess.run(
+            ["docker", "info"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+            check=True,
+        )
+        return True
+    except Exception:
+        return False

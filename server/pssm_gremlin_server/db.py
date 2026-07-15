@@ -34,6 +34,7 @@ class TaskDatabase:
     """Minimal SQLite-based task tracker for GREMLIN jobs."""
 
     DELETED_STATUSES = {"deleted:finshed", "deleted:cancel"}
+    TERMINAL_STATUSES = {"deleted:finshed", "deleted:cancel", "cancelled"}
 
     VALID_STATUSES = {
         "pending",
@@ -160,11 +161,12 @@ class TaskDatabase:
         if status:
             self._ensure_status(status)
         stmt = update(self.tasks_table).where(self.tasks_table.c.md5sum == md5sum).values(**fields)
-        # Deleted tasks are terminal in the runtime state machine.
+        # Terminal tasks (deleted / cancelled) must stay terminal.
         # Ignore late worker writes (running/packing/finished/run_stage, etc.)
-        # that would otherwise resurrect tasks after user deletion.
+        # that would otherwise resurrect tasks after user deletion or
+        # cancellation.
         if status is None or (not self._is_deleted_status(status)):
-            stmt = stmt.where(self.tasks_table.c.status.notin_(tuple(self.DELETED_STATUSES)))
+            stmt = stmt.where(self.tasks_table.c.status.notin_(tuple(self.TERMINAL_STATUSES)))
         with self.engine.begin() as conn:
             conn.execute(stmt)
 

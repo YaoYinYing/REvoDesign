@@ -623,15 +623,22 @@ def _deleted_status_from_task(task: dict[str, Any]) -> str:
 
 
 def _is_deleted_status(status: Any) -> bool:
+    """True when *status* is a deleted state (``deleted:finshed`` or ``deleted:cancel``)."""
     normalized = str(status or "").strip().lower()
     return normalized in {"deleted:finshed", "deleted:cancel"}
 
 
-def _task_is_deleted(md5sum: str) -> bool:
+def _is_terminal_status(status: Any) -> bool:
+    """True when *status* is terminal — deleted or cancelled."""
+    normalized = str(status or "").strip().lower()
+    return normalized in {"deleted:finshed", "deleted:cancel", "cancelled"}
+
+
+def _task_is_terminal(md5sum: str) -> bool:
     task = task_store.get_task(md5sum)
     if not task:
         return False
-    return _is_deleted_status(task.get("status"))
+    return _is_terminal_status(task.get("status"))
 
 
 def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mount, str]:
@@ -860,7 +867,7 @@ def run_gremlin_task(md5sum):
     def _on_stage_change(stage: str) -> None:
         if stage == stage_state["current"]:
             return
-        if _task_is_deleted(md5sum):
+        if _task_is_terminal(md5sum):
             return
         stage_state["current"] = stage
         task_store.update_task(md5sum, run_stage=stage)
@@ -871,18 +878,18 @@ def run_gremlin_task(md5sum):
             output_dir=output_dir,
             stage_callback=_on_stage_change,
         )
-        if _task_is_deleted(md5sum):
+        if _task_is_terminal(md5sum):
             logging.info("Task %s was deleted during execution; skipping result packing and finalization.", md5sum)
             return
         final_stage = stage_state["current"] or _RUNNING_TRACE_STEPS[-1][0]
         task_store.update_task(md5sum, status="packing results", run_stage=final_stage)
         refreshed_task = task_store.get_task(md5sum) or task
-        if _is_deleted_status(refreshed_task.get("status")):
+        if _is_terminal_status(refreshed_task.get("status")):
             logging.info("Task %s was deleted before archive packing; skipping artifact packaging.", md5sum)
             return
         _pack_results_archive(refreshed_task)
         refreshed_task = task_store.get_task(md5sum) or refreshed_task
-        if _is_deleted_status(refreshed_task.get("status")):
+        if _is_terminal_status(refreshed_task.get("status")):
             logging.info("Task %s was deleted during archive packing; skipping final status update.", md5sum)
             return
         finish_time = time.time()
@@ -897,40 +904,43 @@ def run_gremlin_task(md5sum):
     except docker.errors.ContainerError as exc:
         finish_time = time.time()
         error_message = f"docker: {exc}"
-        _pack_failed_results_archive(task, error_message)
-        task_store.update_task(
-            md5sum,
-            status="failed",
-            finished_at=finish_time,
-            walltime=finish_time - start_time,
-            error=error_message,
-            run_stage=stage_state["current"],
-        )
+        if not _task_is_terminal(md5sum):
+            _pack_failed_results_archive(task, error_message)
+            task_store.update_task(
+                md5sum,
+                status="failed",
+                finished_at=finish_time,
+                walltime=finish_time - start_time,
+                error=error_message,
+                run_stage=stage_state["current"],
+            )
     except docker.errors.DockerException as exc:
         finish_time = time.time()
         error_message = f"docker: {exc}"
-        _pack_failed_results_archive(task, error_message)
-        task_store.update_task(
-            md5sum,
-            status="failed",
-            finished_at=finish_time,
-            walltime=finish_time - start_time,
-            error=error_message,
-            run_stage=stage_state["current"],
-        )
+        if not _task_is_terminal(md5sum):
+            _pack_failed_results_archive(task, error_message)
+            task_store.update_task(
+                md5sum,
+                status="failed",
+                finished_at=finish_time,
+                walltime=finish_time - start_time,
+                error=error_message,
+                run_stage=stage_state["current"],
+            )
         logging.error("Docker daemon unavailable for GREMLIN task %s: %s", md5sum, exc)
     except Exception as exc:  # pylint: disable=broad-except
         finish_time = time.time()
         error_message = str(exc)
-        _pack_failed_results_archive(task, error_message)
-        task_store.update_task(
-            md5sum,
-            status="failed",
-            finished_at=finish_time,
-            walltime=finish_time - start_time,
-            error=error_message,
-            run_stage=stage_state["current"],
-        )
+        if not _task_is_terminal(md5sum):
+            _pack_failed_results_archive(task, error_message)
+            task_store.update_task(
+                md5sum,
+                status="failed",
+                finished_at=finish_time,
+                walltime=finish_time - start_time,
+                error=error_message,
+                run_stage=stage_state["current"],
+            )
         logging.exception("Unexpected failure while running GREMLIN task %s", md5sum)
 
 

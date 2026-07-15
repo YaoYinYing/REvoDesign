@@ -103,6 +103,8 @@ _users_table = sa.Table(
     sa.Column("deleted", sa.Boolean, nullable=False, default=False),
     sa.Column("role", sa.String(32), nullable=False, default="user"),
     sa.Column("admin_notified", sa.Boolean, nullable=False, default=False),
+    sa.Column("verification_resend_count", sa.Integer, nullable=False, default=0),
+    sa.Column("verification_resend_at", sa.Float, nullable=True),
     sa.Column("registration_ip", sa.String(45), nullable=True),
     sa.Column("registration_country", sa.String(8), nullable=True),
 )
@@ -163,13 +165,35 @@ class UserDatabase:
         ]:
             if col not in existing:
                 conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype};")
-        # Backfill: when adding admin_notified for the first time, mark all
-        # existing non-admin users as notified so they don't appear in the
-        # first digest.  Admins are always excluded from the digest.
+        # When adding admin_notified for the first time, mark all existing
+        # non-admin users as notified so they don't appear in the first digest.
+        # Admins are always excluded from the digest.  This is intentionally
+        # gated — we only want this on the very first migration.
         if "admin_notified" not in existing:
             conn.exec_driver_sql(
                 "UPDATE users SET admin_notified = 1 WHERE is_admin = 0"
             )
+        # Idempotent backfills — run every startup (not gated) so legacy rows
+        # that predate a column get their NULLs patched even when the column
+        # was added by a previous deployment that didn't include a backfill.
+        conn.exec_driver_sql(
+            "UPDATE users SET deleted = 0 WHERE deleted IS NULL"
+        )
+        conn.exec_driver_sql(
+            "UPDATE users SET registration_status = 'approved' "
+            "WHERE registration_status IS NULL"
+        )
+        conn.exec_driver_sql(
+            "UPDATE users SET user_status = 'active' WHERE user_status IS NULL"
+        )
+        conn.exec_driver_sql(
+            "UPDATE users SET role = CASE WHEN is_admin THEN 'admin' ELSE 'user' END "
+            "WHERE role IS NULL"
+        )
+        conn.exec_driver_sql(
+            "UPDATE users SET verification_resend_count = 0 "
+            "WHERE verification_resend_count IS NULL"
+        )
 
     # -- write helpers -------------------------------------------------------
 
@@ -646,15 +670,10 @@ def validate_captcha(token: str, answer: str) -> bool:
 def _public_base_url() -> str:
     """Return the public-facing base URL for email links.
 
-    Uses the current request's ``Host`` header so email links point to the
-    same domain the user is accessing.  Falls back to ``SERVER_BASE_URL``
-    env var, then ``http://localhost:8080`` (dev).
+    Always uses the configured ``SERVER_BASE_URL`` — never the request
+    ``Host`` header, which an attacker can spoof to place valid tokens
+    into links pointing at an attacker-controlled domain.
     """
-    # ponytail: request.host_url already has scheme+host from the Host header
-    try:
-        return request.host_url.rstrip("/")
-    except RuntimeError:
-        pass  # outside request context (tests, scripts)
     return _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
 
 
@@ -902,18 +921,18 @@ def send_admin_digest() -> bool:
         f"text-decoration:none;border-radius:6px;font-weight:600;\">"
         f"Review Registrations</a></p>"
     )
-    try:
-        for email in recipients:
-            _send_email(
-                to=email,
-                subject=f"{len(new_users)} new registration(s) — REvoDesign GREMLIN",
-                text=text,
-                html=_email_html(html_body),
-            )
-    except Exception:
+    any_sent = False
+    subject = f"{len(new_users)} new registration(s) — REvoDesign GREMLIN"
+    html_content = _email_html(html_body)
+    for email in recipients:
+        try:
+            if _send_email(to=email, subject=subject, text=text, html=html_content):
+                any_sent = True
+        except Exception:
+            logging.exception("Failed to send admin digest to %s", email)
+    if not any_sent:
         db.unmark_users_notified(user_ids)
-        raise
-    return True
+    return any_sent
 
 
 def validate_reset_token(token: str) -> int | None:
