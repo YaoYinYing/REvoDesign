@@ -230,9 +230,7 @@ _admin_digest_minutes = _env_int("ADMIN_NEW_USER_INFORM", 0)
 if _admin_digest_minutes > 0 and _env_str("ADMIN_NOTIFY_EMAIL", ""):
     import threading
 
-    _digest_lock = os.path.join(
-        _env_str("SERVER_DIR", os.getcwd()), ".admin_digest.lock"
-    )
+    _digest_lock = os.path.join(_env_str("SERVER_DIR", os.getcwd()), ".admin_digest.lock")
 
     def _digest_loop() -> None:
         import random
@@ -378,7 +376,7 @@ _CLIENT_IP_HEADERS = tuple(
     for h in os.environ.get("CLIENT_IP_HEADERS", "X-Forwarded-For, X-Real-IP").split(",")
     if h.strip()
 )
-_CLIENT_COUNTRY_HEADER = (os.environ.get("CLIENT_COUNTRY_HEADER", "").strip().strip("'\"") or None)
+_CLIENT_COUNTRY_HEADER = os.environ.get("CLIENT_COUNTRY_HEADER", "").strip().strip("'\"") or None
 
 
 def _client_ip() -> str | None:
@@ -503,7 +501,7 @@ def _extract_stage_from_log_line(line: str) -> str | None:
     marker_pos = line.find(_RUNNER_STAGE_PREFIX)
     if marker_pos < 0:
         return None
-    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX):].strip().lower()
+    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX) :].strip().lower()
     if not raw_marker:
         return None
     token = raw_marker.split()[0]

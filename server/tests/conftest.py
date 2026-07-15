@@ -29,6 +29,7 @@ TEST_ROOT = os.path.abspath(".")
 
 # ── Docker availability ────────────────────────────────────────────────────────
 
+
 def has_docker_daemon() -> bool:
     """Check whether a local Docker daemon is reachable."""
     try:

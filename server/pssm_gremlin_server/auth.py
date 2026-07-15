@@ -170,29 +170,18 @@ class UserDatabase:
         # Admins are always excluded from the digest.  This is intentionally
         # gated — we only want this on the very first migration.
         if "admin_notified" not in existing:
-            conn.exec_driver_sql(
-                "UPDATE users SET admin_notified = 1 WHERE is_admin = 0"
-            )
+            conn.exec_driver_sql("UPDATE users SET admin_notified = 1 WHERE is_admin = 0")
         # Idempotent backfills — run every startup (not gated) so legacy rows
         # that predate a column get their NULLs patched even when the column
         # was added by a previous deployment that didn't include a backfill.
+        conn.exec_driver_sql("UPDATE users SET deleted = 0 WHERE deleted IS NULL")
+        conn.exec_driver_sql("UPDATE users SET registration_status = 'approved' " "WHERE registration_status IS NULL")
+        conn.exec_driver_sql("UPDATE users SET user_status = 'active' WHERE user_status IS NULL")
         conn.exec_driver_sql(
-            "UPDATE users SET deleted = 0 WHERE deleted IS NULL"
+            "UPDATE users SET role = CASE WHEN is_admin THEN 'admin' ELSE 'user' END " "WHERE role IS NULL"
         )
         conn.exec_driver_sql(
-            "UPDATE users SET registration_status = 'approved' "
-            "WHERE registration_status IS NULL"
-        )
-        conn.exec_driver_sql(
-            "UPDATE users SET user_status = 'active' WHERE user_status IS NULL"
-        )
-        conn.exec_driver_sql(
-            "UPDATE users SET role = CASE WHEN is_admin THEN 'admin' ELSE 'user' END "
-            "WHERE role IS NULL"
-        )
-        conn.exec_driver_sql(
-            "UPDATE users SET verification_resend_count = 0 "
-            "WHERE verification_resend_count IS NULL"
+            "UPDATE users SET verification_resend_count = 0 " "WHERE verification_resend_count IS NULL"
         )
 
     # -- write helpers -------------------------------------------------------
@@ -707,7 +696,7 @@ def send_verification_email(user: dict[str, Any]) -> bool:
         f'<p style="margin:24px 0;">'
         f'<a href="{verify_url}" style="display:inline-block;padding:12px 24px;'
         f"background-color:#1a1a2e;color:#ffffff;text-decoration:none;"
-        f"border-radius:6px;font-weight:600;\">"
+        f'border-radius:6px;font-weight:600;">'
         f"Verify Email Address</a></p>"
         f"<p>Or copy this link:</p>"
         f'<p style="color:#6b7280;font-size:13px;word-break:break-all;">'
@@ -776,7 +765,7 @@ def send_password_reset_email(email: str, db: UserDatabase) -> bool:
         f'<p style="margin:24px 0;">'
         f'<a href="{reset_url}" style="display:inline-block;padding:12px 24px;'
         f"background-color:#1a1a2e;color:#ffffff;text-decoration:none;"
-        f"border-radius:6px;font-weight:600;\">"
+        f'border-radius:6px;font-weight:600;">'
         f"Reset Password</a></p>"
         f"<p>Or copy this link:</p>"
         f'<p style="color:#6b7280;font-size:13px;word-break:break-all;">'
@@ -812,7 +801,7 @@ def send_approval_email(user: dict[str, Any]) -> bool:
         f'<p style="margin:24px 0;">'
         f'<a href="{base_url}/PSSM_GREMLIN/login" style="display:inline-block;'
         f"padding:12px 24px;background-color:#1a1a2e;color:#ffffff;"
-        f"text-decoration:none;border-radius:6px;font-weight:600;\">"
+        f'text-decoration:none;border-radius:6px;font-weight:600;">'
         f"Log In</a></p>"
     )
     return _send_email(
@@ -912,13 +901,11 @@ def send_admin_digest() -> bool:
         f'<th style="padding:8px 12px;">Email</th>'
         f'<th style="padding:8px 12px;">Affiliation</th>'
         f'<th style="padding:8px 12px;">Registered</th>'
-        f"</tr></thead><tbody>"
-        + "".join(html_rows)
-        + "</tbody></table>"
+        f"</tr></thead><tbody>" + "".join(html_rows) + "</tbody></table>"
         f'<p style="margin:24px 0;">'
         f'<a href="{base_url}/PSSM_GREMLIN/user_control" style="display:inline-block;'
         f"padding:12px 24px;background-color:#1a1a2e;color:#ffffff;"
-        f"text-decoration:none;border-radius:6px;font-weight:600;\">"
+        f'text-decoration:none;border-radius:6px;font-weight:600;">'
         f"Review Registrations</a></p>"
     )
     any_sent = False
