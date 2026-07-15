@@ -159,6 +159,13 @@ class UserDatabase:
         ]:
             if col not in existing:
                 conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype};")
+        # Backfill: when adding admin_notified for the first time, mark all
+        # existing non-admin users as notified so they don't appear in the
+        # first digest.  Admins are always excluded from the digest.
+        if "admin_notified" not in existing:
+            conn.exec_driver_sql(
+                "UPDATE users SET admin_notified = 1 WHERE is_admin = 0"
+            )
 
     # -- write helpers -------------------------------------------------------
 
@@ -300,10 +307,13 @@ class UserDatabase:
             return conn.execute(stmt).scalar_one()
 
     def get_unnotified_registrations(self) -> list[dict[str, Any]]:
-        """Return users who registered but haven't been included in a digest yet."""
+        """Return non-admin users who haven't been included in a digest yet."""
         stmt = (
             sa.select(_users_table)
-            .where(_users_table.c.admin_notified == False)  # noqa: E712
+            .where(
+                _users_table.c.admin_notified == False,  # noqa: E712
+                _users_table.c.is_admin == False,  # noqa: E712
+            )
             .order_by(sa.asc(_users_table.c.created_at))
         )
         with self.engine.connect() as conn:

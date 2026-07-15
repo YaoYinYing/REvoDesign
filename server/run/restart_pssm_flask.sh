@@ -236,6 +236,11 @@ cmd_restart() {
     # First boot — generate and export the admin password.
     _admin_pw="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
     export DEFAULT_ADMIN_PASSWORD="${_admin_pw}"
+  else
+    # Backup existing DB before schema migrations run on startup.
+    _backup="${SERVER_DIR}/users.sqlite3.bak.$(date +%Y%m%d-%H%M%S)"
+    cp "${_user_db}" "${_backup}"
+    echo "Backed up user DB to ${_backup}"
   fi
 
   cmd_down
