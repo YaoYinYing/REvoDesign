@@ -165,36 +165,35 @@ class UserDatabase:
         ]:
             if col not in existing:
                 conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype};")
-        # Backfill: when adding admin_notified for the first time, mark all
-        # existing non-admin users as notified so they don't appear in the
-        # first digest.  Admins are always excluded from the digest.
+        # When adding admin_notified for the first time, mark all existing
+        # non-admin users as notified so they don't appear in the first digest.
+        # Admins are always excluded from the digest.  This is intentionally
+        # gated — we only want this on the very first migration.
         if "admin_notified" not in existing:
             conn.exec_driver_sql(
                 "UPDATE users SET admin_notified = 1 WHERE is_admin = 0"
             )
-        # Backfill legacy rows that predate the column — ensures no NULLs
-        # slip through for columns added after initial schema creation.
-        if "deleted" not in existing:
-            conn.exec_driver_sql("UPDATE users SET deleted = 0 WHERE deleted IS NULL")
-        if "registration_status" not in existing:
-            conn.exec_driver_sql(
-                "UPDATE users SET registration_status = 'approved' "
-                "WHERE registration_status IS NULL"
-            )
-        if "user_status" not in existing:
-            conn.exec_driver_sql(
-                "UPDATE users SET user_status = 'active' WHERE user_status IS NULL"
-            )
-        if "role" not in existing:
-            conn.exec_driver_sql(
-                "UPDATE users SET role = CASE WHEN is_admin THEN 'admin' ELSE 'user' END "
-                "WHERE role IS NULL"
-            )
-        if "verification_resend_count" not in existing:
-            conn.exec_driver_sql(
-                "UPDATE users SET verification_resend_count = 0 "
-                "WHERE verification_resend_count IS NULL"
-            )
+        # Idempotent backfills — run every startup (not gated) so legacy rows
+        # that predate a column get their NULLs patched even when the column
+        # was added by a previous deployment that didn't include a backfill.
+        conn.exec_driver_sql(
+            "UPDATE users SET deleted = 0 WHERE deleted IS NULL"
+        )
+        conn.exec_driver_sql(
+            "UPDATE users SET registration_status = 'approved' "
+            "WHERE registration_status IS NULL"
+        )
+        conn.exec_driver_sql(
+            "UPDATE users SET user_status = 'active' WHERE user_status IS NULL"
+        )
+        conn.exec_driver_sql(
+            "UPDATE users SET role = CASE WHEN is_admin THEN 'admin' ELSE 'user' END "
+            "WHERE role IS NULL"
+        )
+        conn.exec_driver_sql(
+            "UPDATE users SET verification_resend_count = 0 "
+            "WHERE verification_resend_count IS NULL"
+        )
 
     # -- write helpers -------------------------------------------------------
 
