@@ -243,6 +243,8 @@ if _admin_digest_minutes > 0 and _env_str("ADMIN_NOTIFY_EMAIL", ""):
             try:
                 # ponytail: file lock so only one worker sends the digest
                 # (gunicorn --preload forks the thread into every worker).
+                # flock is fd-scoped — kernel auto-releases on process death,
+                # so a crash won't leave a stale lock behind.
                 import fcntl
 
                 with open(_digest_lock, "w") as _lock_fh:
