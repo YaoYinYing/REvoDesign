@@ -198,7 +198,7 @@ ADMIN_USERS = set(_env_csv("ADMIN_USERS", "admin"))
 # admin account so the server isn't locked out.
 if _user_db.user_count() == 0:
     _default_admin = _env_str("DEFAULT_ADMIN_USERNAME", "admin")
-    _default_pass = _env_str("DEFAULT_ADMIN_PASSWORD", os.urandom(16).hex())
+    _default_pass = os.urandom(16).hex()
     try:
         _created_admin = _user_db.create_user(
             username=_default_admin,
@@ -210,9 +210,8 @@ if _user_db.user_count() == 0:
         )
         _user_db.verify_email(_created_admin["id"])
         logging.warning(
-            "No users found — created default admin user %r. "
-            "Set DEFAULT_ADMIN_PASSWORD in the environment and restart, "
-            "or log in and change it immediately.",
+            "No users found — created default admin user %r with an auto-generated password. "
+            "Log in and change it immediately.",
             _default_admin,
         )
     except IntegrityError:

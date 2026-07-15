@@ -273,7 +273,6 @@ Required environment variables (defined in `docker-compose.yml`):
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days) |
 | `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`) |
 | `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires email service) |
-| `DEFAULT_ADMIN_PASSWORD` | Password for the default admin account (created on first run) |
 | `SMTP_HOST` | SMTP server hostname (stdlib, always available) |
 | `SMTP_PORT` | SMTP port (default: 587) |
 | `SMTP_USERNAME` | SMTP auth username |
@@ -309,7 +308,7 @@ Required environment variables (defined in `docker-compose.yml`):
    ```
 
 3. **Configure authentication**:
-   - On first run, a default admin user is created automatically (username: `admin`, password: from `DEFAULT_ADMIN_PASSWORD`).
+   - On first run, a default admin user is created automatically (username: `admin`, password auto-generated and displayed by `restart_pssm_flask.sh`).
    - Change the admin password immediately via the Profile page.
    - Optionally enable self-registration with `ENABLE_REGISTER=true` and SMTP settings.
 
