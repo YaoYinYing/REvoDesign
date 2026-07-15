@@ -333,7 +333,7 @@ def get_results(md5sum):
     if not _task_access_allowed(task):
         return _task_access_denied(md5sum)
 
-    if task["status"] != "finished":
+    if task["status"] not in {"finished", "failed"}:
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
 
     return redirect(f"/PSSM_GREMLIN/api/download/{md5sum}", code=302)
@@ -351,7 +351,7 @@ def download_results(md5sum):
     if not _task_access_allowed(task):
         return _task_access_denied(md5sum)
 
-    if task["status"] != "finished":
+    if task["status"] not in {"finished", "failed"}:
         return (
             jsonify(
                 {
@@ -364,23 +364,29 @@ def download_results(md5sum):
         )
 
     zip_filename = _task_zip_path(task)
-    if os.path.exists(zip_filename):
-        return send_from_directory(
-            app.config["RESULTS_FOLDER"],
-            os.path.basename(zip_filename),
-            as_attachment=True,
-            download_name=_task_zip_download_name(task),
-        )
+    if not os.path.exists(zip_filename):
+        # Pack on-the-fly for failed tasks where the result dir survives.
+        result_dir = task.get("result_dir")
+        if result_dir and os.path.isdir(result_dir):
+            zip_base = os.path.splitext(zip_filename)[0]
+            shutil.make_archive(zip_base, "zip", result_dir)
+        else:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "md5sum": md5sum,
+                        "message": "result file not found",
+                    }
+                ),
+                404,
+            )
 
-    return (
-        jsonify(
-            {
-                "status": "error",
-                "md5sum": md5sum,
-                "message": "result file not found",
-            }
-        ),
-        404,
+    return send_from_directory(
+        app.config["RESULTS_FOLDER"],
+        os.path.basename(zip_filename),
+        as_attachment=True,
+        download_name=_task_zip_download_name(task),
     )
 
 
