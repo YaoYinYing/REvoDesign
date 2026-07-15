@@ -544,6 +544,23 @@ def _bearer_headers(base_url: str, username: str, password: str) -> dict[str, st
     return {"Authorization": f"Bearer {resp.json()['token']}"}
 
 
+def _inject_admin_password(db_path: str, username: str, password: str) -> None:
+    """Replace the auto-generated admin password with a known one.
+
+    The server bootstraps an admin with a random password on first run.
+    This overwrites the hash so tests can authenticate with Bearer headers.
+    """
+    import sqlite3
+
+    from werkzeug.security import generate_password_hash
+
+    _hash = generate_password_hash(password)
+    conn = sqlite3.connect(str(db_path))
+    conn.execute("UPDATE users SET password_hash = ? WHERE username = ?", (_hash, username))
+    conn.commit()
+    conn.close()
+
+
 def _test_client_auth(module, username: str = "tester", password: str = "password") -> dict[str, str]:
     """Create a test user and return Bearer token headers for Flask test-client tests.
 
@@ -1927,7 +1944,6 @@ class DockerServerStack:
         self.username = "admin"
         self.password = password
         self.db_path = self.state_dir / "pssm_gremlin_server.sqlite3"
-        self.db_path.touch()
         if self._needs_relaxed_permissions:
             self._relax_permissions()
         self.containers: list[str] = []
@@ -1943,7 +1959,6 @@ class DockerServerStack:
             "DB_PATH": str(self.db_path),
             "DB_UNIREF30": self.miniuc["uniref30_prefix"],
             "DB_UNIREF90": self.miniuc["uniref90_prefix"],
-            "DEFAULT_ADMIN_PASSWORD": self.password,
             "LOG_DIR": str(self.log_dir),
             "NPROC": "4",
             "GUNICORN_WORKERS": "2",
@@ -1965,12 +1980,16 @@ class DockerServerStack:
             try:
                 self._start_web()
                 base_url = f"http://127.0.0.1:{self.port}"
+                # Use a public endpoint — the admin password is random until we inject it below.
                 _wait_for_server_ready(
                     base_url,
-                    _bearer_headers(base_url, self.username, self.password),
+                    {},  # no auth — hit the public login page
                     timeout=server_ready_timeout,
                     web_container=self.web_name,
                 )
+                # Inject a known password hash into the auto-bootstrapped admin
+                # so subsequent tests can authenticate with Bearer headers.
+                _inject_admin_password(str(self.db_path), self.username, self.password)
                 break
             except AssertionError:
                 if attempt < max_attempts - 1:
@@ -2129,7 +2148,7 @@ def _wait_for_server_ready(
     deadline = time.time() + timeout
     session = requests.Session()
     session.headers.update(headers)
-    url = f"{base_url}/PSSM_GREMLIN/create_task"
+    url = f"{base_url}/PSSM_GREMLIN/login"
     last_error = ""
     while time.time() < deadline:
         try:
