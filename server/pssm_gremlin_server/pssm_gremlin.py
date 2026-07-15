@@ -65,6 +65,11 @@ def _add_security_headers(response):
         "font-src 'self' https://fonts.gstatic.com; "
         "script-src 'self' 'unsafe-inline'",
     )
+    # HSTS only when the connection is already HTTPS — browsers ignore the
+    # header over plain HTTP (RFC 6797 §7.2), and setting max-age on an
+    # HTTP response could lock users out if HTTPS breaks later.
+    if request.is_secure:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return response
 
 
@@ -230,9 +235,7 @@ _admin_digest_minutes = _env_int("ADMIN_NEW_USER_INFORM", 0)
 if _admin_digest_minutes > 0 and _env_str("ADMIN_NOTIFY_EMAIL", ""):
     import threading
 
-    _digest_lock = os.path.join(
-        _env_str("SERVER_DIR", os.getcwd()), ".admin_digest.lock"
-    )
+    _digest_lock = os.path.join(_env_str("SERVER_DIR", os.getcwd()), ".admin_digest.lock")
 
     def _digest_loop() -> None:
         import random
@@ -378,7 +381,7 @@ _CLIENT_IP_HEADERS = tuple(
     for h in os.environ.get("CLIENT_IP_HEADERS", "X-Forwarded-For, X-Real-IP").split(",")
     if h.strip()
 )
-_CLIENT_COUNTRY_HEADER = (os.environ.get("CLIENT_COUNTRY_HEADER", "").strip().strip("'\"") or None)
+_CLIENT_COUNTRY_HEADER = os.environ.get("CLIENT_COUNTRY_HEADER", "").strip().strip("'\"") or None
 
 
 def _client_ip() -> str | None:
@@ -459,12 +462,22 @@ def _virtual_upload_path(filename: str) -> str:
 
 
 def _sanitize_task_error(task: dict[str, Any], error: Any) -> str | None:
+    """Redact internal filesystem paths from error messages before returning to clients."""
     if error is None:
         return None
     message = str(error)
+    # Redact the task's own file path
     file_path = str(task.get("file_path") or "")
     if file_path:
         message = message.replace(file_path, _virtual_upload_path(task.get("filename", "unknown.fasta")))
+    # Redact the server data directory (may contain user home dirs, DB paths, etc.)
+    server_dir = os.environ.get("SERVER_DIR", "")
+    if server_dir and server_dir in message:
+        message = message.replace(server_dir, "<server_dir>")
+    # Redact the task result directory
+    result_dir = str(task.get("result_dir") or "")
+    if result_dir and result_dir in message:
+        message = message.replace(result_dir, "<result_dir>")
     return message
 
 
@@ -503,7 +516,7 @@ def _extract_stage_from_log_line(line: str) -> str | None:
     marker_pos = line.find(_RUNNER_STAGE_PREFIX)
     if marker_pos < 0:
         return None
-    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX):].strip().lower()
+    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX) :].strip().lower()
     if not raw_marker:
         return None
     token = raw_marker.split()[0]

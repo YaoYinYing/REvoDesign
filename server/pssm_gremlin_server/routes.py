@@ -21,6 +21,7 @@ import time
 from celery.result import AsyncResult
 from flask import current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 from pssm_gremlin_server.auth import (
+    _DUMMY_PASSWORD_HASH,
     UserDatabase,
     _env_str,
     _is_account_blocked,
@@ -690,13 +691,19 @@ def auth_login():
         user = db.get_user_by_email(req.login_id)  # already normalised by schema
     else:
         user = db.get_user_by_username(req.login_id)
-    if user is None or not check_password_hash(user["password_hash"], req.password):
+    # Constant-time: always run check_password_hash so response latency does
+    # not reveal whether the username exists (timing side-channel defence).
+    pwd_ok = check_password_hash(
+        user["password_hash"] if user is not None else _DUMMY_PASSWORD_HASH,
+        req.password,
+    )
+    if user is None or not pwd_ok:
         return jsonify({"error": "Invalid username or password"}), 401
 
     if blocked := _is_account_blocked(user):
         return jsonify({"error": blocked}), 403
 
-    token = generate_token(user["id"])
+    token = generate_token(user["id"], user.get("token_version", 0))
     response = jsonify({"token": token, "username": user["username"]})
     # ponytail: set cookie so browser page navigations (not just fetch())
     # carry the auth token.  HttpOnly; SameSite=Lax prevents CSRF.
@@ -760,10 +767,21 @@ def auth_reset_password():
 
 
 @app.route("/PSSM_GREMLIN/api/auth/logout", methods=["POST"])
+@optional_user
 def auth_logout():
-    """Clear the auth cookie.  No auth required — idempotent."""
+    """Clear the auth cookie and invalidate all tokens for the current user.
+
+    No auth required — idempotent.  If the user is authenticated (cookie or
+    Bearer token), their ``token_version`` is incremented so all previously
+    issued tokens become invalid.
+    """
+    user = g.get("current_user")
+    if user is not None:
+        db = _get_user_db()
+        db.increment_token_version(user["id"])
     response = jsonify({"status": "logged_out"})
-    response.set_cookie("auth_token", "", max_age=0, path="/")
+    secure = _env_str("SERVER_BASE_URL", "http://localhost:8080").startswith("https://")
+    response.set_cookie("auth_token", "", max_age=0, path="/", httponly=True, samesite="Lax", secure=secure)
     return response
 
 
@@ -1000,6 +1018,7 @@ def auth_update_me():
 
     db = _get_user_db()
     db.update_user(user["id"], password_hash=generate_password_hash(req.new_password))
+    db.increment_token_version(user["id"])
     return jsonify({"message": "Password updated"}), 200
 
 

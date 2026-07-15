@@ -19,6 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- **Server test coverage + security A/B tests**: 121 new server tests covering auth
+  endpoints (`/api/auth/me`, API key CRUD, CAPTCHA, password reset), UserDatabase
+  methods (`get_user_by_email`, `validate_api_key`, `user_count`, digest
+  notifications), rate limiter decorator, upload edge cases (task cap, content
+  dedup, per-user scoping), schema Pydantic validation, 15 adversarial
+  security tests (brute-force rate limiting, email enumeration prevention, CSRF
+  cookie-vs-bearer gate, token tampering, expired tokens, password policy, role
+  self-escalation prevention, guest API key rejection, batch operation access
+  control, duplicate user/email rejection), 29 attack/abuse tests (path
+  traversal, null-byte injection, SQL/XSS injection, rate-limit bypass,
+  CAPTCHA replay, double-extension spoofing, content-type confusion), 10 race
+  condition tests (TOCTOU cancel/delete, dedup races, worker-completion guards,
+  terminal-status protection), and 11 RCE tests (SSTI, command injection,
+  pickle/YAML deserialization, prototype pollution, email header injection).
+  Fixed conftest module-cache attribute name, missing `docker` import in
+  test_tasks.py, and removed duplicate helper definitions from test_docker.py.
+  Total server test count: 164 (up from 44).
 - **Admin registration digest**: periodic email to `ADMIN_NOTIFY_EMAIL` listing new
   registrations that haven't been included in a prior digest. Each user appears
   only once (`admin_notified` column). Interval set by `ADMIN_NEW_USER_INFORM`

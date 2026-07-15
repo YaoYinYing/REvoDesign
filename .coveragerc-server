@@ -1,0 +1,5 @@
+[run]
+source =
+    server/pssm_gremlin_server
+omit =
+    */tests/*

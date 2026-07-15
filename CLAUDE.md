@@ -117,6 +117,7 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 - **License header**: Every `.py` file starts with the GPL-3.0-only copyright block (enforced by `tools/license_notice.py`).
 - **Line length**: 120 (black, flake8, autopep8, pylint all configured).
 - **Python**: 3.10+ with `from __future__ import annotations` everywhere.
+- **Test file size**: Keep test files under 1000 lines. Split by concern (auth, security, race conditions, etc.) rather than letting a single file grow unbounded.
 - **Imports**: First-party package is `REvoDesign`; internal imports use fully-qualified paths (`from REvoDesign.Qt import QtCore`).
 - **Config files**: YAML under `src/REvoDesign/config/`, managed by OmegaConf/Hydra. The config directory is determined by `platformdirs` user config path.
 - **Version**: Set in `src/REvoDesign/__init__.py` (`__version__`). Use `make tag` to bump.
