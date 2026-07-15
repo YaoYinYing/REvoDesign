@@ -42,26 +42,8 @@ from conftest import (
     has_docker_daemon,
 )
 
-# Docker helpers
+# Docker-specific helpers (most are imported from conftest)
 # ==================================================================
-
-
-def _run_command(
-    command: list[str],
-    *,
-    cwd: str | Path | None = None,
-    env: dict | None = None,
-    check: bool = True,
-    capture_output: bool = False,
-) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        command,
-        cwd=cwd or str(REPO_DIR),
-        env=env,
-        check=check,
-        capture_output=capture_output,
-        text=True,
-    )
 
 
 def _docker_group_ids_for_socket() -> list[str]:
@@ -168,12 +150,6 @@ def test_runner_image_executes_pipeline(miniuc_databases, runner_image_tag, tmp_
     assert task_file.is_file(), f"Runner did not finish. Missing {task_file}"
     assert gremlin_checkpoint.is_file(), "GREMLIN checkpoint missing – runner output incomplete"
     assert ascii_pssm.is_file(), "PSI-BLAST ASCII matrix missing – runner output incomplete"
-
-
-def _find_free_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(("127.0.0.1", 0))
-        return sock.getsockname()[1]
 
 
 def _wait_for_health(container: str, timeout: float = 60.0) -> None:

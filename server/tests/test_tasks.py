@@ -12,6 +12,7 @@ import uuid
 import zipfile
 from pathlib import Path
 
+import docker
 import pytest
 from conftest import (
     _admin_client_auth,

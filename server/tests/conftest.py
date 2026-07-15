@@ -147,7 +147,7 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
     _pg = sys.modules.get("pssm_gremlin_server")
     if _pg is not None:
         _pg.__dict__.pop("routes", None)
-        _pg.__dict__.pop("pssm_gremlin_server", None)
+        _pg.__dict__.pop("pssm_gremlin", None)
     sys.modules.pop("pssm_gremlin_server.routes", None)
     sys.modules[module_name] = module
     sys.modules["pssm_gremlin_server.pssm_gremlin"] = module
@@ -160,7 +160,7 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
         sys.modules.pop("pssm_gremlin_server.routes", None)
         if _pg is not None:
             _pg.__dict__.pop("routes", None)
-            _pg.__dict__.pop("pssm_gremlin_server", None)
+            _pg.__dict__.pop("pssm_gremlin", None)
 
 
 # ── test client auth helpers ───────────────────────────────────────────────────
