@@ -287,12 +287,15 @@ def upload_file():
         async_result = run_gremlin_task.apply_async(args=[md5sum])
     except Exception:
         logging.exception("Failed to submit GREMLIN task %s to Celery", md5sum)
+        error_message = "Task queue unavailable — please try again later"
+        failed_task = task_store.get_task(md5sum) or dict(md5sum=md5sum, **base_record)
+        _pack_failed_results_archive(failed_task, error_message)
         task_store.update_task(
             md5sum,
             status="failed",
-            error="Task queue unavailable — please try again later",
+            error=error_message,
         )
-        return jsonify({"error": "Task queue unavailable — please try again"}), 503
+        return jsonify({"error": error_message}), 503
     task_store.update_task(md5sum, celery_task_id=async_result.id)
 
     return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)

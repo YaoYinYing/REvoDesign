@@ -36,6 +36,7 @@ def has_docker_daemon() -> bool:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             timeout=5,
+            check=True,
         )
         return True
     except Exception:

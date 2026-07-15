@@ -31,7 +31,7 @@ def rate_limit(max_requests: int, window_seconds: int):
     """
     state: dict[str, list[float]] = {}
     _lock = threading.Lock()
-    _last_cleanup: float = 0.0
+    _last_cleanup: float = time.monotonic()
 
     def _prune_expired(now: float, cutoff: float) -> None:
         """Drop per-IP entries whose most recent timestamp is expired."""
@@ -44,7 +44,7 @@ def rate_limit(max_requests: int, window_seconds: int):
         def decorated(*args: Any, **kwargs: Any) -> Any:
             nonlocal _last_cleanup
             ip = request.remote_addr or "unknown"
-            now = time.time()
+            now = time.monotonic()
             cutoff = now - window_seconds
 
             with _lock:

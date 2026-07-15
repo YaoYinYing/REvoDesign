@@ -190,6 +190,11 @@ class UserDatabase:
                 "UPDATE users SET role = CASE WHEN is_admin THEN 'admin' ELSE 'user' END "
                 "WHERE role IS NULL"
             )
+        if "verification_resend_count" not in existing:
+            conn.exec_driver_sql(
+                "UPDATE users SET verification_resend_count = 0 "
+                "WHERE verification_resend_count IS NULL"
+            )
 
     # -- write helpers -------------------------------------------------------
 
@@ -918,17 +923,14 @@ def send_admin_digest() -> bool:
         f"Review Registrations</a></p>"
     )
     any_sent = False
-    try:
-        for email in recipients:
-            if _send_email(
-                to=email,
-                subject=f"{len(new_users)} new registration(s) — REvoDesign GREMLIN",
-                text=text,
-                html=_email_html(html_body),
-            ):
+    subject = f"{len(new_users)} new registration(s) — REvoDesign GREMLIN"
+    html_content = _email_html(html_body)
+    for email in recipients:
+        try:
+            if _send_email(to=email, subject=subject, text=text, html=html_content):
                 any_sent = True
-    except Exception:
-        any_sent = False
+        except Exception:
+            logging.exception("Failed to send admin digest to %s", email)
     if not any_sent:
         db.unmark_users_notified(user_ids)
     return any_sent
