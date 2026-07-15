@@ -148,6 +148,27 @@ ensure_docker_gid() {
   echo "Using Docker socket group id ${DOCKER_GID}."
 }
 
+resolve_runner_identity() {
+  # Auto-derive RUNNER_UID / RUNNER_GID from RUNNER_USERNAME / RUNNER_GROUP
+  # when numeric IDs aren't already set.  This lets the env file declare
+  # "RUNNER_USERNAME=revodesign" without hardcoding per-host uid/gid.
+  local _user="${RUNNER_USERNAME:-revodesign}"
+  local _group="${RUNNER_GROUP:-revodesign_appgroup}"
+
+  if [[ -z "${RUNNER_UID:-}" ]]; then
+    RUNNER_UID="$(id -u "${_user}" 2>/dev/null || echo "")"
+  fi
+  if [[ -z "${RUNNER_GID:-}" ]]; then
+    RUNNER_GID="$(getent group "${_group}" 2>/dev/null | cut -d: -f3 || stat -f '%g' /dev/null 2>/dev/null || echo "")"
+  fi
+  # Fallback for environments where id/getent aren't available (macOS CI, etc.)
+  RUNNER_UID="${RUNNER_UID:-1000}"
+  RUNNER_GID="${RUNNER_GID:-1000}"
+
+  export RUNNER_UID RUNNER_GID
+  echo "Using runner identity ${RUNNER_UID}:${RUNNER_GID} (user ${_user}, group ${_group})."
+}
+
 cmd_setup() {
   local _detected_docker_gid=""
 
@@ -173,6 +194,7 @@ cmd_setup() {
 cmd_build() {
   require_env_file
   ensure_docker_gid
+  resolve_runner_identity
 
   echo "Building GREMLIN runner image..."
   "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" --profile runner build runner
@@ -184,6 +206,7 @@ cmd_build() {
 cmd_up() {
   require_env_file
   ensure_docker_gid
+  resolve_runner_identity
   echo "Starting services via docker compose..."
   "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d redis web worker
 }

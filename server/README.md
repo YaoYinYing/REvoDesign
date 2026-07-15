@@ -154,7 +154,6 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
 | `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`). |
 | `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires Resend API key). |
-| `DEFAULT_ADMIN_PASSWORD` | Password for the default admin account (created on first run if user DB is empty). |
 | `RESEND_API_KEY` | Resend API key for sending verification and password-reset emails. |
 | `RESEND_FROM_ADDR` | Sender email address (verified domain in Resend). |
 | `RESEND_FROM_NAME` | Sender display name (default: REvoDesign GREMLIN Server). |
@@ -210,12 +209,8 @@ fail validation on another.
 If the user database is empty, a default admin account is created automatically:
 
 - Username: `admin` (customize with `DEFAULT_ADMIN_USERNAME`)
-- Password: from `DEFAULT_ADMIN_PASSWORD` env var, or a random password
-  displayed in the restart script output
-
-Change the password immediately after first login.  The `restart_pssm_flask.sh`
-script generates and displays the admin password on first boot when
-`DEFAULT_ADMIN_PASSWORD` is unset.
+- Password: auto-generated and displayed in the restart script output.
+  Change immediately after first login.
 
 Set `ENABLE_REGISTER=true` and `RESEND_API_KEY` to allow self-registration.
 Users receive a verification email; accounts must be verified before use.
