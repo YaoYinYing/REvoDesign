@@ -238,9 +238,9 @@
     var self = isCurrentUser(u);
     tr.innerHTML =
       '<td class="col-select">—</td>' +
-      '<td><input type="email" class="text-input edit-input" id="editEmail" value="' + escapeAttr(u.email || "") + '"></td>' +
+      '<td><input type="email" class="text-input edit-input" id="editEmail" value="' + escapeHtml(u.email || "") + '"></td>' +
       '<td class="muted">—</td>' +
-      '<td><input type="text" class="text-input edit-input" id="editAffiliation" value="' + escapeAttr(u.affiliation || "") + '"></td>' +
+      '<td><input type="text" class="text-input edit-input" id="editAffiliation" value="' + escapeHtml(u.affiliation || "") + '"></td>' +
       '<td><select class="text-input edit-input" id="editRole">' +
         '<option value="admin"' + ((u.role || "user") === "admin" ? " selected" : "") + (self ? " disabled" : "") + '>Admin</option>' +
         '<option value="user"' + ((u.role || "user") === "user" ? " selected" : "") + '>User</option>' +

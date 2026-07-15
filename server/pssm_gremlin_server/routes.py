@@ -1136,16 +1136,20 @@ def admin_manage_user(user_id):
         if req.role == "admin":
             update_fields["is_admin"] = True
 
-    if update_fields:
+    # Only set approved_by / approved_at when the admin is actually approving.
+    new_reg = update_fields.get("registration_status")
+    if new_reg == "approved":
         update_fields["approved_by"] = g.current_user["id"]
         update_fields["approved_at"] = time.time()
+
+    if update_fields:
         db.update_user(user_id, **update_fields)
 
-        # Notify user on approval or rejection
-        new_reg = update_fields.get("registration_status")
+        # Notify user on approval or rejection (use refreshed data).
         if new_reg == "approved":
-            if not send_approval_email(user):
-                logging.warning("Approval email failed for %r", user["email"])
+            approved_user = db.get_user(user_id) or user
+            if not send_approval_email(approved_user):
+                logging.warning("Approval email failed for %r", approved_user["email"])
         elif new_reg == "rejected":
             if not send_rejection_email(user):
                 logging.warning("Rejection email failed for %r", user["email"])

@@ -607,7 +607,9 @@ with open(_EMAIL_TEMPLATE_PATH, encoding="utf-8") as _f:
 
 def _email_html(body_html: str) -> str:
     """Wrap *body_html* in the shared email layout."""
-    return _EMAIL_TEMPLATE.format(body=body_html)
+    # ponytail: str.replace, not .format() — body_html may contain curly braces
+    # from f-string interpolation (e.g. CSS colours like #ffffff).
+    return _EMAIL_TEMPLATE.replace("{body}", body_html)
 
 
 # ---------------------------------------------------------------------------
