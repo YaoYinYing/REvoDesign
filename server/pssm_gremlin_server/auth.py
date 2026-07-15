@@ -318,6 +318,14 @@ class UserDatabase:
         with self.engine.begin() as conn:
             conn.execute(stmt)
 
+    def unmark_users_notified(self, user_ids: list[int]) -> None:
+        """Roll back the admin_notified flag so users appear in the next digest."""
+        if not user_ids:
+            return
+        stmt = sa.update(_users_table).where(_users_table.c.id.in_(user_ids)).values(admin_notified=False)
+        with self.engine.begin() as conn:
+            conn.execute(stmt)
+
 
 # ---------------------------------------------------------------------------
 # Token serialiser
@@ -751,6 +759,12 @@ def send_admin_digest() -> bool:
     if not new_users:
         return False
 
+    # Mark first, send second — prevents duplicate digests when multiple
+    # gunicorn workers or celery processes race.  Unmark on failure so the
+    # users appear in the next digest.
+    user_ids = [u["id"] for u in new_users]
+    db.mark_users_notified(user_ids)
+
     base_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
     rows = []
     for u in new_users:
@@ -765,13 +779,16 @@ def send_admin_digest() -> bool:
         + f"\n\n  Review: {base_url}/PSSM_GREMLIN/user_control\n\n"
         f"— REvoDesign GREMLIN Server\n"
     )
-    for email in recipients:
-        _send_email(
-            to=email,
-            subject=f"{len(new_users)} new registration(s) — REvoDesign GREMLIN",
-            text=text,
-        )
-    db.mark_users_notified([u["id"] for u in new_users])
+    try:
+        for email in recipients:
+            _send_email(
+                to=email,
+                subject=f"{len(new_users)} new registration(s) — REvoDesign GREMLIN",
+                text=text,
+            )
+    except Exception:
+        db.unmark_users_notified(user_ids)
+        raise
     return True
 
 

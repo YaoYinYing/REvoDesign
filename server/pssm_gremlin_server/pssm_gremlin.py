@@ -230,11 +230,23 @@ _admin_digest_minutes = _env_int("ADMIN_NEW_USER_INFORM", 0)
 if _admin_digest_minutes > 0 and _env_str("ADMIN_NOTIFY_EMAIL", ""):
     import threading
 
+    _digest_lock = os.path.join(
+        _env_str("SERVER_DIR", os.getcwd()), ".admin_digest.lock"
+    )
+
     def _digest_loop() -> None:
         while True:
             time.sleep(_admin_digest_minutes * 60)
             try:
-                send_admin_digest()
+                # ponytail: file lock so only one worker sends the digest
+                # (gunicorn --preload forks the thread into every worker).
+                import fcntl
+
+                with open(_digest_lock, "w") as _lock_fh:
+                    fcntl.flock(_lock_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    send_admin_digest()
+            except (BlockingIOError, OSError):
+                pass  # another worker has the lock — try next cycle
             except Exception:
                 logging.exception("Admin digest thread failed")
 
@@ -451,7 +463,7 @@ def _extract_stage_from_log_line(line: str) -> str | None:
     marker_pos = line.find(_RUNNER_STAGE_PREFIX)
     if marker_pos < 0:
         return None
-    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX) :].strip().lower()
+    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX):].strip().lower()
     if not raw_marker:
         return None
     token = raw_marker.split()[0]
