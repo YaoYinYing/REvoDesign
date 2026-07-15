@@ -173,6 +173,28 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `ADMIN_NEW_USER_INFORM` | Interval in minutes between new-user digest emails (default: `0` = disabled). |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Also normalises plus-aliased addresses (`user+tag@domain` → `user@domain`). |
 | `TZ` | Timezone for logs. |
+| `CLIENT_IP_HEADERS` | Comma-separated list of HTTP headers to try for the real client IP, in priority order (default: `X-Forwarded-For, X-Real-IP`). See CDN reference below. |
+| `CLIENT_COUNTRY_HEADER` | Single HTTP header carrying the client country code, e.g. `CF-IPCountry` for Cloudflare (default: empty = disabled). |
+
+### CDN IP header reference
+
+| Provider | IP header | Country header |
+|---|---|---|
+| Cloudflare | `CF-Connecting-IP` | `CF-IPCountry` |
+| Akamai | `True-Client-IP` | — |
+| AWS CloudFront | `CloudFront-Viewer-Address` | `CloudFront-Viewer-Country` |
+| Fastly | `Fastly-Client-IP` | — |
+| Azure Front Door | `X-Azure-ClientIP` | — |
+| Fly.io | `Fly-Client-IP` | — |
+| Netlify | `X-Nf-Client-Connection-IP` | — |
+| nginx / Traefik / Caddy / GCP | `X-Forwarded-For` | — |
+
+Put the CDN-specific header first, then fall back to `X-Forwarded-For`. Example for Cloudflare:
+
+```bash
+CLIENT_IP_HEADERS=CF-Connecting-IP, X-Forwarded-For, X-Real-IP
+CLIENT_COUNTRY_HEADER=CF-IPCountry
+```
 
 ## 4. Authentication
 
