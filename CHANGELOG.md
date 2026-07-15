@@ -113,6 +113,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
+- **Uploaded FASTA filename collision**: two users uploading files with the same
+  name (e.g. `seqs.fasta`) would overwrite each other in the shared upload
+  directory. Files are now saved as `{owner_scoped_md5}.fasta` so on-disk names
+  are unique per user and content.
+- **DB backup permission denied on restart**: the restart script's host-side
+  `cp` failed when the host user lacked write permission to `SERVER_DIR`. The
+  backup now runs inside the web container via `docker compose run --entrypoint
+  /bin/cp` so file ownership matches.
+- **Unable to download failed-task artifacts**: failed tasks preserved their
+  result directories but the download route only served `finished` tasks.
+  Relaxed the status gate to include `failed`, and zip the result dir on-the-fly
+  when the pre-packed archive is missing.
+- **Failed-task error message hidden**: dashboard task cards showed a "Failed"
+  badge but gave no access to the error detail. Added a `(?)` indicator next to
+  the status pill with a native hover tooltip showing the full error text.
 - **GREMLIN server test suite**: removed dead `users.txt`/`USERS_FILE` code
   leftover from Basic Auth era. Merged `_configure_pssm_env` into
   `_load_pssm_module`. Fixed Docker test entry points (`_start_web`,
