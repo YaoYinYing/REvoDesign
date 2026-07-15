@@ -14,6 +14,7 @@
     filter: "all",
     selected: new Set(),
   };
+  var activeErrorButton = null;
 
   var statusMap = {
     "pending": { label: "Pending", css: "status-pending", accent: "var(--pending)" },
@@ -133,6 +134,7 @@
   function renderTasks() {
     var list = document.getElementById("taskList");
     var tasks = getFilteredTasks();
+    closeErrorBubbles();
     updateAdminTools();
     if (!tasks.length) {
       list.innerHTML = '<div class="empty">No tasks match the current search/filter criteria.</div>';
@@ -145,7 +147,8 @@
       card.className = "task-card";
       card.style.setProperty("--accent-stripe", meta.accent);
       card.style.animationDelay = Math.min(index * 35, 260) + "ms";
-      var canDownload = task.status === "finished";
+      var canDownload = task.status === "finished" || task.status === "failed";
+      var downloadClass = task.status === "failed" ? "download-failed" : "download";
       var canCancel = task.status === "pending" || task.status === "running";
       var canDelete = Boolean(task.can_delete);
       var hasError = task.status === "failed" && task.error;
@@ -154,6 +157,12 @@
       var traceClass = statusTrace ? "has-trace" : "";
       var traceAttr = statusTrace ? ' tabindex="0" aria-haspopup="true"' : "";
       var tracePopover = statusTrace ? renderStatusTracePopover(statusTrace) : "";
+      var errorHelp =
+        hasError
+          ? '<span class="error-help">' +
+              '<button class="error-indicator" type="button" data-action="toggle-error" data-md5="' + escapeHtml(task.md5) + '" aria-label="Show runner log" aria-expanded="false" aria-controls="taskErrorPopover">?</button>' +
+            '</span>'
+          : "";
 
       card.innerHTML =
         '<header class="task-head">' +
@@ -165,8 +174,10 @@
               (isAdmin ? '<span class="owner-chip">Owner: ' + escapeHtml(task.owner || "-") + '</span>' : "") +
             '</div>' +
           '</div>' +
-          '<span class="status-pill ' + meta.css + ' ' + traceClass + '"' + traceAttr + '>' + escapeHtml(meta.label) + tracePopover + '</span>' +
-          (hasError ? '<span class="error-indicator" title="' + escapeHtml(task.error) + '" aria-label="Error details">?</span>' : "") +
+          '<div class="task-status-tools">' +
+            '<span class="status-pill ' + meta.css + ' ' + traceClass + '"' + traceAttr + '>' + escapeHtml(meta.label) + tracePopover + '</span>' +
+            errorHelp +
+          '</div>' +
         '</header>' +
         '<div class="meta-grid">' +
           '<div class="meta-box"><p class="meta-label">Submitted</p><p class="meta-value">' + escapeHtml(task.submitted_time || "-") + '</p></div>' +
@@ -175,7 +186,7 @@
         '</div>' +
         '<details class="sequence"><summary>Sequence Snapshot</summary><pre>' + escapeHtml(task.sequence || "-") + '</pre></details>' +
         '<div class="actions">' +
-          (canDownload ? '<button class="task-btn download" data-action="download" data-md5="' + escapeHtml(task.md5) + '">Download</button>' : "") +
+          (canDownload ? '<button class="task-btn ' + downloadClass + '" data-action="download" data-md5="' + escapeHtml(task.md5) + '">Download</button>' : "") +
           (canCancel ? '<button class="task-btn cancel" data-action="cancel" data-md5="' + escapeHtml(task.md5) + '">Cancel</button>' : "") +
           (canDelete ? '<button class="task-btn delete" data-action="delete" data-md5="' + escapeHtml(task.md5) + '">Delete</button>' : "") +
         '</div>';
@@ -188,6 +199,127 @@
     var chips = document.querySelectorAll("#statusFilters .chip");
     chips.forEach(function (chip) { chip.classList.toggle("active", chip.dataset.filter === nextFilter); });
     renderTasks();
+  }
+
+  function closeErrorBubbles() {
+    document.querySelectorAll(".error-help.open").forEach(function (node) {
+      node.classList.remove("open");
+      var btn = node.querySelector(".error-indicator");
+      if (btn) btn.setAttribute("aria-expanded", "false");
+    });
+    var popover = document.getElementById("taskErrorPopover");
+    if (popover) {
+      popover.hidden = true;
+      popover.classList.remove("open", "above");
+    }
+    activeErrorButton = null;
+  }
+
+  function ensureErrorPopover() {
+    var popover = document.getElementById("taskErrorPopover");
+    if (popover) return popover;
+    popover = document.createElement("div");
+    popover.id = "taskErrorPopover";
+    popover.className = "error-popover error-popover-floating";
+    popover.setAttribute("role", "tooltip");
+    popover.hidden = true;
+    popover.innerHTML =
+      '<span class="error-popover-header">' +
+        '<span class="error-popover-title">Runner log</span>' +
+        '<button class="error-copy-btn" type="button" data-action="copy-error" aria-label="Copy runner log">Copy</button>' +
+      '</span>' +
+      '<span class="error-popover-message"></span>';
+    document.body.appendChild(popover);
+    return popover;
+  }
+
+  function positionErrorPopover(triggerButton, popover) {
+    var rect = triggerButton.getBoundingClientRect();
+    var top = Math.max(12, rect.bottom + 10);
+    var right = Math.max(12, window.innerWidth - rect.right);
+    var availableHeight = window.innerHeight - top - 12;
+    if (availableHeight < 180 && rect.top > availableHeight) {
+      availableHeight = rect.top - 22;
+      popover.style.top = "auto";
+      popover.style.bottom = Math.max(12, window.innerHeight - rect.top + 10) + "px";
+      popover.classList.add("above");
+    } else {
+      popover.style.top = top + "px";
+      popover.style.bottom = "auto";
+      popover.classList.remove("above");
+    }
+    popover.style.right = right + "px";
+    popover.style.maxHeight = Math.max(160, Math.min(420, availableHeight)) + "px";
+  }
+
+  function toggleErrorBubble(triggerButton) {
+    var wrap = triggerButton.closest(".error-help");
+    if (!wrap) return;
+    var nextOpen = activeErrorButton !== triggerButton;
+    closeErrorBubbles();
+    if (nextOpen) {
+      var task = allTasks.find(function (item) { return item.md5 === triggerButton.dataset.md5; });
+      if (!task || !task.error) return;
+      var popover = ensureErrorPopover();
+      var messageNode = popover.querySelector(".error-popover-message");
+      if (messageNode) {
+        messageNode.textContent = task.error;
+        messageNode.scrollTop = 0;
+      }
+      popover.scrollTop = 0;
+      wrap.classList.add("open");
+      triggerButton.setAttribute("aria-expanded", "true");
+      popover.hidden = false;
+      popover.classList.add("open");
+      positionErrorPopover(triggerButton, popover);
+      activeErrorButton = triggerButton;
+    }
+  }
+
+  function copyTextToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      textarea.style.top = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        if (!document.execCommand("copy")) throw new Error("Copy command failed");
+        resolve();
+      } catch (error) {
+        reject(error);
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    });
+  }
+
+  async function copyActiveError(copyButton) {
+    var popover = document.getElementById("taskErrorPopover");
+    var messageNode = popover ? popover.querySelector(".error-popover-message") : null;
+    var text = messageNode ? messageNode.textContent : "";
+    if (!text) return;
+    var originalLabel = copyButton.textContent;
+    try {
+      copyButton.disabled = true;
+      await copyTextToClipboard(text);
+      copyButton.textContent = "Copied";
+      copyButton.classList.add("copied");
+      setTimeout(function () {
+        copyButton.textContent = originalLabel;
+        copyButton.classList.remove("copied");
+        copyButton.disabled = false;
+      }, 1400);
+    } catch (_) {
+      copyButton.disabled = false;
+      showToast("Could not copy runner log.", "error");
+    }
   }
 
   async function downloadFile(md5sum) {
@@ -329,10 +461,26 @@
       var btn = event.target.closest("button[data-action]");
       if (!btn) return;
       var action = btn.dataset.action;
+      if (action === "toggle-error") {
+        event.stopPropagation();
+        toggleErrorBubble(btn);
+        return;
+      }
       var md5sum = btn.dataset.md5;
       if (action === "download") downloadFile(md5sum);
       else if (action === "cancel") cancelFile(md5sum, btn);
       else if (action === "delete") deleteFile(md5sum, btn);
     });
+
+    document.addEventListener("click", function (event) {
+      var copyBtn = event.target.closest("button[data-action='copy-error']");
+      if (copyBtn) {
+        event.stopPropagation();
+        copyActiveError(copyBtn);
+        return;
+      }
+      if (!event.target.closest(".error-help") && !event.target.closest("#taskErrorPopover")) closeErrorBubbles();
+    });
+    window.addEventListener("resize", closeErrorBubbles);
   });
 })();

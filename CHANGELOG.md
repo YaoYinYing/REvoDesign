@@ -121,13 +121,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `cp` failed when the host user lacked write permission to `SERVER_DIR`. The
   backup now runs inside the web container via `docker compose run --entrypoint
   /bin/cp` so file ownership matches.
-- **Unable to download failed-task artifacts**: failed tasks preserved their
-  result directories but the download route only served `finished` tasks.
-  Relaxed the status gate to include `failed`, and zip the result dir on-the-fly
-  when the pre-packed archive is missing.
-- **Failed-task error message hidden**: dashboard task cards showed a "Failed"
-  badge but gave no access to the error detail. Added a `(?)` indicator next to
-  the status pill with a native hover tooltip showing the full error text.
+- **Unable to download failed-task artifacts**: failed tasks now create a
+  downloadable archive with the uploaded FASTA and a failure report; download
+  routes accept `failed` tasks and pack the result dir on-the-fly when needed.
+- **Failed-task runner log hidden**: dashboard task cards now show a `(?)`
+  indicator next to the status pill. It opens a fixed, scrollable "Runner log"
+  popover backed by the task `error` column, with a copy button for sharing the
+  runner output.
 - **GREMLIN server test suite**: removed dead `users.txt`/`USERS_FILE` code
   leftover from Basic Auth era. Merged `_configure_pssm_env` into
   `_load_pssm_module`. Fixed Docker test entry points (`_start_web`,

@@ -55,6 +55,7 @@ from pssm_gremlin_server.pssm_gremlin import (
     _is_fasta_content,
     _local_user_identity,
     _normalize_task_id,
+    _pack_failed_results_archive,
     _request_metadata,
     _revoke_celery_task,
     _safe_join,
@@ -252,21 +253,27 @@ def upload_file():
     }
 
     if is_binary:
+        error_message = "Binary file uploads are not supported."
+        failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
         task_store.upsert_task(
             md5sum,
             **base_record,
             status="failed",
-            error="Binary file uploads are not supported.",
+            error=error_message,
         )
+        _pack_failed_results_archive(failed_task, error_message)
         return jsonify({"error": "Uploaded file contains binary content"}), 400
 
     if not _is_fasta_content(upload_path):
+        error_message = "Uploaded file does not appear to be a valid FASTA file."
+        failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
         task_store.upsert_task(
             md5sum,
             **base_record,
             status="failed",
-            error="Uploaded file does not appear to be a valid FASTA file.",
+            error=error_message,
         )
+        _pack_failed_results_archive(failed_task, error_message)
         return jsonify({"error": "Uploaded file does not appear to be a valid FASTA file"}), 400
 
     task_store.upsert_task(
@@ -477,7 +484,7 @@ def task_dashboard():
                 "owner": task.get("username") or "-",
                 "can_delete": is_admin or (task.get("username") == current_user),
                 "running_trace": _build_running_trace(task),
-                "error": task.get("error") or None,
+                "error": _sanitize_task_error(task, task.get("error")),
             }
         )
 

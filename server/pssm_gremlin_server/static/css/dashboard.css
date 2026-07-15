@@ -175,13 +175,28 @@
   align-items: center;
 }
 
+.task-status-tools {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-left: auto;
+  position: relative;
+}
+
+.error-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .error-indicator {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 1.1rem;
   height: 1.1rem;
-  margin-left: 0.3rem;
+  border: 1px solid #b33b30;
   border-radius: 999px;
   background: var(--failed);
   color: #fff;
@@ -189,6 +204,115 @@
   font-weight: 800;
   cursor: help;
   vertical-align: middle;
+}
+
+.error-popover {
+  box-sizing: border-box;
+  min-width: min(320px, calc(100vw - 24px));
+  max-width: min(80vw, 460px);
+  border-radius: 12px;
+  background: #fff8f7;
+  color: #5f1f18;
+  border: 1px solid #e4a59d;
+  box-shadow: 0 14px 22px rgba(69, 19, 13, 0.18);
+  padding: 0.68rem 0.78rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.45;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 150ms ease, transform 150ms ease;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.error-popover-floating {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.error-popover::before {
+  content: "";
+  position: absolute;
+  right: 0.4rem;
+  bottom: 100%;
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent #fff8f7 transparent;
+}
+
+.error-popover.above::before {
+  top: 100%;
+  bottom: auto;
+  border-color: #fff8f7 transparent transparent transparent;
+}
+
+.error-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.38rem;
+}
+
+.error-popover-title {
+  display: block;
+  color: #8d281e;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.error-copy-btn {
+  flex: 0 0 auto;
+  border: 1px solid #cf6b60;
+  border-radius: 8px;
+  background: #ffe9e6;
+  color: #8d281e;
+  padding: 0.22rem 0.48rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.error-copy-btn:hover,
+.error-copy-btn:focus-visible {
+  background: #ffd8d3;
+  border-color: #bd4a3f;
+}
+
+.error-copy-btn:disabled {
+  cursor: default;
+  opacity: 0.78;
+}
+
+.error-copy-btn.copied {
+  background: #fbe2df;
+  color: #681b14;
+}
+
+.error-popover-message {
+  display: block;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.2rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.error-popover.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.error-help.open .error-indicator {
+  box-shadow: 0 0 0 3px rgba(194, 54, 42, 0.16);
 }
 
 .status-trace-popover {
@@ -353,6 +477,11 @@ details.sequence summary::-webkit-details-marker { display: none; }
 }
 
 .task-btn.download { background: #0f4f63; color: #f6fbff; }
+.task-btn.download-failed {
+  background: #fff1ef;
+  border-color: #d53a2f;
+  color: #b9251b;
+}
 .task-btn.cancel { background: #ffffff; border-color: #d8e1dc; color: #6b2f24; }
 .task-btn.delete { background: #ffffff; border-color: #e9c1bc; color: #8b2519; }
 .task-btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -444,6 +573,19 @@ html[data-theme="dark"] .status-finished { color: #9fd8aa; background: #1d3524; 
 html[data-theme="dark"] .status-failed   { color: #e8ada7; background: #3c211d; border-color: #724039; }
 html[data-theme="dark"] .status-cancelled { color: #c4ccd3; background: #2a3238; border-color: #48545f; }
 html[data-theme="dark"] .status-deleted  { color: #c0ccd6; background: #232d36; border-color: #42505d; }
+html[data-theme="dark"] .error-popover {
+  background: #321c19;
+  color: #f5c5be;
+  border-color: #7d4139;
+  box-shadow: 0 14px 22px rgba(4, 12, 15, 0.38);
+}
+html[data-theme="dark"] .error-popover::before { border-color: transparent transparent #321c19 transparent; }
+html[data-theme="dark"] .error-popover.above::before { border-color: #321c19 transparent transparent transparent; }
+html[data-theme="dark"] .error-popover-title { color: #ffb4aa; }
+html[data-theme="dark"] .error-copy-btn { background: #47241f; border-color: #9e5148; color: #ffd2cc; }
+html[data-theme="dark"] .error-copy-btn:hover,
+html[data-theme="dark"] .error-copy-btn:focus-visible { background: #5a2b26; border-color: #bd6257; }
+html[data-theme="dark"] .error-copy-btn.copied { background: #67302a; color: #ffe1dd; }
 
 html[data-theme="dark"] .meta-box { background: #16242b; border-color: #30444f; }
 html[data-theme="dark"] details.sequence { border-color: #30444f; background: #152329; }
@@ -457,6 +599,7 @@ html[data-theme="dark"] .toast.error { background: #41241f; border-color: #75423
 
 html[data-theme="dark"] .task-btn.cancel { background: #17252c; border-color: #324751; color: #d7e3e8; }
 html[data-theme="dark"] .task-btn.delete { background: #17252c; border-color: #324751; color: #d7e3e8; }
+html[data-theme="dark"] .task-btn.download-failed { background: #351e1b; border-color: #a94b41; color: #ffb7ad; }
 
 @media (max-width: 980px) {
   .stats { grid-template-columns: repeat(3, minmax(120px, 1fr)); }

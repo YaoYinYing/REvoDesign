@@ -775,6 +775,26 @@ def _pack_results_archive(task: dict) -> None:
         shutil.rmtree(task["result_dir"])
 
 
+def _pack_failed_results_archive(task: dict, error: Any) -> None:
+    """Archive partial outputs and a readable failure report for failed tasks."""
+    result_dir = task.get("result_dir")
+    if not result_dir:
+        return
+    try:
+        os.makedirs(result_dir, exist_ok=True)
+        report_path = os.path.join(result_dir, "task_failed.txt")
+        message = _sanitize_task_error(task, error) or "Task failed."
+        with open(report_path, "w", encoding="utf-8") as handle:
+            handle.write("REvoDesign PSSM_GREMLIN task failed\n")
+            handle.write(f"Task ID: {task.get('md5sum', 'unknown')}\n")
+            handle.write(f"Input: {task.get('filename', 'unknown.fasta')}\n\n")
+            handle.write(message)
+            handle.write("\n")
+        _pack_results_archive(task)
+    except Exception as exc:  # pylint: disable=broad-except
+        logging.warning("Failed to archive failed GREMLIN task %s: %s", task.get("md5sum"), exc)
+
+
 def format_times(timestamp):
     if timestamp:
         return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
@@ -808,10 +828,12 @@ def run_gremlin_task(md5sum):
     output_dir = task["result_dir"]
     uploaded_file = os.path.join(output_dir, task["filename"])
     if not os.path.exists(uploaded_file):
+        error_message = "Uploaded FASTA file not found on disk"
+        _pack_failed_results_archive(task, error_message)
         task_store.update_task(
             md5sum,
             status="failed",
-            error="Uploaded FASTA file not found on disk",
+            error=error_message,
             finished_at=time.time(),
         )
         logging.error("Uploaded file missing for task %s", md5sum)
@@ -874,33 +896,39 @@ def run_gremlin_task(md5sum):
         )
     except docker.errors.ContainerError as exc:
         finish_time = time.time()
+        error_message = f"docker: {exc}"
+        _pack_failed_results_archive(task, error_message)
         task_store.update_task(
             md5sum,
             status="failed",
             finished_at=finish_time,
             walltime=finish_time - start_time,
-            error=f"docker: {exc}",
+            error=error_message,
             run_stage=stage_state["current"],
         )
     except docker.errors.DockerException as exc:
         finish_time = time.time()
+        error_message = f"docker: {exc}"
+        _pack_failed_results_archive(task, error_message)
         task_store.update_task(
             md5sum,
             status="failed",
             finished_at=finish_time,
             walltime=finish_time - start_time,
-            error=f"docker: {exc}",
+            error=error_message,
             run_stage=stage_state["current"],
         )
         logging.error("Docker daemon unavailable for GREMLIN task %s: %s", md5sum, exc)
     except Exception as exc:  # pylint: disable=broad-except
         finish_time = time.time()
+        error_message = str(exc)
+        _pack_failed_results_archive(task, error_message)
         task_store.update_task(
             md5sum,
             status="failed",
             finished_at=finish_time,
             walltime=finish_time - start_time,
-            error=str(exc),
+            error=error_message,
             run_stage=stage_state["current"],
         )
         logging.exception("Unexpected failure while running GREMLIN task %s", md5sum)

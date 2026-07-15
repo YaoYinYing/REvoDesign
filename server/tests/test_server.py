@@ -263,6 +263,15 @@ def test_run_gremlin_task_handles_docker_daemon_error(monkeypatch, tmp_path):
     assert task["error"].startswith("docker:")
     assert "Permission denied" in task["error"]
 
+    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
+    assert zip_path.is_file()
+    assert not Path(task["result_dir"]).exists()
+    with zipfile.ZipFile(zip_path) as archive:
+        names = set(archive.namelist())
+        failure_report = archive.read("task_failed.txt").decode("utf-8")
+    assert any(name.endswith("input.fasta") for name in names)
+    assert "Permission denied" in failure_report
+
 
 def test_run_pssm_gremlin_in_docker_limits_thread_env(monkeypatch, tmp_path):
     module = _load_pssm_module(
@@ -1303,6 +1312,45 @@ def test_download_uses_safe_fasta_prefix_filename(monkeypatch, tmp_path):
     assert expected_prefix in disposition
     assert "\r" not in disposition
     assert "\n" not in disposition
+
+
+def test_failed_task_archive_is_downloadable(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "failed_download"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    upload_file = tmp_path / "failed.fasta"
+    upload_file.write_text(">x\nACDE\n", encoding="utf-8")
+    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr("task_failed.txt", "runner failed\n")
+
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="failed.fasta",
+        file_path=upload_file,
+        result_dir=result_dir,
+        username="tester",
+        status="failed",
+    )
+    module.task_store.update_task(md5sum, error="runner failed")
+
+    response = client.get(f"/PSSM_GREMLIN/api/download/{md5sum}", headers=auth_header)
+    assert response.status_code == 200
+    disposition = response.headers.get("Content-Disposition", "")
+    assert "attachment" in disposition
+    assert response.data
 
 
 # ==================================================================
