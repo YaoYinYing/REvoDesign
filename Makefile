@@ -56,6 +56,8 @@ help:
 	@echo "  slow-test              Run all slow tests (third order)"
 	@echo "  kw-test                Run the Keyword Test suite"
 	@echo "  kw-test-pdb            Run the Keyword Test suite with pdb"
+	@echo "  server-test            Run the GREMLIN server test suite"
+	@echo "  server-test-cov        Run server tests with coverage report"
 	@echo "  macos-rosetta-test     Run UI tests versus PyMOL incentive installation (MacOS Application)"
 	@echo "  memray                 Memoray profile for leakage, saved as html file"
 	@echo "  memray-live            Memoray profile for leakage in live mode"
@@ -121,6 +123,14 @@ translate:
 
 prepare-test:
 	python -m pip install pytest pytest-cov pytest-order pytest-dependency coverage -q --no-cache-dir
+
+# server (GREMLIN) tests
+server-test:
+	python -m pytest server/tests/ --ignore=server/tests/test_docker.py -v
+
+server-test-cov:
+	python -m pytest server/tests/ --ignore=server/tests/test_docker.py -v \
+		--cov-config=.coveragerc-server --cov --cov-report=term-missing
 
 # unit test
 test:
