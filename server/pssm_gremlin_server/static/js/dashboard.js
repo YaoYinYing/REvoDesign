@@ -148,6 +148,7 @@
       var canDownload = task.status === "finished";
       var canCancel = task.status === "pending" || task.status === "running";
       var canDelete = Boolean(task.can_delete);
+      var hasError = task.status === "failed" && task.error;
       var selected = state.selected.has(task.md5);
       var statusTrace = getStatusTrace(task);
       var traceClass = statusTrace ? "has-trace" : "";
@@ -165,6 +166,7 @@
             '</div>' +
           '</div>' +
           '<span class="status-pill ' + meta.css + ' ' + traceClass + '"' + traceAttr + '>' + escapeHtml(meta.label) + tracePopover + '</span>' +
+          (hasError ? '<span class="error-indicator" title="' + escapeHtml(task.error) + '" aria-label="Error details">?</span>' : "") +
         '</header>' +
         '<div class="meta-grid">' +
           '<div class="meta-box"><p class="meta-label">Submitted</p><p class="meta-value">' + escapeHtml(task.submitted_time || "-") + '</p></div>' +

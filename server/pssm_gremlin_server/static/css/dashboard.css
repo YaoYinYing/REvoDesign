@@ -175,6 +175,22 @@
   align-items: center;
 }
 
+.error-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-left: 0.3rem;
+  border-radius: 999px;
+  background: var(--failed);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  cursor: help;
+  vertical-align: middle;
+}
+
 .status-trace-popover {
   position: absolute;
   right: 0;

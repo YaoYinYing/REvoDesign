@@ -477,6 +477,7 @@ def task_dashboard():
                 "owner": task.get("username") or "-",
                 "can_delete": is_admin or (task.get("username") == current_user),
                 "running_trace": _build_running_trace(task),
+                "error": task.get("error") or None,
             }
         )
 
