@@ -42,7 +42,7 @@ x-common-env: &common-env
   SMTP_USERNAME: ${SMTP_USERNAME:-}
   SMTP_PASSWORD: ${SMTP_PASSWORD:-}
   SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
-  SMTP_FROM_ADDR: ${SMTP_FROM_ADDR:-noreply@revodesign.local}
+  SMTP_FROM_ADDR: ${SMTP_FROM_ADDR:-hello@revodesign.local}
   SMTP_FROM_NAME: ${SMTP_FROM_NAME:-REvoDesign GREMLIN Server}
   RESEND_API_KEY: ${RESEND_API_KEY:-}
   RESEND_FROM_ADDR: ${RESEND_FROM_ADDR:-onboarding@resend.dev}

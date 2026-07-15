@@ -16,6 +16,7 @@ import os
 import smtplib
 import time
 from collections.abc import Callable
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from functools import wraps
@@ -506,7 +507,7 @@ def _smtp_config() -> dict[str, Any]:
         "username": _env_str("SMTP_USERNAME", ""),
         "password": _env_str("SMTP_PASSWORD", ""),
         "use_tls": _env_bool("SMTP_USE_TLS", True),
-        "from_addr": _env_str("SMTP_FROM_ADDR", "noreply@revodesign.local"),
+        "from_addr": _env_str("SMTP_FROM_ADDR", "hello@revodesign.local"),
         "from_name": _env_str("SMTP_FROM_NAME", "REvoDesign GREMLIN Server"),
     }
 
