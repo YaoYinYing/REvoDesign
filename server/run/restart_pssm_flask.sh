@@ -159,11 +159,15 @@ resolve_runner_identity() {
     RUNNER_UID="$(id -u "${_user}" 2>/dev/null || echo "")"
   fi
   if [[ -z "${RUNNER_GID:-}" ]]; then
-    RUNNER_GID="$(getent group "${_group}" 2>/dev/null | cut -d: -f3 || stat -f '%g' /dev/null 2>/dev/null || echo "")"
+    # Try the named group first; fall back to the user's primary group;
+    # default to 1000 when neither resolves (macOS CI, etc.).
+    RUNNER_GID="$(getent group "${_group}" 2>/dev/null | cut -d: -f3 || true)"
+    if [[ -z "${RUNNER_GID}" ]]; then
+      RUNNER_GID="$(id -g "${_user}" 2>/dev/null || true)"
+    fi
+    RUNNER_GID="${RUNNER_GID:-1000}"
   fi
-  # Fallback for environments where id/getent aren't available (macOS CI, etc.)
   RUNNER_UID="${RUNNER_UID:-1000}"
-  RUNNER_GID="${RUNNER_GID:-1000}"
 
   export RUNNER_UID RUNNER_GID
   echo "Using runner identity ${RUNNER_UID}:${RUNNER_GID} (user ${_user}, group ${_group})."
@@ -214,6 +218,7 @@ cmd_up() {
 cmd_down() {
   require_env_file
   ensure_docker_gid
+  resolve_runner_identity
   echo "Stopping services via docker compose..."
   "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" down
 }

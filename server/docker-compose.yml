@@ -51,6 +51,7 @@ x-common-env: &common-env
   ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
   ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
   ADMIN_NEW_USER_INFORM: ${ADMIN_NEW_USER_INFORM:-0}
+  DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
 
 x-docker-socket-access: &docker-socket-access
   # Docker socket group access is host-root-equivalent — the Docker API
