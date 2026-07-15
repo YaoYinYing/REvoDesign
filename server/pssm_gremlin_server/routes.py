@@ -178,16 +178,23 @@ def upload_file():
             400,
         )
 
-    upload_path = _safe_join(app.config["UPLOAD_FOLDER"], safe_filename)
-    uploaded_file.save(upload_path)
+    # Save to a temp name first to avoid filename collisions — two users
+    # uploading "seqs.fasta" would otherwise overwrite each other.
+    temp_name = f".tmp_{os.urandom(8).hex()}_{safe_filename}"
+    temp_path = _safe_join(app.config["UPLOAD_FOLDER"], temp_name)
+    uploaded_file.save(temp_path)
 
     hasher = hashlib.md5(usedforsecurity=False)
-    with open(upload_path, "rb") as f:
+    with open(temp_path, "rb") as f:
         for chunk in iter(lambda: f.read(65536), b""):
             hasher.update(chunk)
     content_md5 = hasher.hexdigest()
     metadata = _request_metadata()
     md5sum = _task_id_for_upload(content_md5, metadata["username"])
+
+    # Rename to the owner-scoped task ID so on-disk names are unique.
+    upload_path = _safe_join(app.config["UPLOAD_FOLDER"], f"{md5sum}.fasta")
+    os.rename(temp_path, upload_path)
 
     existing_task = task_store.get_task(md5sum)
     if existing_task and not _task_access_allowed(existing_task):
