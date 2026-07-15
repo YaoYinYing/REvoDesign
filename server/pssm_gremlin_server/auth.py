@@ -531,8 +531,8 @@ def _resend_from() -> str:
     return f"{name} <{addr}>"
 
 
-def _send_email(*, to: str, subject: str, text: str) -> bool:
-    """Send a plain-text email.  Uses Resend if available+configured, else SMTP.
+def _send_email(*, to: str, subject: str, text: str, html: str | None = None) -> bool:
+    """Send an email.  Uses Resend if available+configured, else SMTP.
 
     Returns ``True`` on success, ``False`` on failure (logged).
     """
@@ -545,6 +545,8 @@ def _send_email(*, to: str, subject: str, text: str) -> bool:
                 "subject": subject,
                 "text": text,
             }
+            if html:
+                params["html"] = html
             _resend_module.Emails.send(params)  # type: ignore[union-attr]
             return True
         except Exception:
@@ -552,11 +554,13 @@ def _send_email(*, to: str, subject: str, text: str) -> bool:
 
     # SMTP path (stdlib, always available)
     cfg = _smtp_config()
-    msg = MIMEMultipart()
+    msg = MIMEMultipart("alternative")
     msg["From"] = f"{cfg['from_name']} <{cfg['from_addr']}>"
     msg["To"] = to
     msg["Subject"] = subject
     msg.attach(MIMEText(text, "plain"))
+    if html:
+        msg.attach(MIMEText(html, "html"))
 
     try:
         if cfg["use_tls"]:
@@ -572,6 +576,20 @@ def _send_email(*, to: str, subject: str, text: str) -> bool:
     except Exception:
         logging.exception("Failed to send email to %s", to)
         return False
+
+
+# ---------------------------------------------------------------------------
+# Shared HTML email wrapper — loaded from templates/email/base.html
+# ---------------------------------------------------------------------------
+
+_EMAIL_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "templates", "email", "base.html")
+with open(_EMAIL_TEMPLATE_PATH, encoding="utf-8") as _f:
+    _EMAIL_TEMPLATE = _f.read()
+
+
+def _email_html(body_html: str) -> str:
+    """Wrap *body_html* in the shared email layout."""
+    return _EMAIL_TEMPLATE.format(body=body_html)
 
 
 # ---------------------------------------------------------------------------
@@ -629,23 +647,40 @@ def send_verification_email(user: dict[str, Any]) -> bool:
     base_url = _public_base_url()
     verify_url = f"{base_url}/PSSM_GREMLIN/user_verify?c={token}"
 
+    text = (
+        f"Hello {user['username']},\n"
+        f"\n"
+        f"Welcome to REvoDesign GREMLIN. Please confirm your email address to\n"
+        f"activate your account.\n"
+        f"\n"
+        f"  {verify_url}\n"
+        f"\n"
+        f"This link expires in 2 days.\n"
+        f"\n"
+        f"If you did not create this account, you can ignore this message.\n"
+        f"\n"
+        f"— REvoDesign GREMLIN Server\n"
+    )
+    html_body = (
+        f'<p>Hello {user["username"]},</p>'
+        f"<p>Welcome to REvoDesign GREMLIN. Please confirm your email address "
+        f"to activate your account.</p>"
+        f'<p style="margin:24px 0;">'
+        f'<a href="{verify_url}" style="display:inline-block;padding:12px 24px;'
+        f"background-color:#1a1a2e;color:#ffffff;text-decoration:none;"
+        f"border-radius:6px;font-weight:600;\">"
+        f"Verify Email Address</a></p>"
+        f"<p>Or copy this link:</p>"
+        f'<p style="color:#6b7280;font-size:13px;word-break:break-all;">'
+        f"{verify_url}</p>"
+        f'<p style="color:#9ca3af;font-size:13px;">This link expires in 2 days.</p>'
+        f"<p>If you did not create this account, you can ignore this message.</p>"
+    )
     return _send_email(
         to=user["email"],
         subject="Verify your email — REvoDesign GREMLIN",
-        text=(
-            f"Hello {user['username']},\n"
-            f"\n"
-            f"Welcome to REvoDesign GREMLIN. Please confirm your email address to\n"
-            f"activate your account.\n"
-            f"\n"
-            f"  {verify_url}\n"
-            f"\n"
-            f"This link expires in 2 days.\n"
-            f"\n"
-            f"If you did not create this account, you can ignore this message.\n"
-            f"\n"
-            f"— REvoDesign GREMLIN Server\n"
-        ),
+        text=text,
+        html=_email_html(html_body),
     )
 
 
@@ -680,24 +715,42 @@ def send_password_reset_email(email: str, db: UserDatabase) -> bool:
     base_url = _public_base_url()
     reset_url = f"{base_url}/PSSM_GREMLIN/reset_password?c={token}"
 
+    text = (
+        f"Hello {user['username']},\n"
+        f"\n"
+        f"A password reset was requested for your account. Click the link\n"
+        f"below to set a new password.\n"
+        f"\n"
+        f"  {reset_url}\n"
+        f"\n"
+        f"This link expires in 1 hour.\n"
+        f"\n"
+        f"If you did not request this, you can ignore this message — your\n"
+        f"password will not change.\n"
+        f"\n"
+        f"— REvoDesign GREMLIN Server\n"
+    )
+    html_body = (
+        f'<p>Hello {user["username"]},</p>'
+        f"<p>A password reset was requested for your account. "
+        f"Click the button below to set a new password.</p>"
+        f'<p style="margin:24px 0;">'
+        f'<a href="{reset_url}" style="display:inline-block;padding:12px 24px;'
+        f"background-color:#1a1a2e;color:#ffffff;text-decoration:none;"
+        f"border-radius:6px;font-weight:600;\">"
+        f"Reset Password</a></p>"
+        f"<p>Or copy this link:</p>"
+        f'<p style="color:#6b7280;font-size:13px;word-break:break-all;">'
+        f"{reset_url}</p>"
+        f'<p style="color:#9ca3af;font-size:13px;">This link expires in 1 hour.</p>'
+        f"<p>If you did not request this, you can ignore this message "
+        f"&mdash; your password will not change.</p>"
+    )
     return _send_email(
         to=email,
         subject="Reset your password — REvoDesign GREMLIN",
-        text=(
-            f"Hello {user['username']},\n"
-            f"\n"
-            f"A password reset was requested for your account. Click the link\n"
-            f"below to set a new password.\n"
-            f"\n"
-            f"  {reset_url}\n"
-            f"\n"
-            f"This link expires in 1 hour.\n"
-            f"\n"
-            f"If you did not request this, you can ignore this message — your\n"
-            f"password will not change.\n"
-            f"\n"
-            f"— REvoDesign GREMLIN Server\n"
-        ),
+        text=text,
+        html=_email_html(html_body),
     )
 
 
@@ -705,35 +758,54 @@ def send_approval_email(user: dict[str, Any]) -> bool:
     """Notify *user* that their registration has been approved."""
     base_url = _public_base_url()
 
+    text = (
+        f"Hello {user['username']},\n"
+        f"\n"
+        f"Your REvoDesign GREMLIN registration has been approved.\n"
+        f"\n"
+        f"  {base_url}/PSSM_GREMLIN/login\n"
+        f"\n"
+        f"— REvoDesign GREMLIN Server\n"
+    )
+    html_body = (
+        f'<p>Hello {user["username"]},</p>'
+        f"<p>Your REvoDesign GREMLIN registration has been approved.</p>"
+        f'<p style="margin:24px 0;">'
+        f'<a href="{base_url}/PSSM_GREMLIN/login" style="display:inline-block;'
+        f"padding:12px 24px;background-color:#1a1a2e;color:#ffffff;"
+        f"text-decoration:none;border-radius:6px;font-weight:600;\">"
+        f"Log In</a></p>"
+    )
     return _send_email(
         to=user["email"],
         subject="Registration approved — REvoDesign GREMLIN",
-        text=(
-            f"Hello {user['username']},\n"
-            f"\n"
-            f"Your REvoDesign GREMLIN registration has been approved.\n"
-            f"\n"
-            f"  {base_url}/PSSM_GREMLIN/login\n"
-            f"\n"
-            f"— REvoDesign GREMLIN Server\n"
-        ),
+        text=text,
+        html=_email_html(html_body),
     )
 
 
 def send_rejection_email(user: dict[str, Any]) -> bool:
     """Notify *user* that their registration has been declined."""
+    text = (
+        f"Hello {user['username']},\n"
+        f"\n"
+        f"Your REvoDesign GREMLIN registration has been declined.\n"
+        f"If you believe this is an error, please contact the\n"
+        f"administrator who manages this server.\n"
+        f"\n"
+        f"— REvoDesign GREMLIN Server\n"
+    )
+    html_body = (
+        f'<p>Hello {user["username"]},</p>'
+        f"<p>Your REvoDesign GREMLIN registration has been declined.</p>"
+        f"<p>If you believe this is an error, please contact the "
+        f"administrator who manages this server.</p>"
+    )
     return _send_email(
         to=user["email"],
         subject="Registration update — REvoDesign GREMLIN",
-        text=(
-            f"Hello {user['username']},\n"
-            f"\n"
-            f"Your REvoDesign GREMLIN registration has been declined.\n"
-            f"If you believe this is an error, please contact the\n"
-            f"administrator who manages this server.\n"
-            f"\n"
-            f"— REvoDesign GREMLIN Server\n"
-        ),
+        text=text,
+        html=_email_html(html_body),
     )
 
 
@@ -779,12 +851,44 @@ def send_admin_digest() -> bool:
         + f"\n\n  Review: {base_url}/PSSM_GREMLIN/user_control\n\n"
         f"— REvoDesign GREMLIN Server\n"
     )
+    # Build HTML table rows
+    html_rows = []
+    for u in new_users:
+        created = datetime.fromtimestamp(u["created_at"]).strftime("%Y-%m-%d %H:%M") if u.get("created_at") else "?"
+        affil = u.get("affiliation") or "-"
+        html_rows.append(
+            f"<tr>"
+            f'<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">{u["username"]}</td>'
+            f'<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">{u["email"]}</td>'
+            f'<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">{affil}</td>'
+            f'<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">{created}</td>'
+            f"</tr>"
+        )
+    html_body = (
+        f"<p>{len(new_users)} new registration(s) pending approval:</p>"
+        f'<table style="width:100%;border-collapse:collapse;margin:16px 0;'
+        f'font-size:14px;" cellpadding="0" cellspacing="0">'
+        f'<thead><tr style="background-color:#f3f4f6;text-align:left;">'
+        f'<th style="padding:8px 12px;">Username</th>'
+        f'<th style="padding:8px 12px;">Email</th>'
+        f'<th style="padding:8px 12px;">Affiliation</th>'
+        f'<th style="padding:8px 12px;">Registered</th>'
+        f"</tr></thead><tbody>"
+        + "".join(html_rows)
+        + "</tbody></table>"
+        f'<p style="margin:24px 0;">'
+        f'<a href="{base_url}/PSSM_GREMLIN/user_control" style="display:inline-block;'
+        f"padding:12px 24px;background-color:#1a1a2e;color:#ffffff;"
+        f"text-decoration:none;border-radius:6px;font-weight:600;\">"
+        f"Review Registrations</a></p>"
+    )
     try:
         for email in recipients:
             _send_email(
                 to=email,
                 subject=f"{len(new_users)} new registration(s) — REvoDesign GREMLIN",
                 text=text,
+                html=_email_html(html_body),
             )
     except Exception:
         db.unmark_users_notified(user_ids)
