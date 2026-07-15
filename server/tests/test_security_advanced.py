@@ -6,8 +6,6 @@ from __future__ import annotations
 
 import io
 import json
-import time
-import uuid
 
 import pytest
 from conftest import (
@@ -360,5 +358,3 @@ def test_rce_large_binary_upload_not_executed(monkeypatch, tmp_path):
     # Binary detection kicks in before any execution
     assert resp.status_code == 400
     assert "binary" in resp.json["error"].lower()
-
-

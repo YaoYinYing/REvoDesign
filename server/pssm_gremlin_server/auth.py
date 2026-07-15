@@ -107,6 +107,7 @@ _users_table = sa.Table(
     sa.Column("verification_resend_at", sa.Float, nullable=True),
     sa.Column("registration_ip", sa.String(45), nullable=True),
     sa.Column("registration_country", sa.String(8), nullable=True),
+    sa.Column("token_version", sa.Integer, nullable=False, default=0),
 )
 
 
@@ -165,6 +166,10 @@ class UserDatabase:
         ]:
             if col not in existing:
                 conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype};")
+        if "token_version" not in existing:
+            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0;")
+        # Backfill any NULL token_version (idempotent, runs every startup)
+        conn.exec_driver_sql("UPDATE users SET token_version = 0 WHERE token_version IS NULL")
         # When adding admin_notified for the first time, mark all existing
         # non-admin users as notified so they don't appear in the first digest.
         # Admins are always excluded from the digest.  This is intentionally
@@ -289,6 +294,16 @@ class UserDatabase:
                     return dict(row)
         return None
 
+    def increment_token_version(self, user_id: int) -> None:
+        """Invalidate all existing bearer tokens for *user_id*."""
+        stmt = (
+            sa.update(_users_table)
+            .where(_users_table.c.id == user_id)
+            .values(token_version=_users_table.c.token_version + 1)
+        )
+        with self.engine.begin() as conn:
+            conn.execute(stmt)
+
     # -- read helpers --------------------------------------------------------
 
     def get_user(self, user_id: int) -> dict[str, Any] | None:
@@ -372,18 +387,29 @@ _TOKEN_MAX_AGE = _env_int("AUTH_TOKEN_MAX_AGE", 7 * 24 * 3600)  # 7 days
 _serializer = URLSafeTimedSerializer(_SECRET_KEY, salt="revodesign-auth")
 
 
-def generate_token(user_id: int) -> str:
-    """Return a signed, time-limited bearer token for *user_id*."""
-    return _serializer.dumps({"uid": user_id})  # type: ignore[return-value]
+def generate_token(user_id: int, token_version: int = 0) -> str:
+    """Return a signed, time-limited bearer token for *user_id*.
+
+    The token is bound to *token_version* — incrementing the user's
+    ``token_version`` column invalidates all previously issued tokens.
+    """
+    return _serializer.dumps({"uid": user_id, "ver": token_version})  # type: ignore[return-value]
 
 
-def validate_token(token: str) -> int | None:
-    """Return *user_id* if *token* is valid, or ``None``."""
+def validate_token(token: str) -> dict | None:
+    """Return the token payload (``{"uid": ..., "ver": ...}``) if valid, or ``None``.
+
+    Callers MUST verify that ``payload["ver"]`` matches the user's current
+    ``token_version`` — this function only checks the cryptographic signature
+    and expiry.
+    """
     try:
         payload = _serializer.loads(token, max_age=_TOKEN_MAX_AGE)
     except (SignatureExpired, BadSignature):
         return None
-    return payload.get("uid")
+    if "uid" not in payload:
+        return None
+    return payload
 
 
 # ---------------------------------------------------------------------------
@@ -436,22 +462,24 @@ def load_current_user() -> dict[str, Any] | None:
     # 1. Bearer token (Authorization header — full privileges, CSRF-safe)
     token = _extract_bearer_token()
     if token:
-        user_id = validate_token(token)
-        if user_id is not None:
-            user = db.get_user(user_id)
+        payload = validate_token(token)
+        if payload is not None:
+            user = db.get_user(payload["uid"])
             if user is not None and _is_account_blocked(user) is None:
-                g.auth_method = "bearer"
-                return user
+                if payload.get("ver", 0) == user.get("token_version", 0):
+                    g.auth_method = "bearer"
+                    return user
     # 2. Cookie — browser page navigations after login (read-only; CSRF-prone)
     #    Guest accounts ARE permitted to use cookie-based web access.
     token = request.cookies.get("auth_token")
     if token:
-        user_id = validate_token(token)
-        if user_id is not None:
-            user = db.get_user(user_id)
+        payload = validate_token(token)
+        if payload is not None:
+            user = db.get_user(payload["uid"])
             if user is not None and _is_account_blocked(user) is None:
-                g.auth_method = "cookie"
-                return user
+                if payload.get("ver", 0) == user.get("token_version", 0):
+                    g.auth_method = "cookie"
+                    return user
 
     # 3. API key (programmatic access — restricted privileges)
     #    Guest accounts are not permitted to use API keys.
@@ -629,6 +657,19 @@ def _email_html(body_html: str) -> str:
 # CAPTCHA — simple math challenge, signed token (5-min expiry)
 # ---------------------------------------------------------------------------
 
+_CAPTCHA_MAX_AGE = 300  # seconds
+
+# ponytail: dict of {nonce: expiry_timestamp}.  Cleaned on each validation call.
+# Size bounded by CAPTCHA rate * 300 s — at ~10 req/s that's ~3k entries.
+_used_captcha_nonces: dict[str, float] = {}
+
+
+def _purge_expired_captcha_nonces(now: float) -> None:
+    """Drop entries past their 5-min TTL so the set stays small."""
+    stale = [n for n, exp in _used_captcha_nonces.items() if exp < now]
+    for n in stale:
+        del _used_captcha_nonces[n]
+
 
 def generate_captcha() -> tuple[str, str]:
     """Return ``(question, token)`` for a math CAPTCHA challenge."""
@@ -638,22 +679,36 @@ def generate_captcha() -> tuple[str, str]:
     b = secrets.randbelow(9) + 1  # avoid zero — makes the answer less trivial
     answer = a + b
     question = f"What is {a} + {b}?"
-    token: str = _serializer.dumps({"answer": answer, "purpose": "captcha"})  # type: ignore[assignment]
+    jti = secrets.token_hex(16)
+    token: str = _serializer.dumps({"answer": answer, "purpose": "captcha", "jti": jti})  # type: ignore[assignment]
     return question, token
 
 
 def validate_captcha(token: str, answer: str) -> bool:
-    """Validate a CAPTCHA token and answer.  Tokens expire after 5 minutes."""
+    """Validate a CAPTCHA token and answer.  Tokens expire after 5 minutes.
+
+    Each token is single-use — the nonce (``jti``) is tracked and rejected
+    on replay.
+    """
+    now = time.time()
+    _purge_expired_captcha_nonces(now)
     try:
-        payload = _serializer.loads(token, max_age=300)
+        payload = _serializer.loads(token, max_age=_CAPTCHA_MAX_AGE)
     except (SignatureExpired, BadSignature):
         return False
     if payload.get("purpose") != "captcha":
         return False
+    jti = payload.get("jti")
+    if jti and jti in _used_captcha_nonces:
+        return False  # replay
     try:
-        return int(payload.get("answer", -1)) == int(answer.strip())
+        if int(payload.get("answer", -1)) != int(answer.strip()):
+            return False
     except (TypeError, ValueError):
         return False
+    if jti:
+        _used_captcha_nonces[jti] = now + _CAPTCHA_MAX_AGE
+    return True
 
 
 def _public_base_url() -> str:

@@ -7,7 +7,6 @@ from __future__ import annotations
 import io
 import json
 import time
-import uuid
 
 import pytest
 from conftest import (
@@ -354,7 +353,7 @@ def test_attack_null_byte_in_filename_rejected(monkeypatch, tmp_path):
 
 
 def test_attack_token_reuse_after_password_change(monkeypatch, tmp_path):
-    """Old bearer token remains valid after password change (no invalidation — documented)."""
+    """Old bearer token is rejected after password change (token_version incremented)."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
@@ -364,16 +363,15 @@ def test_attack_token_reuse_after_password_change(monkeypatch, tmp_path):
         data=json.dumps({"username": "tester", "password": "password"}),
     )
     old_token = login.json["token"]
-    # Change password
+    # Change password — this increments token_version, invalidating all old tokens
     client.put(
         "/PSSM_GREMLIN/api/auth/me",
         headers={**auth_header, "Content-Type": "application/json"},
         data=json.dumps({"current_password": "password", "new_password": "newpassword123"}),
     )
-    # Old token still works — no server-side invalidation
+    # Old token must be rejected — version no longer matches
     resp = client.get("/PSSM_GREMLIN/api/auth/me", headers={"Authorization": f"Bearer {old_token}"})
-    # Currently passes. Add token blacklisting to make this 401.
-    assert resp.status_code == 200
+    assert resp.status_code == 401
 
 
 def test_attack_rate_limit_bypass_via_spoofed_ip(monkeypatch, tmp_path):
@@ -725,16 +723,16 @@ def test_attack_admin_promotion_via_self_registration_blocked(monkeypatch, tmp_p
 
 
 def test_attack_captcha_token_single_use(monkeypatch, tmp_path):
-    """CAPTCHA token replay — currently allows replay (documented)."""
+    """CAPTCHA token replay is rejected — tokens are single-use (nonce tracked)."""
     module = _load_pssm_module(
         monkeypatch,
         tmp_path,
         extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLE_REGISTER": "true", "SMTP_HOST": "localhost"},
     )
     client = module.app.test_client()
-    from pssm_gremlin_server.auth import _serializer
+    from pssm_gremlin_server.auth import generate_captcha
 
-    captcha_token = _serializer.dumps({"answer": 7, "purpose": "captcha"})
+    _, captcha_token = generate_captcha()
     payload = {
         "username": "replay1",
         "email": "replay1@test.local",
@@ -743,18 +741,35 @@ def test_attack_captcha_token_single_use(monkeypatch, tmp_path):
         "captcha_token": captcha_token,
         "captcha_answer": "7",
     }
+    # First use of the token must work — but the answer is for a random math
+    # problem, so it will be wrong.  Use a token we know the answer to.
+    from pssm_gremlin_server.auth import _serializer
+
+    known_token = _serializer.dumps({"answer": 7, "purpose": "captcha", "jti": "replay-test-nonce"})
+    known_payload = {
+        "username": "replay1",
+        "email": "replay1@test.local",
+        "password": "pass12345678",
+        "terms_agreed": True,
+        "captcha_token": known_token,
+        "captcha_answer": "7",
+    }
     assert (
         client.post(
-            "/PSSM_GREMLIN/api/auth/register", headers={"Content-Type": "application/json"}, data=json.dumps(payload)
+            "/PSSM_GREMLIN/api/auth/register",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(known_payload),
         ).status_code
         == 201
     )
-    payload.update(username="replay2", email="replay2@test.local")
+    # Replay the same token — must be rejected
+    known_payload.update(username="replay2", email="replay2@test.local")
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/register", headers={"Content-Type": "application/json"}, data=json.dumps(payload)
+        "/PSSM_GREMLIN/api/auth/register",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(known_payload),
     )
-    # Currently passes — CAPTCHA isn't single-use. Change to 400 if one-time tokens added.
-    assert resp.status_code in {201, 400}
+    assert resp.status_code == 400
 
 
 def test_attack_unprotected_endpoints_reject_auth_headers(monkeypatch, tmp_path):
@@ -763,5 +778,3 @@ def test_attack_unprotected_endpoints_reject_auth_headers(monkeypatch, tmp_path)
     client = module.app.test_client()
     resp = client.get("/PSSM_GREMLIN/api/auth/captcha", headers={"Authorization": "Bearer fake_token"})
     assert resp.status_code == 200  # CAPTCHA doesn't need auth
-
-

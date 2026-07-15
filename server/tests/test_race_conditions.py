@@ -145,7 +145,7 @@ def test_race_upload_dedup_race_condition(monkeypatch, tmp_path):
 
 
 def test_race_token_usage_after_concurrent_logout(monkeypatch, tmp_path):
-    """Token used in a race with logout — token still valid (no server invalidation)."""
+    """Token used after logout is rejected (token_version incremented on logout)."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     _test_client_auth(module)
@@ -156,12 +156,11 @@ def test_race_token_usage_after_concurrent_logout(monkeypatch, tmp_path):
         data=json.dumps({"username": "tester", "password": "password"}),
     )
     token = login.json["token"]
-    # Logout (clears cookie, doesn't revoke token)
+    # Logout — increments token_version, invalidating all tokens
     client.post("/PSSM_GREMLIN/api/auth/logout")
-    # Token still works
+    # Old token must be rejected
     resp = client.get("/PSSM_GREMLIN/api/auth/me", headers={"Authorization": f"Bearer {token}"})
-    assert resp.status_code == 200
-    assert resp.json["username"] == "tester"
+    assert resp.status_code == 401
 
 
 def test_race_status_polling_during_task_transition(monkeypatch, tmp_path):
@@ -331,5 +330,3 @@ def test_race_status_polling_on_deleted_task(monkeypatch, tmp_path):
         assert resp.status_code == 200
         data = resp.json
         assert data["md5sum"] == md5sum
-
-

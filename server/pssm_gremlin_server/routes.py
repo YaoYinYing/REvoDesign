@@ -696,7 +696,7 @@ def auth_login():
     if blocked := _is_account_blocked(user):
         return jsonify({"error": blocked}), 403
 
-    token = generate_token(user["id"])
+    token = generate_token(user["id"], user.get("token_version", 0))
     response = jsonify({"token": token, "username": user["username"]})
     # ponytail: set cookie so browser page navigations (not just fetch())
     # carry the auth token.  HttpOnly; SameSite=Lax prevents CSRF.
@@ -760,8 +760,18 @@ def auth_reset_password():
 
 
 @app.route("/PSSM_GREMLIN/api/auth/logout", methods=["POST"])
+@optional_user
 def auth_logout():
-    """Clear the auth cookie.  No auth required — idempotent."""
+    """Clear the auth cookie and invalidate all tokens for the current user.
+
+    No auth required — idempotent.  If the user is authenticated (cookie or
+    Bearer token), their ``token_version`` is incremented so all previously
+    issued tokens become invalid.
+    """
+    user = g.get("current_user")
+    if user is not None:
+        db = _get_user_db()
+        db.increment_token_version(user["id"])
     response = jsonify({"status": "logged_out"})
     response.set_cookie("auth_token", "", max_age=0, path="/")
     return response
@@ -1000,6 +1010,7 @@ def auth_update_me():
 
     db = _get_user_db()
     db.update_user(user["id"], password_hash=generate_password_hash(req.new_password))
+    db.increment_token_version(user["id"])
     return jsonify({"message": "Password updated"}), 200
 
 
