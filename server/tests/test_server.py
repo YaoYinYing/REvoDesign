@@ -1761,13 +1761,6 @@ def _run_command(
     )
 
 
-def _current_docker_user() -> str:
-    try:
-        return f"{os.getuid()}:{os.getgid()}"
-    except AttributeError:
-        return "0:0"
-
-
 def _docker_group_ids_for_socket() -> list[str]:
     gids = {"0"}
     socket_candidates: list[str] = []
@@ -1845,8 +1838,6 @@ def test_runner_image_executes_pipeline(miniuc_databases, runner_image_tag, tmp_
         "docker",
         "run",
         "--rm",
-        "--user",
-        _current_docker_user(),
         *_volume_args(volumes),
         runner_image_tag,
         "-i",

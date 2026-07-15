@@ -14,6 +14,7 @@ RUN groupadd -o -r ${RUNNER_GROUP} -g ${RUNNER_GID} && groupadd docker  && \
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    PIP_ROOT_USER_ACTION=ignore \
     PSSM_GREMLIN_LOG_DIR=/var/log/pssm_gremlin_server
 
 RUN apt-get update \

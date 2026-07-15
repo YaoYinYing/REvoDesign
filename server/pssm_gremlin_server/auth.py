@@ -101,6 +101,7 @@ _users_table = sa.Table(
     sa.Column("approved_at", sa.Float, nullable=True),
     sa.Column("deleted", sa.Boolean, nullable=False, default=False),
     sa.Column("role", sa.String(32), nullable=False, default="user"),
+    sa.Column("admin_notified", sa.Boolean, nullable=False, default=False),
 )
 
 
@@ -153,6 +154,7 @@ class UserDatabase:
             ("verification_resend_count", "INTEGER"),
             ("verification_resend_at", "FLOAT"),
             ("role", "TEXT"),
+            ("admin_notified", "INTEGER"),
         ]:
             if col not in existing:
                 conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype};")
@@ -295,6 +297,25 @@ class UserDatabase:
         stmt = sa.select(sa.func.count()).select_from(_users_table)
         with self.engine.connect() as conn:
             return conn.execute(stmt).scalar_one()
+
+    def get_unnotified_registrations(self) -> list[dict[str, Any]]:
+        """Return users who registered but haven't been included in a digest yet."""
+        stmt = (
+            sa.select(_users_table)
+            .where(_users_table.c.admin_notified == False)  # noqa: E712
+            .order_by(sa.asc(_users_table.c.created_at))
+        )
+        with self.engine.connect() as conn:
+            rows = conn.execute(stmt).mappings().all()
+        return [dict(row) for row in rows]
+
+    def mark_users_notified(self, user_ids: list[int]) -> None:
+        """Mark a batch of users as included in an admin digest."""
+        if not user_ids:
+            return
+        stmt = sa.update(_users_table).where(_users_table.c.id.in_(user_ids)).values(admin_notified=True)
+        with self.engine.begin() as conn:
+            conn.execute(stmt)
 
 
 # ---------------------------------------------------------------------------
@@ -705,6 +726,52 @@ def send_rejection_email(user: dict[str, Any]) -> bool:
             f"— REvoDesign GREMLIN Server\n"
         ),
     )
+
+
+def _admin_notify_emails() -> list[str]:
+    """Return the list of admin email addresses to notify on registration."""
+    raw = _env_str("ADMIN_NOTIFY_EMAIL", "")
+    if not raw:
+        return []
+    return [addr.strip() for addr in raw.split(",") if addr.strip()]
+
+
+def send_admin_digest() -> bool:
+    """Send a digest email to admins listing all unnotified registrations.
+
+    Reads ``ADMIN_NOTIFY_EMAIL`` (comma-separated).  Returns True if a
+    digest was sent.
+    """
+    recipients = _admin_notify_emails()
+    if not recipients:
+        return False
+    db = UserDatabase()
+    new_users = db.get_unnotified_registrations()
+    if not new_users:
+        return False
+
+    base_url = _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
+    rows = []
+    for u in new_users:
+        created = datetime.fromtimestamp(u["created_at"]).strftime("%Y-%m-%d %H:%M") if u.get("created_at") else "?"
+        rows.append(f"  {u['username']:<20} {u['email']:<32} {u.get('affiliation', '-') or '-':<24} {created}")
+
+    text = (
+        f"{len(new_users)} new registration(s) pending approval:\n\n"
+        f"  {'Username':<20} {'Email':<32} {'Affiliation':<24} {'Registered'}\n"
+        f"  {'-' * 20:<20} {'-' * 32:<32} {'-' * 24:<24} {'-' * 16}\n"
+        + "\n".join(rows)
+        + f"\n\n  Review: {base_url}/PSSM_GREMLIN/user_control\n\n"
+        f"— REvoDesign GREMLIN Server\n"
+    )
+    for email in recipients:
+        _send_email(
+            to=email,
+            subject=f"{len(new_users)} new registration(s) — REvoDesign GREMLIN",
+            text=text,
+        )
+    db.mark_users_notified([u["id"] for u in new_users])
+    return True
 
 
 def validate_reset_token(token: str) -> int | None:

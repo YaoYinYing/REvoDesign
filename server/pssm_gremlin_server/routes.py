@@ -50,6 +50,7 @@ from pssm_gremlin_server.pssm_gremlin import (
     _is_admin_user,
     _is_binary_file,
     _is_deleted_status,
+    _is_fasta_content,
     _local_user_identity,
     _normalize_task_id,
     _request_metadata,
@@ -154,6 +155,7 @@ def logo_svg():
 
 @app.route("/PSSM_GREMLIN/api/post", methods=["POST"])
 @login_required
+@rate_limit(max_requests=30, window_seconds=3600)
 def upload_file():
     if _blocked := require_bearer_auth():
         return _blocked
@@ -194,6 +196,21 @@ def upload_file():
     if existing_task and existing_task["status"] in {"pending", "running", "packing results"}:
         return jsonify({"status": "Task already queued or running", "md5sum": md5sum}), 202
 
+    # ponytail: per-user cap on active tasks — the expensive resource is the
+    # Celery/Docker queue, not the HTTP layer.  Raise MAX_ACTIVE_TASKS_PER_USER
+    # if users routinely hit it with legitimate batch work.
+    MAX_ACTIVE_TASKS_PER_USER = 5
+    if task_store.count_user_active_tasks(metadata["username"]) >= MAX_ACTIVE_TASKS_PER_USER:
+        return (
+            jsonify(
+                {
+                    "error": "Too many pending or running tasks. "
+                    "Please wait for existing tasks to complete before submitting new ones."
+                }
+            ),
+            429,
+        )
+
     result_dir = _safe_join(app.config["RESULTS_FOLDER"], md5sum)
     if os.path.exists(result_dir):
         shutil.rmtree(result_dir)
@@ -233,6 +250,15 @@ def upload_file():
             error="Binary file uploads are not supported.",
         )
         return jsonify({"error": "Uploaded file contains binary content"}), 400
+
+    if not _is_fasta_content(upload_path):
+        task_store.upsert_task(
+            md5sum,
+            **base_record,
+            status="failed",
+            error="Uploaded file does not appear to be a valid FASTA file.",
+        )
+        return jsonify({"error": "Uploaded file does not appear to be a valid FASTA file"}), 400
 
     task_store.upsert_task(
         md5sum,
@@ -639,7 +665,10 @@ def auth_login():
     response = jsonify({"token": token, "username": user["username"]})
     # ponytail: set cookie so browser page navigations (not just fetch())
     # carry the auth token.  HttpOnly; SameSite=Lax prevents CSRF.
-    response.set_cookie("auth_token", token, httponly=True, samesite="Lax")
+    # secure=True only when SERVER_BASE_URL uses https — plain-http dev
+    # environments would silently drop Secure cookies.
+    _cookie_secure = _env_str("SERVER_BASE_URL", "http://localhost:8080").startswith("https://")
+    response.set_cookie("auth_token", token, httponly=True, samesite="Lax", secure=_cookie_secure)
     return response
 
 

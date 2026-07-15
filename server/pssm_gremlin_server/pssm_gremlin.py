@@ -39,7 +39,9 @@ if not os.environ.get("AUTH_SECRET_KEY"):
 
 from pssm_gremlin_server.auth import UserDatabase  # noqa: E402
 from pssm_gremlin_server.auth import _env_bool  # noqa: E402
+from pssm_gremlin_server.auth import _env_int  # noqa: E402
 from pssm_gremlin_server.auth import _env_str  # noqa: E402
+from pssm_gremlin_server.auth import send_admin_digest  # noqa: E402
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
@@ -47,6 +49,24 @@ TEMPLATE_IMAGE_DIR = os.path.join(THIS_DIR, "templates", "images")
 
 app = Flask(__name__, template_folder="./templates")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MiB upload limit
+
+
+@app.after_request
+def _add_security_headers(response):
+    """Add browser hardening headers to every response."""
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "interest-cohort=()")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "script-src 'self' 'unsafe-inline'",
+    )
+    return response
+
 
 # ---------------------------------------------------------------------------
 # Auth initialisation — replaces the old HTTPBasicAuth + users.txt model
@@ -204,6 +224,25 @@ if _user_db.user_count() == 0:
         logging.info("Default admin user %r already exists after bootstrap race.", _default_admin)
 
 
+# Admin new-user digest: periodically email ADMIN_NOTIFY_EMAIL a table of
+# registrations that haven't been included in a digest yet, then mark them
+# notified so each user appears only once.
+_admin_digest_minutes = _env_int("ADMIN_NEW_USER_INFORM", 0)
+if _admin_digest_minutes > 0 and _env_str("ADMIN_NOTIFY_EMAIL", ""):
+    import threading
+
+    def _digest_loop() -> None:
+        while True:
+            time.sleep(_admin_digest_minutes * 60)
+            try:
+                send_admin_digest()
+            except Exception:
+                logging.exception("Admin digest thread failed")
+
+    _digest_thread = threading.Thread(target=_digest_loop, daemon=True)
+    _digest_thread.start()
+
+
 # Celery configurations
 _redis_password = os.environ.get("REDIS_PASSWORD", "")
 _redis_auth = f":{_redis_password}@" if _redis_password else ""
@@ -244,6 +283,20 @@ def _is_binary_file(path: str) -> bool:
         chunk.decode("utf-8")
     except UnicodeDecodeError:
         return True
+    return False
+
+
+def _is_fasta_content(path: str) -> bool:
+    """Return True if *path* looks like a FASTA file (first non-blank line starts with '>')."""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                return stripped.startswith(">")
+    except OSError:
+        return False
     return False
 
 
@@ -620,7 +673,6 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None, stage
         remove=False,
         detach=True,
         mounts=mounts,
-        user=CONFIG.docker_user,
         environment=_runner_thread_env(CONFIG.nproc, CONFIG.maxmem),
         stdout=True,
         stderr=True,

@@ -11,7 +11,21 @@ import os
 import time
 from typing import Any
 
-from sqlalchemy import Column, Float, Index, Integer, MetaData, String, Table, Text, create_engine, desc, select, update
+from sqlalchemy import (
+    Column,
+    Float,
+    Index,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    Text,
+    create_engine,
+    desc,
+    func,
+    select,
+    update,
+)
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import OperationalError
 
@@ -165,6 +179,19 @@ class TaskDatabase:
         with self.engine.connect() as conn:
             rows = conn.execute(stmt).mappings().all()
         return [self._normalize_task_row(row) for row in rows]
+
+    def count_user_active_tasks(self, username: str) -> int:
+        """Count pending, running, and packing tasks for a user."""
+        stmt = (
+            select(func.count())
+            .select_from(self.tasks_table)
+            .where(
+                self.tasks_table.c.username == username,
+                self.tasks_table.c.status.in_(["pending", "running", "packing results"]),
+            )
+        )
+        with self.engine.connect() as conn:
+            return conn.execute(stmt).scalar() or 0
 
     def delete_task(self, md5sum: str) -> None:
         stmt = self.tasks_table.delete().where(self.tasks_table.c.md5sum == md5sum)

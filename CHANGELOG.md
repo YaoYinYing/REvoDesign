@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- **Admin registration digest**: periodic email to `ADMIN_NOTIFY_EMAIL` listing new
+  registrations that haven't been included in a prior digest. Each user appears
+  only once (`admin_notified` column). Interval set by `ADMIN_NEW_USER_INFORM`
+  (minutes, default `0` = disabled). A `threading.Thread` daemon runs the digest
+  loop in the web process.
+- **FASTA content validation**: uploads must contain valid FASTA content (first
+  non-blank line starts with `>`). Catches renamed docx/jpg/exe files that pass
+  the binary-detection check.
+- **Per-user task quota**: each user limited to 5 concurrent pending/running
+  tasks, enforced before Celery enqueue (HTTP 429 when exceeded).
 - **Dev tooling**: `check_changelog_duplicates.py` validates CHANGELOG.md for duplicate `### Section` headers within a version block. Wired into pre-commit as `check-changelog-duplicates`.
 - **GREMLIN server: token-based authentication** (replaces HTTP Basic Auth):
   - SQLite-backed user store (`users.sqlite3`) with hashed passwords (pbkdf2:sha256).
@@ -203,6 +213,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   selected users.
 - Admin approval now implies email verification, and all active users must have
   verified email before authentication.
+- Browser hardening: `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, and `Permissions-Policy` headers on every response. CSP
+  allows Google Fonts (used by templates) and inline scripts/styles.
+- Auth cookie: `Secure` flag set when `SERVER_BASE_URL` uses `https://`, skipped
+  for plain-http dev environments to avoid silently broken cookies.
+- Upload rate limiting: `@rate_limit(max_requests=30, window_seconds=3600)` on
+  the file-upload endpoint (per-IP, in addition to per-user task cap).
+- Runner image hardening: removed setuid `ldconfig.real`; entrypoint starts as
+  root, runs `ldconfig`, then drops privileges via `runuser`. Removed `user=`
+  overrides from Docker API call, docker-compose runner service, and test harness.
 - Path traversal: `_safe_join()` / `_path_is_within()` guard all filesystem paths.
 - Task IDs: validated against `[a-f0-9]{32}` regex before filesystem access.
 - CSRF: all state-changing routes require Bearer token or API-key auth as

@@ -50,6 +50,8 @@ x-common-env: &common-env
   RESEND_FROM_NAME: ${RESEND_FROM_NAME:-REvoDesign GREMLIN Server}
   SERVER_BASE_URL: ${SERVER_BASE_URL:-http://localhost:8080}
   ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
+  ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
+  ADMIN_NEW_USER_INFORM: ${ADMIN_NEW_USER_INFORM:-0}
 
 x-docker-socket-access: &docker-socket-access
   # Docker socket group access is host-root-equivalent — the Docker API
@@ -132,7 +134,6 @@ services:
 
   runner:
     profiles: ["runner"]
-    user: ${RUNNER_UID}:${RUNNER_GID}
     image: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
     build:
       context: .
