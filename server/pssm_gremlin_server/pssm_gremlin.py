@@ -374,11 +374,11 @@ def _current_username() -> str:
 
 # Parsed at import time — a tuple of header names to try for client IP.
 _CLIENT_IP_HEADERS = tuple(
-    h.strip()
+    h.strip().strip("'\"")
     for h in os.environ.get("CLIENT_IP_HEADERS", "X-Forwarded-For, X-Real-IP").split(",")
     if h.strip()
 )
-_CLIENT_COUNTRY_HEADER = os.environ.get("CLIENT_COUNTRY_HEADER", "").strip() or None
+_CLIENT_COUNTRY_HEADER = (os.environ.get("CLIENT_COUNTRY_HEADER", "").strip().strip("'\"") or None)
 
 
 def _client_ip() -> str | None:

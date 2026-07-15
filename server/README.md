@@ -192,8 +192,8 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 Put the CDN-specific header first, then fall back to `X-Forwarded-For`. Example for Cloudflare:
 
 ```bash
-CLIENT_IP_HEADERS=CF-Connecting-IP, X-Forwarded-For, X-Real-IP
-CLIENT_COUNTRY_HEADER=CF-IPCountry
+CLIENT_IP_HEADERS="CF-Connecting-IP, X-Forwarded-For, X-Real-IP"
+CLIENT_COUNTRY_HEADER="CF-IPCountry"
 ```
 
 ## 4. Authentication
