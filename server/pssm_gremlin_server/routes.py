@@ -21,6 +21,7 @@ import time
 from celery.result import AsyncResult
 from flask import current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 from pssm_gremlin_server.auth import (
+    _DUMMY_PASSWORD_HASH,
     UserDatabase,
     _env_str,
     _is_account_blocked,
@@ -690,7 +691,13 @@ def auth_login():
         user = db.get_user_by_email(req.login_id)  # already normalised by schema
     else:
         user = db.get_user_by_username(req.login_id)
-    if user is None or not check_password_hash(user["password_hash"], req.password):
+    # Constant-time: always run check_password_hash so response latency does
+    # not reveal whether the username exists (timing side-channel defence).
+    pwd_ok = check_password_hash(
+        user["password_hash"] if user is not None else _DUMMY_PASSWORD_HASH,
+        req.password,
+    )
+    if user is None or not pwd_ok:
         return jsonify({"error": "Invalid username or password"}), 401
 
     if blocked := _is_account_blocked(user):
@@ -773,7 +780,8 @@ def auth_logout():
         db = _get_user_db()
         db.increment_token_version(user["id"])
     response = jsonify({"status": "logged_out"})
-    response.set_cookie("auth_token", "", max_age=0, path="/")
+    secure = _env_str("SERVER_BASE_URL", "http://localhost:8080").startswith("https://")
+    response.set_cookie("auth_token", "", max_age=0, path="/", httponly=True, samesite="Lax", secure=secure)
     return response
 
 

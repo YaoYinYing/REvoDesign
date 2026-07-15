@@ -48,6 +48,27 @@ def test_security_login_brute_force_rate_limit(monkeypatch, tmp_path):
     assert resp.json["error"] == "Too many requests"
 
 
+def test_security_login_no_username_enumeration(monkeypatch, tmp_path):
+    """Login returns identical response for non-existent user vs wrong password (anti-enumeration)."""
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    _test_client_auth(module)  # ensure tester exists
+    client = module.app.test_client()
+    # Non-existent user
+    r1 = client.post(
+        "/PSSM_GREMLIN/api/auth/login",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"username": "no_such_user", "password": "anything"}),
+    )
+    # Existing user, wrong password
+    r2 = client.post(
+        "/PSSM_GREMLIN/api/auth/login",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"username": "tester", "password": "wrong_password"}),
+    )
+    assert r1.status_code == r2.status_code == 401
+    assert r1.json["error"] == r2.json["error"]
+
+
 def test_security_email_enumeration_forgot_password(monkeypatch, tmp_path):
     """Forgot-password does not reveal whether an email is registered."""
     module = _load_pssm_module(

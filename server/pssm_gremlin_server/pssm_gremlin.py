@@ -65,6 +65,11 @@ def _add_security_headers(response):
         "font-src 'self' https://fonts.gstatic.com; "
         "script-src 'self' 'unsafe-inline'",
     )
+    # HSTS only when the connection is already HTTPS — browsers ignore the
+    # header over plain HTTP (RFC 6797 §7.2), and setting max-age on an
+    # HTTP response could lock users out if HTTPS breaks later.
+    if request.is_secure:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return response
 
 
@@ -457,12 +462,22 @@ def _virtual_upload_path(filename: str) -> str:
 
 
 def _sanitize_task_error(task: dict[str, Any], error: Any) -> str | None:
+    """Redact internal filesystem paths from error messages before returning to clients."""
     if error is None:
         return None
     message = str(error)
+    # Redact the task's own file path
     file_path = str(task.get("file_path") or "")
     if file_path:
         message = message.replace(file_path, _virtual_upload_path(task.get("filename", "unknown.fasta")))
+    # Redact the server data directory (may contain user home dirs, DB paths, etc.)
+    server_dir = os.environ.get("SERVER_DIR", "")
+    if server_dir and server_dir in message:
+        message = message.replace(server_dir, "<server_dir>")
+    # Redact the task result directory
+    result_dir = str(task.get("result_dir") or "")
+    if result_dir and result_dir in message:
+        message = message.replace(result_dir, "<result_dir>")
     return message
 
 

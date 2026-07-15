@@ -27,6 +27,12 @@ from flask import current_app, g, jsonify, redirect, render_template, request, u
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
 
+# Pre-computed dummy hash used for constant-time comparison when a login
+# attempt targets a non-existent user — prevents timing-based username
+# enumeration.  check_password_hash is intentionally slow (key derivation);
+# skipping it for missing users leaks existence via response-time side-channel.
+_DUMMY_PASSWORD_HASH = generate_password_hash("revodesign-dummy-never-matches-any-real-password")
+
 # ---------------------------------------------------------------------------
 # Resend email (optional extra — falls back to stdlib SMTP when not installed)
 # ---------------------------------------------------------------------------
