@@ -897,40 +897,43 @@ def run_gremlin_task(md5sum):
     except docker.errors.ContainerError as exc:
         finish_time = time.time()
         error_message = f"docker: {exc}"
-        _pack_failed_results_archive(task, error_message)
-        task_store.update_task(
-            md5sum,
-            status="failed",
-            finished_at=finish_time,
-            walltime=finish_time - start_time,
-            error=error_message,
-            run_stage=stage_state["current"],
-        )
+        if not _task_is_deleted(md5sum):
+            _pack_failed_results_archive(task, error_message)
+            task_store.update_task(
+                md5sum,
+                status="failed",
+                finished_at=finish_time,
+                walltime=finish_time - start_time,
+                error=error_message,
+                run_stage=stage_state["current"],
+            )
     except docker.errors.DockerException as exc:
         finish_time = time.time()
         error_message = f"docker: {exc}"
-        _pack_failed_results_archive(task, error_message)
-        task_store.update_task(
-            md5sum,
-            status="failed",
-            finished_at=finish_time,
-            walltime=finish_time - start_time,
-            error=error_message,
-            run_stage=stage_state["current"],
-        )
+        if not _task_is_deleted(md5sum):
+            _pack_failed_results_archive(task, error_message)
+            task_store.update_task(
+                md5sum,
+                status="failed",
+                finished_at=finish_time,
+                walltime=finish_time - start_time,
+                error=error_message,
+                run_stage=stage_state["current"],
+            )
         logging.error("Docker daemon unavailable for GREMLIN task %s: %s", md5sum, exc)
     except Exception as exc:  # pylint: disable=broad-except
         finish_time = time.time()
         error_message = str(exc)
-        _pack_failed_results_archive(task, error_message)
-        task_store.update_task(
-            md5sum,
-            status="failed",
-            finished_at=finish_time,
-            walltime=finish_time - start_time,
-            error=error_message,
-            run_stage=stage_state["current"],
-        )
+        if not _task_is_deleted(md5sum):
+            _pack_failed_results_archive(task, error_message)
+            task_store.update_task(
+                md5sum,
+                status="failed",
+                finished_at=finish_time,
+                walltime=finish_time - start_time,
+                error=error_message,
+                run_stage=stage_state["current"],
+            )
         logging.exception("Unexpected failure while running GREMLIN task %s", md5sum)
 
 

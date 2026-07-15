@@ -33,6 +33,8 @@ def normalize_email(email: str) -> str:
     ``user+tag@domain.com`` → ``user@domain.com`` — prevents one person
     from creating multiple accounts via plus-aliased addresses.
     """
+    if not isinstance(email, str):
+        raise ValueError("email must be a string")
     email = email.strip().lower()
     local, at, domain = email.partition("@")
     local = local.split("+")[0]

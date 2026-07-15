@@ -142,3 +142,4 @@ src/REvoDesign/UI/Ui_REvoDesign.py
 users.sqlite3
 testerror.txt
 /server/server_state
+/server/pssm_gremlin_server.egg-info

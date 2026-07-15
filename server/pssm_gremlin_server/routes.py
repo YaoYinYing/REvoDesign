@@ -283,7 +283,16 @@ def upload_file():
         error=None,
     )
 
-    async_result = run_gremlin_task.apply_async(args=[md5sum])
+    try:
+        async_result = run_gremlin_task.apply_async(args=[md5sum])
+    except Exception:
+        logging.exception("Failed to submit GREMLIN task %s to Celery", md5sum)
+        task_store.update_task(
+            md5sum,
+            status="failed",
+            error="Task queue unavailable — please try again later",
+        )
+        return jsonify({"error": "Task queue unavailable — please try again"}), 503
     task_store.update_task(md5sum, celery_task_id=async_result.id)
 
     return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
@@ -841,16 +850,19 @@ def auth_resend_verification():
 
     db = _get_user_db()
     user = db.get_user_by_email(email)
+
+    # Return a generic response for all non-actionable cases to prevent
+    # account enumeration (unknown, deleted, banned, already verified).
+    _generic = (
+        jsonify({"message": "If that email is registered and unverified, a new verification email has been sent."}),
+        200,
+    )
     if user is None:
-        return jsonify({"error": "No account found with this email address"}), 404
-
-    if user.get("deleted"):
-        return jsonify({"error": "Account has been deleted"}), 403
-    if user.get("user_status") == "banned":
-        return jsonify({"error": "Account has been suspended"}), 403
-
+        return _generic
+    if user.get("deleted") or user.get("user_status") == "banned":
+        return _generic
     if user.get("email_verified"):
-        return jsonify({"message": "This email is already verified. You can log in."}), 200
+        return _generic
 
     # Per-email backoff: 10×n minutes since last resend
     count = user.get("verification_resend_count") or 0
@@ -1140,8 +1152,7 @@ def admin_manage_user(user_id):
         if is_self:
             return jsonify({"error": "Administrators cannot change their own role"}), 400
         update_fields["role"] = req.role
-        if req.role == "admin":
-            update_fields["is_admin"] = True
+        update_fields["is_admin"] = req.role == "admin"
 
     # Only set approved_by / approved_at when the admin is actually approving.
     new_reg = update_fields.get("registration_status")
@@ -1188,6 +1199,7 @@ def admin_batch_users():
         updates = {
             "user_status": "active",
             "registration_status": "approved",
+            "email_verified": True,
             "deleted": False,
             "approved_by": admin_id,
             "approved_at": now,

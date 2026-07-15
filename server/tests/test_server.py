@@ -24,7 +24,23 @@ import pytest
 import requests
 from werkzeug.utils import secure_filename
 
-from tests.conftest import REPO_DIR, TEST_ROOT, has_docker_daemon
+REPO_DIR = str(Path(__file__).resolve().parent.parent.parent)
+TEST_ROOT = str(Path(__file__).resolve().parent.parent)
+
+
+def has_docker_daemon() -> bool:
+    """Check whether a local Docker daemon is reachable."""
+    try:
+        subprocess.run(
+            ["docker", "info"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+        return True
+    except Exception:
+        return False
+
 
 MSA_ROOT = Path(REPO_DIR) / "tests" / "data" / "msa"
 
@@ -1858,8 +1874,9 @@ def _build_image(tag: str, dockerfile: str, context: str, build_args: dict[str, 
 
 
 @pytest.fixture(scope="session")
-@REQUIRES_DOCKER
 def runner_image_tag(miniuc_databases) -> str:
+    if not has_docker_daemon():
+        pytest.skip("Docker daemon not available")
     _ = miniuc_databases
     tag = f"revodesign-pssm-gremlin-runner-test:{uuid.uuid4().hex[:12]}"
     _build_image(tag, "server/docker/runner/Dockerfile", "server", build_args=_runner_build_args())
@@ -1868,8 +1885,9 @@ def runner_image_tag(miniuc_databases) -> str:
 
 
 @pytest.fixture(scope="session")
-@REQUIRES_DOCKER
 def server_image_tag(miniuc_databases) -> str:
+    if not has_docker_daemon():
+        pytest.skip("Docker daemon not available")
     _ = miniuc_databases
     tag = f"revodesign-pssm-gremlin-server-test:{uuid.uuid4().hex[:12]}"
     _build_image(tag, "server/docker/server/Dockerfile", "server", build_args=_runner_build_args())
@@ -2037,7 +2055,7 @@ class DockerServerStack:
                 )
                 # Inject a known password hash into the auto-bootstrapped admin
                 # so subsequent tests can authenticate with Bearer headers.
-                _inject_admin_password(str(self.db_path), self.username, self.password)
+                _inject_admin_password(str(self.server_dir / "users.sqlite3"), self.username, self.password)
                 break
             except AssertionError:
                 if attempt < max_attempts - 1:
@@ -2334,8 +2352,9 @@ def test_server_image_handles_authenticated_requests(miniuc_databases, runner_im
 
 
 @pytest.fixture(scope="module")
-@REQUIRES_DOCKER
 def running_gremlin_server(miniuc_databases, runner_image_tag, server_image_tag):
+    if not has_docker_daemon():
+        pytest.skip("Docker daemon not available")
     stack = DockerServerStack(
         runner_image_tag=runner_image_tag,
         server_image_tag=server_image_tag,

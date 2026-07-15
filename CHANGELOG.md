@@ -172,6 +172,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Admin password**: the bootstrap-generated admin password was logged to
   gunicorn stderr (inaccessible to the operator). The restart script now
   generates and displays it on the console before bringing services up.
+  - **Host header spoofing in email links**: `_public_base_url()` now always
+    uses the configured `SERVER_BASE_URL` for verification / password-reset
+    links, never the request `Host` header (which an attacker can spoof to
+    place valid tokens in links pointing to an attacker-controlled domain).
+  - **Role demotion doesn't clear `is_admin`**: updating a user role from
+    `admin` to `user`/`guest` now also sets `is_admin = False`, preventing
+    privilege-leak bugs where `require_admin()` checks `is_admin` instead of
+    `role`.
+  - **Cancelled tasks resurrected by late worker writes**: cancelled tasks are
+    now treated as terminal — the DB update guard prevents late `running`/
+    `finished` status writes from overwriting a `cancelled` task.
+  - **Legacy NULL columns not backfilled**: `_ensure_columns()` now backfills
+    `deleted`, `registration_status`, `user_status`, and `role` for rows that
+    predate those columns.
+  - **Admin digest silently drops users on email failure**: `_send_email()`
+    returns `False` on failure (doesn't raise), so the try/except never caught
+    transient errors. The digest loop now checks return values and unmarks users
+    as notified when all recipient deliveries fail.
+  - **Failed-task archives recreated after deletion**: the three exception
+    handlers in `run_gremlin_task` now guard `_pack_failed_results_archive`
+    with `_task_is_deleted()` so deleted tasks don't get artifacts recreated.
+  - **Celery submission failure leaves orphaned pending task**:
+    `apply_async` failures now mark the task as failed and return a 503,
+    preventing the pending task from consuming the user's quota forever.
+  - **Account enumeration via resend-verification**: the unauthenticated
+    endpoint now returns the same generic response for unknown, deleted, banned,
+    and already-verified accounts.
+  - **Batch-enable doesn't verify email**: batch-enable (`enable` action)
+    now also sets `email_verified = True` so admin-approved users can
+    immediately use features that require a verified email.
+  - **Rate limiter unbounded growth**: the in-memory rate-limit state dict
+    now periodically prunes expired IP entries, preventing unbounded memory
+    growth across the process lifetime.
+  - **Pydantic email validators crash on non-string input**:
+    `normalize_email()` now raises a clean `ValueError` instead of
+    `AttributeError`.
+  - **Test DB path targets wrong database**: `_inject_admin_password` now
+    writes to the user DB (`users.sqlite3`) instead of the task DB
+    (`pssm_gremlin_server.sqlite3`).
+  - **Missing columns in SQLAlchemy metadata**: `admin_notified`,
+    `verification_resend_count`, and `verification_resend_at` are now
+    declared in the `_users_table` Table definition.
+  - **Server test env now self-contained**: the server test suite no longer
+    imports from the root `tests/conftest.py`. The server conftest defines
+    `REPO_DIR` and `has_docker_daemon` locally, enabling a lightweight
+    `REvoDesignServerDev` conda env.
+  - **CI workflow fix**: replaced unresolvable `actions/setup-python` pinned
+    SHA with `@v6` in `server-test.yml`.
+
+
 - **Chrome file picker not opening**: native ``<input type="file">`` click
   fails to open the file dialog in Chrome (works in Safari).  Added
   drag-and-drop file upload as a browser-agnostic workaround — drop a

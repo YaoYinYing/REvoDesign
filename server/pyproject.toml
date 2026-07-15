@@ -35,6 +35,7 @@ resend = [
 test = [
     "pytest>=8",
     "pytest-mock>=3.14",
+    "pytest-cov>=6",
 ]
 
 [tool.setuptools.packages.find]

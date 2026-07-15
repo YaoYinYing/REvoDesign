@@ -103,6 +103,8 @@ _users_table = sa.Table(
     sa.Column("deleted", sa.Boolean, nullable=False, default=False),
     sa.Column("role", sa.String(32), nullable=False, default="user"),
     sa.Column("admin_notified", sa.Boolean, nullable=False, default=False),
+    sa.Column("verification_resend_count", sa.Integer, nullable=False, default=0),
+    sa.Column("verification_resend_at", sa.Float, nullable=True),
     sa.Column("registration_ip", sa.String(45), nullable=True),
     sa.Column("registration_country", sa.String(8), nullable=True),
 )
@@ -169,6 +171,24 @@ class UserDatabase:
         if "admin_notified" not in existing:
             conn.exec_driver_sql(
                 "UPDATE users SET admin_notified = 1 WHERE is_admin = 0"
+            )
+        # Backfill legacy rows that predate the column — ensures no NULLs
+        # slip through for columns added after initial schema creation.
+        if "deleted" not in existing:
+            conn.exec_driver_sql("UPDATE users SET deleted = 0 WHERE deleted IS NULL")
+        if "registration_status" not in existing:
+            conn.exec_driver_sql(
+                "UPDATE users SET registration_status = 'approved' "
+                "WHERE registration_status IS NULL"
+            )
+        if "user_status" not in existing:
+            conn.exec_driver_sql(
+                "UPDATE users SET user_status = 'active' WHERE user_status IS NULL"
+            )
+        if "role" not in existing:
+            conn.exec_driver_sql(
+                "UPDATE users SET role = CASE WHEN is_admin THEN 'admin' ELSE 'user' END "
+                "WHERE role IS NULL"
             )
 
     # -- write helpers -------------------------------------------------------
@@ -646,15 +666,10 @@ def validate_captcha(token: str, answer: str) -> bool:
 def _public_base_url() -> str:
     """Return the public-facing base URL for email links.
 
-    Uses the current request's ``Host`` header so email links point to the
-    same domain the user is accessing.  Falls back to ``SERVER_BASE_URL``
-    env var, then ``http://localhost:8080`` (dev).
+    Always uses the configured ``SERVER_BASE_URL`` — never the request
+    ``Host`` header, which an attacker can spoof to place valid tokens
+    into links pointing at an attacker-controlled domain.
     """
-    # ponytail: request.host_url already has scheme+host from the Host header
-    try:
-        return request.host_url.rstrip("/")
-    except RuntimeError:
-        pass  # outside request context (tests, scripts)
     return _env_str("SERVER_BASE_URL", "http://localhost:8080").rstrip("/")
 
 
@@ -902,18 +917,21 @@ def send_admin_digest() -> bool:
         f"text-decoration:none;border-radius:6px;font-weight:600;\">"
         f"Review Registrations</a></p>"
     )
+    any_sent = False
     try:
         for email in recipients:
-            _send_email(
+            if _send_email(
                 to=email,
                 subject=f"{len(new_users)} new registration(s) — REvoDesign GREMLIN",
                 text=text,
                 html=_email_html(html_body),
-            )
+            ):
+                any_sent = True
     except Exception:
+        any_sent = False
+    if not any_sent:
         db.unmark_users_notified(user_ids)
-        raise
-    return True
+    return any_sent
 
 
 def validate_reset_token(token: str) -> int | None:
