@@ -168,3 +168,4 @@ class UserResponse(BaseModel):
     approved_by: int | None
     approved_at: float | None
     registration_ip: str | None = None
+    registration_country: str | None = None

@@ -372,8 +372,43 @@ def _current_username() -> str:
     return user["username"] if user else ""
 
 
+# Parsed at import time — a tuple of header names to try for client IP.
+_CLIENT_IP_HEADERS = tuple(
+    h.strip()
+    for h in os.environ.get("CLIENT_IP_HEADERS", "X-Forwarded-For, X-Real-IP").split(",")
+    if h.strip()
+)
+_CLIENT_COUNTRY_HEADER = os.environ.get("CLIENT_COUNTRY_HEADER", "").strip() or None
+
+
+def _client_ip() -> str | None:
+    """Return the best-guess client IP, respecting ``CLIENT_IP_HEADERS``.
+
+    ``CLIENT_IP_HEADERS`` is a comma-separated list of HTTP headers tried in
+    priority order (e.g. ``CF-Connecting-IP, X-Forwarded-For, X-Real-IP``).
+    Falls back to ``request.remote_addr``.
+    """
+    for header in _CLIENT_IP_HEADERS:
+        value = request.headers.get(header, "").split(",")[0].strip()
+        if value:
+            return value
+    remote = request.remote_addr
+    return remote if remote else None
+
+
+def _client_country() -> str | None:
+    """Return the client country from ``CLIENT_COUNTRY_HEADER`` if configured.
+
+    e.g. ``CLIENT_COUNTRY_HEADER=CF-IPCountry`` for Cloudflare.
+    """
+    if _CLIENT_COUNTRY_HEADER is None:
+        return None
+    value = request.headers.get(_CLIENT_COUNTRY_HEADER, "").strip()
+    return value if value else None
+
+
 def _request_metadata() -> dict[str, str | None]:
-    ip = request.headers.get("CF-Connecting-IP") or request.headers.get("CF-Connecting-IPv6") or request.remote_addr
+    ip = _client_ip()
     headers = {str(k): str(v) for k, v in request.headers.items()}
     return {
         "ip": ip,
