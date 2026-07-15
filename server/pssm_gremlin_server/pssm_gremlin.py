@@ -235,8 +235,11 @@ if _admin_digest_minutes > 0 and _env_str("ADMIN_NOTIFY_EMAIL", ""):
     )
 
     def _digest_loop() -> None:
+        import random
+
         while True:
-            time.sleep(_admin_digest_minutes * 60)
+            _jitter = random.uniform(-5, 5)  # spread worker wake-ups
+            time.sleep(_admin_digest_minutes * 60 + _jitter)
             try:
                 # ponytail: file lock so only one worker sends the digest
                 # (gunicorn --preload forks the thread into every worker).
