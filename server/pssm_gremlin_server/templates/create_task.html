@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | Create PSSM_GREMLIN Task</title>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/PSSM_GREMLIN/logo.svg"/>
+<link rel="mask-icon" href="/PSSM_GREMLIN/logo.svg" color="#000000"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/create-task.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="page">
+  <section class="panel hero">
+    <div class="hero-top">
+      <div>
+        <h1 class="headline">Create PSSM GREMLIN Task</h1>
+        <p class="subline">Upload a FASTA file and queue a secured compute job for downstream GREMLIN and PSSM analysis.</p>
+      </div>
+      <div class="hero-actions">
+        <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
+        <a class="btn btn-soft" href="/PSSM_GREMLIN/dashboard">Dashboard</a>
+        <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel card">
+    <div class="grid">
+      <div class="input-zone">
+        <p class="field-label">FASTA Upload</p>
+        <form id="uploadForm" enctype="multipart/form-data">
+          <input type="file" name="file" id="fileInput" accept=".fasta" class="sr-only">
+          <div class="file-upload-row">
+            <button class="btn btn-soft" type="button" id="fileButton">Choose FASTA file</button>
+            <span class="file-name muted" id="fileNameDisplay">No file selected</span>
+          </div>
+          <p class="muted">Upload a <code>.fasta</code> file, or drag &amp; drop one anywhere on this card. Use the optional editor below to paste a sequence instead.</p>
+
+          <div class="editor-zone">
+            <p class="field-label">Optional Sequence Editor</p>
+            <input class="text-input" type="text" id="taskNameInput" placeholder="Task name (used as FASTA header)">
+            <textarea class="sequence-input" id="sequenceInput" placeholder="Paste protein sequence letters (A-Z)"></textarea>
+            <div id="sequencePreview" class="preview">Sequence: -
+Length: 0 residues</div>
+          </div>
+
+          <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button class="btn btn-primary" id="uploadButton" type="submit">Submit Task</button>
+            <button class="btn btn-soft" type="button" id="clearButton">Clear</button>
+          </div>
+        </form>
+        <p class="muted">Only text FASTA content is accepted. Editor input is auto-formatted to FASTA.</p>
+        <div id="uploadStatus" class="status" aria-live="polite">Ready for upload.</div>
+      </div>
+
+      <aside class="info-panel">
+        <p class="info-title">Submission Checklist</p>
+        <ul class="info-list">
+          <li>Single-sequence FASTA is recommended for stable queueing.</li>
+          <li>Sequence editor can convert raw letters into FASTA format before upload.</li>
+          <li>Upload identity is tracked from your authenticated session for data isolation.</li>
+          <li>Progress can be followed on the dashboard with live states.</li>
+          <li>Completed runs are packed to zip before entering <code>finished</code>.</li>
+        </ul>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<script src="/static/js/auth-api.js"></script>
+<script src="/static/js/create-task.js"></script>
+</body>
+</html>

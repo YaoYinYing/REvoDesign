@@ -1,0 +1,281 @@
+/* REvoDesign GREMLIN Server — User Control page styles */
+/* SPDX-License-Identifier: GPL-3.0-only */
+
+/* ---- Sub-tab navigation ---- */
+
+.sub-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+
+.sub-tab {
+  flex: 1;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  background: var(--paper);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+  font-family: inherit;
+}
+
+.sub-tab:hover {
+  color: var(--ink);
+}
+
+.sub-tab.active {
+  background: var(--accent);
+  color: #f6fbff;
+}
+
+.sub-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+/* ---- User panel ---- */
+
+.user-panel {
+  border-radius: 0 0 14px 14px;
+  padding: 1.6rem;
+  margin-top: 0;
+}
+
+/* ---- User table ---- */
+
+.user-table-wrap {
+  overflow-x: auto;
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.user-table th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 2px solid var(--line);
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.user-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.user-table tbody tr:hover {
+  background: rgba(0,0,0,0.02);
+}
+
+.user-table .empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 2.5rem 0.75rem;
+  font-size: 0.88rem;
+}
+
+.user-table .empty.error {
+  color: #9d2d1f;
+}
+
+/* ---- Status badges ---- */
+
+.status-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.status-badge.admin  { background: #e3eff8; color: #1e5272; }
+.status-badge.user   { background: #eef3f7; color: #3f5b6d; }
+.status-badge.guest  { background: #f9f4e8; color: #6d5a1c; }
+.status-badge.email_sent { background: #eef3f7; color: #3f5b6d; }
+.status-badge.verified   { background: #e3eff8; color: #1e5272; }
+.status-badge.approved   { background: #e8f5eb; color: #1a582c; }
+.status-badge.rejected   { background: #fceceb; color: #7c2319; }
+.status-badge.pending    { background: #f9f4e8; color: #6d5a1c; }
+.status-badge.active     { background: #e8f5eb; color: #1a582c; }
+.status-badge.banned     { background: #f5f0f0; color: #6d4a4a; }
+
+/* ---- Checkbox column ---- */
+
+.col-select {
+  width: 2rem;
+  text-align: center;
+}
+
+.col-select input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 0.95rem;
+  height: 0.95rem;
+  cursor: pointer;
+}
+
+/* ---- Batch bar ---- */
+
+#batchBar td {
+  padding: 0.7rem 0.75rem;
+  background: var(--bg);
+  border-top: 2px solid var(--accent);
+  border-bottom: none;
+}
+
+.batch-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-right: 0.8rem;
+}
+
+.batch-action {
+  margin-right: 0.35rem;
+}
+
+.btn-batch-delete {
+  border-color: #9d2d1f !important;
+  color: #9d2d1f !important;
+}
+
+html[data-theme="dark"] .btn-batch-delete {
+  border-color: #d96a5a !important;
+  color: #d96a5a !important;
+}
+
+/* ---- Inline edit ---- */
+
+.edit-input {
+  width: 100%;
+  padding: 0.35rem 0.45rem !important;
+  font-size: 0.82rem !important;
+  border-radius: 6px !important;
+}
+
+.edit-row td {
+  border-bottom-style: dashed;
+}
+
+.user-action-btn.modify {
+  border-color: #2e6b9e;
+  color: #2e6b9e;
+}
+
+.user-action-btn.modify:hover {
+  background: #e8f1f8;
+}
+
+html[data-theme="dark"] .user-action-btn.modify {
+  border-color: #6aa8d8;
+  color: #6aa8d8;
+}
+
+html[data-theme="dark"] .user-action-btn.modify:hover {
+  background: #1a3040;
+}
+
+/* ---- Action buttons ---- */
+
+.user-action-btn {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0.15rem 0.15rem 0.15rem 0;
+  transition: all 120ms ease;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.user-action-btn:hover {
+  transform: translateY(-0.5px);
+}
+
+.user-action-btn:active {
+  transform: translateY(0);
+}
+
+.user-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.user-action-btn.approve { border-color: #1c6b2f; color: #1c6b2f; }
+.user-action-btn.approve:hover { background: #e8f5eb; }
+.user-action-btn.reject  { border-color: #9d2d1f; color: #9d2d1f; }
+.user-action-btn.reject:hover  { background: #fceceb; }
+.user-action-btn.ban     { border-color: #8b6d3a; color: #8b6d3a; }
+.user-action-btn.ban:hover     { background: #f9f4e8; }
+.user-action-btn.enable  { border-color: #1c6b2f; color: #1c6b2f; }
+.user-action-btn.enable:hover  { background: #e8f5eb; }
+
+/* ---- Dark theme ---- */
+
+html[data-theme="dark"] .sub-tabs {
+  border-color: #30444f;
+  background: #132128;
+}
+
+html[data-theme="dark"] .sub-tab {
+  background: #132128;
+  color: #8ea4b2;
+}
+
+html[data-theme="dark"] .sub-tab:hover {
+  color: #c0d0d7;
+}
+
+html[data-theme="dark"] .sub-tab.active {
+  background: var(--accent);
+  color: #f0f9ff;
+}
+
+html[data-theme="dark"] .user-panel {
+  border-color: #30444f;
+}
+
+html[data-theme="dark"] .user-table th {
+  border-bottom-color: #30444f;
+}
+
+html[data-theme="dark"] .user-table td {
+  border-bottom-color: #253a46;
+}
+
+html[data-theme="dark"] .user-table tbody tr:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+html[data-theme="dark"] .user-action-btn {
+  background: #17252c;
+  border-color: #324751;
+}
+
+html[data-theme="dark"] .status-badge.admin  { background: #1a3040; color: #a8d0e8; }
+html[data-theme="dark"] .status-badge.user   { background: #1c2a35; color: #aac2d4; }
+html[data-theme="dark"] .status-badge.guest  { background: #3a3020; color: #dac87c; }
+html[data-theme="dark"] .status-badge.email_sent { background: #1c2a35; color: #aac2d4; }
+html[data-theme="dark"] .status-badge.verified   { background: #1a3040; color: #a8d0e8; }
+html[data-theme="dark"] .status-badge.approved   { background: #173427; color: #b6e1c1; }
+html[data-theme="dark"] .status-badge.rejected   { background: #41241f; color: #f2b4ac; }
+html[data-theme="dark"] .status-badge.pending    { background: #3a3020; color: #dac87c; }
+html[data-theme="dark"] .status-badge.active     { background: #173427; color: #b6e1c1; }
+html[data-theme="dark"] .status-badge.banned     { background: #352525; color: #c9a0a0; }

@@ -15,7 +15,10 @@ bioinformatics analyses on protein sequences:
   HHblits against UniRef30), revealing structurally or functionally coupled
   sites.
 
-Users upload a FASTA file via the server's web UI or REST API. The server
+Users upload a FASTA file via the server's web UI or REST API. The web UI
+supports both a **Choose File** button (native file picker) and **drag-and-drop**
+(drop a ``.fasta`` file anywhere on the upload card) as a browser-agnostic
+fallback. The server
 queues the job, dispatches it to a Docker container (the "runner"), and makes
 results available for download once finished.
 
@@ -55,7 +58,7 @@ The server has four containerized services, orchestrated by Docker Compose:
 │              web (Flask + Gunicorn)     │
 │  - REST API (/PSSM_GREMLIN/api/...)    │
 │  - Web UI (create_task, dashboard)     │
-│  - Basic-auth via Flask-HTTPAuth       │
+│  - Bearer-token auth + API keys        │
 │  - Dispatches runner containers        │
 │  - Needs /var/run/docker.sock          │
 └────┬────────────────────────────────┬───┘
@@ -86,9 +89,14 @@ The server has four containerized services, orchestrated by Docker Compose:
 
 The service stack is fully containerized and orchestrated via Docker Compose.
 Deployment requires only database files, environment variables, and a single
-command. All services run as non-root users to prevent privilege escalation;
-database directories are mounted read-only for data safety. User task data is
-organized by user identity and task MD5, with strict permission isolation.
+command. Services run as non-root users with group-based Docker socket access.
+User task data is organized by user identity and task MD5, with strict
+permission isolation.
+
+User accounts have three roles: `admin` (full access), `user` (registered user
+with API and web access), and `guest` (publicly shared, web-dashboard-only —
+no API keys, no password/profile changes, no task deletion). Self-registration
+requires a server-generated math CAPTCHA to prevent automated signups.
 
 ### Services
 
@@ -98,6 +106,26 @@ organized by user identity and task MD5, with strict permission isolation.
 | **worker** | Same as `web` | Celery worker that receives `run_gremlin_task` jobs from Redis. |
 | **redis** | `redis:7.2-alpine` | Celery message broker and result backend. |
 | **runner** | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `web`/`worker` via the Docker socket. |
+
+### Code Structure
+
+The server is a pip-installable package at ``server/pssm_gremlin_server/``
+(``pip install -e "server/[test]"``).  It was refactored from a single
+~1500-line module into focused sub-modules:
+
+| Module | Purpose |
+|--------|---------|
+| ``pssm_gremlin.py`` | Flask app factory, Celery instance, ``GremlinConfig``, Docker runner helpers |
+| ``routes.py`` | All ``@app.route`` HTTP handlers — page routes, task API, auth API, admin API |
+| ``auth.py`` | Token serialisation, ``UserDatabase`` (SQLite/SQLAlchemy), ``login_required`` decorator, email verification, password reset |
+| ``schemas.py`` | Pydantic request/response models — ``LoginRequest``, ``RegisterRequest``, ``AdminCreateUserRequest``, ``AdminUpdateUserRequest``, ``BatchUserRequest``, ``UserResponse``, and more |
+| ``db.py`` | ``TaskDatabase`` — SQLite-backed task tracker for GREMLIN jobs |
+| ``ratelimit.py`` | In-memory per-IP sliding-window rate limiter for login and registration endpoints |
+
+Static assets (CSS, JS) are served from ``server/pssm_gremlin_server/static/``.
+HTML templates are in ``server/pssm_gremlin_server/templates/``.
+Tests live at ``server/tests/`` with a dedicated CI workflow
+(``.github/workflows/server-test.yml``).
 
 ### Key Design Decisions
 
@@ -109,13 +137,26 @@ organized by user identity and task MD5, with strict permission isolation.
 - **Celery for async tasks**: Long-running jobs (potentially hours) are
   dispatched via Celery so the HTTP request returns immediately with a task
   ID for polling.
+- **Gunicorn `--preload`**: The WSGI application is loaded in the arbiter
+  before workers are forked, ensuring shared module state (especially the
+  `AUTH_SECRET_KEY` used for token signing) is consistent across workers.
+- **Pydantic at the API boundary**: All inbound request payloads are
+  validated through typed Pydantic models (``schemas.py``) before reaching
+  business logic.  Response serialisation uses ``UserResponse`` to guarantee
+  sensitive fields (``password_hash``, ``api_key_hash``) are never leaked.
 - **SQLite persistence**: A lightweight SQLite database (via SQLAlchemy)
-  tracks task state, metadata, and results locations.
+  tracks task state, metadata, and results locations.  Two databases:
+  `users.sqlite3` (auth) and `pssm_gremlin.sqlite3` (tasks).
 
 ## API Endpoints
 
-All endpoints are behind HTTP Basic Authentication (Flask-HTTPAuth) and are
-mounted under the `/PSSM_GREMLIN` path prefix.
+All endpoints use Bearer-token authentication (or API keys for task-only
+access) and are mounted under the `/PSSM_GREMLIN` path prefix.  Browser page
+navigations use an `HttpOnly` cookie set on login; API clients send the
+`Authorization: Bearer <token>` header.  Browser requests without auth are
+redirected to the login page; API requests without auth receive JSON 4xx errors.
+State-changing endpoints require a Bearer token or API key as appropriate;
+cookie-only writes are rejected to avoid CSRF on browser sessions.
 
 ### Task Management
 
@@ -135,8 +176,51 @@ mounted under the `/PSSM_GREMLIN` path prefix.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/PSSM_GREMLIN/dashboard` | HTML dashboard showing task list, status, wall time |
+| `GET` | `/PSSM_GREMLIN/profile` | User profile page with password change and API key management |
 | `GET` | `/favicon.ico` | Server favicon |
 | `GET` | `/PSSM_GREMLIN/logo.svg` | REvoDesign logo |
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/PSSM_GREMLIN/api/auth/login` | Login, returns Bearer token and sets auth cookie |
+| `POST` | `/PSSM_GREMLIN/api/auth/logout` | Logout, clears auth cookie |
+| `POST` | `/PSSM_GREMLIN/api/auth/register` | Self-registration (requires `ENABLE_REGISTER` + email service + CAPTCHA) |
+| `GET` | `/PSSM_GREMLIN/api/auth/captcha` | Get a math CAPTCHA challenge (5-min expiry) |
+| `POST` | `/PSSM_GREMLIN/api/auth/resend-verification` | Resend verification email (per-email backoff: 10×n min) |
+| `POST` | `/PSSM_GREMLIN/api/auth/forgot-password` | Send password-reset email (rate-limited: 3/hr/IP) |
+| `GET` `/POST` | `/PSSM_GREMLIN/reset_password?c=` | Password-reset form (GET) and new-password submission (POST) |
+| `GET` | `/PSSM_GREMLIN/user_verify?c=` | Verify email via serializer token (2-day expiry) |
+| `GET` | `/PSSM_GREMLIN/api/auth/verify-email?token=` | Legacy email verification (1-hour expiry) |
+| `GET` | `/PSSM_GREMLIN/api/auth/me` | Return current user info |
+| `PUT` | `/PSSM_GREMLIN/api/auth/me` | Change password (requires `current_password` + `new_password`) |
+| `GET` | `/PSSM_GREMLIN/api/auth/me/api-key` | Check API key status |
+| `POST` | `/PSSM_GREMLIN/api/auth/me/api-key` | Generate API key (returns plaintext once) |
+| `DELETE` | `/PSSM_GREMLIN/api/auth/me/api-key` | Revoke API key |
+
+### Admin User Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/PSSM_GREMLIN/user_control` | Admin-only user management page (web UI) |
+| `GET` | `/PSSM_GREMLIN/api/auth/admin/users` | List all users (safe fields, excludes soft-deleted) |
+| `POST` | `/PSSM_GREMLIN/api/auth/admin/users` | Create user (pre-verified, immediately active) |
+| `PUT` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Update user fields (email, affiliation, password, statuses) |
+| `DELETE` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Soft-delete user (record kept for audit) |
+| `POST` | `/PSSM_GREMLIN/api/auth/admin/users/batch` | Batch enable / disable / delete |
+
+Admins cannot ban or delete their own account.  Direct self-ban/self-delete
+requests return HTTP 400, and batch Disable/Delete skips the acting admin while
+still applying the requested action to other selected users.
+
+### Page Routes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/PSSM_GREMLIN/login` | Login page (redirects to dashboard if already authenticated) |
+| `GET` | `/PSSM_GREMLIN/register` | Registration page (requires `ENABLE_REGISTER` + email service) |
+| `GET` | `/PSSM_GREMLIN/terms` | Terms of Service page (public) |
 
 ### Task States
 
@@ -185,14 +269,30 @@ Required environment variables (defined in `docker-compose.yml`):
 | `LOG_DIR` | Host directory for Gunicorn/Celery logs |
 | `DB_UNIREF30` | UniRef30 HHsuite database prefix path |
 | `DB_UNIREF90` | UniRef90 BLAST database prefix path |
-| `USERS_FILE` | Path to basic-auth credentials file |
+| `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens (set in production) |
+| `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days) |
+| `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`) |
+| `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires email service) |
+| `SMTP_HOST` | SMTP server hostname (stdlib, always available) |
+| `SMTP_PORT` | SMTP port (default: 587) |
+| `SMTP_USERNAME` | SMTP auth username |
+| `SMTP_PASSWORD` | SMTP auth password |
+| `SMTP_USE_TLS` | Use STARTTLS (default: `true`) |
+| `SMTP_FROM_ADDR` | Sender address for verification emails |
+| `SMTP_FROM_NAME` | Sender display name |
+| `RESEND_API_KEY` | Resend API key (optional; takes priority over SMTP when set) |
+| `RESEND_FROM_ADDR` | Sender address for Resend (default: onboarding@resend.dev) |
+| `RESEND_FROM_NAME` | Sender display name for Resend |
+| `SERVER_BASE_URL` | Public base URL for verification links |
+| `REDIS_PASSWORD` | Optional Redis authentication password |
 | `RUNNER_UID` / `RUNNER_GID` | Non-root user for runner containers |
-| `DOCKER_GID` | Group ID of the Docker socket on the host |
+| `DOCKER_GID` | Runtime value auto-detected by `restart_pssm_flask.sh` for Docker Compose interpolation. Override only as a shell variable when detection is wrong |
 | `NPROC` | CPU threads for runner |
 | `MAXMEM` | Memory cap (GB) for HHblits (`-maxmem`) |
 | `PORT` | Public HTTP port (default: 8080) |
 | `PUBLIC_DASHBOARD` | Per-user task isolation (default: `false`) |
 | `ADMIN_USERS` | Comma-separated admin usernames |
+| `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
 | `TZ` | Timezone for logs |
 
 ### Setup Steps
@@ -207,10 +307,10 @@ Required environment variables (defined in `docker-compose.yml`):
    # Edit .env.production with your paths and settings
    ```
 
-3. **Configure basic auth users** in the file referenced by `USERS_FILE`:
-   ```
-   username:password
-   ```
+3. **Configure authentication**:
+   - On first run, a default admin user is created automatically (username: `admin`, password auto-generated and displayed by `restart_pssm_flask.sh`).
+   - Change the admin password immediately via the Profile page.
+   - Optionally enable self-registration with `ENABLE_REGISTER=true` and SMTP settings.
 
 4. **Build and run** using the helper script:
    ```bash
@@ -258,9 +358,58 @@ The runner conda environment is defined at
 - BLAST 2.13, HHsuite 3.3, HMMER 3.3.2
 - Channels: defaults, conda-forge, bioconda
 
-The server's Python dependencies are in
-`server/docker/server/requirements.txt` and include Flask 3.x, Celery 5.x
-(with Redis), SQLAlchemy 2.x, and the Docker SDK for Python.
+The server's Python dependencies are declared in ``server/pyproject.toml``
+with an optional ``[resend]`` extra for the Resend email SDK.  They include
+Flask 3.x, Celery 5.x (with Redis), SQLAlchemy 2.x, Pydantic 2.x,
+itsdangerous, werkzeug, and the Docker SDK for Python.
+
+## Testing
+
+Server tests live under ``server/tests/`` and are run from the repo root:
+
+```bash
+# Install the server package in editable mode with test deps
+pip install -e "server/[test]"
+
+# Run non-Docker tests (fast, no external services needed)
+pytest server/tests/ -v -k "not Docker and not docker"
+
+# Run all tests including Docker integration tests
+pytest server/tests/ -v
+```
+
+The test suite uses the same ``_load_pssm_module`` pattern to create isolated
+Flask test clients with temporary SQLite databases and environment variables.
+A dedicated CI workflow (``.github/workflows/server-test.yml``) runs non-Docker
+tests on every push touching ``server/**``.
+
+## Security Validation
+
+Run these checks after auth, account-status, Docker Compose, user/group, or
+runner-launch changes:
+
+- **Docker socket A/B attack test**: verify whether web/worker can access
+  `/var/run/docker.sock`.  If they can, prove the HTTP API still cannot expose
+  Docker control: low-privilege users must not reach admin APIs, cookie-only
+  task writes must fail with Bearer-token errors, Docker-like routes such as
+  `/containers/json` must not exist on the Flask port, and uploads must not let
+  users choose image, command, privileged mode, bind source paths, or socket
+  mounts.  Treat any HTTP path from an authenticated low-privilege user to
+  Docker daemon control as a host-root escape risk.
+  If tasks fail before runner launch with `PermissionError(13, 'Permission
+  denied')`, compare the helper's auto-detected `DOCKER_GID` with
+  `docker exec server-worker-1 ls -ln /var/run/docker.sock`; rerun the helper
+  after changing Docker runtimes.
+- **Banned-user authentication check**: create a temporary user, log in, issue
+  an API key, ban the user, then verify new login returns HTTP 403 and both the
+  old Bearer token and old API key return HTTP 401.
+- **Admin self-lockout check**: verify an admin cannot directly ban or delete
+  their own account, and that batch Disable/Delete with `[self, other]` reports
+  `count == 1`, leaves self active/undeleted, and applies the action to the
+  other user.
+- **Login throttling check**: after 5 failed login attempts per minute from the
+  same IP, the login endpoint returns HTTP 429 with `retry_after_seconds`; the
+  login page should disable the submit button and count down until retry.
 
 ## REvoDesign Plugin Integration
 

@@ -26,18 +26,14 @@ RUN chown -R ${RUNNER_UID}:${RUNNER_GID} /app/pssm_gremlin
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./scripts/ /app/pssm_gremlin/scripts/
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./REvoDesign_PSSM_GREMLIN.sh /app/pssm_gremlin/
 
-# Add SETUID bit to the ldconfig binary so that non-root users can run it.
-RUN chmod u+s /sbin/ldconfig.real
-
 WORKDIR /app/pssm_gremlin/
+
+# Persist the build arg so the entrypoint can resolve ${RUNNER_USERNAME} at runtime.
+ENV RUNNER_USERNAME=${RUNNER_USERNAME}
 
 RUN echo $'#!/bin/bash\n\
 ldconfig\n\
-bash /app/pssm_gremlin/REvoDesign_PSSM_GREMLIN.sh "$@"' > /app/run_pssm.sh \
+exec runuser -u ${RUNNER_USERNAME} -- bash /app/pssm_gremlin/REvoDesign_PSSM_GREMLIN.sh "$@"' > /app/run_pssm.sh \
   && chmod +x /app/run_pssm.sh
-
-RUN chown ${RUNNER_UID}:${RUNNER_GID} /app/run_pssm.sh
-
-USER ${RUNNER_UID}:${RUNNER_GID}
 
 ENTRYPOINT ["/app/run_pssm.sh"]

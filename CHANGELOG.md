@@ -19,6 +19,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- **Admin registration digest**: periodic email to `ADMIN_NOTIFY_EMAIL` listing new
+  registrations that haven't been included in a prior digest. Each user appears
+  only once (`admin_notified` column). Interval set by `ADMIN_NEW_USER_INFORM`
+  (minutes, default `0` = disabled). A `threading.Thread` daemon runs the digest
+  loop in the web process.
+- **FASTA content validation**: uploads must contain valid FASTA content (first
+  non-blank line starts with `>`). Catches renamed docx/jpg/exe files that pass
+  the binary-detection check.
+- **Per-user task quota**: each user limited to 5 concurrent pending/running
+  tasks, enforced before Celery enqueue (HTTP 429 when exceeded).
+- **Dev tooling**: `check_changelog_duplicates.py` validates CHANGELOG.md for duplicate `### Section` headers within a version block. Wired into pre-commit as `check-changelog-duplicates`.
+- **GREMLIN server: token-based authentication** (replaces HTTP Basic Auth):
+  - SQLite-backed user store (`users.sqlite3`) with hashed passwords (pbkdf2:sha256).
+  - Bearer-token auth via `itsdangerous.URLSafeTimedSerializer` (zero new dependencies).
+  - Self-registration workflow gated by `ENABLE_REGISTER` env var, with SMTP email verification.
+  - Admin user management endpoint (`POST /api/auth/admin/users`) for creating users without registration.
+  - Self-service password change (`PUT /api/auth/me`) with profile page at `/PSSM_GREMLIN/profile`.
+  - HTML email verification page at `/PSSM_GREMLIN/api/auth/verify-email`.
+  - Rate limiting on login (5/min/IP) and registration (3/hr/IP).
+  - Redis password support via `REDIS_PASSWORD` env var.
+  - Default admin bootstrap on first run (no seeding files needed).
+  - Long-lived API keys (`X-API-Key` header) with restricted privileges — manageable via Profile page and REST API.
+  - Email domain allowlisting (`ALLOWED_EMAIL_DOMAINS`) and plus-address normalisation (`user+tag@domain` → `user@domain`).
+- **GREMLIN server: admin user control panel** — `/PSSM_GREMLIN/user_control` page with two sub-tabs:
+  - Tab A: registration audit table (email, affiliation, registration status, user status) with per-row Approve/Reject/Ban/Modify actions and batch Enable/Disable/Delete.
+  - Tab B: manual add-user form with explicit username, email, password, and affiliation fields.
+  - Inline row editing: Modify button replaces row with editable form (email, affiliation, status dropdowns, optional password change).
+- **GREMLIN server: forgot/reset password flow** — login page includes "Forgot My Password" link; sends email with 1-hour reset token; dedicated `/PSSM_GREMLIN/reset_password` form.
+- **GREMLIN server: email verification** — 2-day expiry verification links at `/PSSM_GREMLIN/user_verify?c=`, with backward-compatible legacy route at `/PSSM_GREMLIN/api/auth/verify-email`.
+- **GREMLIN server: login accepts email** — the login field accepts either a username or email address, detected by `@` presence.
+- **GREMLIN server: static asset extraction** — JS and CSS extracted from HTML templates into standalone files under `static/`.
+- **GREMLIN server: role system** — `admin`, `user`, and `guest` roles with a `role` column in the user database. Guest accounts can only use cookie-based web login; Bearer tokens and API keys are rejected. Guests cannot change passwords or manage API keys. Admin user-control panel includes role selector and role badges.
+- **GREMLIN server: CAPTCHA on registration** — self-registration requires solving a server-generated math challenge (5-min expiry). Effectively blocks programmatic/bot registration. CAPTCHA reloads on failure.
+- **GREMLIN server: resend verification email** — after registration, a "Resend verification email" button appears with per-email backoff: first resend is immediate, then 10×n minutes between subsequent resends.
+- **GREMLIN server: admin notification emails** — users receive an email when an admin approves or rejects their registration. Bans are silent.
+- **GREMLIN server: email templates redesigned** — all four email types (verification, password reset, approval, rejection) share a consistent plain-text structure with clearer subject lines.
+- **GREMLIN server: verify-email page redesigned** — custom SVG status icons (checkmark for success, X for failure) with clear next-step messaging depending on whether admin approval is still pending.
+- **GREMLIN server: Terms of Service page** — dedicated `/PSSM_GREMLIN/terms` page linked from the registration form. Covers acceptable use, data privacy, service availability, account policies, and GPL-3.0 licensing.
 - Comprehensive API documentation site (46 pages) using MkDocs + Material for MkDocs + mkdocstrings:
   - User Guide (3 pages): landing, cluster methods, OpenKinetics workflow.
   - Developer Guide (18 pages): architecture, concepts, testing, CI/CD, PSSM/GREMLIN server, Monaco editor, Rosetta integration, translation (i18n), UI design, CGO graphics, Makefile reference, package manager, adding scorers/sidechain solvers, how-to guides (profile, config, shortcut), AI-assisted code quality fix playbooks (Codacy, DeepSource).
@@ -36,6 +74,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
 
 ### Changed
+- **GREMLIN server: pip package** — renamed from `pssm_gremlin` to `pssm_gremlin_server` with `pyproject.toml` for pip-installability. Server tests moved from `tests/server/` to `server/tests/` with dedicated CI workflow (`.github/workflows/server-test.yml`).
+- **GREMLIN server: Pydantic data models** — request/response validation hardened with typed Pydantic models at the API boundary (`schemas.py`), replacing ad-hoc `str(payload.get(...))` validation across all auth/admin route handlers.
+- **REvoDesign test suite** — removed server-test dependencies (Celery, Flask, Flask-HTTPAuth, SQLAlchemy, Docker SDK) from `make prepare-test`; server tests are now self-contained under `server/tests/` with their own `pyproject.toml`.
+- **GREMLIN server: module split** — `pssm_gremlin.py` refactored from ~1500 lines into `db.py` (TaskDatabase), `routes.py` (HTTP handlers), `ratelimit.py` (rate limiter), and slimmed-down main module.
+- **GREMLIN server: SMTP-gated registration** — self-registration and email verification now require SMTP to be configured.
+- Docker Compose: removed `group_add: "0"` (root group) from `x-docker-socket-access`.
+- **GREMLIN server UI**: redesigned login, profile, and register pages with
+  card-based layout, section headings, full-width buttons, and contextual
+  navigation.  Profile page gains a logout button and copy-to-clipboard for
+  API keys.  The developer curl snippet on the login page is now collapsed
+  behind a `<details>` element.
+- **GREMLIN server error pages**: HTTP error responses (4xx/5xx) render as
+  styled HTML pages for browser requests with contextual help text and
+  actions (e.g. 401 links to login).  API requests continue to receive JSON.
+- **Gunicorn `--preload`**: the WSGI app is loaded before forking workers,
+  ensuring consistent `AUTH_SECRET_KEY` across all workers and eliminating
+  cross-worker token validation failures.
+- **GREMLIN server UI**: auth pages (login, register, profile, user-control,
+  verify-email) redesigned with increased vertical rhythm — panel padding,
+  field spacing, and section gaps bumped 20-40% for a more breathable layout.
+- **GREMLIN server build**: `pyproject.toml` build backend changed from
+  `setuptools.backends._legacy` (removed in newer setuptools) to standard
+  `setuptools.build_meta`. Dockerfile uses `pip install "/app/server[resend]"`.
+- **GREMLIN server email**: optional Resend SDK (`pip install "server/[resend]"`)
+  as an alternative email backend. Takes priority over SMTP when
+  `RESEND_API_KEY` is set; SMTP (stdlib) remains the default fallback.
 - Refactored menu item registry to eliminate import-time filesystem scanning:
   - `application/menu.py`: `config_edit_links()` and `menu_links()` are now builder functions called at binding time instead of module-level constants computed at import. Added `core_menu_links(app)` for the core application menu actions, and `static_menu_links()` combining tools + preferences + other links.
   - `basic/menu_item.py`: extracted `bind_one()` and `_menu_section()` methods from `MenuCollection.bind()`; removed print-and-swallow error handling so binding failures propagate cleanly; added `MenuItem.separator()` classmethod.
@@ -49,6 +113,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
+- **Uploaded FASTA filename collision**: two users uploading files with the same
+  name (e.g. `seqs.fasta`) would overwrite each other in the shared upload
+  directory. Files are now saved as `{owner_scoped_md5}.fasta` so on-disk names
+  are unique per user and content.
+- **DB backup permission denied on restart**: the restart script's host-side
+  `cp` failed when the host user lacked write permission to `SERVER_DIR`. The
+  backup now runs inside the web container via `docker compose run --entrypoint
+  /bin/cp` so file ownership matches.
+- **Unable to download failed-task artifacts**: failed tasks now create a
+  downloadable archive with the uploaded FASTA and a failure report; download
+  routes accept `failed` tasks and pack the result dir on-the-fly when needed.
+- **Failed-task runner log hidden**: dashboard task cards now show a `(?)`
+  indicator next to the status pill. It opens a fixed, scrollable "Runner log"
+  popover backed by the task `error` column, with a copy button for sharing the
+  runner output.
+- **GREMLIN server test suite**: removed dead `users.txt`/`USERS_FILE` code
+  leftover from Basic Auth era. Merged `_configure_pssm_env` into
+  `_load_pssm_module`. Fixed Docker test entry points (`_start_web`,
+  `_start_worker`) for the package-refactored module path. Renamed
+  `_module_bearer_headers` → `_test_client_auth` for clarity.
+- Cancelled tasks now clean up their result directories (previously leaked on disk).
+- **GREMLIN server**: `ALLOWED_EMAIL_DOMAINS` was defined in `.env.example` but
+  never passed through `docker-compose.yml`'s `x-common-env` block — the domain
+  allowlist would never activate. Added to the shared env block.
+- **GREMLIN server**: registration endpoint no longer returns the same success
+  message when email delivery fails. Frontend now shows whether the
+  verification email was actually sent.
+- **GREMLIN server**: resend-verification endpoint was incorrectly blocking
+  pending/unverified users via `_is_account_blocked`. Replaced with a narrower
+  gate that only rejects deleted and banned accounts.
+- **AUTH_SECRET_KEY duplication**: `auth.py` and `pssm_gremlin.py`
+  independently generated different random signing keys when
+  `AUTH_SECRET_KEY` was unset, breaking token validation across gunicorn
+  workers. Fixed by seeding `os.environ` before the auth import.
+- **Test module loading**: `spec_from_file_location` loader in server tests
+  now adds `server/` to `sys.path` so the refactored `pssm_gremlin` package
+  (with sibling imports from `db`, `auth`) is importable.
+- **Docker compose empty env vars**: `${VAR:-}` substitutions pass empty
+  strings when unset, which `os.environ.get()` returned as valid values,
+  bypassing defaults. `_env_str` now treats empty strings as unset, preventing
+  SQLite paths from resolving to CWD.
+- **Package shadowing on import**: when the Docker WORKDIR was inside
+  `pssm_gremlin/`, Python's `sys.path` entry `''` resolved to the package
+  directory, finding `pssm_gremlin.py` as a top-level module that shadowed
+  the `pssm_gremlin` package. Fixed by setting `WORKDIR /app/server` and
+  `working_dir: /app/server` in docker-compose.
+- **Browser auth after login**: page navigations (dashboard, profile) don't
+  carry the `Authorization` header. Login now sets an `HttpOnly` cookie and
+  `load_current_user` checks it, so browser pages authenticate without manual
+  token management.
+- **Logout**: JS cannot clear `HttpOnly` cookies. Added
+  `POST /api/auth/logout` server endpoint; profile page calls it to clear
+  the cookie.
+- **API key display race**: `refreshApiKeyStatus()` was hiding the
+  freshly-generated key before the user could copy it. Fixed to preserve the
+  display when a new key is visible.
+- **Admin password**: the bootstrap-generated admin password was logged to
+  gunicorn stderr (inaccessible to the operator). The restart script now
+  generates and displays it on the console before bringing services up.
+- **Chrome file picker not opening**: native ``<input type="file">`` click
+  fails to open the file dialog in Chrome (works in Safari).  Added
+  drag-and-drop file upload as a browser-agnostic workaround — drop a
+  ``.fasta`` file anywhere on the input card.  Removed ``backdrop-filter``
+  from ``.panel`` (known Chrome hit-testing regression on replaced elements).
+- **Download button not triggering download**: the dashboard download
+  button used ``window.location.href`` (cookie-only page navigation) which
+  could silently redirect to login on auth failure.  Switched to
+  ``A.authFetch`` (Bearer token + cookie fallback) with blob download via
+  ``URL.createObjectURL``, matching the page's existing fetch-based auth
+  model.
+- **Login rate-limit feedback**: when login throttling returns HTTP 429 with
+  `retry_after_seconds`, the login page now disables the submit button and
+  displays a second-by-second retry countdown instead of a generic error.
+- **Fresh server setup**: default-admin bootstrap now tolerates concurrent
+  web/worker first-boot imports, avoiding a unique-constraint crash when both
+  processes see an empty user database.
+- **Docker socket setup**: `restart_pssm_flask.sh` now auto-detects and exports
+  `DOCKER_GID` at runtime instead of persisting host-specific socket groups in
+  env files.  On Docker Desktop/OrbStack for macOS it uses the
+  container-visible socket group (`0`), preventing runner launch failures with
+  `PermissionError(13, 'Permission denied')`.
 - Language menu actions disappearing when a non-English language was saved in config: language QActions were created orphan (no QObject parent) and lost after `retranslateUi` → `refresh_bindings()` rescanned the widget tree. Fixed by parenting each action to `menuLanguage`.
 - Switching back to English not reverting translated strings: `_ensure_translator()` checked the fresh `bus.ui.trans` before the early-installed translator from `install_translator_early()`, so `removeTranslator()` removed the wrong instance. Fixed by checking for an early-installed translator first.
 - Replaced `WorkerThread` (QThread subclass) with plain `threading.Thread` for uvicorn server lifecycle — uvicorn no longer runs inside a QThread, removing the SIP wrapper lifetime boundary that triggered `forgetObject` → `qFatal` → `SIGABRT` when cross-thread Qt signals were dispatched after QObject destruction. Loosened uvicorn pin to `>=0.12.0` (was `<0.50.0`).
@@ -68,6 +213,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `tools/translate.sh` now iterates over glob directly instead of `ls` output (SC2045).
   - Removed redundant `action.setText()` in `MenuItem.bind_one` (constructor already sets the text).
 - Added 15 hand-maintained translation entries for ValueDialog action buttons (Browse, Pick Color, Select All, etc.) in zh_CN + zh_TW.
+- **GREMLIN server: guest task submission broken** — guest accounts were blocked from Bearer-token auth in `load_current_user`, forcing cookie-only auth which the CSRF gate (`require_bearer_auth`) rejects on state-changing endpoints. Removed the guest exclusion from the Bearer-token path (Bearer tokens are CSRF-safe by browser policy regardless of role). Added `_reject_guest()` guards to both delete endpoints so guests cannot delete tasks.
+
+### Security
+- SQL injection: all queries use SQLAlchemy ORM parameterized queries.
+- XSS: Jinja2 auto-escaping + `| tojson` filter for JSON + `escapeHtml()` in dashboard JS.
+- Auth cookie: `HttpOnly` + `SameSite=Lax`; inaccessible to JavaScript.
+- API keys: restricted privileges (task operations only); Bearer token
+  required for profile changes and admin actions.
+- Account-status enforcement: banned or deleted users cannot authenticate with
+  new logins, old Bearer tokens, or existing API keys.
+- Admin self-lockout protection: admins cannot ban/delete their own account;
+  batch Disable/Delete skips the acting admin while still applying to other
+  selected users.
+- Admin approval now implies email verification, and all active users must have
+  verified email before authentication.
+- Browser hardening: `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, and `Permissions-Policy` headers on every response. CSP
+  allows Google Fonts (used by templates) and inline scripts/styles.
+- Auth cookie: `Secure` flag set when `SERVER_BASE_URL` uses `https://`, skipped
+  for plain-http dev environments to avoid silently broken cookies.
+- Upload rate limiting: `@rate_limit(max_requests=30, window_seconds=3600)` on
+  the file-upload endpoint (per-IP, in addition to per-user task cap).
+- Runner image hardening: removed setuid `ldconfig.real`; entrypoint starts as
+  root, runs `ldconfig`, then drops privileges via `runuser`. Removed `user=`
+  overrides from Docker API call, docker-compose runner service, and test harness.
+- Path traversal: `_safe_join()` / `_path_is_within()` guard all filesystem paths.
+- Task IDs: validated against `[a-f0-9]{32}` regex before filesystem access.
+- CSRF: all state-changing routes require Bearer token or API-key auth as
+  appropriate; cookie-only writes are rejected.
+- Docker: Docker socket access is documented as host-root-equivalent; A/B
+  attack-test guidance covers socket exposure, low-privilege API probes, and
+  task-submission boundaries.
+- Removed HTTP Basic Auth dependency (`flask_httpauth`) and `users.txt` file.
+
+### Removed
+- `flask_httpauth` dependency and `USERS_FILE` / `users.txt` credential storage.
 
 ## [1.9.0] - 2026-07-03
 ### Added

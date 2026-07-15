@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | PSSM_GREMLIN Dashboard</title>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/PSSM_GREMLIN/logo.svg"/>
+<link rel="mask-icon" href="/PSSM_GREMLIN/logo.svg" color="#000000"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/dashboard.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="page">
+  <section class="panel hero">
+    <div class="hero-top">
+      <div>
+        <h1 class="headline">PSSM GREMLIN Task Dashboard</h1>
+        <p class="subline">Track computational progress with explicit runtime states, packaging lifecycle, and downloadable result archives.</p>
+      </div>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="/PSSM_GREMLIN/create_task">New Task</a>
+        <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
+        <button class="btn btn-soft" type="button" id="refreshBtn">Refresh</button>
+        <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" rel="noopener noreferrer">GitHub</a>
+        {% if is_admin_user %}
+        <a class="btn btn-soft" href="/PSSM_GREMLIN/user_control">User Control</a>
+        {% endif %}
+        <a class="btn btn-soft" href="/PSSM_GREMLIN/profile">Profile</a>
+        <button class="btn btn-soft btn-logout" type="button" id="logoutBtn" title="Log out">Logout</button>
+      </div>
+    </div>
+
+    <div class="stats" aria-live="polite">
+      <article class="stat"><p class="stat-label">Total</p><p class="stat-value" id="totalTasks">0</p></article>
+      <article class="stat"><p class="stat-label">Pending</p><p class="stat-value" id="inQueue">0</p></article>
+      <article class="stat"><p class="stat-label">Running</p><p class="stat-value" id="inRunning">0</p></article>
+      <article class="stat"><p class="stat-label">Packing</p><p class="stat-value" id="packingResults">0</p></article>
+      <article class="stat"><p class="stat-label">Finished</p><p class="stat-value" id="finished">0</p></article>
+      <article class="stat"><p class="stat-label">Failed / Cancelled / Deleted</p><p class="stat-value" id="issues">0</p></article>
+    </div>
+  </section>
+
+  <section class="panel controls" aria-label="Task filters">
+    <div class="search-wrap">
+      <input id="taskSearch" class="search-input" type="search" placeholder="Search by file name, md5, status, or sequence" autocomplete="off">
+    </div>
+    <div class="filters" id="statusFilters">
+      <button class="chip active" data-filter="all" type="button">All</button>
+      <button class="chip" data-filter="pending" type="button">Pending</button>
+      <button class="chip" data-filter="running" type="button">Running</button>
+      <button class="chip" data-filter="packing results" type="button">Packing</button>
+      <button class="chip" data-filter="finished" type="button">Finished</button>
+      <button class="chip" data-filter="failed" type="button">Failed</button>
+      <button class="chip" data-filter="cancelled" type="button">Cancelled</button>
+      <button class="chip" data-filter="deleted:finshed" type="button">Deleted (Finished)</button>
+      <button class="chip" data-filter="deleted:cancel" type="button">Deleted (Cancel)</button>
+    </div>
+    <div class="admin-tools" id="adminTools" hidden>
+      <button class="chip" id="selectVisibleBtn" type="button">Select Visible</button>
+      <button class="chip" id="clearSelectionBtn" type="button">Clear Selection</button>
+      <button class="chip" id="deleteSelectedBtn" type="button" disabled>Delete Selected (0)</button>
+    </div>
+  </section>
+
+  <section class="board" id="taskList" aria-live="polite"></section>
+</main>
+
+<aside class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></aside>
+
+<script>
+  window.__DASHBOARD_TASKS__ = {{ sorted_task_statuses | tojson }};
+  window.__DASHBOARD_IS_ADMIN__ = {{ is_admin_user | tojson }};
+  window.__DASHBOARD_USER__ = {{ current_username | tojson }};
+</script>
+<script src="/static/js/auth-api.js"></script>
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>

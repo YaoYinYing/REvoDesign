@@ -1,0 +1,55 @@
+/* REvoDesign GREMLIN Server — Error page styles */
+/* SPDX-License-Identifier: GPL-3.0-only */
+
+.error-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 55vh;
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+.error-code {
+  font-family: "Source Serif 4", serif;
+  font-size: clamp(4rem, 10vw, 7rem);
+  font-weight: 700;
+  color: var(--failed);
+  margin: 0;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-shadow:
+    0 1px 0 rgba(255,255,255,0.08),
+    0 -1px 0 rgba(0,0,0,0.18);
+}
+
+.error-rule {
+  width: min(60%, 18rem);
+  height: 1px;
+  background: var(--line);
+  margin: 1.6rem 0;
+  border: none;
+}
+
+.error-message {
+  font-size: 1.05rem;
+  color: var(--muted);
+  margin: 0 0 0.35rem;
+  max-width: 32rem;
+  line-height: 1.45;
+}
+
+.error-action {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin: 0.25rem 0 1.6rem;
+  max-width: 32rem;
+}
+
+/* dark */
+html[data-theme="dark"] .error-code {
+  text-shadow:
+    0 1px 0 rgba(255,255,255,0.04),
+    0 -1px 0 rgba(0,0,0,0.35);
+}

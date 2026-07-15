@@ -139,3 +139,6 @@ src/REvoDesign/UI/Ui_REvoDesign.py
 .claude/worktrees/
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
+users.sqlite3
+testerror.txt
+/server/server_state

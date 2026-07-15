@@ -10,8 +10,6 @@ x-common-env: &common-env
   DB_UNIREF30: ${DB_UNIREF30}
   DB_UNIREF90: ${DB_UNIREF90}
 
-  USERS_FILE: ${USERS_FILE}
-
   REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
   BROKER_URL: ${BROKER_URL:-redis://redis:6379/0}
   RESULT_BACKEND: ${RESULT_BACKEND:-redis://redis:6379/0}
@@ -23,7 +21,7 @@ x-common-env: &common-env
   
   RUNNER_UID: ${RUNNER_UID:-1000}
   RUNNER_GID: ${RUNNER_GID:-1000}
-  DOCKER_GID: ${DOCKER_GID:-998}
+  DOCKER_GID: ${DOCKER_GID:?Run server/run/restart_pssm_flask.sh so DOCKER_GID is auto-detected, or export it explicitly}
   RUNNER_USERNAME: ${RUNNER_USERNAME:-revodesign}
   RUNNER_GROUP: ${RUNNER_GROUP:-revodesign}
 
@@ -34,12 +32,39 @@ x-common-env: &common-env
 
   TZ: ${TZ:-Europe/London}
 
+  AUTH_SECRET_KEY: ${AUTH_SECRET_KEY:-}
+  AUTH_TOKEN_MAX_AGE: ${AUTH_TOKEN_MAX_AGE:-604800}
+  USER_DB_PATH: ${USER_DB_PATH:-}
+  ENABLE_REGISTER: ${ENABLE_REGISTER:-false}
+
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+  SMTP_FROM_ADDR: ${SMTP_FROM_ADDR:-hello@revodesign.local}
+  SMTP_FROM_NAME: ${SMTP_FROM_NAME:-REvoDesign GREMLIN Server}
+  RESEND_API_KEY: ${RESEND_API_KEY:-}
+  RESEND_FROM_ADDR: ${RESEND_FROM_ADDR:-onboarding@resend.dev}
+  RESEND_FROM_NAME: ${RESEND_FROM_NAME:-REvoDesign GREMLIN Server}
+  SERVER_BASE_URL: ${SERVER_BASE_URL:-http://localhost:8080}
+  ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
+  ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
+  ADMIN_NEW_USER_INFORM: ${ADMIN_NEW_USER_INFORM:-0}
+  DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
+  CLIENT_IP_HEADERS: ${CLIENT_IP_HEADERS:-X-Forwarded-For,X-Real-IP}
+  CLIENT_COUNTRY_HEADER: ${CLIENT_COUNTRY_HEADER:-}
+
 x-docker-socket-access: &docker-socket-access
-  # Least privilege by default: only grant Docker socket group access.
-  # Add root to group access ("0") to allow correct permission for now. TODO: remove this root if fix is possible.
+  # Docker socket group access is host-root-equivalent — the Docker API
+  # can start privileged containers or bind-mount host paths.  This is
+  # an accepted architecture choice; constrain it with a socket proxy or
+  # separate runner service for a stronger boundary.
+  # Set DOCKER_GID to the socket group as seen inside containers.  On Linux
+  # this is usually the host docker group id; on Docker Desktop/OrbStack for
+  # macOS the bind-mounted socket commonly appears as group 0.
   group_add:
-    - "${DOCKER_GID:-998}"
-    - "0"
+    - "${DOCKER_GID:?Run server/run/restart_pssm_flask.sh so DOCKER_GID is auto-detected, or export it explicitly}"
 
 services:
   redis:
@@ -70,18 +95,19 @@ services:
     <<: *docker-socket-access
     command: >-
       gunicorn -w ${GUNICORN_WORKERS:-2}
+      --preload
       -b 0.0.0.0:${PORT:-8080}
       --access-logfile ${LOG_DIR}/gunicorn-access.log
       --error-logfile ${LOG_DIR}/gunicorn-error.log
-      --access-logformat '%({CF-Connecting-IP}i)s (%({Cf-Ipcountry}i)s) - %(u)s %(t)s "%(r)s" %(s)s %(B)s "%(a)s"' 
-      pssm_gremlin:app
+      --access-logformat '%({CF-Connecting-IP}i)s (%({Cf-Ipcountry}i)s) - %(u)s %(t)s "%(r)s" %(s)s %(B)s "%(a)s"'
+      pssm_gremlin_server.pssm_gremlin:app
+    working_dir: /app/server
     ports:
       - "${PORT:-8080}:${PORT:-8080}"
     volumes:
       - ${SERVER_DIR}:${SERVER_DIR}
       - ${DB_UNIREF30}:${DB_UNIREF30}:ro
       - ${DB_UNIREF90}:${DB_UNIREF90}:ro
-      - ${USERS_FILE}:${USERS_FILE}:ro
       - ${LOG_DIR}:${LOG_DIR}
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -96,21 +122,20 @@ services:
     depends_on:
       - redis
     command: >-
-      celery -A pssm_gremlin.celery worker
+      celery -A pssm_gremlin_server.pssm_gremlin.celery worker
       --loglevel=info
       --concurrency=${WORKER_CONCURRENCY:-2}
       --logfile ${LOG_DIR}/celery-worker.log
+    working_dir: /app/server
     volumes:
       - ${SERVER_DIR}:${SERVER_DIR}
       - ${DB_UNIREF30}:${DB_UNIREF30}:ro
       - ${DB_UNIREF90}:${DB_UNIREF90}:ro
-      - ${USERS_FILE}:${USERS_FILE}:ro
       - ${LOG_DIR}:${LOG_DIR}
       - /var/run/docker.sock:/var/run/docker.sock
 
   runner:
     profiles: ["runner"]
-    user: ${RUNNER_UID}:${RUNNER_GID}
     image: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
     build:
       context: .

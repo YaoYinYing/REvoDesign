@@ -26,176 +26,60 @@ import docker
 from celery import Celery
 from celery.result import AsyncResult
 from docker import types
-from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
-from flask_httpauth import HTTPBasicAuth
-from sqlalchemy import Column, Float, Index, Integer, MetaData, String, Table, Text, create_engine, desc, select, update
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-from sqlalchemy.exc import OperationalError
-from werkzeug.security import check_password_hash, generate_password_hash
+from flask import Flask, current_app, g, jsonify, request
+from pssm_gremlin_server.db import TaskDatabase
+from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
+
+# Ensure AUTH_SECRET_KEY is set *before* auth.py initialises its token
+# serializer, otherwise multi-worker gunicorn generates independent signing
+# keys per worker and tokens from one worker fail validation on another.
+if not os.environ.get("AUTH_SECRET_KEY"):
+    os.environ["AUTH_SECRET_KEY"] = os.urandom(32).hex()
+
+from pssm_gremlin_server.auth import UserDatabase  # noqa: E402
+from pssm_gremlin_server.auth import _env_bool  # noqa: E402
+from pssm_gremlin_server.auth import _env_int  # noqa: E402
+from pssm_gremlin_server.auth import _env_str  # noqa: E402
+from pssm_gremlin_server.auth import send_admin_digest  # noqa: E402
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
 TEMPLATE_IMAGE_DIR = os.path.join(THIS_DIR, "templates", "images")
 
 app = Flask(__name__, template_folder="./templates")
-auth = HTTPBasicAuth()
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MiB upload limit
 
 
-class TaskDatabase:
-    """Minimal SQLite-based task tracker for GREMLIN jobs."""
+@app.after_request
+def _add_security_headers(response):
+    """Add browser hardening headers to every response."""
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "interest-cohort=()")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "script-src 'self' 'unsafe-inline'",
+    )
+    return response
 
-    DELETED_STATUSES = {"deleted:finshed", "deleted:cancel"}
 
-    VALID_STATUSES = {
-        "pending",
-        "running",
-        "packing results",
-        "finished",
-        "failed",
-        "cancelled",
-        "deleted:finshed",
-        "deleted:cancel",
-    }
+# ---------------------------------------------------------------------------
+# Auth initialisation — replaces the old HTTPBasicAuth + users.txt model
+# ---------------------------------------------------------------------------
+_user_db = UserDatabase()
+app.config["user_db"] = _user_db
+ENABLE_REGISTER = _env_bool("ENABLE_REGISTER", False)
 
-    def __init__(self, path: str):
-        self.path = os.path.abspath(path)
-        os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
-        self.engine = create_engine(
-            f"sqlite:///{self.path}",
-            future=True,
-            connect_args={"check_same_thread": False},
-        )
-        self.metadata = MetaData()
-        self.tasks_table = Table(
-            "tasks",
-            self.metadata,
-            Column("md5sum", String(32), primary_key=True),
-            Column("filename", String, nullable=False),
-            Column("file_path", String, nullable=False),
-            Column("result_dir", String, nullable=False),
-            Column("uploaded_at", Float, nullable=False),
-            Column("started_at", Float),
-            Column("finished_at", Float),
-            Column("walltime", Float),
-            Column("status", String, nullable=False),
-            Column("is_binary", Integer, nullable=False),
-            Column("source_ip", String),
-            Column("user_agent", String),
-            Column("username", String),
-            Column("local user", String, key="local_user"),
-            Column("request_headers", Text),
-            Column("run_stage", String),
-            Column("error", Text),
-            Column("celery_task_id", String),
-        )
-        Index("idx_tasks_uploaded_at", self.tasks_table.c.uploaded_at)
-        self._initialize()
-
-    def _initialize(self) -> None:
-        with self.engine.begin() as conn:
-            self._safe_apply_pragmas(conn)
-            try:
-                self.metadata.create_all(conn, checkfirst=True)
-            except OperationalError as exc:
-                # Gunicorn can spawn multiple workers simultaneously which may try to
-                # initialize the SQLite schema at the same time. The loser of that
-                # race observes an "already exists" error; we can safely ignore it.
-                if "already exists" not in str(exc).lower():
-                    raise
-                logging.warning("TaskDatabase metadata already present, skipping creation")
-            self._ensure_columns(conn)
-
-    @staticmethod
-    def _safe_apply_pragmas(conn) -> None:
-        # During dockerized server tests, concurrent web/worker startup can briefly
-        # contend on the same SQLite file. Retrying PRAGMA setup avoids process
-        # exit on transient lock without changing DB semantics.
-        for attempt in range(3):
-            try:
-                conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
-                conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
-                return
-            except OperationalError as exc:
-                if "database is locked" not in str(exc).lower():
-                    raise
-                if attempt == 2:
-                    logging.warning(
-                        "SQLite pragma initialization is locked; proceeding with default pragmas for this process."
-                    )
-                    return
-                time.sleep(0.2 * (attempt + 1))
-
-    @staticmethod
-    def _ensure_columns(conn) -> None:
-        existing_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(tasks);").fetchall()}
-        if "local user" not in existing_columns:
-            conn.exec_driver_sql('ALTER TABLE tasks ADD COLUMN "local user" TEXT;')
-        if "request_headers" not in existing_columns:
-            conn.exec_driver_sql("ALTER TABLE tasks ADD COLUMN request_headers TEXT;")
-        if "run_stage" not in existing_columns:
-            conn.exec_driver_sql("ALTER TABLE tasks ADD COLUMN run_stage TEXT;")
-
-    @staticmethod
-    def _normalize_task_row(row: dict) -> dict:
-        normalized = dict(row)
-        if "local user" in normalized and "local_user" not in normalized:
-            normalized["local_user"] = normalized["local user"]
-        return normalized
-
-    def _ensure_status(self, status: str) -> None:
-        if status not in self.VALID_STATUSES:
-            raise ValueError(f"Invalid GREMLIN task status {status}")
-
-    @classmethod
-    def _is_deleted_status(cls, status: Any) -> bool:
-        return str(status or "").strip().lower() in cls.DELETED_STATUSES
-
-    def upsert_task(self, md5sum: str, **fields) -> None:
-        if not fields:
-            return
-        status = fields.get("status")
-        if status:
-            self._ensure_status(status)
-        stmt = sqlite_insert(self.tasks_table).values(md5sum=md5sum, **fields)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=[self.tasks_table.c.md5sum],
-            set_={col: getattr(stmt.excluded, col) for col in fields},
-        )
-        with self.engine.begin() as conn:
-            conn.execute(stmt)
-
-    def update_task(self, md5sum: str, **fields) -> None:
-        if not fields:
-            return
-        status = fields.get("status")
-        if status:
-            self._ensure_status(status)
-        stmt = update(self.tasks_table).where(self.tasks_table.c.md5sum == md5sum).values(**fields)
-        # Deleted tasks are terminal in the runtime state machine.
-        # Ignore late worker writes (running/packing/finished/run_stage, etc.)
-        # that would otherwise resurrect tasks after user deletion.
-        if status is None or (not self._is_deleted_status(status)):
-            stmt = stmt.where(self.tasks_table.c.status.notin_(tuple(self.DELETED_STATUSES)))
-        with self.engine.begin() as conn:
-            conn.execute(stmt)
-
-    def get_task(self, md5sum: str) -> dict | None:
-        stmt = select(self.tasks_table).where(self.tasks_table.c.md5sum == md5sum)
-        with self.engine.connect() as conn:
-            row = conn.execute(stmt).mappings().first()
-        return self._normalize_task_row(row) if row else None
-
-    def list_tasks(self) -> list[dict]:
-        stmt = select(self.tasks_table).order_by(desc(self.tasks_table.c.uploaded_at))
-        with self.engine.connect() as conn:
-            rows = conn.execute(stmt).mappings().all()
-        return [self._normalize_task_row(row) for row in rows]
-
-    def delete_task(self, md5sum: str) -> None:
-        stmt = self.tasks_table.delete().where(self.tasks_table.c.md5sum == md5sum)
-        with self.engine.begin() as conn:
-            conn.execute(stmt)
+# Secrets for token signing — reuse a shared secret or generate a random one.
+# In production set AUTH_SECRET_KEY to a fixed, high-entropy value so tokens
+# survive process restarts.
+_token_key = _env_str("AUTH_SECRET_KEY", os.urandom(32).hex())
+app.secret_key = app.secret_key or _token_key
 
 
 def _env_path(var_name: str, default: str) -> str:
@@ -219,20 +103,6 @@ def _env_csv(var_name: str, default: str) -> list[str]:
     raw = os.environ.get(var_name, default)
     values = [value.strip() for value in raw.split(",")]
     return [value for value in values if value]
-
-
-def _env_bool(var_name: str, default: bool) -> bool:
-    raw = os.environ.get(var_name)
-    if raw is None or raw == "":
-        return default
-    value = raw.strip().lower()
-    if value in {"1", "true", "yes", "on"}:
-        return True
-    if value in {"0", "false", "no", "off"}:
-        return False
-    raise ValueError(
-        f"Environment variable {var_name} must be a boolean value " "(one of: true/false/1/0/yes/no/on/off)."
-    )
 
 
 def _format_runner_identity(user_value: str, group_value: str) -> str:
@@ -322,29 +192,77 @@ class GremlinConfig:
 CONFIG = GremlinConfig.from_env()
 
 
-user_file = os.environ.get("USERS_FILE", os.path.join(THIS_DIR, "users.txt"))
-user_file = os.path.abspath(user_file)
-
-if not os.path.exists(user_file):
-    raise FileNotFoundError(f"Unable to start GREMLIN server without user credentials. Expected file at {user_file}")
-
-# A dictionary of users and their hashed passwords
-users = {}
-
-with open(user_file) as f:
-    for line in f:
-        if line.strip() == "":
-            continue
-        if line.strip().startswith(("#", ";")):
-            continue
-        username, password = line.strip().split(":")
-        users[username] = generate_password_hash(password)
-
 ADMIN_USERS = set(_env_csv("ADMIN_USERS", "admin"))
+
+# Bootstrap: if the user database is empty (first run), create a default
+# admin account so the server isn't locked out.
+if _user_db.user_count() == 0:
+    _default_admin = _env_str("DEFAULT_ADMIN_USERNAME", "admin")
+    _default_pass = _env_str("DEFAULT_ADMIN_PASSWORD", os.urandom(16).hex())
+    try:
+        _created_admin = _user_db.create_user(
+            username=_default_admin,
+            email=f"{_default_admin}@revodesign.local",
+            password=_default_pass,
+            is_admin=True,
+            registration_status="approved",
+            user_status="active",
+        )
+        _user_db.verify_email(_created_admin["id"])
+        logging.warning(
+            "No users found — created default admin user %r with an auto-generated password. "
+            "Log in and change it immediately.",
+            _default_admin,
+        )
+    except IntegrityError:
+        # Web and Celery can import the app concurrently on first boot.  If
+        # another process won the bootstrap insert race, continue with it.
+        _created_admin = _user_db.get_user_by_username(_default_admin)
+        if _created_admin and not _created_admin.get("email_verified"):
+            _user_db.verify_email(_created_admin["id"])
+        logging.info("Default admin user %r already exists after bootstrap race.", _default_admin)
+
+
+# Admin new-user digest: periodically email ADMIN_NOTIFY_EMAIL a table of
+# registrations that haven't been included in a digest yet, then mark them
+# notified so each user appears only once.
+_admin_digest_minutes = _env_int("ADMIN_NEW_USER_INFORM", 0)
+if _admin_digest_minutes > 0 and _env_str("ADMIN_NOTIFY_EMAIL", ""):
+    import threading
+
+    _digest_lock = os.path.join(
+        _env_str("SERVER_DIR", os.getcwd()), ".admin_digest.lock"
+    )
+
+    def _digest_loop() -> None:
+        import random
+
+        while True:
+            _jitter = random.uniform(-5, 5)  # spread worker wake-ups
+            time.sleep(_admin_digest_minutes * 60 + _jitter)
+            try:
+                # ponytail: file lock so only one worker sends the digest
+                # (gunicorn --preload forks the thread into every worker).
+                # flock is fd-scoped — kernel auto-releases on process death,
+                # so a crash won't leave a stale lock behind.
+                import fcntl
+
+                with open(_digest_lock, "w") as _lock_fh:
+                    fcntl.flock(_lock_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    send_admin_digest()
+            except (BlockingIOError, OSError):
+                pass  # another worker has the lock — try next cycle
+            except Exception:
+                logging.exception("Admin digest thread failed")
+
+    _digest_thread = threading.Thread(target=_digest_loop, daemon=True)
+    _digest_thread.start()
 
 
 # Celery configurations
-redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+_redis_password = os.environ.get("REDIS_PASSWORD", "")
+_redis_auth = f":{_redis_password}@" if _redis_password else ""
+redis_url = os.environ.get("REDIS_URL", f"redis://{_redis_auth}localhost:6379/0")
 celery_backend = os.environ.get("RESULT_BACKEND", redis_url)
 celery_broker = os.environ.get("BROKER_URL", redis_url)
 celery = Celery(
@@ -384,6 +302,20 @@ def _is_binary_file(path: str) -> bool:
     return False
 
 
+def _is_fasta_content(path: str) -> bool:
+    """Return True if *path* looks like a FASTA file (first non-blank line starts with '>')."""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                return stripped.startswith(">")
+    except OSError:
+        return False
+    return False
+
+
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 _TASK_ID_PATTERN = re.compile(r"[a-fA-F0-9]{32}$")
 
@@ -420,23 +352,68 @@ def _sanitize_for_log(value: str, max_len: int = 4096) -> str:
     return cleaned
 
 
+_REDACTED_HEADERS = frozenset({"authorization", "cookie", "x-api-key"})
+
+
 def _sanitize_headers_for_log(raw_headers: dict[str, str]) -> str:
     sanitized: dict[str, str] = {}
     for key, value in raw_headers.items():
         safe_key = _sanitize_for_log(str(key), max_len=256)
+        if not safe_key or safe_key.lower() in _REDACTED_HEADERS:
+            continue
         safe_value = _sanitize_for_log(str(value), max_len=2048)
-        if safe_key:
-            sanitized[safe_key] = safe_value
+        sanitized[safe_key] = safe_value
     return json.dumps(sanitized, ensure_ascii=True, sort_keys=True)
 
 
+def _current_username() -> str:
+    """Return the current authenticated username, or empty string."""
+    user = g.get("current_user")
+    return user["username"] if user else ""
+
+
+# Parsed at import time — a tuple of header names to try for client IP.
+_CLIENT_IP_HEADERS = tuple(
+    h.strip().strip("'\"")
+    for h in os.environ.get("CLIENT_IP_HEADERS", "X-Forwarded-For, X-Real-IP").split(",")
+    if h.strip()
+)
+_CLIENT_COUNTRY_HEADER = (os.environ.get("CLIENT_COUNTRY_HEADER", "").strip().strip("'\"") or None)
+
+
+def _client_ip() -> str | None:
+    """Return the best-guess client IP, respecting ``CLIENT_IP_HEADERS``.
+
+    ``CLIENT_IP_HEADERS`` is a comma-separated list of HTTP headers tried in
+    priority order (e.g. ``CF-Connecting-IP, X-Forwarded-For, X-Real-IP``).
+    Falls back to ``request.remote_addr``.
+    """
+    for header in _CLIENT_IP_HEADERS:
+        value = request.headers.get(header, "").split(",")[0].strip()
+        if value:
+            return value
+    remote = request.remote_addr
+    return remote if remote else None
+
+
+def _client_country() -> str | None:
+    """Return the client country from ``CLIENT_COUNTRY_HEADER`` if configured.
+
+    e.g. ``CLIENT_COUNTRY_HEADER=CF-IPCountry`` for Cloudflare.
+    """
+    if _CLIENT_COUNTRY_HEADER is None:
+        return None
+    value = request.headers.get(_CLIENT_COUNTRY_HEADER, "").strip()
+    return value if value else None
+
+
 def _request_metadata() -> dict[str, str | None]:
-    ip = request.headers.get("CF-Connecting-IP") or request.headers.get("CF-Connecting-IPv6") or request.remote_addr
+    ip = _client_ip()
     headers = {str(k): str(v) for k, v in request.headers.items()}
     return {
         "ip": ip,
         "user_agent": request.headers.get("User-Agent", "unknown"),
-        "username": auth.current_user() or "anonymous",
+        "username": _current_username() or "anonymous",
         "headers_json": _sanitize_headers_for_log(headers),
     }
 
@@ -526,7 +503,7 @@ def _extract_stage_from_log_line(line: str) -> str | None:
     marker_pos = line.find(_RUNNER_STAGE_PREFIX)
     if marker_pos < 0:
         return None
-    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX) :].strip().lower()
+    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX):].strip().lower()
     if not raw_marker:
         return None
     token = raw_marker.split()[0]
@@ -559,15 +536,13 @@ except BaseException:
     os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 
 
-@auth.verify_password
-def verify_password(username, password):
-    if username in users and check_password_hash(users.get(username), password):
-        return username
-    return None
-
-
 def _is_admin_user(username: str | None = None) -> bool:
-    target = (username if username is not None else auth.current_user()) or ""
+    # DB-based admin check — covers admins created through the user-control UI
+    user = g.get("current_user")
+    if user and (user.get("role") == "admin" or user.get("is_admin")):
+        return True
+    # Legacy env-var-based check
+    target = (username if username is not None else _current_username()) or ""
     return target in ADMIN_USERS
 
 
@@ -576,7 +551,7 @@ def _task_access_allowed(task: dict[str, Any]) -> bool:
         return True
     if CONFIG.public_dashboard:
         return True
-    current_user = auth.current_user() or ""
+    current_user = _current_username() or ""
     return bool(current_user) and task.get("username") == current_user
 
 
@@ -601,7 +576,7 @@ def _task_id_for_upload(content_md5: str, username: str | None) -> str:
 
 
 def _task_delete_allowed(task: dict[str, Any]) -> bool:
-    current_user = auth.current_user() or ""
+    current_user = _current_username() or ""
     if _is_admin_user(current_user):
         return True
     return bool(current_user) and task.get("username") == current_user
@@ -749,7 +724,6 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None, stage
         remove=False,
         detach=True,
         mounts=mounts,
-        user=CONFIG.docker_user,
         environment=_runner_thread_env(CONFIG.nproc, CONFIG.maxmem),
         stdout=True,
         stderr=True,
@@ -801,6 +775,26 @@ def _pack_results_archive(task: dict) -> None:
         shutil.rmtree(task["result_dir"])
 
 
+def _pack_failed_results_archive(task: dict, error: Any) -> None:
+    """Archive partial outputs and a readable failure report for failed tasks."""
+    result_dir = task.get("result_dir")
+    if not result_dir:
+        return
+    try:
+        os.makedirs(result_dir, exist_ok=True)
+        report_path = os.path.join(result_dir, "task_failed.txt")
+        message = _sanitize_task_error(task, error) or "Task failed."
+        with open(report_path, "w", encoding="utf-8") as handle:
+            handle.write("REvoDesign PSSM_GREMLIN task failed\n")
+            handle.write(f"Task ID: {task.get('md5sum', 'unknown')}\n")
+            handle.write(f"Input: {task.get('filename', 'unknown.fasta')}\n\n")
+            handle.write(message)
+            handle.write("\n")
+        _pack_results_archive(task)
+    except Exception as exc:  # pylint: disable=broad-except
+        logging.warning("Failed to archive failed GREMLIN task %s: %s", task.get("md5sum"), exc)
+
+
 def format_times(timestamp):
     if timestamp:
         return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
@@ -834,10 +828,12 @@ def run_gremlin_task(md5sum):
     output_dir = task["result_dir"]
     uploaded_file = os.path.join(output_dir, task["filename"])
     if not os.path.exists(uploaded_file):
+        error_message = "Uploaded FASTA file not found on disk"
+        _pack_failed_results_archive(task, error_message)
         task_store.update_task(
             md5sum,
             status="failed",
-            error="Uploaded FASTA file not found on disk",
+            error=error_message,
             finished_at=time.time(),
         )
         logging.error("Uploaded file missing for task %s", md5sum)
@@ -900,454 +896,49 @@ def run_gremlin_task(md5sum):
         )
     except docker.errors.ContainerError as exc:
         finish_time = time.time()
+        error_message = f"docker: {exc}"
+        _pack_failed_results_archive(task, error_message)
         task_store.update_task(
             md5sum,
             status="failed",
             finished_at=finish_time,
             walltime=finish_time - start_time,
-            error=f"docker: {exc}",
+            error=error_message,
             run_stage=stage_state["current"],
         )
     except docker.errors.DockerException as exc:
         finish_time = time.time()
+        error_message = f"docker: {exc}"
+        _pack_failed_results_archive(task, error_message)
         task_store.update_task(
             md5sum,
             status="failed",
             finished_at=finish_time,
             walltime=finish_time - start_time,
-            error=f"docker: {exc}",
+            error=error_message,
             run_stage=stage_state["current"],
         )
         logging.error("Docker daemon unavailable for GREMLIN task %s: %s", md5sum, exc)
     except Exception as exc:  # pylint: disable=broad-except
         finish_time = time.time()
+        error_message = str(exc)
+        _pack_failed_results_archive(task, error_message)
         task_store.update_task(
             md5sum,
             status="failed",
             finished_at=finish_time,
             walltime=finish_time - start_time,
-            error=str(exc),
+            error=error_message,
             run_stage=stage_state["current"],
         )
         logging.exception("Unexpected failure while running GREMLIN task %s", md5sum)
 
 
-@app.route("/PSSM_GREMLIN/create_task", methods=["GET"])
-@auth.login_required
-def create_task():
-    return render_template("create_task.html")
-
-
-@app.route("/favicon.ico", methods=["GET"])
-def favicon():
-    return send_from_directory(TEMPLATE_IMAGE_DIR, "logo.ico", mimetype="image/vnd.microsoft.icon")
-
-
-@app.route("/PSSM_GREMLIN/logo.svg", methods=["GET"])
-def logo_svg():
-    return send_from_directory(TEMPLATE_IMAGE_DIR, "logo.svg", mimetype="image/svg+xml")
-
-
-@app.route("/PSSM_GREMLIN/api/post", methods=["POST"])
-@auth.login_required
-def upload_file():
-    if "file" not in request.files:
-        return jsonify({"error": "No file part"}), 400
-
-    uploaded_file = request.files["file"]
-    if uploaded_file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
-
-    safe_filename = secure_filename(uploaded_file.filename)
-    if not safe_filename:
-        return jsonify({"error": "Invalid filename"}), 400
-
-    if not safe_filename.lower().endswith(".fasta"):
-        return (
-            jsonify({"error": "Uploaded file must have the .fasta extension"}),
-            400,
-        )
-
-    upload_path = _safe_join(app.config["UPLOAD_FOLDER"], safe_filename)
-    uploaded_file.save(upload_path)
-
-    hasher = hashlib.md5(usedforsecurity=False)
-    with open(upload_path, "rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
-            hasher.update(chunk)
-    content_md5 = hasher.hexdigest()
-    metadata = _request_metadata()
-    md5sum = _task_id_for_upload(content_md5, metadata["username"])
-
-    existing_task = task_store.get_task(md5sum)
-    if existing_task and not _task_access_allowed(existing_task):
-        return _task_access_denied(md5sum)
-    if existing_task and existing_task["status"] == "finished":
-        return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
-
-    if existing_task and existing_task["status"] in {"pending", "running", "packing results"}:
-        return jsonify({"status": "Task already queued or running", "md5sum": md5sum}), 202
-
-    result_dir = _safe_join(app.config["RESULTS_FOLDER"], md5sum)
-    if os.path.exists(result_dir):
-        shutil.rmtree(result_dir)
-    os.makedirs(result_dir, exist_ok=True)
-    result_fasta_path = _safe_join(result_dir, safe_filename)
-    shutil.copy(upload_path, result_fasta_path)
-
-    zip_path = _task_zip_path(md5sum)
-    if os.path.exists(zip_path):
-        os.remove(zip_path)
-
-    is_binary = _is_binary_file(upload_path)
-    now = time.time()
-    base_record = {
-        "filename": safe_filename,
-        "file_path": upload_path,
-        "result_dir": result_dir,
-        "uploaded_at": now,
-        "started_at": None,
-        "finished_at": None,
-        "walltime": None,
-        "is_binary": int(is_binary),
-        "source_ip": metadata["ip"],
-        "user_agent": metadata["user_agent"],
-        "username": metadata["username"],
-        "request_headers": metadata["headers_json"],
-        "local_user": _local_user_identity(),
-        "celery_task_id": None,
-        "run_stage": None,
-    }
-
-    if is_binary:
-        task_store.upsert_task(
-            md5sum,
-            **base_record,
-            status="failed",
-            error="Binary file uploads are not supported.",
-        )
-        return jsonify({"error": "Uploaded file contains binary content"}), 400
-
-    task_store.upsert_task(
-        md5sum,
-        **base_record,
-        status="pending",
-        error=None,
-    )
-
-    async_result = run_gremlin_task.apply_async(args=[md5sum])
-    task_store.update_task(md5sum, celery_task_id=async_result.id)
-
-    return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
-
-
-@app.route("/PSSM_GREMLIN/api/running/<md5sum>", methods=["GET"])
-@auth.login_required
-def run_gremlin(md5sum):
-    md5sum = _normalize_task_id(md5sum)
-    if md5sum is None:
-        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
-    task = task_store.get_task(md5sum)
-    if not task:
-        return jsonify({"status": "not_found", "md5sum": md5sum}), 404
-    if not _task_access_allowed(task):
-        return _task_access_denied(md5sum)
-
-    status = task["status"]
-    if status == "finished":
-        return jsonify({"status": "finished", "md5sum": md5sum}), 200
-    if status == "failed":
-        return (
-            jsonify({"status": "failed", "md5sum": md5sum, "error": _sanitize_task_error(task, task.get("error"))}),
-            404,
-        )
-    if status == "running":
-        return jsonify({"status": "running", "md5sum": md5sum}), 202
-    if status == "pending":
-        return jsonify({"status": "pending", "md5sum": md5sum}), 202
-    if status == "packing results":
-        return jsonify({"status": "packing results", "md5sum": md5sum}), 202
-    if status == "cancelled":
-        return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
-    if status == "deleted:finshed":
-        return jsonify({"status": "deleted:finshed", "md5sum": md5sum}), 200
-    if status == "deleted:cancel":
-        return jsonify({"status": "deleted:cancel", "md5sum": md5sum}), 200
-
-    return (
-        jsonify({"status": "unknown", "md5sum": md5sum, "error": "Invalid task status"}),
-        500,
-    )
-
-
-@app.route("/PSSM_GREMLIN/api/results/<md5sum>", methods=["GET"])
-@auth.login_required
-def get_results(md5sum):
-    md5sum = _normalize_task_id(md5sum)
-    if md5sum is None:
-        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
-    task = task_store.get_task(md5sum)
-    if not task:
-        return jsonify({"status": "not_found", "md5sum": md5sum}), 404
-    if not _task_access_allowed(task):
-        return _task_access_denied(md5sum)
-
-    if task["status"] != "finished":
-        return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
-
-    return redirect(f"/PSSM_GREMLIN/api/download/{md5sum}", code=302)
-
-
-@app.route("/PSSM_GREMLIN/api/download/<md5sum>", methods=["GET"])
-@auth.login_required
-def download_results(md5sum):
-    md5sum = _normalize_task_id(md5sum)
-    if md5sum is None:
-        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
-    task = task_store.get_task(md5sum)
-    if not task:
-        return jsonify({"status": "not_found", "md5sum": md5sum}), 404
-    if not _task_access_allowed(task):
-        return _task_access_denied(md5sum)
-
-    if task["status"] != "finished":
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "md5sum": md5sum,
-                    "message": "results are not ready",
-                }
-            ),
-            400,
-        )
-
-    zip_filename = _task_zip_path(task)
-    if os.path.exists(zip_filename):
-        return send_from_directory(
-            app.config["RESULTS_FOLDER"],
-            os.path.basename(zip_filename),
-            as_attachment=True,
-            download_name=_task_zip_download_name(task),
-        )
-
-    return (
-        jsonify(
-            {
-                "status": "error",
-                "md5sum": md5sum,
-                "message": "result file not found",
-            }
-        ),
-        404,
-    )
-
-
-@app.route("/PSSM_GREMLIN/api/cancel/<md5sum>", methods=["POST"])
-@auth.login_required
-def cancel_task(md5sum):
-    md5sum = _normalize_task_id(md5sum)
-    if md5sum is None:
-        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
-    task = task_store.get_task(md5sum)
-    if not task:
-        return jsonify({"error": "Task not found"}), 404
-    if not _task_access_allowed(task):
-        return _task_access_denied(md5sum)
-
-    if task["status"] not in {"pending", "running"}:
-        return (
-            jsonify({"error": "Task cannot be cancelled as it is not pending or running"}),
-            400,
-        )
-
-    celery_id = task.get("celery_task_id")
-    if celery_id:
-        try:
-            result = AsyncResult(celery_id)
-            result.revoke(terminate=True)
-        except Exception as exc:  # pylint: disable=broad-except
-            logging.warning("Failed to revoke Celery task %s: %s", celery_id, exc)
-
-    now = time.time()
-    started_at = task.get("started_at")
-    walltime = (now - started_at) if started_at else None
-    task_store.update_task(
-        md5sum,
-        status="cancelled",
-        finished_at=now,
-        walltime=walltime,
-        error="Task cancelled by user",
-    )
-    return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
-
-
-@app.route("/PSSM_GREMLIN/dashboard", methods=["GET"])
-@auth.login_required
-def task_dashboard():
-    current_user = auth.current_user() or ""
-    is_admin = _is_admin_user(current_user)
-    all_tasks = task_store.list_tasks()
-    if is_admin or CONFIG.public_dashboard:
-        scoped_tasks = all_tasks
-    else:
-        scoped_tasks = [task for task in all_tasks if task.get("username") == current_user]
-    visible_tasks = [task for task in scoped_tasks if not _is_deleted_status(task.get("status"))]
-
-    task_statuses = []
-    for i, task in enumerate(visible_tasks):
-        submitted_time = task.get("uploaded_at")
-        finished_time = task.get("finished_at")
-        walltime = task.get("walltime")
-        if task.get("is_binary"):
-            fasta_seq = "Binary file rejected"
-        else:
-            try:
-                with open(task["file_path"]) as f:
-                    fasta_seq = f.read().strip()
-            except (OSError, UnicodeDecodeError) as exc:
-                if isinstance(exc, FileNotFoundError):
-                    fasta_seq = (
-                        "Unable to read sequence: "
-                        f"file not found at {_virtual_upload_path(task.get('filename', 'unknown.fasta'))}"
-                    )
-                else:
-                    fasta_seq = (
-                        "Unable to read sequence: "
-                        f"file unavailable at {_virtual_upload_path(task.get('filename', 'unknown.fasta'))}"
-                    )
-
-        task_statuses.append(
-            {
-                "id": i,
-                "md5": task["md5sum"],
-                "status": task["status"],
-                "fasta_fn": task["filename"],
-                "submitted_time": format_times(submitted_time),
-                "finished_time": format_times(finished_time) if finished_time else "-",
-                "walltime": format_walltime(walltime),
-                "submitted_timestamp": submitted_time or 0,
-                "sequence": fasta_seq,
-                "owner": task.get("username") or "-",
-                "can_delete": is_admin or (task.get("username") == current_user),
-                "running_trace": _build_running_trace(task),
-            }
-        )
-
-    sorted_task_statuses = sorted(task_statuses, key=lambda x: x["submitted_timestamp"], reverse=True)
-
-    return render_template(
-        "pssm_gremlin_dashboard.html",
-        sorted_task_statuses=sorted_task_statuses,
-        current_username=current_user,
-        is_admin_user=is_admin,
-    )
-
-
-@app.route("/PSSM_GREMLIN/api/delete/<md5sum>", methods=["DELETE"])
-@auth.login_required
-def delete_task(md5sum):
-    md5sum = _normalize_task_id(md5sum)
-    if md5sum is None:
-        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
-    task = task_store.get_task(md5sum)
-    if not task:
-        return jsonify({"status": "not_found", "md5sum": md5sum}), 404
-    if not _task_delete_allowed(task):
-        return _task_access_denied(md5sum)
-
-    if task["status"] in {"pending", "running", "packing results"}:
-        _revoke_celery_task(task)
-
-    _delete_task_artifacts(task)
-    now = time.time()
-    deleted_status = _deleted_status_from_task(task)
-    started_at = task.get("started_at")
-    walltime = task.get("walltime")
-    if walltime is None and started_at:
-        walltime = now - started_at
-    finished_at = task.get("finished_at")
-    if deleted_status == "deleted:cancel" or not finished_at:
-        finished_at = now
-    task_store.update_task(
-        md5sum,
-        status=deleted_status,
-        finished_at=finished_at,
-        walltime=walltime,
-        error="Task deleted by user",
-        celery_task_id=None,
-    )
-    return jsonify({"status": "deleted", "md5sum": md5sum}), 200
-
-
-@app.route("/PSSM_GREMLIN/api/delete", methods=["POST"])
-@auth.login_required
-def delete_tasks_batch():
-    payload = request.get_json(silent=True) or {}
-    md5sums = payload.get("md5sums")
-    if not isinstance(md5sums, list):
-        return jsonify({"error": "md5sums must be a JSON list"}), 400
-
-    deleted: list[str] = []
-    not_found: list[str] = []
-    ignored: list[str] = []
-    forbidden: list[str] = []
-    seen: set[str] = set()
-
-    for raw_md5 in md5sums:
-        raw_md5_text = str(raw_md5).strip()
-        md5sum = _normalize_task_id(raw_md5_text)
-        if md5sum is None:
-            if raw_md5_text:
-                ignored.append(raw_md5_text)
-            continue
-        if md5sum in seen:
-            continue
-        seen.add(md5sum)
-
-        task = task_store.get_task(md5sum)
-        if not task:
-            not_found.append(md5sum)
-            continue
-        if not _task_delete_allowed(task):
-            forbidden.append(md5sum)
-            continue
-
-        if task["status"] in {"pending", "running", "packing results"}:
-            _revoke_celery_task(task)
-        _delete_task_artifacts(task)
-        now = time.time()
-        deleted_status = _deleted_status_from_task(task)
-        started_at = task.get("started_at")
-        walltime = task.get("walltime")
-        if walltime is None and started_at:
-            walltime = now - started_at
-        finished_at = task.get("finished_at")
-        if deleted_status == "deleted:cancel" or not finished_at:
-            finished_at = now
-        task_store.update_task(
-            md5sum,
-            status=deleted_status,
-            finished_at=finished_at,
-            walltime=walltime,
-            error="Task deleted by user",
-            celery_task_id=None,
-        )
-        deleted.append(md5sum)
-
-    return (
-        jsonify(
-            {
-                "status": "ok",
-                "deleted": deleted,
-                "not_found": not_found,
-                "ignored": ignored,
-                "forbidden": forbidden,
-            }
-        ),
-        200,
-    )
-
+# ---------------------------------------------------------------------------
+# Register HTTP routes (imported late to avoid circular imports — routes.py
+# needs ``app`` and helpers that are only available after this module loads).
+# ---------------------------------------------------------------------------
+from pssm_gremlin_server import routes  # noqa: E402, F401
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=CONFIG.port)  # nosec B104: containerized server, binding to all interfaces by design

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | Register</title>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/PSSM_GREMLIN/logo.svg"/>
+<link rel="mask-icon" href="/PSSM_GREMLIN/logo.svg" color="#000000"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/auth-page.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="page auth-page">
+  <div class="nav-row">
+    <a href="/PSSM_GREMLIN/dashboard" class="back-link">&larr;&nbsp;Dashboard</a>
+    <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme"><span class="theme-icon" aria-hidden="true">&#9680;</span></button>
+    <a href="/PSSM_GREMLIN/login" class="alt-link">Log in</a>
+  </div>
+
+  <section class="panel auth-panel">
+    <h1 class="headline">Create an Account</h1>
+    <p class="subline">Register to submit and track your GREMLIN jobs.</p>
+    <form id="registerForm" class="auth-form">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" class="text-input" placeholder="3&ndash;64 characters" minlength="3" maxlength="64" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" class="text-input" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" class="text-input" placeholder="At least 8 characters" minlength="8" required autocomplete="new-password">
+        <p class="hint">Minimum 8 characters.</p>
+      </div>
+      <div class="field">
+        <label for="affiliation">Affiliation <span class="muted">(optional)</span></label>
+        <input type="text" id="affiliation" class="text-input" placeholder="University / Institute / Company">
+      </div>
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="termsAgreed" required>
+          <span>I agree to the <a href="/PSSM_GREMLIN/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a></span>
+        </label>
+      </div>
+      <div class="field">
+        <label for="captchaAnswer">Verify you&rsquo;re human</label>
+        <div class="captcha-row">
+          <span class="captcha-question" id="captchaQuestion">Loading&hellip;</span>
+          <input type="hidden" id="captchaToken">
+          <input type="text" id="captchaAnswer" class="text-input captcha-input" placeholder="Enter answer" required autocomplete="off">
+        </div>
+        <p class="hint">Solve the math question to prove you&rsquo;re not a bot.</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary btn-full" type="submit" id="submitBtn">Register</button>
+      </div>
+      <div class="status-msg" id="status" role="alert"></div>
+      <div class="resend-row" id="resendRow" style="display:none">
+        <p class="resend-hint">Didn&rsquo;t get the email? Check your spam folder, or</p>
+        <button class="btn btn-soft" type="button" id="resendBtn">Resend verification email</button>
+      </div>
+    </form>
+  </section>
+</main>
+<script src="/static/js/register.js"></script>
+</body>
+</html>

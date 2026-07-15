@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | User Control</title>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/PSSM_GREMLIN/logo.svg"/>
+<link rel="mask-icon" href="/PSSM_GREMLIN/logo.svg" color="#000000"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/auth-page.css">
+<link rel="stylesheet" href="/static/css/user-control.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="page auth-page">
+  <div class="nav-row">
+    <a href="/PSSM_GREMLIN/dashboard" class="back-link">&larr;&nbsp;Dashboard</a>
+    <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme"><span class="theme-icon" aria-hidden="true">&#9680;</span></button>
+    <button class="btn btn-logout" type="button" id="logoutBtn">Log out</button>
+  </div>
+
+  <!-- Sub-tab navigation -->
+  <nav class="sub-tabs">
+    <button class="sub-tab active" data-tab="audit">User Management</button>
+    <button class="sub-tab" data-tab="add">Add User</button>
+  </nav>
+
+  <!-- Tab A: User audit table -->
+  <section class="panel user-panel" id="tab-audit">
+    <div class="user-table-wrap">
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th class="col-select"><input type="checkbox" id="selectAll" title="Select all"></th>
+            <th>Email</th>
+            <th>IP</th>
+            <th>Affiliation</th>
+            <th>Role</th>
+            <th>Reg. Status</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+        </tbody>
+        <tfoot id="batchBar" style="display:none">
+          <tr>
+            <td colspan="7">
+              <span class="batch-label" id="batchCount">0 selected</span>
+              <button class="btn btn-soft batch-action" data-action="enable">Enable</button>
+              <button class="btn btn-soft batch-action" data-action="disable">Disable</button>
+              <button class="btn btn-soft batch-action btn-batch-delete" data-action="delete">Delete</button>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+
+  <!-- Tab B: Manual add -->
+  <section class="panel user-panel" id="tab-add" style="display:none">
+    <form id="addUserForm" class="auth-form">
+      <div class="field">
+        <label for="newUsername">Username</label>
+        <input type="text" id="newUsername" class="text-input" placeholder="3&ndash;64 characters" minlength="3" maxlength="64" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="newEmail">Email</label>
+        <input type="email" id="newEmail" class="text-input" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="newPassword">Password</label>
+        <input type="password" id="newPassword" class="text-input" placeholder="At least 8 characters" minlength="8" required autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="newAffiliation">Affiliation <span class="muted">(optional)</span></label>
+        <input type="text" id="newAffiliation" class="text-input" placeholder="University / Institute / Company">
+      </div>
+      <div class="field">
+        <label for="newRole">Role</label>
+        <select id="newRole" class="text-input">
+          <option value="user" selected>User</option>
+          <option value="admin">Admin</option>
+          <option value="guest">Guest</option>
+        </select>
+        <p class="hint">Guest accounts cannot use API keys or change their password.</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary btn-full" type="submit">Create User</button>
+      </div>
+      <div class="status-msg" id="addUserStatus" role="alert"></div>
+    </form>
+  </section>
+</main>
+
+<script>
+  window.__IS_ADMIN__ = {{ is_admin_user | tojson }};
+</script>
+<script src="/static/js/auth-api.js"></script>
+<script src="/static/js/user-control.js"></script>
+</body>
+</html>

@@ -45,7 +45,7 @@ Environment:
           Default behavior: use server/.env.production when present, otherwise server/.env.
 
 Subcommands:
-  setup    Prepare the selected env file (create from .env.example if missing) and auto-detect DOCKER_GID.
+  setup    Prepare the selected env file (create from .env.example if missing) and show detected DOCKER_GID.
   build    Build runner image and web/worker images.
   up       Start redis/web/worker with docker compose.
   down     Stop and remove the compose stack.
@@ -104,6 +104,14 @@ detect_docker_gid() {
   local resolved_path=""
   local gid=""
 
+  # Docker Desktop and OrbStack run the daemon behind a macOS socket path, but
+  # containers see the bind-mounted /var/run/docker.sock as root:root.  The
+  # supplementary group must match the container-visible socket group.
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    printf '0\n'
+    return 0
+  fi
+
   endpoint="$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)"
   if [[ "${endpoint}" == unix://* ]]; then
     socket_candidates+=("${endpoint}")
@@ -128,18 +136,46 @@ detect_docker_gid() {
   return 1
 }
 
-set_env_var() {
-  local key="$1"
-  local value="$2"
-  if grep -Eq "^${key}=" "${ENV_FILE}"; then
-    sed -i.bak -E "s|^${key}=.*|${key}=${value}|" "${ENV_FILE}"
-    rm -f "${ENV_FILE}.bak"
-  else
-    printf '\n%s=%s\n' "${key}" "${value}" >> "${ENV_FILE}"
+ensure_docker_gid() {
+  if [[ -z "${DOCKER_GID:-}" ]]; then
+    DOCKER_GID="$(detect_docker_gid || true)"
   fi
+  if [[ -z "${DOCKER_GID:-}" ]]; then
+    echo "Unable to auto-detect Docker socket group id; set DOCKER_GID for this command." >&2
+    exit 1
+  fi
+  export DOCKER_GID
+  echo "Using Docker socket group id ${DOCKER_GID}."
+}
+
+resolve_runner_identity() {
+  # Auto-derive RUNNER_UID / RUNNER_GID from RUNNER_USERNAME / RUNNER_GROUP
+  # when numeric IDs aren't already set.  This lets the env file declare
+  # "RUNNER_USERNAME=revodesign" without hardcoding per-host uid/gid.
+  local _user="${RUNNER_USERNAME:-revodesign}"
+  local _group="${RUNNER_GROUP:-revodesign_appgroup}"
+
+  if [[ -z "${RUNNER_UID:-}" ]]; then
+    RUNNER_UID="$(id -u "${_user}" 2>/dev/null || echo "")"
+  fi
+  if [[ -z "${RUNNER_GID:-}" ]]; then
+    # Try the named group first; fall back to the user's primary group;
+    # default to 1000 when neither resolves (macOS CI, etc.).
+    RUNNER_GID="$(getent group "${_group}" 2>/dev/null | cut -d: -f3 || true)"
+    if [[ -z "${RUNNER_GID}" ]]; then
+      RUNNER_GID="$(id -g "${_user}" 2>/dev/null || true)"
+    fi
+    RUNNER_GID="${RUNNER_GID:-1000}"
+  fi
+  RUNNER_UID="${RUNNER_UID:-1000}"
+
+  export RUNNER_UID RUNNER_GID
+  echo "Using runner identity ${RUNNER_UID}:${RUNNER_GID} (user ${_user}, group ${_group})."
 }
 
 cmd_setup() {
+  local _detected_docker_gid=""
+
   if [[ ! -f "${ENV_FILE}" ]]; then
     if [[ ! -f "${ENV_EXAMPLE_FILE}" ]]; then
       echo "Missing ${ENV_EXAMPLE_FILE}; cannot initialize ${ENV_FILE}." >&2
@@ -149,14 +185,10 @@ cmd_setup() {
     echo "Created ${ENV_FILE} from ${ENV_EXAMPLE_FILE}."
   fi
 
-  if [[ -z "${DOCKER_GID:-}" ]]; then
-    DOCKER_GID="$(detect_docker_gid || true)"
-  fi
-  if [[ -n "${DOCKER_GID:-}" ]]; then
-    set_env_var "DOCKER_GID" "${DOCKER_GID}"
-    echo "Set DOCKER_GID=${DOCKER_GID} in ${ENV_FILE}."
+  if _detected_docker_gid="$(detect_docker_gid || true)" && [[ -n "${_detected_docker_gid}" ]]; then
+    echo "Detected Docker socket group id ${_detected_docker_gid}; restart/build/up/down auto-export it for Docker Compose."
   else
-    echo "Unable to auto-detect Docker socket group id; set DOCKER_GID manually in ${ENV_FILE}." >&2
+    echo "Unable to auto-detect Docker socket group id; set DOCKER_GID when running build/up/restart." >&2
   fi
 
   echo "Setup completed. Using env file: ${ENV_FILE}"
@@ -165,13 +197,8 @@ cmd_setup() {
 
 cmd_build() {
   require_env_file
-  if [[ -z "${DOCKER_GID:-}" ]]; then
-    DOCKER_GID="$(detect_docker_gid || true)"
-    if [[ -n "${DOCKER_GID}" ]]; then
-      export DOCKER_GID
-      echo "Using Docker socket group id ${DOCKER_GID}."
-    fi
-  fi
+  ensure_docker_gid
+  resolve_runner_identity
 
   echo "Building GREMLIN runner image..."
   "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" --profile runner build runner
@@ -182,31 +209,58 @@ cmd_build() {
 
 cmd_up() {
   require_env_file
+  ensure_docker_gid
+  resolve_runner_identity
   echo "Starting services via docker compose..."
   "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d redis web worker
 }
 
 cmd_down() {
   require_env_file
+  ensure_docker_gid
+  resolve_runner_identity
   echo "Stopping services via docker compose..."
   "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" down
 }
 
 cmd_restart() {
-  cmd_down
-  cmd_build
-  cmd_up
-
+  # Source env early — first boot may need a generated admin password.
   set +u
   set -a
   source "${ENV_FILE}"
   set +a
   set -u
 
+  _user_db="${SERVER_DIR}/users.sqlite3"
+  if [[ ! -f "${_user_db}" ]]; then
+    # First boot — generate and export the admin password.
+    _admin_pw="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
+    export DEFAULT_ADMIN_PASSWORD="${_admin_pw}"
+  fi
+
+  cmd_down
+
+  if [[ -f "${_user_db}" ]]; then
+    # Backup existing DB before schema migrations run on startup.
+    # Run inside the web container so file ownership matches SERVER_DIR.
+    _backup="${SERVER_DIR}/users.sqlite3.bak.$(date +%Y%m%d-%H%M%S)"
+    if "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" run --rm --no-deps --entrypoint /bin/cp web "${_user_db}" "${_backup}" 2>/dev/null; then
+      echo "Backed up user DB to ${_backup}"
+    else
+      echo "Warning: cannot back up user DB — skipping" >&2
+    fi
+  fi
+
+  cmd_build
+  cmd_up
+
   DOMAIN="0.0.0.0"
   PORT="${PORT:-8080}"
   echo "Deployment completed."
   echo "Flask app is now running at http://${DOMAIN}:${PORT}/PSSM_GREMLIN/dashboard"
+  if [[ -n "${_admin_pw:-}" ]]; then
+    echo "Admin login — username: admin  password: ${_admin_pw}"
+  fi
 }
 
 SUBCOMMAND="${1:-restart}"

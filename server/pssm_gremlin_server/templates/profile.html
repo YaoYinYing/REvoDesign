@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | Profile</title>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/PSSM_GREMLIN/logo.svg"/>
+<link rel="mask-icon" href="/PSSM_GREMLIN/logo.svg" color="#000000"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/auth-page.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="page auth-page">
+  <div class="nav-row">
+    <a href="/PSSM_GREMLIN/dashboard" class="back-link">&larr;&nbsp;Dashboard</a>
+    <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme"><span class="theme-icon" aria-hidden="true">&#9680;</span></button>
+    <button class="btn btn-logout" type="button" id="logoutBtn">Log out</button>
+  </div>
+
+  <!-- Account -->
+  <section class="panel profile-card">
+    <h2 class="section-heading">Account</h2>
+    <p class="subline" id="userInfo">Loading&hellip;</p>
+  </section>
+
+  <!-- Password -->
+  <section class="panel profile-card" id="passwordSection">
+    <h2 class="section-heading">Change Password</h2>
+    <form id="passwordForm" class="auth-form">
+      <div class="field">
+        <label for="currentPassword">Current password</label>
+        <input type="password" id="currentPassword" class="text-input" required autocomplete="current-password">
+      </div>
+      <div class="field">
+        <label for="newPassword">New password</label>
+        <input type="password" id="newPassword" class="text-input" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
+      </div>
+      <div class="field">
+        <label for="confirmPassword">Confirm new password</label>
+        <input type="password" id="confirmPassword" class="text-input" required minlength="8" autocomplete="new-password">
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" id="submitBtn">Update Password</button>
+      </div>
+      <div class="status-msg" id="status" role="alert"></div>
+    </form>
+  </section>
+
+  <!-- API Key -->
+  <section class="panel profile-card" id="apiKeySection">
+    <h2 class="section-heading">API Key</h2>
+    <p class="subline">Long-lived credential for programmatic access &mdash; it never expires. Store it securely; it is shown only once on creation.</p>
+    <div id="apiKeyBody">
+      <p class="muted" id="apiKeyStatus">Loading&hellip;</p>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="generateKeyBtn" style="display:none">Generate API Key</button>
+        <button class="btn btn-soft" type="button" id="revokeKeyBtn" style="display:none">Revoke</button>
+      </div>
+      <div class="field api-key-result" id="apiKeyDisplay" style="display:none">
+        <label for="apiKeyValue">Your new API key</label>
+        <div class="copy-row">
+          <input type="text" id="apiKeyValue" class="text-input" readonly>
+          <button class="btn btn-soft copy-btn" type="button" id="copyKeyBtn" title="Copy to clipboard">&#10697;</button>
+        </div>
+        <p class="hint">Copy this key now &mdash; it will not be shown again.</p>
+      </div>
+      <div class="status-msg" id="apiKeyMsg" role="alert"></div>
+    </div>
+  </section>
+</main>
+<script src="/static/js/auth-api.js"></script>
+<script src="/static/js/profile.js"></script>
+</body>
+</html>

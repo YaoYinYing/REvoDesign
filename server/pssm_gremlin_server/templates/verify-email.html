@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Verification — REvoDesign GREMLIN</title>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/PSSM_GREMLIN/logo.svg"/>
+<link rel="mask-icon" href="/PSSM_GREMLIN/logo.svg" color="#000000"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/auth-page.css">
+</head>
+<body>
+<main class="page auth-page">
+  <div class="nav-row">
+    <a href="/PSSM_GREMLIN/dashboard" class="back-link">&larr;&nbsp;Dashboard</a>
+    <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme"><span class="theme-icon" aria-hidden="true">&#9680;</span></button>
+  </div>
+
+  <section class="panel auth-panel verify-panel">
+
+    {% if success %}
+
+    <svg class="verify-icon success" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+      <circle class="ring" cx="32" cy="32" r="28"/>
+      <path class="check" d="M19 33l8 8 18-18"/>
+    </svg>
+
+    <h1 class="headline">Email verified</h1>
+    <p class="verify-message">
+      <strong>{{ email }}</strong> is now confirmed.
+      {% if registration_pending %}
+      An administrator will review your registration before you can sign in.
+      {% else %}
+      You can now sign in to your account.
+      {% endif %}
+    </p>
+    {% if not registration_pending %}
+    <a class="btn btn-primary" href="/PSSM_GREMLIN/login">Sign in</a>
+    {% endif %}
+
+    {% else %}
+
+    <svg class="verify-icon failure" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+      <circle class="ring" cx="32" cy="32" r="28"/>
+      <path class="xmark" d="M21 21l22 22M43 21L21 43"/>
+    </svg>
+
+    <h1 class="headline">Verification failed</h1>
+    <p class="verify-message">{{ error }}</p>
+    <a class="btn btn-primary" href="/PSSM_GREMLIN/login">Return to sign in</a>
+
+    {% endif %}
+
+  </section>
+</main>
+<script src="/static/js/theme.js"></script>
+</body>
+</html>
