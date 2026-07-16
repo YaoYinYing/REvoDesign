@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import grp
 import hashlib
+import importlib
 import json
 import logging
 import os
@@ -17,6 +18,7 @@ import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import docker
@@ -286,7 +288,7 @@ _ensure_directories(CONFIG.upload_folder, CONFIG.results_folder)
 
 def _is_binary_file(path: str) -> bool:
     try:
-        with open(path, "rb") as f:
+        with Path(path).open("rb") as f:
             chunk = f.read(4096)
     except OSError:
         return True
@@ -304,7 +306,7 @@ def _is_binary_file(path: str) -> bool:
 def _is_fasta_content(path: str) -> bool:
     """Return True if *path* looks like a FASTA file (first non-blank line starts with '>')."""
     try:
-        with open(path, encoding="utf-8", errors="replace") as f:
+        with Path(path).open(encoding="utf-8", errors="replace") as f:
             for line in f:
                 stripped = line.strip()
                 if not stripped:
@@ -778,8 +780,6 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None, stage
         except docker.errors.DockerException:
             pass
 
-    return
-
 
 def _pack_results_archive(task: dict) -> None:
     zip_filename = _task_zip_path(task)
@@ -956,7 +956,7 @@ def run_gremlin_task(md5sum):
 # Register HTTP routes (imported late to avoid circular imports — routes.py
 # needs ``app`` and helpers that are only available after this module loads).
 # ---------------------------------------------------------------------------
-from pssm_gremlin_server import routes  # noqa: E402, F401
+importlib.import_module("pssm_gremlin_server.routes")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=CONFIG.port)  # nosec B104: containerized server, binding to all interfaces by design
