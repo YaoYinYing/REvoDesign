@@ -23,7 +23,7 @@ from functools import wraps
 from typing import Any
 
 import sqlalchemy as sa
-from flask import current_app, g, jsonify, redirect, render_template, request, url_for
+from flask import current_app, g, jsonify, redirect, request, url_for
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -471,10 +471,13 @@ def load_current_user() -> dict[str, Any] | None:
         payload = validate_token(token)
         if payload is not None:
             user = db.get_user(payload["uid"])
-            if user is not None and _is_account_blocked(user) is None:
-                if payload.get("ver", 0) == user.get("token_version", 0):
-                    g.auth_method = "bearer"
-                    return user
+            if (
+                user is not None
+                and _is_account_blocked(user) is None
+                and payload.get("ver", 0) == user.get("token_version", 0)
+            ):
+                g.auth_method = "bearer"
+                return user
     # 2. Cookie — browser page navigations after login (read-only; CSRF-prone)
     #    Guest accounts ARE permitted to use cookie-based web access.
     token = request.cookies.get("auth_token")
@@ -482,10 +485,13 @@ def load_current_user() -> dict[str, Any] | None:
         payload = validate_token(token)
         if payload is not None:
             user = db.get_user(payload["uid"])
-            if user is not None and _is_account_blocked(user) is None:
-                if payload.get("ver", 0) == user.get("token_version", 0):
-                    g.auth_method = "cookie"
-                    return user
+            if (
+                user is not None
+                and _is_account_blocked(user) is None
+                and payload.get("ver", 0) == user.get("token_version", 0)
+            ):
+                g.auth_method = "cookie"
+                return user
 
     # 3. API key (programmatic access — restricted privileges)
     #    Guest accounts are not permitted to use API keys.

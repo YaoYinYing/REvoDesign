@@ -2,9 +2,6 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-
-#! /mnt/data/envs/conda_env/envs/REvoDesign/bin/python
-
 from __future__ import annotations
 
 import grp
@@ -26,7 +23,7 @@ import docker
 from celery import Celery
 from celery.result import AsyncResult
 from docker import types
-from flask import Flask, current_app, g, jsonify, request
+from flask import Flask, g, jsonify, request
 from pssm_gremlin_server.db import TaskDatabase
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
@@ -39,7 +36,6 @@ if not os.environ.get("AUTH_SECRET_KEY"):
 
 from pssm_gremlin_server.auth import UserDatabase  # noqa: E402
 from pssm_gremlin_server.auth import _env_bool  # noqa: E402
-from pssm_gremlin_server.auth import _env_int  # noqa: E402
 from pssm_gremlin_server.auth import _env_str  # noqa: E402
 from pssm_gremlin_server.auth import send_admin_digest  # noqa: E402
 
@@ -253,7 +249,7 @@ if _admin_digest_minutes > 0 and _env_str("ADMIN_NOTIFY_EMAIL", ""):
                 with open(_digest_lock, "w") as _lock_fh:
                     fcntl.flock(_lock_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                     send_admin_digest()
-            except (BlockingIOError, OSError):
+            except OSError:
                 pass  # another worker has the lock — try next cycle
             except Exception:
                 logging.exception("Admin digest thread failed")
@@ -660,7 +656,7 @@ def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mou
     target_path = os.path.join(_ROOT_MOUNT_DIRECTORY, mount_name)
 
     if not read_only:
-        logging.warning(f"{mount_name} is not read-only!")
+        logging.warning("%s is not read-only!", mount_name)
 
     if os.path.isdir(path):
         source_path = path
@@ -670,7 +666,7 @@ def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mou
         mounted_path = os.path.join(target_path, os.path.basename(path))
     if not os.path.exists(source_path):
         os.makedirs(source_path)
-    logging.info(f"Mounting {source_path} -> {target_path}")
+    logging.info("Mounting %s -> %s", source_path, target_path)
     mount = types.Mount(
         target=str(target_path),
         source=str(source_path),
@@ -818,8 +814,7 @@ def _pack_failed_results_archive(task: dict, error: Any) -> None:
 def format_times(timestamp):
     if timestamp:
         return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-    else:
-        return None
+    return None
 
 
 def format_walltime(seconds: Any) -> str:
