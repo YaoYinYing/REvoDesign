@@ -2650,7 +2650,7 @@ def execute_on_main_thread(func: Callable[..., GuiResult], *args, **kwargs) -> G
     def callback():
         try:
             result["value"] = func(*args, **kwargs)
-        except BaseException as exc:  # pragma: no cover - defensive against unexpected UI failures
+        except BaseException as exc:  # noqa: B036  # pragma: no cover - re-raised across the GUI-thread handoff
             error["error"] = exc
         finally:
             semaphore.release()

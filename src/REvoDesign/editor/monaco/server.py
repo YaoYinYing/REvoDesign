@@ -12,6 +12,7 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 from html import escape
 from pathlib import Path
+from typing import Annotated
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -225,7 +226,7 @@ async def serve_editor(file_path: str, token: str = None, request: Request = Non
 
 
 @app.get("/load_file", response_class=JSONResponse)
-async def load_file(file_path: str, token: str = Query(None), request: Request = None):
+async def load_file(file_path: str, token: Annotated[str | None, Query()] = None, request: Request = None):
     verify_token(token, request)
 
     # Validate file existence
@@ -253,7 +254,7 @@ class SaveFileRequest(BaseModel):
 
 
 @app.post("/save_file", response_class=JSONResponse)
-async def save_file(data: SaveFileRequest, token: str = Query(None), request: Request = None):
+async def save_file(data: SaveFileRequest, token: Annotated[str | None, Query()] = None, request: Request = None):
     verify_token(token, request)
 
     # Validate the file path

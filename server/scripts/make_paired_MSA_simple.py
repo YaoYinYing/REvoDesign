@@ -51,7 +51,7 @@ def read_a3m(fn):
             try:
                 idx = line.index("OX")
                 is_ignore = False
-            except BaseException:
+            except ValueError:
                 is_ignore = True
                 continue
             TaxID = line[idx:].split()[0].split("=")[-1]
@@ -76,7 +76,7 @@ def read_a3m(fn):
             continue
         # Get the best sequence only
         score_s = list()
-        for seqID, seq in tmp[TaxID]:
+        for _seqID, seq in tmp[TaxID]:
             seq_in_num = seq2number(seq)
             score = calc_seqID(query_in_num, seq_in_num)
             score_s.append(score)

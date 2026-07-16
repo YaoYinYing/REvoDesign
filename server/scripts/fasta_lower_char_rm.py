@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-#! python
+# Original script marker: python
 # created by Yao Yin Ying
 # for hhblits a3m alignment file treatment
 

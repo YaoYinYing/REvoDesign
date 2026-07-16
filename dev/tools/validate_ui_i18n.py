@@ -10,7 +10,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.Qt import QtWidgets
 from REvoDesign.Qt.ui_runtime_loader import load_runtime_ui
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -57,10 +57,10 @@ def main(argv: list[str] | None = None) -> int:
         require(hasattr(ui, "menuLanguage"), "menuLanguage menu must be available for dynamic actions")
         new_action = QtWidgets.QAction()
         new_action.setObjectName("actionTestLang")
-        setattr(ui, "actionTestLang", new_action)
+        ui.actionTestLang = new_action
         ui.menuLanguage.addAction(new_action)
         require(hasattr(ui, "actionTestLang"), "RuntimeUiProxy must accept dynamic action attributes")
-        require(getattr(ui, "actionTestLang") is new_action, "RuntimeUiProxy must retain dynamic action attributes")
+        require(ui.actionTestLang is new_action, "RuntimeUiProxy must retain dynamic action attributes")
 
         # --- LanguageSwitch instantiation / exercise (smoke) ---
         # LanguageSwitch depends on a ConfigBus singleton that has `ui` already

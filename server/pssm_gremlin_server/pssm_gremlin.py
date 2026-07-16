@@ -541,7 +541,7 @@ def _build_running_trace(task: dict[str, Any]) -> str:
 
 try:
     _ROOT_MOUNT_DIRECTORY = f"/home/{os.getlogin()}"
-except BaseException:
+except OSError:
     _ROOT_MOUNT_DIRECTORY = os.path.abspath(tempfile.gettempdir())
     os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 

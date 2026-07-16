@@ -29,7 +29,7 @@ def _load_pyqt_uic_module() -> Any:
 
 def _language_change_event_type():
     event_type_owner = getattr(QtCore.QEvent, "Type", QtCore.QEvent)
-    return getattr(event_type_owner, "LanguageChange")
+    return event_type_owner.LanguageChange
 
 
 def is_language_change_event(event: QtCore.QEvent) -> bool:

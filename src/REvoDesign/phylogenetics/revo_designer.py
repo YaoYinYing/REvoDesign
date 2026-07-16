@@ -183,7 +183,7 @@ class REvoDesigner:
             "mutations": {},
         }
         mutations = []
-        for idx, resid in enumerate(custom_indices):
+        for resid in custom_indices:
             # fetch wt aa from untruncated sequence
             wt_aa = sequence[resid - 1]
             profile_scores = df_trunc.loc[:, resid]

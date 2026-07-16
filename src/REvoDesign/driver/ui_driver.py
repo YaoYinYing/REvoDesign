@@ -63,7 +63,7 @@ class StoresWidget(SingletonAbstract):
 
             for k, s in attr_dict.items():
                 if hasattr(s, "controller"):
-                    controller = getattr(s, "controller")
+                    controller = s.controller
                     try:
                         if issubclass(s.controller.__class__, SingletonAbstract):
                             print(f"Resetting {k}: {controller.__class__.__name__}", end=" ")
@@ -391,7 +391,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     def initialize_widget_with_group(self):
         # Initializes UI widgets with their corresponding configuration settings.
 
-        for i, gr in enumerate(GroupRegistryCollection):
+        for gr in GroupRegistryCollection:
             group_values = []
             widget = self.get_widget_from_id(widget_id=gr.cfg_item)
             if isinstance(widget, str):

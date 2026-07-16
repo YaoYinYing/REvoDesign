@@ -855,5 +855,5 @@ def _load_b_factors(
         _load_to_one_chain(chain_id)
 
 
-setattr(_load_b_factors, "__bibtex__", load_b_factors_citation)
+_load_b_factors.__bibtex__ = load_b_factors_citation
 load_b_factors = get_cited(_load_b_factors)

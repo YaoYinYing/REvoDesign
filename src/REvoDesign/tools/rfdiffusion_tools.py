@@ -250,7 +250,7 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         default_size = 90
 
         # Overlay ligand atoms
-        for idx, (coord, element) in enumerate(zip(self.ligand_coords, self.ligand_elements)):
+        for coord, element in zip(self.ligand_coords, self.ligand_elements):
             color = color_map.get(element, default_color)
             size = size_map.get(element, default_size)
             plt.scatter(coord[0], coord[1], c=color, s=size, edgecolors="black", linewidth=1.5, zorder=3)

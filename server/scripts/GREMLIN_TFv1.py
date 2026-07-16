@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-#!/usr/bin/env python
+# Original script marker: /usr/bin/env python
 
 # # GREMLIN_TF
 #

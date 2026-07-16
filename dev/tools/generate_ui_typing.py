@@ -71,6 +71,8 @@ FALLBACK_WIDGET_TYPE = "QtWidgets.QWidget"
 
 
 class UiBinding:
+    __slots__ = ("name", "type_name", "warning")
+
     def __init__(self, name: str, type_name: str, warning: str | None = None) -> None:
         self.name = name
         self.type_name = type_name

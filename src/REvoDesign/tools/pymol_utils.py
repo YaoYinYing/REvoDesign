@@ -397,7 +397,7 @@ def make_temperal_input_pdb(
     resn="",
     selection="",
     save_as_format="pdb",
-    wd=os.getcwd(),
+    wd=None,
     reload=True,
 ):
     """
@@ -420,6 +420,9 @@ def make_temperal_input_pdb(
         Returns:
         - str: Path to the generated temporary input PDB file
     """
+    if wd is None:
+        wd = os.getcwd()
+
     os.makedirs(wd, exist_ok=True)
     input_file = os.path.join(
         wd,

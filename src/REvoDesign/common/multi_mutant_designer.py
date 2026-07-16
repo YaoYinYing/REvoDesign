@@ -133,7 +133,7 @@ class MultiMutantDesigner:
                 mut_obj.mutant_score for mut_obj in self.all_design_multi_design_mutant_object if mut_obj.mutant_score
             ]
 
-            for (i_obj, obj), (j_des, des) in zip(
+            for (i_obj, obj), (_j_des, des) in zip(
                 enumerate(self.design_case_variant_objects),
                 enumerate(self.all_design_multi_design_mutant_object),
             ):
@@ -226,7 +226,7 @@ class MultiMutantDesigner:
 
         This method tries to automatically pick mutants for the design process.
         """
-        for i in range(tryout):
+        for _i in range(tryout):
             try:
                 branch, (mutant_id, mutant_obj) = self._select_random_mutant()
             except IndexError:

@@ -156,7 +156,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
         the_windows = [
             w
             for w in bus.ui.open_windows
-            if hasattr(w, "objectName") and getattr(w, "objectName")() == self.objectName()
+            if hasattr(w, "objectName") and w.objectName() == self.objectName()
         ]
         if any(the_windows):
             # Raise the existing window to the front
@@ -180,7 +180,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
         # Ensure the open_windows list exists and add this widget to it
         if not hasattr(bus.ui, "open_windows"):
             logging.debug(f"Creating open_windows list under ui for {self.objectName()}")
-            setattr(bus.ui, "open_windows", [])
+            bus.ui.open_windows = []
         bus.ui.open_windows.append(self)
         logging.debug(f"Window {self.objectName()} attached.")
 
@@ -2667,7 +2667,7 @@ class AppendableValueDialog(QtWidgets.QDialog):
         Args:
             row_layout (QHBoxLayout): The row layout to be removed.
         """
-        for i, (layout, key_edit, val_edit) in enumerate(self.row_widgets):
+        for i, (layout, _key_edit, _val_edit) in enumerate(self.row_widgets):
             if layout == row_layout:
                 # Remove all widgets in the row
                 for j in reversed(range(layout.count())):

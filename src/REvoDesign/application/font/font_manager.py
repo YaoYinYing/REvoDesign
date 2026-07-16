@@ -155,7 +155,7 @@ def set_font(font: QtGui.QFont | str | None = None):
 
     # Iterate through and set font for all open windows
     if hasattr(ui, "open_windows"):
-        open_windows: list[QtWidgets.QWidget] = getattr(ui, "open_windows")
+        open_windows: list[QtWidgets.QWidget] = ui.open_windows
         for window in open_windows:
             window.setFont(font)
 

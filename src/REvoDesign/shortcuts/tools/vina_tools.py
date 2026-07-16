@@ -172,7 +172,7 @@ class CgoAxes(GraphicObject):
         self.always_left_corner = bool(self.always_left_corner)
 
         self._data = []
-        for (idxa, axis), (idxc, colorname) in zip(enumerate("xyz"), enumerate("rgb")):
+        for axis, colorname in zip("xyz", "rgb"):
             p2_kwargs = {i: 0.0 for i in "xyz" if i != axis}
             self._data.extend(
                 Cylinder(
@@ -661,7 +661,7 @@ def plot_pca_box(orig_vertices, new_box_name: str = "pca_box"):
     goc = GOC([])
 
     # Create a PolyLines object for each face
-    for i, face_indices in enumerate(faces):
+    for face_indices in faces:
         face_vertices = [orig_vertices[idx] for idx in face_indices]
         goc.objects.append(
             PolyLines(width=2.0, color="cyan", points=LineVertex.from_points(face_vertices), line_type="LINE_LOOP")
@@ -676,7 +676,7 @@ def plot_pca_box(orig_vertices, new_box_name: str = "pca_box"):
         ).load_as(f"pca_axes_{_idx}")
 
     # Plot each vertex as a sphere
-    for i, v in enumerate(orig_vertices):
+    for v in orig_vertices:
         goc.objects.append(Sphere(Point(*v), radius=1))
 
     # Rebuild the GOC object and load the new box

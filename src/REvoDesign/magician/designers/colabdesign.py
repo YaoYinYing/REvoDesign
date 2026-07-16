@@ -59,11 +59,8 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         self.mpnn_model = mk_mpnn_model()
         if not os.path.exists(self.pdb_filename):
             raise FileNotFoundError(f"Input pdb file does not exist: {self.pdb_filename}")
-        self.mpnn_model.prep_inputs(
-            pdb_filename=self.pdb_filename,
-            *args,
-            **kwargs,
-        )
+        prep_kwargs = {**kwargs, "pdb_filename": self.pdb_filename}
+        self.mpnn_model.prep_inputs(*args, **prep_kwargs)
         self.initialized = True
         self.cite()
 
