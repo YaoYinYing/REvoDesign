@@ -1,11 +1,17 @@
 /* REvoDesign GREMLIN Server — User Control page styles */
 /* SPDX-License-Identifier: GPL-3.0-only */
 
+/* ---- Hero (matches dashboard hero pattern) ---- */
+
+/* ponytail: user-control uses the same hero + panel system as dashboard.
+   No .auth-page needed — base.css .page handles the full 1200px width. */
+
 /* ---- Sub-tab navigation ---- */
 
 .sub-tabs {
   display: flex;
   gap: 0;
+  margin-top: 1rem;
   margin-bottom: 0;
   border: 1px solid var(--line);
   border-radius: 12px 12px 0 0;
@@ -46,6 +52,7 @@
   border-radius: 0 0 14px 14px;
   padding: 1.6rem;
   margin-top: 0;
+  animation: fadeRise 420ms ease-out;
 }
 
 /* ---- User table ---- */
@@ -152,42 +159,6 @@
   color: #9d2d1f !important;
 }
 
-html[data-theme="dark"] .btn-batch-delete {
-  border-color: #d96a5a !important;
-  color: #d96a5a !important;
-}
-
-/* ---- Inline edit ---- */
-
-.edit-input {
-  width: 100%;
-  padding: 0.35rem 0.45rem !important;
-  font-size: 0.82rem !important;
-  border-radius: 6px !important;
-}
-
-.edit-row td {
-  border-bottom-style: dashed;
-}
-
-.user-action-btn.modify {
-  border-color: #2e6b9e;
-  color: #2e6b9e;
-}
-
-.user-action-btn.modify:hover {
-  background: #e8f1f8;
-}
-
-html[data-theme="dark"] .user-action-btn.modify {
-  border-color: #6aa8d8;
-  color: #6aa8d8;
-}
-
-html[data-theme="dark"] .user-action-btn.modify:hover {
-  background: #1a3040;
-}
-
 /* ---- Action buttons ---- */
 
 .user-action-btn {
@@ -226,6 +197,82 @@ html[data-theme="dark"] .user-action-btn.modify:hover {
 .user-action-btn.ban:hover     { background: #f9f4e8; }
 .user-action-btn.enable  { border-color: #1c6b2f; color: #1c6b2f; }
 .user-action-btn.enable:hover  { background: #e8f5eb; }
+
+.user-action-btn.modify {
+  border-color: #2e6b9e;
+  color: #2e6b9e;
+}
+
+.user-action-btn.modify:hover {
+  background: #e8f1f8;
+}
+
+/* ---- Inline edit ---- */
+
+.edit-input {
+  width: 100%;
+  padding: 0.35rem 0.45rem !important;
+  font-size: 0.82rem !important;
+  border-radius: 6px !important;
+}
+
+.edit-row td {
+  border-bottom-style: dashed;
+}
+
+/* ---- Add-user form ---- */
+
+.auth-form {
+  margin-top: 0;
+  max-width: 480px;
+}
+
+.field {
+  margin-bottom: 1.25rem;
+}
+
+.field label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+.field .hint {
+  font-size: 0.76rem;
+  color: var(--muted);
+  margin-top: 0.3rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-full {
+  width: 100%;
+  justify-content: center;
+  padding: 0.58rem 1.2rem;
+  font-size: 0.9rem;
+}
+
+.status-msg {
+  margin-top: 0.9rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  display: none;
+  line-height: 1.4;
+}
+
+.status-msg.error   { display: block; background: #fef0e8; color: #8f5012; border: 1px solid #f5d6b6; }
+.status-msg.success,
+.status-msg.ok      { display: block; background: #e0f4ed; color: #0e584b; border: 1px solid #bef0df; }
 
 /* ---- Dark theme ---- */
 
@@ -269,6 +316,20 @@ html[data-theme="dark"] .user-action-btn {
   border-color: #324751;
 }
 
+html[data-theme="dark"] .user-action-btn.modify {
+  border-color: #6aa8d8;
+  color: #6aa8d8;
+}
+
+html[data-theme="dark"] .user-action-btn.modify:hover {
+  background: #1a3040;
+}
+
+html[data-theme="dark"] .btn-batch-delete {
+  border-color: #d96a5a !important;
+  color: #d96a5a !important;
+}
+
 html[data-theme="dark"] .status-badge.admin  { background: #1a3040; color: #a8d0e8; }
 html[data-theme="dark"] .status-badge.user   { background: #1c2a35; color: #aac2d4; }
 html[data-theme="dark"] .status-badge.guest  { background: #3a3020; color: #dac87c; }
@@ -279,3 +340,210 @@ html[data-theme="dark"] .status-badge.rejected   { background: #41241f; color: #
 html[data-theme="dark"] .status-badge.pending    { background: #3a3020; color: #dac87c; }
 html[data-theme="dark"] .status-badge.active     { background: #173427; color: #b6e1c1; }
 html[data-theme="dark"] .status-badge.banned     { background: #352525; color: #c9a0a0; }
+
+html[data-theme="dark"] .status-msg.error {
+  background: #2c1a16;
+  color: #e3b0a8;
+  border-color: #5c322b;
+}
+
+html[data-theme="dark"] .status-msg.success,
+html[data-theme="dark"] .status-msg.ok {
+  background: #162e27;
+  color: #96c7b4;
+  border-color: #2c5544;
+}
+
+/* ==================================================================
+   Responsive layout (matches dashboard breakpoints: 980px / 640px)
+   ================================================================== */
+
+/* ---- Tablet (≤980px): hide secondary columns ---- */
+@media (max-width: 980px) {
+  .user-table .col-ip,
+  .user-table .col-affil {
+    display: none;
+  }
+
+  /* header cells: 1=select, 2=email, 3=IP, 4=affiliation, 5=role, 6=reg, 7=status, 8=actions */
+  .user-table th:nth-child(3),
+  .user-table th:nth-child(4) {
+    display: none;
+  }
+
+  .user-table {
+    font-size: 0.8rem;
+  }
+
+  .user-table td {
+    padding: 0.45rem 0.55rem;
+  }
+}
+
+/* ---- Mobile (≤640px): card-based user list ---- */
+@media (max-width: 640px) {
+  .page {
+    width: calc(100% - 1rem);
+    margin-top: 0.8rem;
+  }
+
+  .hero {
+    border-radius: 14px;
+  }
+
+  /* Sub-tabs: compact, sticky */
+  .sub-tabs {
+    border-radius: 10px 10px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .sub-tab {
+    font-size: 0.78rem;
+    padding: 0.5rem 0.6rem;
+  }
+
+  .user-panel {
+    padding: 0.8rem 0.6rem;
+    border-radius: 0 0 12px 12px;
+  }
+
+  /* Hide table head, turn rows into cards */
+  .user-table thead {
+    display: none;
+  }
+
+  .user-table,
+  .user-table tbody,
+  .user-table tr {
+    display: block;
+  }
+
+  .user-table tbody tr {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    margin-bottom: 0.7rem;
+    padding: 0.75rem 0.85rem;
+    position: relative;
+  }
+
+  .user-table tbody tr:hover {
+    background: var(--paper);
+  }
+
+  html[data-theme="dark"] .user-table tbody tr {
+    background: #18262d;
+    border-color: #2d424d;
+  }
+
+  .user-table td {
+    display: block;
+    padding: 0.2rem 0;
+    border-bottom: none;
+    text-align: left;
+  }
+
+  /* Checkbox: float top-right */
+  .col-select {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.75rem;
+    text-align: right;
+    width: auto;
+  }
+
+  /* Email: prominent */
+  .col-email {
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding-right: 2.5rem;
+    padding-bottom: 0.35rem;
+  }
+
+  /* Hide IP and affiliation */
+  .col-ip,
+  .col-affil {
+    display: none;
+  }
+
+  /* Badges side by side */
+  .col-role,
+  .col-reg,
+  .col-user {
+    display: inline-block;
+    margin-right: 0.3rem;
+    margin-top: 0.15rem;
+    padding: 0;
+  }
+
+  /* Actions: own row at bottom */
+  .col-actions {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+  }
+
+  html[data-theme="dark"] .col-actions {
+    border-top-color: #2d424d;
+  }
+
+  /* Batch bar: sticky footer */
+  #batchBar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+  }
+
+  #batchBar td {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .batch-label {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 0.15rem;
+  }
+
+  /* Larger touch targets */
+  .user-action-btn {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  /* Inline edit: stack fields */
+  .edit-row td {
+    padding: 0.35rem 0;
+  }
+
+  .edit-input {
+    font-size: 0.88rem !important;
+    padding: 0.45rem 0.55rem !important;
+  }
+}
+
+/* ---- Narrow mobile (≤400px) ---- */
+@media (max-width: 400px) {
+  .sub-tab {
+    font-size: 0.72rem;
+    padding: 0.45rem 0.4rem;
+  }
+
+  .user-action-btn {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.72rem;
+  }
+
+  .col-email {
+    font-size: 0.84rem;
+  }
+}

@@ -1,0 +1,210 @@
+/* REvoDesign GREMLIN Server — Profile page styles */
+/* SPDX-License-Identifier: GPL-3.0-only */
+
+/* ---- Hero (matches dashboard hero pattern) ---- */
+
+/* ponytail: profile uses the same hero + panel system as dashboard.
+   No .auth-page needed — base.css .page handles the width. */
+
+/* ---- Two-column grid (tablet + desktop) ---- */
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.4rem;
+  margin-top: 1rem;
+}
+
+/* First card (Account info) spans full width */
+.profile-grid .profile-card:first-child {
+  grid-column: 1 / -1;
+}
+
+/* ---- Card styling (matches dashboard .panel) ---- */
+
+.profile-card {
+  padding: 1.6rem 1.8rem 1.8rem;
+  animation: fadeRise 380ms ease-out;
+}
+
+.section-heading {
+  margin: 0 0 0.75rem;
+  font-family: "Source Serif 4", serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--ink);
+  padding-left: 0.65rem;
+  border-left: 3px solid var(--accent);
+}
+
+/* ---- Form ---- */
+
+.auth-form {
+  margin-top: 1.6rem;
+}
+
+.field {
+  margin-bottom: 1.25rem;
+}
+
+.field label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+.field .hint {
+  font-size: 0.76rem;
+  color: var(--muted);
+  margin-top: 0.3rem;
+}
+
+/* ---- Form inputs (match dashboard text-input) ---- */
+
+.text-input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.text-input:focus {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px rgba(15, 79, 99, 0.10),
+    inset 0 0 0 1px rgba(15, 79, 99, 0.06);
+  background: #ffffff;
+}
+
+.text-input::placeholder {
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.text-input[readonly] {
+  background: var(--bg);
+  color: var(--muted);
+  cursor: default;
+  user-select: all;
+}
+
+/* ---- Status messages ---- */
+
+.status-msg {
+  margin-top: 0.9rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  display: none;
+  line-height: 1.4;
+}
+
+.status-msg.error   { display: block; background: #fef0e8; color: #8f5012; border: 1px solid #f5d6b6; }
+.status-msg.success { display: block; background: #e0f4ed; color: #0e584b; border: 1px solid #bef0df; }
+
+/* ---- API key copy row ---- */
+
+.copy-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.copy-row .text-input {
+  flex: 1;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  font-size: 1rem;
+  padding: 0.45rem 0.7rem;
+}
+
+.api-key-result {
+  margin-top: 0.9rem;
+}
+
+/* ---- Actions row ---- */
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ---- Dark theme ---- */
+
+html[data-theme="dark"] .text-input {
+  background: #17252c;
+  border-color: #324751;
+  color: #d8e4e9;
+}
+
+html[data-theme="dark"] .text-input:focus {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px rgba(27, 127, 161, 0.16),
+    inset 0 0 0 1px rgba(27, 127, 161, 0.08);
+  background: #1a2a33;
+}
+
+html[data-theme="dark"] .text-input[readonly] {
+  background: #101e25;
+  color: #7899a6;
+}
+
+html[data-theme="dark"] .text-input::placeholder {
+  color: #7899a6;
+  opacity: 0.45;
+}
+
+html[data-theme="dark"] .status-msg.error {
+  background: #2c1a16;
+  color: #e3b0a8;
+  border-color: #5c322b;
+}
+
+html[data-theme="dark"] .status-msg.success {
+  background: #162e27;
+  color: #96c7b4;
+  border-color: #2c5544;
+}
+
+html[data-theme="dark"] .section-heading {
+  border-left-color: var(--accent);
+}
+
+/* ---- Responsive (matches dashboard breakpoints) ---- */
+
+@media (max-width: 980px) {
+  .profile-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .profile-card {
+    padding: 1.1rem 1.1rem 1.3rem;
+    border-radius: 14px;
+  }
+
+  .hero {
+    border-radius: 14px;
+  }
+}
