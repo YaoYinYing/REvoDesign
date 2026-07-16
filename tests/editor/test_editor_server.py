@@ -86,6 +86,20 @@ def initialize_server():
 # Test cases
 
 
+def test_initialize_token_does_not_log_secret(monkeypatch, caplog):
+    from REvoDesign.editor.monaco import server
+
+    monkeypatch.setattr(server.secrets, "token_urlsafe", lambda _size: "sensitive-editor-token")
+
+    with caplog.at_level("INFO", logger=server.logging.name):
+        token = server.initialize_token()
+
+    assert token == "sensitive-editor-token"
+    assert ConfigStore().get("editor.token") == "sensitive-editor-token"
+    assert "sensitive-editor-token" not in caplog.text
+    assert "Generated editor authentication token." in caplog.text
+
+
 def test_favicon(test_client):
     """Test that the favicon endpoint returns the correct file."""
     response = test_client.get("/favicon.svg")

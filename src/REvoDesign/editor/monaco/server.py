@@ -107,7 +107,7 @@ def initialize_token() -> str:
     SECRET_TOKEN = secrets.token_urlsafe(32)
     config_store.set("editor.token", SECRET_TOKEN)
 
-    logging.info(f"Generated SECRET_TOKEN: {SECRET_TOKEN}")
+    logging.info("Generated editor authentication token.")
     return SECRET_TOKEN
 
 

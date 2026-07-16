@@ -134,6 +134,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without hashes, Monaco editor downloads verify npm tarball integrity metadata,
   and remote ESM weight downloads fail closed until verified checksums are
   configured.
+- **Monaco editor token handling**: generated editor backend authentication
+  tokens are no longer written to application logs.
 - **Generated socket authentication keys**: `generate_strong_password()` now uses
   `secrets.choice` instead of the default pseudo-random generator when creating
   authentication/password strings.
