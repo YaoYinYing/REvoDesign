@@ -319,8 +319,8 @@ def _atom_coord(a) -> tuple[float, float, float] | None:
     if hasattr(a, "x") and hasattr(a, "y") and hasattr(a, "z"):
         try:
             return (float(getattr(a, "x")), float(getattr(a, "y")), float(getattr(a, "z")))
-        except Exception:
-            pass
+        except Exception as exc:
+            logging.debug("Could not parse atom coordinates from x/y/z attributes: %s", exc)
     return None
 
 
@@ -329,8 +329,8 @@ def _atom_unique_id(a) -> int | None:
     if hasattr(a, "unique_id"):
         try:
             return int(getattr(a, "unique_id"))
-        except Exception:
-            pass
+        except Exception as exc:
+            logging.debug("Could not parse atom unique_id: %s", exc)
     return None
 
 

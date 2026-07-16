@@ -2186,15 +2186,16 @@ class RunningProcessRegistry:
         if process.poll() is None:
             try:
                 process.terminate()
-            except Exception:
-                pass
+            except Exception as exc:
+                logging.debug("Could not terminate process %s: %s", process, exc)
             try:
                 process.wait(timeout=5)
-            except Exception:
+            except Exception as exc:
+                logging.debug("Process %s did not exit after terminate; killing it: %s", process, exc)
                 try:
                     process.kill()
-                except Exception:
-                    pass
+                except Exception as kill_exc:
+                    logging.debug("Could not kill process %s: %s", process, kill_exc)
 
 
 class AbortButtonOverlay(QtCore.QObject):
@@ -2342,8 +2343,8 @@ class ThreadExecutionManager(QtCore.QObject):
         self._aborted = True
         try:
             cmd.interrupt()
-        except Exception:
-            pass
+        except Exception as exc:
+            logging.debug("Could not interrupt PyMOL command loop during worker abort: %s", exc)
         self.worker_thread.interrupt()
         if self.worker_thread.isRunning():
             self.worker_thread.quit()

@@ -6,8 +6,11 @@
 
 from __future__ import annotations
 
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCore, QtWidgets
 from REvoDesign.tools.customized_widgets import decide
+
+logging = ROOT_LOGGER.getChild(__name__)
 
 FALLBACK_CLUSTER_METHODS: tuple[str, ...] = (
     "AgglomerativeCluster",
@@ -77,8 +80,8 @@ class ClusterTabController:
         if self.bus is not None:
             try:
                 return str(self.bus.get_value("ui.cluster.method.use", default_value="AgglomerativeCluster"))
-            except Exception:
-                pass
+            except Exception as exc:
+                logging.debug("Could not read configured cluster method; using current UI value: %s", exc)
         current = self.ui.comboBox_cluster_method.currentText()
         return current or "AgglomerativeCluster"
 

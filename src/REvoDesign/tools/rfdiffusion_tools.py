@@ -8,12 +8,15 @@ import numpy as np
 
 from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import require_installed
+
+logging = ROOT_LOGGER.getChild(__name__)
 
 try:
     matplotlib.use("QtAgg")
-except Exception:
-    pass  # Fall back to default backend (e.g. in headless / CI environments)
+except Exception as exc:
+    logging.debug("Falling back to default matplotlib backend: %s", exc)
 
 
 @require_installed
