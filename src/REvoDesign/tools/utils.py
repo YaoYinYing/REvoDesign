@@ -14,6 +14,7 @@ import importlib
 import inspect
 import os
 import random
+import secrets
 import shutil
 import string
 import sys
@@ -821,8 +822,7 @@ def generate_strong_password(length=16):
     # Define the characters to use for generating the password
     password_characters = string.ascii_letters + string.digits + "!#$%&*+-./:?@^_~"
 
-    # Generate the password using random characters from the defined set
-    generated_password = "".join(random.choice(password_characters) for _ in range(length))
+    generated_password = "".join(secrets.choice(password_characters) for _ in range(length))
 
     return generated_password
 

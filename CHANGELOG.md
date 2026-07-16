@@ -130,6 +130,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
+- **Generated socket authentication keys**: `generate_strong_password()` now uses
+  `secrets.choice` instead of the default pseudo-random generator when creating
+  authentication/password strings.
 - **Uploaded FASTA filename collision**: two users uploading files with the same
   name (e.g. `seqs.fasta`) would overwrite each other in the shared upload
   directory. Files are now saved as `{owner_scoped_md5}.fasta` so on-disk names
