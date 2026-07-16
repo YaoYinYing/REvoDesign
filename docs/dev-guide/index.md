@@ -49,3 +49,5 @@ solvers, or make changes to the core infrastructure.
   triaging and fixing Codacy findings in risk-prioritized batches.
 - **[DeepSource Fix Playbook](codex-deepsource.md)** -- AI-assisted workflow
   for triaging and fixing DeepSource findings with minimal, verified diffs.
+- **[DeepSource Reduction Plan](deepsource-reduction-plan.md)** -- Current
+  issue-count snapshot and staged plan to reduce active findings below 300.
