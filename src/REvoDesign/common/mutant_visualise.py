@@ -418,6 +418,7 @@ class MutantVisualizer:
                     f"Temperal merged result is failed to create. Try again with a clean PyMOL session. \n"
                     f"STDOUT:\n{merge_results.stdout}\n"
                     f"STDERR:\n{merge_results.stderr}"
-                )
+                ),
+                stacklevel=2,
             )
             return

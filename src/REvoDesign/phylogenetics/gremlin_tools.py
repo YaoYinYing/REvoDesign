@@ -83,7 +83,7 @@ class CoevolvedPair:
     @property
     def min_dist(self):
         if self.empty:
-            warnings.warn(issues.NoInputWarning(f"Pair {repr(self)} is empty! "))
+            warnings.warn(issues.NoInputWarning(f"Pair {repr(self)} is empty! "), stacklevel=2)
             return -1
         return min(d for d in self.homochains_dist.values() if d > 0)
 
@@ -332,7 +332,8 @@ class GREMLIN_Tools(CitableModuleAbstract):
         if not matching_indices:
             # No matching pairs found, handle this case
             warnings.warn(
-                issues.NoResultsWarning(f"No matching co-evolutionary pairs found for positions {i} and {j}.")
+                issues.NoResultsWarning(f"No matching co-evolutionary pairs found for positions {i} and {j}."),
+                stacklevel=2,
             )
 
             return None
@@ -381,7 +382,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
             traceback.print_exc()
             logging.error(f"Error occured while processing '{wt_i_aa=}' or '{wt_j_aa=}' from {self.alphabet=}")
             # early return to skip ploting
-            warnings.warn(issues.BadDataWarning(f"Bad pair: {str(a_pair)}"))
+            warnings.warn(issues.BadDataWarning(f"Bad pair: {str(a_pair)}"), stacklevel=2)
             return None
 
         plt.text(
@@ -451,7 +452,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
         top_N_pairs = coevolving_pairs[: self.topN]
 
         if not top_N_pairs:
-            warnings.warn(issues.NoResultsWarning("No coevolving pairs found!"))
+            warnings.warn(issues.NoResultsWarning("No coevolving pairs found!"), stacklevel=2)
             return {}
 
         logging.info(f"top {self.topN} items selected: {str(top_N_pairs)}")

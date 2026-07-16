@@ -69,7 +69,7 @@ class CitationManager(SingletonAbstract):
             new_citations (dict): A dictionary containing new citations.
         """
         if not (new_citations and isinstance(new_citations, dict)):
-            warnings.warn(issues.NoInputWarning(f"{new_citations=} is not a valid dictionary."))
+            warnings.warn(issues.NoInputWarning(f"{new_citations=} is not a valid dictionary."), stacklevel=2)
             return
 
         self.called_citations.update(new_citations)
@@ -91,7 +91,7 @@ class CitationManager(SingletonAbstract):
 
         library = bibtexparser.parse_string("\n".join(self.collected_citations))
         if library.failed_blocks:
-            warnings.warn(issues.REvoDesignWarning(f"Could not parse {library.failed_blocks=}"))
+            warnings.warn(issues.REvoDesignWarning(f"Could not parse {library.failed_blocks=}"), stacklevel=2)
 
         citation_output = os.path.join(
             cwd,

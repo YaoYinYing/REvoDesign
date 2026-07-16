@@ -95,14 +95,14 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
 
         if isinstance(mutant, Mutant):
             if len(mutant.wt_protein_sequence.all_chain_ids) > 1:
-                warnings.warn(issues.REvoDesignWarning("MPNN only supports single chain sequences"))
+                warnings.warn(issues.REvoDesignWarning("MPNN only supports single chain sequences"), stacklevel=2)
             sequence: str = mutant.get_mutant_sequence_single_chain(
                 chain_id=mutant.wt_protein_sequence.all_chain_ids[0],
                 ignore_missing=True,
             ).sequence
         else:
             if len(mutant.all_chain_ids) > 1:
-                warnings.warn(issues.REvoDesignWarning("MPNN only supports single chain sequences"))
+                warnings.warn(issues.REvoDesignWarning("MPNN only supports single chain sequences"), stacklevel=2)
             sequence: str = mutant.get_sequence_by_chain(chain_id=mutant.all_chain_ids[0]).replace("X", "")
         # scorer must return a float score value given a mutant sequence.
         return self.mpnn_model.score(seq=sequence)["score"]

@@ -182,7 +182,9 @@ class MultiMutantDesigner:
         tmp_mutant_obj.wt_protein_sequence = self.designable_sequences
 
         if not self.magician.gimmick:
-            warnings.warn(issues.ConflictWarning("Abord design evaluation because no external scorer is defined."))
+            warnings.warn(
+                issues.ConflictWarning("Abord design evaluation because no external scorer is defined."), stacklevel=2
+            )
 
         else:
             tmp_mutant_obj.mutant_score = self.magician.gimmick.scorer(mutant=tmp_mutant_obj)
@@ -268,7 +270,8 @@ class MultiMutantDesigner:
             warnings.warn(
                 issues.NoInputWarning(
                     "Temperal mutant tree for multi-design is empty after designing! This design is ended."
-                )
+                ),
+                stacklevel=2,
             )
             self.start_new_design()
             return
@@ -278,7 +281,7 @@ class MultiMutantDesigner:
         self._auto_pick_tryout()
         if num_mut_before_picking == self.in_design_multi_design_case.mutant_num:
             # failed picking
-            warnings.warn(issues.NoResultsWarning("Failed auto picking. Please take anther try."))
+            warnings.warn(issues.NoResultsWarning("Failed auto picking. Please take anther try."), stacklevel=2)
             return
 
         # last mutant

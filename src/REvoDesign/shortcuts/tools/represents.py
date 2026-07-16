@@ -612,7 +612,8 @@ class BFactor:
             warnings.warn(
                 issues.BadDataWarning(
                     f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx - 1})"
-                )
+                ),
+                stacklevel=2,
             )
         return bfact
 

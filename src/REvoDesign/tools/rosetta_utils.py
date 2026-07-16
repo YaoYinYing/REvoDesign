@@ -131,11 +131,11 @@ def extra_res_to_opts(ligands_params: list[str] | str) -> list[str]:
     ligands = []
     for _, l in enumerate(ligands_params):
         if not (isinstance(l, str) and l.endswith(".params")):
-            warnings.warn(issues.BadDataWarning(f"Invalid Parameter input for ligand - {l}"))
+            warnings.warn(issues.BadDataWarning(f"Invalid Parameter input for ligand - {l}"), stacklevel=2)
             continue
 
         if not os.path.isfile(l):
-            warnings.warn(issues.BadDataWarning(f"Ignore nofound ligand - {l}"))
+            warnings.warn(issues.BadDataWarning(f"Ignore nofound ligand - {l}"), stacklevel=2)
             continue
 
         ligands.extend(["-extra_res_fa" if l.endswith("fa.params") else "-extra_res_cen", os.path.abspath(l)])
@@ -191,7 +191,7 @@ def is_wsl_available():
         return wsl_bin is not None
     except RuntimeError:
         # If an error occurs, it indicates that WSL may not be available
-        warnings.warn(issues.PlatformNotSupportedWarning("WSL is not available on this machine."))
+        warnings.warn(issues.PlatformNotSupportedWarning("WSL is not available on this machine."), stacklevel=2)
         # Return False, indicating that WSL is not available
         return False
 
@@ -218,7 +218,8 @@ def is_docker_available() -> bool:
         warnings.warn(
             issues.PlatformNotSupportedWarning(
                 f"Docker is not available(uninstalled or unlaunched) on this machine: {e}"
-            )
+            ),
+            stacklevel=2,
         )
         return False
 

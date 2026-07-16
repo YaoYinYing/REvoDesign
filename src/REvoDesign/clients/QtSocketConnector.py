@@ -15,6 +15,7 @@ Team work module
 
 import base64
 import copy
+
 # Inter-process Qt socket serialization uses a trusted local context.
 import pickle  # nosec B403
 import socket
@@ -82,7 +83,7 @@ class MeetingRoom:
 
     def add_user(self, uuid: str, user: Client):
         if uuid in self.clients:
-            warnings.warn(issues.SocketUserAlreadyExists("user already joined."))
+            warnings.warn(issues.SocketUserAlreadyExists("user already joined."), stacklevel=2)
             return
         self.clients[uuid] = user
 
@@ -203,13 +204,15 @@ class Broadcaster:
     def digest_dict(self, unpacked_msg_dict: dict[str, str]) -> tuple[supported_datatypes | None, Any]:
         datatype: self.supported_datatypes = unpacked_msg_dict.get("datatype")
         if not datatype:
-            warnings.warn(issues.BadDataWarning(f"bad data {datatype=} has been discarded"))
+            warnings.warn(issues.BadDataWarning(f"bad data {datatype=} has been discarded"), stacklevel=2)
             return None, None
         obj_encoded = unpacked_msg_dict.get("obj")
         obj = self.decode(obj_encoded)
         expected_obj_type = self.supported_datatypes_mapping.get(datatype)
         if not isinstance(obj, expected_obj_type):
-            warnings.warn(issues.BadDataWarning(f"Bad data type mismatch: {datatype=}: {expected_obj_type=}"))
+            warnings.warn(
+                issues.BadDataWarning(f"Bad data type mismatch: {datatype=}: {expected_obj_type=}"), stacklevel=2
+            )
             return None, None
 
         return datatype, obj
@@ -228,7 +231,7 @@ class Broadcaster:
             all_clients = [meetingroom.client]
         elif isinstance(meetingroom, MeetingRoom):
             if not meetingroom or meetingroom.empty:
-                warnings.warn(issues.SocketMeetingRoomIsEmpty("Empty meeting room."))
+                warnings.warn(issues.SocketMeetingRoomIsEmpty("Empty meeting room."), stacklevel=2)
                 return
             all_clients = meetingroom.current_clients
         elif isinstance(meetingroom, list):
@@ -277,7 +280,7 @@ class Broadcaster:
         unpacked_msg = self.unpack(packed_msg)
         (datatype, obj) = self.digest_dict(unpacked_msg_dict=unpacked_msg)
         if not datatype:
-            warnings.warn(issues.BadDataWarning("Bad data received with unexpected none datatype."))
+            warnings.warn(issues.BadDataWarning("Bad data received with unexpected none datatype."), stacklevel=2)
             return None, None
         if datatype != "MessageStack":
             return datatype, obj
@@ -477,11 +480,15 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         try:
             msg_type, msg_content = self.bc_worker.received(packed_msg=message)
         except issues.FobbidenDataTypeError:
-            warnings.warn(issues.BadDataWarning(f"Bad data from {username}@{node}({user_id}) is discarded."))
+            warnings.warn(
+                issues.BadDataWarning(f"Bad data from {username}@{node}({user_id}) is discarded."), stacklevel=2
+            )
             return
 
         if not self.bc_worker.typing_is_valid(msg_type=msg_type, msg_content=msg_content):
-            warnings.warn(issues.BadDataWarning(f"Bad data from socket discarded: {msg_type=},{msg_content=}"))
+            warnings.warn(
+                issues.BadDataWarning(f"Bad data from socket discarded: {msg_type=},{msg_content=}"), stacklevel=2
+            )
             return
 
         # printout readable msgs
@@ -632,7 +639,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         None
         """
         if not self.is_running:
-            warnings.warn(issues.SocketWarning("Host is not running"))
+            warnings.warn(issues.SocketWarning("Host is not running"), stacklevel=2)
             return
 
         self.bc_worker.broadcast(meetingroom=self.meetingroom, obj=obj, obj_type=data_type)
@@ -916,7 +923,8 @@ class REvoDesignWebSocketClient(SingletonAbstract):
                 warnings.warn(
                     issues.FobbidenDataTypeError(
                         f"The content of a MessageStack is expected to be an Iterable instead of a {type(msg_content)}"
-                    )
+                    ),
+                    stacklevel=2,
                 )
                 return
 
@@ -926,12 +934,14 @@ class REvoDesignWebSocketClient(SingletonAbstract):
                         issues.FobbidenDataTypeError(
                             f"The content of a MessageStack item {msg_data_item=} is expected to be "
                             f"a tuple with 2 item instead of a {type(msg_content)}"
-                        )
+                        ),
+                        stacklevel=2,
                     )
                     continue
                 if (len_msg_content := len(msg_data_item)) != 2:
                     warnings.warn(
-                        issues.FobbidenDataTypeError(f"The MessageStack item has invalid length {len_msg_content}")
+                        issues.FobbidenDataTypeError(f"The MessageStack item has invalid length {len_msg_content}"),
+                        stacklevel=2,
                     )
                     continue
 
@@ -951,11 +961,13 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         try:
             msg_type, msg_content = self.bc_worker.received(packed_msg=msg_bytes)
         except issues.FobbidenDataTypeError:
-            warnings.warn(issues.BadDataWarning("Bad data from Host is discarded."))
+            warnings.warn(issues.BadDataWarning("Bad data from Host is discarded."), stacklevel=2)
             return
 
         if not self.bc_worker.typing_is_valid(msg_type=msg_type, msg_content=msg_content):
-            warnings.warn(issues.BadDataWarning(f"Bad data from socket discarded: {msg_type=},{msg_content=}"))
+            warnings.warn(
+                issues.BadDataWarning(f"Bad data from socket discarded: {msg_type=},{msg_content=}"), stacklevel=2
+            )
             return
 
         if msg_type in self.bc_worker.readble_type:

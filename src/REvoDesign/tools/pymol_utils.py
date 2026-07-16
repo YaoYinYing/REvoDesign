@@ -74,7 +74,7 @@ def find_small_molecules_in_protein(sele):
                       Returns None if the selection is not provided.
     """
     if not sele:
-        warnings.warn(issues.NoInputWarning("Selection for small molecules is not provided."))
+        warnings.warn(issues.NoInputWarning("Selection for small molecules is not provided."), stacklevel=2)
         return None  # Return None if the selection is not provided
 
     # Retrieve the atoms that belong to small molecules within the selection and extract unique small molecule names
@@ -88,13 +88,14 @@ def find_small_molecules_in_protein(sele):
                 "Could not find unique small molecules with standalone chain id. \n"
                 'A possible fix is calling `alter r. RES, chain="<chain-id>"` to fix the problem \n'
                 "then re-load this session."
-            )
+            ),
+            stacklevel=2,
         )
 
         # Return a list of unique small molecule names found within the selection
         return unique_small_molecules
 
-    warnings.warn(issues.FallingBackWarning("Falling back to all `hetatm`"))
+    warnings.warn(issues.FallingBackWarning("Falling back to all `hetatm`"), stacklevel=2)
     small_molecules = [at.resn for at in cmd.get_model("hetatm and (not polymer.protein)").atom]
 
     unique_small_molecules = list(set(small_molecules))
@@ -385,7 +386,8 @@ def is_a_REvoDesign_session():
                 "session's feature, you should always create seperate"
                 "sessions according to your dataset and merge them "
                 "manually in PyMOL window."
-            )
+            ),
+            stacklevel=2,
         )
     return check
 

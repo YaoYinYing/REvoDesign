@@ -115,7 +115,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
         try:
             self.check_repeat()
         except RuntimeError as e:
-            warnings.warn(issues.REvoDesignWidgetWarning(e))
+            warnings.warn(issues.REvoDesignWidgetWarning(e), stacklevel=2)
             self.destroy()
             raise RuntimeError(f"a window named {self.objectName()} is already open.") from e
 
@@ -154,9 +154,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
 
         # Find windows with the same name
         the_windows = [
-            w
-            for w in bus.ui.open_windows
-            if hasattr(w, "objectName") and w.objectName() == self.objectName()
+            w for w in bus.ui.open_windows if hasattr(w, "objectName") and w.objectName() == self.objectName()
         ]
         if any(the_windows):
             # Raise the existing window to the front

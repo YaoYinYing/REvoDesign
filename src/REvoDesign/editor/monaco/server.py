@@ -150,7 +150,7 @@ async def lifespan(app: FastAPI):
     config_store = ConfigStore()
     html_dir = config_store.get("editor.backend.html_dir")
     if not html_dir:
-        warnings.warn(issues.MissingExternalTool("Monaco Editor is not ready."))
+        warnings.warn(issues.MissingExternalTool("Monaco Editor is not ready."), stacklevel=2)
         # ensure monaco editor is ready
         ensure_monaco()
         # re-fetch the updated value from config store

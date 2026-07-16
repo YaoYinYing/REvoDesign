@@ -193,7 +193,7 @@ class MutateWorker:
                 )
 
             if not os.path.isdir(os.path.dirname(self.design.output_pse)):
-                warnings.warn(issues.NoResultsWarning("No output PyMOL session is created."))
+                warnings.warn(issues.NoResultsWarning("No output PyMOL session is created."), stacklevel=2)
                 return
 
             cmd.reinitialize()
@@ -409,7 +409,7 @@ class ChainBinder:
             atom2 = self._get_ca_atom(chain_2, j_1)
             return atom1 - atom2
         except ValueError as e:
-            warnings.warn(f"Error calculating distance: {e}", category=UserWarning)
+            warnings.warn(f"Error calculating distance: {e}", category=UserWarning, stacklevel=2)
             return -1
 
     def bind_chains(self, coevolved_pairs: tuple[CoevolvedPair]) -> tuple[CoevolvedPair]:
@@ -616,7 +616,7 @@ class GremlinAnalyser:
             )
 
         if not coevolved_pairs:
-            warnings.warn(issues.NoResultsWarning("No Available co-evolutionary signal in global"))
+            warnings.warn(issues.NoResultsWarning("No Available co-evolutionary signal in global"), stacklevel=2)
             # early return if no data.
             return
 
@@ -644,7 +644,7 @@ class GremlinAnalyser:
         del chain_binder
 
         if self.coevolved_pairs.empty:
-            warnings.warn(issues.NoResultsWarning("No coevolved_pairs passes filter."))
+            warnings.warn(issues.NoResultsWarning("No coevolved_pairs passes filter."), stacklevel=2)
             return
 
         logging.info("Visualizing as bonds ...")
@@ -658,7 +658,9 @@ class GremlinAnalyser:
             self.bus.button("previous").clicked.disconnect()
             self.bus.button("next").clicked.disconnect()
         except Exception as e:
-            warnings.warn(issues.AlreadyDisconnectedWarning(f"button is already disconnected. do nothing. {e=}"))
+            warnings.warn(
+                issues.AlreadyDisconnectedWarning(f"button is already disconnected. do nothing. {e=}"), stacklevel=2
+            )
 
         self.bus.button("previous").clicked.connect(partial(self.load_co_evolving_pairs, False))
 

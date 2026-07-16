@@ -5,6 +5,7 @@
 
 import glob
 import os
+
 # Traceback serialization uses a trusted context.
 import pickle  # nosec B403
 import random
@@ -77,7 +78,8 @@ class DglSolver:
             warnings.warn(
                 issues.PlatformNotSupportedWarning(
                     f"CUDA version {cuda_version} is not supported by DGL. Please install CUDA version >= 11.8 if you need to use DGL with CUDA support."
-                )
+                ),
+                stacklevel=2,
             )
 
     def install(self):
@@ -166,7 +168,8 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             warnings.warn(
                 issues.FallingBackWarning(
                     f"Model {model_name} not found. Falling back to pick one according to the input."
-                )
+                ),
+                stacklevel=2,
             )
 
         # automatically pick the model based on the input
@@ -209,7 +212,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
         if (dgl_solver := DglSolver()).installed:
             return
 
-        warnings.warn(issues.MissingExternalTool("DGL is not installed. Now try to install it."))
+        warnings.warn(issues.MissingExternalTool("DGL is not installed. Now try to install it."), stacklevel=2)
 
         dgl_solver.install()
         if not dgl_solver.installed:

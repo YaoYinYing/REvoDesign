@@ -49,7 +49,8 @@ def check_mac_rosetta2():
         issues.AppleSiliconRosetta2Warning(
             "Oops! You are in Rosetta-translated PyMOL bundle from official channel. "
             "This might limit the performance of joblib, causing MutantVisualizer slower."
-        )
+        ),
+        stacklevel=2,
     )
 
 

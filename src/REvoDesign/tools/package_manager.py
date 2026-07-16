@@ -21,6 +21,7 @@ import platform
 import re
 import shutil
 import socket
+
 # Used for package-management commands with argv lists and registered process lifecycle handling.
 import subprocess  # nosec B404
 import sys
@@ -2720,7 +2721,7 @@ def _show_notification_dialog(
 
     # error_type is a Warning => also bool
     if issubclass(error_type, Warning):
-        warnings.warn(error_type(message))
+        warnings.warn(error_type(message), stacklevel=2)
         return
 
     # Otherwise, raise => NoReturn
