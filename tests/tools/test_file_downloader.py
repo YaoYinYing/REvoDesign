@@ -35,7 +35,6 @@ class TestFileDownloadRegistry:
                 {"file1.txt": "md5:abc123", "file2.txt": "def456"},
                 {"file1.txt": "md5:abc123", "file2.txt": "md5:def456"},
             ),
-            ({"file1.txt": None, "file2.txt": ""}, {"file1.txt": None, "file2.txt": None}),
             ({"file1.txt": "sha256:abc123"}, {"file1.txt": "sha256:abc123"}),
         ],
     )
@@ -43,6 +42,11 @@ class TestFileDownloadRegistry:
         """Test preprocess_registry method with various registry inputs"""
         result = FileDownloadRegistry.preprocess_registry(registry)
         assert result == expected
+
+    def test_preprocess_registry_rejects_missing_hashes(self):
+        """Test preprocess_registry rejects entries that would disable verification."""
+        with pytest.raises(ValueError, match="file1.txt, file2.txt"):
+            FileDownloadRegistry.preprocess_registry({"file1.txt": None, "file2.txt": ""})
 
     @pytest.mark.parametrize(
         "md5_contents, expected",

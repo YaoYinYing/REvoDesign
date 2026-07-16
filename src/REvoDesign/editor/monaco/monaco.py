@@ -3,10 +3,12 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+import base64
 import os
 import shutil
 from urllib.parse import urlencode
 
+import requests
 from platformdirs import user_data_dir
 
 from REvoDesign import issues
@@ -19,6 +21,29 @@ from ...tools.utils import extract_archive, run_worker_thread_in_pool
 from .config import ConfigStore
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+
+def _npm_integrity_to_pooch_hash(integrity: str) -> str:
+    hash_name, hash_value = integrity.split("-", 1)
+    return f"{hash_name}:{base64.b64decode(hash_value).hex()}"
+
+
+def _get_monaco_tarball_hash(version: str) -> str:
+    metadata_url = f"https://registry.npmjs.org/monaco-editor/{version}"
+    response = requests.get(metadata_url, timeout=30)
+    response.raise_for_status()
+    package_metadata = response.json()
+
+    tarball_dist = package_metadata.get("dist", {})
+    integrity = tarball_dist.get("integrity")
+    if integrity:
+        return _npm_integrity_to_pooch_hash(integrity)
+
+    shasum = tarball_dist.get("shasum")
+    if shasum:
+        return f"sha1:{shasum}"
+
+    raise RuntimeError(f"Could not find npm integrity metadata for monaco-editor {version}")
 
 
 class MonacoEditorManager:
@@ -100,7 +125,7 @@ class MonacoEditorManager:
         down_registry = FileDownloadRegistry(
             name="monaco-editor",
             base_url=cdn_base_url,
-            registry={f"monaco-editor-{version}.tgz": None},
+            registry={f"monaco-editor-{version}.tgz": _get_monaco_tarball_hash(version)},
             version=version,
             customized_directory=self.editor_path,
             # https://github.com/amio/npm-mirrors/blob/master/index.js

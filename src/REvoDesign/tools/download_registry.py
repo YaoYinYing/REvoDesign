@@ -160,14 +160,25 @@ class FileDownloadRegistry(CitableModuleAbstract):
         return f"{hash_type}:{a_string}"
 
     @staticmethod
-    def preprocess_registry(registry: dict[str, str | None]) -> dict[str, str | None]:
+    def preprocess_registry(registry: dict[str, str | None]) -> dict[str, str]:
         """
         Preprocess registry to ensure all hash values conform to pooch requirements.
 
         :param registry: Original registry.
         :return: Processed registry.
         """
-        return {k: FileDownloadRegistry._complete_varify_string(v) for k, v in registry.items()}
+        processed: dict[str, str] = {}
+        missing_hashes: list[str] = []
+        for filename, hash_value in registry.items():
+            completed_hash = FileDownloadRegistry._complete_varify_string(hash_value)
+            if completed_hash is None:
+                missing_hashes.append(filename)
+                continue
+            processed[filename] = completed_hash
+        if missing_hashes:
+            missing = ", ".join(sorted(missing_hashes))
+            raise ValueError(f"Download registry entries require hashes: {missing}")
+        return processed
 
     @get_cited
     def setup(self, item: str) -> DownloadedFile:

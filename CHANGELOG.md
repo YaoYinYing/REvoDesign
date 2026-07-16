@@ -130,6 +130,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
+- **Download registry integrity checks**: file registries now reject entries
+  without hashes, Monaco editor downloads verify npm tarball integrity metadata,
+  and remote ESM weight downloads fail closed until verified checksums are
+  configured.
 - **Generated socket authentication keys**: `generate_strong_password()` now uses
   `secrets.choice` instead of the default pseudo-random generator when creating
   authentication/password strings.

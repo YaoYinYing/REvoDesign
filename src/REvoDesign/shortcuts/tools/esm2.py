@@ -26,7 +26,6 @@ from tqdm import tqdm
 from REvoDesign import issues
 from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
-from REvoDesign.tools.download_registry import FileDownloadRegistry
 from REvoDesign.tools.utils import get_cited, require_installed
 
 from ...logger import ROOT_LOGGER
@@ -50,9 +49,7 @@ ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
     }
 )
 
-ESM1V_WEIGHTS = FileDownloadRegistry(
-    name="ESM2", base_url=ESM_MODEL_BASE_URL, registry={f"{v}.pt": None for v in ESM1V_MODEL_DICT.values()}
-)
+ESM1V_WEIGHT_FILES = tuple(f"{v}.pt" for v in ESM1V_MODEL_DICT.values())
 
 
 def list_all_esm_variant_predict_model_names() -> list[str]:
@@ -62,7 +59,7 @@ def list_all_esm_variant_predict_model_names() -> list[str]:
     Returns:
         list[str]: List of ESM-1v variant predict model names
     """
-    return ESM1V_WEIGHTS.list_all_files
+    return list(ESM1V_WEIGHT_FILES)
 
 
 def remove_insertions(sequence: str) -> str:
@@ -207,9 +204,10 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
             logging.info(f"Loading model from {expected_model_path=}")
             return expected_model_path
 
-        # Download model from remote server
-        logging.info(f"Fetching model {model_name=} from {ESM1V_WEIGHTS.base_url}")
-        return ESM1V_WEIGHTS.setup(model_name).downloaded
+        raise issues.ConfigureError(
+            "Remote ESM model downloads are disabled until verified checksums are configured. "
+            "Set a checkpoint directory containing the requested model weight file instead."
+        )
 
     @get_cited
     def predict(self):
