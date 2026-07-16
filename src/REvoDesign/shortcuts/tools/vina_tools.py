@@ -9,8 +9,8 @@ GetBox Plugin.py --  Draws a box surrounding a selection and gets box informatio
 
 """
 
+import secrets
 from dataclasses import dataclass
-from random import randint
 from typing import Literal, overload
 
 import numpy as np
@@ -27,6 +27,15 @@ from ...tools.cgo_utils import GraphicObjectCollection as GOC
 from ...tools.cgo_utils import LineVertex, Point, PolyLines, Sphere
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+
+def _unique_pymol_name(prefix: str) -> str:
+    name = f"{prefix}_{secrets.randbelow(10001)}"
+    while name in cmd.get_names():
+        name = f"{prefix}_{secrets.randbelow(10001)}"
+    return name
+
+
 ##############################################################################
 # GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
 # This script is used to get box information for LeDock, Autodock Vina and AutoDock Vina.
@@ -356,9 +365,7 @@ Center: {self.cen_xyz[0]:.3f}, {self.cen_xyz[1]:.3f}, {self.cen_xyz[2]:.3f}"""
 
         """
         if not box_name:
-            boxName = "box_" + str(randint(0, 10000))
-            while boxName in cmd.get_names():
-                boxName = "box_" + str(randint(0, 10000))
+            boxName = _unique_pymol_name("box")
         else:
             boxName = box_name
 
@@ -691,10 +698,7 @@ def get_pca_box(selection="(sele)", new_box_name: str | None = None, extending=5
     """
     if not new_box_name:
         # Generate a unique box name if none is provided
-        boxName = "pca_box_" + str(randint(0, 10000))
-        while boxName in cmd.get_names():
-            # Ensure the generated box name is unique
-            boxName = "pca_box_" + str(randint(0, 10000))
+        boxName = _unique_pymol_name("pca_box")
     else:
         # Use the provided box name
         boxName = new_box_name
