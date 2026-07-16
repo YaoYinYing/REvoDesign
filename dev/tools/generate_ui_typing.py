@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import argparse
 import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
+
+import defusedxml.ElementTree as ET
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 UI_PATH = REPO_ROOT / "src/REvoDesign/UI/REvoDesign.ui"

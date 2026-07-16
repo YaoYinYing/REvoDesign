@@ -54,6 +54,7 @@ dependencies = [
     "fonttools",
     "pooch",
     "xlrd", # for Legacy Excel files (Excel 2007 and earlier) 
+    "defusedxml",
 ]
 
 [project.optional-dependencies]
