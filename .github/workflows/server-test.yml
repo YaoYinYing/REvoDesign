@@ -11,6 +11,10 @@ on:
     paths:
       - "server/**"
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   ServerTests:
     runs-on: ubuntu-latest
@@ -30,6 +34,8 @@ jobs:
 
       - name: Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -46,6 +52,11 @@ jobs:
         run: |
           python -m pytest server/tests/ -v --cov=pssm_gremlin_server --cov-report=xml --override-ini="addopts=" \
             -k "not Docker and not docker and not runner_image and not server_image and not test_server_image and not test_runner_image and not test_server_rejects and not test_server_reports and not running_gremlin"
+
+      - name: Upload coverage report to DeepSource
+        run: |
+          curl -fsSL https://cli.deepsource.com/install | BINDIR=./bin sh
+          ./bin/deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml --use-oidc
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
