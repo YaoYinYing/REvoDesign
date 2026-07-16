@@ -132,8 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Download registry integrity checks**: file registries now reject entries
   without hashes, Monaco editor downloads verify npm tarball integrity metadata,
-  and remote ESM weight downloads fail closed until verified checksums are
-  configured.
+  and remote ESM weight downloads verify configured MD5 hashes.
 - **Monaco editor token handling**: generated editor backend authentication
   tokens are no longer written to application logs.
 - **Generated socket authentication keys**: `generate_strong_password()` now uses

@@ -9,7 +9,7 @@ import yaml
 from REvoDesign import issues
 from REvoDesign.basic.extensions import resolve_extension
 from REvoDesign.common.file_extensions import ExtColl
-from REvoDesign.shortcuts.tools.esm2 import list_all_esm_variant_predict_model_names
+from REvoDesign.shortcuts.tools.esm2 import ESM1V_WEIGHTS, list_all_esm_variant_predict_model_names
 from REvoDesign.shortcuts.utils import REGISTRY_DIR, _build_asked_value, resolve_choice_from, resolve_default_value
 from REvoDesign.tools.utils import resolve_dotted_function
 
@@ -76,6 +76,13 @@ def test_resolve_choice_from(input_str, expected_type, expected_val):
     result = resolve_choice_from(input_str)
     assert isinstance(result, expected_type)
     assert result == expected_val
+
+
+def test_esm_model_registry_uses_hashes():
+    for model_file in list_all_esm_variant_predict_model_names():
+        registry_hash = ESM1V_WEIGHTS.registry[model_file]
+        assert registry_hash.startswith("md5:")
+        assert len(registry_hash) == len("md5:") + 32
 
 
 @pytest.mark.parametrize(

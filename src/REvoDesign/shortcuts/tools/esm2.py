@@ -26,6 +26,7 @@ from tqdm import tqdm
 from REvoDesign import issues
 from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.tools.download_registry import FileDownloadRegistry
 from REvoDesign.tools.utils import get_cited, require_installed
 
 from ...logger import ROOT_LOGGER
@@ -36,6 +37,19 @@ logging = ROOT_LOGGER.getChild(__name__)
 ESM1V_SCORING_STRATEGY_T = Literal["wt-marginals", "pseudo-ppl", "masked-marginals"]
 
 ESM_MODEL_BASE_URL = "https://dl.fbaipublicfiles.com/fair-esm/models"
+
+# run from yinying's download archive.
+# md5sum calculated by using:
+# `parallel -k  md5sum {} ::: $(ls esm1v_t33* esm_msa1b_t12_100M_UR50S.pt esm2_t36_3B_UR50D.pt)`
+ESM1V_MODEL_MD5 = """
+1f04c2d2636b02b544ecb5fbbef8fefd  esm1v_t33_650M_UR90S_1.pt
+e6c58fc8107d5e6629f9ca9b910319ec  esm1v_t33_650M_UR90S_2.pt
+6a1a631a87cf798f72f58c0a37aeebdd  esm1v_t33_650M_UR90S_3.pt
+fcba894a07ec87dfea4ca366e46c78b7  esm1v_t33_650M_UR90S_4.pt
+b1649837610e741f8b766b01f18890a3  esm1v_t33_650M_UR90S_5.pt
+d37a0d0dbe7431e48a72072b9180b16b  esm2_t36_3B_UR50D.pt
+f66445cc186f77dbbbe3184399523413  esm_msa1b_t12_100M_UR50S.pt
+"""
 
 ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
     {
@@ -50,6 +64,11 @@ ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
 )
 
 ESM1V_WEIGHT_FILES = tuple(f"{v}.pt" for v in ESM1V_MODEL_DICT.values())
+ESM1V_WEIGHTS = FileDownloadRegistry(
+    name="ESM2",
+    base_url=ESM_MODEL_BASE_URL,
+    registry=FileDownloadRegistry.prepare_registry_from_md5(ESM1V_MODEL_MD5),
+)
 
 
 def list_all_esm_variant_predict_model_names() -> list[str]:
@@ -59,7 +78,7 @@ def list_all_esm_variant_predict_model_names() -> list[str]:
     Returns:
         list[str]: List of ESM-1v variant predict model names
     """
-    return list(ESM1V_WEIGHT_FILES)
+    return ESM1V_WEIGHTS.list_all_files
 
 
 def remove_insertions(sequence: str) -> str:
@@ -204,10 +223,8 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
             logging.info(f"Loading model from {expected_model_path=}")
             return expected_model_path
 
-        raise issues.ConfigureError(
-            "Remote ESM model downloads are disabled until verified checksums are configured. "
-            "Set a checkpoint directory containing the requested model weight file instead."
-        )
+        logging.info(f"Fetching model {model_name=} from {ESM1V_WEIGHTS.base_url}")
+        return ESM1V_WEIGHTS.setup(model_name).downloaded
 
     @get_cited
     def predict(self):
