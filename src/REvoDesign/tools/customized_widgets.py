@@ -1361,37 +1361,45 @@ def getOpenFileNameWithExt(*args, **kwargs):
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QFontComboBox, value: QtGui.QFont | str): ...
+def set_widget_value(widget: QtWidgets.QFontComboBox, value: QtGui.QFont | str):
+    ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QStackedWidget, value: list): ...
+def set_widget_value(widget: QtWidgets.QStackedWidget, value: list):
+    ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QProgressBar, value: int | list[int] | tuple[int, int]): ...
+def set_widget_value(widget: QtWidgets.QProgressBar, value: int | list[int] | tuple[int, int]):
+    ...
 
 
 @overload
 def set_widget_value(
     widget: QtWidgets.QDoubleSpinBox | QtWidgets.QSpinBox, value: int | float | list[str] | tuple[str, str]
-): ...
+):
+    ...
 
 
 @overload
-def set_widget_value(widget: MultiCheckableComboBox, value: list | tuple | str | int | float): ...
+def set_widget_value(widget: MultiCheckableComboBox, value: list | tuple | str | int | float):
+    ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QComboBox, value: list | tuple | dict | str | int | float | bool): ...
+def set_widget_value(widget: QtWidgets.QComboBox, value: list | tuple | dict | str | int | float | bool):
+    ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QGridLayout, value: str): ...
+def set_widget_value(widget: QtWidgets.QGridLayout, value: str):
+    ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QLineEdit | QtWidgets.QLCDNumber | QtWidgets.QCheckBox, value: Any): ...
+def set_widget_value(widget: QtWidgets.QLineEdit | QtWidgets.QLCDNumber | QtWidgets.QCheckBox, value: Any):
+    ...
 
 
 def set_widget_value(widget, value):
@@ -1492,25 +1500,30 @@ def set_widget_value(widget, value):
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ...  # type: ignore
+def get_widget_value(widget: QtWidgets.QCheckBox) -> bool:  # type: ignore
+    ...
 
 
 @overload
 def get_widget_value(
     widget: QtWidgets.QComboBox | QtWidgets.QLineEdit | QtWidgets.QFontComboBox,
-) -> str: ...  # type: ignore
+) -> str:  # type: ignore
+    ...
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QDoubleSpinBox | QtWidgets.QLCDNumber) -> float: ...  # type: ignore
+def get_widget_value(widget: QtWidgets.QDoubleSpinBox | QtWidgets.QLCDNumber) -> float:  # type: ignore
+    ...
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QSpinBox | QtWidgets.QProgressBar) -> int: ...  # type: ignore
+def get_widget_value(widget: QtWidgets.QSpinBox | QtWidgets.QProgressBar) -> int:  # type: ignore
+    ...
 
 
 @overload
-def get_widget_value(widget: MultiCheckableComboBox) -> list[str]: ...  # type: ignore
+def get_widget_value(widget: MultiCheckableComboBox) -> list[str]:  # type: ignore
+    ...
 
 
 def get_widget_value(widget: QtWidgets.QWidget) -> Any:
