@@ -231,15 +231,14 @@ if _user_db.user_count() == 0:
 # notified so each user appears only once.
 _admin_digest_minutes = _env_int("ADMIN_NEW_USER_INFORM", 0)
 if _admin_digest_minutes > 0 and _env_str("ADMIN_NOTIFY_EMAIL", ""):
+    import secrets
     import threading
 
     _digest_lock = os.path.join(_env_str("SERVER_DIR", os.getcwd()), ".admin_digest.lock")
 
     def _digest_loop() -> None:
-        import random
-
         while True:
-            _jitter = random.uniform(-5, 5)  # spread worker wake-ups
+            _jitter = secrets.randbelow(10001) / 1000 - 5  # spread worker wake-ups
             time.sleep(_admin_digest_minutes * 60 + _jitter)
             try:
                 # ponytail: file lock so only one worker sends the digest
