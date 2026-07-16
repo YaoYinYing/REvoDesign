@@ -8,7 +8,9 @@ Utils for shortcuts
 """
 
 import os
-import subprocess
+import shutil
+# Used for launching a user-requested PyMOL preview with an argv list.
+import subprocess  # nosec B404
 from typing import Literal
 
 from pymol import cmd
@@ -17,6 +19,13 @@ from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
 from REvoDesign import ROOT_LOGGER
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+
+def _resolve_pymol_executable() -> str:
+    pymol_executable = shutil.which("pymol")
+    if pymol_executable is None:
+        raise RuntimeError("Unable to launch PyMOL preview: 'pymol' executable was not found on PATH.")
+    return pymol_executable
 
 
 def visualize_conformer_sdf(sdf_file_path: str, show_conformer: Literal["New Window", "Current Window"]):
@@ -54,10 +63,11 @@ def visualize_conformer_sdf(sdf_file_path: str, show_conformer: Literal["New Win
         pmlh.write("bg_color white\n")
 
     # Explicitly call a new PyMOL instance in the background
-    pymol_command = ["pymol", "-xi", pml_file_path]
-    subprocess.Popen(pymol_command)
+    pymol_command = [_resolve_pymol_executable(), "-xi", pml_file_path]
+    # Launches a user-requested PyMOL preview with an argv list and a resolved executable.
+    subprocess.Popen(pymol_command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # nosec B603
 
-    print(f"PyMOL launched in the background with {sdf_file_path}.")
+    logging.info("PyMOL launched in the background with %s.", sdf_file_path)
 
 
 def smiles_conformer_batch(smi: dict[str, str], num_conformer: int, save_dir: str, n_jobs: int = 1):

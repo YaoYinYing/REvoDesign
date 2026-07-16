@@ -21,7 +21,8 @@ import platform
 import re
 import shutil
 import socket
-import subprocess
+# Used for package-management commands with argv lists and registered process lifecycle handling.
+import subprocess  # nosec B404
 import sys
 import threading
 import time
@@ -573,7 +574,7 @@ def run_command(
             collector.append(line)
         pipe.close()
 
-    process = subprocess.Popen(
+    process = subprocess.Popen(  # nosec B603
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

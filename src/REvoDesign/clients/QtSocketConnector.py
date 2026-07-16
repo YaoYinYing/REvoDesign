@@ -15,7 +15,8 @@ Team work module
 
 import base64
 import copy
-import pickle  # nosec B403: inter-process Qt socket serialization, trusted local context
+# Inter-process Qt socket serialization uses a trusted local context.
+import pickle  # nosec B403
 import socket
 import time
 import traceback

@@ -10,7 +10,7 @@ Running Randomized Multi-Design
 
 import copy
 import os
-import random
+import secrets
 import warnings
 from itertools import pairwise
 
@@ -461,8 +461,8 @@ class MultiMutantDesigner:
 
         This method randomly selects a mutant for the design process.
         """
-        branch = random.choice(self.design_pool_tree_copy.all_mutant_branch_ids)
-        mut = random.choice(list(self.design_pool_tree_copy.get_a_branch(branch).items()))
+        branch = secrets.choice(self.design_pool_tree_copy.all_mutant_branch_ids)
+        mut = secrets.choice(list(self.design_pool_tree_copy.get_a_branch(branch).items()))
         return branch, mut
 
     def _is_compatible_mutant(

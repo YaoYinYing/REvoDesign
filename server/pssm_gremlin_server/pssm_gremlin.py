@@ -958,4 +958,5 @@ def run_gremlin_task(md5sum):
 importlib.import_module("pssm_gremlin_server.routes")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=CONFIG.port)  # nosec B104: containerized server, binding to all interfaces by design
+    # Containerized server binds to all interfaces by design.
+    app.run(host="0.0.0.0", port=CONFIG.port)  # nosec B104

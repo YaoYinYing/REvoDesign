@@ -12,7 +12,8 @@
 
 import os
 import pathlib
-import pickle  # nosec B403: MRF model serialization, trusted data
+# MRF model serialization uses trusted data.
+import pickle  # nosec B403
 import sys
 
 import matplotlib

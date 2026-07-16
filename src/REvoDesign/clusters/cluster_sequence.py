@@ -246,7 +246,8 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         handle = open(self.fastafile)
         self.records = list(SeqIO.parse(handle, "fasta"))
         if self.shuffle_variant:
-            rng = random.Random(self.random_seed)
+            # Deterministic clustering order is controlled by the UI random-seed setting.
+            rng = random.Random(self.random_seed)  # nosec B311
             self.records = rng.sample(self.records, len(self.records))
 
         nm_seqs = len(self.records)
