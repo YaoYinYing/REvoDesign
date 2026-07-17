@@ -212,7 +212,9 @@ class DLPacker_worker(MutateRunnerAbstract):
             logging.warning(f"Fixed {nproc=} to {num_task=}")
             nproc = num_task
 
-        results = Parallel(n_jobs=nproc, return_as="list")(delayed(self.run_mutate)(mutant) for mutant in mutants)
+        results = Parallel(n_jobs=nproc, return_as="list")(
+            delayed(self.run_mutate)(mutant) for mutant in mutants
+        )
 
         gc.collect()
         return list(results)  # type: ignore
@@ -229,7 +231,19 @@ keywords = {3DCNN, DNN, protein structure prediction, side chain restoration, U-
 doi = {https://doi.org/10.1002/prot.26311},
 url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/prot.26311},
 eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/prot.26311},
-abstract = {Abstract Prediction of side chain conformations of amino acids in proteins (also termed “packing”) is an important and challenging part of protein structure prediction with many interesting applications in protein design. A variety of methods for packing have been developed but more accurate ones are still needed. Machine learning (ML) methods have recently become a powerful tool for solving various problems in diverse areas of science, including structural biology. In this study, we evaluate the potential of deep neural networks (DNNs) for prediction of amino acid side chain conformations. We formulate the problem as image-to-image transformation and train a U-net style DNN to solve the problem. We show that our method outperforms other physics-based methods by a significant margin: reconstruction RMSDs for most amino acids are about 20\% smaller compared to SCWRL4 and Rosetta Packer with RMSDs for bulky hydrophobic amino acids Phe, Tyr, and Trp being up to 50\% smaller.},
+abstract = {Abstract Prediction of side chain conformations of amino acids in proteins
+(also termed “packing”) is an important and challenging part of protein
+structure prediction with many interesting applications in protein design. A
+variety of methods for packing have been developed but more accurate ones are
+still needed. Machine learning (ML) methods have recently become a powerful tool
+for solving various problems in diverse areas of science, including structural
+biology. In this study, we evaluate the potential of deep neural networks (DNNs)
+for prediction of amino acid side chain conformations. We formulate the problem
+as image-to-image transformation and train a U-net style DNN to solve the
+problem. We show that our method outperforms other physics-based methods by a
+significant margin: reconstruction RMSDs for most amino acids are about 20\%
+smaller compared to SCWRL4 and Rosetta Packer with RMSDs for bulky hydrophobic
+amino acids Phe, Tyr, and Trp being up to 50\% smaller.},
 year = {2022}
 }
 

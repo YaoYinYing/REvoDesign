@@ -802,7 +802,9 @@ def _load_b_factors(
                 bfact_ori = bf_chain.get(pos)
             except (IndexError, KeyError, issues.InvalidInputError):
                 logging.warning(
-                    f"Position {pos} (zero-indexed {pos - 1}) exceeds the length of new B-factor data ({len(bf_chain.bfactor_data)}); setting B-factor to -1.0"
+                    f"Position {pos} (zero-indexed {pos - 1}) exceeds the length of "
+                    f"new B-factor data ({len(bf_chain.bfactor_data)}); setting "
+                    "B-factor to -1.0"
                 )
                 continue
             bfacts_orignal.append(bfact_ori)

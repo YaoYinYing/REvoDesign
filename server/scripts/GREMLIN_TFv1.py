@@ -327,7 +327,14 @@ mrf = GREMLIN(msa, opt_iter=gremlin_iter)
 # ## Explore the contact map
 # ### Contact prediction:
 #
-# For contact prediction, the W matrix is reduced from LxLx21x21 to LxL matrix (by taking the L2norm for each of the 20x20). In the code below, you can access this as mtx["raw"]. Further correction (average product correction) is then performed to the mtx["raw"] to remove the effects of entropy, mtx["apc"]. The relative ranking of mtx["apc"] is used to assess importance. When there are enough effective sequences (>1000), we find that the top 1.0L contacts are ~90% accurate! When the number of effective sequences is lower, NN can help clean noise and fill in missing contacts.
+# For contact prediction, the W matrix is reduced from LxLx21x21 to LxL matrix
+# by taking the L2 norm for each of the 20x20 slices. In the code below, you can
+# access this as mtx["raw"]. Further correction (average product correction) is
+# then performed to remove entropy effects, producing mtx["apc"]. The relative
+# ranking of mtx["apc"] is used to assess importance. When there are enough
+# effective sequences (>1000), we find that the top 1.0L contacts are ~90%
+# accurate. When the number of effective sequences is lower, NN can help clean
+# noise and fill in missing contacts.
 #
 
 # ## Functions for extracting contacts from MRF
