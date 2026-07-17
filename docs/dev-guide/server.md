@@ -383,6 +383,44 @@ Flask test clients with temporary SQLite databases and environment variables.
 A dedicated CI workflow (``.github/workflows/server-test.yml``) runs non-Docker
 tests on every push touching ``server/**``.
 
+### Current Security Test Coverage
+
+The current automated security coverage is concentrated in:
+
+- `server/tests/test_security.py`: login throttling, enumeration resistance,
+  cookie-only write rejection, token tampering, password policy, admin
+  self-protection, batch-user authorization, upload/path handling, SQL/XSS
+  payload handling, plus-alias registration policy, task-id validation, and
+  endpoint method/content-type rejection.
+- `server/tests/test_security_advanced.py`: upload/download path traversal,
+  CRLF/header-injection probes, SSTI/RCE-style payloads, command-injection
+  filenames, eval/prototype-pollution payloads, YAML/pickle body rejection, API
+  key brute-force rejection, and binary upload rejection.
+- `server/tests/test_auth.py`: auth/session behavior that security checks rely
+  on, including Bearer-vs-cookie gates, API key lifecycle and privilege limits,
+  guest restrictions, CAPTCHA/token validation, forgot-password throttling,
+  deleted/pending/unverified-user rejection, registration/upload rate limits,
+  upload validation, task ownership separation, and schema validation.
+
+Current local evaluation snapshot, after `make clean`:
+
+```bash
+conda run -n REvoDesignTestFlight python -m pytest \
+  server/tests/test_security.py \
+  server/tests/test_security_advanced.py \
+  server/tests/test_auth.py \
+  -k "security or attack or api_key or rate_limit or deleted_user or pending_user or unverified_email or admin" \
+  --no-cov
+```
+
+Result on 2026-07-17: `66 passed, 43 deselected in 22.93s`.
+
+This is a non-Docker Flask test-client evaluation. It does not prove live Docker
+socket behavior, Docker runtime group mapping, reverse-proxy header handling, or
+staging deployment isolation. Use the manual security validation checks below
+after Docker Compose, user/group, runner-launch, auth, or account-status
+changes.
+
 ## Security Validation
 
 Run these checks after auth, account-status, Docker Compose, user/group, or
