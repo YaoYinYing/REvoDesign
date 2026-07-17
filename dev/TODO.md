@@ -20,8 +20,6 @@
     `tests/conftest.py:53-124` calls `set_REvoDesign_config_file()` at import time, which may pop up Qt dialogs and can delete the user's `~/Library/Application Support/REvoDesign/config` tree if the user confirms. Mock `platformdirs.user_data_dir`/`user_cache_dir` so tests operate entirely inside the repo.
 16. **High – RFdiffusion weight downloads block the UI**
     `src/REvoDesign/shortcuts/tools/rfdiffusion_tasks.py:90-151` fetches multi‑GB checkpoints synchronously inside `RfDiffusion.pick_model`, freezing PyMOL while `pooch` downloads. Move the download to `run_worker_thread_in_pool` and provide progress/abort hooks.
-17. **High – DglSolver silently runs pip install**
-    `src/REvoDesign/shortcuts/tools/rfdiffusion_tasks.py:33-70` detects CUDA and immediately executes `python -m pip install dgl==2.2.1` in the current interpreter without prompting or isolating the environment. Prompt the user and install inside a managed env/container so you don’t mutate the host Python unexpectedly.
 18. **High – Server keeps plaintext credentials in repo**
     `server/pssm_gremlin/pssm_gremlin.py:17-36` parses `users.txt` where each line is `username:password` and only hashes them at runtime, so the file on disk stores the raw passwords. Store hashed secrets (or use a proper auth backend) to avoid leaking credentials if the repo/server is compromised.
 19. **High – GREMLIN web service hardcodes cluster-only paths**

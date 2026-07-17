@@ -19,13 +19,14 @@ from dataclasses import dataclass
 import numpy as np
 from hydra import errors as hydra_errors
 from omegaconf import DictConfig, OmegaConf
+from pymol.Qt import QtWidgets
 
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
 from REvoDesign.bootstrap.set_config import is_package_installed, reload_config_file
 from REvoDesign.tools.download_registry import FileDownloadRegistry
-from REvoDesign.tools.package_manager import run_command
+from REvoDesign.tools.package_manager import decide, run_command
 from REvoDesign.tools.rfdiffusion_tools import SubstratePotentialVisualizer
 from REvoDesign.tools.utils import device_picker, get_cited, require_installed, timing
 
@@ -52,6 +53,12 @@ RFD_WEIGHTS_STR = """
 a6f8652938bb45c332ffa683d8ad3509 InpaintSeq_ckpt.pt
 6f4d00394d34f6a9072d70976f6c8777 RF_structure_prediction_weights.pt
 """
+
+DGL_INSTALL_APPROVAL_ENV = "REVODESIGN_ALLOW_DGL_INSTALL"
+
+
+def _has_qapplication() -> bool:
+    return QtWidgets.QApplication.instance() is not None
 
 
 @dataclass
@@ -84,12 +91,35 @@ class DglSolver:
                 stacklevel=2,
             )
 
+    def _install_approved(self, index_link: str) -> bool:
+        if os.environ.get(DGL_INSTALL_APPROVAL_ENV) == "1":
+            return True
+        if not _has_qapplication():
+            logging.warning(
+                "DGL installation requires interactive approval; no QApplication is available."
+            )
+            return False
+
+        return decide(
+            title="Install DGL?",
+            description=(
+                "RFdiffusion requires DGL, but it is not installed. "
+                "Install dgl==2.2.1 into the current Python environment?\n\n"
+                f"Package index: {index_link}"
+            ),
+            rich=True,
+        )
+
     def install(self):
         self.fetch_cuda_version_before_install()
         if self.cuda_version:
             index_link = f"https://data.dgl.ai/wheels/{self.cuda_version}/repo.html"
         else:
             index_link = "https://data.dgl.ai/wheels/repo.html"
+
+        if not self._install_approved(index_link):
+            logging.info("DGL installation was not approved.")
+            return False
 
         c = run_command(
             [sys.executable, "-m", "pip", "install", "dgl==2.2.1", "-f", index_link]
@@ -98,6 +128,7 @@ class DglSolver:
             logging.error(f"Failed to install DGL: {c.stderr}")
             raise RuntimeError(f"Failed to install DGL: {c.stderr}")
         self.installed = True
+        return True
 
 
 RFD_WEIGHTS = FileDownloadRegistry(
@@ -216,10 +247,18 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
         if (dgl_solver := DglSolver()).installed:
             return
 
-        warnings.warn(issues.MissingExternalTool("DGL is not installed. Now try to install it."), stacklevel=2)
+        warnings.warn(
+            issues.MissingExternalTool("DGL is not installed. User approval is required before installing it."),
+            stacklevel=2,
+        )
 
-        dgl_solver.install()
+        install_started = dgl_solver.install()
         if not dgl_solver.installed:
+            if not install_started:
+                raise issues.MissingExternalToolError(
+                    "DGL installation was cancelled. Install dgl==2.2.1 manually or approve installation "
+                    f"by setting {DGL_INSTALL_APPROVAL_ENV}=1."
+                )
             raise issues.MissingExternalToolError(
                 "DGL may not be installed. Please install it manually or take a restart to take effect."
             )
