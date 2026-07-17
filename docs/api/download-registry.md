@@ -26,7 +26,7 @@ registry = FileDownloadRegistry(
     base_url="https://example.com/data/",
     registry={
         "file1.pdb": "md5:abc123def456",
-        "file2.pkl": None,            # no hash verification
+        "file2.pkl": "sha256:0123456789abcdef...",
     },
     alternative_base_urls=["https://mirror.example.com/data/"],
     retry_count=3,
@@ -64,6 +64,10 @@ The `setup()` method returns a `DownloadedFile` dataclass that includes the
 local filesystem path. The archive extraction feature (`flatten_archive`) can
 automatically unpack `.tar.gz` and `.zip` archives into a `_flatten/`
 subdirectory.
+
+Every registry entry must include an `md5:`, `sha256:`, or other Pooch-supported
+hash string. Entries with `None` or an empty hash are rejected before any
+download starts.
 
 ## Creating Registries from MD5 Checksums
 

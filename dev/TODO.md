@@ -20,8 +20,6 @@
     `src/REvoDesign/tools/package_manager.py:2296-2345` executes `self.func` in `QThread.run()` without trapping exceptions or emitting an error signal. Failures just print to stderr while the UI thinks work succeeded. Catch exceptions, forward them through a signal, and surface them via `notify_signal`.
 13. **High – Tests still touch the real config tree**
     `tests/conftest.py:53-124` calls `set_REvoDesign_config_file()` at import time, which may pop up Qt dialogs and can delete the user's `~/Library/Application Support/REvoDesign/config` tree if the user confirms. Mock `platformdirs.user_data_dir`/`user_cache_dir` so tests operate entirely inside the repo.
-15. **High – Download registry accepts unsigned payloads**
-    `src/REvoDesign/tools/download_registry.py:133-152` leaves registry entries as `None`, so `pooch` skips hash verification and trusts whatever the server returns. Require hashes for every asset or refuse to download; otherwise a MITM can ship arbitrary binaries.
 16. **High – RFdiffusion weight downloads block the UI**
     `src/REvoDesign/shortcuts/tools/rfdiffusion_tasks.py:90-151` fetches multi‑GB checkpoints synchronously inside `RfDiffusion.pick_model`, freezing PyMOL while `pooch` downloads. Move the download to `run_worker_thread_in_pool` and provide progress/abort hooks.
 17. **High – DglSolver silently runs pip install**
