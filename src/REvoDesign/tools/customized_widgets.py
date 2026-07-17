@@ -142,7 +142,8 @@ class REvoDesignWidget(QtWidgets.QWidget):
 
     def check_repeat(self):
         """
-        Checks if a window with the same name is already open. If found, raises it to the front and raises a RuntimeError.
+        Checks if a window with the same name is already open. If found, raises
+        it to the front and raises a RuntimeError.
         """
         from REvoDesign.driver.ui_driver import ConfigBus
 
@@ -1360,6 +1361,7 @@ def getOpenFileNameWithExt(*args, **kwargs):
     return fname
 
 
+# fmt: off
 @overload
 def set_widget_value(widget: QtWidgets.QFontComboBox, value: QtGui.QFont | str):
     ...
@@ -1400,6 +1402,7 @@ def set_widget_value(widget: QtWidgets.QGridLayout, value: str):
 @overload
 def set_widget_value(widget: QtWidgets.QLineEdit | QtWidgets.QLCDNumber | QtWidgets.QCheckBox, value: Any):
     ...
+# fmt: on
 
 
 def set_widget_value(widget, value):

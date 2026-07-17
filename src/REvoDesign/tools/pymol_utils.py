@@ -166,7 +166,8 @@ def is_distal_residue_pair(
     - chain_id (str): The chain identifier.
     - resi_1 (int): The residue number of the first amino acid.
     - resi_2 (int): The residue number of the second amino acid.
-    - minimal_distance (float, optional): The minimum distance threshold for residues to be considered distal. Default is 20.
+    - minimal_distance (float, optional): The minimum distance threshold for
+        residues to be considered distal. Default is 20.
     - use_sidechain_angle (bool, optional): Whether to consider the orientation of side chains. Default is False.
 
     Returns:
@@ -348,7 +349,8 @@ def refresh_all_selections():
     Function: refresh_all_selections
     Usage: selections = refresh_all_selections()
 
-    This function refreshes and logs information about all PyMOL selections except 'sele' and those starting with '_align'.
+    This function refreshes and logs information about all PyMOL selections
+    except 'sele' and those starting with '_align'.
 
     Returns:
     - list: List of all non-'sele' selections (excluding those starting with '_align')
@@ -404,7 +406,10 @@ def make_temperal_input_pdb(
 ):
     """
         Function: make_temperal_input_pdb
-        Usage: input_file = make_temperal_input_pdb(molecule, chain_id=None, segment_id=None, format='pdb', wd=os.getcwd(), reload=True)
+        Usage: input_file = make_temperal_input_pdb(
+            molecule, chain_id=None, segment_id=None, format='pdb',
+            wd=os.getcwd(), reload=True
+        )
     exi
         This function generates a temporary input PDB file from the specified molecule selection.
         It supports selection by chain ID, segment ID, or both.

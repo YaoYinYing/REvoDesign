@@ -4,7 +4,8 @@
 
 
 """
-This module contains functions and classes related to managing SSL certificates and generating unique identifiers (UUIDs).
+This module contains functions and classes related to managing SSL certificates
+and generating unique identifiers (UUIDs).
 """
 
 import datetime
@@ -69,7 +70,8 @@ class SSLCertificateManager:
         Function: get_certificate
         Usage: get_certificate()
 
-        This function checks for the existence of an SSL certificate and generates a new one if it doesn't exist or has expired.
+        This function checks for the existence of an SSL certificate and
+        generates a new one if it doesn't exist or has expired.
 
 
         Returns:
@@ -100,7 +102,8 @@ class SSLCertificateManager:
         Function: create_new_certificate
         Usage: create_new_certificate()
 
-        This function creates a new SSL certificate and private key if they do not exist or if the certificate has expired.
+        This function creates a new SSL certificate and private key if they do
+        not exist or if the certificate has expired.
 
         Returns:
         - None
