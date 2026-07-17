@@ -61,7 +61,9 @@ _OPENKINETICS_PREDICTOR_BIBTEX = r"""@misc{OpenKineticsPredictorCitationPending,
 _PREDICTOR_BIBTEX = {
     "CataPro": r"""@article{Wang2025CataPro,
   title = {Robust enzyme discovery and engineering with deep learning using CataPro},
-  author = {Wang, Zechen and Xie, Dongqi and Wu, Dong and Luo, Xiaozhou and Wang, Sheng and Li, Yangyang and Yang, Yanmei and Li, Weifeng and Zheng, Liangzhen},
+  author = {Wang, Zechen and Xie, Dongqi and Wu, Dong and Luo, Xiaozhou and
+  Wang, Sheng and Li, Yangyang and Yang, Yanmei and Li, Weifeng and Zheng,
+  Liangzhen},
   journal = {Nature Communications},
   volume = {16},
   number = {1},
@@ -81,7 +83,8 @@ _PREDICTOR_BIBTEX = {
 }""",
     "DLKcat": r"""@article{Li2022DLKcat,
   title = {Deep learning-based kcat prediction enables improved enzyme-constrained model reconstruction},
-  author = {Li, Feiran and Yuan, Le and Lu, Hongzhong and Li, Gang and Chen, Yu and Engqvist, Martin K. M. and Kerkhoven, Eduard J. and Nielsen, Jens},
+  author = {Li, Feiran and Yuan, Le and Lu, Hongzhong and Li, Gang and Chen,
+  Yu and Engqvist, Martin K. M. and Kerkhoven, Eduard J. and Nielsen, Jens},
   journal = {Nature Catalysis},
   volume = {5},
   number = {8},
@@ -102,7 +105,8 @@ _PREDICTOR_BIBTEX = {
   url = {https://doi.org/10.1016/j.checat.2024.101094}
 }""",
     "KinForm": r"""@article{Alwer2026KinForm,
-  title = {KinForm: kinetics-informed feature optimised representation models for enzyme kcat and KM prediction},
+  title = {KinForm: kinetics-informed feature optimised representation models
+  for enzyme kcat and KM prediction},
   author = {Alwer, Saleh and Fleming, Ronan M. T.},
   journal = {npj Systems Biology and Applications},
   volume = {12},
@@ -112,7 +116,8 @@ _PREDICTOR_BIBTEX = {
   url = {https://doi.org/10.1038/s41540-026-00692-5}
 }""",
     "MMISA-KM": r"""@inproceedings{Song2025MMISAKM,
-  title = {MMISA-KM: a deep-learning method using multi-modal information and self-attention mechanisms for the prediction of Michaelis constants},
+  title = {MMISA-KM: a deep-learning method using multi-modal information and
+  self-attention mechanisms for the prediction of Michaelis constants},
   author = {Song, Aijie and Wang, Kai},
   booktitle = {2025 IEEE 14th Data Driven Control and Learning Systems (DDCLS)},
   pages = {2023--2028},
@@ -121,15 +126,22 @@ _PREDICTOR_BIBTEX = {
   url = {https://doi.org/10.1109/DDCLS66240.2025.11064981}
 }""",
     "OmniESI": r"""@misc{Nie2025OmniESI,
-  title = {OmniESI: A unified framework for enzyme-substrate interaction prediction with progressive conditional deep learning},
-  author = {Nie, Zhiwei and Zhang, Hongyu and Jiang, Hao and Liu, Yutian and Huang, Xiansong and Xu, Fan and Fu, Jie and Ren, Zhixiang and Tian, Yonghong and Zhang, Wen-Bin and Chen, Jie},
+  title = {OmniESI: A unified framework for enzyme-substrate interaction
+  prediction with progressive conditional deep learning},
+  author = {Nie, Zhiwei and Zhang, Hongyu and Jiang, Hao and Liu, Yutian and
+  Huang, Xiansong and Xu, Fan and Fu, Jie and Ren, Zhixiang and Tian, Yonghong
+  and Zhang, Wen-Bin and Chen, Jie},
   year = {2025},
   doi = {10.48550/arXiv.2506.17963},
   url = {https://doi.org/10.48550/arXiv.2506.17963}
 }""",
     "RealKcat": r"""@article{Sajeevan2025RealKcat,
   title = {Robust Prediction of Enzyme Variant Kinetics with RealKcat},
-  author = {Sajeevan, Karuna Anna and Osinuga, Abraham and B, Arunraj and Ferdous, Sakib and Shahreen, Nabia and Noor, Mohammed and Koneru, Shashank and Santa-Correa, Laura Mariana and Salehi, Rahil and Chowdhury, Niaz Bahar and Aryee, Randy and Calderon-Lopez, Brisa and Mali, Ankur and Saha, Rajib and Chowdhury, Ratul},
+  author = {Sajeevan, Karuna Anna and Osinuga, Abraham and B, Arunraj and
+  Ferdous, Sakib and Shahreen, Nabia and Noor, Mohammed and Koneru, Shashank
+  and Santa-Correa, Laura Mariana and Salehi, Rahil and Chowdhury, Niaz Bahar
+  and Aryee, Randy and Calderon-Lopez, Brisa and Mali, Ankur and Saha, Rajib
+  and Chowdhury, Ratul},
   year = {2025},
   doi = {10.1101/2025.02.10.637555},
   url = {https://doi.org/10.1101/2025.02.10.637555}
@@ -145,8 +157,11 @@ _PREDICTOR_BIBTEX = {
   url = {https://doi.org/10.1038/s41467-023-44113-1}
 }""",
     "IECata": r"""@article{Wang2025IECata,
-  title = {IECata: interpretable bilinear attention network and evidential deep learning improve the catalytic efficiency prediction of enzymes},
-  author = {Wang, Jingjing and Zhao, Yanpeng and Yang, Zhijiang and Yao, Ge and Han, Penggang and Liu, Jiajia and Chen, Chang and Zan, Peng and Wan, Xiukun and Bo, Xiaochen and Jiang, Hui},
+  title = {IECata: interpretable bilinear attention network and evidential deep
+  learning improve the catalytic efficiency prediction of enzymes},
+  author = {Wang, Jingjing and Zhao, Yanpeng and Yang, Zhijiang and Yao, Ge and
+  Han, Penggang and Liu, Jiajia and Chen, Chang and Zan, Peng and Wan, Xiukun
+  and Bo, Xiaochen and Jiang, Hui},
   journal = {Briefings in Bioinformatics},
   volume = {26},
   number = {3},

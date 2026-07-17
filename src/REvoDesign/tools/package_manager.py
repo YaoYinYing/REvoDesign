@@ -1034,14 +1034,17 @@ class MenuItem:
     """
     A data class representing a menu item.
 
-    This class is used to define the properties of a menu item, including its name, associated function, and optional arguments.
-    The use of the @dataclass decorator automatically generates special methods such as __init__(), __repr__(), and __eq__().
+    This class is used to define the properties of a menu item, including its
+    name, associated function, and optional arguments.
+    The use of the @dataclass decorator automatically generates special methods
+    such as __init__(), __repr__(), and __eq__().
     The frozen parameter ensures that instances of the class are immutable, enhancing thread safety and consistency.
 
     Attributes:
         name (str): The name of the menu item, used for display and identification.
         func (Callable): The function associated with the menu item, which is executed when the item is selected.
-        kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
+        kwargs (Optional[Mapping]): Optional arguments passed to the associated
+            function when it is executed. Defaults to None.
     """
 
     name: str
@@ -1102,8 +1105,10 @@ class REvoDesignPackageManager:
         """
         Check and apply an upgrade if necessary.
 
-        This function compares the original file with a new fetched file, generates a diff file if there are differences,
-        and prompts the user to confirm whether to apply the upgrade. If the user confirms, the new file replaces the original file.
+        This function compares the original file with a new fetched file,
+        generates a diff file if there are differences, and prompts the user to
+        confirm whether to apply the upgrade. If the user confirms, the new file
+        replaces the original file.
 
         Parameters:
         - original_file (str): The path to the original file.
@@ -1139,9 +1144,12 @@ class REvoDesignPackageManager:
             '<a style="background-color:yellow;color:blue;">:::::Upgrade Summary:::::</a><p>'
             "<table>"
             "<tr><th><b>Event</b></th><th>-</th><th><b>Affected Lines<b></th></tr>"
-            f'<tr><td><a style="background-color:green;color:white">Added  </a></td><td>:</td><td><a style="background-color:white;color:green;">{num_added_lines}</a></td></tr>'
-            f'<tr><td><a style="background-color:blue; color:white">Changed</a></td><td>:</td><td><a style="background-color:white;color:blue ;">{num_chged_lines}</a></td></tr>'
-            f'<tr><td><a style="background-color:red;  color:white">Deleted</a></td><td>:</td><td><a style="background-color:white;color:red  ;">{num_deled_lines}</a></td></tr>'
+            '<tr><td><a style="background-color:green;color:white">Added  </a></td>'
+            f'<td>:</td><td><a style="background-color:white;color:green;">{num_added_lines}</a></td></tr>'
+            '<tr><td><a style="background-color:blue; color:white">Changed</a></td>'
+            f'<td>:</td><td><a style="background-color:white;color:blue ;">{num_chged_lines}</a></td></tr>'
+            '<tr><td><a style="background-color:red;  color:white">Deleted</a></td>'
+            f'<td>:</td><td><a style="background-color:white;color:red  ;">{num_deled_lines}</a></td></tr>'
             "</table>"
             "You must check out these changes carefully.<p>"
             f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.",
@@ -1359,7 +1367,8 @@ class REvoDesignPackageManager:
         if not drop_sensitives:
             confirmed = decide(
                 title="Agree to collect SENSITIVE data?",
-                description="[!!!CAUSION!!!]Do you REALLY want to collect diagnostic information INCLUDING ALL SENSITIVE data?\n"
+                description="[!!!CAUSION!!!]Do you REALLY want to collect diagnostic "
+                "information INCLUDING ALL SENSITIVE data?\n"
                 "Please DO NOT share this information with anyone else or post it to public channels.",
             )
             if not confirmed:
@@ -2667,16 +2676,14 @@ def execute_on_main_thread(func: Callable[..., GuiResult], *args, **kwargs) -> G
 
 
 @overload
-def notify_box(message: str = "", error_type: None | type[Warning] = None, details: str | None = None) -> None:
-    ...
+def notify_box(message: str = "", error_type: None | type[Warning] = None, details: str | None = None) -> None: ...
 
 
 # Overload #2: Exception => NoReturn
 
 
 @overload
-def notify_box(message: str, error_type: type[Exception], details: str | None = None) -> NoReturn:
-    ...
+def notify_box(message: str, error_type: type[Exception], details: str | None = None) -> NoReturn: ...
 
 
 def notify_box(
@@ -2748,8 +2755,7 @@ def run_worker_thread_in_pool(
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
     notify_slot: Callable[[str], None] | None = None,
     **kwargs,
-) -> R:
-    ...
+) -> R: ...
 
 
 @overload
@@ -2759,8 +2765,7 @@ def run_worker_thread_in_pool(
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
     notify_slot: Callable[[str], None] | None = None,
     **kwargs,
-) -> R | None:
-    ...
+) -> R | None: ...
 
 
 def run_worker_thread_in_pool(

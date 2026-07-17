@@ -145,19 +145,24 @@ class ClusterTabController:
                 "AgglomerativeCluster uses the sequence distance matrix with average linkage and a precomputed metric."
             ),
             self.ui.label_cluster_agglomerative_representative_value: (
-                "Representatives are selected as the nearest centroid among clustered variants. This is not a medoid policy."
+                "Representatives are selected as the nearest centroid among clustered variants. "
+                "This is not a medoid policy."
             ),
             self.ui.page_cluster_evo: (
-                "Optional Evo inputs with positive weights are used when available; missing optional inputs are skipped and remaining weights are renormalized."
+                "Optional Evo inputs with positive weights are used when available; "
+                "missing optional inputs are skipped and remaining weights are renormalized."
             ),
             self.ui.lineEdit_cluster_evo_pssm_profile: (
-                "Optional PSSM input for EvoCluster. If the corresponding weight is positive, the file path must exist."
+                "Optional PSSM input for EvoCluster. If the corresponding weight is positive, "
+                "the file path must exist."
             ),
             self.ui.lineEdit_cluster_evo_esm1v_table: (
-                "Optional ESM-1v input for EvoCluster. If the corresponding weight is positive, the file path must exist."
+                "Optional ESM-1v input for EvoCluster. If the corresponding weight is positive, "
+                "the file path must exist."
             ),
             self.ui.lineEdit_cluster_evo_structure_pdb: (
-                "Optional structure input for EvoCluster spatial distance. A temporary input PDB may be generated when needed."
+                "Optional structure input for EvoCluster spatial distance. "
+                "A temporary input PDB may be generated when needed."
             ),
             self.ui.lineEdit_cluster_evo_esm_mutation_col: "Column name used to read ESM mutation identifiers.",
             self.ui.page_cluster_kmeans: (
@@ -170,13 +175,16 @@ class ClusterTabController:
                 "LegacyCluster is a deprecated compatibility mode that uses Ward linkage on the score matrix."
             ),
             self.ui.label_cluster_legacy_warning: (
-                "Use this only to reproduce historical behavior. Prefer AgglomerativeCluster or EvoCluster for new analyses."
+                "Use this only to reproduce historical behavior. "
+                "Prefer AgglomerativeCluster or EvoCluster for new analyses."
             ),
             self.ui.checkBox_cluster_mutate_and_relax: (
-                "Run Rosetta Mutate/Relax scoring after clustering without rewriting representative FASTA files by default."
+                "Run Rosetta Mutate/Relax scoring after clustering without rewriting representative "
+                "FASTA files by default."
             ),
             self.ui.checkBox_cluster_rosetta_override_representatives: (
-                "Rosetta scoring normally exports score tables only. Representative FASTA files are rewritten only when this explicit override option is enabled."
+                "Rosetta scoring normally exports score tables only. Representative FASTA files "
+                "are rewritten only when this explicit override option is enabled."
             ),
         }
 
