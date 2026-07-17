@@ -476,7 +476,8 @@ class GREMLIN_Tools(CitableModuleAbstract):
         "GREMLIN": r"""@article{
 doi:10.1073/pnas.1314045110,
 author = {Hetunandan Kamisetty  and Sergey Ovchinnikov  and David Baker },
-title = {Assessing the utility of coevolution-based residue–residue contact predictions in a sequence- and structure-rich era},
+title = {Assessing the utility of coevolution-based residue–residue contact
+predictions in a sequence- and structure-rich era},
 journal = {Proceedings of the National Academy of Sciences},
 volume = {110},
 number = {39},
@@ -485,5 +486,22 @@ year = {2013},
 doi = {10.1073/pnas.1314045110},
 URL = {https://www.pnas.org/doi/abs/10.1073/pnas.1314045110},
 eprint = {https://www.pnas.org/doi/pdf/10.1073/pnas.1314045110},
-abstract = {Recently developed methods have shown considerable promise in predicting residue–residue contacts in protein 3D structures using evolutionary covariance information. However, these methods require large numbers of evolutionarily related sequences to robustly assess the extent of residue covariation, and the larger the protein family, the more likely that contact information is unnecessary because a reasonable model can be built based on the structure of a homolog. Here we describe a method that integrates sequence coevolution and structural context information using a pseudolikelihood approach, allowing more accurate contact predictions from fewer homologous sequences. We rigorously assess the utility of predicted contacts for protein structure prediction using large and representative sequence and structure databases from recent structure prediction experiments. We find that contact predictions are likely to be accurate when the number of aligned sequences (with sequence redundancy reduced to 90\%) is greater than five times the length of the protein, and that accurate predictions are likely to be useful for structure modeling if the aligned sequences are more similar to the protein of interest than to the closest homolog of known structure. These conditions are currently met by 422 of the protein families collected in the Pfam database.}}""",
+abstract = {Recently developed methods have shown considerable promise in predicting
+residue–residue contacts in protein 3D structures using evolutionary covariance
+information. However, these methods require large numbers of evolutionarily
+related sequences to robustly assess the extent of residue covariation, and the
+larger the protein family, the more likely that contact information is
+unnecessary because a reasonable model can be built based on the structure of a
+homolog. Here we describe a method that integrates sequence coevolution and
+structural context information using a pseudolikelihood approach, allowing more
+accurate contact predictions from fewer homologous sequences. We rigorously
+assess the utility of predicted contacts for protein structure prediction using
+large and representative sequence and structure databases from recent structure
+prediction experiments. We find that contact predictions are likely to be
+accurate when the number of aligned sequences (with sequence redundancy reduced
+to 90\%) is greater than five times the length of the protein, and that accurate
+predictions are likely to be useful for structure modeling if the aligned
+sequences are more similar to the protein of interest than to the closest
+homolog of known structure. These conditions are currently met by 422 of the
+protein families collected in the Pfam database.}}""",
     }

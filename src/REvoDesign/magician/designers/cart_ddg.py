@@ -149,8 +149,11 @@ class ddg(ExternalDesignerAbstract):
     __bibtex__ = rosetta_utils.copy_rosetta_citation(
         {
             "Cartesian-ddG": """@article{doi:10.1021/acs.jctc.6b00819,
-author = {Park, Hahnbeom and Bradley, Philip and Greisen, Per Jr. and Liu, Yuan and Mulligan, Vikram Khipple and Kim, David E. and Baker, David and DiMaio, Frank},
-title = {Simultaneous Optimization of Biomolecular Energy Functions on Features from Small Molecules and Macromolecules},
+author = {Park, Hahnbeom and Bradley, Philip and Greisen, Per Jr.
+and Liu, Yuan and Mulligan, Vikram Khipple and Kim, David E. and Baker, David
+and DiMaio, Frank},
+title = {Simultaneous Optimization of Biomolecular Energy Functions on Features
+from Small Molecules and Macromolecules},
 journal = {Journal of Chemical Theory and Computation},
 volume = {12},
 number = {12},
