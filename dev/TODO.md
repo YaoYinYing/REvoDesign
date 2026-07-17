@@ -20,5 +20,3 @@
     `src/REvoDesign/clients/QtSocketConnector.py:813-863` responds to a `RequireKey` message by sending `self.authentication_key` before the server proves its identity. A malicious host can simply ask for the key and impersonate everyone. Authenticate the server (TLS + pinned cert) and only send a key through an already-authenticated channel.
 26. **Medium – pip installs run on the UI thread**
     `src/REvoDesign/tools/package_manager.py:861-925` calls `pip install/uninstall` directly from menu actions, blocking PyMOL for minutes during heavy installs. Dispatch these calls to `run_worker_thread_in_pool` and stream progress to the dashboard.
-27. **Medium – Archive browsing keeps every extraction forever**
-    `src/REvoDesign/driver/file_dialog.py:240-269` always expands compressed inputs into `<PWD>/expanded_compressed_files/<archive>` with no cleanup or quota. Repeated browsing bloats the session dir and a malicious 20 GB tar can fill the disk. Extract into a temp dir and delete it once the dialog closes.
