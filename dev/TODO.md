@@ -18,8 +18,6 @@
     `src/REvoDesign/tools/package_manager.py:2635-2661` starts a `WorkerThread` but then loops on `work_thread.isFinished()` calling `refresh_window()`/`time.sleep`, so the main thread stays blocked and abort buttons can’t repaint. Switch to signal-driven completion instead of polling.
 24. **High – WebSocket clients hand over the shared auth key on request**
     `src/REvoDesign/clients/QtSocketConnector.py:813-863` responds to a `RequireKey` message by sending `self.authentication_key` before the server proves its identity. A malicious host can simply ask for the key and impersonate everyone. Authenticate the server (TLS + pinned cert) and only send a key through an already-authenticated channel.
-25. **Medium – Git tag fetches are synchronous and unauthenticated**
-    `src/REvoDesign/tools/package_manager.py:2349-2380` hits the public GitHub tags API on startup without auth, caching, or error UI. When the rate limit is exceeded the manager freezes for ~10s and users see nothing. Add caching, a timeout, and a friendly error surface.
 26. **Medium – pip installs run on the UI thread**
     `src/REvoDesign/tools/package_manager.py:861-925` calls `pip install/uninstall` directly from menu actions, blocking PyMOL for minutes during heavy installs. Dispatch these calls to `run_worker_thread_in_pool` and stream progress to the dashboard.
 27. **Medium – Archive browsing keeps every extraction forever**

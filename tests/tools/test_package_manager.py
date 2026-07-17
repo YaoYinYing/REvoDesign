@@ -449,30 +449,32 @@ def test_pm_ensure_package(pip_installer, mocker):
 
 class TestGetGithubRepoTags:
 
-    def test_pm_valid_repo_url(self):
-        # Test a valid repository URL, expecting a list of tags
+    def test_pm_valid_repo_url(self, monkeypatch):
         repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
+        monkeypatch.setattr(
+            package_manager,
+            "_read_https_url",
+            lambda url, **_kwargs: json.dumps([{"name": "v1.0.0"}, {"name": "v1.1.0"}]).encode(),
+        )
+
         tags = get_github_repo_tags(repo_url)
-        if not tags:
-            pytest.skip("Live GitHub tags are unavailable in the current test environment.")
-        assert isinstance(tags, list)
-        assert len(tags) > 0
-        for tag in tags:
-            assert isinstance(tag, str)
+
+        assert tags == ["v1.0.0", "v1.1.0"]
 
     def test_pm_invalid_repo_url(self):
-        # Test an invalid repository URL, expecting an empty list
-        repo_url = "https://github.com/nonexistent/repo"
+        package_manager._GITHUB_TAG_CACHE.clear()
+        repo_url = "https://example.com/nonexistent/repo"
         tags = get_github_repo_tags(repo_url)
         assert isinstance(tags, list)
         assert len(tags) == 0
 
     def test_pm_http_error(self, monkeypatch):
-        # Test handling of HTTPError
-        def mock_urlopen(*args, **kwargs):
-            raise HTTPError(args[0], 404, "Not Found", None, None)
+        package_manager._GITHUB_TAG_CACHE.clear()
 
-        monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+        def mock_read(url, **_kwargs):
+            raise HTTPError(url, 404, "Not Found", None, None)
+
+        monkeypatch.setattr(package_manager, "_read_https_url", mock_read)
 
         repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
         tags = get_github_repo_tags(repo_url)
@@ -480,11 +482,12 @@ class TestGetGithubRepoTags:
         assert len(tags) == 0
 
     def test_pm_url_error(self, monkeypatch):
-        # Test handling of URLError
-        def mock_urlopen(*args, **kwargs):
+        package_manager._GITHUB_TAG_CACHE.clear()
+
+        def mock_read(*_args, **_kwargs):
             raise URLError("Failed to reach the server")
 
-        monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+        monkeypatch.setattr(package_manager, "_read_https_url", mock_read)
 
         repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
         tags = get_github_repo_tags(repo_url)
@@ -492,32 +495,47 @@ class TestGetGithubRepoTags:
         assert len(tags) == 0
 
 
-def test_pm_get_github_repo_tags_success():
-    """Test successful retrieval of tags."""
+def test_pm_get_github_repo_tags_uses_timeout_auth_and_cache(monkeypatch):
+    calls = []
 
-    result = get_github_repo_tags("https://github.com/BradyAJohnston/MolecularNodes")
-    if not result:
-        pytest.skip("Live GitHub tags are unavailable in the current test environment.")
-    assert result, "Github repository tags should not be empty"
+    def mock_read(url, **kwargs):
+        calls.append((url, kwargs))
+        return json.dumps([{"name": "v2.0.0"}]).encode()
+
+    monkeypatch.setenv("GITHUB_TOKEN", "token-123")
+    monkeypatch.setattr(package_manager, "_read_https_url", mock_read)
+    package_manager._GITHUB_TAG_CACHE.clear()
+
+    result = get_github_repo_tags("https://github.com/test_owner/test_repo", timeout=3)
+
+    assert result == ["v2.0.0"]
+    assert calls == [
+        (
+            "https://api.github.com/repos/test_owner/test_repo/tags",
+            {
+                "timeout": 3,
+                "headers": {
+                    "Accept": "application/vnd.github+json",
+                    "Authorization": "Bearer token-123",
+                },
+            },
+        )
+    ]
+    assert package_manager._GITHUB_TAG_CACHE["https://api.github.com/repos/test_owner/test_repo/tags"] == ["v2.0.0"]
 
 
-def test_pm_get_github_repo_tags_http_error():
-    """Test handling of an HTTPError."""
-    with patch(
-        "urllib.request.urlopen",
-        side_effect=urllib.error.HTTPError(
-            url="https://api.github.com/repos/test_owner/test_repo/tags", code=404, msg="Not Found", hdrs=None, fp=None
-        ),
-    ):
-        result = get_github_repo_tags("https://github.com/test_owner/test_repo")
-        assert result == []
+def test_pm_get_github_repo_tags_falls_back_to_cached_tags(monkeypatch):
+    api_url = "https://api.github.com/repos/test_owner/test_repo/tags"
+    package_manager._GITHUB_TAG_CACHE[api_url] = ["cached-tag"]
 
+    def mock_read(url, **_kwargs):
+        raise urllib.error.URLError(reason="Network unreachable")
 
-def test_pm_get_github_repo_tags_url_error():
-    """Test handling of a URLError."""
-    with patch("urllib.request.urlopen", side_effect=urllib.error.URLError(reason="Network unreachable")):
-        result = get_github_repo_tags("https://github.com/test_owner/test_repo")
-        assert result == []
+    monkeypatch.setattr(package_manager, "_read_https_url", mock_read)
+
+    result = get_github_repo_tags("https://github.com/test_owner/test_repo")
+
+    assert result == ["cached-tag"]
 
 
 @pytest.mark.parametrize(

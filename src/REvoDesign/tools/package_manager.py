@@ -237,13 +237,19 @@ def _safe_parse_version(value: str) -> Version | None:
         return None
 
 
-def _read_https_url(url: str, timeout: float = 10.0) -> bytes:
+def _read_https_url(url: str, timeout: float = 10.0, headers: Mapping[str, str] | None = None) -> bytes:
     parsed = urlparse(url)
     if parsed.scheme != "https" or not parsed.netloc:
         raise ValueError(f"Only https URLs are allowed: {url}")
-    request = urllib.request.Request(url, headers={"User-Agent": "REvoDesign-PackageManager"})
+    request_headers = {"User-Agent": "REvoDesign-PackageManager"}
+    if headers:
+        request_headers.update(headers)
+    request = urllib.request.Request(url, headers=request_headers)
     with urllib.request.urlopen(request, timeout=timeout) as response:  # nosec B310
         return response.read()
+
+
+_GITHUB_TAG_CACHE: dict[str, list[str]] = {}
 
 
 def _python_version_matches(spec: str | None, current_version: str | None) -> bool:
@@ -2481,7 +2487,7 @@ class WorkerThread(QtCore.QThread):
         logging.debug("WorkerThread interrupt signal handled.")
 
 
-def get_github_repo_tags(repo_url) -> list[str]:
+def get_github_repo_tags(repo_url: str, *, timeout: float = 5.0) -> list[str]:
     """
     Retrieve all released tags of a GitHub repository using urllib.
 
@@ -2496,43 +2502,51 @@ def get_github_repo_tags(repo_url) -> list[str]:
         list: A list of tag names for the repository.
     """
 
-    # Extract the owner and repo name from the URL
-    parts = repo_url.split("/")
-    owner = parts[-2]
-    repo = parts[-1]
+    parsed = urlparse(repo_url)
+    parts = [part for part in parsed.path.strip("/").split("/") if part]
+    if parsed.scheme != "https" or parsed.netloc.lower() != "github.com" or len(parts) < 2:
+        logging.warning("Unsupported GitHub repository URL: %s", repo_url)
+        return []
+    owner, repo = parts[:2]
+    repo = repo.removesuffix(".git")
 
     # GitHub API URL for listing tags
     api_url = f"https://api.github.com/repos/{owner}/{repo}/tags"
+    headers = {"Accept": "application/vnd.github+json"}
+    github_token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if github_token:
+        headers["Authorization"] = f"Bearer {github_token}"
 
     try:
         # Send a GET request to the GitHub API
-        response_data = _read_https_url(api_url).decode()
+        response_data = _read_https_url(api_url, timeout=timeout, headers=headers).decode()
         # Parse JSON response data
         tags = json.loads(response_data)
         if not isinstance(tags, list):
             logging.error("Failed to parse GitHub tags response: expected a list.")
-            return []
+            return _GITHUB_TAG_CACHE.get(api_url, [])
         # Extract the name of each tag
         try:
             tag_names = [tag["name"] for tag in tags]
         except (KeyError, TypeError) as e:
             logging.error(f"Failed to extract tag names from GitHub response: {e}")
-            return []
+            return _GITHUB_TAG_CACHE.get(api_url, [])
+        _GITHUB_TAG_CACHE[api_url] = tag_names
         return tag_names
     except HTTPError as e:
         # Handle HTTP errors (e.g., repository not found, rate limit exceeded)
         logging.warning(f"GitHub API returned status code {e.code}")
-        return []
+        return _GITHUB_TAG_CACHE.get(api_url, [])
     except URLError as e:
         # Handle URL errors (e.g., network issues)
         logging.error(f"Failed to reach the server. Reason: {e.reason}")
-        return []
+        return _GITHUB_TAG_CACHE.get(api_url, [])
     except json.JSONDecodeError as e:
         logging.error(f"Failed to decode GitHub tags response as JSON: {e}")
-        return []
+        return _GITHUB_TAG_CACHE.get(api_url, [])
     except TypeError as e:
         logging.error(f"Failed to parse GitHub tags response: {e}")
-        return []
+        return _GITHUB_TAG_CACHE.get(api_url, [])
 
 
 # a minimum copy from `REvoDesign/tools/customized_widgets.py`
