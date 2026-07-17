@@ -34,8 +34,6 @@
     `server/pssm_gremlin/pssm_gremlin.py:38-120` assumes `/mnt/data/...`, `/mnt/db/...`, and `redis://localhost` exist and derives Docker mounts from `/home/{os.getlogin()}`. With no configuration hooks the service cannot run off that exact cluster. Externalize broker paths, DBs, and output dirs via a config file/env vars.
 20. **Medium – Config-driven env overrides clobber user variables**
     `src/REvoDesign/driver/environ_register.py:8-39` iterates `environ.yaml` and unconditionally sets each key in `os.environ`, overwriting whatever the shell provided (proxy settings, CUDA flags, etc.). Respect existing values or mark overrides explicitly in config.
-21. **High – SSL certificate manager writes weak certs**
-    `src/REvoDesign/tools/ssl_certificates.py:34-115` generates self-signed certs with a fixed serial number, week-long validity, and default filesystem permissions under a shared cache dir. Anyone on the box can read or overwrite the keys. Randomize serials, tighten permissions, and allow the validity to be configured.
 22. **High – “Background” workers busy-wait on the GUI thread**
     `src/REvoDesign/tools/package_manager.py:2635-2661` starts a `WorkerThread` but then loops on `work_thread.isFinished()` calling `refresh_window()`/`time.sleep`, so the main thread stays blocked and abort buttons can’t repaint. Switch to signal-driven completion instead of polling.
 23. **High – Aborting a worker interrupts the whole PyMOL session**
