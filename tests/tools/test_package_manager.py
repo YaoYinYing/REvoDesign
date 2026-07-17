@@ -762,3 +762,37 @@ def test_pm_thread_manage_kill_entry(qtbot, monkeypatch):
     assert manager.abort_overlays == []
     assert mock_cmd.interrupt.called
     assert result is None or result[0] == "aborted"
+
+
+def test_worker_thread_emits_and_records_errors(qtbot):
+    def failing_task():
+        raise RuntimeError("worker exploded")
+
+    worker_thread = package_manager.WorkerThread(failing_task)
+    errors = []
+    notifications = []
+    finished = []
+    worker_thread.error_signal.connect(errors.append)
+    worker_thread.notify_signal.connect(notifications.append)
+    worker_thread.finished_signal.connect(lambda: finished.append(True))
+
+    worker_thread.start()
+
+    qtbot.waitUntil(lambda: bool(finished), timeout=2000)
+    worker_thread.wait(2000)
+
+    assert worker_thread.handle_result() is None
+    assert isinstance(worker_thread.handle_error(), RuntimeError)
+    assert len(errors) == 1
+    assert isinstance(errors[0], RuntimeError)
+    assert notifications == ["RuntimeError: worker exploded"]
+
+
+def test_run_worker_thread_in_pool_reraises_worker_errors(qtbot, monkeypatch):
+    monkeypatch.setattr(package_manager, "refresh_window", lambda: None)
+
+    def failing_task():
+        raise RuntimeError("worker exploded")
+
+    with pytest.raises(RuntimeError, match="worker exploded"):
+        package_manager.run_worker_thread_in_pool(failing_task, notify_slot=lambda _message: None)

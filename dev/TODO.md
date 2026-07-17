@@ -16,8 +16,6 @@
    `src/REvoDesign/sidechain/mutate_runner/PIPPack.py:64-105` invokes `_initialize_with_a_model`, `_run_repack_single`, and `_run_repack_batch` on the third-party `PIPPack` object. These underscore-prefixed methods are not part of the public API and break whenever upstream refactors; switch to supported entrypoints or wrap the CLI.
 11. **High – Importing the logger mutates user state**  
     `src/REvoDesign/logger/logger.py:1-120` configures logging, creates directories under `user_log_path`, and spins up a background `QueueListener` during import. Simply touching `REvoDesign.logger` writes to the host filesystem and leaves live threads around; lazily initialize logging from the entrypoint instead.
-12. **High – WorkerThread drops exceptions**  
-    `src/REvoDesign/tools/package_manager.py:2296-2345` executes `self.func` in `QThread.run()` without trapping exceptions or emitting an error signal. Failures just print to stderr while the UI thinks work succeeded. Catch exceptions, forward them through a signal, and surface them via `notify_signal`.
 13. **High – Tests still touch the real config tree**
     `tests/conftest.py:53-124` calls `set_REvoDesign_config_file()` at import time, which may pop up Qt dialogs and can delete the user's `~/Library/Application Support/REvoDesign/config` tree if the user confirms. Mock `platformdirs.user_data_dir`/`user_cache_dir` so tests operate entirely inside the repo.
 16. **High – RFdiffusion weight downloads block the UI**

@@ -2422,6 +2422,7 @@ class WorkerThread(QtCore.QThread):
     """Custom worker thread for executing a function in a separate thread."""
 
     result_signal = QtCore.pyqtSignal(list)
+    error_signal = QtCore.pyqtSignal(object)
     finished_signal = QtCore.pyqtSignal()
     interrupt_signal = QtCore.pyqtSignal()
     notify_signal = QtCore.pyqtSignal(str)
@@ -2434,6 +2435,7 @@ class WorkerThread(QtCore.QThread):
         self.args = args or ()
         self.kwargs = kwargs or {}
         self.results = None
+        self.error: BaseException | None = None
         self.interrupt_signal.connect(self._handle_interrupt)
 
     def run(self):
@@ -2445,6 +2447,14 @@ class WorkerThread(QtCore.QThread):
             self.results = [self.func(*self.args, **self.kwargs)]
             if self.results:
                 self.result_signal.emit(self.results)
+        except BaseException as exc:  # noqa: B036 - worker errors are re-raised by the caller after thread join
+            self.error = exc
+            logging.exception("WorkerThread failed while running %s", self.func)
+            try:
+                self.error_signal.emit(exc)
+                self.notify_signal.emit(f"{type(exc).__name__}: {exc}")
+            except RuntimeError:
+                pass
         finally:
             try:
                 self.finished_signal.emit()
@@ -2461,6 +2471,9 @@ class WorkerThread(QtCore.QThread):
 
     def handle_result(self):
         return self.results
+
+    def handle_error(self):
+        return self.error
 
     def interrupt(self):
         self.requestInterruption()
@@ -2802,6 +2815,9 @@ def run_worker_thread_in_pool(
         time.sleep(0.01)
 
     result = work_thread.handle_result()
+    error = work_thread.handle_error()
+    if error is not None:
+        raise error
     return result[0] if result else None
 
 
