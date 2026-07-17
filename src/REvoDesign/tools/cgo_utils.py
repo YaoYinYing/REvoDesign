@@ -2503,7 +2503,7 @@ class GraphicObjectCollection(GraphicObject):
 # with timing('writing'):
 #     test_text()
 
-# font_path = "/Users/yyy/Downloads/simhei.ttf"
+# font_path = "/path/to/simhei.ttf"
 # text='Silver Bullet\n\nCool Kid'
 
 

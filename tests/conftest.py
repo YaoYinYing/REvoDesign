@@ -116,9 +116,9 @@ def check_real_config_dir(i: int):
     """
     A checkpoint to check whether the test suite has created the real config dir.
     """
-    the_dir = "/Users/yyy/Library/Application Support/REvoDesign/config"
-    if os.path.exists(the_dir):
-        raise RuntimeError(f"[{i}]The test suite has created this dir! {the_dir}")
+    real_config_dir = Path.home() / "Library" / "Application Support" / "REvoDesign" / "config"
+    if real_config_dir.exists():
+        raise RuntimeError(f"[{i}]The test suite has created this dir! {real_config_dir}")
 
 
 # check_real_config_dir(cck.i)

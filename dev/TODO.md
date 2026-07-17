@@ -12,8 +12,6 @@
    `src/REvoDesign/REvoDesign.py:103-145` calls `os.chdir(self.PWD)` every time a window opens, mutating the process-wide CWD for all other PyMOL plugins and threads. Persisting state should rely on explicit paths stored in the bus, not on moving the interpreter’s CWD.
 6. **Medium – ConfigBus is a mutable global singleton storing Qt widget handles**  
    `src/REvoDesign/driver/ui_driver.py:365-381` binds the singleton instance to the active UI and exposes widgets to every module. This leaks Qt objects across tests, prevents multiple windows, and requires manual resets (see `tests/conftest.reset_singletons`). Break ConfigBus into a pure configuration store plus scoped UI adapters so state does not persist globally.
-7. **Medium – Developer-only absolute paths are committed**  
-   The Makefile and tests refer to `/Users/yyy/...` (e.g., `Makefile:113`, `tests/data/test_data.py:393`), so running scripts on any other machine wipes or looks for that specific user’s home directory. Replace these with `$HOME`/config values or derive from repo-relative paths.
 8. **Medium – PIPPack runner calls private APIs of its dependency**  
    `src/REvoDesign/sidechain/mutate_runner/PIPPack.py:64-105` invokes `_initialize_with_a_model`, `_run_repack_single`, and `_run_repack_batch` on the third-party `PIPPack` object. These underscore-prefixed methods are not part of the public API and break whenever upstream refactors; switch to supported entrypoints or wrap the CLI.
 11. **High – Importing the logger mutates user state**  
@@ -21,7 +19,7 @@
 12. **High – WorkerThread drops exceptions**  
     `src/REvoDesign/tools/package_manager.py:2296-2345` executes `self.func` in `QThread.run()` without trapping exceptions or emitting an error signal. Failures just print to stderr while the UI thinks work succeeded. Catch exceptions, forward them through a signal, and surface them via `notify_signal`.
 13. **High – Tests still touch the real config tree**
-    `tests/conftest.py:53-124` calls `set_REvoDesign_config_file()` at import time, which may pop up Qt dialogs and can delete `/Users/yyy/Library/Application Support/REvoDesign/config` if the user confirms. Mock `platformdirs.user_data_dir`/`user_cache_dir` so tests operate entirely inside the repo.
+    `tests/conftest.py:53-124` calls `set_REvoDesign_config_file()` at import time, which may pop up Qt dialogs and can delete the user's `~/Library/Application Support/REvoDesign/config` tree if the user confirms. Mock `platformdirs.user_data_dir`/`user_cache_dir` so tests operate entirely inside the repo.
 14. **High – RFdiffusion helper forces Qt5Agg backend globally**
     `src/REvoDesign/tools/rfdiffusion_tools.py:1-7` unconditionally runs `matplotlib.use("Qt5Agg")` on import, breaking headless builds and notebooks that rely on Agg. Only set the backend when a GUI feature is invoked and honor `MPLBACKEND`.
 15. **High – Download registry accepts unsigned payloads**

@@ -112,7 +112,7 @@ install-pytorch-cpu-non-mac:
 # local dev
 reinstall:
 	make clean
-	make black;rm -r /Users/yyy/.REvoDesign/config/; pip install . -U
+	make black; rm -rf "$${HOME}/.REvoDesign/config/"; python -m pip install . -U
 
 compile-ui:
 	stage=compile bash tools/translate.sh
@@ -145,7 +145,7 @@ test:
 # ui-test-pymol:
 # 	# Run a tmp folder to make sure the tests are run on the installed version
 # 	mkdir -p $(TESTDIR)
-# 	cd $(TESTDIR); pymol -ckqy /Users/yyy/miniconda_py39_arm64/lib/python3.10/site-packages/REvoDesign/tests/cases/tabs/;
+# 	cd $(TESTDIR); pymol -ckqy $(PYTEST_CASES_PATH)/tabs/;
 
 # all test
 all-test:

@@ -392,7 +392,10 @@ class KeyData:
 
 @dataclass()
 class TestDataOnLocalMac(TestData):
-    test_data_repo: str = "/Users/yyy/Documents/protein_design/REvoDesignTutorial/"
+    test_data_repo: str = os.environ.get(
+        "REVODESIGN_TUTORIAL_DATA",
+        os.path.expanduser("~/Documents/protein_design/REvoDesignTutorial"),
+    )
 
 
 if __name__ == "__main__":
