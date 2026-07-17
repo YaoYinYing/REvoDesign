@@ -45,7 +45,27 @@ keywords = {docking, protein–ligand docking, binding energy, Monte Carlo minim
 doi = {https://doi.org/10.1002/prot.21086},
 url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/prot.21086},
 eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/prot.21086},
-abstract = {Abstract Protein–small molecule docking algorithms provide a means to model the structure of protein–small molecule complexes in structural detail and play an important role in drug development. In recent years the necessity of simulating protein side-chain flexibility for an accurate prediction of the protein–small molecule interfaces has become apparent, and an increasing number of docking algorithms probe different approaches to include protein flexibility. Here we describe a new method for docking small molecules into protein binding sites employing a Monte Carlo minimization procedure in which the rigid body position and orientation of the small molecule and the protein side-chain conformations are optimized simultaneously. The energy function comprises van der Waals (VDW) interactions, an implicit solvation model, an explicit orientation hydrogen bonding potential, and an electrostatics model. In an evaluation of the scoring function the computed energy correlated with experimental small molecule binding energy with a correlation coefficient of 0.63 across a diverse set of 229 protein– small molecule complexes. The docking method produced lowest energy models with a root mean square deviation (RMSD) smaller than 2 Å in 71 out of 100 protein–small molecule crystal structure complexes (self-docking). In cross-docking calculations in which both protein side-chain and small molecule internal degrees of freedom were varied the lowest energy predictions had RMSDs less than 2 Å in 14 of 20 test cases. Proteins 2006. © 2006 Wiley-Liss, Inc.},
+abstract = {Abstract Protein–small molecule docking algorithms provide a means to model
+the structure of protein–small molecule complexes in structural detail and play
+an important role in drug development. In recent years the necessity of
+simulating protein side-chain flexibility for an accurate prediction of the
+protein–small molecule interfaces has become apparent, and an increasing number
+of docking algorithms probe different approaches to include protein flexibility.
+Here we describe a new method for docking small molecules into protein binding
+sites employing a Monte Carlo minimization procedure in which the rigid body
+position and orientation of the small molecule and the protein side-chain
+conformations are optimized simultaneously. The energy function comprises van
+der Waals (VDW) interactions, an implicit solvation model, an explicit
+orientation hydrogen bonding potential, and an electrostatics model. In an
+evaluation of the scoring function the computed energy correlated with
+experimental small molecule binding energy with a correlation coefficient of
+0.63 across a diverse set of 229 protein– small molecule complexes. The docking
+method produced lowest energy models with a root mean square deviation (RMSD)
+smaller than 2 Å in 71 out of 100 protein–small molecule crystal structure
+complexes (self-docking). In cross-docking calculations in which both protein
+side-chain and small molecule internal degrees of freedom were varied the lowest
+energy predictions had RMSDs less than 2 Å in 14 of 20 test cases. Proteins
+2006. © 2006 Wiley-Liss, Inc.},
 year = {2006}
 }
     """,
@@ -60,7 +80,14 @@ year="2012",
 publisher="Springer New York",
 address="New York, NY",
 pages="143--155",
-abstract="RosettaLigand is premiere software for predicting how a protein and a small molecule interact. Benchmark studies demonstrate that 70{\%} of the top scoring RosettaLigand predicted interfaces are within 2{\AA} RMSD from the crystal structure [1]. The latest release of Rosetta ligand software includes many new features, such as (1) docking of multiple ligands simultaneously, (2) representing ligands as fragments for greater flexibility, (3) redesign of the interface during docking, and (4) an XML script based interface that gives the user full control of the ligand docking protocol.",
+abstract="RosettaLigand is premiere software for predicting how a protein and a
+small molecule interact. Benchmark studies demonstrate that 70{\%} of the top
+scoring RosettaLigand predicted interfaces are within 2{\AA} RMSD from the
+crystal structure [1]. The latest release of Rosetta ligand software includes
+many new features, such as (1) docking of multiple ligands simultaneously, (2)
+representing ligands as fragments for greater flexibility, (3) redesign of the
+interface during docking, and (4) an XML script based interface that gives the
+user full control of the ligand docking protocol.",
 isbn="978-1-61779-465-0",
 doi="10.1007/978-1-61779-465-0_10",
 url="https://doi.org/10.1007/978-1-61779-465-0_10"
@@ -84,7 +111,15 @@ number = {1},
 pages = {123-125},
 year = {2020},
 month = {12},
-abstract = {Many natural and designed proteins are only marginally stable limiting their usefulness in research and applications. Recently, we described an automated structure and sequence-based design method, called PROSS, for optimizing protein stability and heterologous expression levels that has since been validated on dozens of proteins. Here, we introduce improvements to the method, workflow and presentation, including more accurate sequence analysis, error handling and automated analysis of the quality of the sequence alignment that is used in design calculations.PROSS2 is freely available for academic use at https://pross.weizmann.ac.il. },
+abstract = {Many natural and designed proteins are only marginally stable limiting
+their usefulness in research and applications. Recently, we described an
+automated structure and sequence-based design method, called PROSS, for
+optimizing protein stability and heterologous expression levels that has since
+been validated on dozens of proteins. Here, we introduce improvements to the
+method, workflow and presentation, including more accurate sequence analysis,
+error handling and automated analysis of the quality of the sequence alignment
+that is used in design calculations.PROSS2 is freely available for academic use
+at https://pross.weizmann.ac.il. },
 issn = {1367-4803},
 doi = {10.1093/bioinformatics/btaa1071},
 url = {https://doi.org/10.1093/bioinformatics/btaa1071},
@@ -93,7 +128,20 @@ eprint = {https://academic.oup.com/bioinformatics/article-pdf/37/1/123/50321722/
 
 """,
             "PROSS": """
-@article{10.1016/j.molcel.2016.06.012, author = {Goldenzweig, A. and Goldsmith, M. and Hill, S. E. and Gertman, O. and Laurino, P. and Ashani, Y. and Dym, O. and Unger, T. and Albeck, S. and Prilusky, J. and Lieberman, R. L. and Aharoni, A. and Silman, I. and Sussman, J. L. and Tawfik, D. S. and Fleishman, S. J.}, title = {Automated structure- and sequence-based design of proteins for high bacterial expression and stability}, journal = {Molecular Cell}, year = {2016}, volume = {63}, issue = {2}, pages = {337-346}, doi = {10.1016/j.molcel.2016.06.012} }""",
+@article{10.1016/j.molcel.2016.06.012,
+author = {Goldenzweig, A. and Goldsmith, M. and Hill, S. E. and Gertman, O.
+and Laurino, P. and Ashani, Y. and Dym, O. and Unger, T. and Albeck, S.
+and Prilusky, J. and Lieberman, R. L. and Aharoni, A. and Silman, I.
+and Sussman, J. L. and Tawfik, D. S. and Fleishman, S. J.},
+title = {Automated structure- and sequence-based design of proteins for high
+bacterial expression and stability},
+journal = {Molecular Cell},
+year = {2016},
+volume = {63},
+issue = {2},
+pages = {337-346},
+doi = {10.1016/j.molcel.2016.06.012}
+}""",
         }
     )
 
