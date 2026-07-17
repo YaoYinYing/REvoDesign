@@ -14,7 +14,6 @@ import pwd
 import re
 import shutil
 import signal
-import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -44,6 +43,9 @@ from pssm_gremlin_server.auth import send_admin_digest  # noqa: E402
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
 TEMPLATE_IMAGE_DIR = os.path.join(THIS_DIR, "templates", "images")
+DEFAULT_SERVER_DIR = os.path.abspath(os.path.join(os.getcwd(), "pssm_gremlin_data"))
+DEFAULT_UNIREF30_DB = os.path.join(DEFAULT_SERVER_DIR, "db", "uniref30", "UniRef30_2022_02")
+DEFAULT_UNIREF90_DB = os.path.join(DEFAULT_SERVER_DIR, "db", "uniref90", "uniref90")
 
 app = Flask(__name__, template_folder="./templates")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MiB upload limit
@@ -170,7 +172,7 @@ class GremlinConfig:
 
     @classmethod
     def from_env(cls) -> GremlinConfig:
-        server_dir = _env_path("SERVER_DIR", "/mnt/data/yinying/server/")
+        server_dir = _env_path("SERVER_DIR", DEFAULT_SERVER_DIR)
         upload_folder = os.path.join(server_dir, "upload")
         results_folder = os.path.join(server_dir, "results")
         return cls(
@@ -180,11 +182,8 @@ class GremlinConfig:
             db_path=_env_path("DB_PATH", os.path.join(server_dir, "pssm_gremlin.sqlite3")),
             docker_image=os.environ.get("RUNNER_IMAGE", "revodesign-pssm-gremlin"),
             docker_user=_resolve_docker_user(),
-            uniref30_db=_env_path(
-                "DB_UNIREF30",
-                "/mnt/db/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02",
-            ),
-            uniref90_db=_env_path("DB_UNIREF90", "/mnt/db/uniref90/uniref90"),
+            uniref30_db=_env_path("DB_UNIREF30", DEFAULT_UNIREF30_DB),
+            uniref90_db=_env_path("DB_UNIREF90", DEFAULT_UNIREF90_DB),
             nproc=_env_int("NPROC", 16),
             maxmem=_env_int("MAXMEM", 64),
             port=_env_int("PORT", 8080),
@@ -539,11 +538,8 @@ def _build_running_trace(task: dict[str, Any]) -> str:
     return "\n".join(traced_lines)
 
 
-try:
-    _ROOT_MOUNT_DIRECTORY = f"/home/{os.getlogin()}"
-except OSError:
-    _ROOT_MOUNT_DIRECTORY = os.path.abspath(tempfile.gettempdir())
-    os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
+_ROOT_MOUNT_DIRECTORY = _env_path("RUNNER_HOST_ROOT", os.path.dirname(CONFIG.server_dir))
+os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 
 
 def _is_admin_user(username: str | None = None) -> bool:

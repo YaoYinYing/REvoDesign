@@ -14,10 +14,6 @@
     `src/REvoDesign/logger/logger.py:1-120` configures logging, creates directories under `user_log_path`, and spins up a background `QueueListener` during import. Simply touching `REvoDesign.logger` writes to the host filesystem and leaves live threads around; lazily initialize logging from the entrypoint instead.
 16. **High – RFdiffusion weight downloads block the UI**
     `src/REvoDesign/shortcuts/tools/rfdiffusion_tasks.py:90-151` fetches multi‑GB checkpoints synchronously inside `RfDiffusion.pick_model`, freezing PyMOL while `pooch` downloads. Move the download to `run_worker_thread_in_pool` and provide progress/abort hooks.
-18. **High – Server keeps plaintext credentials in repo**
-    `server/pssm_gremlin/pssm_gremlin.py:17-36` parses `users.txt` where each line is `username:password` and only hashes them at runtime, so the file on disk stores the raw passwords. Store hashed secrets (or use a proper auth backend) to avoid leaking credentials if the repo/server is compromised.
-19. **High – GREMLIN web service hardcodes cluster-only paths**
-    `server/pssm_gremlin/pssm_gremlin.py:38-120` assumes `/mnt/data/...`, `/mnt/db/...`, and `redis://localhost` exist and derives Docker mounts from `/home/{os.getlogin()}`. With no configuration hooks the service cannot run off that exact cluster. Externalize broker paths, DBs, and output dirs via a config file/env vars.
 20. **Medium – Config-driven env overrides clobber user variables**
     `src/REvoDesign/driver/environ_register.py:8-39` iterates `environ.yaml` and unconditionally sets each key in `os.environ`, overwriting whatever the shell provided (proxy settings, CUDA flags, etc.). Respect existing values or mark overrides explicitly in config.
 22. **High – “Background” workers busy-wait on the GUI thread**

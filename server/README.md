@@ -131,10 +131,11 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 
 | Variable | Purpose |
 | --- | --- |
-| `SERVER_DIR` | Host root for uploads, sqlite, and result folders. |
+| `SERVER_DIR` | Host root for uploads, sqlite, and result folders (default: `./pssm_gremlin_data`). |
+| `RUNNER_HOST_ROOT` | Host root allowed for Docker runner bind mounts (default: parent of `SERVER_DIR`). |
 | `LOG_DIR` | Host directory for Gunicorn/Celery logs. |
-| `DB_UNIREF30` | UniRef30 prefix path. |
-| `DB_UNIREF90` | UniRef90 BLAST prefix path. |
+| `DB_UNIREF30` | UniRef30 prefix path (default: `{SERVER_DIR}/db/uniref30/UniRef30_2022_02`). |
+| `DB_UNIREF90` | UniRef90 BLAST prefix path (default: `{SERVER_DIR}/db/uniref90/uniref90`). |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
 | `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`). |
