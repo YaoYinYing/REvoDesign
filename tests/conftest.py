@@ -26,6 +26,7 @@ from unittest.mock import MagicMock, patch
 # import hydra as unmocked_hydra
 import psutil
 import pytest
+import platformdirs
 from _pytest.nodes import Item
 from immutabledict import immutabledict
 from pymol import CmdException
@@ -35,9 +36,35 @@ from pytestqt import qtbot
 from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
 
+REPO_DIR = os.path.join(os.path.dirname(__file__), "..")
+TESTS_DIR = Path(__file__).resolve().parent
+REPO_ROOT_PATH = TESTS_DIR.parent
+MSA_ROOT = TESTS_DIR / "data" / "msa"
+MINIUC_ROOT = MSA_ROOT / "miniuc"
+TESTMINIUC_ROOT = MSA_ROOT / "testminiuc"
+
+# Keep import-time REvoDesign bootstrap away from the user's real config/cache tree.
+TEST_ROOT = os.path.abspath(".")
+DATA_DIRNAME = os.path.join(TEST_ROOT, "mock", "user_data", "REvoDesign")
+CACHE_DIRNAME = os.path.join(TEST_ROOT, "..", "tests", "downloaded", "cache")
+EXPECTED_MAIN_CONFIG_FILE = os.path.join(DATA_DIRNAME, "config", "main.yaml")
+os.makedirs(DATA_DIRNAME, exist_ok=True)
+os.makedirs(CACHE_DIRNAME, exist_ok=True)
+
+
+def _static_platform_dir(dirname: str):
+    def _impl(*args, **kwargs):
+        Path(dirname).mkdir(parents=True, exist_ok=True)
+        return dirname
+
+    return _impl
+
+
+platformdirs.user_data_dir = _static_platform_dir(DATA_DIRNAME)
+platformdirs.user_cache_dir = _static_platform_dir(CACHE_DIRNAME)
+
 from REvoDesign import REvoDesignPlugin
 from REvoDesign.basic.abc_singleton import reset_singletons
-from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
 from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
 from REvoDesign.common import MutantTree
 from REvoDesign.driver.ui_driver import ConfigBus
@@ -62,23 +89,6 @@ def _resolve_pytest_qt_api() -> str:
 
 
 PYTEST_QT_API = os.environ.setdefault("PYTEST_QT_API", _resolve_pytest_qt_api())
-
-
-REPO_DIR = os.path.join(os.path.dirname(__file__), "..")
-TESTS_DIR = Path(__file__).resolve().parent
-REPO_ROOT_PATH = TESTS_DIR.parent
-MSA_ROOT = TESTS_DIR / "data" / "msa"
-MINIUC_ROOT = MSA_ROOT / "miniuc"
-TESTMINIUC_ROOT = MSA_ROOT / "testminiuc"
-
-# mostly mock on data and cache to isolated from user's production system
-TEST_ROOT = os.path.abspath(".")
-DATA_DIRNAME = os.path.join(TEST_ROOT, "mock", "user_data", "REvoDesign")
-CACHE_DIRNAME = os.path.join(TEST_ROOT, "..", "tests", "downloaded", "cache")
-
-EXPECTED_MAIN_CONFIG_FILE = os.path.join(DATA_DIRNAME, "config", "main.yaml")
-os.makedirs(DATA_DIRNAME, exist_ok=True)
-os.makedirs(CACHE_DIRNAME, exist_ok=True)
 
 
 def copy_config_tree():
@@ -122,21 +132,6 @@ def check_real_config_dir(i: int):
 
 
 # check_real_config_dir(cck.i)
-
-# TODO: isolate from user's system by mocking the platformdirs module.
-
-# def _static_platform_dir(dirname: str):
-#     def _impl(*args, **kwargs):
-#         if not os.path.exists(dirname):
-#             os.makedirs(dirname)
-#         return dirname
-
-#     return _impl
-
-
-# platformdirs.user_data_dir = _static_platform_dir(DATA_DIRNAME)
-# platformdirs.user_cache_dir = _static_platform_dir(CACHE_DIRNAME)
-
 
 # check_real_config_dir(cck.i)
 # with (
@@ -447,7 +442,8 @@ class TestWorker:
         print(f"nproc: {nproc}")
         if self.in_which_runner.get("CIRCLECI") and nproc > self.test_data.nproc_circleci:
             print(
-                f"Fix nproc to reduce performance for CircleCI: {nproc} {os.cpu_count()}-> {self.test_data.nproc_circleci}"
+                "Fix nproc to reduce performance for CircleCI: "
+                f"{nproc} {os.cpu_count()}-> {self.test_data.nproc_circleci}"
             )
             set_widget_value(
                 self.plugin.ui.spinBox_nproc,
