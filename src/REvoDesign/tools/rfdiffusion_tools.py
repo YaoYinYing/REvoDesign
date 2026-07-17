@@ -278,6 +278,6 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
 
 # # Example usage:
 # visualizer = SubstratePotentialVisualizer(
-#     pdb_path="/Users/yyy/Documents/protein_design/REvoDesign-test-data/1SUO.pdb", lig_key="HEM"
+#     pdb_path="/path/to/1SUO.pdb", lig_key="HEM"
 # )
 # visualizer.plot_potential_field(save_to='HEM.png')
