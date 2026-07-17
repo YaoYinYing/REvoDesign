@@ -2,8 +2,8 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
+import os
 
-import matplotlib
 import numpy as np
 
 from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract
@@ -13,10 +13,19 @@ from REvoDesign.tools.utils import require_installed
 
 logging = ROOT_LOGGER.getChild(__name__)
 
-try:
-    matplotlib.use("QtAgg")
-except Exception as exc:
-    logging.debug("Falling back to default matplotlib backend: %s", exc)
+PREFERRED_INTERACTIVE_BACKEND = "QtAgg"
+
+
+def _prefer_interactive_backend_for_plotting() -> None:
+    if os.environ.get("MPLBACKEND"):
+        return
+
+    import matplotlib
+
+    try:
+        matplotlib.use(PREFERRED_INTERACTIVE_BACKEND, force=False)
+    except Exception as exc:
+        logging.debug("Falling back to default matplotlib backend: %s", exc)
 
 
 @require_installed
@@ -222,6 +231,8 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         save_to (str, default='default.png'):
             Path to save the plot. If 'default.png', the plot will be saved in the current working directory.
         """
+
+        _prefer_interactive_backend_for_plotting()
 
         import matplotlib.pyplot as plt
 

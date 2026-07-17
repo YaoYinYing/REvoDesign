@@ -20,8 +20,6 @@
     `src/REvoDesign/tools/package_manager.py:2296-2345` executes `self.func` in `QThread.run()` without trapping exceptions or emitting an error signal. Failures just print to stderr while the UI thinks work succeeded. Catch exceptions, forward them through a signal, and surface them via `notify_signal`.
 13. **High – Tests still touch the real config tree**
     `tests/conftest.py:53-124` calls `set_REvoDesign_config_file()` at import time, which may pop up Qt dialogs and can delete the user's `~/Library/Application Support/REvoDesign/config` tree if the user confirms. Mock `platformdirs.user_data_dir`/`user_cache_dir` so tests operate entirely inside the repo.
-14. **High – RFdiffusion helper forces Qt5Agg backend globally**
-    `src/REvoDesign/tools/rfdiffusion_tools.py:1-7` unconditionally runs `matplotlib.use("Qt5Agg")` on import, breaking headless builds and notebooks that rely on Agg. Only set the backend when a GUI feature is invoked and honor `MPLBACKEND`.
 15. **High – Download registry accepts unsigned payloads**
     `src/REvoDesign/tools/download_registry.py:133-152` leaves registry entries as `None`, so `pooch` skips hash verification and trusts whatever the server returns. Require hashes for every asset or refuse to download; otherwise a MITM can ship arbitrary binaries.
 16. **High – RFdiffusion weight downloads block the UI**
