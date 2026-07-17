@@ -16,8 +16,6 @@
     `src/REvoDesign/shortcuts/tools/rfdiffusion_tasks.py:90-151` fetches multi‑GB checkpoints synchronously inside `RfDiffusion.pick_model`, freezing PyMOL while `pooch` downloads. Move the download to `run_worker_thread_in_pool` and provide progress/abort hooks.
 22. **High – “Background” workers busy-wait on the GUI thread**
     `src/REvoDesign/tools/package_manager.py:2635-2661` starts a `WorkerThread` but then loops on `work_thread.isFinished()` calling `refresh_window()`/`time.sleep`, so the main thread stays blocked and abort buttons can’t repaint. Switch to signal-driven completion instead of polling.
-23. **High – Aborting a worker interrupts the whole PyMOL session**
-    `src/REvoDesign/tools/package_manager.py:2223-2244` handles every abort click by calling `cmd.interrupt()`, which cancels whatever PyMOL is currently doing—even unrelated jobs. Terminate only the subprocesses registered for that worker rather than nuking the global interpreter.
 24. **High – WebSocket clients hand over the shared auth key on request**
     `src/REvoDesign/clients/QtSocketConnector.py:813-863` responds to a `RequireKey` message by sending `self.authentication_key` before the server proves its identity. A malicious host can simply ask for the key and impersonate everyone. Authenticate the server (TLS + pinned cert) and only send a key through an already-authenticated channel.
 25. **Medium – Git tag fetches are synchronous and unauthenticated**

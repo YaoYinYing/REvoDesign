@@ -2352,11 +2352,8 @@ class ThreadExecutionManager(QtCore.QObject):
 
     def _handle_abort_request(self) -> None:
         self._aborted = True
-        try:
-            cmd.interrupt()
-        except Exception as exc:
-            logging.debug("Could not interrupt PyMOL command loop during worker abort: %s", exc)
         self.worker_thread.interrupt()
+        RunningProcessRegistry.terminate(self.worker_thread)
         if self.worker_thread.isRunning():
             self.worker_thread.quit()
             if not self.worker_thread.wait(100):

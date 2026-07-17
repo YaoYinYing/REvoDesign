@@ -732,6 +732,22 @@ def test_pm_thread_manage_kill_entry(qtbot, monkeypatch):
     button = QtWidgets.QPushButton("Killable")
     qtbot.addWidget(button)
 
+    class FakeProcess:
+        terminated = False
+        killed = False
+
+        def poll(self):
+            return None
+
+        def terminate(self):
+            self.terminated = True
+
+        def wait(self, timeout=None):
+            return 0
+
+        def kill(self):
+            self.killed = True
+
     def cancellable_task():
         thread = package_manager.QtCore.QThread.currentThread()
         start = time.monotonic()
@@ -743,6 +759,9 @@ def test_pm_thread_manage_kill_entry(qtbot, monkeypatch):
 
     worker_thread = package_manager.WorkerThread(cancellable_task)
     manager = package_manager.ThreadExecutionManager(worker_thread, description="Kill", trigger_buttons=button)
+    fake_process = FakeProcess()
+    package_manager.RunningProcessRegistry._worker_processes[id(worker_thread)] = {fake_process}
+    package_manager.RunningProcessRegistry._process_worker[id(fake_process)] = id(worker_thread)
     assert manager.abort_overlays
 
     mock_cmd = SimpleNamespace(interrupt=MagicMock())
@@ -760,7 +779,9 @@ def test_pm_thread_manage_kill_entry(qtbot, monkeypatch):
     result = worker_thread.handle_result()
 
     assert manager.abort_overlays == []
-    assert mock_cmd.interrupt.called
+    assert not mock_cmd.interrupt.called
+    assert fake_process.terminated
+    assert not fake_process.killed
     assert result is None or result[0] == "aborted"
 
 
