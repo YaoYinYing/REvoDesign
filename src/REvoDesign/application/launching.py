@@ -23,7 +23,8 @@ _STYLESHEET_DARK = """
     QLabel#labelStatus { color: #8b95a8; font-size: 13pt; }
     QLabel#labelDot { color: #4ecdc4; font-size: 10pt; }
     QLabel#labelInfoLeft, QLabel#labelInfoRight { color: #5a6578; font-size: 9pt; }
-    QProgressBar#progressBar { background-color: #232a3a; border: none; border-radius: 2px; min-height: 3px; max-height: 3px; }
+    QProgressBar#progressBar { background-color: #232a3a; border: none; border-radius: 2px;
+        min-height: 3px; max-height: 3px; }
     QProgressBar#progressBar::chunk { background-color: #4ecdc4; border-radius: 2px; }
 """
 
@@ -34,7 +35,8 @@ _STYLESHEET_LIGHT = """
     QLabel#labelStatus { color: #5a6578; font-size: 13pt; }
     QLabel#labelDot { color: #3db8b0; font-size: 10pt; }
     QLabel#labelInfoLeft, QLabel#labelInfoRight { color: #8b95a8; font-size: 9pt; }
-    QProgressBar#progressBar { background-color: #dfdcd6; border: none; border-radius: 2px; min-height: 3px; max-height: 3px; }
+    QProgressBar#progressBar { background-color: #dfdcd6; border: none; border-radius: 2px;
+        min-height: 3px; max-height: 3px; }
     QProgressBar#progressBar::chunk { background-color: #3db8b0; border-radius: 2px; }
 """
 

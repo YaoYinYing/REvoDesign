@@ -117,10 +117,12 @@ def reload_config_file(
     config_name: str = "main", overrides: list[str] | None = None, return_hydra_config: bool = False
 ) -> DictConfig:
     """
-    Reload a configuration yaml file in a Hydra manner. As we initialize hydra w/ initialize_config_dir,
-    which is the REVODESIGN_CONFIG_DIR at user's data directory, the config_name is supposed as a relative path of the yaml file.
+    Reload a configuration yaml file in a Hydra manner. As we initialize hydra
+    w/ initialize_config_dir, which is the REVODESIGN_CONFIG_DIR at user's data
+    directory, the config_name is supposed as a relative path of the yaml file.
     e.g. config_name="experiments/my_experiment" refers to experiments/my_experiment.yaml
-    the DictConfig object can be accessed like `reload_config_file(config_name="experiments/my_experiment")["experiments"]`
+    the DictConfig object can be accessed like
+    `reload_config_file(config_name="experiments/my_experiment")["experiments"]`
 
     Arguments:
         config_name (str): The name of the configuration file. Defaults to "main".
@@ -276,13 +278,15 @@ def list_all_config_files(config_dir: str, tree: bool = False) -> list[str]:
 
 def _iter_yaml_rel_paths(base_dir: str) -> list[str]:
     """
-    Iterates through the specified directory and its subdirectories to collect relative paths of all .yaml files
+    Iterates through the specified directory and its subdirectories to collect
+    relative paths of all .yaml files
 
     Args:
         base_dir (str): The base directory path to traverse
 
     Returns:
-        list[str]: A list containing relative paths of all found .yaml files with respect to base_dir, sorted in lexicographical order
+        list[str]: A list containing relative paths of all found .yaml files
+            with respect to base_dir, sorted in lexicographical order
     """
     base_dir = os.path.abspath(base_dir)
     rel_paths: list[str] = []

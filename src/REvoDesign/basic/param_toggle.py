@@ -22,8 +22,10 @@ class ParamChangeRegistryItem:
     """
     A class that registers a mapping between two config items.
 
-    This class is used to define how a change in one configuration item (source_cfg_item) should be mapped and registered
-    to another configuration item (target_cfg_item) through a UI widget signal. It uses a dictionary to map parameter values.
+        This class is used to define how a change in one configuration item
+        (source_cfg_item) should be mapped and registered to another
+        configuration item (target_cfg_item) through a UI widget signal. It uses
+        a dictionary to map parameter values.
 
     Attributes:
         widget_name (str): The name of the UI widget.
@@ -64,10 +66,12 @@ class ParamChangeRegistryItem:
 
     def register(self, register_func: Callable[[str, str, dict[str, tuple]], None], ui: Any):
         """
-        Registers the mapping between two configuration items by connecting the widget signal to the registration function.
+        Registers the mapping between two configuration items by connecting the
+        widget signal to the registration function.
 
         Args:
-            register_func (Callable[[str, str, Dict[str, Tuple]], None]): The function to be called when the signal is emitted.
+            register_func (Callable[[str, str, Dict[str, Tuple]], None]): The function to be
+                called when the signal is emitted.
             ui (Any): The UI instance containing the widgets.
         """
         event = self.widget_signal(ui=ui)

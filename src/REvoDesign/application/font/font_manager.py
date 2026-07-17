@@ -98,10 +98,12 @@ class FontSetter:
         """
         Set the window font based on the operating system type.
 
-        This method retrieves the current client operating system type and checks if it exists in the predefined font dictionary.
-        If the OS type is not found, the method returns without making any changes. If the OS type is found, it iterates through
-        the list of fonts associated with that OS type and sets the window font to the first available font family found in the
-        `self.font_families` list.
+        This method retrieves the current client operating system type and
+        checks if it exists in the predefined font dictionary. If the OS type is
+        not found, the method returns without making any changes. If the OS type
+        is found, it iterates through the list of fonts associated with that OS
+        type and sets the window font to the first available font family found
+        in the `self.font_families` list.
 
         Parameters:
         - None

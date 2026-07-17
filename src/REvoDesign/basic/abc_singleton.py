@@ -260,8 +260,10 @@ def reset_singletons():
     """
     Reset singleton classes.
 
-    This function is used to gracefully reset all singleton classes. It iterates through all subclasses of SingletonAbstract,
-    and if the subclass has an '_instance' attribute and it is not None, it calls the reset_instance method of that class.
+    This function is used to gracefully reset all singleton classes. It iterates
+    through all subclasses of SingletonAbstract, and if the subclass has an
+    '_instance' attribute and it is not None, it calls the reset_instance method
+    of that class.
 
     Note: This function does not accept parameters and does not return any value.
     """

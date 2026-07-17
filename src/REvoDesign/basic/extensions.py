@@ -72,7 +72,8 @@ class FileExtensionCollection:
         """
         Returns a list of all file extensions.
 
-        This property method iterates over the `self.extensions` list, extracting the 'ext' attribute from each extension object.
+        This property method iterates over the `self.extensions` list,
+        extracting the 'ext' attribute from each extension object.
         """
         return [e.ext for e in self.extensions]
 
@@ -189,10 +190,12 @@ def resolve_extension(extension: str) -> FileExtensionCollection:
          user-friendly names with a prefix `'Customized - '`.
 
     Args:
-        extension (str): The extension string to be resolved. It can be a predefined name or a custom list like `"pdb;csv"`.
+        extension (str): The extension string to be resolved. It can be a
+            predefined name or a custom list like `"pdb;csv"`.
 
     Returns:
-        Fext.ExtColl: An object representing the file extension collection, either from predefined values or custom input.
+        Fext.ExtColl: An object representing the file extension collection,
+            either from predefined values or custom input.
 
     Example:
         Given input `"pdb;csv"`, this will generate:

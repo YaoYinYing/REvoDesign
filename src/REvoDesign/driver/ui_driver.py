@@ -97,7 +97,8 @@ ConfigBusT = TypeVar("ConfigBusT", bound=HeadlessProtocol)
 @dataclass
 class Config:
     """
-    A dataclass to represent a configuration file. It contains the name, path, and configuration data of a configuration file.
+    A dataclass to represent a configuration file. It contains the name, path,
+    and configuration data of a configuration file.
 
     Attributes:
     name: str -- The name of the configuration file.
@@ -344,22 +345,29 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
     Methods:
         Non-headless Methods:
-            initialize_widget_with_cfg_group(): Initializes UI widgets with their corresponding configuration settings.
-            update_cfg_item_from_widget(widget_id: str): Updates a configuration setting based on the value of a UI widget.
-            register_widget_changes_to_cfg(): Registers UI widget changes to update the configuration settings.
+            initialize_widget_with_cfg_group(): Initializes UI widgets with their corresponding
+                configuration settings.
+            update_cfg_item_from_widget(widget_id: str): Updates a configuration setting based on
+                the value of a UI widget.
+            register_widget_changes_to_cfg(): Registers UI widget changes to update the
+                configuration settings.
             get_widget_from_id(widget_id: str): Retrieves a UI widget based on its ID.
-            get_widget_from_cfg_item(cfg_item: str): Retrieves a UI widget based on its corresponding configuration item.
+            get_widget_from_cfg_item(cfg_item: str): Retrieves a UI widget based on its
+                corresponding configuration item.
             get_widget_value(cfg_item: str): Retrieves the value of a UI widget based on its corresponding
                 configuration item.
             set_widget_value(cfg_item: str, value): Sets the value of a UI widget based on its corresponding
                 configuration item.
-            restore_widget_value(cfg_item: str): Restores the value of a UI widget to its default configuration setting.
+            restore_widget_value(cfg_item: str): Restores the value of a UI widget to its default
+                configuration setting.
             get_cfg_item(widget_id: str): Retrieves the configuration item corresponding to a UI widget ID.
             button(id: str): Retrieves a button widget based on its ID.
-            toggle_buttons(buttons: Iterable, set_enabled: bool = False): Toggles the enabled state of a list of buttons.
+            toggle_buttons(buttons: Iterable, set_enabled: bool = False): Toggles the enabled
+                state of a list of buttons.
 
         Headless Only Methods:
-            get_value(cfg_item: str, typing=None): Retrieves the value of a configuration item, with optional type casting.
+            get_value(cfg_item: str, typing=None): Retrieves the value of a configuration item,
+                with optional type casting.
             set_value(cfg_item: str, value): Sets the value of a configuration item.
 
         fp_lock(cfg_fps: Union[list, tuple, str], buttons_id_to_release: Union[list, tuple, str]): Locks or unlocks
@@ -503,6 +511,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             raise ValueError(f"{widget_id} is not a valid widget ID.")
         return cfg_item
 
+    # fmt: off
     @overload
     def get_value(
         self,
@@ -539,6 +548,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     @overload
     def get_value(self, cfg_item: str, converter: None) -> Any:
         ...
+    # fmt: on
 
     def get_value(
         self,
