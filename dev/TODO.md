@@ -14,8 +14,6 @@
     `src/REvoDesign/logger/logger.py:1-120` configures logging, creates directories under `user_log_path`, and spins up a background `QueueListener` during import. Simply touching `REvoDesign.logger` writes to the host filesystem and leaves live threads around; lazily initialize logging from the entrypoint instead.
 16. **High – RFdiffusion weight downloads block the UI**
     `src/REvoDesign/shortcuts/tools/rfdiffusion_tasks.py:90-151` fetches multi‑GB checkpoints synchronously inside `RfDiffusion.pick_model`, freezing PyMOL while `pooch` downloads. Move the download to `run_worker_thread_in_pool` and provide progress/abort hooks.
-20. **Medium – Config-driven env overrides clobber user variables**
-    `src/REvoDesign/driver/environ_register.py:8-39` iterates `environ.yaml` and unconditionally sets each key in `os.environ`, overwriting whatever the shell provided (proxy settings, CUDA flags, etc.). Respect existing values or mark overrides explicitly in config.
 22. **High – “Background” workers busy-wait on the GUI thread**
     `src/REvoDesign/tools/package_manager.py:2635-2661` starts a `WorkerThread` but then loops on `work_thread.isFinished()` calling `refresh_window()`/`time.sleep`, so the main thread stays blocked and abort buttons can’t repaint. Switch to signal-driven completion instead of polling.
 23. **High – Aborting a worker interrupts the whole PyMOL session**

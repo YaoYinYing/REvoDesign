@@ -26,16 +26,20 @@ def register_environment_variables():
     bus.cfg_group["environ"].reload()
 
     # retrieve the environment variables from config object
-    EnvironBindItemCollection: Mapping[str, Any] | None = bus.get_value("variables", dict, cfg="environ")
-    if not EnvironBindItemCollection:
+    environ_bind_items: Mapping[str, Any] | None = bus.get_value("variables", dict, cfg="environ")
+    if not environ_bind_items:
         logging.debug("No environment variables to register")
         return
+    override_existing = bool(bus.get_value("override_existing", bool, cfg="environ", default_value=False))
 
     # register environment variables
     logging.debug("Registering environment variables")
-    if isinstance(EnvironBindItemCollection, Mapping):
-        for k, v in EnvironBindItemCollection.items():
+    if isinstance(environ_bind_items, Mapping):
+        for k, v in environ_bind_items.items():
             if v is None:
+                continue
+            if k in os.environ and not override_existing:
+                logging.debug("Skipping %s because it already exists in the process environment", k)
                 continue
             logging.debug(f"Adding {k}: {v}")
             os.environ[k] = v

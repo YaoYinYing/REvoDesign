@@ -92,10 +92,15 @@ Example `environ.yaml` (keys are commented out by default; uncomment and set
 your values):
 
 ```yaml
+override_existing: false
 variables:
   # OPENKINETICS_API_KEY: your-openkinetics-api-key   # auto-registers the key
   # ROSETTA_BIN: /path/to/rosetta/main/source/bin      # Rosetta executable directory
 ```
+
+`environ.yaml` preserves variables already provided by the shell. Set
+`override_existing: true` only when the config file should replace existing
+process values.
 
 The OpenKinetics API key is auto-registered by default:
 `OpenKineticsScorerAbstract` will automatically generate and persist a key

@@ -1,4 +1,5 @@
 # register all variables here
+override_existing: false
 
 variables:
   # ROSETTA_BIN: /path/to/rosetta/source/bin/
