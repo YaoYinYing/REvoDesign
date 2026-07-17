@@ -243,8 +243,8 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
     def _calculate_pairwise_scores(self, progressbar) -> np.ndarray:
         from REvoDesign.tools.customized_widgets import QtParallelExecutor
 
-        handle = open(self.fastafile)
-        self.records = list(SeqIO.parse(handle, "fasta"))
+        with open(self.fastafile) as handle:
+            self.records = list(SeqIO.parse(handle, "fasta"))
         if self.shuffle_variant:
             # Deterministic clustering order is controlled by the UI random-seed setting.
             rng = random.Random(self.random_seed)  # nosec B311

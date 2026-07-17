@@ -218,7 +218,8 @@ class REvoDesigner:
         mutation_json_fp = f"{self.pwd}/mutations_design_profile/{file_name}.json"
         mutation_png_fp = f"{self.pwd}/mutations_design_profile/{file_name}.png"
 
-        json.dump(mutation_candidates, open(mutation_json_fp, "w"), indent=2)
+        with open(mutation_json_fp, "w") as mutation_json_file:
+            json.dump(mutation_candidates, mutation_json_file, indent=2)
 
         plt.savefig(mutation_png_fp)
         plt.close()

@@ -34,13 +34,38 @@ def calc_seqID(query, cand):
 def read_a3m(fn):
     # read sequences in a3m file
     # only take one (having the highest seqID to query) per each taxID
+    if fn.split(".")[-1] == "gz":
+        with gzip.open(fn, "rt") as fp:
+            query, tmp = _read_a3m_taxa(fp)
+    else:
+        with open(fn) as fp:
+            query, tmp = _read_a3m_taxa(fp)
+
+    query_in_num = seq2number(query)
+    a3m = {}
+    for TaxID in tmp:
+        if len(tmp[TaxID]) < 1:
+            continue
+        if len(tmp[TaxID]) < 2:
+            a3m[TaxID] = tmp[TaxID][0]
+            continue
+        # Get the best sequence only
+        score_s = list()
+        for _seqID, seq in tmp[TaxID]:
+            seq_in_num = seq2number(seq)
+            score = calc_seqID(query_in_num, seq_in_num)
+            score_s.append(score)
+        #
+        idx = np.argmax(score_s)
+        a3m[TaxID] = tmp[TaxID][idx]
+
+    return query, a3m
+
+
+def _read_a3m_taxa(fp):
     is_first = True
     is_ignore = False
     tmp = {}
-    if fn.split(".")[-1] == "gz":
-        fp = gzip.open(fn, "rt")
-    else:
-        fp = open(fn)
 
     for line in fp:
         if line[0] == ">":
@@ -66,25 +91,7 @@ def read_a3m(fn):
             else:
                 tmp[TaxID].append((seqID, line.strip()))
 
-    query_in_num = seq2number(query)
-    a3m = {}
-    for TaxID in tmp:
-        if len(tmp[TaxID]) < 1:
-            continue
-        if len(tmp[TaxID]) < 2:
-            a3m[TaxID] = tmp[TaxID][0]
-            continue
-        # Get the best sequence only
-        score_s = list()
-        for _seqID, seq in tmp[TaxID]:
-            seq_in_num = seq2number(seq)
-            score = calc_seqID(query_in_num, seq_in_num)
-            score_s.append(score)
-        #
-        idx = np.argmax(score_s)
-        a3m[TaxID] = tmp[TaxID][idx]
-
-    return query, a3m
+    return query, tmp
 
 
 if len(sys.argv) == 1:

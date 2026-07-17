@@ -62,7 +62,8 @@ def shortcut_smiles_conformer_batch(
     Runs the smiles_conformer_batch function with parameters collected from the dialog.
     """
 
-    smi = json.load(open(smiles))
+    with open(smiles) as smiles_file:
+        smi = json.load(smiles_file)
     with timing("Get SMILES Conformers (Many)"):
         smiles_conformer_batch(
             smi=smi,

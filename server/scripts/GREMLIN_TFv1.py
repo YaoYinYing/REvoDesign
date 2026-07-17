@@ -83,17 +83,16 @@ def parse_fasta(filename, limit=-1):
     """function to parse fasta"""
     header = []
     sequence = []
-    lines = open(filename)
-    for line in lines:
-        line = line.rstrip()
-        if line[0] == ">":
-            if len(header) == limit:
-                break
-            header.append(line[1:])
-            sequence.append([])
-        else:
-            sequence[-1].append(line)
-    lines.close()
+    with open(filename) as lines:
+        for line in lines:
+            line = line.rstrip()
+            if line[0] == ">":
+                if len(header) == limit:
+                    break
+                header.append(line[1:])
+                sequence.append([])
+            else:
+                sequence[-1].append(line)
     sequence = ["".join(seq) for seq in sequence]
     return np.array(header), np.array(sequence)
 
@@ -373,7 +372,8 @@ def plot_mtx(mtx, key="zscore", vmin=1, vmax=3):
 
 
 # save mtx file
-pickle.dump(mrf, open(f"{pth}/{instance}.GREMLIN.mrf.pkl", "wb"))
+with open(f"{pth}/{instance}.GREMLIN.mrf.pkl", "wb") as mrf_file:
+    pickle.dump(mrf, mrf_file)
 
 mtx = get_mtx(mrf)
 plot_mtx(mtx)

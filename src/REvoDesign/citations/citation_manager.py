@@ -99,7 +99,8 @@ class CitationManager(SingletonAbstract):
             f'{time.strftime("%Y%m%d", time.localtime())}.bib',
         )
         os.makedirs(os.path.dirname(citation_output), exist_ok=True)
-        bibtexparser.write_file(file=open(citation_output, "w", encoding="utf8"), library=library)
+        with open(citation_output, "w", encoding="utf8") as citation_file:
+            bibtexparser.write_file(file=citation_file, library=library)
         logging.info(f"Citation is created at {citation_output}")
 
     def dismiss(self, modulename: str):

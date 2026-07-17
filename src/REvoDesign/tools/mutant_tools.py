@@ -487,7 +487,8 @@ def process_mutations(data):
 
 
 def read_profile_design_mutations(filename):
-    data = json.load(open(filename))
+    with open(filename) as mutation_file:
+        data = json.load(mutation_file)
     return process_mutations(data)
 
 

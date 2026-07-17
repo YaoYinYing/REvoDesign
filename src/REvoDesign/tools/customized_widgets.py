@@ -2514,7 +2514,8 @@ class ValueDialog(REvoDesignWidget):
         from REvoDesign import __version__
 
         # load back all asked values from a json file
-        contents_to_load: dict[str, dict[str, Any]] = json.load(open(selected_file))
+        with open(selected_file) as selected_file_handle:
+            contents_to_load: dict[str, dict[str, Any]] = json.load(selected_file_handle)
         if contents_to_load["metadata"]["__window__"] != self.windowTitle():
             logging.error(
                 f"The recipe is made for Dialog `{contents_to_load['metadata']['__window__']}`, "
@@ -2744,11 +2745,12 @@ def ask_for_multiple_values_as_json() -> str:
     json_fp = os.path.join("json_multi_input", f"{data_id}.json")
     os.makedirs(os.path.dirname(json_fp), exist_ok=True)
 
-    json.dump(
-        obj=data.asdict,
-        fp=open(json_fp, "w"),
-        indent=4,
-    )
+    with open(json_fp, "w") as json_file:
+        json.dump(
+            obj=data.asdict,
+            fp=json_file,
+            indent=4,
+        )
 
     return json_fp
 
