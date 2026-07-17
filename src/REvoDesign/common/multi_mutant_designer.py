@@ -99,7 +99,9 @@ class MultiMutantDesigner:
         self.design_case = cmd.get_unused_name("multi_design")
 
         logging.info(
-            f"Mutant Tree for multi-design is initialized. {len(self.design_pool_tree.all_mutant_branch_ids)} groups with {len(self.design_pool_tree.all_mutant_ids)} mutants."
+            "Mutant Tree for multi-design is initialized. "
+            f"{len(self.design_pool_tree.all_mutant_branch_ids)} groups with "
+            f"{len(self.design_pool_tree.all_mutant_ids)} mutants."
         )
 
     @staticmethod

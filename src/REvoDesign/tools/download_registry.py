@@ -85,14 +85,18 @@ class FileDownloadRegistry(CitableModuleAbstract):
     """
     A file download registry manager for handling remote file resources.
 
-    This class implements automatic file downloading, verification, and cache management based on the pooch library.
-    It supports specifying file hash values through a registry and provides convenient methods to fetch and verify remote files.
+    This class implements automatic file downloading, verification, and cache
+    management based on the pooch library. It supports specifying file hash
+    values through a registry and provides convenient methods to fetch and
+    verify remote files.
 
     :param name: Module name, used to construct the default data directory path.
     :param base_url: Base URL for remote files.
-    :param registry: File registry where keys are filenames and values are corresponding hash values (optional).
+    :param registry: File registry where keys are filenames and values are
+        corresponding hash values (optional).
     :param version: Optional version number for creating versioned data directories.
-    :param customized_directory: Optional custom download directory path. If not provided, uses the default user data directory.
+    :param customized_directory: Optional custom download directory path. If not
+        provided, uses the default user data directory.
     :param alternative_base_urls: Optional list of alternative base URLs for downloading files.
     :param retry_count: Number of retries for downloading files.
 
@@ -252,7 +256,9 @@ class FileDownloadRegistry(CitableModuleAbstract):
         "Pooch": """
 @article{uieda2020,
   title = {{Pooch}: {A} friend to fetch your data files},
-  author = {Leonardo Uieda and Santiago Soler and R{\'{e}}mi Rampin and Hugo van Kemenade and Matthew Turk and Daniel Shapero and Anderson Banihirwe and John Leeman},
+  author = {Leonardo Uieda and Santiago Soler and R{\'{e}}mi Rampin and Hugo
+  van Kemenade and Matthew Turk and Daniel Shapero and Anderson Banihirwe and
+  John Leeman},
   year = {2020},
   doi = {10.21105/joss.01943},
   url = {https://doi.org/10.21105/joss.01943},

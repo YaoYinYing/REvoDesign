@@ -24,6 +24,7 @@ class MutantDict(TypedDict):
 
 
 class MutateRunner(Protocol):
+    # fmt: off
     def run_mutate_parallel(self, mutants: list[Mutant], nproc: int = 2) -> list[str]:
         ...
 
@@ -32,6 +33,7 @@ class MutateRunner(Protocol):
 
     def cite(self) -> None:
         ...
+    # fmt: on
 
 
 class MutantTree:
@@ -156,7 +158,8 @@ class MutantTree:
         """
         Check if the given object exists in the instance.
 
-        This function accepts an object of type string or Mutant and determines whether the object is present in the instance's mutant collection.
+        This function accepts an object of type string or Mutant and determines
+        whether the object is present in the instance's mutant collection.
 
         Parameters:
         - obj (Union[str, Mutant]): The object to check. It can be a string representing a mutant ID or a Mutant object.

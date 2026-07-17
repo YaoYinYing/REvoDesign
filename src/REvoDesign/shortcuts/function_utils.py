@@ -9,6 +9,7 @@ Utils for shortcuts
 
 import os
 import shutil
+
 # Used for launching a user-requested PyMOL preview with an argv list.
 import subprocess  # nosec B404
 from typing import Literal
@@ -65,7 +66,12 @@ def visualize_conformer_sdf(sdf_file_path: str, show_conformer: Literal["New Win
     # Explicitly call a new PyMOL instance in the background
     pymol_command = [_resolve_pymol_executable(), "-xi", pml_file_path]
     # Launches a user-requested PyMOL preview with an argv list and a resolved executable.
-    subprocess.Popen(pymol_command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # nosec B603
+    subprocess.Popen(  # nosec B603
+        pymol_command,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
     logging.info("PyMOL launched in the background with %s.", sdf_file_path)
 
@@ -75,7 +81,8 @@ def smiles_conformer_batch(smi: dict[str, str], num_conformer: int, save_dir: st
     Generates 3D conformers for a SMILES string using RDKit.
 
     Args:
-        smi (Dict[str, str]): Dictionary containing the name of the molecule as the key and the SMILES string as the value.
+        smi (Dict[str, str]): Dictionary containing the name of the molecule as
+            the key and the SMILES string as the value.
         num_conformer (int): Number of conformers to generate for each molecule.
         save_dir (str): Directory to save the generated conformer files.
         n_jobs (int, optional): Number of parallel jobs to run. Defaults to 1.

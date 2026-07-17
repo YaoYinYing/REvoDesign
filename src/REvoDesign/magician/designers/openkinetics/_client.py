@@ -737,7 +737,8 @@ class OpenKineticsClient:
 
         Args:
             self: The instance of the class containing this method
-            rows: A list of dictionaries, each containing 'Protein Sequence' and 'Substrate' keys with corresponding values
+            rows: A list of dictionaries, each containing 'Protein Sequence' and
+                'Substrate' keys with corresponding values
             method: The prediction method to be used for the analysis
             prediction_type: The type of prediction to perform
             handle_long_sequences: Strategy for handling long sequences, defaults to "truncate"
@@ -749,7 +750,8 @@ class OpenKineticsClient:
             A dictionary containing the response from the OpenKinetics service, including job identifier
 
         Raises:
-            OpenKineticsValidationError: If no rows are provided or if the submit response doesn't contain a job identifier
+            OpenKineticsValidationError: If no rows are provided or if the
+                submit response doesn't contain a job identifier
         """
         if not rows:
             raise OpenKineticsValidationError("At least one row is required for submission")
@@ -786,7 +788,10 @@ class OpenKineticsClient:
 
         logging.info("OpenKinetics service health: %s", self.check_health())
         submit_response = self._request(
-            "POST", OPENKINETICS_ENDPOINTS["submit"], json_payload=payload, timeout=self.timeout_seconds
+            "POST",
+            OPENKINETICS_ENDPOINTS["submit"],
+            json_payload=payload,
+            timeout=self.timeout_seconds,
         )
 
         # Extract and validate the job ID from the response
@@ -813,11 +818,14 @@ class OpenKineticsClient:
         Args:
             job_id: The unique identifier of the job to retrieve results for
             result_format: Format of the result, either 'json' or 'csv' (default is 'json')
-            poll_interval_seconds: Interval in seconds between polling attempts when result is not ready (default is 3)
-            timeout_seconds: Maximum time to wait for the result in seconds, None means default timeout (default is None)
+            poll_interval_seconds: Interval in seconds between polling attempts
+                when result is not ready (default is 3)
+            timeout_seconds: Maximum time to wait for the result in seconds,
+                None means default timeout (default is None)
 
         Returns:
-            A dictionary containing the result data if format is JSON, or a string containing CSV data if format is CSV
+            A dictionary containing the result data if format is JSON, or a
+            string containing CSV data if format is CSV
 
         Raises:
             OpenKineticsAPIError: If the API request fails or returns an error status

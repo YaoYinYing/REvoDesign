@@ -82,7 +82,8 @@ def extract_mutants_from_mutant_id(
     mutant_string (str): Underscore-seperated mutant string that contains the mutations and score (if possible).
                         <chain_id><wt_res><resi><mut_res>_...._<score>
     sequences (dict): Wild-type chain: sequence of design molecule
-    wt_before_chain (bool): Some people write WT residue before chain_id. This helps to correct recognizing of this pattern
+    wt_before_chain (bool): Some people write WT residue before chain_id. This
+        helps to correct recognizing of this pattern
 
     Returns:
     tuple:

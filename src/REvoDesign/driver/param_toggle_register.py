@@ -37,7 +37,8 @@ class ParserOrDesigner(Protocol):
     """
     Protocol class to define the structure for a parser or designer type.
 
-    This class inherits from Protocol and specifies the attributes that any instance conforming to this protocol must have.
+        This class inherits from Protocol and specifies the attributes that any
+        instance conforming to this protocol must have.
 
     Attributes:
         name (str): The name of the parser or designer.

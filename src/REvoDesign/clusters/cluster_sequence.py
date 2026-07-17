@@ -406,7 +406,9 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
             "deprecated": spec.deprecated,
             "representative_selection_policy": spec.representative_policy,
             "compatibility_outputs": {
-                "cluster_centers_stochastic.fasta": "Deprecated compatibility alias of nearest-centroid representatives."
+                "cluster_centers_stochastic.fasta": (
+                    "Deprecated compatibility alias of nearest-centroid representatives."
+                )
             },
         }
 

@@ -130,7 +130,9 @@ class CitableModuleAbstract(ABC):
         """
         Display the citation notice.
 
-        This method checks if there are citations to be displayed, and if the current module's citations have not been silenced, it logs the citation information.
+        This method checks if there are citations to be displayed, and if the
+        current module's citations have not been silenced, it logs the citation
+        information.
         """
         # If the __bibtex__ dictionary is empty, log a debug message and return.
         if not cls.__bibtex__:
@@ -171,7 +173,8 @@ class CitableModuleAbstract(ABC):
         """
         Add citation to the citation manager.
 
-        This method adds the current module's citation information to the citation manager and then displays the citation notice.
+        This method adds the current module's citation information to the
+        citation manager and then displays the citation notice.
         """
         citations = cls.__bibtex__
         # Check if the citation information is a dictionary.
