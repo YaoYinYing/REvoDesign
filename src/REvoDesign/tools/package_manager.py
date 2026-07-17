@@ -249,7 +249,8 @@ def _read_https_url(url: str, timeout: float = 10.0, headers: Mapping[str, str] 
         return response.read()
 
 
-_GITHUB_TAG_CACHE: dict[str, list[str]] = {}
+GITHUB_TAG_CACHE_TTL_SECONDS = 15 * 60
+_GITHUB_TAG_CACHE: dict[str, tuple[float, list[str]]] = {}
 
 
 def _python_version_matches(spec: str | None, current_version: str | None) -> bool:
@@ -2512,6 +2513,11 @@ def get_github_repo_tags(repo_url: str, *, timeout: float = 5.0) -> list[str]:
 
     # GitHub API URL for listing tags
     api_url = f"https://api.github.com/repos/{owner}/{repo}/tags"
+    now = time.monotonic()
+    cached = _GITHUB_TAG_CACHE.get(api_url)
+    if cached and now - cached[0] <= GITHUB_TAG_CACHE_TTL_SECONDS:
+        return list(cached[1])
+
     headers = {"Accept": "application/vnd.github+json"}
     github_token = os.environ.get("GITHUB_TOKEN", "").strip()
     if github_token:
@@ -2524,29 +2530,29 @@ def get_github_repo_tags(repo_url: str, *, timeout: float = 5.0) -> list[str]:
         tags = json.loads(response_data)
         if not isinstance(tags, list):
             logging.error("Failed to parse GitHub tags response: expected a list.")
-            return _GITHUB_TAG_CACHE.get(api_url, [])
+            return list(cached[1]) if cached else []
         # Extract the name of each tag
         try:
             tag_names = [tag["name"] for tag in tags]
         except (KeyError, TypeError) as e:
             logging.error(f"Failed to extract tag names from GitHub response: {e}")
-            return _GITHUB_TAG_CACHE.get(api_url, [])
-        _GITHUB_TAG_CACHE[api_url] = tag_names
+            return list(cached[1]) if cached else []
+        _GITHUB_TAG_CACHE[api_url] = (time.monotonic(), tag_names)
         return tag_names
     except HTTPError as e:
         # Handle HTTP errors (e.g., repository not found, rate limit exceeded)
         logging.warning(f"GitHub API returned status code {e.code}")
-        return _GITHUB_TAG_CACHE.get(api_url, [])
+        return list(cached[1]) if cached else []
     except URLError as e:
         # Handle URL errors (e.g., network issues)
         logging.error(f"Failed to reach the server. Reason: {e.reason}")
-        return _GITHUB_TAG_CACHE.get(api_url, [])
+        return list(cached[1]) if cached else []
     except json.JSONDecodeError as e:
         logging.error(f"Failed to decode GitHub tags response as JSON: {e}")
-        return _GITHUB_TAG_CACHE.get(api_url, [])
+        return list(cached[1]) if cached else []
     except TypeError as e:
         logging.error(f"Failed to parse GitHub tags response: {e}")
-        return _GITHUB_TAG_CACHE.get(api_url, [])
+        return list(cached[1]) if cached else []
 
 
 # a minimum copy from `REvoDesign/tools/customized_widgets.py`

@@ -450,6 +450,7 @@ def test_pm_ensure_package(pip_installer, mocker):
 class TestGetGithubRepoTags:
 
     def test_pm_valid_repo_url(self, monkeypatch):
+        package_manager._GITHUB_TAG_CACHE.clear()
         repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
         monkeypatch.setattr(
             package_manager,
@@ -521,12 +522,19 @@ def test_pm_get_github_repo_tags_uses_timeout_auth_and_cache(monkeypatch):
             },
         )
     ]
-    assert package_manager._GITHUB_TAG_CACHE["https://api.github.com/repos/test_owner/test_repo/tags"] == ["v2.0.0"]
+    cached_at, cached_tags = package_manager._GITHUB_TAG_CACHE[
+        "https://api.github.com/repos/test_owner/test_repo/tags"
+    ]
+    assert cached_at > 0
+    assert cached_tags == ["v2.0.0"]
+
+    assert get_github_repo_tags("https://github.com/test_owner/test_repo", timeout=3) == ["v2.0.0"]
+    assert len(calls) == 1
 
 
 def test_pm_get_github_repo_tags_falls_back_to_cached_tags(monkeypatch):
     api_url = "https://api.github.com/repos/test_owner/test_repo/tags"
-    package_manager._GITHUB_TAG_CACHE[api_url] = ["cached-tag"]
+    package_manager._GITHUB_TAG_CACHE[api_url] = (0.0, ["cached-tag"])
 
     def mock_read(url, **_kwargs):
         raise urllib.error.URLError(reason="Network unreachable")

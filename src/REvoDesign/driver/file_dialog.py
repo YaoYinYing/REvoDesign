@@ -9,7 +9,9 @@ File Dialog
 
 import os
 import shutil
+import tarfile
 import tempfile
+import zipfile
 from functools import partial
 from typing import Any, Literal
 
@@ -63,7 +65,10 @@ class FileDialog(SingletonAbstract):
         return getMultipleFiles(self.window, exts)
 
     def browse_filename(
-        self, mode: IO_MODE = "r", exts: tuple[FileExtensionCollection, ...] = (file_extensions.Any,)
+        self,
+        mode: IO_MODE = "r",
+        exts: tuple[FileExtensionCollection, ...] = (file_extensions.Any,),
+        directory: str | None = None,
     ) -> str | None:
         """Open Finder/Explorer to browse from a filename
 
@@ -88,7 +93,12 @@ class FileDialog(SingletonAbstract):
 
         # otherwise, open a file to read
         browse_title = "Open ..."
-        filename = getOpenFileNameWithExt(self.window, browse_title, filter=filter_strings)
+        filename = getOpenFileNameWithExt(
+            self.window,
+            browse_title,
+            directory or "",
+            filter=filter_strings,
+        )
 
         # no file selected
         if not filename:
@@ -117,7 +127,7 @@ class FileDialog(SingletonAbstract):
         # otherwise, extract the archive and browse the extracted file
         extracted_dir = flatten_compressed_files(filename)
         self._archive_temp_dirs.add(extracted_dir)
-        return self.browse_filename(mode, exts=exts)
+        return self.browse_filename(mode, exts=exts, directory=extracted_dir)
 
     # A universal and versatile function for input file path browsing.
 
@@ -314,6 +324,12 @@ def flatten_compressed_files(
             f"Archive is too large to browse safely: {archive_size} bytes "
             f"(limit: {max_archive_bytes} bytes)"
         )
+    payload_size = _compressed_archive_payload_size(compressed_file)
+    if payload_size > max_archive_bytes:
+        raise ValueError(
+            f"Archive expands too large to browse safely: {payload_size} bytes "
+            f"(limit: {max_archive_bytes} bytes)"
+        )
 
     # Create a path for the extracted files
     temp_parent = target_dir or tempfile.gettempdir()
@@ -323,7 +339,24 @@ def flatten_compressed_files(
     )
 
     # Extract the archive to the specified directory
-    extract_archive(archive_file=compressed_file, extract_to=flatten_path)
+    try:
+        extract_archive(archive_file=compressed_file, extract_to=flatten_path)
+    except Exception:
+        shutil.rmtree(flatten_path, ignore_errors=True)
+        raise
 
     # Return the path to the extracted directory
     return flatten_path
+
+
+def _compressed_archive_payload_size(compressed_file: str) -> int:
+    if compressed_file.endswith(".zip"):
+        with zipfile.ZipFile(compressed_file, "r") as zip_ref:
+            return sum(info.file_size for info in zip_ref.infolist() if not info.is_dir())
+
+    tar_suffixes = (".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz", ".tar.xz")
+    if compressed_file.endswith(tar_suffixes):
+        with tarfile.open(compressed_file, "r:*") as tar_ref:
+            return sum(member.size for member in tar_ref.getmembers() if member.isfile())
+
+    return os.path.getsize(compressed_file)
