@@ -2675,15 +2675,19 @@ def execute_on_main_thread(func: Callable[..., GuiResult], *args, **kwargs) -> G
 # Overload #1: None or Warning => returns bool
 
 
+# fmt: off
 @overload
-def notify_box(message: str = "", error_type: None | type[Warning] = None, details: str | None = None) -> None: ...
+def notify_box(message: str = "", error_type: None | type[Warning] = None, details: str | None = None) -> None:
+    ...
 
 
 # Overload #2: Exception => NoReturn
 
 
 @overload
-def notify_box(message: str, error_type: type[Exception], details: str | None = None) -> NoReturn: ...
+def notify_box(message: str, error_type: type[Exception], details: str | None = None) -> NoReturn:
+    ...
+# fmt: on
 
 
 def notify_box(
@@ -2748,6 +2752,7 @@ def raise_error(error_type: type[Exception], message: str) -> NoReturn:
     raise error_type(message)
 
 
+# fmt: off
 @overload
 def run_worker_thread_in_pool(
     worker_function: Callable[..., R],
@@ -2755,7 +2760,8 @@ def run_worker_thread_in_pool(
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
     notify_slot: Callable[[str], None] | None = None,
     **kwargs,
-) -> R: ...
+) -> R:
+    ...
 
 
 @overload
@@ -2765,7 +2771,9 @@ def run_worker_thread_in_pool(
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
     notify_slot: Callable[[str], None] | None = None,
     **kwargs,
-) -> R | None: ...
+) -> R | None:
+    ...
+# fmt: on
 
 
 def run_worker_thread_in_pool(
