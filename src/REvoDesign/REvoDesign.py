@@ -147,8 +147,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 return
             self.PWD = PWD
 
-        os.chdir(self.PWD)
-
         self.bus.set_value("work_dir", os.path.abspath(self.PWD))
 
     def run_plugin_gui(self):

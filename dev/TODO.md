@@ -6,8 +6,6 @@
    `src/REvoDesign/tools/package_manager.py:358-404` and `:970-993` always download UI/assets from GitHub gists during startup and write them back into the installed package directory. On read-only installs (system pip, CI wheels) this raises permission errors, and there is no offline cache fallback or signature/timeout on the download. Vendor these assets with the package and gate network calls behind explicit user consent with timeouts.
 4. **High – Module-level PyMOL imports make the library unusable outside PyMOL**  
    Modules such as `src/REvoDesign/evaluate/evaluator.py:7-18` and `src/REvoDesign/tools/mutant_tools.py:5-26` import `from pymol import cmd` at import time. Any script, CLI, or test that touches these modules without a PyMOL runtime crashes before code executes. Defer PyMOL imports to call sites or inject an abstraction so non-PyMOL contexts can still use the logic.
-5. **High – REvoDesignPlugin changes the global working directory**  
-   `src/REvoDesign/REvoDesign.py:103-145` calls `os.chdir(self.PWD)` every time a window opens, mutating the process-wide CWD for all other PyMOL plugins and threads. Persisting state should rely on explicit paths stored in the bus, not on moving the interpreter’s CWD.
 6. **Medium – ConfigBus is a mutable global singleton storing Qt widget handles**  
    `src/REvoDesign/driver/ui_driver.py:365-381` binds the singleton instance to the active UI and exposes widgets to every module. This leaks Qt objects across tests, prevents multiple windows, and requires manual resets (see `tests/conftest.reset_singletons`). Break ConfigBus into a pure configuration store plus scoped UI adapters so state does not persist globally.
 8. **Medium – PIPPack runner calls private APIs of its dependency**  
