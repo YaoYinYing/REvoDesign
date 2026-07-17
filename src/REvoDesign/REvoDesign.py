@@ -11,7 +11,6 @@ import asyncio
 import gc
 import os
 import tempfile
-import traceback
 import warnings
 
 # using partial module to reduce duplicate code.
@@ -1190,7 +1189,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     self.multi_mutagenesis_design_stop_design()
                 self.multi_mutagenesis_design_save_design()
             except Exception:
-                traceback.print_exc()
+                self.logging.exception("Failed to generate multi-mutagenesis designs.")
 
     # Tab Interact via GREMLIN
     def load_gremlin_mrf(self):
@@ -1317,9 +1316,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     self.logging.warning("Server is already stopped. Do nothing.")
                     return
                 self.ws_server.stop_server()
-        except Exception as e:
-            self.logging.warning(e)
-            traceback.print_exc()
+        except Exception:
+            self.logging.exception("Failed to toggle WebSocket server connection.")
 
         self.logging.warning(f'Server status: {"ON" if self.ws_server.is_running else "OFF"}')
 
@@ -1363,9 +1361,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.ws_client_connect_to_server()
             else:
                 self.ws_client_disconnect_from_server()
-        except Exception as e:
-            self.logging.warning(e)
-            traceback.print_exc()
+        except Exception:
+            self.logging.exception("Failed to toggle WebSocket client connection.")
 
         self.logging.warning(f'Client status: {"ON" if self.ws_client.connected else "OFF"}')
 

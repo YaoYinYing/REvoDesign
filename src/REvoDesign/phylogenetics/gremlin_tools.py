@@ -21,7 +21,6 @@ from:
 """
 
 import os
-import traceback
 import warnings
 from dataclasses import dataclass, field
 from typing import Literal
@@ -379,8 +378,12 @@ class GREMLIN_Tools(CitableModuleAbstract):
             wt_i_index = self.alphabet.index(wt_i_aa)
             wt_j_index = self.alphabet.index(wt_j_aa)
         except ValueError:
-            traceback.print_exc()
-            logging.error(f"Error occured while processing '{wt_i_aa=}' or '{wt_j_aa=}' from {self.alphabet=}")
+            logging.exception(
+                "Error occured while processing %r or %r from %s",
+                wt_i_aa,
+                wt_j_aa,
+                self.alphabet,
+            )
             # early return to skip ploting
             warnings.warn(issues.BadDataWarning(f"Bad pair: {str(a_pair)}"), stacklevel=2)
             return None

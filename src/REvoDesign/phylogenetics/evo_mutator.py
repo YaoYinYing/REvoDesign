@@ -15,7 +15,6 @@ TODO: need refactor:
 import asyncio
 import itertools
 import os
-import traceback
 import warnings
 from dataclasses import dataclass
 from functools import partial
@@ -212,7 +211,7 @@ class MutateWorker:
             cmd.save(output_pse)
 
         except Exception:
-            traceback.print_exc()
+            logging.exception("Error while running the design workflow.")
 
         finally:
             CitationManager().output()
@@ -324,8 +323,7 @@ class VisualizingWorker:
             cmd.save(output_pse)
 
         except Exception:
-            logging.error("Error while running the visualization: ")
-            traceback.print_exc()
+            logging.exception("Error while running the visualization.")
         finally:
             CitationManager().output()
 

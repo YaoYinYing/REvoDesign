@@ -20,7 +20,6 @@ import copy
 import pickle  # nosec B403
 import socket
 import time
-import traceback
 import warnings
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
@@ -810,8 +809,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             logging.info("Connection established.")
 
         except Exception:
-            logging.error("Unexpected error during connection:")
-            traceback.print_exc()
+            logging.exception("Unexpected error during connection.")
 
     @property
     def connected(self):
@@ -829,8 +827,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             refresh_tree_widget(user_tree={}, treeWidget_ws_peers=self.treeWidget_ws_peers)
 
         except Exception:
-            traceback.print_exc()
-            logging.error("Client disconnection failed.")
+            logging.exception("Client disconnection failed.")
 
     @property
     def server_is_reachable(self):
