@@ -462,6 +462,21 @@ def test_generate_strong_password_character_set():
         assert set(password).issubset(allowed_characters)
 
 
+def test_generate_strong_password_uses_cryptographic_rng(monkeypatch):
+    """Password generation must not fall back to the predictable random module."""
+    choices = []
+
+    def fake_choice(characters):
+        choices.append(characters)
+        return "A"
+
+    monkeypatch.setattr("REvoDesign.tools.utils.secrets.choice", fake_choice)
+
+    assert generate_strong_password(16) == "A" * 16
+    assert len(choices) == 16
+    assert all("A" in characters for characters in choices)
+
+
 def test_generate_strong_password_value_error():
     """Test that a ValueError is raised for invalid lengths."""
     with pytest.raises(ValueError):

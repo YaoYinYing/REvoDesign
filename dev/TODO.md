@@ -16,10 +16,6 @@
    The Makefile and tests refer to `/Users/yyy/...` (e.g., `Makefile:113`, `tests/data/test_data.py:393`), so running scripts on any other machine wipes or looks for that specific user’s home directory. Replace these with `$HOME`/config values or derive from repo-relative paths.
 8. **Medium – PIPPack runner calls private APIs of its dependency**  
    `src/REvoDesign/sidechain/mutate_runner/PIPPack.py:64-105` invokes `_initialize_with_a_model`, `_run_repack_single`, and `_run_repack_batch` on the third-party `PIPPack` object. These underscore-prefixed methods are not part of the public API and break whenever upstream refactors; switch to supported entrypoints or wrap the CLI.
-9. **High – Shell pipeline script evaluates user input**  
-   `server/REvoDesign_PSSM_GREMLIN.sh:158-220` builds shell commands containing user-provided file paths and runs them via `eval "$cmd"`. A crafted FASTA path or output directory injects arbitrary shell code into cluster jobs. Use arrays/`"$@"` instead of eval and properly quote user input.
-10. **High – WebSocket keys use non-cryptographic randomness**  
-    `src/REvoDesign/tools/utils.py:743-765` uses `random.choice` to generate passwords, and `src/REvoDesign/REvoDesign.py:1158-1167` feeds those into `ui.socket.input.key`. The default PRNG is predictable and unsuitable for authentication secrets; switch to `secrets.choice`/`secrets.token_urlsafe`.
 11. **High – Importing the logger mutates user state**  
     `src/REvoDesign/logger/logger.py:1-120` configures logging, creates directories under `user_log_path`, and spins up a background `QueueListener` during import. Simply touching `REvoDesign.logger` writes to the host filesystem and leaves live threads around; lazily initialize logging from the entrypoint instead.
 12. **High – WorkerThread drops exceptions**  
