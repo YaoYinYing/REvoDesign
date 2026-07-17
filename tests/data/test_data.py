@@ -6,8 +6,6 @@
 import os
 from dataclasses import dataclass
 
-import pytest
-
 
 @dataclass
 class TestData:
@@ -384,10 +382,9 @@ class KeyData:
 
         expanded_dirs = os.listdir(dist_dir)
         if not expanded_dirs:
-            import zipfile
+            from REvoDesign.tools.utils import extract_archive
 
-            with zipfile.ZipFile(compressed_file, mode="r") as z:
-                z.extractall(path=dist_dir)
+            extract_archive(archive_file=compressed_file, extract_to=dist_dir)
 
         extracted_files = os.listdir(dist_dir)
         return dist_dir, extracted_files

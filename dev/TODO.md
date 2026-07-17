@@ -40,21 +40,19 @@
     `server/pssm_gremlin/pssm_gremlin.py:38-120` assumes `/mnt/data/...`, `/mnt/db/...`, and `redis://localhost` exist and derives Docker mounts from `/home/{os.getlogin()}`. With no configuration hooks the service cannot run off that exact cluster. Externalize broker paths, DBs, and output dirs via a config file/env vars.
 20. **Medium – Config-driven env overrides clobber user variables**
     `src/REvoDesign/driver/environ_register.py:8-39` iterates `environ.yaml` and unconditionally sets each key in `os.environ`, overwriting whatever the shell provided (proxy settings, CUDA flags, etc.). Respect existing values or mark overrides explicitly in config.
-21. **High – Archive extraction is vulnerable to path traversal**
-    `src/REvoDesign/tools/utils.py:592-627` calls `tarfile.ZipFile(...).extractall()` on user-selected archives with no member filtering, so a malicious tar can overwrite arbitrary files. Validate members (reject `..`/absolute paths) or use Python’s newer `tarfile` filters.
-22. **High – SSL certificate manager writes weak certs**
+21. **High – SSL certificate manager writes weak certs**
     `src/REvoDesign/tools/ssl_certificates.py:34-115` generates self-signed certs with a fixed serial number, week-long validity, and default filesystem permissions under a shared cache dir. Anyone on the box can read or overwrite the keys. Randomize serials, tighten permissions, and allow the validity to be configured.
-23. **High – “Background” workers busy-wait on the GUI thread**
+22. **High – “Background” workers busy-wait on the GUI thread**
     `src/REvoDesign/tools/package_manager.py:2635-2661` starts a `WorkerThread` but then loops on `work_thread.isFinished()` calling `refresh_window()`/`time.sleep`, so the main thread stays blocked and abort buttons can’t repaint. Switch to signal-driven completion instead of polling.
-24. **High – Aborting a worker interrupts the whole PyMOL session**
+23. **High – Aborting a worker interrupts the whole PyMOL session**
     `src/REvoDesign/tools/package_manager.py:2223-2244` handles every abort click by calling `cmd.interrupt()`, which cancels whatever PyMOL is currently doing—even unrelated jobs. Terminate only the subprocesses registered for that worker rather than nuking the global interpreter.
-25. **High – Monaco editor logs its auth token**
+24. **High – Monaco editor logs its auth token**
     `src/REvoDesign/editor/monaco/server.py:71-78` generates a `SECRET_TOKEN` and immediately logs it, so anyone with read access to the log file can hijack the editor backend. Never log secrets and rotate them when the server restarts.
-26. **High – WebSocket clients hand over the shared auth key on request**
+25. **High – WebSocket clients hand over the shared auth key on request**
     `src/REvoDesign/clients/QtSocketConnector.py:813-863` responds to a `RequireKey` message by sending `self.authentication_key` before the server proves its identity. A malicious host can simply ask for the key and impersonate everyone. Authenticate the server (TLS + pinned cert) and only send a key through an already-authenticated channel.
-27. **Medium – Git tag fetches are synchronous and unauthenticated**
+26. **Medium – Git tag fetches are synchronous and unauthenticated**
     `src/REvoDesign/tools/package_manager.py:2349-2380` hits the public GitHub tags API on startup without auth, caching, or error UI. When the rate limit is exceeded the manager freezes for ~10s and users see nothing. Add caching, a timeout, and a friendly error surface.
-28. **Medium – pip installs run on the UI thread**
+27. **Medium – pip installs run on the UI thread**
     `src/REvoDesign/tools/package_manager.py:861-925` calls `pip install/uninstall` directly from menu actions, blocking PyMOL for minutes during heavy installs. Dispatch these calls to `run_worker_thread_in_pool` and stream progress to the dashboard.
-29. **Medium – Archive browsing keeps every extraction forever**
+28. **Medium – Archive browsing keeps every extraction forever**
     `src/REvoDesign/driver/file_dialog.py:240-269` always expands compressed inputs into `<PWD>/expanded_compressed_files/<archive>` with no cleanup or quota. Repeated browsing bloats the session dir and a malicious 20 GB tar can fill the disk. Extract into a temp dir and delete it once the dialog closes.

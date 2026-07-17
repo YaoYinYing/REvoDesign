@@ -23,6 +23,7 @@ import zipfile
 from collections.abc import Callable, Iterable
 from functools import partial, wraps
 from itertools import pairwise
+from pathlib import PurePosixPath, PureWindowsPath
 from typing import Any, Literal, ParamSpec, TypeVar, cast, overload
 
 import matplotlib
@@ -602,9 +603,18 @@ def minibatches_generator(inputs_data_generator, batch_size):
 
 def _safe_member_target(base_dir: str, member_name: str) -> str:
     normalized = member_name.replace("\\", "/")
-    if normalized.startswith("/") or normalized.startswith("../") or "/../" in f"/{normalized}":
+    posix_path = PurePosixPath(normalized)
+    windows_path = PureWindowsPath(normalized)
+    if (
+        not normalized
+        or normalized == "."
+        or posix_path.is_absolute()
+        or windows_path.is_absolute()
+        or windows_path.drive
+        or any(part == ".." for part in posix_path.parts)
+    ):
         raise ValueError(f"Unsafe archive member path: {member_name}")
-    target_path = os.path.realpath(os.path.join(base_dir, member_name))
+    target_path = os.path.realpath(os.path.join(base_dir, *posix_path.parts))
     base_path = os.path.realpath(base_dir)
     try:
         if os.path.commonpath([base_path, target_path]) != base_path:
