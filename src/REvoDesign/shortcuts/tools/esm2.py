@@ -351,7 +351,9 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
     __bibtex__ = {
         "ESM": """@article{rives2019biological,
-  author={Rives, Alexander and Meier, Joshua and Sercu, Tom and Goyal, Siddharth and Lin, Zeming and Liu, Jason and Guo, Demi and Ott, Myle and Zitnick, C. Lawrence and Ma, Jerry and Fergus, Rob},
+  author={Rives, Alexander and Meier, Joshua and Sercu, Tom and Goyal,
+  Siddharth and Lin, Zeming and Liu, Jason and Guo, Demi and Ott, Myle and
+  Zitnick, C. Lawrence and Ma, Jerry and Fergus, Rob},
   title={Biological Structure and Function Emerge from Scaling Unsupervised Learning to 250 Million Protein Sequences},
   year={2019},
   doi={10.1101/622803},
@@ -360,14 +362,16 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
 }""",
         "ESM-1v": """@article{meier2021language,
   author = {Meier, Joshua and Rao, Roshan and Verkuil, Robert and Liu, Jason and Sercu, Tom and Rives, Alexander},
-  title = {Language models enable zero-shot prediction of the effects of mutations on protein function},
+  title = {Language models enable zero-shot prediction of the effects of
+  mutations on protein function},
   year={2021},
   doi={10.1101/2021.07.09.450648},
   url={https://www.biorxiv.org/content/10.1101/2021.07.09.450648v1},
   journal={bioRxiv}
 }""",
         "MSA Transformer": """@article{rao2021msa,
-  author = {Rao, Roshan and Liu, Jason and Verkuil, Robert and Meier, Joshua and Canny, John F. and Abbeel, Pieter and Sercu, Tom and Rives, Alexander},
+  author = {Rao, Roshan and Liu, Jason and Verkuil, Robert and Meier, Joshua
+  and Canny, John F. and Abbeel, Pieter and Sercu, Tom and Rives, Alexander},
   title={MSA Transformer},
   year={2021},
   doi={10.1101/2021.02.12.430858},
@@ -376,7 +380,9 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
 }""",
         "ESM-2": """@article{lin2022language,
   title={Language models of protein sequences at the scale of evolution enable accurate structure prediction},
-  author={Lin, Zeming and Akin, Halil and Rao, Roshan and Hie, Brian and Zhu, Zhongkai and Lu, Wenting and Smetanin, Nikita and dos Santos Costa, Allan and Fazel-Zarandi, Maryam and Sercu, Tom and Candido, Sal and others},
+  author={Lin, Zeming and Akin, Halil and Rao, Roshan and Hie, Brian and Zhu,
+  Zhongkai and Lu, Wenting and Smetanin, Nikita and dos Santos Costa, Allan and
+  Fazel-Zarandi, Maryam and Sercu, Tom and Candido, Sal and others},
   journal={bioRxiv},
   year={2022},
   publisher={Cold Spring Harbor Laboratory}
