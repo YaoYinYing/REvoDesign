@@ -10,6 +10,7 @@ pytest configuration
 from __future__ import annotations
 
 import gc
+import hmac
 import importlib.util
 import json
 import os
@@ -24,8 +25,6 @@ from typing import Literal
 from unittest.mock import MagicMock, patch
 
 import platformdirs
-
-# import hydra as unmocked_hydra
 import psutil
 import pytest
 from _pytest.nodes import Item
@@ -37,26 +36,11 @@ from pytestqt import qtbot
 from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
 
-from REvoDesign import REvoDesignPlugin
-from REvoDesign.basic.abc_singleton import reset_singletons
-from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
-from REvoDesign.common import MutantTree
-from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.Qt import QtCore, QtWidgets
-from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
-from REvoDesign.tools.package_manager import REvoDesignPackageManager, refresh_window
-
-from .data import TestData
-from .data.test_data import KeyData
-
-REPO_DIR = os.path.join(os.path.dirname(__file__), "..")
-TESTS_DIR = Path(__file__).resolve().parent
-REPO_ROOT_PATH = TESTS_DIR.parent
-MSA_ROOT = TESTS_DIR / "data" / "msa"
-MINIUC_ROOT = MSA_ROOT / "miniuc"
-TESTMINIUC_ROOT = MSA_ROOT / "testminiuc"
-
+# ---------------------------------------------------------------------------
 # Keep import-time REvoDesign bootstrap away from the user's real config/cache tree.
+# MUST run BEFORE any REvoDesign module import, which triggers bootstrap config resolution
+# via ``REVODESIGN_CONFIG_FILE = set_REvoDesign_config_file()``.
+# ---------------------------------------------------------------------------
 TEST_ROOT = os.path.abspath(".")
 DATA_DIRNAME = os.path.join(TEST_ROOT, "mock", "user_data", "REvoDesign")
 CACHE_DIRNAME = os.path.join(TEST_ROOT, "..", "tests", "downloaded", "cache")
@@ -75,6 +59,29 @@ def _static_platform_dir(dirname: str):
 
 platformdirs.user_data_dir = _static_platform_dir(DATA_DIRNAME)
 platformdirs.user_cache_dir = _static_platform_dir(CACHE_DIRNAME)
+
+# import hydra as unmocked_hydra
+
+# isort: split -- REvoDesign imports below are safe now that platformdirs is patched
+import REvoDesign.tools.package_manager as package_manager
+from REvoDesign import REvoDesignPlugin
+from REvoDesign.basic.abc_singleton import reset_singletons
+from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
+from REvoDesign.common import MutantTree
+from REvoDesign.driver.ui_driver import ConfigBus
+from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
+from REvoDesign.tools.package_manager import REvoDesignPackageManager, refresh_window
+
+from .data import TestData
+from .data.test_data import KeyData
+
+REPO_DIR = os.path.join(os.path.dirname(__file__), "..")
+TESTS_DIR = Path(__file__).resolve().parent
+REPO_ROOT_PATH = TESTS_DIR.parent
+MSA_ROOT = TESTS_DIR / "data" / "msa"
+MINIUC_ROOT = MSA_ROOT / "miniuc"
+TESTMINIUC_ROOT = MSA_ROOT / "testminiuc"
 
 
 def _resolve_pytest_qt_api() -> str:
@@ -221,6 +228,29 @@ def mock_fetch_json(url):
     return d
 
 
+def _bootstrap_manifest() -> dict[str, str]:
+    """Generate a valid HMAC manifest from canonical repo files for testing."""
+    key = package_manager._MANAGER_HMAC_KEY
+    files: dict[str, str] = {
+        "REvoDesign-PyMOL-entry.ui": os.path.join(REPO_DIR, "src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui"),
+        "REvoDesignExtrasTableRich.json": os.path.join(REPO_DIR, "jsons/REvoDesignExtrasTableRich.json"),
+    }
+    return {name: hmac.new(key, open(path, "rb").read(), "sha256").hexdigest() for name, path in files.items()}
+
+
+def _mock_fetch_verified_bootstrap_file(
+    *, url: str, asset_name: str, save_to_file: str, manifest: dict[str, str], description: str
+) -> None:
+    """Copy canonical repo file instead of fetching from network."""
+    if asset_name == package_manager.MANIFEST_ASSET_MANAGER_UI:
+        src = os.path.join(REPO_DIR, "src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui")
+    elif asset_name == package_manager.MANIFEST_ASSET_EXTRAS_JSON:
+        src = os.path.join(REPO_DIR, "jsons/REvoDesignExtrasTableRich.json")
+    else:
+        raise ValueError(f"Unknown bootstrap asset: {asset_name}")
+    shutil.copy(src, save_to_file)
+
+
 @pytest.fixture(scope="function")
 def pm_plugin(qtbot: qtbot.QtBot) -> REvoDesignPackageManager:
 
@@ -232,7 +262,15 @@ def pm_plugin(qtbot: qtbot.QtBot) -> REvoDesignPackageManager:
         patch(
             "REvoDesign.tools.package_manager.get_github_repo_tags",
             side_effect=lambda repo_url: ["1.0.0", "1.0.1", "1.0.2"],
-        ) as mock_notify_box,
+        ) as mock_fetch_tags,
+        patch(
+            "REvoDesign.tools.package_manager.fetch_bootstrap_manifest",
+            side_effect=_bootstrap_manifest,
+        ) as mock_bootstrap_manifest,
+        patch(
+            "REvoDesign.tools.package_manager.fetch_verified_bootstrap_file",
+            side_effect=_mock_fetch_verified_bootstrap_file,
+        ) as mock_verified_bootstrap,
     ):
 
         plugin = REvoDesignPackageManager()

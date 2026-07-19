@@ -99,7 +99,9 @@ class REvoDesignWidget(QtWidgets.QWidget):
 
         super().__init__(parent=parent)
         if not parent:
-            self.setFont(CURRENT_FONT or DEFAULT_FONT)
+            font = CURRENT_FONT or DEFAULT_FONT
+            if font is not None:
+                self.setFont(font)
 
         self.setObjectName(object_name or "AnonymousWidget")
         self.allow_repeat = allow_repeat
