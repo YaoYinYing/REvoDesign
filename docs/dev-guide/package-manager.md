@@ -85,8 +85,8 @@ killed.
 ### REvoDesignPackageManager (`:::` REvoDesign.tools.package_manager.REvoDesignPackageManager)
 
 The top-level orchestrator. It:
-1. Fetches the UI file (`REvoDesign-PyMOL-entry.ui`) from Gist and loads it via `loadUi`
-2. Fetches the extras manifest JSON (`REvoDesignExtrasTableRich.json`) from Gist
+1. Loads the packaged UI file (`REvoDesign_installer.ui`) via `loadUi`
+2. Loads the packaged extras manifest JSON (`REvoDesignExtrasTableRich.json`)
 3. Fetches GitHub release tags for version selection
 4. Registers PyMOL menu items (Install, Reinstall, Uninstall, Manager)
 5. Configures proxy, mirror, and extras in the UI
@@ -94,16 +94,20 @@ The top-level orchestrator. It:
 
 ## The UI File
 
-The manager's graphical interface is defined in `REvoDesign-PyMOL-entry.ui`,
-a Qt Designer file stored at `src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui`.
-This file is uploaded to a GitHub Gist via `make upload-gists` and fetched at
-runtime by the manager plugin.
+The manager's graphical interface is defined in `REvoDesign_installer.ui`,
+a Qt Designer file stored at
+`src/REvoDesign/tools/REvoDesign-manager/UI/REvoDesign_installer.ui`.
+The manager loads this packaged file at startup. The explicit manager upgrade
+action may fetch a replacement from Gist, but normal startup must work offline
+and must not write into the installed package directory.
 
 ## Extras Registry
 
-The file `REvoDesignExtrasTableRich.json` (version-tracked alongside the UI
-file on Gist) defines available extras. It is fetched at manager startup and
-displayed in a `CheckableListView` widget. Each extras entry can specify:
+The packaged file
+`src/REvoDesign/tools/REvoDesign-manager/REvoDesignExtrasTableRich.json`
+defines available extras and is loaded at manager startup. The Refresh button
+is the explicit network path for fetching a newer copy from Gist. Each extras
+entry can specify:
 
 - **`name`** -- Display name
 - **`extras_id`** -- The pip extras identifier (e.g., `[scatter]`)

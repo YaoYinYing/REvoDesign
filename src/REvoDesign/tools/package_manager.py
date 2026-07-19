@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import difflib
+import hmac
 import importlib
 import importlib.util
 import io
@@ -25,6 +26,7 @@ import socket
 # Used for package-management commands with argv lists and registered process lifecycle handling.
 import subprocess  # nosec B404
 import sys
+import tempfile
 import threading
 import time
 import urllib.request
@@ -35,6 +37,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import cached_property, partial
+from pathlib import Path
 from typing import Any, ClassVar, NoReturn, TypedDict, TypeVar, cast, overload
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
@@ -203,6 +206,15 @@ UI_FILE_URL = f"{GIST_BASE_URL}/REvoDesign-PyMOL-entry.ui"
 THIS_FILE_URL = f"{GIST_BASE_URL}/REvoDesign_PyMOL.py"
 # Define the URL of the JSON file
 RICH_TABLE_JSON = f"{GIST_BASE_URL}/REvoDesignExtrasTableRich.json"
+PACKAGE_MANAGER_DATA_DIR = Path(__file__).resolve().parent / "REvoDesign-manager"
+PACKAGED_MANAGER_UI_FILE = PACKAGE_MANAGER_DATA_DIR / "UI" / "REvoDesign_installer.ui"
+PACKAGED_EXTRAS_JSON = PACKAGE_MANAGER_DATA_DIR / "REvoDesignExtrasTableRich.json"
+MANIFEST_URL = f"{GIST_BASE_URL}/manifest.json"
+
+# ponytail: HMAC key prevents a forked manifest from accidentally validating
+# against the wrong installation. Not a secret — it ships in the public Gist.
+# Value: catches truncation/corruption + accidental cross-project mismatch.
+_MANAGER_HMAC_KEY = bytes.fromhex("bd8c4274c76d312b22a0c3d58aad68860b645f1dcc22e67d3d4fe16bf59c6343")
 
 
 # Define the proxy protocols allowed
@@ -466,7 +478,7 @@ class ExtrasGroups:
         return [item for item in self.all_extras if item.name == name]
 
 
-def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
+def fetch_gist_file(ui_file_url: str, save_to_file: str, *, timeout: float = 10.0) -> None:
     """
     Fetch the UI file from the given URL, save it to a temporary file, and yield its absolute path.
 
@@ -483,7 +495,7 @@ def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
 
     try:
         # Fetch the file content and write it to the temporary file
-        ui_data = _read_https_url(ui_file_url).decode("utf-8")
+        ui_data = _read_https_url(ui_file_url, timeout=timeout).decode("utf-8")
         with open(save_to_file, "w") as ui_handle:
             ui_handle.write(ui_data)
 
@@ -519,6 +531,47 @@ def fetch_gist_json(url: str) -> dict[str, Any]:
     except Exception as e:
         logging.error(f"Error fetching or validating the JSON data: {e}: ")
         return {}
+
+
+def load_packaged_extras_json(path: Path = PACKAGED_EXTRAS_JSON) -> dict[str, Any]:
+    try:
+        with path.open(encoding="utf-8") as json_handle:
+            json_data = json.load(json_handle)
+    except OSError as e:
+        logging.error(f"Error loading packaged extras table from {path}: {e}")
+        return {}
+    except json.JSONDecodeError as e:
+        logging.error(f"Error decoding packaged extras table from {path}: {e}")
+        return {}
+
+    if not isinstance(json_data, dict):
+        logging.error(f"Error loading packaged extras table from {path}: expected a dictionary.")
+        return {}
+    return json_data
+
+
+def _compute_hmac(filepath: str) -> str:
+    """Compute HMAC-SHA256 of a file using the embedded manager key."""
+    with open(filepath, "rb") as fh:
+        return hmac.new(_MANAGER_HMAC_KEY, fh.read(), "sha256").hexdigest()
+
+
+def verify_manifest(assets: dict[str, str], manifest: dict[str, str]) -> bool:
+    """Verify each asset in `assets` matches its HMAC entry in `manifest`.
+
+    ``assets`` maps filename → temp-file path on disk.
+    ``manifest`` maps filename → expected HMAC hex digest.
+    """
+    for filename, filepath in assets.items():
+        expected = manifest.get(filename)
+        if expected is None:
+            logging.error("Manifest missing entry for %s", filename)
+            return False
+        actual = _compute_hmac(filepath)
+        if not hmac.compare_digest(actual, expected):
+            logging.error("HMAC mismatch for %s", filename)
+            return False
+    return True
 
 
 R = TypeVar("R")
@@ -1083,28 +1136,35 @@ class REvoDesignPackageManager:
     remote_extra_group_data: ExtrasGroups = None  # type: ignore
 
     def ensure_ui_file(self, upgrade: bool = False):
-        ui_file = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "REvoDesign-manager", "UI", "REvoDesign_installer.ui")
-        )
-        os.makedirs(os.path.dirname(ui_file), exist_ok=True)
+        """Return the manager UI file path, fetching from Gist if needed.
 
-        # if not exists,  preform the first fetch
-        if not os.path.isfile(ui_file):
-            logging.info(f"Fetching UI: {UI_FILE_URL} -> {ui_file}")
-            fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=ui_file)
-            logging.info(f"Fetched UI file for manager: {ui_file}")
+        Load order: cached copy → network fetch → cache to disk.
+        ``upgrade=True`` forces a network fetch even when cached.
+        """
+        # ponytail: cache dir is writable (~/.pymol/startup/REvoDesign-manager/)
+        cache_dir = str(PACKAGED_MANAGER_UI_FILE.parent)
+        os.makedirs(cache_dir, exist_ok=True)
+        ui_file = str(PACKAGED_MANAGER_UI_FILE)
+
+        if os.path.isfile(ui_file) and not upgrade:
+            logging.debug("Cached UI file found: %s", ui_file)
             return ui_file
 
-        # otherwise, if the user not requires an upgrade, return
-        if not upgrade:
-            logging.debug(f"pre-downloaded UI file found: {ui_file}")
-            return ui_file
+        new_ui_handle = tempfile.NamedTemporaryFile(delete=False, suffix=".ui")
+        new_ui_file = new_ui_handle.name
+        new_ui_handle.close()
 
-        # otherwise, preform the upgrade
-        new_ui_file = f"{ui_file}.swp"
+        try:
+            fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=new_ui_file)
+            if upgrade and os.path.isfile(ui_file):
+                self.upgrade_check(original_file=ui_file, new_file=new_ui_file, title="REvoDesign Manager UI file")
+            else:
+                shutil.move(new_ui_file, ui_file)
+        except Exception:
+            if os.path.isfile(new_ui_file):
+                os.remove(new_ui_file)
+            raise
 
-        fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=new_ui_file)
-        self.upgrade_check(original_file=ui_file, new_file=new_ui_file, title="REvoDesign Manager UI file")
         return ui_file
 
     @staticmethod
@@ -1186,13 +1246,38 @@ class REvoDesignPackageManager:
         if not confirmed:
             return notify_box("Upgrade cancelled.")
 
-        new_py_file = f"{__file__}.swp"
+        # Download manifest and both assets to a temp dir, verify HMAC, then apply
+        manifest = fetch_gist_json(MANIFEST_URL)
+        if not manifest:
+            notify_box("Cannot verify upgrade: manifest unavailable. " "The upgrade source may be compromised.")
+            return
 
-        fetch_gist_file(THIS_FILE_URL, new_py_file)
+        temp_dir = tempfile.mkdtemp()
+        try:
+            py_temp = os.path.join(temp_dir, "REvoDesign_PyMOL.py")
+            ui_temp = os.path.join(temp_dir, "REvoDesign-PyMOL-entry.ui")
 
-        self.upgrade_check(original_file=__file__, new_file=new_py_file, title="REvoDesign Manager")
+            fetch_gist_file(THIS_FILE_URL, py_temp)
+            fetch_gist_file(UI_FILE_URL, ui_temp)
 
-        self.ensure_ui_file(upgrade=True)
+            assets = {
+                "REvoDesign_PyMOL.py": py_temp,
+                "REvoDesign-PyMOL-entry.ui": ui_temp,
+            }
+            if not verify_manifest(assets, manifest):
+                notify_box("Upgrade verification failed. " "The downloaded files may be corrupted or tampered with.")
+                return
+
+            self.upgrade_check(original_file=__file__, new_file=py_temp, title="REvoDesign Manager")
+
+            cached_ui = str(PACKAGED_MANAGER_UI_FILE)
+            if os.path.isfile(cached_ui):
+                self.upgrade_check(original_file=cached_ui, new_file=ui_temp, title="REvoDesign Manager UI file")
+            else:
+                os.makedirs(os.path.dirname(cached_ui), exist_ok=True)
+                shutil.move(ui_temp, cached_ui)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     @contextmanager
     def freeze_manager(self):
@@ -1238,7 +1323,7 @@ class REvoDesignPackageManager:
 
         logging.debug("Run pre-fetching tasks... ")
 
-        self.refresh_remote_json()
+        self.load_packaged_json()
 
         self.pip_installer = run_worker_thread_in_pool(PIPInstaller)
 
@@ -1299,14 +1384,9 @@ class REvoDesignPackageManager:
         }
         return proxy_env
 
-    def refresh_remote_json(self):
-        """
-        Refreshes the list of available extras by fetching data from a JSON source.
-
-        This method uses a worker thread to fetch extras data with a progress bar indication.
-        If fetching fails, it shows an error notification and sets up an empty extras list.
-        """
-        d_placeholder = {
+    @staticmethod
+    def _extras_placeholder() -> dict[str, Any]:
+        return {
             "entities": [
                 {
                     "name": "No Extras is Fetched",
@@ -1315,26 +1395,54 @@ class REvoDesignPackageManager:
                 }
             ],
         }
-        remote_data = run_worker_thread_in_pool(worker_function=fetch_gist_json, url=RICH_TABLE_JSON)
 
+    def _load_extras_table(self, remote_data: dict[str, Any], *, notify_on_error: bool) -> None:
         self.notification_channel(remote_data)
 
         if not remote_data:
-            notify_box(
-                "Error fetching or validating the JSON data. \n"
-                "Please reconfigure your network and press <Refresh> to try again "
-                "if you wish to continue installation with extra packages"
-            )
+            if notify_on_error:
+                notify_box(
+                    "Error fetching or validating the JSON data. \n"
+                    "Please reconfigure your network and press <Refresh> to try again "
+                    "if you wish to continue installation with extra packages"
+                )
+            remote_data = self._extras_placeholder()
+        elif "entities" not in remote_data:
+            if notify_on_error:
+                notify_box("Fetched data is not valid. The data is expected to have an `entities` key.")
+            remote_data = self._extras_placeholder()
 
-        if "entities" not in remote_data:
-            notify_box("Fetched data is not valid. The data is expected to have an `entities` key.")
-
-        self.remote_extra_group_data = ExtrasGroups.from_dict(remote_data or d_placeholder)
+        self.remote_extra_group_data = ExtrasGroups.from_dict(remote_data)
 
         # Create and position the extra components checkbox list
         self.extra_checkbox = CheckableListView(
             self.installer_ui.listView_extras, self.remote_extra_group_data, filter=PLATFORM_INFO
         )
+
+    def load_packaged_json(self):
+        """
+        Loads the vendored extras table without requiring network access.
+        """
+        self._load_extras_table(load_packaged_extras_json(), notify_on_error=False)
+
+    def refresh_remote_json(self):
+        """
+        Refreshes the list of available extras by fetching data from a JSON source.
+
+        This method uses a worker thread to fetch extras data with a progress bar indication.
+        If fetching fails, it shows an error notification and sets up an empty extras list.
+        """
+        remote_data = run_worker_thread_in_pool(worker_function=fetch_gist_json, url=RICH_TABLE_JSON)
+        self._load_extras_table(remote_data, notify_on_error=True)
+        # ponytail: cache successful fetches so offline startup has data
+        if remote_data and "entities" in remote_data:
+            try:
+                cache_dir = str(PACKAGED_EXTRAS_JSON.parent)
+                os.makedirs(cache_dir, exist_ok=True)
+                with open(str(PACKAGED_EXTRAS_JSON), "w", encoding="utf-8") as fh:
+                    json.dump(remote_data, fh)
+            except OSError:
+                logging.warning("Failed to cache extras JSON to %s", PACKAGED_EXTRAS_JSON)
 
     @staticmethod
     def notification_channel(d: dict):
@@ -1461,13 +1569,17 @@ class REvoDesignPackageManager:
         except Exception as e:
             decided = decide(
                 "UI Error",
-                "Error Occurs while loading UI file, this UI may out-of-dated.\nCleanup and fetch the latest?",
+                "Error Occurs while loading UI file, this UI may out-of-dated.\n"
+                "Re-fetch the latest version from the network?",
                 details=str(e),
             )
             if decided:
-                os.remove(ui_file)
-                return self.make_window()
-            raise RuntimeError(f"Error occurs while loading UI file: {e}.")
+                # ponytail: re-fetch from network, don't delete the cached copy
+                # until the new one loads successfully.
+                ui_file = self.ensure_ui_file(upgrade=True)
+                self.installer_ui = loadUi(ui_file, dialog)
+            else:
+                raise RuntimeError(f"Error occurs while loading UI file: {e}.") from e
 
         # add right-click menu on `self.installer_ui.label_header`,
         # add a item `Upgrade UI` and connect `partial(self.ensure_ui_file, upgrade=True)`
@@ -1586,12 +1698,14 @@ class REvoDesignPackageManager:
         specified GitHub repository,
         and then sets the result as the value of the `comboBox_version` combo box in the UI.
         """
-        # Run a worker thread to fetch tags with a progress bar
-        tags = run_worker_thread_in_pool(worker_function=get_github_repo_tags, repo_url=REPO_URL)
+        # ponytail: non-fatal — offline startup must not show an error popup
+        try:
+            tags = run_worker_thread_in_pool(worker_function=get_github_repo_tags, repo_url=REPO_URL)
+        except Exception:
+            logging.warning("Failed to fetch GitHub release tags (offline or API error)")
+            return
         if tags and isinstance(tags, list):
             return set_widget_value(self.installer_ui.comboBox_version, tags)
-
-        return notify_box(f"Failed to fetch version tags from GitHub repo: \n{REPO_URL}")
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
 

@@ -130,6 +130,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
+- **Package manager offline startup**: manager UI and extras registry now use a
+  cache-first strategy with the local `~/.pymol/startup/REvoDesign-manager/`
+  directory. First-run fetches assets from Gist with bounded timeouts;
+  subsequent startups use cached copies. The Refresh button is the explicit
+  network path. `fetch_tags` degrades silently on network failure instead of
+  blocking startup with an error popup.
+- **Self-upgrade HMAC integrity**: the self-upgrade flow now verifies downloaded
+  assets against an HMAC-SHA256 manifest before applying changes. The HMAC key
+  is embedded in the plugin source and never leaves the client. `make upload-gists`
+  generates `manifest.json` automatically.
 - **Download registry integrity checks**: file registries now reject entries
   without hashes, Monaco editor downloads verify npm tarball integrity metadata,
   and remote ESM weight downloads verify configured MD5 hashes.

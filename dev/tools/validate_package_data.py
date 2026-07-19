@@ -14,6 +14,8 @@ REQUIRED_PATHS = (
     REPO_ROOT / "src/REvoDesign/UI/REvoDesign.ui",
     REPO_ROOT / "src/REvoDesign/UI/language/eng-chs.qm",
     REPO_ROOT / "src/REvoDesign/UI/language/eng-cht.qm",
+    REPO_ROOT / "src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui",
+    REPO_ROOT / "jsons/REvoDesignExtrasTableRich.json",
 )
 
 

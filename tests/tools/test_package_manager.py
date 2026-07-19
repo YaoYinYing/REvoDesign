@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+import hmac
 import io
 import json
 import os
@@ -22,13 +23,17 @@ from REvoDesign.Qt import QtWidgets
 from REvoDesign.tools.package_manager import (
     GitSolver,
     PIPInstaller,
+    REvoDesignPackageManager,
+    _compute_hmac,
     _python_version_matches,
     fetch_gist_file,
     fetch_gist_json,
     filter_sensitive_data,
     get_github_repo_tags,
+    load_packaged_extras_json,
     run_command,
     solve_installation_config,
+    verify_manifest,
 )
 
 
@@ -65,6 +70,22 @@ def test_pm_fetch_gist_file_url_error():
             fetch_gist_file(mock_url, "temp_file.ui")
 
 
+def test_pm_fetch_gist_file_uses_timeout(monkeypatch, tmp_path):
+    calls = []
+
+    def mock_read(url, **kwargs):
+        calls.append((url, kwargs))
+        return b"mock UI content"
+
+    output = tmp_path / "manager.ui"
+    monkeypatch.setattr(package_manager, "_read_https_url", mock_read)
+
+    fetch_gist_file("https://example.com/file.ui", str(output), timeout=3)
+
+    assert output.read_text() == "mock UI content"
+    assert calls == [("https://example.com/file.ui", {"timeout": 3})]
+
+
 # Test for fetch_gist_json
 
 
@@ -99,6 +120,79 @@ def test_pm_fetch_gist_json_error():
         result = fetch_gist_json(mock_url)
 
     assert result == {}
+
+
+def test_pm_load_packaged_extras_json(tmp_path):
+    registry = tmp_path / "REvoDesignExtrasTableRich.json"
+    registry.write_text(json.dumps({"entities": []}))
+
+    assert load_packaged_extras_json(registry) == {"entities": []}
+
+
+def test_pm_ensure_ui_file_cache_hit_no_network(monkeypatch, tmp_path):
+    """Cached file exists and upgrade=False → return cached, no fetch."""
+    ui_file = tmp_path / "REvoDesign_installer.ui"
+    ui_file.write_text("<ui/>")
+    monkeypatch.setattr(package_manager, "PACKAGED_MANAGER_UI_FILE", ui_file)
+    mock_fetch = MagicMock(side_effect=AssertionError("cache hit must not fetch"))
+    monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
+
+    plugin = REvoDesignPackageManager()
+
+    assert plugin.ensure_ui_file() == str(ui_file)
+    mock_fetch.assert_not_called()
+
+
+def test_pm_ensure_ui_file_fetches_on_cache_miss(monkeypatch, tmp_path):
+    """No cached file → fetch from Gist and cache it."""
+    ui_file = tmp_path / "REvoDesign_installer.ui"
+    monkeypatch.setattr(package_manager, "PACKAGED_MANAGER_UI_FILE", ui_file)
+
+    fetch_calls = []
+
+    def mock_fetch(ui_file_url, save_to_file, **kwargs):
+        fetch_calls.append(save_to_file)
+        with open(save_to_file, "w") as fh:
+            fh.write("<ui from gist/>")
+
+    monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
+
+    plugin = REvoDesignPackageManager()
+
+    result = plugin.ensure_ui_file()
+    assert result == str(ui_file)
+    assert len(fetch_calls) == 1
+    assert open(ui_file).read() == "<ui from gist/>"
+
+
+def test_pm_load_packaged_json_does_not_fetch_network(monkeypatch, qtbot):
+    plugin = REvoDesignPackageManager()
+    list_view = QtWidgets.QListView()
+    qtbot.addWidget(list_view)
+    plugin.installer_ui = SimpleNamespace(listView_extras=list_view)
+
+    monkeypatch.setattr(
+        package_manager,
+        "load_packaged_extras_json",
+        lambda: {
+            "entities": [
+                {
+                    "name": "Local Extras",
+                    "description": "Vendored extras registry",
+                    "extras": [],
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        package_manager,
+        "fetch_gist_json",
+        MagicMock(side_effect=AssertionError("startup must not fetch extras")),
+    )
+
+    plugin.load_packaged_json()
+
+    assert plugin.remote_extra_group_data.entities[0].name == "Local Extras"
 
 
 def test_pm_run_command_success():
@@ -522,9 +616,7 @@ def test_pm_get_github_repo_tags_uses_timeout_auth_and_cache(monkeypatch):
             },
         )
     ]
-    cached_at, cached_tags = package_manager._GITHUB_TAG_CACHE[
-        "https://api.github.com/repos/test_owner/test_repo/tags"
-    ]
+    cached_at, cached_tags = package_manager._GITHUB_TAG_CACHE["https://api.github.com/repos/test_owner/test_repo/tags"]
     assert cached_at > 0
     assert cached_tags == ["v2.0.0"]
 
@@ -843,3 +935,68 @@ def test_run_worker_thread_in_pool_reraises_worker_errors(qtbot, monkeypatch):
 
     with pytest.raises(RuntimeError, match="worker exploded"):
         package_manager.run_worker_thread_in_pool(failing_task, notify_slot=lambda _message: None)
+
+
+# ── HMAC manifest verification ────────────────────────────────────────────
+
+
+def test_pm_verify_manifest_all_match(monkeypatch, tmp_path):
+    key = os.urandom(32)
+    monkeypatch.setattr(package_manager, "_MANAGER_HMAC_KEY", key)
+    files = {}
+    manifest = {}
+    for name in ("a.py", "b.ui"):
+        path = tmp_path / name
+        path.write_bytes(os.urandom(64))
+        files[name] = str(path)
+        manifest[name] = hmac.new(key, path.read_bytes(), "sha256").hexdigest()
+
+    assert verify_manifest(files, manifest)
+
+
+def test_pm_verify_manifest_mismatch(monkeypatch, tmp_path):
+    key = os.urandom(32)
+    monkeypatch.setattr(package_manager, "_MANAGER_HMAC_KEY", key)
+    path = tmp_path / "a.py"
+    path.write_bytes(b"original")
+    manifest = {"a.py": hmac.new(key, b"tampered", "sha256").hexdigest()}
+
+    assert not verify_manifest({"a.py": str(path)}, manifest)
+
+
+def test_pm_verify_manifest_missing_entry(monkeypatch, tmp_path):
+    key = os.urandom(32)
+    monkeypatch.setattr(package_manager, "_MANAGER_HMAC_KEY", key)
+    path = tmp_path / "a.py"
+    path.write_bytes(b"data")
+
+    assert not verify_manifest({"a.py": str(path)}, {})
+
+
+def test_pm_compute_hmac_deterministic(monkeypatch, tmp_path):
+    key = os.urandom(32)
+    monkeypatch.setattr(package_manager, "_MANAGER_HMAC_KEY", key)
+    path = tmp_path / "a.py"
+    path.write_bytes(b"hello")
+
+    assert _compute_hmac(str(path)) == _compute_hmac(str(path))
+
+
+# ── fetch_tags graceful degradation ───────────────────────────────────────
+
+
+def test_pm_fetch_tags_silent_on_network_error(monkeypatch, qtbot):
+    plugin = REvoDesignPackageManager()
+    list_view = QtWidgets.QListView()
+    qtbot.addWidget(list_view)
+    plugin.installer_ui = SimpleNamespace(listView_extras=list_view, comboBox_version=QtWidgets.QComboBox())
+    monkeypatch.setattr(
+        package_manager,
+        "get_github_repo_tags",
+        MagicMock(side_effect=URLError("offline")),
+    )
+
+    # Must not raise, must not call notify_box
+    with patch("REvoDesign.tools.package_manager.notify_box") as mock_notify:
+        plugin.fetch_tags()
+        mock_notify.assert_not_called()
