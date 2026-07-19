@@ -209,6 +209,8 @@ RICH_TABLE_JSON = f"{GIST_BASE_URL}/REvoDesignExtrasTableRich.json"
 MANIFEST_URL = f"{GIST_BASE_URL}/manifest.json"
 PACKAGE_MANAGER_BOOTSTRAP_ENV = "REVODESIGN_PM_BOOTSTRAP_DIR"
 BOOTSTRAP_RETRY_DELAYS_SECONDS = (0.5, 2.0, 5.0)
+MANIFEST_ASSET_MANAGER_UI = "REvoDesign-PyMOL-entry.ui"
+MANIFEST_ASSET_EXTRAS_JSON = "REvoDesignExtrasTableRich.json"
 
 # ponytail: HMAC key prevents a forked manifest from accidentally validating
 # against the wrong installation. Not a secret — it ships in the public Gist.
@@ -573,6 +575,32 @@ def fetch_required_gist_json(url: str) -> dict[str, Any]:
     if not json_data:
         raise URLError(f"Failed to fetch required JSON bootstrap asset: {url}")
     return json_data
+
+
+def fetch_bootstrap_manifest() -> dict[str, str]:
+    manifest = _with_bootstrap_retries(
+        lambda: fetch_required_gist_json(MANIFEST_URL),
+        "REvoDesign bootstrap manifest",
+    )
+    if not all(isinstance(key, str) and isinstance(value, str) for key, value in manifest.items()):
+        raise ValueError("Bootstrap manifest must map asset names to HMAC strings")
+    return cast(dict[str, str], manifest)
+
+
+def fetch_verified_bootstrap_file(
+    *,
+    url: str,
+    asset_name: str,
+    save_to_file: str,
+    manifest: dict[str, str],
+    description: str,
+) -> None:
+    def _fetch_and_verify() -> None:
+        fetch_gist_file(ui_file_url=url, save_to_file=save_to_file)
+        if not verify_manifest({asset_name: save_to_file}, manifest):
+            raise ValueError(f"{description} failed HMAC verification")
+
+    _with_bootstrap_retries(_fetch_and_verify, description)
 
 
 def load_bootstrap_extras_json(path: Path | None = None) -> dict[str, Any]:
@@ -1205,9 +1233,13 @@ class REvoDesignPackageManager:
         new_ui_handle.close()
 
         try:
-            _with_bootstrap_retries(
-                lambda: fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=new_ui_file),
-                "REvoDesign manager UI bootstrap",
+            manifest = fetch_bootstrap_manifest()
+            fetch_verified_bootstrap_file(
+                url=UI_FILE_URL,
+                asset_name=MANIFEST_ASSET_MANAGER_UI,
+                save_to_file=new_ui_file,
+                manifest=manifest,
+                description="REvoDesign manager UI bootstrap",
             )
             if upgrade and os.path.isfile(ui_file):
                 self.upgrade_check(original_file=ui_file, new_file=new_ui_file, title="REvoDesign Manager UI file")
@@ -1476,11 +1508,28 @@ class REvoDesignPackageManager:
         """
         Fetches the extras table into the writable bootstrap directory.
         """
-        remote_data = run_worker_thread_in_pool(
-            worker_function=_with_bootstrap_retries,
-            operation=lambda: fetch_required_gist_json(RICH_TABLE_JSON),
-            description="REvoDesign extras table bootstrap",
-        )
+        def fetch_verified_extras() -> dict[str, Any]:
+            manifest = fetch_bootstrap_manifest()
+            extras_handle = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
+            extras_file = extras_handle.name
+            extras_handle.close()
+            try:
+                fetch_verified_bootstrap_file(
+                    url=RICH_TABLE_JSON,
+                    asset_name=MANIFEST_ASSET_EXTRAS_JSON,
+                    save_to_file=extras_file,
+                    manifest=manifest,
+                    description="REvoDesign extras table bootstrap",
+                )
+                json_data = load_bootstrap_extras_json(Path(extras_file))
+                if not json_data:
+                    raise ValueError("Fetched extras bootstrap JSON is empty or invalid")
+                return json_data
+            finally:
+                if os.path.isfile(extras_file):
+                    os.remove(extras_file)
+
+        remote_data = run_worker_thread_in_pool(worker_function=fetch_verified_extras)
         if remote_data and "entities" in remote_data:
             try:
                 write_bootstrap_extras_json(remote_data)

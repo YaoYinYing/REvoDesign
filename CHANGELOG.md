@@ -133,9 +133,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Package manager self-bootstrap**: manager UI and extras registry now
   bootstrap into a writable runtime directory instead of writing into `src/` or
   an installed package directory. Bootstrap fetches use bounded timeouts and
-  retry/backoff; the Refresh button remains the explicit user-triggered network
-  update path. `fetch_tags` degrades silently on network failure instead of
-  blocking startup with an error popup.
+  retry/backoff, and downloaded bootstrap assets must match the HMAC manifest
+  before they are written. The Refresh button remains the explicit
+  user-triggered network update path. `fetch_tags` degrades silently on network
+  failure instead of blocking startup with an error popup.
 - **Self-upgrade HMAC integrity**: the self-upgrade flow now verifies downloaded
   assets against an HMAC-SHA256 manifest before applying changes. The HMAC key
   is embedded in the plugin source and never leaves the client. `make upload-gists`

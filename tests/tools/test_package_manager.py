@@ -145,11 +145,18 @@ def test_pm_ensure_ui_file_refetches_even_when_previous_bootstrap_exists(monkeyp
     ui_file = tmp_path / "UI" / "REvoDesign_installer.ui"
     ui_file.parent.mkdir()
     ui_file.write_text("<stale ui/>")
+    fresh_ui = b"<fresh ui/>"
+    manifest = {
+        package_manager.MANIFEST_ASSET_MANAGER_UI: hmac.new(
+            package_manager._MANAGER_HMAC_KEY, fresh_ui, "sha256"
+        ).hexdigest()
+    }
 
     def mock_fetch(ui_file_url, save_to_file, **kwargs):
-        with open(save_to_file, "w") as fh:
-            fh.write("<fresh ui/>")
+        with open(save_to_file, "wb") as fh:
+            fh.write(fresh_ui)
 
+    monkeypatch.setattr(package_manager, "fetch_bootstrap_manifest", lambda: manifest)
     monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
 
     plugin = REvoDesignPackageManager()
@@ -161,6 +168,12 @@ def test_pm_ensure_ui_file_refetches_even_when_previous_bootstrap_exists(monkeyp
 def test_pm_ensure_ui_file_retries_then_writes_bootstrap_file(monkeypatch, tmp_path):
     monkeypatch.setenv(package_manager.PACKAGE_MANAGER_BOOTSTRAP_ENV, str(tmp_path))
     ui_file = tmp_path / "UI" / "REvoDesign_installer.ui"
+    fetched_ui = b"<ui from gist/>"
+    manifest = {
+        package_manager.MANIFEST_ASSET_MANAGER_UI: hmac.new(
+            package_manager._MANAGER_HMAC_KEY, fetched_ui, "sha256"
+        ).hexdigest()
+    }
 
     fetch_calls = []
 
@@ -168,9 +181,10 @@ def test_pm_ensure_ui_file_retries_then_writes_bootstrap_file(monkeypatch, tmp_p
         fetch_calls.append(save_to_file)
         if len(fetch_calls) == 1:
             raise urllib.error.URLError("temporary outage")
-        with open(save_to_file, "w") as fh:
-            fh.write("<ui from gist/>")
+        with open(save_to_file, "wb") as fh:
+            fh.write(fetched_ui)
 
+    monkeypatch.setattr(package_manager, "fetch_bootstrap_manifest", lambda: manifest)
     monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
     monkeypatch.setattr(package_manager.time, "sleep", lambda _seconds: None)
 
@@ -197,17 +211,31 @@ def test_pm_load_bootstrap_json_fetches_and_writes_bootstrap_file(monkeypatch, t
             }
         ],
     }
+    remote_bytes = json.dumps(remote_data).encode()
+    manifest = {
+        package_manager.MANIFEST_ASSET_EXTRAS_JSON: hmac.new(
+            package_manager._MANAGER_HMAC_KEY, remote_bytes, "sha256"
+        ).hexdigest()
+    }
+    fetch_calls = []
+
+    def mock_fetch(ui_file_url, save_to_file, **kwargs):
+        fetch_calls.append(save_to_file)
+        with open(save_to_file, "wb") as fh:
+            fh.write(b'{"entities": []}' if len(fetch_calls) == 1 else remote_bytes)
+
     monkeypatch.setattr(
         package_manager,
         "run_worker_thread_in_pool",
-        lambda worker_function, **kwargs: worker_function(**kwargs),
+        lambda worker_function, **_kwargs: worker_function(),
     )
-    fetch_results = iter(({}, remote_data))
-    monkeypatch.setattr(package_manager, "fetch_gist_json", MagicMock(side_effect=lambda _url: next(fetch_results)))
+    monkeypatch.setattr(package_manager, "fetch_bootstrap_manifest", lambda: manifest)
+    monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
     monkeypatch.setattr(package_manager.time, "sleep", lambda _seconds: None)
 
     plugin.load_bootstrap_json()
 
+    assert len(fetch_calls) == 2
     assert plugin.remote_extra_group_data.entities[0].name == "Fetched Extras"
     assert json.loads(bootstrap_extras_json().read_text()) == remote_data
 

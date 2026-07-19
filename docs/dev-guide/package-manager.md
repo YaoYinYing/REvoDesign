@@ -101,7 +101,9 @@ directory under the system temp directory by default. Set
 `REVODESIGN_PM_BOOTSTRAP_DIR` to override that bootstrap location in tests or
 special deployments. Startup re-fetches bootstrap assets with retry/backoff
 instead of treating a stale local copy as the source of truth, and it never
-writes runtime assets into `src/` or an installed package directory.
+writes runtime assets into `src/` or an installed package directory. The
+downloaded UI must match the HMAC in `manifest.json` before it replaces the
+runtime bootstrap copy.
 
 ## Extras Registry
 
@@ -111,6 +113,12 @@ self-bootstraps the runtime copy into the same writable bootstrap directory
 with retry/backoff. The Refresh button is the explicit user-triggered path for
 fetching and writing a newer runtime copy from Gist. Each extras entry can
 specify:
+
+The bootstrap manifest uses HMAC-SHA256 to catch corruption, truncation, and
+cross-project asset mismatches before runtime files are written. The HMAC key
+is distributed with the standalone manager, so this is an integrity check for
+the managed bootstrap flow rather than a private release signature against a
+compromised Gist account.
 
 - **`name`** -- Display name
 - **`extras_id`** -- The pip extras identifier (e.g., `[scatter]`)
