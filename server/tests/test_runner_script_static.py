@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "REvoDesign_PSSM_GREMLIN.sh"
 
 

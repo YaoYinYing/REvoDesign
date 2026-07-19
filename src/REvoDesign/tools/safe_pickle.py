@@ -4,6 +4,7 @@
 
 import importlib
 import io
+
 # This module provides a restricted unpickler wrapper.
 import pickle  # nosec B403
 from collections import OrderedDict, defaultdict, deque

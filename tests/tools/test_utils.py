@@ -534,8 +534,7 @@ def test_require_installed(package_name, expected_raise):
 
 
 class CitableClass(CitableModuleAbstract):
-    def __init__(self):
-        ...
+    def __init__(self): ...
 
     def config(self):
         print("Awesome module is under configuration!")

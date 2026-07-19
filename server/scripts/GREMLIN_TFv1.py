@@ -12,6 +12,7 @@
 
 import os
 import pathlib
+
 # MRF model serialization uses trusted data.
 import pickle  # nosec B403
 import sys

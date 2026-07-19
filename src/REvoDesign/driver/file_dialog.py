@@ -321,14 +321,12 @@ def flatten_compressed_files(
     archive_size = os.path.getsize(compressed_file)
     if archive_size > max_archive_bytes:
         raise ValueError(
-            f"Archive is too large to browse safely: {archive_size} bytes "
-            f"(limit: {max_archive_bytes} bytes)"
+            f"Archive is too large to browse safely: {archive_size} bytes " f"(limit: {max_archive_bytes} bytes)"
         )
     payload_size = _compressed_archive_payload_size(compressed_file)
     if payload_size > max_archive_bytes:
         raise ValueError(
-            f"Archive expands too large to browse safely: {payload_size} bytes "
-            f"(limit: {max_archive_bytes} bytes)"
+            f"Archive expands too large to browse safely: {payload_size} bytes " f"(limit: {max_archive_bytes} bytes)"
         )
 
     # Create a path for the extracted files

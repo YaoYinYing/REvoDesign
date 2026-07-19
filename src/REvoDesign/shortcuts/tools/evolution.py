@@ -8,6 +8,7 @@ Shortcut for running GREMLIN on a given FASTA MSA file.
 """
 
 import gc
+
 # MRF model serialization uses trusted data.
 import pickle  # nosec B403
 

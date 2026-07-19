@@ -1508,6 +1508,7 @@ class REvoDesignPackageManager:
         """
         Fetches the extras table into the writable bootstrap directory.
         """
+
         def fetch_verified_extras() -> dict[str, Any]:
             manifest = fetch_bootstrap_manifest()
             extras_handle = tempfile.NamedTemporaryFile(delete=False, suffix=".json")

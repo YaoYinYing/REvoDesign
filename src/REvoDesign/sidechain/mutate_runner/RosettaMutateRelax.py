@@ -214,10 +214,7 @@ class MutateRelax_worker(MutateRunnerAbstract):
             rosetta_utils.read_rosetta_node_config(),
         )
         self.mutate_relax_instance.run(mutants, opts=list(self.rosetta_general_opts))
-        return [
-            os.path.join(self.temp_dir, f"{mutant.short_mutant_id}.pdb")
-            for mutant in mutants
-        ]
+        return [os.path.join(self.temp_dir, f"{mutant.short_mutant_id}.pdb") for mutant in mutants]
 
     __bibtex__ = rosetta_utils.copy_rosetta_citation(
         {

@@ -95,9 +95,7 @@ class DglSolver:
         if os.environ.get(DGL_INSTALL_APPROVAL_ENV) == "1":
             return True
         if not _has_qapplication():
-            logging.warning(
-                "DGL installation requires interactive approval; no QApplication is available."
-            )
+            logging.warning("DGL installation requires interactive approval; no QApplication is available.")
             return False
 
         return decide(
@@ -121,9 +119,7 @@ class DglSolver:
             logging.info("DGL installation was not approved.")
             return False
 
-        c = run_command(
-            [sys.executable, "-m", "pip", "install", "dgl==2.2.1", "-f", index_link]
-        )
+        c = run_command([sys.executable, "-m", "pip", "install", "dgl==2.2.1", "-f", index_link])
         if c.returncode != 0:
             logging.error(f"Failed to install DGL: {c.stderr}")
             raise RuntimeError(f"Failed to install DGL: {c.stderr}")

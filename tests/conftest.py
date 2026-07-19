@@ -23,10 +23,11 @@ from pathlib import Path
 from typing import Literal
 from unittest.mock import MagicMock, patch
 
+import platformdirs
+
 # import hydra as unmocked_hydra
 import psutil
 import pytest
-import platformdirs
 from _pytest.nodes import Item
 from immutabledict import immutabledict
 from pymol import CmdException
@@ -35,6 +36,18 @@ from pymol import cmd
 from pytestqt import qtbot
 from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
+
+from REvoDesign import REvoDesignPlugin
+from REvoDesign.basic.abc_singleton import reset_singletons
+from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
+from REvoDesign.common import MutantTree
+from REvoDesign.driver.ui_driver import ConfigBus
+from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
+from REvoDesign.tools.package_manager import REvoDesignPackageManager, refresh_window
+
+from .data import TestData
+from .data.test_data import KeyData
 
 REPO_DIR = os.path.join(os.path.dirname(__file__), "..")
 TESTS_DIR = Path(__file__).resolve().parent
@@ -62,18 +75,6 @@ def _static_platform_dir(dirname: str):
 
 platformdirs.user_data_dir = _static_platform_dir(DATA_DIRNAME)
 platformdirs.user_cache_dir = _static_platform_dir(CACHE_DIRNAME)
-
-from REvoDesign import REvoDesignPlugin
-from REvoDesign.basic.abc_singleton import reset_singletons
-from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
-from REvoDesign.common import MutantTree
-from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.Qt import QtCore, QtWidgets
-from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
-from REvoDesign.tools.package_manager import REvoDesignPackageManager, refresh_window
-
-from .data import TestData
-from .data.test_data import KeyData
 
 
 def _resolve_pytest_qt_api() -> str:
