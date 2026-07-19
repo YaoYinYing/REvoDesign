@@ -85,8 +85,8 @@ killed.
 ### REvoDesignPackageManager (`:::` REvoDesign.tools.package_manager.REvoDesignPackageManager)
 
 The top-level orchestrator. It:
-1. Loads the packaged UI file (`REvoDesign_installer.ui`) via `loadUi`
-2. Loads the packaged extras manifest JSON (`REvoDesignExtrasTableRich.json`)
+1. Self-bootstraps the UI file (`REvoDesign_installer.ui`) via retrying Gist fetches
+2. Self-bootstraps the extras manifest JSON (`REvoDesignExtrasTableRich.json`) via retrying Gist fetches
 3. Fetches GitHub release tags for version selection
 4. Registers PyMOL menu items (Install, Reinstall, Uninstall, Manager)
 5. Configures proxy, mirror, and extras in the UI
@@ -94,20 +94,23 @@ The top-level orchestrator. It:
 
 ## The UI File
 
-The manager's graphical interface is defined in `REvoDesign_installer.ui`,
-a Qt Designer file stored at
-`src/REvoDesign/tools/REvoDesign-manager/UI/REvoDesign_installer.ui`.
-The manager loads this packaged file at startup. The explicit manager upgrade
-action may fetch a replacement from Gist, but normal startup must work offline
-and must not write into the installed package directory.
+The manager is expected to work as a single PyMOL startup file. It therefore
+self-bootstraps its UI from the canonical Gist source generated from
+`src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui` into a writable runtime bootstrap
+directory under the system temp directory by default. Set
+`REVODESIGN_PM_BOOTSTRAP_DIR` to override that bootstrap location in tests or
+special deployments. Startup re-fetches bootstrap assets with retry/backoff
+instead of treating a stale local copy as the source of truth, and it never
+writes runtime assets into `src/` or an installed package directory.
 
 ## Extras Registry
 
-The packaged file
-`src/REvoDesign/tools/REvoDesign-manager/REvoDesignExtrasTableRich.json`
-defines available extras and is loaded at manager startup. The Refresh button
-is the explicit network path for fetching a newer copy from Gist. Each extras
-entry can specify:
+The canonical source file `jsons/REvoDesignExtrasTableRich.json` defines
+available extras and is uploaded to Gist with `make upload-gists`. The manager
+self-bootstraps the runtime copy into the same writable bootstrap directory
+with retry/backoff. The Refresh button is the explicit user-triggered path for
+fetching and writing a newer runtime copy from Gist. Each extras entry can
+specify:
 
 - **`name`** -- Display name
 - **`extras_id`** -- The pip extras identifier (e.g., `[scatter]`)

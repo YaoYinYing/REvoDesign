@@ -206,15 +206,50 @@ UI_FILE_URL = f"{GIST_BASE_URL}/REvoDesign-PyMOL-entry.ui"
 THIS_FILE_URL = f"{GIST_BASE_URL}/REvoDesign_PyMOL.py"
 # Define the URL of the JSON file
 RICH_TABLE_JSON = f"{GIST_BASE_URL}/REvoDesignExtrasTableRich.json"
-PACKAGE_MANAGER_DATA_DIR = Path(__file__).resolve().parent / "REvoDesign-manager"
-PACKAGED_MANAGER_UI_FILE = PACKAGE_MANAGER_DATA_DIR / "UI" / "REvoDesign_installer.ui"
-PACKAGED_EXTRAS_JSON = PACKAGE_MANAGER_DATA_DIR / "REvoDesignExtrasTableRich.json"
 MANIFEST_URL = f"{GIST_BASE_URL}/manifest.json"
+PACKAGE_MANAGER_BOOTSTRAP_ENV = "REVODESIGN_PM_BOOTSTRAP_DIR"
+BOOTSTRAP_RETRY_DELAYS_SECONDS = (0.5, 2.0, 5.0)
 
 # ponytail: HMAC key prevents a forked manifest from accidentally validating
 # against the wrong installation. Not a secret — it ships in the public Gist.
 # Value: catches truncation/corruption + accidental cross-project mismatch.
 _MANAGER_HMAC_KEY = bytes.fromhex("bd8c4274c76d312b22a0c3d58aad68860b645f1dcc22e67d3d4fe16bf59c6343")
+
+
+def package_manager_bootstrap_dir() -> Path:
+    bootstrap_dir = os.environ.get(PACKAGE_MANAGER_BOOTSTRAP_ENV)
+    if bootstrap_dir:
+        return Path(bootstrap_dir).expanduser()
+    return Path(tempfile.gettempdir()) / "REvoDesign-manager"
+
+
+def bootstrap_manager_ui_file() -> Path:
+    return package_manager_bootstrap_dir() / "UI" / "REvoDesign_installer.ui"
+
+
+def bootstrap_extras_json() -> Path:
+    return package_manager_bootstrap_dir() / "REvoDesignExtrasTableRich.json"
+
+
+def _with_bootstrap_retries(operation: Callable[[], R], description: str) -> R:
+    last_error: Exception | None = None
+    for attempt, delay in enumerate((0.0, *BOOTSTRAP_RETRY_DELAYS_SECONDS), start=1):
+        if delay:
+            time.sleep(delay)
+        try:
+            return operation()
+        except Exception as e:
+            last_error = e
+            logging.warning(
+                "%s failed on attempt %s/%s: %s",
+                description,
+                attempt,
+                len(BOOTSTRAP_RETRY_DELAYS_SECONDS) + 1,
+                e,
+            )
+    if last_error is None:
+        raise RuntimeError(f"{description} failed without an exception")
+    raise last_error
 
 
 # Define the proxy protocols allowed
@@ -533,7 +568,15 @@ def fetch_gist_json(url: str) -> dict[str, Any]:
         return {}
 
 
-def load_packaged_extras_json(path: Path = PACKAGED_EXTRAS_JSON) -> dict[str, Any]:
+def fetch_required_gist_json(url: str) -> dict[str, Any]:
+    json_data = fetch_gist_json(url)
+    if not json_data:
+        raise URLError(f"Failed to fetch required JSON bootstrap asset: {url}")
+    return json_data
+
+
+def load_bootstrap_extras_json(path: Path | None = None) -> dict[str, Any]:
+    path = path or bootstrap_extras_json()
     try:
         with path.open(encoding="utf-8") as json_handle:
             json_data = json.load(json_handle)
@@ -548,6 +591,17 @@ def load_packaged_extras_json(path: Path = PACKAGED_EXTRAS_JSON) -> dict[str, An
         logging.error(f"Error loading packaged extras table from {path}: expected a dictionary.")
         return {}
     return json_data
+
+
+load_packaged_extras_json = load_bootstrap_extras_json
+
+
+def write_bootstrap_extras_json(remote_data: dict[str, Any]) -> None:
+    extras_json = bootstrap_extras_json()
+    cache_dir = str(extras_json.parent)
+    os.makedirs(cache_dir, exist_ok=True)
+    with open(str(extras_json), "w", encoding="utf-8") as fh:
+        json.dump(remote_data, fh)
 
 
 def _compute_hmac(filepath: str) -> str:
@@ -1138,24 +1192,23 @@ class REvoDesignPackageManager:
     def ensure_ui_file(self, upgrade: bool = False):
         """Return the manager UI file path, fetching from Gist if needed.
 
-        Load order: cached copy → network fetch → cache to disk.
-        ``upgrade=True`` forces a network fetch even when cached.
+        Download the manager UI into the writable bootstrap directory.
+        ``upgrade=True`` still uses the same retrying fetch path.
         """
-        # ponytail: cache dir is writable (~/.pymol/startup/REvoDesign-manager/)
-        cache_dir = str(PACKAGED_MANAGER_UI_FILE.parent)
+        ui_file_path = bootstrap_manager_ui_file()
+        cache_dir = str(ui_file_path.parent)
         os.makedirs(cache_dir, exist_ok=True)
-        ui_file = str(PACKAGED_MANAGER_UI_FILE)
-
-        if os.path.isfile(ui_file) and not upgrade:
-            logging.debug("Cached UI file found: %s", ui_file)
-            return ui_file
+        ui_file = str(ui_file_path)
 
         new_ui_handle = tempfile.NamedTemporaryFile(delete=False, suffix=".ui")
         new_ui_file = new_ui_handle.name
         new_ui_handle.close()
 
         try:
-            fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=new_ui_file)
+            _with_bootstrap_retries(
+                lambda: fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=new_ui_file),
+                "REvoDesign manager UI bootstrap",
+            )
             if upgrade and os.path.isfile(ui_file):
                 self.upgrade_check(original_file=ui_file, new_file=new_ui_file, title="REvoDesign Manager UI file")
             else:
@@ -1270,12 +1323,12 @@ class REvoDesignPackageManager:
 
             self.upgrade_check(original_file=__file__, new_file=py_temp, title="REvoDesign Manager")
 
-            cached_ui = str(PACKAGED_MANAGER_UI_FILE)
-            if os.path.isfile(cached_ui):
-                self.upgrade_check(original_file=cached_ui, new_file=ui_temp, title="REvoDesign Manager UI file")
+            bootstrap_ui = str(bootstrap_manager_ui_file())
+            if os.path.isfile(bootstrap_ui):
+                self.upgrade_check(original_file=bootstrap_ui, new_file=ui_temp, title="REvoDesign Manager UI file")
             else:
-                os.makedirs(os.path.dirname(cached_ui), exist_ok=True)
-                shutil.move(ui_temp, cached_ui)
+                os.makedirs(os.path.dirname(bootstrap_ui), exist_ok=True)
+                shutil.move(ui_temp, bootstrap_ui)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
 
@@ -1323,7 +1376,7 @@ class REvoDesignPackageManager:
 
         logging.debug("Run pre-fetching tasks... ")
 
-        self.load_packaged_json()
+        self.load_bootstrap_json()
 
         self.pip_installer = run_worker_thread_in_pool(PIPInstaller)
 
@@ -1419,11 +1472,24 @@ class REvoDesignPackageManager:
             self.installer_ui.listView_extras, self.remote_extra_group_data, filter=PLATFORM_INFO
         )
 
+    def load_bootstrap_json(self):
+        """
+        Fetches the extras table into the writable bootstrap directory.
+        """
+        remote_data = run_worker_thread_in_pool(
+            worker_function=_with_bootstrap_retries,
+            operation=lambda: fetch_required_gist_json(RICH_TABLE_JSON),
+            description="REvoDesign extras table bootstrap",
+        )
+        if remote_data and "entities" in remote_data:
+            try:
+                write_bootstrap_extras_json(remote_data)
+            except OSError:
+                logging.warning("Failed to write extras JSON to %s", bootstrap_extras_json())
+        self._load_extras_table(remote_data, notify_on_error=False)
+
     def load_packaged_json(self):
-        """
-        Loads the vendored extras table without requiring network access.
-        """
-        self._load_extras_table(load_packaged_extras_json(), notify_on_error=False)
+        return self.load_bootstrap_json()
 
     def refresh_remote_json(self):
         """
@@ -1434,15 +1500,12 @@ class REvoDesignPackageManager:
         """
         remote_data = run_worker_thread_in_pool(worker_function=fetch_gist_json, url=RICH_TABLE_JSON)
         self._load_extras_table(remote_data, notify_on_error=True)
-        # ponytail: cache successful fetches so offline startup has data
+        # Save explicit refresh output as the latest bootstrap copy for this session.
         if remote_data and "entities" in remote_data:
             try:
-                cache_dir = str(PACKAGED_EXTRAS_JSON.parent)
-                os.makedirs(cache_dir, exist_ok=True)
-                with open(str(PACKAGED_EXTRAS_JSON), "w", encoding="utf-8") as fh:
-                    json.dump(remote_data, fh)
+                write_bootstrap_extras_json(remote_data)
             except OSError:
-                logging.warning("Failed to cache extras JSON to %s", PACKAGED_EXTRAS_JSON)
+                logging.warning("Failed to write extras JSON to %s", bootstrap_extras_json())
 
     @staticmethod
     def notification_channel(d: dict):
@@ -1574,8 +1637,8 @@ class REvoDesignPackageManager:
                 details=str(e),
             )
             if decided:
-                # ponytail: re-fetch from network, don't delete the cached copy
-                # until the new one loads successfully.
+                # Re-fetch into a temp file first; replace the bootstrap file
+                # only after the new download succeeds.
                 ui_file = self.ensure_ui_file(upgrade=True)
                 self.installer_ui = loadUi(ui_file, dialog)
             else:

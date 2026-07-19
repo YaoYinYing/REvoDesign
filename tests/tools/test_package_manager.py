@@ -26,11 +26,14 @@ from REvoDesign.tools.package_manager import (
     REvoDesignPackageManager,
     _compute_hmac,
     _python_version_matches,
+    load_bootstrap_extras_json,
+    bootstrap_manager_ui_file,
+    bootstrap_extras_json,
     fetch_gist_file,
     fetch_gist_json,
     filter_sensitive_data,
     get_github_repo_tags,
-    load_packaged_extras_json,
+    package_manager_bootstrap_dir,
     run_command,
     solve_installation_config,
     verify_manifest,
@@ -122,77 +125,91 @@ def test_pm_fetch_gist_json_error():
     assert result == {}
 
 
-def test_pm_load_packaged_extras_json(tmp_path):
+def test_pm_load_bootstrap_extras_json(tmp_path):
     registry = tmp_path / "REvoDesignExtrasTableRich.json"
     registry.write_text(json.dumps({"entities": []}))
 
-    assert load_packaged_extras_json(registry) == {"entities": []}
+    assert load_bootstrap_extras_json(registry) == {"entities": []}
 
 
-def test_pm_ensure_ui_file_cache_hit_no_network(monkeypatch, tmp_path):
-    """Cached file exists and upgrade=False → return cached, no fetch."""
-    ui_file = tmp_path / "REvoDesign_installer.ui"
-    ui_file.write_text("<ui/>")
-    monkeypatch.setattr(package_manager, "PACKAGED_MANAGER_UI_FILE", ui_file)
-    mock_fetch = MagicMock(side_effect=AssertionError("cache hit must not fetch"))
+def test_pm_bootstrap_paths_use_env(monkeypatch, tmp_path):
+    monkeypatch.setenv(package_manager.PACKAGE_MANAGER_BOOTSTRAP_ENV, str(tmp_path))
+
+    assert package_manager_bootstrap_dir() == tmp_path
+    assert bootstrap_manager_ui_file() == tmp_path / "UI" / "REvoDesign_installer.ui"
+    assert bootstrap_extras_json() == tmp_path / "REvoDesignExtrasTableRich.json"
+
+
+def test_pm_ensure_ui_file_refetches_even_when_previous_bootstrap_exists(monkeypatch, tmp_path):
+    monkeypatch.setenv(package_manager.PACKAGE_MANAGER_BOOTSTRAP_ENV, str(tmp_path))
+    ui_file = tmp_path / "UI" / "REvoDesign_installer.ui"
+    ui_file.parent.mkdir()
+    ui_file.write_text("<stale ui/>")
+
+    def mock_fetch(ui_file_url, save_to_file, **kwargs):
+        with open(save_to_file, "w") as fh:
+            fh.write("<fresh ui/>")
+
     monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
 
     plugin = REvoDesignPackageManager()
 
     assert plugin.ensure_ui_file() == str(ui_file)
-    mock_fetch.assert_not_called()
+    assert ui_file.read_text() == "<fresh ui/>"
 
 
-def test_pm_ensure_ui_file_fetches_on_cache_miss(monkeypatch, tmp_path):
-    """No cached file → fetch from Gist and cache it."""
-    ui_file = tmp_path / "REvoDesign_installer.ui"
-    monkeypatch.setattr(package_manager, "PACKAGED_MANAGER_UI_FILE", ui_file)
+def test_pm_ensure_ui_file_retries_then_writes_bootstrap_file(monkeypatch, tmp_path):
+    monkeypatch.setenv(package_manager.PACKAGE_MANAGER_BOOTSTRAP_ENV, str(tmp_path))
+    ui_file = tmp_path / "UI" / "REvoDesign_installer.ui"
 
     fetch_calls = []
 
     def mock_fetch(ui_file_url, save_to_file, **kwargs):
         fetch_calls.append(save_to_file)
+        if len(fetch_calls) == 1:
+            raise urllib.error.URLError("temporary outage")
         with open(save_to_file, "w") as fh:
             fh.write("<ui from gist/>")
 
     monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
+    monkeypatch.setattr(package_manager.time, "sleep", lambda _seconds: None)
 
     plugin = REvoDesignPackageManager()
 
     result = plugin.ensure_ui_file()
     assert result == str(ui_file)
-    assert len(fetch_calls) == 1
+    assert len(fetch_calls) == 2
     assert open(ui_file).read() == "<ui from gist/>"
 
 
-def test_pm_load_packaged_json_does_not_fetch_network(monkeypatch, qtbot):
+def test_pm_load_bootstrap_json_fetches_and_writes_bootstrap_file(monkeypatch, tmp_path, qtbot):
+    monkeypatch.setenv(package_manager.PACKAGE_MANAGER_BOOTSTRAP_ENV, str(tmp_path))
     plugin = REvoDesignPackageManager()
     list_view = QtWidgets.QListView()
     qtbot.addWidget(list_view)
     plugin.installer_ui = SimpleNamespace(listView_extras=list_view)
-
+    remote_data = {
+        "entities": [
+            {
+                "name": "Fetched Extras",
+                "description": "Remote extras registry",
+                "extras": [],
+            }
+        ],
+    }
     monkeypatch.setattr(
         package_manager,
-        "load_packaged_extras_json",
-        lambda: {
-            "entities": [
-                {
-                    "name": "Local Extras",
-                    "description": "Vendored extras registry",
-                    "extras": [],
-                }
-            ],
-        },
+        "run_worker_thread_in_pool",
+        lambda worker_function, **kwargs: worker_function(**kwargs),
     )
-    monkeypatch.setattr(
-        package_manager,
-        "fetch_gist_json",
-        MagicMock(side_effect=AssertionError("startup must not fetch extras")),
-    )
+    fetch_results = iter(({}, remote_data))
+    monkeypatch.setattr(package_manager, "fetch_gist_json", MagicMock(side_effect=lambda _url: next(fetch_results)))
+    monkeypatch.setattr(package_manager.time, "sleep", lambda _seconds: None)
 
-    plugin.load_packaged_json()
+    plugin.load_bootstrap_json()
 
-    assert plugin.remote_extra_group_data.entities[0].name == "Local Extras"
+    assert plugin.remote_extra_group_data.entities[0].name == "Fetched Extras"
+    assert json.loads(bootstrap_extras_json().read_text()) == remote_data
 
 
 def test_pm_run_command_success():

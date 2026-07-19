@@ -130,11 +130,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
-- **Package manager offline startup**: manager UI and extras registry now use a
-  cache-first strategy with the local `~/.pymol/startup/REvoDesign-manager/`
-  directory. First-run fetches assets from Gist with bounded timeouts;
-  subsequent startups use cached copies. The Refresh button is the explicit
-  network path. `fetch_tags` degrades silently on network failure instead of
+- **Package manager self-bootstrap**: manager UI and extras registry now
+  bootstrap into a writable runtime directory instead of writing into `src/` or
+  an installed package directory. Bootstrap fetches use bounded timeouts and
+  retry/backoff; the Refresh button remains the explicit user-triggered network
+  update path. `fetch_tags` degrades silently on network failure instead of
   blocking startup with an error popup.
 - **Self-upgrade HMAC integrity**: the self-upgrade flow now verifies downloaded
   assets against an HMAC-SHA256 manifest before applying changes. The HMAC key
