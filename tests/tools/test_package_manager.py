@@ -29,8 +29,10 @@ from REvoDesign.tools.package_manager import (
     load_bootstrap_extras_json,
     bootstrap_manager_ui_file,
     bootstrap_extras_json,
+    fetch_bootstrap_manifest,
     fetch_gist_file,
     fetch_gist_json,
+    fetch_verified_bootstrap_file,
     filter_sensitive_data,
     get_github_repo_tags,
     package_manager_bootstrap_dir,
@@ -1016,6 +1018,42 @@ def test_pm_verify_manifest_missing_entry(monkeypatch, tmp_path):
     path.write_bytes(b"data")
 
     assert not verify_manifest({"a.py": str(path)}, {})
+
+
+def test_pm_fetch_bootstrap_manifest_rejects_invalid_schema(monkeypatch):
+    monkeypatch.setattr(package_manager, "fetch_required_gist_json", lambda _url: {"asset.py": 123})
+
+    with pytest.raises(ValueError, match="Bootstrap manifest must map asset names to HMAC strings"):
+        fetch_bootstrap_manifest()
+
+
+def test_pm_fetch_verified_bootstrap_file_retries_on_hmac_mismatch(monkeypatch, tmp_path):
+    key = os.urandom(32)
+    monkeypatch.setattr(package_manager, "_MANAGER_HMAC_KEY", key)
+    monkeypatch.setattr(package_manager.time, "sleep", lambda _seconds: None)
+    output = tmp_path / "asset.ui"
+    expected_payload = b"expected asset"
+    manifest = {"asset.ui": hmac.new(key, expected_payload, "sha256").hexdigest()}
+    fetch_payloads = iter((b"tampered asset", expected_payload))
+    fetch_calls = []
+
+    def mock_fetch(ui_file_url, save_to_file, **kwargs):
+        fetch_calls.append(ui_file_url)
+        with open(save_to_file, "wb") as file_handle:
+            file_handle.write(next(fetch_payloads))
+
+    monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
+
+    fetch_verified_bootstrap_file(
+        url="https://example.com/asset.ui",
+        asset_name="asset.ui",
+        save_to_file=str(output),
+        manifest=manifest,
+        description="test asset",
+    )
+
+    assert fetch_calls == ["https://example.com/asset.ui", "https://example.com/asset.ui"]
+    assert output.read_bytes() == expected_payload
 
 
 def test_pm_compute_hmac_deterministic(monkeypatch, tmp_path):
