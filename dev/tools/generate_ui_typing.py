@@ -86,8 +86,8 @@ def _read_ui_elements(ui_path: Path) -> tuple[dict[str, str], list[tuple[str, st
     in_custom_widget = False
 
     while not reader.atEnd():
-        token = reader.readNext()
-        if token == QtCore.QXmlStreamReader.StartElement:
+        reader.readNext()
+        if reader.isStartElement():
             tag = reader.name()
             if tag == "customwidget":
                 in_custom_widget = True
@@ -100,7 +100,7 @@ def _read_ui_elements(ui_path: Path) -> tuple[dict[str, str], list[tuple[str, st
             if tag in {"widget", "layout", "action", "buttongroup"}:
                 attributes = reader.attributes()
                 elements.append((tag, attributes.value("name"), attributes.value("class")))
-        elif token == QtCore.QXmlStreamReader.EndElement and reader.name() == "customwidget":
+        elif reader.isEndElement() and reader.name() == "customwidget":
             in_custom_widget = False
 
     if reader.hasError():
