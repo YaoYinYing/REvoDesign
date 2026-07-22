@@ -74,7 +74,7 @@ def find_small_molecules_in_protein(sele):
                       Returns None if the selection is not provided.
     """
     if not sele:
-        warnings.warn(issues.NoInputWarning("Selection for small molecules is not provided."))
+        warnings.warn(issues.NoInputWarning("Selection for small molecules is not provided."), stacklevel=2)
         return None  # Return None if the selection is not provided
 
     # Retrieve the atoms that belong to small molecules within the selection and extract unique small molecule names
@@ -88,13 +88,14 @@ def find_small_molecules_in_protein(sele):
                 "Could not find unique small molecules with standalone chain id. \n"
                 'A possible fix is calling `alter r. RES, chain="<chain-id>"` to fix the problem \n'
                 "then re-load this session."
-            )
+            ),
+            stacklevel=2,
         )
 
         # Return a list of unique small molecule names found within the selection
         return unique_small_molecules
 
-    warnings.warn(issues.FallingBackWarning("Falling back to all `hetatm`"))
+    warnings.warn(issues.FallingBackWarning("Falling back to all `hetatm`"), stacklevel=2)
     small_molecules = [at.resn for at in cmd.get_model("hetatm and (not polymer.protein)").atom]
 
     unique_small_molecules = list(set(small_molecules))
@@ -165,7 +166,8 @@ def is_distal_residue_pair(
     - chain_id (str): The chain identifier.
     - resi_1 (int): The residue number of the first amino acid.
     - resi_2 (int): The residue number of the second amino acid.
-    - minimal_distance (float, optional): The minimum distance threshold for residues to be considered distal. Default is 20.
+    - minimal_distance (float, optional): The minimum distance threshold for
+        residues to be considered distal. Default is 20.
     - use_sidechain_angle (bool, optional): Whether to consider the orientation of side chains. Default is False.
 
     Returns:
@@ -347,7 +349,8 @@ def refresh_all_selections():
     Function: refresh_all_selections
     Usage: selections = refresh_all_selections()
 
-    This function refreshes and logs information about all PyMOL selections except 'sele' and those starting with '_align'.
+    This function refreshes and logs information about all PyMOL selections
+    except 'sele' and those starting with '_align'.
 
     Returns:
     - list: List of all non-'sele' selections (excluding those starting with '_align')
@@ -385,7 +388,8 @@ def is_a_REvoDesign_session():
                 "session's feature, you should always create seperate"
                 "sessions according to your dataset and merge them "
                 "manually in PyMOL window."
-            )
+            ),
+            stacklevel=2,
         )
     return check
 
@@ -397,12 +401,15 @@ def make_temperal_input_pdb(
     resn="",
     selection="",
     save_as_format="pdb",
-    wd=os.getcwd(),
+    wd=None,
     reload=True,
 ):
     """
         Function: make_temperal_input_pdb
-        Usage: input_file = make_temperal_input_pdb(molecule, chain_id=None, segment_id=None, format='pdb', wd=os.getcwd(), reload=True)
+        Usage: input_file = make_temperal_input_pdb(
+            molecule, chain_id=None, segment_id=None, format='pdb',
+            wd=os.getcwd(), reload=True
+        )
     exi
         This function generates a temporary input PDB file from the specified molecule selection.
         It supports selection by chain ID, segment ID, or both.
@@ -420,6 +427,9 @@ def make_temperal_input_pdb(
         Returns:
         - str: Path to the generated temporary input PDB file
     """
+    if wd is None:
+        wd = os.getcwd()
+
     os.makedirs(wd, exist_ok=True)
     input_file = os.path.join(
         wd,

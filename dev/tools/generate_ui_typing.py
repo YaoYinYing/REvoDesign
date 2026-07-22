@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import argparse
 import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
+
+from REvoDesign.Qt import QtCore
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 UI_PATH = REPO_ROOT / "src/REvoDesign/UI/REvoDesign.ui"
@@ -70,20 +71,42 @@ FALLBACK_WIDGET_TYPE = "QtWidgets.QWidget"
 
 
 class UiBinding:
+    __slots__ = ("name", "type_name", "warning")
+
     def __init__(self, name: str, type_name: str, warning: str | None = None) -> None:
         self.name = name
         self.type_name = type_name
         self.warning = warning
 
 
-def _extract_custom_widget_map(root: ET.Element) -> dict[str, str]:
+def _read_ui_elements(ui_path: Path) -> tuple[dict[str, str], list[tuple[str, str, str]]]:
     custom_types: dict[str, str] = {}
-    for custom_widget in root.findall("./customwidgets/customwidget"):
-        class_name = custom_widget.findtext("class")
-        if not class_name:
-            continue
-        custom_types[class_name] = FALLBACK_WIDGET_TYPE
-    return custom_types
+    elements: list[tuple[str, str, str]] = []
+    reader = QtCore.QXmlStreamReader(ui_path.read_text(encoding="utf-8"))
+    in_custom_widget = False
+
+    while not reader.atEnd():
+        reader.readNext()
+        if reader.isStartElement():
+            tag = reader.name()
+            if tag == "customwidget":
+                in_custom_widget = True
+                continue
+            if in_custom_widget and tag == "class":
+                class_name = reader.readElementText().strip()
+                if class_name:
+                    custom_types[class_name] = FALLBACK_WIDGET_TYPE
+                continue
+            if tag in {"widget", "layout", "action", "buttongroup"}:
+                attributes = reader.attributes()
+                elements.append((tag, attributes.value("name"), attributes.value("class")))
+        elif reader.isEndElement() and reader.name() == "customwidget":
+            in_custom_widget = False
+
+    if reader.hasError():
+        raise ValueError(f"Failed to parse {ui_path}: {reader.errorString()}")
+
+    return custom_types, elements
 
 
 def _resolve_type_name(tag: str, class_name: str, custom_types: dict[str, str]) -> tuple[str, str | None]:
@@ -103,18 +126,13 @@ def _resolve_type_name(tag: str, class_name: str, custom_types: dict[str, str]) 
 
 
 def collect_ui_bindings(ui_path: Path = UI_PATH) -> list[UiBinding]:
-    root = ET.parse(ui_path).getroot()
-    custom_types = _extract_custom_widget_map(root)
+    custom_types, elements = _read_ui_elements(ui_path)
     bindings: dict[str, UiBinding] = {}
 
-    for element in root.iter():
-        if element.tag not in {"widget", "layout", "action", "buttongroup"}:
-            continue
-        name = element.attrib.get("name", "")
-        class_name = element.attrib.get("class", "")
+    for tag, name, class_name in elements:
         if not name or not name.isidentifier():
             continue
-        type_name, warning = _resolve_type_name(element.tag, class_name, custom_types)
+        type_name, warning = _resolve_type_name(tag, class_name, custom_types)
         bindings.setdefault(name, UiBinding(name=name, type_name=type_name, warning=warning))
 
     return [bindings[name] for name in sorted(bindings)]

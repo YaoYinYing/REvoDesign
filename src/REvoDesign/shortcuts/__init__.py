@@ -25,8 +25,11 @@ cmd.extend("pssm2csv", shortcut_pssm2csv)
 
 # How to set up autocompletion for a extend command with multiple arguments?
 # The general format is:
-# `cmd.auto_arg[<arg_id>]["<extend_command_name>"]=[<lambda_returning_Shortcut_object >, '<label_for_arg>', '<following_string>']` where
-#   <arg_id> is the argument index (starting from 0) that we want to set autocompletion for in the extend command
+# `cmd.auto_arg[<arg_id>]["<extend_command_name>"]=[
+#     <lambda_returning_Shortcut_object >, '<label_for_arg>', '<following_string>'
+# ]` where
+#   <arg_id> is the argument index (starting from 0) that we want to set
+#       autocompletion for in the extend command
 #   <extend_command_name> is the name of the extend command
 #   <lambda_returning_Shortcut_object> is a lambda function that returns a Shortcut object
 #   <label_for_arg> is a string label for the argument that will be displayed in the autocomplete output,
@@ -40,7 +43,8 @@ cmd.extend("pssm2csv", shortcut_pssm2csv)
 #           0  1
 #   '<following_string>' is a string that will be appended to the argument value
 
-# Normally, to support autocomplete dynamically during runtime, PyMOL uses a lambda function that returns a Shortcut object
+# Normally, to support autocomplete dynamically during runtime, PyMOL uses a
+# lambda function that returns a Shortcut object
 # A shortcut object defines the possible keywords for autocompletion of arguments.
 # One can either bollow the existing Shortcut lambda from `cmd.auto_arg` or create a new one
 # Here we borrow the existing ones for 'show' and 'select'

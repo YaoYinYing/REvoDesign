@@ -85,8 +85,8 @@ killed.
 ### REvoDesignPackageManager (`:::` REvoDesign.tools.package_manager.REvoDesignPackageManager)
 
 The top-level orchestrator. It:
-1. Fetches the UI file (`REvoDesign-PyMOL-entry.ui`) from Gist and loads it via `loadUi`
-2. Fetches the extras manifest JSON (`REvoDesignExtrasTableRich.json`) from Gist
+1. Self-bootstraps the UI file (`REvoDesign_installer.ui`) via retrying Gist fetches
+2. Self-bootstraps the extras manifest JSON (`REvoDesignExtrasTableRich.json`) via retrying Gist fetches
 3. Fetches GitHub release tags for version selection
 4. Registers PyMOL menu items (Install, Reinstall, Uninstall, Manager)
 5. Configures proxy, mirror, and extras in the UI
@@ -94,16 +94,31 @@ The top-level orchestrator. It:
 
 ## The UI File
 
-The manager's graphical interface is defined in `REvoDesign-PyMOL-entry.ui`,
-a Qt Designer file stored at `src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui`.
-This file is uploaded to a GitHub Gist via `make upload-gists` and fetched at
-runtime by the manager plugin.
+The manager is expected to work as a single PyMOL startup file. It therefore
+self-bootstraps its UI from the canonical Gist source generated from
+`src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui` into a writable runtime bootstrap
+directory under the system temp directory by default. Set
+`REVODESIGN_PM_BOOTSTRAP_DIR` to override that bootstrap location in tests or
+special deployments. Startup re-fetches bootstrap assets with retry/backoff
+instead of treating a stale local copy as the source of truth, and it never
+writes runtime assets into `src/` or an installed package directory. The
+downloaded UI must match the HMAC in `manifest.json` before it replaces the
+runtime bootstrap copy.
 
 ## Extras Registry
 
-The file `REvoDesignExtrasTableRich.json` (version-tracked alongside the UI
-file on Gist) defines available extras. It is fetched at manager startup and
-displayed in a `CheckableListView` widget. Each extras entry can specify:
+The canonical source file `jsons/REvoDesignExtrasTableRich.json` defines
+available extras and is uploaded to Gist with `make upload-gists`. The manager
+self-bootstraps the runtime copy into the same writable bootstrap directory
+with retry/backoff. The Refresh button is the explicit user-triggered path for
+fetching and writing a newer runtime copy from Gist. Each extras entry can
+specify:
+
+The bootstrap manifest uses HMAC-SHA256 to catch corruption, truncation, and
+cross-project asset mismatches before runtime files are written. The HMAC key
+is distributed with the standalone manager, so this is an integrity check for
+the managed bootstrap flow rather than a private release signature against a
+compromised Gist account.
 
 - **`name`** -- Display name
 - **`extras_id`** -- The pip extras identifier (e.g., `[scatter]`)

@@ -218,14 +218,15 @@ class MutantVisualizer:
             return pd.read_fwf(self.mutfile)
         if self.mutfile.lower().endswith((".fasta", ".fas", ".fa")):
             # Read mutant data from fasta file.
-            _mutation_objs = [
-                extract_mutant_from_sequences(
-                    mutant_sequence=str(mut_record.seq),
-                    wt_sequences=self.designable_sequences,
-                    chain_id=self.chain_id,
-                )
-                for mut_record in SeqIO.parse(open(self.mutfile), format="fasta")
-            ]
+            with open(self.mutfile) as mutant_file:
+                _mutation_objs = [
+                    extract_mutant_from_sequences(
+                        mutant_sequence=str(mut_record.seq),
+                        wt_sequences=self.designable_sequences,
+                        chain_id=self.chain_id,
+                    )
+                    for mut_record in SeqIO.parse(mutant_file, format="fasta")
+                ]
 
             return pd.DataFrame.from_dict(
                 {self.key_col: [mut_obj.short_mutant_id for mut_obj in _mutation_objs if mut_obj is not None]}
@@ -418,6 +419,7 @@ class MutantVisualizer:
                     f"Temperal merged result is failed to create. Try again with a clean PyMOL session. \n"
                     f"STDOUT:\n{merge_results.stdout}\n"
                     f"STDERR:\n{merge_results.stderr}"
-                )
+                ),
+                stacklevel=2,
             )
             return

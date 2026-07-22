@@ -1,22 +1,7 @@
 # PSSM GREMLIN Server
 
-The server is a pip-installable package (`pssm_gremlin_server`) providing a
-Flask + Celery + Docker-runner web service for GREMLIN co-evolution analysis.
-
-## Development
-
-```bash
-# Install in editable mode with test dependencies
-pip install -e "server/[test]"
-
-# Run non-Docker tests from the repo root
-pytest server/tests/ -v -k "not Docker and not docker"
-
-# Run the server directly (no Docker)
-python -m pssm_gremlin_server.pssm_gremlin
-```
-
----
+The server is a Docker-deployed Flask + Celery + Docker-runner web service for
+GREMLIN co-evolution analysis.
 
 ## Production Deployment
 
@@ -146,10 +131,11 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 
 | Variable | Purpose |
 | --- | --- |
-| `SERVER_DIR` | Host root for uploads, sqlite, and result folders. |
+| `SERVER_DIR` | Host root for uploads, sqlite, and result folders (default: `./pssm_gremlin_data`). |
+| `RUNNER_HOST_ROOT` | Host root allowed for Docker runner bind mounts (default: parent of `SERVER_DIR`). |
 | `LOG_DIR` | Host directory for Gunicorn/Celery logs. |
-| `DB_UNIREF30` | UniRef30 prefix path. |
-| `DB_UNIREF90` | UniRef90 BLAST prefix path. |
+| `DB_UNIREF30` | UniRef30 prefix path (default: `{SERVER_DIR}/db/uniref30/UniRef30_2022_02`). |
+| `DB_UNIREF90` | UniRef90 BLAST prefix path (default: `{SERVER_DIR}/db/uniref90/uniref90`). |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
 | `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`). |
@@ -166,7 +152,6 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `PORT` | Public HTTP port. |
-| `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for registration (empty = all allowed). Also normalises plus-aliased addresses. |
 | `PUBLIC_DASHBOARD` | `false` by default; scopes task visibility to owner unless admin. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated admin email addresses for new-user registration digests (default: empty = no notification). |
@@ -440,254 +425,20 @@ The web and worker containers mount `/var/run/docker.sock` to spawn runner conta
 - Consider using a Docker socket proxy (e.g. `docker-socket-proxy`) to restrict API access in untrusted environments.
 - Never expose the Docker socket to a public network.
 
-#### Docker socket A/B attack test
-
-Run this test after Docker, Compose, user/group, or runner-launch changes.  It
-checks whether an authenticated low-privilege web user can turn task submission
-into Docker daemon control.  The expected secure result is not just "the app
-works"; it is that HTTP users can only submit normal FASTA tasks, cannot reach
-Docker API routes, cannot choose Docker image/command/mounts, and cannot use a
-cookie-only CSRF request for task writes.
-
-Use an isolated staging instance.  Do not run destructive Docker escape payloads
-on a host that stores real data.
-
-Prepare:
-
-```bash
-export BASE_URL=http://127.0.0.1:8080
-export ADMIN_USER=admin
-export ADMIN_PASS='<admin-password>'
-
-docker ps --format '{{.ID}} {{.Names}} {{.Image}} {{.Ports}}'
-docker inspect server-web-1 server-worker-1 \
-  --format '{{.Name}} User={{.Config.User}} Groups={{json .HostConfig.GroupAdd}} Mounts={{json .Mounts}}'
-docker exec server-web-1 id
-docker exec server-worker-1 id
-docker exec server-web-1 ls -ln /var/run/docker.sock
-docker exec server-worker-1 ls -ln /var/run/docker.sock
-```
-
-A result: the socket is not accessible from web/worker.  This proves the live
-instance is not Docker-root-escape-capable, but Docker-backed task execution
-will fail until permissions are fixed.  Expected evidence:
-
-```text
-/var/run/docker.sock -> srw-rw---- 1 0 0 ...
-docker.from_env() from web/worker -> PermissionError(13, 'Permission denied')
-submitted task -> failed with "Docker daemon unavailable" or PermissionError
-```
-
-B result: the socket is accessible from web/worker.  This is operationally
-required for runner containers, but it is host-root-equivalent if arbitrary code
-ever runs in web/worker.  In this case the test must prove the HTTP contract does
-not expose Docker control.  Expected evidence:
-
-```text
-limited user /api/auth/admin/users -> 403
-cookie-only POST /PSSM_GREMLIN/api/post -> 403 Bearer token required
-POST /containers/create and GET /containers/json on the Flask port -> 404
-path-like FASTA filename upload -> normal task only, sanitized filename, no host-path mount selection
-server code fixes image, command, user, environment, and mounts from server config
-```
-
-The following probe creates a temporary non-admin user, checks the CSRF gate,
-submits a harmless FASTA with a path-like filename, probes Docker-like HTTP
-routes, and verifies API-key privilege limits:
-
-```bash
-python - <<'PY'
-import json, re, uuid
-import os
-import requests
-
-base = os.environ["BASE_URL"]
-admin_user = os.environ["ADMIN_USER"]
-admin_pass = os.environ["ADMIN_PASS"]
-
-def show(label, resp):
-    ctype = resp.headers.get("content-type", "")
-    body = resp.text[:220].replace("\n", " ")
-    if "application/json" in ctype:
-        try:
-            data = resp.json()
-            body = {k: ("[redacted]" if k in {"token", "api_key"} else v) for k, v in data.items()}
-        except Exception:
-            pass
-    print(json.dumps({"label": label, "status": resp.status_code, "location": resp.headers.get("Location"), "body": body}, sort_keys=True))
-
-admin = requests.Session()
-r = admin.post(f"{base}/PSSM_GREMLIN/api/auth/login", json={"username": admin_user, "password": admin_pass}, timeout=10)
-show("admin_login", r)
-r.raise_for_status()
-admin_h = {"Authorization": "Bearer " + r.json()["token"]}
-
-name = "limited_" + uuid.uuid4().hex[:8]
-pw = "Pw_" + uuid.uuid4().hex + "!aA1"
-r = admin.post(
-    f"{base}/PSSM_GREMLIN/api/auth/admin/users",
-    headers=admin_h,
-    json={"username": name, "email": name + "@audit.local", "password": pw, "affiliation": "audit", "is_admin": False},
-    timeout=10,
-)
-show("create_limited", r)
-
-limited = requests.Session()
-r = limited.post(f"{base}/PSSM_GREMLIN/api/auth/login", json={"username": name, "password": pw}, timeout=10)
-show("limited_login", r)
-r.raise_for_status()
-limited_h = {"Authorization": "Bearer " + r.json()["token"]}
-
-r = limited.get(f"{base}/PSSM_GREMLIN/api/auth/admin/users", headers=limited_h, timeout=10)
-show("limited_admin_list", r)
-
-files = {"file": ("../../../../var/run/docker.sock.fasta", b">audit\nACDEFGHIKLMNPQRSTVWY\n")}
-r = limited.post(f"{base}/PSSM_GREMLIN/api/post", files=files, allow_redirects=False, timeout=10)
-show("cookie_only_upload", r)
-
-files = {"file": ("../../../../--privileged--var-run-docker-sock.fasta", b">audit\nACDEFGHIKLMNPQRSTVWY\n")}
-r = limited.post(f"{base}/PSSM_GREMLIN/api/post", files=files, headers=limited_h, allow_redirects=False, timeout=15)
-show("bearer_upload_pathlike_name", r)
-loc = r.headers.get("Location") or ""
-match = re.search(r"/running/([0-9a-f]{32})", loc)
-if match:
-    md5 = match.group(1)
-    show("running_after_upload", limited.get(f"{base}/PSSM_GREMLIN/api/running/{md5}", headers=limited_h, timeout=10))
-    show("delete_uploaded_task", limited.delete(f"{base}/PSSM_GREMLIN/api/delete/{md5}", headers=limited_h, timeout=10))
-
-for method, path in [
-    ("get", "/containers/json"),
-    ("get", "/version"),
-    ("post", "/containers/create"),
-    ("get", "/PSSM_GREMLIN/api/docker"),
-    ("post", "/PSSM_GREMLIN/api/docker/run"),
-]:
-    resp = getattr(limited, method)(base + path, headers=limited_h, timeout=10)
-    show(f"probe_{method}_{path}", resp)
-
-r = limited.post(f"{base}/PSSM_GREMLIN/api/auth/me/api-key", headers=limited_h, timeout=10)
-show("limited_generate_api_key", r)
-if r.status_code == 201:
-    api_h = {"X-API-Key": r.json()["api_key"]}
-    clean = requests.Session()
-    show("apikey_admin_list", clean.get(f"{base}/PSSM_GREMLIN/api/auth/admin/users", headers=api_h, timeout=10))
-    files = {"file": ("api-key-task.fasta", b">audit\nACDEFGHIKLMNPQRSTVWY\n")}
-    show("apikey_upload_task", clean.post(f"{base}/PSSM_GREMLIN/api/post", files=files, headers=api_h, allow_redirects=False, timeout=15))
-PY
-```
-
-Treat a failure in the expected status codes above as a security regression.
-If B can access Docker and an HTTP user can influence image, command, privileged
-mode, bind source paths, or socket mounts, this is a real host-root escape path.
-
-#### Admin self-lockout check
-
-Run this after admin user-management changes.  The expected result is that an
-admin cannot remove their own access, either through a single-user action or a
-batch action.
-
-Expected results:
-
-```text
-self PUT user_status=banned -> 400 Administrators cannot ban their own account
-self DELETE -> 400 Administrators cannot delete their own account
-batch disable [self, other] -> count 1, self stays active, other becomes banned
-batch delete [self, other] -> count 1, self remains undeleted, other is deleted
-```
-
-#### Banned-user authentication check
-
-Run this after account-status or token-auth changes.  The check creates a
-temporary user, confirms it can log in before the ban, bans it, and verifies
-that new login, old Bearer token, and pre-existing API key are all rejected.
-
-Expected results:
-
-```text
-pre_ban_login -> 200
-pre_ban_api_key -> 201
-ban_user -> 200
-post_ban_login -> 403 Account has been suspended
-post_ban_old_bearer_me -> 401 Authentication required
-post_ban_api_key_me -> 401 Authentication required
-```
-
-Command:
-
-```bash
-python - <<'PY'
-import json, os, uuid
-import requests
-
-base = os.environ["BASE_URL"]
-admin_user = os.environ["ADMIN_USER"]
-admin_pass = os.environ["ADMIN_PASS"]
-
-def show(label, resp):
-    ctype = resp.headers.get("content-type", "")
-    body = resp.text[:180].replace("\n", " ")
-    if "application/json" in ctype:
-        try:
-            data = resp.json()
-            body = {k: ("[redacted]" if k in {"token", "api_key"} else v) for k, v in data.items()}
-        except Exception:
-            pass
-    print(json.dumps({"label": label, "status": resp.status_code, "body": body}, sort_keys=True))
-
-admin = requests.Session()
-r = admin.post(f"{base}/PSSM_GREMLIN/api/auth/login", json={"username": admin_user, "password": admin_pass}, timeout=10)
-show("admin_login", r)
-r.raise_for_status()
-admin_h = {"Authorization": "Bearer " + r.json()["token"]}
-
-name = "bancheck_" + uuid.uuid4().hex[:8]
-pw = "Pw_" + uuid.uuid4().hex + "!aA1"
-r = admin.post(
-    f"{base}/PSSM_GREMLIN/api/auth/admin/users",
-    headers=admin_h,
-    json={"username": name, "email": name + "@audit.local", "password": pw, "affiliation": "audit", "is_admin": False},
-    timeout=10,
-)
-show("create_user", r)
-
-r = admin.get(f"{base}/PSSM_GREMLIN/api/auth/admin/users", headers=admin_h, timeout=10)
-r.raise_for_status()
-user_id = next(u["id"] for u in r.json()["users"] if u["username"] == name)
-
-limited = requests.Session()
-r = limited.post(f"{base}/PSSM_GREMLIN/api/auth/login", json={"username": name, "password": pw}, timeout=10)
-show("pre_ban_login", r)
-r.raise_for_status()
-limited_h = {"Authorization": "Bearer " + r.json()["token"]}
-
-r = limited.post(f"{base}/PSSM_GREMLIN/api/auth/me/api-key", headers=limited_h, timeout=10)
-show("pre_ban_api_key", r)
-api_key = r.json().get("api_key") if r.status_code == 201 else None
-
-r = admin.put(f"{base}/PSSM_GREMLIN/api/auth/admin/users/{user_id}", headers=admin_h, json={"user_status": "banned"}, timeout=10)
-show("ban_user", r)
-show("post_ban_login", requests.post(f"{base}/PSSM_GREMLIN/api/auth/login", json={"username": name, "password": pw}, timeout=10))
-show("post_ban_old_bearer_me", requests.get(f"{base}/PSSM_GREMLIN/api/auth/me", headers=limited_h, timeout=10))
-if api_key:
-    show("post_ban_api_key_me", requests.get(f"{base}/PSSM_GREMLIN/api/auth/me", headers={"X-API-Key": api_key}, timeout=10))
-PY
-```
+Security regression checks for Docker socket exposure, admin self-lockout,
+banned users, and login throttling are maintained in
+`docs/dev-guide/server.md#security-validation`.
 
 ### Authentication
 
-- Tokens are signed with `itsdangerous.URLSafeTimedSerializer` (HMAC-SHA1).
-- Gunicorn uses `--preload` so the auth secret key is generated once in the
-  arbiter; all workers share the same key and tokens validate consistently.
 - Set `AUTH_SECRET_KEY` to a fixed, high-entropy value in production; otherwise tokens are lost on restart.
 - Browser page navigations use an `HttpOnly`/`SameSite=Lax` cookie; JavaScript
   cannot read it, so logout requires the server endpoint (`POST /api/auth/logout`).
 - Rate limiting: 5 login attempts/minute/IP, 3 registrations/hour/IP.
 - All state-changing endpoints require a valid Bearer token or API key.
 - API keys have restricted privileges (task operations only) — Bearer tokens are required for profile changes and admin actions.
-- CSRF is mitigated: state-changing endpoints require a Bearer token in the
-  `Authorization` header (browser same-origin policy prevents cross-origin
-  requests from setting custom headers).  The `HttpOnly` cookie is used for
-  read-only page navigations only.
+- Cookie-only writes are rejected; state-changing API calls require a Bearer
+  token or API key.
 
 ### Redis
 
@@ -715,7 +466,23 @@ PY
 - Regularly back up sqlite and result archives.
 - If a task is deleted, result artifacts are removed, but the sqlite record remains for audit.
 
-## 11. Troubleshooting
+## 11. Local Development
+
+```bash
+# Install in editable mode with test dependencies
+pip install -e "server/[test]"
+
+# Run non-Docker tests from the repo root
+pytest server/tests/ -v -k "not Docker and not docker"
+
+# Run the server directly without Docker
+python -m pssm_gremlin_server.pssm_gremlin
+```
+
+Full test and security validation guidance is maintained in
+`docs/dev-guide/server.md`.
+
+## 12. Troubleshooting
 
 ### Network issues
 

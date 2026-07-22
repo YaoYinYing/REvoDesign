@@ -2,13 +2,11 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-
-#! /mnt/data/envs/conda_env/envs/REvoDesign/bin/python
-
 from __future__ import annotations
 
 import grp
 import hashlib
+import importlib
 import json
 import logging
 import os
@@ -16,17 +14,17 @@ import pwd
 import re
 import shutil
 import signal
-import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import docker
 from celery import Celery
 from celery.result import AsyncResult
 from docker import types
-from flask import Flask, current_app, g, jsonify, request
+from flask import Flask, g, jsonify, request
 from pssm_gremlin_server.db import TaskDatabase
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
@@ -39,13 +37,15 @@ if not os.environ.get("AUTH_SECRET_KEY"):
 
 from pssm_gremlin_server.auth import UserDatabase  # noqa: E402
 from pssm_gremlin_server.auth import _env_bool  # noqa: E402
-from pssm_gremlin_server.auth import _env_int  # noqa: E402
 from pssm_gremlin_server.auth import _env_str  # noqa: E402
 from pssm_gremlin_server.auth import send_admin_digest  # noqa: E402
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
 TEMPLATE_IMAGE_DIR = os.path.join(THIS_DIR, "templates", "images")
+DEFAULT_SERVER_DIR = os.path.abspath(os.path.join(os.getcwd(), "pssm_gremlin_data"))
+DEFAULT_UNIREF30_DB = os.path.join(DEFAULT_SERVER_DIR, "db", "uniref30", "UniRef30_2022_02")
+DEFAULT_UNIREF90_DB = os.path.join(DEFAULT_SERVER_DIR, "db", "uniref90", "uniref90")
 
 app = Flask(__name__, template_folder="./templates")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MiB upload limit
@@ -172,7 +172,7 @@ class GremlinConfig:
 
     @classmethod
     def from_env(cls) -> GremlinConfig:
-        server_dir = _env_path("SERVER_DIR", "/mnt/data/yinying/server/")
+        server_dir = _env_path("SERVER_DIR", DEFAULT_SERVER_DIR)
         upload_folder = os.path.join(server_dir, "upload")
         results_folder = os.path.join(server_dir, "results")
         return cls(
@@ -182,11 +182,8 @@ class GremlinConfig:
             db_path=_env_path("DB_PATH", os.path.join(server_dir, "pssm_gremlin.sqlite3")),
             docker_image=os.environ.get("RUNNER_IMAGE", "revodesign-pssm-gremlin"),
             docker_user=_resolve_docker_user(),
-            uniref30_db=_env_path(
-                "DB_UNIREF30",
-                "/mnt/db/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02",
-            ),
-            uniref90_db=_env_path("DB_UNIREF90", "/mnt/db/uniref90/uniref90"),
+            uniref30_db=_env_path("DB_UNIREF30", DEFAULT_UNIREF30_DB),
+            uniref90_db=_env_path("DB_UNIREF90", DEFAULT_UNIREF90_DB),
             nproc=_env_int("NPROC", 16),
             maxmem=_env_int("MAXMEM", 64),
             port=_env_int("PORT", 8080),
@@ -233,15 +230,14 @@ if _user_db.user_count() == 0:
 # notified so each user appears only once.
 _admin_digest_minutes = _env_int("ADMIN_NEW_USER_INFORM", 0)
 if _admin_digest_minutes > 0 and _env_str("ADMIN_NOTIFY_EMAIL", ""):
+    import secrets
     import threading
 
     _digest_lock = os.path.join(_env_str("SERVER_DIR", os.getcwd()), ".admin_digest.lock")
 
     def _digest_loop() -> None:
-        import random
-
         while True:
-            _jitter = random.uniform(-5, 5)  # spread worker wake-ups
+            _jitter = secrets.randbelow(10001) / 1000 - 5  # spread worker wake-ups
             time.sleep(_admin_digest_minutes * 60 + _jitter)
             try:
                 # ponytail: file lock so only one worker sends the digest
@@ -253,7 +249,7 @@ if _admin_digest_minutes > 0 and _env_str("ADMIN_NOTIFY_EMAIL", ""):
                 with open(_digest_lock, "w") as _lock_fh:
                     fcntl.flock(_lock_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                     send_admin_digest()
-            except (BlockingIOError, OSError):
+            except OSError:
                 pass  # another worker has the lock — try next cycle
             except Exception:
                 logging.exception("Admin digest thread failed")
@@ -290,7 +286,7 @@ _ensure_directories(CONFIG.upload_folder, CONFIG.results_folder)
 
 def _is_binary_file(path: str) -> bool:
     try:
-        with open(path, "rb") as f:
+        with Path(path).open("rb") as f:
             chunk = f.read(4096)
     except OSError:
         return True
@@ -308,7 +304,7 @@ def _is_binary_file(path: str) -> bool:
 def _is_fasta_content(path: str) -> bool:
     """Return True if *path* looks like a FASTA file (first non-blank line starts with '>')."""
     try:
-        with open(path, encoding="utf-8", errors="replace") as f:
+        with Path(path).open(encoding="utf-8", errors="replace") as f:
             for line in f:
                 stripped = line.strip()
                 if not stripped:
@@ -542,11 +538,8 @@ def _build_running_trace(task: dict[str, Any]) -> str:
     return "\n".join(traced_lines)
 
 
-try:
-    _ROOT_MOUNT_DIRECTORY = f"/home/{os.getlogin()}"
-except BaseException:
-    _ROOT_MOUNT_DIRECTORY = os.path.abspath(tempfile.gettempdir())
-    os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
+_ROOT_MOUNT_DIRECTORY = _env_path("RUNNER_HOST_ROOT", os.path.dirname(CONFIG.server_dir))
+os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 
 
 def _is_admin_user(username: str | None = None) -> bool:
@@ -660,7 +653,7 @@ def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mou
     target_path = os.path.join(_ROOT_MOUNT_DIRECTORY, mount_name)
 
     if not read_only:
-        logging.warning(f"{mount_name} is not read-only!")
+        logging.warning("%s is not read-only!", mount_name)
 
     if os.path.isdir(path):
         source_path = path
@@ -670,7 +663,7 @@ def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mou
         mounted_path = os.path.join(target_path, os.path.basename(path))
     if not os.path.exists(source_path):
         os.makedirs(source_path)
-    logging.info(f"Mounting {source_path} -> {target_path}")
+    logging.info("Mounting %s -> %s", source_path, target_path)
     mount = types.Mount(
         target=str(target_path),
         source=str(source_path),
@@ -782,8 +775,6 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None, stage
         except docker.errors.DockerException:
             pass
 
-    return
-
 
 def _pack_results_archive(task: dict) -> None:
     zip_filename = _task_zip_path(task)
@@ -818,8 +809,7 @@ def _pack_failed_results_archive(task: dict, error: Any) -> None:
 def format_times(timestamp):
     if timestamp:
         return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-    else:
-        return None
+    return None
 
 
 def format_walltime(seconds: Any) -> str:
@@ -961,7 +951,8 @@ def run_gremlin_task(md5sum):
 # Register HTTP routes (imported late to avoid circular imports — routes.py
 # needs ``app`` and helpers that are only available after this module loads).
 # ---------------------------------------------------------------------------
-from pssm_gremlin_server import routes  # noqa: E402, F401
+importlib.import_module("pssm_gremlin_server.routes")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=CONFIG.port)  # nosec B104: containerized server, binding to all interfaces by design
+    # Containerized server binds to all interfaces by design.
+    app.run(host="0.0.0.0", port=CONFIG.port)  # nosec B104

@@ -330,11 +330,11 @@ def get_current_logger_level(channel: str = "root"):
         key = f"handlers.{channel}.level"
     try:
         return ConfigBus().get_value(key, str, reject_none=True, cfg="logger")
-    except Exception as e:
+    except Exception:
         logging.error(f"Logger channel {channel} does not exist like key: {key}")
         logging.error(f"Available channels: {list_all_logger_channels()}")
         logging.error(f'All config: {ConfigBus().cfg_group["logger"]}')
-        raise e
+        raise
 
 
 def list_all_logger_levels():

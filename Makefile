@@ -81,6 +81,19 @@ upload-gists:
 	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesign-PyMOL-entry.ui src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
 	# JSONs for installer
 	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesignExtrasTableRich.json jsons/REvoDesignExtrasTableRich.json
+	# HMAC manifest — key is extracted from the uploaded source file
+	@python -c '\n\
+import hmac, hashlib, json, re;\n\
+src = open("src/REvoDesign/tools/package_manager.py").read();\n\
+m = re.search(r"_MANAGER_HMAC_KEY\s*=\s*bytes\.fromhex\(\"([a-f0-9]+)\"\)", src);\n\
+key = bytes.fromhex(m.group(1));\n\
+files = {"REvoDesign_PyMOL.py": "src/REvoDesign/tools/package_manager.py", "REvoDesign-PyMOL-entry.ui": "src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui", "REvoDesignExtrasTableRich.json": "jsons/REvoDesignExtrasTableRich.json"};\n\
+manifest = {name: hmac.new(key, open(path, "rb").read(), "sha256").hexdigest() for name, path in files.items()};\n\
+json.dump(manifest, open("/tmp/revodesign-manifest.json", "w"), indent=2);\n\
+print("Manifest:", json.dumps(manifest, indent=2))\n\
+'
+	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f manifest.json /tmp/revodesign-manifest.json
+	rm /tmp/revodesign-manifest.json
 
 install-pymol-plugin:
 	cp ./src/REvoDesign/tools/package_manager.py ~/.pymol/startup/REvoDesign_PyMOL.py
@@ -112,7 +125,7 @@ install-pytorch-cpu-non-mac:
 # local dev
 reinstall:
 	make clean
-	make black;rm -r /Users/yyy/.REvoDesign/config/; pip install . -U
+	make black; rm -rf "$${HOME}/.REvoDesign/config/"; python -m pip install . -U
 
 compile-ui:
 	stage=compile bash tools/translate.sh
@@ -145,7 +158,7 @@ test:
 # ui-test-pymol:
 # 	# Run a tmp folder to make sure the tests are run on the installed version
 # 	mkdir -p $(TESTDIR)
-# 	cd $(TESTDIR); pymol -ckqy /Users/yyy/miniconda_py39_arm64/lib/python3.10/site-packages/REvoDesign/tests/cases/tabs/;
+# 	cd $(TESTDIR); pymol -ckqy $(PYTEST_CASES_PATH)/tabs/;
 
 # all test
 all-test:

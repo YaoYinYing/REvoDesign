@@ -38,6 +38,19 @@ ESM1V_SCORING_STRATEGY_T = Literal["wt-marginals", "pseudo-ppl", "masked-margina
 
 ESM_MODEL_BASE_URL = "https://dl.fbaipublicfiles.com/fair-esm/models"
 
+# run from yinying's download archive.
+# md5sum calculated by using:
+# `parallel -k  md5sum {} ::: $(ls esm1v_t33* esm_msa1b_t12_100M_UR50S.pt esm2_t36_3B_UR50D.pt)`
+ESM1V_MODEL_MD5 = """
+1f04c2d2636b02b544ecb5fbbef8fefd  esm1v_t33_650M_UR90S_1.pt
+e6c58fc8107d5e6629f9ca9b910319ec  esm1v_t33_650M_UR90S_2.pt
+6a1a631a87cf798f72f58c0a37aeebdd  esm1v_t33_650M_UR90S_3.pt
+fcba894a07ec87dfea4ca366e46c78b7  esm1v_t33_650M_UR90S_4.pt
+b1649837610e741f8b766b01f18890a3  esm1v_t33_650M_UR90S_5.pt
+d37a0d0dbe7431e48a72072b9180b16b  esm2_t36_3B_UR50D.pt
+f66445cc186f77dbbbe3184399523413  esm_msa1b_t12_100M_UR50S.pt
+"""
+
 ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
     {
         "esm-1v_1": "esm1v_t33_650M_UR90S_1",
@@ -50,8 +63,11 @@ ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
     }
 )
 
+ESM1V_WEIGHT_FILES = tuple(f"{v}.pt" for v in ESM1V_MODEL_DICT.values())
 ESM1V_WEIGHTS = FileDownloadRegistry(
-    name="ESM2", base_url=ESM_MODEL_BASE_URL, registry={f"{v}.pt": None for v in ESM1V_MODEL_DICT.values()}
+    name="ESM2",
+    base_url=ESM_MODEL_BASE_URL,
+    registry=FileDownloadRegistry.prepare_registry_from_md5(ESM1V_MODEL_MD5),
 )
 
 
@@ -207,7 +223,6 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
             logging.info(f"Loading model from {expected_model_path=}")
             return expected_model_path
 
-        # Download model from remote server
         logging.info(f"Fetching model {model_name=} from {ESM1V_WEIGHTS.base_url}")
         return ESM1V_WEIGHTS.setup(model_name).downloaded
 
@@ -336,7 +351,9 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
     __bibtex__ = {
         "ESM": """@article{rives2019biological,
-  author={Rives, Alexander and Meier, Joshua and Sercu, Tom and Goyal, Siddharth and Lin, Zeming and Liu, Jason and Guo, Demi and Ott, Myle and Zitnick, C. Lawrence and Ma, Jerry and Fergus, Rob},
+  author={Rives, Alexander and Meier, Joshua and Sercu, Tom and Goyal,
+  Siddharth and Lin, Zeming and Liu, Jason and Guo, Demi and Ott, Myle and
+  Zitnick, C. Lawrence and Ma, Jerry and Fergus, Rob},
   title={Biological Structure and Function Emerge from Scaling Unsupervised Learning to 250 Million Protein Sequences},
   year={2019},
   doi={10.1101/622803},
@@ -345,14 +362,16 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
 }""",
         "ESM-1v": """@article{meier2021language,
   author = {Meier, Joshua and Rao, Roshan and Verkuil, Robert and Liu, Jason and Sercu, Tom and Rives, Alexander},
-  title = {Language models enable zero-shot prediction of the effects of mutations on protein function},
+  title = {Language models enable zero-shot prediction of the effects of
+  mutations on protein function},
   year={2021},
   doi={10.1101/2021.07.09.450648},
   url={https://www.biorxiv.org/content/10.1101/2021.07.09.450648v1},
   journal={bioRxiv}
 }""",
         "MSA Transformer": """@article{rao2021msa,
-  author = {Rao, Roshan and Liu, Jason and Verkuil, Robert and Meier, Joshua and Canny, John F. and Abbeel, Pieter and Sercu, Tom and Rives, Alexander},
+  author = {Rao, Roshan and Liu, Jason and Verkuil, Robert and Meier, Joshua
+  and Canny, John F. and Abbeel, Pieter and Sercu, Tom and Rives, Alexander},
   title={MSA Transformer},
   year={2021},
   doi={10.1101/2021.02.12.430858},
@@ -361,7 +380,9 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
 }""",
         "ESM-2": """@article{lin2022language,
   title={Language models of protein sequences at the scale of evolution enable accurate structure prediction},
-  author={Lin, Zeming and Akin, Halil and Rao, Roshan and Hie, Brian and Zhu, Zhongkai and Lu, Wenting and Smetanin, Nikita and dos Santos Costa, Allan and Fazel-Zarandi, Maryam and Sercu, Tom and Candido, Sal and others},
+  author={Lin, Zeming and Akin, Halil and Rao, Roshan and Hie, Brian and Zhu,
+  Zhongkai and Lu, Wenting and Smetanin, Nikita and dos Santos Costa, Allan and
+  Fazel-Zarandi, Maryam and Sercu, Tom and Candido, Sal and others},
   journal={bioRxiv},
   year={2022},
   publisher={Cold Spring Harbor Laboratory}

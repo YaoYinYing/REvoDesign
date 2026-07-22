@@ -224,7 +224,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         if app is not None:
             for child in app.children():
                 if isinstance(child, QtCore.QTranslator):
-                    setattr(self.bus.ui, "trans", child)
+                    self.bus.ui.trans = child
                     self._translator_installed = True
                     return child
 
@@ -238,7 +238,7 @@ class LanguageSwitch(QtWidgets.QWidget):
             return existing
 
         translator = QtCore.QTranslator(self.window)
-        setattr(self.bus.ui, "trans", translator)
+        self.bus.ui.trans = translator
         return translator
 
     def _bind_to_action(self, language: LanguageItem):

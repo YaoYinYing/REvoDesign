@@ -612,7 +612,8 @@ class BFactor:
             warnings.warn(
                 issues.BadDataWarning(
                     f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx - 1})"
-                )
+                ),
+                stacklevel=2,
             )
         return bfact
 
@@ -801,7 +802,9 @@ def _load_b_factors(
                 bfact_ori = bf_chain.get(pos)
             except (IndexError, KeyError, issues.InvalidInputError):
                 logging.warning(
-                    f"Position {pos} (zero-indexed {pos - 1}) exceeds the length of new B-factor data ({len(bf_chain.bfactor_data)}); setting B-factor to -1.0"
+                    f"Position {pos} (zero-indexed {pos - 1}) exceeds the length of "
+                    f"new B-factor data ({len(bf_chain.bfactor_data)}); setting "
+                    "B-factor to -1.0"
                 )
                 continue
             bfacts_orignal.append(bfact_ori)
@@ -855,5 +858,5 @@ def _load_b_factors(
         _load_to_one_chain(chain_id)
 
 
-setattr(_load_b_factors, "__bibtex__", load_b_factors_citation)
+_load_b_factors.__bibtex__ = load_b_factors_citation
 load_b_factors = get_cited(_load_b_factors)

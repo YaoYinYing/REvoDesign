@@ -14,7 +14,6 @@ from REvoDesign.bootstrap.set_config import (
     _iter_yaml_rel_paths,
     experiment_config,
     is_package_installed,
-    list_all_config_files,
     reload_config_file,
     save_configuration,
     set_cache_dir,
@@ -117,13 +116,47 @@ def test_main_config_upgrade(user_decide, patch_config_user_data):
         patch("REvoDesign.bootstrap.set_config.shutil.copytree") as mock_copytree,
     ):
 
-        set_REvoDesign_config_file()
+        set_REvoDesign_config_file(prompt_user=True)
         mock_decide.assert_called_once()
         mock_copytree.assert_called_once()
         if user_decide:
             mock_rmtree.assert_called_once()
         else:
             mock_rmtree.assert_not_called()
+
+
+def test_main_config_upgrade_headless_keeps_existing_tree(patch_config_user_data):
+    with (
+        patch("REvoDesign.bootstrap.set_config.decide") as mock_decide,
+        patch("REvoDesign.bootstrap.set_config.os.path.isfile", return_value=False),
+        patch("REvoDesign.bootstrap.set_config.os.path.isdir", return_value=True),
+        patch("REvoDesign.bootstrap.set_config.os.listdir", return_value=["master.yaml", "a_dir"]),
+        patch("REvoDesign.bootstrap.set_config.shutil.rmtree") as mock_rmtree,
+        patch("REvoDesign.bootstrap.set_config.shutil.copytree") as mock_copytree,
+    ):
+        set_REvoDesign_config_file(prompt_user=False)
+
+    mock_decide.assert_not_called()
+    mock_rmtree.assert_not_called()
+    mock_copytree.assert_called_once()
+
+
+def test_main_config_upgrade_env_reset_is_explicit(monkeypatch, patch_config_user_data):
+    monkeypatch.setenv("REVODESIGN_RESET_CONFIG", "1")
+    with (
+        patch("REvoDesign.bootstrap.set_config.decide") as mock_decide,
+        patch("REvoDesign.bootstrap.set_config.os.path.isfile", return_value=False),
+        patch("REvoDesign.bootstrap.set_config.os.path.isdir", return_value=True),
+        patch("REvoDesign.bootstrap.set_config.os.listdir", return_value=["master.yaml", "a_dir"]),
+        patch("REvoDesign.bootstrap.set_config.os.path.exists", return_value=True),
+        patch("REvoDesign.bootstrap.set_config.shutil.rmtree") as mock_rmtree,
+        patch("REvoDesign.bootstrap.set_config.shutil.copytree") as mock_copytree,
+    ):
+        set_REvoDesign_config_file(prompt_user=False)
+
+    mock_decide.assert_not_called()
+    mock_rmtree.assert_called_once()
+    mock_copytree.assert_called_once()
 
 
 def test_iter_yaml_rel_paths(tmp_path):

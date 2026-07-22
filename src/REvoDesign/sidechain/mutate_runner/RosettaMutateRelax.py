@@ -209,12 +209,24 @@ class MutateRelax_worker(MutateRunnerAbstract):
             List[str]: List of output PDB file paths for all mutants.
         """
         # Refresh node configuration before each run
-        self.mutate_relax_instance.node = self.node_hint, rosetta_utils.read_rosetta_node_config()
+        self.mutate_relax_instance.node = (
+            self.node_hint,
+            rosetta_utils.read_rosetta_node_config(),
+        )
         self.mutate_relax_instance.run(mutants, opts=list(self.rosetta_general_opts))
         return [os.path.join(self.temp_dir, f"{mutant.short_mutant_id}.pdb") for mutant in mutants]
 
     __bibtex__ = rosetta_utils.copy_rosetta_citation(
         {
-            "Relax": """@article{10.1002/pro.2389, author = {Conway, P. and Tyka, M. D. and DiMaio, F. and Konerding, D. E. and Baker, D.}, title = {Relaxation of backbone bond geometry improves protein energy landscape modeling}, journal = {Protein Science}, year = {2013}, volume = {23}, issue = {1}, pages = {47-55}, doi = {10.1002/pro.2389} }"""
+            "Relax": """@article{10.1002/pro.2389,
+author = {Conway, P. and Tyka, M. D. and DiMaio, F. and Konerding, D. E. and Baker, D.},
+title = {Relaxation of backbone bond geometry improves protein energy landscape modeling},
+journal = {Protein Science},
+year = {2013},
+volume = {23},
+issue = {1},
+pages = {47-55},
+doi = {10.1002/pro.2389}
+}"""
         }
     )

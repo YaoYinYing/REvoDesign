@@ -64,7 +64,8 @@ class REvoDesigner:
         self.randomized_sample_num = 10
         self.mutate_runner: MutateRunnerAbstract = None  # type: ignore
 
-        self.pwd = "."  # nosec B105: present working directory, not a password
+        # Present working directory, not a password.
+        self.pwd = "."  # nosec B105
         self.sequence = ""
 
         self.design_case = "default"
@@ -182,7 +183,7 @@ class REvoDesigner:
             "mutations": {},
         }
         mutations = []
-        for idx, resid in enumerate(custom_indices):
+        for resid in custom_indices:
             # fetch wt aa from untruncated sequence
             wt_aa = sequence[resid - 1]
             profile_scores = df_trunc.loc[:, resid]
@@ -217,7 +218,8 @@ class REvoDesigner:
         mutation_json_fp = f"{self.pwd}/mutations_design_profile/{file_name}.json"
         mutation_png_fp = f"{self.pwd}/mutations_design_profile/{file_name}.png"
 
-        json.dump(mutation_candidates, open(mutation_json_fp, "w"), indent=2)
+        with open(mutation_json_fp, "w") as mutation_json_file:
+            json.dump(mutation_candidates, mutation_json_file, indent=2)
 
         plt.savefig(mutation_png_fp)
         plt.close()

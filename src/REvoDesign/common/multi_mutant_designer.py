@@ -10,7 +10,7 @@ Running Randomized Multi-Design
 
 import copy
 import os
-import random
+import secrets
 import warnings
 from itertools import pairwise
 
@@ -99,7 +99,9 @@ class MultiMutantDesigner:
         self.design_case = cmd.get_unused_name("multi_design")
 
         logging.info(
-            f"Mutant Tree for multi-design is initialized. {len(self.design_pool_tree.all_mutant_branch_ids)} groups with {len(self.design_pool_tree.all_mutant_ids)} mutants."
+            "Mutant Tree for multi-design is initialized. "
+            f"{len(self.design_pool_tree.all_mutant_branch_ids)} groups with "
+            f"{len(self.design_pool_tree.all_mutant_ids)} mutants."
         )
 
     @staticmethod
@@ -133,7 +135,7 @@ class MultiMutantDesigner:
                 mut_obj.mutant_score for mut_obj in self.all_design_multi_design_mutant_object if mut_obj.mutant_score
             ]
 
-            for (i_obj, obj), (j_des, des) in zip(
+            for (i_obj, obj), (_j_des, des) in zip(
                 enumerate(self.design_case_variant_objects),
                 enumerate(self.all_design_multi_design_mutant_object),
             ):
@@ -182,7 +184,9 @@ class MultiMutantDesigner:
         tmp_mutant_obj.wt_protein_sequence = self.designable_sequences
 
         if not self.magician.gimmick:
-            warnings.warn(issues.ConflictWarning("Abord design evaluation because no external scorer is defined."))
+            warnings.warn(
+                issues.ConflictWarning("Abord design evaluation because no external scorer is defined."), stacklevel=2
+            )
 
         else:
             tmp_mutant_obj.mutant_score = self.magician.gimmick.scorer(mutant=tmp_mutant_obj)
@@ -226,7 +230,7 @@ class MultiMutantDesigner:
 
         This method tries to automatically pick mutants for the design process.
         """
-        for i in range(tryout):
+        for _i in range(tryout):
             try:
                 branch, (mutant_id, mutant_obj) = self._select_random_mutant()
             except IndexError:
@@ -268,7 +272,8 @@ class MultiMutantDesigner:
             warnings.warn(
                 issues.NoInputWarning(
                     "Temperal mutant tree for multi-design is empty after designing! This design is ended."
-                )
+                ),
+                stacklevel=2,
             )
             self.start_new_design()
             return
@@ -278,7 +283,7 @@ class MultiMutantDesigner:
         self._auto_pick_tryout()
         if num_mut_before_picking == self.in_design_multi_design_case.mutant_num:
             # failed picking
-            warnings.warn(issues.NoResultsWarning("Failed auto picking. Please take anther try."))
+            warnings.warn(issues.NoResultsWarning("Failed auto picking. Please take anther try."), stacklevel=2)
             return
 
         # last mutant
@@ -461,8 +466,8 @@ class MultiMutantDesigner:
 
         This method randomly selects a mutant for the design process.
         """
-        branch = random.choice(self.design_pool_tree_copy.all_mutant_branch_ids)
-        mut = random.choice(list(self.design_pool_tree_copy.get_a_branch(branch).items()))
+        branch = secrets.choice(self.design_pool_tree_copy.all_mutant_branch_ids)
+        mut = secrets.choice(list(self.design_pool_tree_copy.get_a_branch(branch).items()))
         return branch, mut
 
     def _is_compatible_mutant(

@@ -8,7 +8,9 @@ Shortcut for running GREMLIN on a given FASTA MSA file.
 """
 
 import gc
-import pickle  # nosec B403: MRF model serialization, trusted data
+
+# MRF model serialization uses trusted data.
+import pickle  # nosec B403
 
 from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed

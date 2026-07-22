@@ -3,7 +3,9 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+import pandas as pd
 import pytest
+from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign.shortcuts.tools.mutation_effect_predictors import ThermoMpnnPredictor, shortcut_thermompnn
 from tests.conftest import TestWorker
@@ -23,12 +25,22 @@ from tests.conftest import TestWorker
     ],
 )
 @pytest.mark.skipif(not ThermoMpnnPredictor.installed, reason="ThermoMpnnPredictor not installed")
-def test_shortcut_thermompnn(job_id, mode, threshold, long_dist, ss_penalty, test_worker: TestWorker):
+def test_shortcut_thermompnn(job_id, mode, threshold, long_dist, ss_penalty, test_worker: TestWorker, monkeypatch):
     pdb = "../tests/data/6zcy_lig.pdb"
     test_worker.test_id = test_worker.method_name()
     test_worker.load_session_and_check(customized_session=pdb)
 
     save_dir = "predictors/thermompnn"
+
+    def _mock_init(self, pdb, save_dir, prefix, chains, mode, batch_size, threshold, distance, ss_penalty, device):
+        del save_dir, chains, batch_size, threshold, distance, ss_penalty, device
+        self.prefix = prefix
+        self.mode = mode
+        self.sequence = RosettaPyProteinSequence.from_pdb(pdb)
+
+    monkeypatch.setattr(ThermoMpnnPredictor, "__init__", _mock_init)
+    monkeypatch.setattr(ThermoMpnnPredictor, "run", lambda self: pd.DataFrame({"ddG": [-1.0], "Mutation": ["MA1A"]}))
+    monkeypatch.setattr(ThermoMpnnPredictor, "cleanup", lambda self: None)
 
     shortcut_thermompnn(
         pdb=pdb,

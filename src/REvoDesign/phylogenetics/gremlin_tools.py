@@ -21,7 +21,6 @@ from:
 """
 
 import os
-import traceback
 import warnings
 from dataclasses import dataclass, field
 from typing import Literal
@@ -83,7 +82,7 @@ class CoevolvedPair:
     @property
     def min_dist(self):
         if self.empty:
-            warnings.warn(issues.NoInputWarning(f"Pair {repr(self)} is empty! "))
+            warnings.warn(issues.NoInputWarning(f"Pair {repr(self)} is empty! "), stacklevel=2)
             return -1
         return min(d for d in self.homochains_dist.values() if d > 0)
 
@@ -332,7 +331,8 @@ class GREMLIN_Tools(CitableModuleAbstract):
         if not matching_indices:
             # No matching pairs found, handle this case
             warnings.warn(
-                issues.NoResultsWarning(f"No matching co-evolutionary pairs found for positions {i} and {j}.")
+                issues.NoResultsWarning(f"No matching co-evolutionary pairs found for positions {i} and {j}."),
+                stacklevel=2,
             )
 
             return None
@@ -378,10 +378,14 @@ class GREMLIN_Tools(CitableModuleAbstract):
             wt_i_index = self.alphabet.index(wt_i_aa)
             wt_j_index = self.alphabet.index(wt_j_aa)
         except ValueError:
-            traceback.print_exc()
-            logging.error(f"Error occured while processing '{wt_i_aa=}' or '{wt_j_aa=}' from {self.alphabet=}")
+            logging.exception(
+                "Error occured while processing %r or %r from %s",
+                wt_i_aa,
+                wt_j_aa,
+                self.alphabet,
+            )
             # early return to skip ploting
-            warnings.warn(issues.BadDataWarning(f"Bad pair: {str(a_pair)}"))
+            warnings.warn(issues.BadDataWarning(f"Bad pair: {str(a_pair)}"), stacklevel=2)
             return None
 
         plt.text(
@@ -451,7 +455,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
         top_N_pairs = coevolving_pairs[: self.topN]
 
         if not top_N_pairs:
-            warnings.warn(issues.NoResultsWarning("No coevolving pairs found!"))
+            warnings.warn(issues.NoResultsWarning("No coevolving pairs found!"), stacklevel=2)
             return {}
 
         logging.info(f"top {self.topN} items selected: {str(top_N_pairs)}")
@@ -475,7 +479,8 @@ class GREMLIN_Tools(CitableModuleAbstract):
         "GREMLIN": r"""@article{
 doi:10.1073/pnas.1314045110,
 author = {Hetunandan Kamisetty  and Sergey Ovchinnikov  and David Baker },
-title = {Assessing the utility of coevolution-based residue–residue contact predictions in a sequence- and structure-rich era},
+title = {Assessing the utility of coevolution-based residue–residue contact
+predictions in a sequence- and structure-rich era},
 journal = {Proceedings of the National Academy of Sciences},
 volume = {110},
 number = {39},
@@ -484,5 +489,22 @@ year = {2013},
 doi = {10.1073/pnas.1314045110},
 URL = {https://www.pnas.org/doi/abs/10.1073/pnas.1314045110},
 eprint = {https://www.pnas.org/doi/pdf/10.1073/pnas.1314045110},
-abstract = {Recently developed methods have shown considerable promise in predicting residue–residue contacts in protein 3D structures using evolutionary covariance information. However, these methods require large numbers of evolutionarily related sequences to robustly assess the extent of residue covariation, and the larger the protein family, the more likely that contact information is unnecessary because a reasonable model can be built based on the structure of a homolog. Here we describe a method that integrates sequence coevolution and structural context information using a pseudolikelihood approach, allowing more accurate contact predictions from fewer homologous sequences. We rigorously assess the utility of predicted contacts for protein structure prediction using large and representative sequence and structure databases from recent structure prediction experiments. We find that contact predictions are likely to be accurate when the number of aligned sequences (with sequence redundancy reduced to 90\%) is greater than five times the length of the protein, and that accurate predictions are likely to be useful for structure modeling if the aligned sequences are more similar to the protein of interest than to the closest homolog of known structure. These conditions are currently met by 422 of the protein families collected in the Pfam database.}}""",
+abstract = {Recently developed methods have shown considerable promise in predicting
+residue–residue contacts in protein 3D structures using evolutionary covariance
+information. However, these methods require large numbers of evolutionarily
+related sequences to robustly assess the extent of residue covariation, and the
+larger the protein family, the more likely that contact information is
+unnecessary because a reasonable model can be built based on the structure of a
+homolog. Here we describe a method that integrates sequence coevolution and
+structural context information using a pseudolikelihood approach, allowing more
+accurate contact predictions from fewer homologous sequences. We rigorously
+assess the utility of predicted contacts for protein structure prediction using
+large and representative sequence and structure databases from recent structure
+prediction experiments. We find that contact predictions are likely to be
+accurate when the number of aligned sequences (with sequence redundancy reduced
+to 90\%) is greater than five times the length of the protein, and that accurate
+predictions are likely to be useful for structure modeling if the aligned
+sequences are more similar to the protein of interest than to the closest
+homolog of known structure. These conditions are currently met by 422 of the
+protein families collected in the Pfam database.}}""",
     }

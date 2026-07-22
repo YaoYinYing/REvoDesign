@@ -99,7 +99,8 @@ class Evaluator:
             return
 
         logging.debug(
-            f'{"Accepting" if decision_to_accept else "Rejecting"} mutant {self.mutant_tree_candidates.current_mutant_id}'
+            f'{"Accepting" if decision_to_accept else "Rejecting"} mutant '
+            f"{self.mutant_tree_candidates.current_mutant_id}"
         )
 
         if decision_to_accept:
@@ -271,8 +272,10 @@ class Evaluator:
             # Ask whether to overide
             confirmed = decide(
                 title="Override existed mutant table choices?",
-                description="You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
-                    Are you really sure? ",
+                description=(
+                    "You currently have existed mutant table choices, which shall be overriden "
+                    "by using `I'm lucky`.\nAre you really sure? "
+                ),
             )
 
             if not confirmed:

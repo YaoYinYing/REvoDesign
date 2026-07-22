@@ -231,6 +231,16 @@ def test_extract_zip_rejects_path_traversal(temp_extract_dir):
     assert not os.path.exists(outside_path)
 
 
+@pytest.mark.parametrize("member_name", ["/tmp/evil.txt", r"C:\tmp\evil.txt"])
+def test_extract_zip_rejects_absolute_member_paths(temp_extract_dir, member_name):
+    archive_path = os.path.join(temp_extract_dir, "unsafe_absolute.zip")
+    with zipfile.ZipFile(archive_path, "w") as zipf:
+        zipf.writestr(member_name, "malicious")
+
+    with pytest.raises(ValueError, match="Unsafe archive member path"):
+        extract_archive(archive_path, temp_extract_dir)
+
+
 def test_extract_tar_rejects_path_traversal(temp_extract_dir):
     archive_path = os.path.join(temp_extract_dir, "unsafe.tar.gz")
     payload = b"malicious"
@@ -244,6 +254,19 @@ def test_extract_tar_rejects_path_traversal(temp_extract_dir):
 
     outside_path = os.path.abspath(os.path.join(temp_extract_dir, "..", "evil.txt"))
     assert not os.path.exists(outside_path)
+
+
+@pytest.mark.parametrize("member_name", ["/tmp/evil.txt", r"C:\tmp\evil.txt"])
+def test_extract_tar_rejects_absolute_member_paths(temp_extract_dir, member_name):
+    archive_path = os.path.join(temp_extract_dir, "unsafe_absolute.tar.gz")
+    payload = b"malicious"
+    info = tarfile.TarInfo(name=member_name)
+    info.size = len(payload)
+    with tarfile.open(archive_path, "w:gz") as tar:
+        tar.addfile(info, io.BytesIO(payload))
+
+    with pytest.raises(ValueError, match="Unsafe archive member path"):
+        extract_archive(archive_path, temp_extract_dir)
 
 
 def test_get_color_uniform_range():
@@ -437,6 +460,21 @@ def test_generate_strong_password_character_set():
     for length in range(16, 65):
         password = generate_strong_password(length)
         assert set(password).issubset(allowed_characters)
+
+
+def test_generate_strong_password_uses_cryptographic_rng(monkeypatch):
+    """Password generation must not fall back to the predictable random module."""
+    choices = []
+
+    def fake_choice(characters):
+        choices.append(characters)
+        return "A"
+
+    monkeypatch.setattr("REvoDesign.tools.utils.secrets.choice", fake_choice)
+
+    assert generate_strong_password(16) == "A" * 16
+    assert len(choices) == 16
+    assert all("A" in characters for characters in choices)
 
 
 def test_generate_strong_password_value_error():

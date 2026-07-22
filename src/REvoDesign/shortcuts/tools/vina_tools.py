@@ -9,8 +9,8 @@ GetBox Plugin.py --  Draws a box surrounding a selection and gets box informatio
 
 """
 
+import secrets
 from dataclasses import dataclass
-from random import randint
 from typing import Literal, overload
 
 import numpy as np
@@ -27,6 +27,15 @@ from ...tools.cgo_utils import GraphicObjectCollection as GOC
 from ...tools.cgo_utils import LineVertex, Point, PolyLines, Sphere
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+
+def _unique_pymol_name(prefix: str) -> str:
+    name = f"{prefix}_{secrets.randbelow(10001)}"
+    while name in cmd.get_names():
+        name = f"{prefix}_{secrets.randbelow(10001)}"
+    return name
+
+
 ##############################################################################
 # GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
 # This script is used to get box information for LeDock, Autodock Vina and AutoDock Vina.
@@ -163,7 +172,7 @@ class CgoAxes(GraphicObject):
         self.always_left_corner = bool(self.always_left_corner)
 
         self._data = []
-        for (idxa, axis), (idxc, colorname) in zip(enumerate("xyz"), enumerate("rgb")):
+        for axis, colorname in zip("xyz", "rgb"):
             p2_kwargs = {i: 0.0 for i in "xyz" if i != axis}
             self._data.extend(
                 Cylinder(
@@ -248,7 +257,8 @@ class CgoBox(GraphicObject):
 
     def rebuild(self):
         """
-        Post-initialization processing. Deletes existing objects with the same name and ensures all coordinates are floats.
+        Post-initialization processing. Deletes existing objects with the same
+        name and ensures all coordinates are floats.
         """
 
         self.size_xyz = tuple(abs(x) for x in self.p1.delta_xyz(self.p2))
@@ -270,8 +280,10 @@ class CgoBox(GraphicObject):
         """
         Generates a string of parameters for configuring a binding site in AutoDock Vina.
         """
-        center = f"--center_x {self.cen_xyz[0]:.1f} --center_y {self.cen_xyz[1]:.1f} --center_z {self.cen_xyz[2]:.1f}"
-        size = f"--size_x {self.size_xyz[0]:.1f} --size_y {self.size_xyz[1]:.1f} --size_z {self.size_xyz[2]:.1f}"
+        center = (
+            f"--center_x {self.cen_xyz[0]:.1f} --center_y {self.cen_xyz[1]:.1f} " f"--center_z {self.cen_xyz[2]:.1f}"
+        )
+        size = f"--size_x {self.size_xyz[0]:.1f} --size_y {self.size_xyz[1]:.1f} " f"--size_z {self.size_xyz[2]:.1f}"
         return f"{center} {size}"
 
     @property
@@ -307,10 +319,17 @@ class CgoBox(GraphicObject):
         """
         Provides a string representation of the box, including its coordinates, size, and center.
         """
-        return f"""CgoBox `{self.name}`:
-Coordinates: {self.p1.x:.3f} - {self.p2.x:.3f}; {self.p1.y:.3f} - {self.p2.y:.3f}, {self.p1.z:.3f} - {self.p2.z:.3f}
-Size: {self.size_xyz[0]:.3f} * {self.size_xyz[1]:.3f} * {self.size_xyz[2]:.3f} = {self.size_xyz[0] * self.size_xyz[1] * self.size_xyz[2]:.3f}
-Center: {self.cen_xyz[0]:.3f}, {self.cen_xyz[1]:.3f}, {self.cen_xyz[2]:.3f}"""
+        coordinates = (
+            f"Coordinates: {self.p1.x:.3f} - {self.p2.x:.3f}; "
+            f"{self.p1.y:.3f} - {self.p2.y:.3f}, {self.p1.z:.3f} - {self.p2.z:.3f}"
+        )
+        size = (
+            f"Size: {self.size_xyz[0]:.3f} * {self.size_xyz[1]:.3f} * "
+            f"{self.size_xyz[2]:.3f} = "
+            f"{self.size_xyz[0] * self.size_xyz[1] * self.size_xyz[2]:.3f}"
+        )
+        center = f"Center: {self.cen_xyz[0]:.3f}, {self.cen_xyz[1]:.3f}, {self.cen_xyz[2]:.3f}"
+        return f"CgoBox `{self.name}`:\n{coordinates}\n{size}\n{center}"
 
     @classmethod
     def from_selection(
@@ -356,9 +375,7 @@ Center: {self.cen_xyz[0]:.3f}, {self.cen_xyz[1]:.3f}, {self.cen_xyz[2]:.3f}"""
 
         """
         if not box_name:
-            boxName = "box_" + str(randint(0, 10000))
-            while boxName in cmd.get_names():
-                boxName = "box_" + str(randint(0, 10000))
+            boxName = _unique_pymol_name("box")
         else:
             boxName = box_name
 
@@ -375,8 +392,10 @@ Center: {self.cen_xyz[0]:.3f}, {self.cen_xyz[1]:.3f}, {self.cen_xyz[2]:.3f}"""
         return box
 
 
+# fmt: off
 @overload
-def showbox(box: str, minX: float, maxX: float, minY: float, maxY: float, minZ: float, maxZ: float) -> CgoBox: ...
+def showbox(box: str, minX: float, maxX: float, minY: float, maxY: float, minZ: float, maxZ: float) -> CgoBox:
+    ...
 
 
 @overload
@@ -388,7 +407,9 @@ def showbox(
     maxY: float | str | None = None,
     minZ: float | str | None = None,
     maxZ: float | str | None = None,
-) -> CgoBox: ...
+) -> CgoBox:
+    ...
+# fmt: on
 
 
 def showbox(
@@ -425,11 +446,14 @@ def showbox(
         # Validate that all required coordinates are provided when box is a string
         if any(x is None for x in [minX, maxX, minY, maxY, minZ, maxZ]):
             raise ValueError(
-                "To make a box, you must specify minX, maxX, minY, maxY, minZ, maxZ as valid floats or float-like strings."
+                "To make a box, you must specify minX, maxX, minY, maxY, minZ, "
+                "maxZ as valid floats or float-like strings."
             )
         # Create a new CgoBox object from provided parameters
         box = CgoBox(
-            name=box, p1=Point(float(minX), float(minY), float(minZ)), p2=Point(float(maxX), float(maxY), float(maxZ))
+            name=box,
+            p1=Point(float(minX), float(minY), float(minZ)),
+            p2=Point(float(maxX), float(maxY), float(maxZ)),
         )
 
     # Print box details in different formats
@@ -534,9 +558,13 @@ def removeions():
     """
     Remove specified ions from the molecular model.
 
-    This function selects and removes ions such as PO4, SO4, ZN, CA, MG, and CL from the molecular model in the PyMOL environment.
+    This function selects and removes ions such as PO4, SO4, ZN, CA, MG, and CL
+    from the molecular model in the PyMOL environment.
     """
-    cmd.select("Ions", "((resn PO4) | (resn SO4) | (resn ZN) | (resn CA) | (resn MG) | (resn CL)) & hetatm")
+    cmd.select(
+        "Ions",
+        "((resn PO4) | (resn SO4) | (resn ZN) | (resn CA) | (resn MG) | (resn CL)) & hetatm",
+    )
     cmd.remove("Ions")
     cmd.delete("Ions")
     return
@@ -654,7 +682,7 @@ def plot_pca_box(orig_vertices, new_box_name: str = "pca_box"):
     goc = GOC([])
 
     # Create a PolyLines object for each face
-    for i, face_indices in enumerate(faces):
+    for face_indices in faces:
         face_vertices = [orig_vertices[idx] for idx in face_indices]
         goc.objects.append(
             PolyLines(width=2.0, color="cyan", points=LineVertex.from_points(face_vertices), line_type="LINE_LOOP")
@@ -669,7 +697,7 @@ def plot_pca_box(orig_vertices, new_box_name: str = "pca_box"):
         ).load_as(f"pca_axes_{_idx}")
 
     # Plot each vertex as a sphere
-    for i, v in enumerate(orig_vertices):
+    for v in orig_vertices:
         goc.objects.append(Sphere(Point(*v), radius=1))
 
     # Rebuild the GOC object and load the new box
@@ -683,7 +711,8 @@ def get_pca_box(selection="(sele)", new_box_name: str | None = None, extending=5
 
     Parameters:
     - selection: A string defining the selection range for which the PCA box is generated. Defaults to "(sele)".
-    - new_box_name: An optional string specifying the name of the new box. If not provided, a unique name will be generated.
+    - new_box_name: An optional string specifying the name of the new box. If
+        not provided, a unique name will be generated.
     - extending: A float value representing the padding to be added to the oriented bounding box. Defaults to 5.0.
 
     Returns:
@@ -691,10 +720,7 @@ def get_pca_box(selection="(sele)", new_box_name: str | None = None, extending=5
     """
     if not new_box_name:
         # Generate a unique box name if none is provided
-        boxName = "pca_box_" + str(randint(0, 10000))
-        while boxName in cmd.get_names():
-            # Ensure the generated box name is unique
-            boxName = "pca_box_" + str(randint(0, 10000))
+        boxName = _unique_pymol_name("pca_box")
     else:
         # Use the provided box name
         boxName = new_box_name

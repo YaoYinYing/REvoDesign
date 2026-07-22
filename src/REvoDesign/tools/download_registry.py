@@ -85,14 +85,18 @@ class FileDownloadRegistry(CitableModuleAbstract):
     """
     A file download registry manager for handling remote file resources.
 
-    This class implements automatic file downloading, verification, and cache management based on the pooch library.
-    It supports specifying file hash values through a registry and provides convenient methods to fetch and verify remote files.
+    This class implements automatic file downloading, verification, and cache
+    management based on the pooch library. It supports specifying file hash
+    values through a registry and provides convenient methods to fetch and
+    verify remote files.
 
     :param name: Module name, used to construct the default data directory path.
     :param base_url: Base URL for remote files.
-    :param registry: File registry where keys are filenames and values are corresponding hash values (optional).
+    :param registry: File registry where keys are filenames and values are
+        corresponding hash values (optional).
     :param version: Optional version number for creating versioned data directories.
-    :param customized_directory: Optional custom download directory path. If not provided, uses the default user data directory.
+    :param customized_directory: Optional custom download directory path. If not
+        provided, uses the default user data directory.
     :param alternative_base_urls: Optional list of alternative base URLs for downloading files.
     :param retry_count: Number of retries for downloading files.
 
@@ -160,14 +164,25 @@ class FileDownloadRegistry(CitableModuleAbstract):
         return f"{hash_type}:{a_string}"
 
     @staticmethod
-    def preprocess_registry(registry: dict[str, str | None]) -> dict[str, str | None]:
+    def preprocess_registry(registry: dict[str, str | None]) -> dict[str, str]:
         """
         Preprocess registry to ensure all hash values conform to pooch requirements.
 
         :param registry: Original registry.
         :return: Processed registry.
         """
-        return {k: FileDownloadRegistry._complete_varify_string(v) for k, v in registry.items()}
+        processed: dict[str, str] = {}
+        missing_hashes: list[str] = []
+        for filename, hash_value in registry.items():
+            completed_hash = FileDownloadRegistry._complete_varify_string(hash_value)
+            if completed_hash is None:
+                missing_hashes.append(filename)
+                continue
+            processed[filename] = completed_hash
+        if missing_hashes:
+            missing = ", ".join(sorted(missing_hashes))
+            raise ValueError(f"Download registry entries require hashes: {missing}")
+        return processed
 
     @get_cited
     def setup(self, item: str) -> DownloadedFile:
@@ -241,7 +256,9 @@ class FileDownloadRegistry(CitableModuleAbstract):
         "Pooch": """
 @article{uieda2020,
   title = {{Pooch}: {A} friend to fetch your data files},
-  author = {Leonardo Uieda and Santiago Soler and R{\'{e}}mi Rampin and Hugo van Kemenade and Matthew Turk and Daniel Shapero and Anderson Banihirwe and John Leeman},
+  author = {Leonardo Uieda and Santiago Soler and R{\'{e}}mi Rampin and Hugo
+  van Kemenade and Matthew Turk and Daniel Shapero and Anderson Banihirwe and
+  John Leeman},
   year = {2020},
   doi = {10.21105/joss.01943},
   url = {https://doi.org/10.21105/joss.01943},

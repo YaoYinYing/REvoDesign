@@ -2,18 +2,30 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
+import os
 
-import matplotlib
 import numpy as np
 
 from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import require_installed
 
-try:
-    matplotlib.use("QtAgg")
-except Exception:
-    pass  # Fall back to default backend (e.g. in headless / CI environments)
+logging = ROOT_LOGGER.getChild(__name__)
+
+PREFERRED_INTERACTIVE_BACKEND = "QtAgg"
+
+
+def _prefer_interactive_backend_for_plotting() -> None:
+    if os.environ.get("MPLBACKEND"):
+        return
+
+    import matplotlib
+
+    try:
+        matplotlib.use(PREFERRED_INTERACTIVE_BACKEND, force=False)
+    except Exception as exc:
+        logging.debug("Falling back to default matplotlib backend: %s", exc)
 
 
 @require_installed
@@ -220,6 +232,8 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
             Path to save the plot. If 'default.png', the plot will be saved in the current working directory.
         """
 
+        _prefer_interactive_backend_for_plotting()
+
         import matplotlib.pyplot as plt
 
         X, Y, P = self.compute_potential_field(grid_size=grid_size, margin=margin)
@@ -247,7 +261,7 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         default_size = 90
 
         # Overlay ligand atoms
-        for idx, (coord, element) in enumerate(zip(self.ligand_coords, self.ligand_elements)):
+        for coord, element in zip(self.ligand_coords, self.ligand_elements):
             color = color_map.get(element, default_color)
             size = size_map.get(element, default_size)
             plt.scatter(coord[0], coord[1], c=color, s=size, edgecolors="black", linewidth=1.5, zorder=3)
@@ -275,6 +289,6 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
 
 # # Example usage:
 # visualizer = SubstratePotentialVisualizer(
-#     pdb_path="/Users/yyy/Documents/protein_design/REvoDesign-test-data/1SUO.pdb", lig_key="HEM"
+#     pdb_path="/path/to/1SUO.pdb", lig_key="HEM"
 # )
 # visualizer.plot_potential_field(save_to='HEM.png')

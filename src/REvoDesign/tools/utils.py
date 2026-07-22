@@ -13,7 +13,7 @@ import contextlib
 import importlib
 import inspect
 import os
-import random
+import secrets
 import shutil
 import string
 import sys
@@ -23,6 +23,7 @@ import zipfile
 from collections.abc import Callable, Iterable
 from functools import partial, wraps
 from itertools import pairwise
+from pathlib import PurePosixPath, PureWindowsPath
 from typing import Any, Literal, ParamSpec, TypeVar, cast, overload
 
 import matplotlib
@@ -160,17 +161,16 @@ def resolve_lambda_expression(expression: str, as_partial: bool | None = None) -
 def resolve_typed_arg(arg: str) -> Any:
     if arg.lower() == "true":
         return True
-    elif arg.lower() == "false":
+    if arg.lower() == "false":
         return False
     # integer
-    elif arg.isdigit():
+    if arg.isdigit():
         return int(arg)
     # float
-    elif arg.replace(".", "", 1).isdigit():
+    if arg.replace(".", "", 1).isdigit():
         return float(arg)
     # string fallback
-    else:
-        return arg
+    return arg
 
 
 def resolve_default_value(typing: type) -> Any:
@@ -182,6 +182,7 @@ def resolve_default_value(typing: type) -> Any:
         return 0.0
     if typing == str:
         return ""
+    return None
 
 
 def resolve_dotted_config_item(config_string: str) -> Any:
@@ -190,7 +191,8 @@ def resolve_dotted_config_item(config_string: str) -> Any:
 
     The input string can be in one of the following formats:
     1. `"CFG:<config_section>:<config_item>"` - Specifies both the configuration section and item.
-    2. `"CFG:<config_item>"` - Specifies only the configuration item, with no section(default for the main config section).
+    2. `"CFG:<config_item>"` - Specifies only the configuration item, with
+       no section(default for the main config section).
 
     Args:
         config_string (str): The dotted configuration string to resolve.
@@ -316,6 +318,59 @@ def require_installed(cls):
 MethodKind = Literal["InstanceMethod", "ClassMethod", "StaticMethod", "Function"]
 
 
+def _resolve_function_owner(method: Callable) -> tuple[type | None, str, str]:
+    qualname = getattr(method, "__qualname__", "")
+    if "." not in qualname:
+        return None, "", qualname
+
+    owner_path, func_name = qualname.rsplit(".", 1)
+    module = inspect.getmodule(method)
+    if module is None:
+        return None, owner_path, func_name
+
+    obj: Any = module
+    for part in owner_path.split("."):
+        obj = getattr(obj, part, None)
+        if obj is None:
+            return None, owner_path, func_name
+
+    return (obj if isinstance(obj, type) else None), owner_path, func_name
+
+
+def _inspect_bound_method(method: Callable) -> MethodKind | None:
+    self_obj = getattr(method, "__self__", None)
+    if self_obj is None:
+        return None
+    if isinstance(self_obj, type):
+        logging.debug(f"{method!r} is a classmethod bound to {self_obj!r}")
+        return "ClassMethod"
+    logging.debug(f"{method!r} is an instancemethod bound to {self_obj!r}")
+    return "InstanceMethod"
+
+
+def _inspect_function(method: Callable) -> MethodKind | None:
+    if not inspect.isfunction(method):
+        return None
+
+    owner_cls, owner_path, func_name = _resolve_function_owner(method)
+    if not owner_path:
+        logging.debug(f"{method!r} is a plain top-level function")
+        return "Function"
+
+    if owner_cls is None:
+        logging.debug(f"{method!r} is a dotted qualname but class is not resolvable")
+        return "StaticMethod"
+
+    attr = owner_cls.__dict__.get(func_name)
+    if isinstance(attr, staticmethod):
+        logging.debug(f"{method!r} is a staticmethod on {owner_cls!r}")
+        return "StaticMethod"
+    if inspect.isfunction(attr):
+        logging.debug(f"{method!r} is a function on {owner_cls!r}")
+        return "Function"
+    return None
+
+
 def inspect_method_types(method: Callable) -> MethodKind:
     """
     Inspect the type of a callable: instance method, class method,
@@ -335,76 +390,15 @@ def inspect_method_types(method: Callable) -> MethodKind:
     if not callable(method):
         raise issues.UnexpectedWorkflowError(f"Cannot inspect method type for non-callable {method!r}")
 
-    # --- 1. Bound methods: have a non-None __self__ -------------------------
-    #   obj.method      -> bound instance method ( __self__ is instance )
-    #   cls.method      -> bound class method    ( __self__ is class )
-    if hasattr(method, "__self__") and getattr(method, "__self__", None) is not None:
-        self_obj = method.__self__  # type: ignore[attr-defined]
-        # Bound to a class -> classmethod
-        if isinstance(self_obj, type):
-            logging.debug(f"{method!r} is a classmethod bound to {self_obj!r}")
-            return "ClassMethod"
-        logging.debug(f"{method!r} is an instancemethod bound to {self_obj!r}")
-        # Bound to an instance -> instance method
-        return "InstanceMethod"
+    detected = _inspect_bound_method(method) or _inspect_function(method)
+    if detected is not None:
+        return detected
 
-    # --- 2. Unbound functions (no binding) -----------------------------------
-    # At this point, typical Python methods accessed from the class are plain
-    # function objects (unbound). We must check how they are stored on the class.
-    if inspect.isfunction(method):
-        qualname = getattr(method, "__qualname__", "")
-        logging.debug(f"Checking unbound function {method}: {getattr(method, '__module__', '')!r}")
-
-        # Try to resolve the owning class from qualname: "MyClass.method"
-        if "." in qualname:
-            owner_path, func_name = qualname.rsplit(".", 1)
-
-            owner_cls = None
-            module = inspect.getmodule(method)
-            if module is not None:
-                obj = module
-                # Walk the dotted path "Outer.Inner" etc.
-                for part in owner_path.split("."):
-                    if not hasattr(obj, part):
-                        obj = None
-                        break
-                    obj = getattr(obj, part)
-                if isinstance(obj, type):
-                    owner_cls = obj
-
-            if owner_cls is not None:
-                # Look at the raw attribute on the class dict
-                attr = owner_cls.__dict__.get(func_name)
-                # Static method is stored as a staticmethod descriptor
-                if isinstance(attr, staticmethod):
-                    logging.debug(f"{method!r} is a staticmethod on {owner_cls!r}")
-                    return "StaticMethod"
-                # A normal "def" on the class body: unbound instance method
-                if inspect.isfunction(attr):
-                    logging.debug(f"{method!r} is a function on {owner_cls!r}")
-                    return "Function"
-
-            # Fallback: dotted qualname but class not resolvable
-            # (e.g. local classes with '<locals>' in qualname).
-            # In your semantics we still treat this as a static-style method.
-            logging.debug(f"{method!r} is a dotted qualname but class is not resolvable")
-            return "StaticMethod"
-
-        # No dot in qualname: a plain top-level function
-        logging.debug(f"{method!r} is a plain top-level function")
-        return "Function"
-
-    # --- 3. Rare cases: method-like objects not covered above ---------------
     if inspect.ismethod(method):
-        # This branch is mostly for odd cases / builtins.
-        self_obj = method.__self__
-        if isinstance(self_obj, type):
-            logging.debug(f"{method!r} is a method-like classmethod object")
-            return "ClassMethod"
-        logging.debug(f"{method!r} is a method-like instancemethod object")
-        return "InstanceMethod"
+        detected = _inspect_bound_method(method)
+        if detected is not None:
+            return detected
 
-    # --- 4. Give up ----------------------------------------------------------
     logging.error(f"Giving up for inpection on method type! {method!r}")
     raise TypeError(f"Cannot inspect method type for {method!r}")
 
@@ -483,10 +477,11 @@ def get_cited(method: Callable[P, R]) -> Callable[P, R]:
             cls_or_obj: A class or instance object of type CitableModuleAbstract
         """
         try:
-            if not (hasattr(cls_or_obj, "cite") and callable(getattr(cls_or_obj, "cite"))):
+            cite_method = getattr(cls_or_obj, "cite", None)
+            if not callable(cite_method):
                 name = getattr(cls_or_obj, "__name__", type(cls_or_obj).__name__)
                 raise TypeError(f"{name} is not citable or missing cite()")
-            cls_or_obj.cite()
+            cite_method()
         except Exception as e:
             logging.warning(f"Ignore cite() error: {e}")
 
@@ -596,7 +591,6 @@ def minibatches_generator(inputs_data_generator, batch_size):
     """
     current_batch = []
     for data_point in inputs_data_generator:
-        # print(f"Send data {data_point}")
         current_batch.append(data_point)
         if len(current_batch) == batch_size:
             yield current_batch
@@ -607,79 +601,92 @@ def minibatches_generator(inputs_data_generator, batch_size):
         yield current_batch
 
 
+def _safe_member_target(base_dir: str, member_name: str) -> str:
+    normalized = member_name.replace("\\", "/")
+    posix_path = PurePosixPath(normalized)
+    windows_path = PureWindowsPath(normalized)
+    if (
+        not normalized
+        or normalized == "."
+        or posix_path.is_absolute()
+        or windows_path.is_absolute()
+        or windows_path.drive
+        or any(part == ".." for part in posix_path.parts)
+    ):
+        raise ValueError(f"Unsafe archive member path: {member_name}")
+    target_path = os.path.realpath(os.path.join(base_dir, *posix_path.parts))
+    base_path = os.path.realpath(base_dir)
+    try:
+        if os.path.commonpath([base_path, target_path]) != base_path:
+            raise ValueError(f"Unsafe archive member path: {member_name}")
+    except ValueError as exc:
+        raise ValueError(f"Unsafe archive member path: {member_name}") from exc
+    return target_path
+
+
+def _extract_zip_safely(zip_ref: zipfile.ZipFile, base_dir: str) -> None:
+    for member in zip_ref.infolist():
+        target_path = _safe_member_target(base_dir, member.filename)
+        if member.is_dir():
+            os.makedirs(target_path, exist_ok=True)
+            continue
+        os.makedirs(os.path.dirname(target_path), exist_ok=True)
+        with zip_ref.open(member, "r") as source, open(target_path, "wb") as dest:
+            shutil.copyfileobj(source, dest)
+
+
+def _extract_tar_safely(tar_ref: tarfile.TarFile, base_dir: str) -> None:
+    for member in tar_ref.getmembers():
+        target_path = _safe_member_target(base_dir, member.name)
+        if member.isdir():
+            os.makedirs(target_path, exist_ok=True)
+            continue
+        if not member.isfile():
+            logging.warning("Skipping non-regular archive member: %s", member.name)
+            continue
+        stream = tar_ref.extractfile(member)
+        if stream is None:
+            raise ValueError(f"Failed to read archive member: {member.name}")
+        os.makedirs(os.path.dirname(target_path), exist_ok=True)
+        with contextlib.closing(stream) as source, open(target_path, "wb") as dest:
+            shutil.copyfileobj(source, dest)
+
+
+def _extract_archive_contents(archive_file: str, extract_to: str) -> None:
+    if archive_file.endswith(".zip"):
+        with zipfile.ZipFile(archive_file, "r") as zip_ref:
+            _extract_zip_safely(zip_ref, extract_to)
+        return
+
+    tar_modes = {
+        ".tar": "r:",
+        ".tar.gz": "r:*",
+        ".tgz": "r:*",
+        ".tar.bz2": "r:bz2",
+        ".tbz": "r:bz2",
+        ".tar.xz": "r:xz",
+    }
+    for suffix, mode in tar_modes.items():
+        if archive_file.endswith(suffix):
+            with tarfile.open(archive_file, mode) as tar_ref:
+                _extract_tar_safely(tar_ref, extract_to)
+            return
+
+    raise ValueError(f"Unsupported archive format: {archive_file}")
+
+
 def extract_archive(archive_file: str, extract_to: str):
     """
-    Extracts the contents of an archive file (zip, tar.gz, tar.bz2, tar.xz, or rar) to a specified directory.
+    Extracts an archive file (zip, tar, tar.gz, tar.bz2, or tar.xz) to a directory.
 
     Args:
         archive_file (str): Path to the archive file.
         extract_to (str): Directory where the contents will be extracted.
     """
-
-    def _safe_member_target(base_dir: str, member_name: str) -> str:
-        normalized = member_name.replace("\\", "/")
-        if normalized.startswith("/") or normalized.startswith("../") or "/../" in f"/{normalized}":
-            raise ValueError(f"Unsafe archive member path: {member_name}")
-        target_path = os.path.realpath(os.path.join(base_dir, member_name))
-        base_path = os.path.realpath(base_dir)
-        try:
-            if os.path.commonpath([base_path, target_path]) != base_path:
-                raise ValueError(f"Unsafe archive member path: {member_name}")
-        except ValueError as exc:
-            raise ValueError(f"Unsafe archive member path: {member_name}") from exc
-        return target_path
-
-    def _extract_zip_safely(zip_ref: zipfile.ZipFile, base_dir: str) -> None:
-        for member in zip_ref.infolist():
-            target_path = _safe_member_target(base_dir, member.filename)
-            if member.is_dir():
-                os.makedirs(target_path, exist_ok=True)
-                continue
-            os.makedirs(os.path.dirname(target_path), exist_ok=True)
-            with zip_ref.open(member, "r") as source, open(target_path, "wb") as dest:
-                shutil.copyfileobj(source, dest)
-
-    def _extract_tar_safely(tar_ref: tarfile.TarFile, base_dir: str) -> None:
-        for member in tar_ref.getmembers():
-            target_path = _safe_member_target(base_dir, member.name)
-            if member.isdir():
-                os.makedirs(target_path, exist_ok=True)
-                continue
-            if not member.isfile():
-                logging.warning("Skipping non-regular archive member: %s", member.name)
-                continue
-            stream = tar_ref.extractfile(member)
-            if stream is None:
-                raise ValueError(f"Failed to read archive member: {member.name}")
-            os.makedirs(os.path.dirname(target_path), exist_ok=True)
-            with contextlib.closing(stream) as source, open(target_path, "wb") as dest:
-                shutil.copyfileobj(source, dest)
-
     try:
         with timing(f"extracting {archive_file} to {extract_to}"):
             os.makedirs(extract_to, exist_ok=True)
-            if archive_file.endswith(".zip"):
-                with zipfile.ZipFile(archive_file, "r") as zip_ref:
-                    _extract_zip_safely(zip_ref, extract_to)
-
-            elif archive_file.endswith(".tar"):
-                with tarfile.open(archive_file, "r:") as tar_ref:
-                    _extract_tar_safely(tar_ref, extract_to)
-
-            elif archive_file.endswith((".tar.gz", ".tgz")):
-                with tarfile.open(archive_file, "r:*") as tar_ref:
-                    _extract_tar_safely(tar_ref, extract_to)
-
-            elif archive_file.endswith((".tar.bz2", ".tbz")):
-                with tarfile.open(archive_file, "r:bz2") as tar_ref:
-                    _extract_tar_safely(tar_ref, extract_to)
-
-            elif archive_file.endswith(".tar.xz"):
-                with tarfile.open(archive_file, "r:xz") as tar_ref:
-                    _extract_tar_safely(tar_ref, extract_to)
-
-            else:
-                raise ValueError(f"Unsupported archive format: {archive_file}")
+            _extract_archive_contents(archive_file, extract_to)
     except Exception as e:
         logging.error(f"Error extracting {archive_file}: {str(e)}")
         raise ValueError(f"Failed to extract {archive_file}: {e}") from e
@@ -821,8 +828,7 @@ def generate_strong_password(length=16):
     # Define the characters to use for generating the password
     password_characters = string.ascii_letters + string.digits + "!#$%&*+-./:?@^_~"
 
-    # Generate the password using random characters from the defined set
-    generated_password = "".join(random.choice(password_characters) for _ in range(length))
+    generated_password = "".join(secrets.choice(password_characters) for _ in range(length))
 
     return generated_password
 

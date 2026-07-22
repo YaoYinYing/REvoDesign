@@ -6,12 +6,16 @@
 """
 Utilities for pymol.cgo, partially modified from `pymol.cgobuilder`
 
-This module is aimed at building programable application protocol for CGO creating via pymol.cgo module
+This module is aimed at building programable application protocol for CGO
+creating via pymol.cgo module
 
 
 # docs of cgo:
 
-Lowercase names below should be replaced with floating-point numbers. Generally, the TRIANGLE primitive should only be used only as a last restore since it is much less effective to render than using a series of vertices with a BEGIN/END group.
+Lowercase names below should be replaced with floating-point numbers.
+Generally, the TRIANGLE primitive should only be used only as a last restore
+since it is much less effective to render than using a series of vertices with a
+BEGIN/END group.
 
 BEGIN, { POINTS | LINES | LINE_LOOP | LINE_STRIP | TRIANGLES | TRIANGLE_STRIP | TRIANGLE_FAN },
 
@@ -204,14 +208,16 @@ class Point:
     def as_normal(self):
         """
         Generate a CGO normal command for the point
-        This method inserts the point's coordinates into a CGO normal command, used for specifying normals in PyMOL.
+        This method inserts the point's coordinates into a CGO normal command,
+        used for specifying normals in PyMOL.
         """
         return np.insert(cgo.NORMAL, 1, self.array)
 
     def move(self, x: float | None = None, y: float | None = None, z: float | None = None) -> "Point":
         """
         Move the point
-        This method allows the point to be moved along the x, y, and z axes. If a coordinate is not provided, the original value is used.
+        This method allows the point to be moved along the x, y, and z axes. If
+        a coordinate is not provided, the original value is used.
 
         Parameters:
         - x: Optional[float] = None, the new x-coordinate, if not provided, the original x-coordinate is used
@@ -227,7 +233,8 @@ class Point:
     def as_arrays(points: Iterable["Point"]):
         """
         Convert a collection of points to a numpy array
-        This static method converts a collection of Point objects into a single numpy array, facilitating batch processing.
+        This static method converts a collection of Point objects into a single
+        numpy array, facilitating batch processing.
 
         Parameters:
         - points: Iterable['Point'], a collection of Point objects
@@ -241,7 +248,8 @@ class Point:
     def as_vertexes(points: Iterable["Point"]):
         """
         Convert a collection of points to CGO vertex commands
-        This static method converts a collection of Point objects into CGO vertex commands, used for batch rendering in PyMOL.
+        This static method converts a collection of Point objects into CGO vertex
+        commands, used for batch rendering in PyMOL.
 
         Parameters:
         - points: Iterable['Point'], a collection of Point objects
@@ -779,7 +787,8 @@ class LineVertex(GraphicObject):
     """
     Represents a line vertex, inheriting from GraphicObject.
 
-    This class is used to define a line drawing element, which can be a point or a Bezier curve, and can include line width and color attributes.
+    This class is used to define a line drawing element, which can be a point or
+    a Bezier curve, and can include line width and color attributes.
 
     Attributes:
     - point: A Point or Bezier instance, representing the starting point or control point of the line.
@@ -795,7 +804,8 @@ class LineVertex(GraphicObject):
         """
         Rebuilds the line vertex data.
 
-        This method initializes the internal data list, and rebuilds the line vertex data based on the width, color, and point type.
+        This method initializes the internal data list, and rebuilds the line
+        vertex data based on the width, color, and point type.
         """
         # Initialize the data list
         self._data = []
@@ -843,7 +853,8 @@ class Sphere(GraphicObject):
         """
         Rebuilds the sphere's data representation using CGO (Chimera Graphics Object) format.
 
-        This method constructs the sphere's data by combining the color information and the sphere's geometric properties.
+        This method constructs the sphere's data by combining the color
+        information and the sphere's geometric properties.
         """
         self._data = [
             *Color(self.color).as_cgo,  # Convert color to CGO format and unpack it into the data list
@@ -1012,7 +1023,9 @@ class Cone(GraphicObject):
         radius_base: The radius of the cone at the base.
         color_tip: The color of the cone's tip. Default is 'w' for white.
         color_base: The color of the cone's base. Default is 'g' for green.
-        caps: A tuple indicating whether to add caps to the tip and/or base. 1 for True, 0 for False. Default is (1, 0), meaning the tip has a cap and the base does not.
+        caps: A tuple indicating whether to add caps to the tip and/or base.
+            1 for True, 0 for False. Default is (1, 0), meaning the tip has a
+            cap and the base does not.
     """
 
     tip: Point
@@ -1251,7 +1264,8 @@ class Square(GraphicObject):
         """
         Rebuilds the square object's drawing data.
 
-        This method initializes a graphic object drawing data (_data) by defining the vertices and colors of the triangles that make up the square.
+        This method initializes a graphic object drawing data (_data) by defining
+        the vertices and colors of the triangles that make up the square.
         It uses the Color utility class to handle color conversion and the Point class for vertex coordinates.
         """
         # Start drawing, defining the drawing mode as triangles
@@ -1282,13 +1296,16 @@ class PolyLines(GraphicObject):
     """
     Represents a collection of polylines, inheriting from GraphicObject.
 
-    This class is used to define a series of lines connected in a specific way, with common attributes such as width and color.
+    This class is used to define a series of lines connected in a specific way,
+    with common attributes such as width and color.
 
     Attributes:
         width (float): The line width.
         color (str): The line color, represented as a string.
         points (Iterable[LineVertex]): A collection of line vertices.
-        line_type (Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN']): The drawing mode of the line, defaulting to 'LINE_STRIP'.
+        line_type (Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP',
+            'TRIANGLE_FAN']): The drawing mode of the line, defaulting to
+            'LINE_STRIP'.
     """
 
     # global
@@ -1302,7 +1319,8 @@ class PolyLines(GraphicObject):
         """
         Rebuilds the line data.
 
-        This method initializes the line drawing data, including setting the line width, color, and type, and updates the data for each vertex.
+        This method initializes the line drawing data, including setting the line
+        width, color, and type, and updates the data for each vertex.
         """
         # Initialize the line drawing data, including line width and color
         self._data = [
@@ -1322,7 +1340,8 @@ class PolyLines(GraphicObject):
 @dataclass
 class Arrow(GraphicObject):
     """
-    Represents an arrow object for visualization in PyMOL, with properties for start and end points, line width, and color.
+    Represents an arrow object for visualization in PyMOL, with properties for
+    start and end points, line width, and color.
     """
 
     start: Point  # the start point of the arrow
@@ -2135,7 +2154,8 @@ class GraphicObjectCollection(GraphicObject):
         """
         Rebuilds the data for all graphic objects in the collection.
 
-        This method empties the existing graphic object data, then iterates through each graphic object in the collection.
+        This method empties the existing graphic object data, then iterates
+        through each graphic object in the collection.
         If the force_to_rebuild flag is set to True, it calls the rebuild method on each graphic object.
         Finally, it adds the data of each graphic object to the collection's _data list.
         """
@@ -2483,7 +2503,7 @@ class GraphicObjectCollection(GraphicObject):
 # with timing('writing'):
 #     test_text()
 
-# font_path = "/Users/yyy/Downloads/simhei.ttf"
+# font_path = "/path/to/simhei.ttf"
 # text='Silver Bullet\n\nCool Kid'
 
 

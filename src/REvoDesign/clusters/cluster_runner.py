@@ -76,8 +76,8 @@ class ClusterRunner:
         if hasattr(clustering, "get_method_spec"):
             try:
                 return clustering.get_method_spec().representative_policy
-            except Exception:
-                pass
+            except Exception as exc:
+                logging.debug("Could not read representative policy from clustering backend: %s", exc)
         return "Representative selection policy is not provided by this clustering backend."
 
     @staticmethod

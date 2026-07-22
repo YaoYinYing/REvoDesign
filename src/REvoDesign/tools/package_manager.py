@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import difflib
+import hmac
 import importlib
 import importlib.util
 import io
@@ -21,8 +22,11 @@ import platform
 import re
 import shutil
 import socket
-import subprocess
+
+# Used for package-management commands with argv lists and registered process lifecycle handling.
+import subprocess  # nosec B404
 import sys
+import tempfile
 import threading
 import time
 import urllib.request
@@ -33,6 +37,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import cached_property, partial
+from pathlib import Path
 from typing import Any, ClassVar, NoReturn, TypedDict, TypeVar, cast, overload
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
@@ -201,6 +206,52 @@ UI_FILE_URL = f"{GIST_BASE_URL}/REvoDesign-PyMOL-entry.ui"
 THIS_FILE_URL = f"{GIST_BASE_URL}/REvoDesign_PyMOL.py"
 # Define the URL of the JSON file
 RICH_TABLE_JSON = f"{GIST_BASE_URL}/REvoDesignExtrasTableRich.json"
+MANIFEST_URL = f"{GIST_BASE_URL}/manifest.json"
+PACKAGE_MANAGER_BOOTSTRAP_ENV = "REVODESIGN_PM_BOOTSTRAP_DIR"
+BOOTSTRAP_RETRY_DELAYS_SECONDS = (0.5, 2.0, 5.0)
+MANIFEST_ASSET_MANAGER_UI = "REvoDesign-PyMOL-entry.ui"
+MANIFEST_ASSET_EXTRAS_JSON = "REvoDesignExtrasTableRich.json"
+
+# ponytail: HMAC key prevents a forked manifest from accidentally validating
+# against the wrong installation. Not a secret — it ships in the public Gist.
+# Value: catches truncation/corruption + accidental cross-project mismatch.
+_MANAGER_HMAC_KEY = bytes.fromhex("bd8c4274c76d312b22a0c3d58aad68860b645f1dcc22e67d3d4fe16bf59c6343")
+
+
+def package_manager_bootstrap_dir() -> Path:
+    bootstrap_dir = os.environ.get(PACKAGE_MANAGER_BOOTSTRAP_ENV)
+    if bootstrap_dir:
+        return Path(bootstrap_dir).expanduser()
+    return Path(tempfile.gettempdir()) / "REvoDesign-manager"
+
+
+def bootstrap_manager_ui_file() -> Path:
+    return package_manager_bootstrap_dir() / "UI" / "REvoDesign_installer.ui"
+
+
+def bootstrap_extras_json() -> Path:
+    return package_manager_bootstrap_dir() / "REvoDesignExtrasTableRich.json"
+
+
+def _with_bootstrap_retries(operation: Callable[[], R], description: str) -> R:
+    last_error: Exception | None = None
+    for attempt, delay in enumerate((0.0, *BOOTSTRAP_RETRY_DELAYS_SECONDS), start=1):
+        if delay:
+            time.sleep(delay)
+        try:
+            return operation()
+        except Exception as e:
+            last_error = e
+            logging.warning(
+                "%s failed on attempt %s/%s: %s",
+                description,
+                attempt,
+                len(BOOTSTRAP_RETRY_DELAYS_SECONDS) + 1,
+                e,
+            )
+    if last_error is None:
+        raise RuntimeError(f"{description} failed without an exception")
+    raise last_error
 
 
 # Define the proxy protocols allowed
@@ -235,13 +286,20 @@ def _safe_parse_version(value: str) -> Version | None:
         return None
 
 
-def _read_https_url(url: str, timeout: float = 10.0) -> bytes:
+def _read_https_url(url: str, timeout: float = 10.0, headers: Mapping[str, str] | None = None) -> bytes:
     parsed = urlparse(url)
     if parsed.scheme != "https" or not parsed.netloc:
         raise ValueError(f"Only https URLs are allowed: {url}")
-    request = urllib.request.Request(url, headers={"User-Agent": "REvoDesign-PackageManager"})
+    request_headers = {"User-Agent": "REvoDesign-PackageManager"}
+    if headers:
+        request_headers.update(headers)
+    request = urllib.request.Request(url, headers=request_headers)
     with urllib.request.urlopen(request, timeout=timeout) as response:  # nosec B310
         return response.read()
+
+
+GITHUB_TAG_CACHE_TTL_SECONDS = 15 * 60
+_GITHUB_TAG_CACHE: dict[str, tuple[float, list[str]]] = {}
 
 
 def _python_version_matches(spec: str | None, current_version: str | None) -> bool:
@@ -457,7 +515,7 @@ class ExtrasGroups:
         return [item for item in self.all_extras if item.name == name]
 
 
-def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
+def fetch_gist_file(ui_file_url: str, save_to_file: str, *, timeout: float = 10.0) -> None:
     """
     Fetch the UI file from the given URL, save it to a temporary file, and yield its absolute path.
 
@@ -474,7 +532,7 @@ def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
 
     try:
         # Fetch the file content and write it to the temporary file
-        ui_data = _read_https_url(ui_file_url).decode("utf-8")
+        ui_data = _read_https_url(ui_file_url, timeout=timeout).decode("utf-8")
         with open(save_to_file, "w") as ui_handle:
             ui_handle.write(ui_data)
 
@@ -510,6 +568,92 @@ def fetch_gist_json(url: str) -> dict[str, Any]:
     except Exception as e:
         logging.error(f"Error fetching or validating the JSON data: {e}: ")
         return {}
+
+
+def fetch_required_gist_json(url: str) -> dict[str, Any]:
+    json_data = fetch_gist_json(url)
+    if not json_data:
+        raise URLError(f"Failed to fetch required JSON bootstrap asset: {url}")
+    return json_data
+
+
+def fetch_bootstrap_manifest() -> dict[str, str]:
+    manifest = _with_bootstrap_retries(
+        lambda: fetch_required_gist_json(MANIFEST_URL),
+        "REvoDesign bootstrap manifest",
+    )
+    if not all(isinstance(key, str) and isinstance(value, str) for key, value in manifest.items()):
+        raise ValueError("Bootstrap manifest must map asset names to HMAC strings")
+    return cast(dict[str, str], manifest)
+
+
+def fetch_verified_bootstrap_file(
+    *,
+    url: str,
+    asset_name: str,
+    save_to_file: str,
+    manifest: dict[str, str],
+    description: str,
+) -> None:
+    def _fetch_and_verify() -> None:
+        fetch_gist_file(ui_file_url=url, save_to_file=save_to_file)
+        if not verify_manifest({asset_name: save_to_file}, manifest):
+            raise ValueError(f"{description} failed HMAC verification")
+
+    _with_bootstrap_retries(_fetch_and_verify, description)
+
+
+def load_bootstrap_extras_json(path: Path | None = None) -> dict[str, Any]:
+    path = path or bootstrap_extras_json()
+    try:
+        with path.open(encoding="utf-8") as json_handle:
+            json_data = json.load(json_handle)
+    except OSError as e:
+        logging.error(f"Error loading packaged extras table from {path}: {e}")
+        return {}
+    except json.JSONDecodeError as e:
+        logging.error(f"Error decoding packaged extras table from {path}: {e}")
+        return {}
+
+    if not isinstance(json_data, dict):
+        logging.error(f"Error loading packaged extras table from {path}: expected a dictionary.")
+        return {}
+    return json_data
+
+
+load_packaged_extras_json = load_bootstrap_extras_json
+
+
+def write_bootstrap_extras_json(remote_data: dict[str, Any]) -> None:
+    extras_json = bootstrap_extras_json()
+    cache_dir = str(extras_json.parent)
+    os.makedirs(cache_dir, exist_ok=True)
+    with open(str(extras_json), "w", encoding="utf-8") as fh:
+        json.dump(remote_data, fh)
+
+
+def _compute_hmac(filepath: str) -> str:
+    """Compute HMAC-SHA256 of a file using the embedded manager key."""
+    with open(filepath, "rb") as fh:
+        return hmac.new(_MANAGER_HMAC_KEY, fh.read(), "sha256").hexdigest()
+
+
+def verify_manifest(assets: dict[str, str], manifest: dict[str, str]) -> bool:
+    """Verify each asset in `assets` matches its HMAC entry in `manifest`.
+
+    ``assets`` maps filename → temp-file path on disk.
+    ``manifest`` maps filename → expected HMAC hex digest.
+    """
+    for filename, filepath in assets.items():
+        expected = manifest.get(filename)
+        if expected is None:
+            logging.error("Manifest missing entry for %s", filename)
+            return False
+        actual = _compute_hmac(filepath)
+        if not hmac.compare_digest(actual, expected):
+            logging.error("HMAC mismatch for %s", filename)
+            return False
+    return True
 
 
 R = TypeVar("R")
@@ -573,7 +717,7 @@ def run_command(
             collector.append(line)
         pipe.close()
 
-    process = subprocess.Popen(
+    process = subprocess.Popen(  # nosec B603
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -1032,14 +1176,17 @@ class MenuItem:
     """
     A data class representing a menu item.
 
-    This class is used to define the properties of a menu item, including its name, associated function, and optional arguments.
-    The use of the @dataclass decorator automatically generates special methods such as __init__(), __repr__(), and __eq__().
+    This class is used to define the properties of a menu item, including its
+    name, associated function, and optional arguments.
+    The use of the @dataclass decorator automatically generates special methods
+    such as __init__(), __repr__(), and __eq__().
     The frozen parameter ensures that instances of the class are immutable, enhancing thread safety and consistency.
 
     Attributes:
         name (str): The name of the menu item, used for display and identification.
         func (Callable): The function associated with the menu item, which is executed when the item is selected.
-        kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
+        kwargs (Optional[Mapping]): Optional arguments passed to the associated
+            function when it is executed. Defaults to None.
     """
 
     name: str
@@ -1071,28 +1218,38 @@ class REvoDesignPackageManager:
     remote_extra_group_data: ExtrasGroups = None  # type: ignore
 
     def ensure_ui_file(self, upgrade: bool = False):
-        ui_file = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "REvoDesign-manager", "UI", "REvoDesign_installer.ui")
-        )
-        os.makedirs(os.path.dirname(ui_file), exist_ok=True)
+        """Return the manager UI file path, fetching from Gist if needed.
 
-        # if not exists,  preform the first fetch
-        if not os.path.isfile(ui_file):
-            logging.info(f"Fetching UI: {UI_FILE_URL} -> {ui_file}")
-            fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=ui_file)
-            logging.info(f"Fetched UI file for manager: {ui_file}")
-            return ui_file
+        Download the manager UI into the writable bootstrap directory.
+        ``upgrade=True`` still uses the same retrying fetch path.
+        """
+        ui_file_path = bootstrap_manager_ui_file()
+        cache_dir = str(ui_file_path.parent)
+        os.makedirs(cache_dir, exist_ok=True)
+        ui_file = str(ui_file_path)
 
-        # otherwise, if the user not requires an upgrade, return
-        if not upgrade:
-            logging.debug(f"pre-downloaded UI file found: {ui_file}")
-            return ui_file
+        new_ui_handle = tempfile.NamedTemporaryFile(delete=False, suffix=".ui")
+        new_ui_file = new_ui_handle.name
+        new_ui_handle.close()
 
-        # otherwise, preform the upgrade
-        new_ui_file = f"{ui_file}.swp"
+        try:
+            manifest = fetch_bootstrap_manifest()
+            fetch_verified_bootstrap_file(
+                url=UI_FILE_URL,
+                asset_name=MANIFEST_ASSET_MANAGER_UI,
+                save_to_file=new_ui_file,
+                manifest=manifest,
+                description="REvoDesign manager UI bootstrap",
+            )
+            if upgrade and os.path.isfile(ui_file):
+                self.upgrade_check(original_file=ui_file, new_file=new_ui_file, title="REvoDesign Manager UI file")
+            else:
+                shutil.move(new_ui_file, ui_file)
+        except Exception:
+            if os.path.isfile(new_ui_file):
+                os.remove(new_ui_file)
+            raise
 
-        fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=new_ui_file)
-        self.upgrade_check(original_file=ui_file, new_file=new_ui_file, title="REvoDesign Manager UI file")
         return ui_file
 
     @staticmethod
@@ -1100,8 +1257,10 @@ class REvoDesignPackageManager:
         """
         Check and apply an upgrade if necessary.
 
-        This function compares the original file with a new fetched file, generates a diff file if there are differences,
-        and prompts the user to confirm whether to apply the upgrade. If the user confirms, the new file replaces the original file.
+        This function compares the original file with a new fetched file,
+        generates a diff file if there are differences, and prompts the user to
+        confirm whether to apply the upgrade. If the user confirms, the new file
+        replaces the original file.
 
         Parameters:
         - original_file (str): The path to the original file.
@@ -1137,9 +1296,12 @@ class REvoDesignPackageManager:
             '<a style="background-color:yellow;color:blue;">:::::Upgrade Summary:::::</a><p>'
             "<table>"
             "<tr><th><b>Event</b></th><th>-</th><th><b>Affected Lines<b></th></tr>"
-            f'<tr><td><a style="background-color:green;color:white">Added  </a></td><td>:</td><td><a style="background-color:white;color:green;">{num_added_lines}</a></td></tr>'
-            f'<tr><td><a style="background-color:blue; color:white">Changed</a></td><td>:</td><td><a style="background-color:white;color:blue ;">{num_chged_lines}</a></td></tr>'
-            f'<tr><td><a style="background-color:red;  color:white">Deleted</a></td><td>:</td><td><a style="background-color:white;color:red  ;">{num_deled_lines}</a></td></tr>'
+            '<tr><td><a style="background-color:green;color:white">Added  </a></td>'
+            f'<td>:</td><td><a style="background-color:white;color:green;">{num_added_lines}</a></td></tr>'
+            '<tr><td><a style="background-color:blue; color:white">Changed</a></td>'
+            f'<td>:</td><td><a style="background-color:white;color:blue ;">{num_chged_lines}</a></td></tr>'
+            '<tr><td><a style="background-color:red;  color:white">Deleted</a></td>'
+            f'<td>:</td><td><a style="background-color:white;color:red  ;">{num_deled_lines}</a></td></tr>'
             "</table>"
             "You must check out these changes carefully.<p>"
             f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.",
@@ -1169,13 +1331,38 @@ class REvoDesignPackageManager:
         if not confirmed:
             return notify_box("Upgrade cancelled.")
 
-        new_py_file = f"{__file__}.swp"
+        # Download manifest and both assets to a temp dir, verify HMAC, then apply
+        manifest = fetch_gist_json(MANIFEST_URL)
+        if not manifest:
+            notify_box("Cannot verify upgrade: manifest unavailable. " "The upgrade source may be compromised.")
+            return
 
-        fetch_gist_file(THIS_FILE_URL, new_py_file)
+        temp_dir = tempfile.mkdtemp()
+        try:
+            py_temp = os.path.join(temp_dir, "REvoDesign_PyMOL.py")
+            ui_temp = os.path.join(temp_dir, "REvoDesign-PyMOL-entry.ui")
 
-        self.upgrade_check(original_file=__file__, new_file=new_py_file, title="REvoDesign Manager")
+            fetch_gist_file(THIS_FILE_URL, py_temp)
+            fetch_gist_file(UI_FILE_URL, ui_temp)
 
-        self.ensure_ui_file(upgrade=True)
+            assets = {
+                "REvoDesign_PyMOL.py": py_temp,
+                "REvoDesign-PyMOL-entry.ui": ui_temp,
+            }
+            if not verify_manifest(assets, manifest):
+                notify_box("Upgrade verification failed. " "The downloaded files may be corrupted or tampered with.")
+                return
+
+            self.upgrade_check(original_file=__file__, new_file=py_temp, title="REvoDesign Manager")
+
+            bootstrap_ui = str(bootstrap_manager_ui_file())
+            if os.path.isfile(bootstrap_ui):
+                self.upgrade_check(original_file=bootstrap_ui, new_file=ui_temp, title="REvoDesign Manager UI file")
+            else:
+                os.makedirs(os.path.dirname(bootstrap_ui), exist_ok=True)
+                shutil.move(ui_temp, bootstrap_ui)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     @contextmanager
     def freeze_manager(self):
@@ -1221,7 +1408,7 @@ class REvoDesignPackageManager:
 
         logging.debug("Run pre-fetching tasks... ")
 
-        self.refresh_remote_json()
+        self.load_bootstrap_json()
 
         self.pip_installer = run_worker_thread_in_pool(PIPInstaller)
 
@@ -1282,14 +1469,9 @@ class REvoDesignPackageManager:
         }
         return proxy_env
 
-    def refresh_remote_json(self):
-        """
-        Refreshes the list of available extras by fetching data from a JSON source.
-
-        This method uses a worker thread to fetch extras data with a progress bar indication.
-        If fetching fails, it shows an error notification and sets up an empty extras list.
-        """
-        d_placeholder = {
+    @staticmethod
+    def _extras_placeholder() -> dict[str, Any]:
+        return {
             "entities": [
                 {
                     "name": "No Extras is Fetched",
@@ -1298,26 +1480,82 @@ class REvoDesignPackageManager:
                 }
             ],
         }
-        remote_data = run_worker_thread_in_pool(worker_function=fetch_gist_json, url=RICH_TABLE_JSON)
 
+    def _load_extras_table(self, remote_data: dict[str, Any], *, notify_on_error: bool) -> None:
         self.notification_channel(remote_data)
 
         if not remote_data:
-            notify_box(
-                "Error fetching or validating the JSON data. \n"
-                "Please reconfigure your network and press <Refresh> to try again "
-                "if you wish to continue installation with extra packages"
-            )
+            if notify_on_error:
+                notify_box(
+                    "Error fetching or validating the JSON data. \n"
+                    "Please reconfigure your network and press <Refresh> to try again "
+                    "if you wish to continue installation with extra packages"
+                )
+            remote_data = self._extras_placeholder()
+        elif "entities" not in remote_data:
+            if notify_on_error:
+                notify_box("Fetched data is not valid. The data is expected to have an `entities` key.")
+            remote_data = self._extras_placeholder()
 
-        if "entities" not in remote_data:
-            notify_box("Fetched data is not valid. The data is expected to have an `entities` key.")
-
-        self.remote_extra_group_data = ExtrasGroups.from_dict(remote_data or d_placeholder)
+        self.remote_extra_group_data = ExtrasGroups.from_dict(remote_data)
 
         # Create and position the extra components checkbox list
         self.extra_checkbox = CheckableListView(
             self.installer_ui.listView_extras, self.remote_extra_group_data, filter=PLATFORM_INFO
         )
+
+    def load_bootstrap_json(self):
+        """
+        Fetches the extras table into the writable bootstrap directory.
+        """
+
+        def fetch_verified_extras() -> dict[str, Any]:
+            manifest = fetch_bootstrap_manifest()
+            extras_handle = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
+            extras_file = extras_handle.name
+            extras_handle.close()
+            try:
+                fetch_verified_bootstrap_file(
+                    url=RICH_TABLE_JSON,
+                    asset_name=MANIFEST_ASSET_EXTRAS_JSON,
+                    save_to_file=extras_file,
+                    manifest=manifest,
+                    description="REvoDesign extras table bootstrap",
+                )
+                json_data = load_bootstrap_extras_json(Path(extras_file))
+                if not json_data:
+                    raise ValueError("Fetched extras bootstrap JSON is empty or invalid")
+                return json_data
+            finally:
+                if os.path.isfile(extras_file):
+                    os.remove(extras_file)
+
+        remote_data = run_worker_thread_in_pool(worker_function=fetch_verified_extras)
+        if remote_data and "entities" in remote_data:
+            try:
+                write_bootstrap_extras_json(remote_data)
+            except OSError:
+                logging.warning("Failed to write extras JSON to %s", bootstrap_extras_json())
+        self._load_extras_table(remote_data, notify_on_error=False)
+
+    def load_packaged_json(self):
+        return self.load_bootstrap_json()
+
+    def refresh_remote_json(self):
+        """
+        Refreshes the list of available extras by fetching data from a JSON source.
+
+        This method uses a worker thread to fetch extras data with a progress bar indication.
+        If fetching fails, it shows an error notification and sets up an empty extras list.
+        """
+        remote_data = run_worker_thread_in_pool(worker_function=fetch_gist_json, url=RICH_TABLE_JSON)
+        self._load_extras_table(remote_data, notify_on_error=True)
+        # Save explicit refresh output as the latest bootstrap copy for this session.
+        if remote_data and "entities" in remote_data:
+            try:
+                write_bootstrap_extras_json(remote_data)
+            except OSError:
+                logging.warning("Failed to write extras JSON to %s", bootstrap_extras_json())
 
     @staticmethod
     def notification_channel(d: dict):
@@ -1357,7 +1595,8 @@ class REvoDesignPackageManager:
         if not drop_sensitives:
             confirmed = decide(
                 title="Agree to collect SENSITIVE data?",
-                description="[!!!CAUSION!!!]Do you REALLY want to collect diagnostic information INCLUDING ALL SENSITIVE data?\n"
+                description="[!!!CAUSION!!!]Do you REALLY want to collect diagnostic "
+                "information INCLUDING ALL SENSITIVE data?\n"
                 "Please DO NOT share this information with anyone else or post it to public channels.",
             )
             if not confirmed:
@@ -1443,13 +1682,17 @@ class REvoDesignPackageManager:
         except Exception as e:
             decided = decide(
                 "UI Error",
-                "Error Occurs while loading UI file, this UI may out-of-dated.\nCleanup and fetch the latest?",
+                "Error Occurs while loading UI file, this UI may out-of-dated.\n"
+                "Re-fetch the latest version from the network?",
                 details=str(e),
             )
             if decided:
-                os.remove(ui_file)
-                return self.make_window()
-            raise RuntimeError(f"Error occurs while loading UI file: {e}.")
+                # Re-fetch into a temp file first; replace the bootstrap file
+                # only after the new download succeeds.
+                ui_file = self.ensure_ui_file(upgrade=True)
+                self.installer_ui = loadUi(ui_file, dialog)
+            else:
+                raise RuntimeError(f"Error occurs while loading UI file: {e}.") from e
 
         # add right-click menu on `self.installer_ui.label_header`,
         # add a item `Upgrade UI` and connect `partial(self.ensure_ui_file, upgrade=True)`
@@ -1568,12 +1811,14 @@ class REvoDesignPackageManager:
         specified GitHub repository,
         and then sets the result as the value of the `comboBox_version` combo box in the UI.
         """
-        # Run a worker thread to fetch tags with a progress bar
-        tags = run_worker_thread_in_pool(worker_function=get_github_repo_tags, repo_url=REPO_URL)
+        # ponytail: non-fatal — offline startup must not show an error popup
+        try:
+            tags = run_worker_thread_in_pool(worker_function=get_github_repo_tags, repo_url=REPO_URL)
+        except Exception:
+            logging.warning("Failed to fetch GitHub release tags (offline or API error)")
+            return
         if tags and isinstance(tags, list):
             return set_widget_value(self.installer_ui.comboBox_version, tags)
-
-        return notify_box(f"Failed to fetch version tags from GitHub repo: \n{REPO_URL}")
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
 
@@ -2186,15 +2431,16 @@ class RunningProcessRegistry:
         if process.poll() is None:
             try:
                 process.terminate()
-            except Exception:
-                pass
+            except Exception as exc:
+                logging.debug("Could not terminate process %s: %s", process, exc)
             try:
                 process.wait(timeout=5)
-            except Exception:
+            except Exception as exc:
+                logging.debug("Process %s did not exit after terminate; killing it: %s", process, exc)
                 try:
                     process.kill()
-                except Exception:
-                    pass
+                except Exception as kill_exc:
+                    logging.debug("Could not kill process %s: %s", process, kill_exc)
 
 
 class AbortButtonOverlay(QtCore.QObject):
@@ -2340,11 +2586,8 @@ class ThreadExecutionManager(QtCore.QObject):
 
     def _handle_abort_request(self) -> None:
         self._aborted = True
-        try:
-            cmd.interrupt()
-        except Exception:
-            pass
         self.worker_thread.interrupt()
+        RunningProcessRegistry.terminate(self.worker_thread)
         if self.worker_thread.isRunning():
             self.worker_thread.quit()
             if not self.worker_thread.wait(100):
@@ -2410,6 +2653,7 @@ class WorkerThread(QtCore.QThread):
     """Custom worker thread for executing a function in a separate thread."""
 
     result_signal = QtCore.pyqtSignal(list)
+    error_signal = QtCore.pyqtSignal(object)
     finished_signal = QtCore.pyqtSignal()
     interrupt_signal = QtCore.pyqtSignal()
     notify_signal = QtCore.pyqtSignal(str)
@@ -2422,6 +2666,7 @@ class WorkerThread(QtCore.QThread):
         self.args = args or ()
         self.kwargs = kwargs or {}
         self.results = None
+        self.error: BaseException | None = None
         self.interrupt_signal.connect(self._handle_interrupt)
 
     def run(self):
@@ -2433,6 +2678,14 @@ class WorkerThread(QtCore.QThread):
             self.results = [self.func(*self.args, **self.kwargs)]
             if self.results:
                 self.result_signal.emit(self.results)
+        except BaseException as exc:  # noqa: B036 - worker errors are re-raised by the caller after thread join
+            self.error = exc
+            logging.exception("WorkerThread failed while running %s", self.func)
+            try:
+                self.error_signal.emit(exc)
+                self.notify_signal.emit(f"{type(exc).__name__}: {exc}")
+            except RuntimeError:
+                pass
         finally:
             try:
                 self.finished_signal.emit()
@@ -2450,6 +2703,9 @@ class WorkerThread(QtCore.QThread):
     def handle_result(self):
         return self.results
 
+    def handle_error(self):
+        return self.error
+
     def interrupt(self):
         self.requestInterruption()
         RunningProcessRegistry.terminate(self)
@@ -2459,7 +2715,7 @@ class WorkerThread(QtCore.QThread):
         logging.debug("WorkerThread interrupt signal handled.")
 
 
-def get_github_repo_tags(repo_url) -> list[str]:
+def get_github_repo_tags(repo_url: str, *, timeout: float = 5.0) -> list[str]:
     """
     Retrieve all released tags of a GitHub repository using urllib.
 
@@ -2474,43 +2730,56 @@ def get_github_repo_tags(repo_url) -> list[str]:
         list: A list of tag names for the repository.
     """
 
-    # Extract the owner and repo name from the URL
-    parts = repo_url.split("/")
-    owner = parts[-2]
-    repo = parts[-1]
+    parsed = urlparse(repo_url)
+    parts = [part for part in parsed.path.strip("/").split("/") if part]
+    if parsed.scheme != "https" or parsed.netloc.lower() != "github.com" or len(parts) < 2:
+        logging.warning("Unsupported GitHub repository URL: %s", repo_url)
+        return []
+    owner, repo = parts[:2]
+    repo = repo.removesuffix(".git")
 
     # GitHub API URL for listing tags
     api_url = f"https://api.github.com/repos/{owner}/{repo}/tags"
+    now = time.monotonic()
+    cached = _GITHUB_TAG_CACHE.get(api_url)
+    if cached and now - cached[0] <= GITHUB_TAG_CACHE_TTL_SECONDS:
+        return list(cached[1])
+
+    headers = {"Accept": "application/vnd.github+json"}
+    github_token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if github_token:
+        headers["Authorization"] = f"Bearer {github_token}"
 
     try:
         # Send a GET request to the GitHub API
-        response_data = _read_https_url(api_url).decode()
+        response_data = _read_https_url(api_url, timeout=timeout, headers=headers).decode()
         # Parse JSON response data
         tags = json.loads(response_data)
         if not isinstance(tags, list):
             logging.error("Failed to parse GitHub tags response: expected a list.")
-            return []
+            return list(cached[1]) if cached else []
         # Extract the name of each tag
         try:
             tag_names = [tag["name"] for tag in tags]
         except (KeyError, TypeError) as e:
             logging.error(f"Failed to extract tag names from GitHub response: {e}")
-            return []
+            return list(cached[1]) if cached else []
+        _GITHUB_TAG_CACHE[api_url] = (time.monotonic(), tag_names)
         return tag_names
     except HTTPError as e:
         # Handle HTTP errors (e.g., repository not found, rate limit exceeded)
         logging.warning(f"GitHub API returned status code {e.code}")
-        return []
+        return list(cached[1]) if cached else []
     except URLError as e:
         # Handle URL errors (e.g., network issues)
         logging.error(f"Failed to reach the server. Reason: {e.reason}")
-        return []
+        return list(cached[1]) if cached else []
     except json.JSONDecodeError as e:
         logging.error(f"Failed to decode GitHub tags response as JSON: {e}")
-        return []
+        return list(cached[1]) if cached else []
     except TypeError as e:
         logging.error(f"Failed to parse GitHub tags response: {e}")
-        return []
+        return list(cached[1]) if cached else []
 
 
 # a minimum copy from `REvoDesign/tools/customized_widgets.py`
@@ -2648,7 +2917,7 @@ def execute_on_main_thread(func: Callable[..., GuiResult], *args, **kwargs) -> G
     def callback():
         try:
             result["value"] = func(*args, **kwargs)
-        except BaseException as exc:  # pragma: no cover - defensive against unexpected UI failures
+        except BaseException as exc:  # noqa: B036  # pragma: no cover - re-raised across the GUI-thread handoff
             error["error"] = exc
         finally:
             semaphore.release()
@@ -2663,15 +2932,19 @@ def execute_on_main_thread(func: Callable[..., GuiResult], *args, **kwargs) -> G
 # Overload #1: None or Warning => returns bool
 
 
+# fmt: off
 @overload
-def notify_box(message: str = "", error_type: None | type[Warning] = None, details: str | None = None) -> None: ...
+def notify_box(message: str = "", error_type: None | type[Warning] = None, details: str | None = None) -> None:
+    ...
 
 
 # Overload #2: Exception => NoReturn
 
 
 @overload
-def notify_box(message: str, error_type: type[Exception], details: str | None = None) -> NoReturn: ...
+def notify_box(message: str, error_type: type[Exception], details: str | None = None) -> NoReturn:
+    ...
+# fmt: on
 
 
 def notify_box(
@@ -2718,7 +2991,7 @@ def _show_notification_dialog(
 
     # error_type is a Warning => also bool
     if issubclass(error_type, Warning):
-        warnings.warn(error_type(message))
+        warnings.warn(error_type(message), stacklevel=2)
         return
 
     # Otherwise, raise => NoReturn
@@ -2736,6 +3009,7 @@ def raise_error(error_type: type[Exception], message: str) -> NoReturn:
     raise error_type(message)
 
 
+# fmt: off
 @overload
 def run_worker_thread_in_pool(
     worker_function: Callable[..., R],
@@ -2743,7 +3017,8 @@ def run_worker_thread_in_pool(
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
     notify_slot: Callable[[str], None] | None = None,
     **kwargs,
-) -> R: ...
+) -> R:
+    ...
 
 
 @overload
@@ -2753,7 +3028,9 @@ def run_worker_thread_in_pool(
     trigger_buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None = None,
     notify_slot: Callable[[str], None] | None = None,
     **kwargs,
-) -> R | None: ...
+) -> R | None:
+    ...
+# fmt: on
 
 
 def run_worker_thread_in_pool(
@@ -2782,6 +3059,9 @@ def run_worker_thread_in_pool(
         time.sleep(0.01)
 
     result = work_thread.handle_result()
+    error = work_thread.handle_error()
+    if error is not None:
+        raise error
     return result[0] if result else None
 
 

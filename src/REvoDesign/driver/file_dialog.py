@@ -8,6 +8,10 @@ File Dialog
 """
 
 import os
+import shutil
+import tarfile
+import tempfile
+import zipfile
 from functools import partial
 from typing import Any, Literal
 
@@ -23,6 +27,8 @@ from .ui_driver import ConfigBus
 IO_MODE = Literal["r", "w"]
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+MAX_ARCHIVE_BROWSE_BYTES = 2 * 1024 * 1024 * 1024
 
 
 class FileDialog(SingletonAbstract):
@@ -45,6 +51,7 @@ class FileDialog(SingletonAbstract):
         """
         self.window = window
         self.PWD = pwd or os.getcwd()
+        self._archive_temp_dirs: set[str] = set()
         self.register_file_dialog_buttons()
         # Mark the instance as initialized to prevent reinitialization
         self.initialize()
@@ -58,7 +65,10 @@ class FileDialog(SingletonAbstract):
         return getMultipleFiles(self.window, exts)
 
     def browse_filename(
-        self, mode: IO_MODE = "r", exts: tuple[FileExtensionCollection, ...] = (file_extensions.Any,)
+        self,
+        mode: IO_MODE = "r",
+        exts: tuple[FileExtensionCollection, ...] = (file_extensions.Any,),
+        directory: str | None = None,
     ) -> str | None:
         """Open Finder/Explorer to browse from a filename
 
@@ -83,7 +93,12 @@ class FileDialog(SingletonAbstract):
 
         # otherwise, open a file to read
         browse_title = "Open ..."
-        filename = getOpenFileNameWithExt(self.window, browse_title, filter=filter_strings)
+        filename = getOpenFileNameWithExt(
+            self.window,
+            browse_title,
+            directory or "",
+            filter=filter_strings,
+        )
 
         # no file selected
         if not filename:
@@ -110,8 +125,9 @@ class FileDialog(SingletonAbstract):
             return filename
 
         # otherwise, extract the archive and browse the extracted file
-        flatten_compressed_files(filename, self.PWD)
-        return self.browse_filename(mode, exts=exts)
+        extracted_dir = flatten_compressed_files(filename)
+        self._archive_temp_dirs.add(extracted_dir)
+        return self.browse_filename(mode, exts=exts, directory=extracted_dir)
 
     # A universal and versatile function for input file path browsing.
 
@@ -275,36 +291,70 @@ class FileDialog(SingletonAbstract):
             partial(self.open_mutant_table, "ui.evaluate.input.to_mutant_txt", "w")
         )
 
+    def cleanup_archive_dirs(self) -> None:
+        temp_dirs = getattr(self, "_archive_temp_dirs", set())
+        for temp_dir in list(temp_dirs):
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        temp_dirs.clear()
 
-def flatten_compressed_files(compressed_file: str, target_dir: str | None = None) -> str:
+    def __del__(self):
+        self.cleanup_archive_dirs()
+
+
+def flatten_compressed_files(
+    compressed_file: str,
+    target_dir: str | None = None,
+    max_archive_bytes: int = MAX_ARCHIVE_BROWSE_BYTES,
+) -> str:
     """
     Flattens and extracts the contents of a compressed file.
 
     Parameters:
     - compressed_file (str): The path to the compressed file to be extracted.
-    - target_dir (Optional[str]): The directory where the extracted files will be placed.
-      If not provided, the current working directory is used.
+    - target_dir (Optional[str]): Parent directory for the temporary extraction directory.
+      If not provided, the system temporary directory is used.
 
     Returns:
     - str: The path to the directory where the files have been extracted.
     """
 
-    # Set the target directory to the current working directory if not specified
-    if target_dir is None:
-        target_dir = os.getcwd()
+    archive_size = os.path.getsize(compressed_file)
+    if archive_size > max_archive_bytes:
+        raise ValueError(
+            f"Archive is too large to browse safely: {archive_size} bytes " f"(limit: {max_archive_bytes} bytes)"
+        )
+    payload_size = _compressed_archive_payload_size(compressed_file)
+    if payload_size > max_archive_bytes:
+        raise ValueError(
+            f"Archive expands too large to browse safely: {payload_size} bytes " f"(limit: {max_archive_bytes} bytes)"
+        )
 
     # Create a path for the extracted files
-    flatten_path = os.path.join(
-        target_dir,
-        "expanded_compressed_files",
-        os.path.basename(compressed_file),
+    temp_parent = target_dir or tempfile.gettempdir()
+    flatten_path = tempfile.mkdtemp(
+        prefix=f"revodesign-{os.path.basename(compressed_file)}-",
+        dir=temp_parent,
     )
 
-    # Create the directory if it does not exist
-    os.makedirs(flatten_path, exist_ok=True)
-
     # Extract the archive to the specified directory
-    extract_archive(archive_file=compressed_file, extract_to=flatten_path)
+    try:
+        extract_archive(archive_file=compressed_file, extract_to=flatten_path)
+    except Exception:
+        shutil.rmtree(flatten_path, ignore_errors=True)
+        raise
 
     # Return the path to the extracted directory
     return flatten_path
+
+
+def _compressed_archive_payload_size(compressed_file: str) -> int:
+    if compressed_file.endswith(".zip"):
+        with zipfile.ZipFile(compressed_file, "r") as zip_ref:
+            return sum(info.file_size for info in zip_ref.infolist() if not info.is_dir())
+
+    tar_suffixes = (".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz", ".tar.xz")
+    if compressed_file.endswith(tar_suffixes):
+        with tarfile.open(compressed_file, "r:*") as tar_ref:
+            return sum(member.size for member in tar_ref.getmembers() if member.isfile())
+
+    return os.path.getsize(compressed_file)

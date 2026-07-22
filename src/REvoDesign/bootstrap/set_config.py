@@ -17,13 +17,14 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from platformdirs import user_cache_dir, user_data_dir
 
-from REvoDesign.Qt import QtCompat, QtWidgets
+CONFIG_RESET_ENV = "REVODESIGN_RESET_CONFIG"
 
 
 def decide(title="", description="", rich: bool = False, details: str | None = None):
     """
     A copy of decide function from package_manager.py
     """
+    from REvoDesign.Qt import QtCompat, QtWidgets
 
     # A confirmation message.
     msg = QtWidgets.QMessageBox()
@@ -40,7 +41,27 @@ def decide(title="", description="", rich: bool = False, details: str | None = N
     return result == QtCompat.Yes
 
 
-def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
+def _env_flag_enabled(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _has_qapplication() -> bool:
+    try:
+        from REvoDesign.Qt import QtWidgets
+    except Exception:
+        return False
+    return QtWidgets.QApplication.instance() is not None
+
+
+def _should_prompt_for_config_reset(prompt_user: bool | None) -> bool:
+    if prompt_user is not None:
+        return prompt_user
+    if os.environ.get("PYMOL_GIT_TEST"):
+        return False
+    return _has_qapplication()
+
+
+def set_REvoDesign_config_file(delete_user_config_tree: bool = False, prompt_user: bool | None = None):
     """
     Sets the REvoDesign configuration directory. If the main configuration file does not exist,
     it will be copied from the template directory. If the configuration directory exists,
@@ -48,6 +69,8 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
 
     Arguments:
         delete_user_config_tree (bool): Whether to delete the user's configuration tree. Defaults to False.
+        prompt_user (bool | None): Whether to ask before resetting an upgrade-time config tree.
+            ``None`` prompts only when a QApplication exists and test mode is not active.
 
     Returns:
         str: The path to the REvoDesign configuration directory.
@@ -63,8 +86,9 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     config_dir = os.path.join(default_storage_path, "config")
 
     main_config_file = os.path.join(config_dir, "main.yaml")
+    reset_requested = delete_user_config_tree or _env_flag_enabled(CONFIG_RESET_ENV)
 
-    if delete_user_config_tree and os.path.exists(config_dir):
+    if reset_requested and os.path.exists(config_dir):
         print("WARNING: The configuration directory will be deleted as required")
         shutil.rmtree(config_dir)
 
@@ -82,7 +106,7 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
             )
             print(reset_warning)
 
-            if decide(
+            if _should_prompt_for_config_reset(prompt_user) and decide(
                 title="Reset REvoDesign Configuration?",
                 description=reset_warning + "Do you want to continue? \n"
                 "You can still choose to cancel the reset to proceed it manually.",
@@ -90,7 +114,10 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
 
                 shutil.rmtree(config_dir)
             else:
-                print("Please manually delete the configuration directory and restart REvoDesign.")
+                print(
+                    "Configuration reset was not approved; keeping existing files. "
+                    f"Set {CONFIG_RESET_ENV}=1 or pass delete_user_config_tree=True to force a reset."
+                )
 
         print(f"Copied configurations from {template_config_dir} to {config_dir}")
         shutil.copytree(src=template_config_dir, dst=config_dir, dirs_exist_ok=True)
@@ -117,10 +144,12 @@ def reload_config_file(
     config_name: str = "main", overrides: list[str] | None = None, return_hydra_config: bool = False
 ) -> DictConfig:
     """
-    Reload a configuration yaml file in a Hydra manner. As we initialize hydra w/ initialize_config_dir,
-    which is the REVODESIGN_CONFIG_DIR at user's data directory, the config_name is supposed as a relative path of the yaml file.
+    Reload a configuration yaml file in a Hydra manner. As we initialize hydra
+    w/ initialize_config_dir, which is the REVODESIGN_CONFIG_DIR at user's data
+    directory, the config_name is supposed as a relative path of the yaml file.
     e.g. config_name="experiments/my_experiment" refers to experiments/my_experiment.yaml
-    the DictConfig object can be accessed like `reload_config_file(config_name="experiments/my_experiment")["experiments"]`
+    the DictConfig object can be accessed like
+    `reload_config_file(config_name="experiments/my_experiment")["experiments"]`
 
     Arguments:
         config_name (str): The name of the configuration file. Defaults to "main".
@@ -276,13 +305,15 @@ def list_all_config_files(config_dir: str, tree: bool = False) -> list[str]:
 
 def _iter_yaml_rel_paths(base_dir: str) -> list[str]:
     """
-    Iterates through the specified directory and its subdirectories to collect relative paths of all .yaml files
+    Iterates through the specified directory and its subdirectories to collect
+    relative paths of all .yaml files
 
     Args:
         base_dir (str): The base directory path to traverse
 
     Returns:
-        list[str]: A list containing relative paths of all found .yaml files with respect to base_dir, sorted in lexicographical order
+        list[str]: A list containing relative paths of all found .yaml files
+            with respect to base_dir, sorted in lexicographical order
     """
     base_dir = os.path.abspath(base_dir)
     rel_paths: list[str] = []

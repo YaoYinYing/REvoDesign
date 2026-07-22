@@ -5,7 +5,9 @@
 
 import glob
 import os
-import pickle  # nosec B403: traceback serialization, trusted context
+
+# Traceback serialization uses a trusted context.
+import pickle  # nosec B403
 import random
 import re
 import shutil
@@ -17,13 +19,14 @@ from dataclasses import dataclass
 import numpy as np
 from hydra import errors as hydra_errors
 from omegaconf import DictConfig, OmegaConf
+from pymol.Qt import QtWidgets
 
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.basic.abc_third_party_module import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
 from REvoDesign.bootstrap.set_config import is_package_installed, reload_config_file
 from REvoDesign.tools.download_registry import FileDownloadRegistry
-from REvoDesign.tools.package_manager import run_command
+from REvoDesign.tools.package_manager import decide, run_command
 from REvoDesign.tools.rfdiffusion_tools import SubstratePotentialVisualizer
 from REvoDesign.tools.utils import device_picker, get_cited, require_installed, timing
 
@@ -51,6 +54,12 @@ a6f8652938bb45c332ffa683d8ad3509 InpaintSeq_ckpt.pt
 6f4d00394d34f6a9072d70976f6c8777 RF_structure_prediction_weights.pt
 """
 
+DGL_INSTALL_APPROVAL_ENV = "REVODESIGN_ALLOW_DGL_INSTALL"
+
+
+def _has_qapplication() -> bool:
+    return QtWidgets.QApplication.instance() is not None
+
 
 @dataclass
 class DglSolver:
@@ -75,9 +84,29 @@ class DglSolver:
             self.cuda_version = ""
             warnings.warn(
                 issues.PlatformNotSupportedWarning(
-                    f"CUDA version {cuda_version} is not supported by DGL. Please install CUDA version >= 11.8 if you need to use DGL with CUDA support."
-                )
+                    f"CUDA version {cuda_version} is not supported by DGL. "
+                    "Please install CUDA version >= 11.8 if you need to use "
+                    "DGL with CUDA support."
+                ),
+                stacklevel=2,
             )
+
+    def _install_approved(self, index_link: str) -> bool:
+        if os.environ.get(DGL_INSTALL_APPROVAL_ENV) == "1":
+            return True
+        if not _has_qapplication():
+            logging.warning("DGL installation requires interactive approval; no QApplication is available.")
+            return False
+
+        return decide(
+            title="Install DGL?",
+            description=(
+                "RFdiffusion requires DGL, but it is not installed. "
+                "Install dgl==2.2.1 into the current Python environment?\n\n"
+                f"Package index: {index_link}"
+            ),
+            rich=True,
+        )
 
     def install(self):
         self.fetch_cuda_version_before_install()
@@ -86,11 +115,16 @@ class DglSolver:
         else:
             index_link = "https://data.dgl.ai/wheels/repo.html"
 
+        if not self._install_approved(index_link):
+            logging.info("DGL installation was not approved.")
+            return False
+
         c = run_command([sys.executable, "-m", "pip", "install", "dgl==2.2.1", "-f", index_link])
         if c.returncode != 0:
             logging.error(f"Failed to install DGL: {c.stderr}")
             raise RuntimeError(f"Failed to install DGL: {c.stderr}")
         self.installed = True
+        return True
 
 
 RFD_WEIGHTS = FileDownloadRegistry(
@@ -165,7 +199,8 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             warnings.warn(
                 issues.FallingBackWarning(
                     f"Model {model_name} not found. Falling back to pick one according to the input."
-                )
+                ),
+                stacklevel=2,
             )
 
         # automatically pick the model based on the input
@@ -208,10 +243,18 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
         if (dgl_solver := DglSolver()).installed:
             return
 
-        warnings.warn(issues.MissingExternalTool("DGL is not installed. Now try to install it."))
+        warnings.warn(
+            issues.MissingExternalTool("DGL is not installed. User approval is required before installing it."),
+            stacklevel=2,
+        )
 
-        dgl_solver.install()
+        install_started = dgl_solver.install()
         if not dgl_solver.installed:
+            if not install_started:
+                raise issues.MissingExternalToolError(
+                    "DGL installation was cancelled. Install dgl==2.2.1 manually or approve installation "
+                    f"by setting {DGL_INSTALL_APPROVAL_ENV}=1."
+                )
             raise issues.MissingExternalToolError(
                 "DGL may not be installed. Please install it manually or take a restart to take effect."
             )
@@ -447,7 +490,28 @@ day={01},
 volume={620},
 number={7976},
 pages={1089-1100},
-abstract={There has been considerable recent progress in designing new proteins using deep-learning methods1--9. Despite this progress, a general deep-learning framework for protein design that enables solution of a wide range of design challenges, including de novo binder design and design of higher-order symmetric architectures, has yet to be described. Diffusion models10,11 have had considerable success in image and language generative modelling but limited success when applied to protein modelling, probably due to the complexity of protein backbone geometry and sequence--structure relationships. Here we show that by fine-tuning the RoseTTAFold structure prediction network on protein structure denoising tasks, we obtain a generative model of protein backbones that achieves outstanding performance on unconditional and topology-constrained protein monomer design, protein binder design, symmetric oligomer design, enzyme active site scaffolding and symmetric motif scaffolding for therapeutic and metal-binding protein design. We demonstrate the power and generality of the method, called RoseTTAFold diffusion (RFdiffusion), by experimentally characterizing the structures and functions of hundreds of designed symmetric assemblies, metal-binding proteins and protein binders. The accuracy of RFdiffusion is confirmed by the cryogenic electron microscopy structure of a designed binder in complex with influenza haemagglutinin that is nearly identical to the design model. In a manner analogous to networks that produce images from user-specified inputs, RFdiffusion enables the design of diverse functional proteins from simple molecular specifications.},
+abstract={There has been considerable recent progress in designing new proteins
+using deep-learning methods1--9. Despite this progress, a general deep-learning
+framework for protein design that enables solution of a wide range of design
+challenges, including de novo binder design and design of higher-order symmetric
+architectures, has yet to be described. Diffusion models10,11 have had
+considerable success in image and language generative modelling but limited
+success when applied to protein modelling, probably due to the complexity of
+protein backbone geometry and sequence--structure relationships. Here we show
+that by fine-tuning the RoseTTAFold structure prediction network on protein
+structure denoising tasks, we obtain a generative model of protein backbones
+that achieves outstanding performance on unconditional and topology-constrained
+protein monomer design, protein binder design, symmetric oligomer design, enzyme
+active site scaffolding and symmetric motif scaffolding for therapeutic and
+metal-binding protein design. We demonstrate the power and generality of the
+method, called RoseTTAFold diffusion (RFdiffusion), by experimentally
+characterizing the structures and functions of hundreds of designed symmetric
+assemblies, metal-binding proteins and protein binders. The accuracy of
+RFdiffusion is confirmed by the cryogenic electron microscopy structure of a
+designed binder in complex with influenza haemagglutinin that is nearly
+identical to the design model. In a manner analogous to networks that produce
+images from user-specified inputs, RFdiffusion enables the design of diverse
+functional proteins from simple molecular specifications.},
 issn={1476-4687},
 doi={10.1038/s41586-023-06415-8},
 url={https://doi.org/10.1038/s41586-023-06415-8}

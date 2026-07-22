@@ -313,14 +313,14 @@ def _get_model_atoms(cmd_module, obj: str, state: int = -1):
 def _atom_coord(a) -> tuple[float, float, float] | None:
     """Extract ``(x, y, z)`` from a PyMOL atom object."""
     if hasattr(a, "coord"):
-        c = getattr(a, "coord")
+        c = a.coord
         if isinstance(c, (list, tuple)) and len(c) >= 3:
             return (float(c[0]), float(c[1]), float(c[2]))
     if hasattr(a, "x") and hasattr(a, "y") and hasattr(a, "z"):
         try:
-            return (float(getattr(a, "x")), float(getattr(a, "y")), float(getattr(a, "z")))
-        except Exception:
-            pass
+            return (float(a.x), float(a.y), float(a.z))
+        except Exception as exc:
+            logging.debug("Could not parse atom coordinates from x/y/z attributes: %s", exc)
     return None
 
 
@@ -328,9 +328,9 @@ def _atom_unique_id(a) -> int | None:
     """Extract ``unique_id`` from a PyMOL atom (only uses the explicit attribute)."""
     if hasattr(a, "unique_id"):
         try:
-            return int(getattr(a, "unique_id"))
-        except Exception:
-            pass
+            return int(a.unique_id)
+        except Exception as exc:
+            logging.debug("Could not parse atom unique_id: %s", exc)
     return None
 
 

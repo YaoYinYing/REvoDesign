@@ -4,12 +4,14 @@
 
 
 """
-This module contains functions and classes related to managing SSL certificates and generating unique identifiers (UUIDs).
+This module contains functions and classes related to managing SSL certificates
+and generating unique identifiers (UUIDs).
 """
 
 import datetime
 import os
 import platform
+import secrets
 import ssl
 from dataclasses import dataclass
 from typing import Literal
@@ -19,6 +21,39 @@ from OpenSSL import crypto
 from REvoDesign.logger import ROOT_LOGGER
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+
+DEFAULT_CERT_VALIDITY_DAYS = 7
+CERT_VALIDITY_ENV = "REVODESIGN_SSL_CERT_VALIDITY_DAYS"
+PRIVATE_DIR_MODE = 0o700
+PRIVATE_KEY_MODE = 0o600
+CERTIFICATE_MODE = 0o644
+
+
+def _certificate_validity_days() -> int:
+    raw_days = os.environ.get(CERT_VALIDITY_ENV)
+    if raw_days is None:
+        return DEFAULT_CERT_VALIDITY_DAYS
+
+    try:
+        days = int(raw_days)
+    except ValueError as exc:
+        raise ValueError(f"{CERT_VALIDITY_ENV} must be a positive integer.") from exc
+
+    if days <= 0:
+        raise ValueError(f"{CERT_VALIDITY_ENV} must be a positive integer.")
+
+    return days
+
+
+def _write_pem_file(path: str, payload: bytes, mode: int) -> None:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+    fd = os.open(path, flags, mode)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(payload)
+    finally:
+        os.chmod(path, mode)
 
 
 @dataclass
@@ -32,7 +67,8 @@ class SSLCertificateManager:
         self.cache_dir: str = set_cache_dir()
         self.crt_dir: str = os.path.join(self.cache_dir, "crts")
 
-        os.makedirs(self.crt_dir, exist_ok=True)
+        os.makedirs(self.crt_dir, mode=PRIVATE_DIR_MODE, exist_ok=True)
+        os.chmod(self.crt_dir, PRIVATE_DIR_MODE)
         self.crt_path = os.path.join(self.crt_dir, f"{self.role}.crt")
         self.key_path = os.path.join(self.crt_dir, f"{self.role}.key")
 
@@ -69,7 +105,8 @@ class SSLCertificateManager:
         Function: get_certificate
         Usage: get_certificate()
 
-        This function checks for the existence of an SSL certificate and generates a new one if it doesn't exist or has expired.
+        This function checks for the existence of an SSL certificate and
+        generates a new one if it doesn't exist or has expired.
 
 
         Returns:
@@ -93,6 +130,7 @@ class SSLCertificateManager:
             logging.warning("Certificate has expired. Generating a new certificate.")
             self.create_new_certificate()
         else:
+            self._enforce_file_permissions()
             logging.info("Certificate is still valid.")
 
     def create_new_certificate(self):
@@ -100,12 +138,14 @@ class SSLCertificateManager:
         Function: create_new_certificate
         Usage: create_new_certificate()
 
-        This function creates a new SSL certificate and private key if they do not exist or if the certificate has expired.
+        This function creates a new SSL certificate and private key if they do
+        not exist or if the certificate has expired.
 
         Returns:
         - None
         """
         role = self.role
+        validity_days = _certificate_validity_days()
 
         # Get node information from OS or set to 'Unknown' if not available
 
@@ -132,15 +172,20 @@ class SSLCertificateManager:
         cert.get_subject().CN = _cn[:64]
 
         # Set serial number, validity period, issuer, public key, and sign the certificate
-        cert.set_serial_number(1000)
+        cert.set_serial_number(secrets.randbits(159) + 1)
         cert.gmtime_adj_notBefore(0)
-        cert.gmtime_adj_notAfter(7 * 24 * 60 * 60)
+        cert.gmtime_adj_notAfter(validity_days * 24 * 60 * 60)
         cert.set_issuer(cert.get_subject())
         cert.set_pubkey(k)
         cert.sign(k, "sha256")
 
         # Write the certificate and private key to files in PEM format
-        with open(self.crt_path, "wb") as f:
-            f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
-        with open(self.key_path, "wb") as f:
-            f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k))
+        _write_pem_file(self.crt_path, crypto.dump_certificate(crypto.FILETYPE_PEM, cert), CERTIFICATE_MODE)
+        _write_pem_file(self.key_path, crypto.dump_privatekey(crypto.FILETYPE_PEM, k), PRIVATE_KEY_MODE)
+
+    def _enforce_file_permissions(self):
+        os.chmod(self.crt_dir, PRIVATE_DIR_MODE)
+        if os.path.exists(self.crt_path):
+            os.chmod(self.crt_path, CERTIFICATE_MODE)
+        if os.path.exists(self.key_path):
+            os.chmod(self.key_path, PRIVATE_KEY_MODE)

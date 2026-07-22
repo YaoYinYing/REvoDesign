@@ -31,6 +31,6 @@ def shortcut_pssm2csv(pssm: str) -> None:
 
     expected_csv = f"{pssm}.csv"
     if not os.path.exists(expected_csv):
-        warnings.warn(issues.NoResultsWarning(f"Expected {expected_csv=}"))
+        warnings.warn(issues.NoResultsWarning(f"Expected {expected_csv=}"), stacklevel=2)
 
     logging.info(expected_csv)

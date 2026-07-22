@@ -153,11 +153,12 @@ class PSSM_Parser(ProfileParserAbstract):
         PSSM_Alphabet = "ARNDCQEGHILKMFPSTWYV"
         # Fetch table header of PSSM
         c = 0
-        for line in open(input_pssm_file):
-            pssm_header = line
-            c += 1
-            if c == 3:
-                break
+        with open(input_pssm_file) as pssm_file:
+            for line in pssm_file:
+                pssm_header = line
+                c += 1
+                if c == 3:
+                    break
 
         logging.info(pssm_header)
 

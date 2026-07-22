@@ -186,7 +186,8 @@ class EvoCluster(ClusterMethodAbstract):
                     continue
                 try:
                     values.append(float(df.loc[mutation.mut_res, col]))
-                except Exception:
+                except Exception as exc:
+                    logging.debug("Skipping invalid PSSM score for %s at %s: %s", mutation.mut_res, col, exc)
                     continue
             if values:
                 scalar_scores[idx] = float(np.mean(values))

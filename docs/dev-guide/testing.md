@@ -91,6 +91,42 @@ tests/
     └── test_openkinetics_scorer.py  # example test module
 ```
 
+### Mini UniRef Test Databases
+
+Server GREMLIN tests use tiny UniRef30/UniRef90 mocks under
+`tests/data/msa/miniuc`. The raw inputs stay in `tests/data/msa` because
+non-server evolution tests also read `2KL8.i90c75_aln.fas` directly.
+
+The shared `miniuc_databases` fixture in `tests/conftest.py` rebuilds the mock
+databases on demand when all required binaries are available:
+
+- `makeblastdb`
+- `psiblast`
+- `hhblits`
+- `cstranslate`
+- `ffindex_from_fasta`
+
+Make sure the REvoDesign Conda environment is active and `CONDA_PREFIX` points
+to it before running server tests that need these databases:
+
+```bash
+conda activate REvoDesignTestFlight
+echo "$CONDA_PREFIX"
+```
+
+To rebuild the mini databases manually, follow
+`tests/data/msa/README.md`. The expected generated locations are:
+
+```
+tests/data/msa/miniuc/uc30/miniuc30*
+tests/data/msa/miniuc/uc90/uniref90*
+tests/data/msa/testminiuc/uc30/
+tests/data/msa/testminiuc/uc90/
+```
+
+If those files are missing and any required binary is unavailable, the relevant
+server tests skip with a message pointing back to the MSA README.
+
 ## Running Tests
 
 Tests **must** run from a temporary directory. The Makefile targets handle this

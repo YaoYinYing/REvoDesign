@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+import hmac
 import io
 import json
 import os
@@ -22,13 +23,22 @@ from REvoDesign.Qt import QtWidgets
 from REvoDesign.tools.package_manager import (
     GitSolver,
     PIPInstaller,
+    REvoDesignPackageManager,
+    _compute_hmac,
     _python_version_matches,
+    bootstrap_extras_json,
+    bootstrap_manager_ui_file,
+    fetch_bootstrap_manifest,
     fetch_gist_file,
     fetch_gist_json,
+    fetch_verified_bootstrap_file,
     filter_sensitive_data,
     get_github_repo_tags,
+    load_bootstrap_extras_json,
+    package_manager_bootstrap_dir,
     run_command,
     solve_installation_config,
+    verify_manifest,
 )
 
 
@@ -65,6 +75,22 @@ def test_pm_fetch_gist_file_url_error():
             fetch_gist_file(mock_url, "temp_file.ui")
 
 
+def test_pm_fetch_gist_file_uses_timeout(monkeypatch, tmp_path):
+    calls = []
+
+    def mock_read(url, **kwargs):
+        calls.append((url, kwargs))
+        return b"mock UI content"
+
+    output = tmp_path / "manager.ui"
+    monkeypatch.setattr(package_manager, "_read_https_url", mock_read)
+
+    fetch_gist_file("https://example.com/file.ui", str(output), timeout=3)
+
+    assert output.read_text() == "mock UI content"
+    assert calls == [("https://example.com/file.ui", {"timeout": 3})]
+
+
 # Test for fetch_gist_json
 
 
@@ -99,6 +125,121 @@ def test_pm_fetch_gist_json_error():
         result = fetch_gist_json(mock_url)
 
     assert result == {}
+
+
+def test_pm_load_bootstrap_extras_json(tmp_path):
+    registry = tmp_path / "REvoDesignExtrasTableRich.json"
+    registry.write_text(json.dumps({"entities": []}))
+
+    assert load_bootstrap_extras_json(registry) == {"entities": []}
+
+
+def test_pm_bootstrap_paths_use_env(monkeypatch, tmp_path):
+    monkeypatch.setenv(package_manager.PACKAGE_MANAGER_BOOTSTRAP_ENV, str(tmp_path))
+
+    assert package_manager_bootstrap_dir() == tmp_path
+    assert bootstrap_manager_ui_file() == tmp_path / "UI" / "REvoDesign_installer.ui"
+    assert bootstrap_extras_json() == tmp_path / "REvoDesignExtrasTableRich.json"
+
+
+def test_pm_ensure_ui_file_refetches_even_when_previous_bootstrap_exists(monkeypatch, tmp_path):
+    monkeypatch.setenv(package_manager.PACKAGE_MANAGER_BOOTSTRAP_ENV, str(tmp_path))
+    ui_file = tmp_path / "UI" / "REvoDesign_installer.ui"
+    ui_file.parent.mkdir()
+    ui_file.write_text("<stale ui/>")
+    fresh_ui = b"<fresh ui/>"
+    manifest = {
+        package_manager.MANIFEST_ASSET_MANAGER_UI: hmac.new(
+            package_manager._MANAGER_HMAC_KEY, fresh_ui, "sha256"
+        ).hexdigest()
+    }
+
+    def mock_fetch(ui_file_url, save_to_file, **kwargs):
+        with open(save_to_file, "wb") as fh:
+            fh.write(fresh_ui)
+
+    monkeypatch.setattr(package_manager, "fetch_bootstrap_manifest", lambda: manifest)
+    monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
+
+    plugin = REvoDesignPackageManager()
+
+    assert plugin.ensure_ui_file() == str(ui_file)
+    assert ui_file.read_text() == "<fresh ui/>"
+
+
+def test_pm_ensure_ui_file_retries_then_writes_bootstrap_file(monkeypatch, tmp_path):
+    monkeypatch.setenv(package_manager.PACKAGE_MANAGER_BOOTSTRAP_ENV, str(tmp_path))
+    ui_file = tmp_path / "UI" / "REvoDesign_installer.ui"
+    fetched_ui = b"<ui from gist/>"
+    manifest = {
+        package_manager.MANIFEST_ASSET_MANAGER_UI: hmac.new(
+            package_manager._MANAGER_HMAC_KEY, fetched_ui, "sha256"
+        ).hexdigest()
+    }
+
+    fetch_calls = []
+
+    def mock_fetch(ui_file_url, save_to_file, **kwargs):
+        fetch_calls.append(save_to_file)
+        if len(fetch_calls) == 1:
+            raise urllib.error.URLError("temporary outage")
+        with open(save_to_file, "wb") as fh:
+            fh.write(fetched_ui)
+
+    monkeypatch.setattr(package_manager, "fetch_bootstrap_manifest", lambda: manifest)
+    monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
+    monkeypatch.setattr(package_manager.time, "sleep", lambda _seconds: None)
+
+    plugin = REvoDesignPackageManager()
+
+    result = plugin.ensure_ui_file()
+    assert result == str(ui_file)
+    assert len(fetch_calls) == 2
+    assert open(ui_file).read() == "<ui from gist/>"
+
+
+def test_pm_load_bootstrap_json_fetches_and_writes_bootstrap_file(monkeypatch, tmp_path, qtbot):
+    monkeypatch.setenv(package_manager.PACKAGE_MANAGER_BOOTSTRAP_ENV, str(tmp_path))
+    plugin = REvoDesignPackageManager()
+    list_view = QtWidgets.QListView()
+    qtbot.addWidget(list_view)
+    plugin.installer_ui = SimpleNamespace(listView_extras=list_view)
+    remote_data = {
+        "entities": [
+            {
+                "name": "Fetched Extras",
+                "description": "Remote extras registry",
+                "extras": [],
+            }
+        ],
+    }
+    remote_bytes = json.dumps(remote_data).encode()
+    manifest = {
+        package_manager.MANIFEST_ASSET_EXTRAS_JSON: hmac.new(
+            package_manager._MANAGER_HMAC_KEY, remote_bytes, "sha256"
+        ).hexdigest()
+    }
+    fetch_calls = []
+
+    def mock_fetch(ui_file_url, save_to_file, **kwargs):
+        fetch_calls.append(save_to_file)
+        with open(save_to_file, "wb") as fh:
+            fh.write(b'{"entities": []}' if len(fetch_calls) == 1 else remote_bytes)
+
+    monkeypatch.setattr(
+        package_manager,
+        "run_worker_thread_in_pool",
+        lambda worker_function, **_kwargs: worker_function(),
+    )
+    monkeypatch.setattr(package_manager, "fetch_bootstrap_manifest", lambda: manifest)
+    monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
+    monkeypatch.setattr(package_manager.time, "sleep", lambda _seconds: None)
+
+    plugin.load_bootstrap_json()
+
+    assert len(fetch_calls) == 2
+    assert plugin.remote_extra_group_data.entities[0].name == "Fetched Extras"
+    assert json.loads(bootstrap_extras_json().read_text()) == remote_data
 
 
 def test_pm_run_command_success():
@@ -449,30 +590,33 @@ def test_pm_ensure_package(pip_installer, mocker):
 
 class TestGetGithubRepoTags:
 
-    def test_pm_valid_repo_url(self):
-        # Test a valid repository URL, expecting a list of tags
+    def test_pm_valid_repo_url(self, monkeypatch):
+        package_manager._GITHUB_TAG_CACHE.clear()
         repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
+        monkeypatch.setattr(
+            package_manager,
+            "_read_https_url",
+            lambda url, **_kwargs: json.dumps([{"name": "v1.0.0"}, {"name": "v1.1.0"}]).encode(),
+        )
+
         tags = get_github_repo_tags(repo_url)
-        if not tags:
-            pytest.skip("Live GitHub tags are unavailable in the current test environment.")
-        assert isinstance(tags, list)
-        assert len(tags) > 0
-        for tag in tags:
-            assert isinstance(tag, str)
+
+        assert tags == ["v1.0.0", "v1.1.0"]
 
     def test_pm_invalid_repo_url(self):
-        # Test an invalid repository URL, expecting an empty list
-        repo_url = "https://github.com/nonexistent/repo"
+        package_manager._GITHUB_TAG_CACHE.clear()
+        repo_url = "https://example.com/nonexistent/repo"
         tags = get_github_repo_tags(repo_url)
         assert isinstance(tags, list)
         assert len(tags) == 0
 
     def test_pm_http_error(self, monkeypatch):
-        # Test handling of HTTPError
-        def mock_urlopen(*args, **kwargs):
-            raise HTTPError(args[0], 404, "Not Found", None, None)
+        package_manager._GITHUB_TAG_CACHE.clear()
 
-        monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+        def mock_read(url, **_kwargs):
+            raise HTTPError(url, 404, "Not Found", None, None)
+
+        monkeypatch.setattr(package_manager, "_read_https_url", mock_read)
 
         repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
         tags = get_github_repo_tags(repo_url)
@@ -480,11 +624,12 @@ class TestGetGithubRepoTags:
         assert len(tags) == 0
 
     def test_pm_url_error(self, monkeypatch):
-        # Test handling of URLError
-        def mock_urlopen(*args, **kwargs):
+        package_manager._GITHUB_TAG_CACHE.clear()
+
+        def mock_read(*_args, **_kwargs):
             raise URLError("Failed to reach the server")
 
-        monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+        monkeypatch.setattr(package_manager, "_read_https_url", mock_read)
 
         repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
         tags = get_github_repo_tags(repo_url)
@@ -492,32 +637,52 @@ class TestGetGithubRepoTags:
         assert len(tags) == 0
 
 
-def test_pm_get_github_repo_tags_success():
-    """Test successful retrieval of tags."""
+def test_pm_get_github_repo_tags_uses_timeout_auth_and_cache(monkeypatch):
+    calls = []
 
-    result = get_github_repo_tags("https://github.com/BradyAJohnston/MolecularNodes")
-    if not result:
-        pytest.skip("Live GitHub tags are unavailable in the current test environment.")
-    assert result, "Github repository tags should not be empty"
+    def mock_read(url, **kwargs):
+        calls.append((url, kwargs))
+        return json.dumps([{"name": "v2.0.0"}]).encode()
+
+    monkeypatch.setenv("GITHUB_TOKEN", "token-123")
+    monkeypatch.setattr(package_manager, "_read_https_url", mock_read)
+    package_manager._GITHUB_TAG_CACHE.clear()
+
+    result = get_github_repo_tags("https://github.com/test_owner/test_repo", timeout=3)
+
+    assert result == ["v2.0.0"]
+    assert calls == [
+        (
+            "https://api.github.com/repos/test_owner/test_repo/tags",
+            {
+                "timeout": 3,
+                "headers": {
+                    "Accept": "application/vnd.github+json",
+                    "Authorization": "Bearer token-123",
+                },
+            },
+        )
+    ]
+    cached_at, cached_tags = package_manager._GITHUB_TAG_CACHE["https://api.github.com/repos/test_owner/test_repo/tags"]
+    assert cached_at > 0
+    assert cached_tags == ["v2.0.0"]
+
+    assert get_github_repo_tags("https://github.com/test_owner/test_repo", timeout=3) == ["v2.0.0"]
+    assert len(calls) == 1
 
 
-def test_pm_get_github_repo_tags_http_error():
-    """Test handling of an HTTPError."""
-    with patch(
-        "urllib.request.urlopen",
-        side_effect=urllib.error.HTTPError(
-            url="https://api.github.com/repos/test_owner/test_repo/tags", code=404, msg="Not Found", hdrs=None, fp=None
-        ),
-    ):
-        result = get_github_repo_tags("https://github.com/test_owner/test_repo")
-        assert result == []
+def test_pm_get_github_repo_tags_falls_back_to_cached_tags(monkeypatch):
+    api_url = "https://api.github.com/repos/test_owner/test_repo/tags"
+    package_manager._GITHUB_TAG_CACHE[api_url] = (0.0, ["cached-tag"])
 
+    def mock_read(url, **_kwargs):
+        raise urllib.error.URLError(reason="Network unreachable")
 
-def test_pm_get_github_repo_tags_url_error():
-    """Test handling of a URLError."""
-    with patch("urllib.request.urlopen", side_effect=urllib.error.URLError(reason="Network unreachable")):
-        result = get_github_repo_tags("https://github.com/test_owner/test_repo")
-        assert result == []
+    monkeypatch.setattr(package_manager, "_read_https_url", mock_read)
+
+    result = get_github_repo_tags("https://github.com/test_owner/test_repo")
+
+    assert result == ["cached-tag"]
 
 
 @pytest.mark.parametrize(
@@ -732,6 +897,22 @@ def test_pm_thread_manage_kill_entry(qtbot, monkeypatch):
     button = QtWidgets.QPushButton("Killable")
     qtbot.addWidget(button)
 
+    class FakeProcess:
+        terminated = False
+        killed = False
+
+        def poll(self):
+            return None
+
+        def terminate(self):
+            self.terminated = True
+
+        def wait(self, timeout=None):
+            return 0
+
+        def kill(self):
+            self.killed = True
+
     def cancellable_task():
         thread = package_manager.QtCore.QThread.currentThread()
         start = time.monotonic()
@@ -743,6 +924,9 @@ def test_pm_thread_manage_kill_entry(qtbot, monkeypatch):
 
     worker_thread = package_manager.WorkerThread(cancellable_task)
     manager = package_manager.ThreadExecutionManager(worker_thread, description="Kill", trigger_buttons=button)
+    fake_process = FakeProcess()
+    package_manager.RunningProcessRegistry._worker_processes[id(worker_thread)] = {fake_process}
+    package_manager.RunningProcessRegistry._process_worker[id(fake_process)] = id(worker_thread)
     assert manager.abort_overlays
 
     mock_cmd = SimpleNamespace(interrupt=MagicMock())
@@ -760,5 +944,142 @@ def test_pm_thread_manage_kill_entry(qtbot, monkeypatch):
     result = worker_thread.handle_result()
 
     assert manager.abort_overlays == []
-    assert mock_cmd.interrupt.called
+    assert not mock_cmd.interrupt.called
+    assert fake_process.terminated
+    assert not fake_process.killed
     assert result is None or result[0] == "aborted"
+
+
+def test_worker_thread_emits_and_records_errors(qtbot):
+    def failing_task():
+        raise RuntimeError("worker exploded")
+
+    worker_thread = package_manager.WorkerThread(failing_task)
+    errors = []
+    notifications = []
+    finished = []
+    worker_thread.error_signal.connect(errors.append)
+    worker_thread.notify_signal.connect(notifications.append)
+    worker_thread.finished_signal.connect(lambda: finished.append(True))
+
+    worker_thread.start()
+
+    qtbot.waitUntil(lambda: bool(finished), timeout=2000)
+    worker_thread.wait(2000)
+
+    assert worker_thread.handle_result() is None
+    assert isinstance(worker_thread.handle_error(), RuntimeError)
+    assert len(errors) == 1
+    assert isinstance(errors[0], RuntimeError)
+    assert notifications == ["RuntimeError: worker exploded"]
+
+
+def test_run_worker_thread_in_pool_reraises_worker_errors(qtbot, monkeypatch):
+    monkeypatch.setattr(package_manager, "refresh_window", lambda: None)
+
+    def failing_task():
+        raise RuntimeError("worker exploded")
+
+    with pytest.raises(RuntimeError, match="worker exploded"):
+        package_manager.run_worker_thread_in_pool(failing_task, notify_slot=lambda _message: None)
+
+
+# ── HMAC manifest verification ────────────────────────────────────────────
+
+
+def test_pm_verify_manifest_all_match(monkeypatch, tmp_path):
+    key = os.urandom(32)
+    monkeypatch.setattr(package_manager, "_MANAGER_HMAC_KEY", key)
+    files = {}
+    manifest = {}
+    for name in ("a.py", "b.ui"):
+        path = tmp_path / name
+        path.write_bytes(os.urandom(64))
+        files[name] = str(path)
+        manifest[name] = hmac.new(key, path.read_bytes(), "sha256").hexdigest()
+
+    assert verify_manifest(files, manifest)
+
+
+def test_pm_verify_manifest_mismatch(monkeypatch, tmp_path):
+    key = os.urandom(32)
+    monkeypatch.setattr(package_manager, "_MANAGER_HMAC_KEY", key)
+    path = tmp_path / "a.py"
+    path.write_bytes(b"original")
+    manifest = {"a.py": hmac.new(key, b"tampered", "sha256").hexdigest()}
+
+    assert not verify_manifest({"a.py": str(path)}, manifest)
+
+
+def test_pm_verify_manifest_missing_entry(monkeypatch, tmp_path):
+    key = os.urandom(32)
+    monkeypatch.setattr(package_manager, "_MANAGER_HMAC_KEY", key)
+    path = tmp_path / "a.py"
+    path.write_bytes(b"data")
+
+    assert not verify_manifest({"a.py": str(path)}, {})
+
+
+def test_pm_fetch_bootstrap_manifest_rejects_invalid_schema(monkeypatch):
+    monkeypatch.setattr(package_manager, "fetch_required_gist_json", lambda _url: {"asset.py": 123})
+
+    with pytest.raises(ValueError, match="Bootstrap manifest must map asset names to HMAC strings"):
+        fetch_bootstrap_manifest()
+
+
+def test_pm_fetch_verified_bootstrap_file_retries_on_hmac_mismatch(monkeypatch, tmp_path):
+    key = os.urandom(32)
+    monkeypatch.setattr(package_manager, "_MANAGER_HMAC_KEY", key)
+    monkeypatch.setattr(package_manager.time, "sleep", lambda _seconds: None)
+    output = tmp_path / "asset.ui"
+    expected_payload = b"expected asset"
+    manifest = {"asset.ui": hmac.new(key, expected_payload, "sha256").hexdigest()}
+    fetch_payloads = iter((b"tampered asset", expected_payload))
+    fetch_calls = []
+
+    def mock_fetch(ui_file_url, save_to_file, **kwargs):
+        fetch_calls.append(ui_file_url)
+        with open(save_to_file, "wb") as file_handle:
+            file_handle.write(next(fetch_payloads))
+
+    monkeypatch.setattr(package_manager, "fetch_gist_file", mock_fetch)
+
+    fetch_verified_bootstrap_file(
+        url="https://example.com/asset.ui",
+        asset_name="asset.ui",
+        save_to_file=str(output),
+        manifest=manifest,
+        description="test asset",
+    )
+
+    assert fetch_calls == ["https://example.com/asset.ui", "https://example.com/asset.ui"]
+    assert output.read_bytes() == expected_payload
+
+
+def test_pm_compute_hmac_deterministic(monkeypatch, tmp_path):
+    key = os.urandom(32)
+    monkeypatch.setattr(package_manager, "_MANAGER_HMAC_KEY", key)
+    path = tmp_path / "a.py"
+    path.write_bytes(b"hello")
+
+    assert _compute_hmac(str(path)) == _compute_hmac(str(path))
+
+
+# ── fetch_tags graceful degradation ───────────────────────────────────────
+
+
+def test_pm_fetch_tags_silent_on_network_error(monkeypatch, qtbot):
+    plugin = REvoDesignPackageManager()
+    list_view = QtWidgets.QListView()
+    qtbot.addWidget(list_view)
+    plugin.installer_ui = SimpleNamespace(listView_extras=list_view, comboBox_version=QtWidgets.QComboBox())
+    monkeypatch.setattr(
+        package_manager,
+        "get_github_repo_tags",
+        MagicMock(side_effect=URLError("offline")),
+    )
+
+    # Must not raise, must not call notify_box
+    with patch("REvoDesign.tools.package_manager.notify_box") as mock_notify:
+        plugin.fetch_tags()
+        mock_notify.assert_not_called()

@@ -17,6 +17,7 @@ import logging
 import os
 import shutil
 import time
+from typing import Any
 
 from celery.result import AsyncResult
 from flask import current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
@@ -735,23 +736,21 @@ def auth_forgot_password():
     return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
 
 
-@app.route("/PSSM_GREMLIN/reset_password", methods=["GET", "POST"])
+@app.route("/PSSM_GREMLIN/reset_password", methods=["GET"])
+def auth_reset_password_page():
+    """Render the password-reset page for a valid reset token."""
+    token = request.args.get("c", "").strip()
+    if not token:
+        return render_template("error.html", code=400, message="Missing reset token."), 400
+    user_id = validate_reset_token(token)
+    if user_id is None:
+        return render_template("error.html", code=400, message="Invalid or expired reset token."), 400
+    return render_template("reset-password.html", token=token), 200
+
+
+@app.route("/PSSM_GREMLIN/reset_password", methods=["POST"])
 def auth_reset_password():
-    """Password-reset page.
-
-    ``GET`` — renders the new-password form (requires ``?c=`` token).
-    ``POST`` — sets the new password.
-    """
-    if request.method == "GET":
-        token = request.args.get("c", "").strip()
-        if not token:
-            return render_template("error.html", code=400, message="Missing reset token."), 400
-        user_id = validate_reset_token(token)
-        if user_id is None:
-            return render_template("error.html", code=400, message="Invalid or expired reset token."), 400
-        return render_template("reset-password.html", token=token), 200
-
-    # POST
+    """Set a new password using a password-reset token."""
     req = _parse_body(ResetPasswordRequest)
     if isinstance(req, tuple):
         return req
@@ -1069,27 +1068,29 @@ def auth_revoke_api_key():
     return jsonify({"message": "API key revoked"}), 200
 
 
-@app.route("/PSSM_GREMLIN/api/auth/admin/users", methods=["GET", "POST"])
+@app.route("/PSSM_GREMLIN/api/auth/admin/users", methods=["GET"])
 @login_required
 def admin_users():
-    """Admin-only user management.
-
-    ``GET`` — list all users (safe fields only).
-    ``POST`` — create a new user (auto-verified, immediately active).
-    """
+    """Admin-only user listing with safe fields only."""
     if _blocked := require_admin():
         return _blocked
 
     db = _get_user_db()
+    users = db.list_users()
+    safe = [UserResponse.model_validate(u).model_dump() for u in users]
+    return jsonify({"users": safe}), 200
 
-    if request.method == "GET":
-        users = db.list_users()
-        safe = [UserResponse.model_validate(u).model_dump() for u in users]
-        return jsonify({"users": safe}), 200
 
-    # POST — state-changing, require Bearer token for CSRF protection
+@app.route("/PSSM_GREMLIN/api/auth/admin/users", methods=["POST"])
+@login_required
+def admin_create_user():
+    """Admin-only user creation for pre-approved accounts."""
+    if _blocked := require_admin():
+        return _blocked
     if _blocked := require_bearer_auth():
         return _blocked
+
+    db = _get_user_db()
     req = _parse_body(AdminCreateUserRequest)
     if isinstance(req, tuple):
         return req

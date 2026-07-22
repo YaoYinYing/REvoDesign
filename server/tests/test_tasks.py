@@ -13,9 +13,8 @@ import zipfile
 from pathlib import Path
 
 import docker
-import pytest
+import requests
 from conftest import (
-    _admin_client_auth,
     _extract_md5,
     _insert_pending_task,
     _load_pssm_module,
@@ -358,7 +357,10 @@ def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
             "RUNNER_GID": "5678",
         },
     )
-    monkeypatch.setattr(module.routes, "_local_user_identity", lambda: "pytest:staff-1000:20")
+    upload_file = module.app.view_functions["upload_file"]
+    while "_local_user_identity" not in upload_file.__globals__:
+        upload_file = upload_file.__wrapped__
+    monkeypatch.setitem(upload_file.__globals__, "_local_user_identity", lambda: "pytest:staff-1000:20")
 
     class _DummyAsyncResult:
         id = "celery-test-id"
@@ -482,7 +484,7 @@ def test_dashboard_masks_host_file_paths_on_read_errors(monkeypatch, tmp_path):
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "result"
     result_dir.mkdir(parents=True, exist_ok=True)
-    leaked_host_path = "/Users/yyy/Documents/protein_design/REvoDesign/playground/server_test/upload/2KL8.fasta"
+    leaked_host_path = "/home/server-user/REvoDesign/playground/server_test/upload/2KL8.fasta"
 
     _upsert_task_for_user(
         module,
@@ -517,7 +519,7 @@ def test_failed_status_masks_host_paths_in_api_error(monkeypatch, tmp_path):
     md5sum = uuid.uuid4().hex
     result_dir = tmp_path / "result"
     result_dir.mkdir(parents=True, exist_ok=True)
-    leaked_host_path = "/Users/yyy/Documents/protein_design/REvoDesign/playground/server_test/upload/2KL8.fasta"
+    leaked_host_path = "/home/server-user/REvoDesign/playground/server_test/upload/2KL8.fasta"
 
     _upsert_task_for_user(
         module,
@@ -538,7 +540,7 @@ def test_failed_status_masks_host_paths_in_api_error(monkeypatch, tmp_path):
     payload = response.get_json()
     assert payload["status"] == "failed"
     assert "/srv/REvoDesign/PSSM_GREMLIN/upload/2KL8.fasta" in payload["error"]
-    assert "/Users/yyy/Documents/protein_design/REvoDesign" not in payload["error"]
+    assert "/home/server-user/REvoDesign" not in payload["error"]
 
 
 def test_private_dashboard_blocks_non_owner_access(monkeypatch, tmp_path):

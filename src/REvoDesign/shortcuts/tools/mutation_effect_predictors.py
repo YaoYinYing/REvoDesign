@@ -29,8 +29,9 @@ RUN_MODE_T = Literal["single", "additive", "epistatic"]
 @require_installed
 class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
     """
-    ThermoMpnnPredictor class for predicting the thermodynamic stability effects of protein mutations.
-    It utilizes the ThermoMPNN model to analyze protein structure and sequence to predict stability changes due to mutations.
+    ThermoMpnnPredictor class for predicting the thermodynamic stability effects
+    of protein mutations. It utilizes the ThermoMPNN model to analyze protein
+    structure and sequence to predict stability changes due to mutations.
 
     Attributes:
         name (str): Name of the predictor, set to 'ThermoMPNN'.

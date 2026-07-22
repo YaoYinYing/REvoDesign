@@ -61,7 +61,7 @@ class SidechainSolverConfig:
     def reconfigured(self, new_config: "SidechainSolverConfig") -> bool:
         reconfigured = False
         if new_config != self:
-            for (k1, v1), (k2, v2) in zip(asdict(self).items(), asdict(new_config).items()):
+            for (k1, v1), (_k2, v2) in zip(asdict(self).items(), asdict(new_config).items()):
                 if v1 == v2:
                     continue
                 print_diff(k1, {"Before": v1, "After": v2})

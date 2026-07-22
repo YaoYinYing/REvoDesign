@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from REvoDesign.editor.monaco.monaco import MonacoEditorManager, edit_file_with_monaco
+from REvoDesign.editor.monaco.monaco import MonacoEditorManager, _npm_integrity_to_pooch_hash, edit_file_with_monaco
 
 
 @pytest.fixture
@@ -71,6 +71,10 @@ def test_copy_html_template(test_tmp_dir):
     with patch("shutil.copy") as mock_copy:
         manager.copy_html_template(version_dir)
         mock_copy.assert_called_once_with(manager.html_template_path, os.path.join(version_dir, "index.html"))
+
+
+def test_npm_integrity_to_pooch_hash():
+    assert _npm_integrity_to_pooch_hash("sha512-YWJjMTIz") == "sha512:616263313233"
 
 
 def test_edit_file_with_monaco(mock_server_control, mock_config_store, test_tmp_dir, test_worker):

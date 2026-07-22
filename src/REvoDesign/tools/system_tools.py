@@ -24,7 +24,8 @@ def check_mac_rosetta2():
 
     This function first checks if the current operating system is macOS. If not, it returns immediately.
     It then determines if the machine is an ARM-based Mac and whether it is recognized as an x86_64 architecture.
-    If both conditions are met, a warning is issued indicating that the environment is using Rosetta 2, which may impact performance.
+    If both conditions are met, a warning is issued indicating that the
+    environment is using Rosetta 2, which may impact performance.
 
     Returns:
         None
@@ -49,7 +50,8 @@ def check_mac_rosetta2():
         issues.AppleSiliconRosetta2Warning(
             "Oops! You are in Rosetta-translated PyMOL bundle from official channel. "
             "This might limit the performance of joblib, causing MutantVisualizer slower."
-        )
+        ),
+        stacklevel=2,
     )
 
 

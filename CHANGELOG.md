@@ -130,6 +130,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
+- **Package manager self-bootstrap**: manager UI and extras registry now
+  bootstrap into a writable runtime directory instead of writing into `src/` or
+  an installed package directory. Bootstrap fetches use bounded timeouts and
+  retry/backoff, and downloaded bootstrap assets must match the HMAC manifest
+  before they are written. The Refresh button remains the explicit
+  user-triggered network update path. `fetch_tags` degrades silently on network
+  failure instead of blocking startup with an error popup.
+- **Self-upgrade HMAC integrity**: the self-upgrade flow now verifies downloaded
+  assets against an HMAC-SHA256 manifest before applying changes. The HMAC key
+  is embedded in the plugin source and never leaves the client. `make upload-gists`
+  generates `manifest.json` automatically.
+- **Download registry integrity checks**: file registries now reject entries
+  without hashes, Monaco editor downloads verify npm tarball integrity metadata,
+  and remote ESM weight downloads verify configured MD5 hashes.
+- **Monaco editor token handling**: generated editor backend authentication
+  tokens are no longer written to application logs.
+- **Generated socket authentication keys**: `generate_strong_password()` now uses
+  `secrets.choice` instead of the default pseudo-random generator when creating
+  authentication/password strings.
 - **Uploaded FASTA filename collision**: two users uploading files with the same
   name (e.g. `seqs.fasta`) would overwrite each other in the shared upload
   directory. Files are now saved as `{owner_scoped_md5}.fasta` so on-disk names

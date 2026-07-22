@@ -99,7 +99,9 @@ class REvoDesignWidget(QtWidgets.QWidget):
 
         super().__init__(parent=parent)
         if not parent:
-            self.setFont(CURRENT_FONT or DEFAULT_FONT)
+            font = CURRENT_FONT or DEFAULT_FONT
+            if font is not None:
+                self.setFont(font)
 
         self.setObjectName(object_name or "AnonymousWidget")
         self.allow_repeat = allow_repeat
@@ -115,7 +117,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
         try:
             self.check_repeat()
         except RuntimeError as e:
-            warnings.warn(issues.REvoDesignWidgetWarning(e))
+            warnings.warn(issues.REvoDesignWidgetWarning(e), stacklevel=2)
             self.destroy()
             raise RuntimeError(f"a window named {self.objectName()} is already open.") from e
 
@@ -142,7 +144,8 @@ class REvoDesignWidget(QtWidgets.QWidget):
 
     def check_repeat(self):
         """
-        Checks if a window with the same name is already open. If found, raises it to the front and raises a RuntimeError.
+        Checks if a window with the same name is already open. If found, raises
+        it to the front and raises a RuntimeError.
         """
         from REvoDesign.driver.ui_driver import ConfigBus
 
@@ -154,9 +157,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
 
         # Find windows with the same name
         the_windows = [
-            w
-            for w in bus.ui.open_windows
-            if hasattr(w, "objectName") and getattr(w, "objectName")() == self.objectName()
+            w for w in bus.ui.open_windows if hasattr(w, "objectName") and w.objectName() == self.objectName()
         ]
         if any(the_windows):
             # Raise the existing window to the front
@@ -180,7 +181,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
         # Ensure the open_windows list exists and add this widget to it
         if not hasattr(bus.ui, "open_windows"):
             logging.debug(f"Creating open_windows list under ui for {self.objectName()}")
-            setattr(bus.ui, "open_windows", [])
+            bus.ui.open_windows = []
         bus.ui.open_windows.append(self)
         logging.debug(f"Window {self.objectName()} attached.")
 
@@ -1362,38 +1363,48 @@ def getOpenFileNameWithExt(*args, **kwargs):
     return fname
 
 
+# fmt: off
 @overload
-def set_widget_value(widget: QtWidgets.QFontComboBox, value: QtGui.QFont | str): ...
-
-
-@overload
-def set_widget_value(widget: QtWidgets.QStackedWidget, value: list): ...
+def set_widget_value(widget: QtWidgets.QFontComboBox, value: QtGui.QFont | str):
+    ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QProgressBar, value: int | list[int] | tuple[int, int]): ...
+def set_widget_value(widget: QtWidgets.QStackedWidget, value: list):
+    ...
+
+
+@overload
+def set_widget_value(widget: QtWidgets.QProgressBar, value: int | list[int] | tuple[int, int]):
+    ...
 
 
 @overload
 def set_widget_value(
     widget: QtWidgets.QDoubleSpinBox | QtWidgets.QSpinBox, value: int | float | list[str] | tuple[str, str]
-): ...
+):
+    ...
 
 
 @overload
-def set_widget_value(widget: MultiCheckableComboBox, value: list | tuple | str | int | float): ...
+def set_widget_value(widget: MultiCheckableComboBox, value: list | tuple | str | int | float):
+    ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QComboBox, value: list | tuple | dict | str | int | float | bool): ...
+def set_widget_value(widget: QtWidgets.QComboBox, value: list | tuple | dict | str | int | float | bool):
+    ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QGridLayout, value: str): ...
+def set_widget_value(widget: QtWidgets.QGridLayout, value: str):
+    ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QLineEdit | QtWidgets.QLCDNumber | QtWidgets.QCheckBox, value: Any): ...
+def set_widget_value(widget: QtWidgets.QLineEdit | QtWidgets.QLCDNumber | QtWidgets.QCheckBox, value: Any):
+    ...
+# fmt: on
 
 
 def set_widget_value(widget, value):
@@ -1494,25 +1505,30 @@ def set_widget_value(widget, value):
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ...  # type: ignore
+def get_widget_value(widget: QtWidgets.QCheckBox) -> bool:  # type: ignore
+    ...
 
 
 @overload
 def get_widget_value(
     widget: QtWidgets.QComboBox | QtWidgets.QLineEdit | QtWidgets.QFontComboBox,
-) -> str: ...  # type: ignore
+) -> str:  # type: ignore
+    ...
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QDoubleSpinBox | QtWidgets.QLCDNumber) -> float: ...  # type: ignore
+def get_widget_value(widget: QtWidgets.QDoubleSpinBox | QtWidgets.QLCDNumber) -> float:  # type: ignore
+    ...
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QSpinBox | QtWidgets.QProgressBar) -> int: ...  # type: ignore
+def get_widget_value(widget: QtWidgets.QSpinBox | QtWidgets.QProgressBar) -> int:  # type: ignore
+    ...
 
 
 @overload
-def get_widget_value(widget: MultiCheckableComboBox) -> list[str]: ...  # type: ignore
+def get_widget_value(widget: MultiCheckableComboBox) -> list[str]:  # type: ignore
+    ...
 
 
 def get_widget_value(widget: QtWidgets.QWidget) -> Any:
@@ -2500,7 +2516,8 @@ class ValueDialog(REvoDesignWidget):
         from REvoDesign import __version__
 
         # load back all asked values from a json file
-        contents_to_load: dict[str, dict[str, Any]] = json.load(open(selected_file))
+        with open(selected_file) as selected_file_handle:
+            contents_to_load: dict[str, dict[str, Any]] = json.load(selected_file_handle)
         if contents_to_load["metadata"]["__window__"] != self.windowTitle():
             logging.error(
                 f"The recipe is made for Dialog `{contents_to_load['metadata']['__window__']}`, "
@@ -2667,7 +2684,7 @@ class AppendableValueDialog(QtWidgets.QDialog):
         Args:
             row_layout (QHBoxLayout): The row layout to be removed.
         """
-        for i, (layout, key_edit, val_edit) in enumerate(self.row_widgets):
+        for i, (layout, _key_edit, _val_edit) in enumerate(self.row_widgets):
             if layout == row_layout:
                 # Remove all widgets in the row
                 for j in reversed(range(layout.count())):
@@ -2730,11 +2747,12 @@ def ask_for_multiple_values_as_json() -> str:
     json_fp = os.path.join("json_multi_input", f"{data_id}.json")
     os.makedirs(os.path.dirname(json_fp), exist_ok=True)
 
-    json.dump(
-        obj=data.asdict,
-        fp=open(json_fp, "w"),
-        indent=4,
-    )
+    with open(json_fp, "w") as json_file:
+        json.dump(
+            obj=data.asdict,
+            fp=json_file,
+            indent=4,
+        )
 
     return json_fp
 

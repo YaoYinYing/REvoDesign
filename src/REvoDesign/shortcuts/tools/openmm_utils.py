@@ -53,7 +53,9 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         """
         Start the OpenMMSetup server.
 
-        This method extends the start_server method of the parent class, configures and starts the Uvicorn server in a separate thread, and attempts to open the server URL in the default browser.
+        This method extends the start_server method of the parent class,
+        configures and starts the Uvicorn server in a separate thread, and
+        attempts to open the server URL in the default browser.
         """
         """
         Behavior of the server start action.
@@ -104,7 +106,13 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
 
     __bibtex__ = {
         "OpenMM": """@article{doi:10.1021/acs.jpcb.3c06662,
-author = {Eastman, Peter and Galvelis, Raimondas and Peláez, Raúl P. and Abreu, Charlles R. A. and Farr, Stephen E. and Gallicchio, Emilio and Gorenko, Anton and Henry, Michael M. and Hu, Frank and Huang, Jing and Krämer, Andreas and Michel, Julien and Mitchell, Joshua A. and Pande, Vijay S. and Rodrigues, João PGLM and Rodriguez-Guerra, Jaime and Simmonett, Andrew C. and Singh, Sukrit and Swails, Jason and Turner, Philip and Wang, Yuanqing and Zhang, Ivy and Chodera, John D. and De Fabritiis, Gianni and Markland, Thomas E.},
+author = {Eastman, Peter and Galvelis, Raimondas and Peláez, Raúl P. and
+Abreu, Charlles R. A. and Farr, Stephen E. and Gallicchio, Emilio and Gorenko,
+Anton and Henry, Michael M. and Hu, Frank and Huang, Jing and Krämer, Andreas
+and Michel, Julien and Mitchell, Joshua A. and Pande, Vijay S. and Rodrigues,
+João PGLM and Rodriguez-Guerra, Jaime and Simmonett, Andrew C. and Singh,
+Sukrit and Swails, Jason and Turner, Philip and Wang, Yuanqing and Zhang, Ivy
+and Chodera, John D. and De Fabritiis, Gianni and Markland, Thomas E.},
 title = {OpenMM 8: Molecular Dynamics Simulation with Machine Learning Potentials},
 journal = {The Journal of Physical Chemistry B},
 volume = {128},

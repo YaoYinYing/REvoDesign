@@ -160,7 +160,8 @@ def _build_asked_value(entry: dict) -> AskedValue:
         AskedValue: A fully constructed `AskedValue` object ready for use in a dialog.
 
     Raises:
-        ValueError: If there's an error resolving dynamic choices via [resolve_choice_from](file:///Users/yyy/Documents/protein_design/REvoDesign/src/REvoDesign/shortcuts/utils.py#L106-L159).
+        ValueError: If there's an error resolving dynamic choices via
+            `resolve_choice_from`.
         Any exceptions raised during callable execution will propagate up.
     """
     # Get type

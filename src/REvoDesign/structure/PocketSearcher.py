@@ -79,7 +79,8 @@ class PocketSearcher:
         )
         cmd.select(
             substrate_pocket_id,
-            f"({self.molecule} and c. {self.chain_id}) and (byres ({ligand_sele}) around {self.ligand_radius}) and polymer.protein",
+            f"({self.molecule} and c. {self.chain_id}) and "
+            f"(byres ({ligand_sele}) around {self.ligand_radius}) and polymer.protein",
         )
         cmd.select(
             design_shell_id,
@@ -94,13 +95,14 @@ class PocketSearcher:
 
         if self.cofactor and self.cofactor_radius > 0:
             cofact_label, cofact_sele = self.process_multiple_resn(self.cofactor)
-            logging.debug(f"cofactor info {self.cofactor} ({cofact_label}: {cofact_sele}): {self.cofactor_radius}")
+            logging.debug(f"cofactor info {self.cofactor} ({cofact_label}: {cofact_sele}): " f"{self.cofactor_radius}")
             cofactor_pocket_id = cmd.get_unused_name(f"pkt_cof_{cofact_label}_{self.cofactor_radius}_")
             logging.info(f"Setting cofactor {self.cofactor}: {cofactor_pocket_id}")
 
             cmd.select(
                 cofactor_pocket_id,
-                f"({self.molecule} and c. {self.chain_id}) and (byres ({cofact_sele}) around {self.cofactor_radius}) and polymer.protein",
+                f"({self.molecule} and c. {self.chain_id}) and "
+                f"(byres ({cofact_sele}) around {self.cofactor_radius}) and polymer.protein",
             )
             cmd.select(
                 design_shell_id,

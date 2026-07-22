@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-#!/usr/bin/env python
+# Original script marker: /usr/bin/env python
 
 # # GREMLIN_TF
 #
@@ -12,7 +12,9 @@
 
 import os
 import pathlib
-import pickle  # nosec B403: MRF model serialization, trusted data
+
+# MRF model serialization uses trusted data.
+import pickle  # nosec B403
 import sys
 
 import matplotlib
@@ -82,17 +84,16 @@ def parse_fasta(filename, limit=-1):
     """function to parse fasta"""
     header = []
     sequence = []
-    lines = open(filename)
-    for line in lines:
-        line = line.rstrip()
-        if line[0] == ">":
-            if len(header) == limit:
-                break
-            header.append(line[1:])
-            sequence.append([])
-        else:
-            sequence[-1].append(line)
-    lines.close()
+    with open(filename) as lines:
+        for line in lines:
+            line = line.rstrip()
+            if line[0] == ">":
+                if len(header) == limit:
+                    break
+                header.append(line[1:])
+                sequence.append([])
+            else:
+                sequence[-1].append(line)
     sequence = ["".join(seq) for seq in sequence]
     return np.array(header), np.array(sequence)
 
@@ -326,7 +327,14 @@ mrf = GREMLIN(msa, opt_iter=gremlin_iter)
 # ## Explore the contact map
 # ### Contact prediction:
 #
-# For contact prediction, the W matrix is reduced from LxLx21x21 to LxL matrix (by taking the L2norm for each of the 20x20). In the code below, you can access this as mtx["raw"]. Further correction (average product correction) is then performed to the mtx["raw"] to remove the effects of entropy, mtx["apc"]. The relative ranking of mtx["apc"] is used to assess importance. When there are enough effective sequences (>1000), we find that the top 1.0L contacts are ~90% accurate! When the number of effective sequences is lower, NN can help clean noise and fill in missing contacts.
+# For contact prediction, the W matrix is reduced from LxLx21x21 to LxL matrix
+# by taking the L2 norm for each of the 20x20 slices. In the code below, you can
+# access this as mtx["raw"]. Further correction (average product correction) is
+# then performed to remove entropy effects, producing mtx["apc"]. The relative
+# ranking of mtx["apc"] is used to assess importance. When there are enough
+# effective sequences (>1000), we find that the top 1.0L contacts are ~90%
+# accurate. When the number of effective sequences is lower, NN can help clean
+# noise and fill in missing contacts.
 #
 
 # ## Functions for extracting contacts from MRF
@@ -365,7 +373,8 @@ def plot_mtx(mtx, key="zscore", vmin=1, vmax=3):
 
 
 # save mtx file
-pickle.dump(mrf, open(f"{pth}/{instance}.GREMLIN.mrf.pkl", "wb"))
+with open(f"{pth}/{instance}.GREMLIN.mrf.pkl", "wb") as mrf_file:
+    pickle.dump(mrf, mrf_file)
 
 mtx = get_mtx(mrf)
 plot_mtx(mtx)

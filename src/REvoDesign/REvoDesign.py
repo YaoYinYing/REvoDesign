@@ -11,7 +11,6 @@ import asyncio
 import gc
 import os
 import tempfile
-import traceback
 import warnings
 
 # using partial module to reduce duplicate code.
@@ -104,7 +103,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             warnings.warn(
                 issues.DisabledFunctionWarning(
                     "Teamwork is disabled because the active PyMOL Qt backend does not provide QtWebSockets."
-                )
+                ),
+                stacklevel=2,
             )
             self.teamwork_enabled = False
 
@@ -146,8 +146,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             if not PWD:
                 return
             self.PWD = PWD
-
-        os.chdir(self.PWD)
 
         self.bus.set_value("work_dir", os.path.abspath(self.PWD))
 
@@ -210,7 +208,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 warnings.warn(
                     issues.ConflictWarning(
                         "Reinitialized with default configuration. " "Restart REvoDesign to take effort."
-                    )
+                    ),
+                    stacklevel=2,
                 )
 
     def __del__(self):
@@ -661,7 +660,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             cmd.reinitialize()
             cmd.load(self.temperal_session)
         else:
-            warnings.warn(issues.EmptySessionWarning("Current session is empty! Please load one PDB/PSE/PZE!"))
+            warnings.warn(
+                issues.EmptySessionWarning("Current session is empty! Please load one PDB/PSE/PZE!"), stacklevel=2
+            )
             new_session_file = self.file_dialog.browse_filename(
                 mode="r",
                 exts=(
@@ -671,10 +672,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 ),
             )
             if not new_session_file:
-                warnings.warn(issues.NoInputWarning("Abored recognizing sessions from input."))
+                warnings.warn(issues.NoInputWarning("Abored recognizing sessions from input."), stacklevel=2)
                 return
             if not os.path.exists(new_session_file):
-                warnings.warn(issues.NoInputWarning(f"File does not exist: {new_session_file}."))
+                warnings.warn(issues.NoInputWarning(f"File does not exist: {new_session_file}."), stacklevel=2)
                 return
 
             cmd.reinitialize()
@@ -701,13 +702,13 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.logging.info(f"Output file is set as {output_pse_fn}")
             self.bus.set_widget_value(cfg_to_pse, output_pse_fn)
         else:
-            warnings.warn(issues.NoInputWarning(f"Invalid output path: {output_pse_fn}."))
+            warnings.warn(issues.NoInputWarning(f"Invalid output path: {output_pse_fn}."), stacklevel=2)
 
     def update_chain_id(self):
         """Update chain ids for picked molecule."""
         molecule = self.bus.get_widget_value("ui.header_panel.input.molecule", str)
         if not molecule:
-            warnings.warn(issues.NoInputWarning("No available designable molecule!"))
+            warnings.warn(issues.NoInputWarning("No available designable molecule!"), stacklevel=2)
             return
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
         self.designable_sequences = RosettaPyProteinSequence.from_dict(
@@ -735,18 +736,23 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         session_path: str = cmd.get("session_file")
 
         if not session_path:
-            warnings.warn(issues.EmptySessionWarning("Session not found, please use a new session path to save."))
+            warnings.warn(
+                issues.EmptySessionWarning("Session not found, please use a new session path to save."), stacklevel=2
+            )
             return self.file_dialog.browse_filename(mode="w", exts=(file_extensions.Session,))
 
         if not os.path.exists(session_path):
-            warnings.warn(issues.NoInputWarning("Invalid session file path, please use a new session path to save."))
+            warnings.warn(
+                issues.NoInputWarning("Invalid session file path, please use a new session path to save."), stacklevel=2
+            )
             return self.file_dialog.browse_filename(mode="w", exts=(file_extensions.Session,))
 
         if os.path.basename(session_path).startswith("tmp") and session_path.endswith(".pse"):
             warnings.warn(
                 issues.InvalidSessionWarning(
                     f"Found temperal session path: {session_path}, " "please use a new session path to save."
-                )
+                ),
+                stacklevel=2,
             )
             return self.file_dialog.browse_filename(mode="w", exts=(file_extensions.Session,))
 
@@ -761,7 +767,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """Setup pocket determination"""
         molecule = self.bus.get_widget_value("ui.header_panel.input.molecule", str)
         if not molecule:
-            warnings.warn(issues.NoResultsWarning("No design molecule found."))
+            warnings.warn(issues.NoResultsWarning("No design molecule found."), stacklevel=2)
             return
 
         small_molecules = [""]
@@ -769,7 +775,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             small_molecules.extend(more_hetatm)
             self.logging.info(f"Small molecules found: {more_hetatm}")
         else:
-            warnings.warn(issues.NoResultsWarning("No small molecule found."))
+            warnings.warn(issues.NoResultsWarning("No small molecule found."), stacklevel=2)
 
         self.bus.set_widget_value("ui.prepare.input.pocket.substrate", small_molecules)
         self.bus.set_widget_value("ui.prepare.input.pocket.cofactor", small_molecules)
@@ -945,7 +951,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         comboBox_group_name = self.bus.get_widget_from_cfg_item("ui.visualize.input.group_name")
 
         if not os.path.exists(mut_table_fp):
-            warnings.warn(issues.NoInputWarning(f"Mutant Table path is not valid: {mut_table_fp}"))
+            warnings.warn(issues.NoInputWarning(f"Mutant Table path is not valid: {mut_table_fp}"), stacklevel=2)
             # reset cols to combo boxes to empty
             for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
                 set_widget_value(comboBox, [""])
@@ -956,7 +962,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         mut_table_cols = get_mutant_table_columns(mutfile=mut_table_fp)
 
         if not mut_table_cols:
-            warnings.warn(issues.BadDataWarning(f"Mutant Table column names is not valid: {mut_table_cols}"))
+            warnings.warn(
+                issues.BadDataWarning(f"Mutant Table column names is not valid: {mut_table_cols}"), stacklevel=2
+            )
             return
 
         # set cols to combo boxes
@@ -1179,7 +1187,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     self.multi_mutagenesis_design_stop_design()
                 self.multi_mutagenesis_design_save_design()
             except Exception:
-                traceback.print_exc()
+                self.logging.exception("Failed to generate multi-mutagenesis designs.")
 
     # Tab Interact via GREMLIN
     def load_gremlin_mrf(self):
@@ -1306,9 +1314,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     self.logging.warning("Server is already stopped. Do nothing.")
                     return
                 self.ws_server.stop_server()
-        except Exception as e:
-            self.logging.warning(e)
-            traceback.print_exc()
+        except Exception:
+            self.logging.exception("Failed to toggle WebSocket server connection.")
 
         self.logging.warning(f'Server status: {"ON" if self.ws_server.is_running else "OFF"}')
 
@@ -1352,9 +1359,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.ws_client_connect_to_server()
             else:
                 self.ws_client_disconnect_from_server()
-        except Exception as e:
-            self.logging.warning(e)
-            traceback.print_exc()
+        except Exception:
+            self.logging.exception("Failed to toggle WebSocket client connection.")
 
         self.logging.warning(f'Client status: {"ON" if self.ws_client.connected else "OFF"}')
 

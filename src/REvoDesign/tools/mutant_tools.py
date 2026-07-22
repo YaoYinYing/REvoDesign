@@ -82,7 +82,8 @@ def extract_mutants_from_mutant_id(
     mutant_string (str): Underscore-seperated mutant string that contains the mutations and score (if possible).
                         <chain_id><wt_res><resi><mut_res>_...._<score>
     sequences (dict): Wild-type chain: sequence of design molecule
-    wt_before_chain (bool): Some people write WT residue before chain_id. This helps to correct recognizing of this pattern
+    wt_before_chain (bool): Some people write WT residue before chain_id. This
+        helps to correct recognizing of this pattern
 
     Returns:
     tuple:
@@ -135,7 +136,7 @@ def extract_mutants_from_mutant_id(
             _mut_res = _mut.group(2)
 
         else:
-            warnings.warn(issues.BadDataWarning(f"Error while processing mutant id {mut}. "))
+            warnings.warn(issues.BadDataWarning(f"Error while processing mutant id {mut}. "), stacklevel=2)
             continue
 
         mutations.append(
@@ -222,7 +223,7 @@ def extract_mutant_from_sequences(
         return
 
     if "X" in wt_sequence and not fix_missing:
-        warnings.warn(issues.ResidueMissingWarning('WT has missing residue masked as "X"!'))
+        warnings.warn(issues.ResidueMissingWarning('WT has missing residue masked as "X"!'), stacklevel=2)
 
     if fix_missing:
         _mutant_sequence = ""
@@ -391,7 +392,8 @@ def extract_mutant_from_pymol_object(pymol_object: str, sequences: RosettaPyProt
                 warnings.warn(
                     issues.BadDataWarning(
                         f"{at.resn} at {at.resi} (chain {chain.chain_id}) is out of range of sequence length."
-                    )
+                    ),
+                    stacklevel=2,
                 )
                 continue
 
@@ -485,7 +487,8 @@ def process_mutations(data):
 
 
 def read_profile_design_mutations(filename):
-    data = json.load(open(filename))
+    with open(filename) as mutation_file:
+        data = json.load(mutation_file)
     return process_mutations(data)
 
 
@@ -552,7 +555,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
     nproc = bus.get_value("ui.header_panel.nproc")
 
     if mutant_tree.empty:
-        warnings.warn(issues.NoResultsWarning("Mutant tree is empty!"))
+        warnings.warn(issues.NoResultsWarning("Mutant tree is empty!"), stacklevel=2)
         return
 
     score_list = mutant_tree.all_mutant_scores
@@ -614,7 +617,7 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
         raise issues.NoInputError("No Mutant tree is given!")
 
     if mutant_tree.empty:
-        warnings.warn(issues.NoResultsWarning("mutant tree is empty. save nothing."))
+        warnings.warn(issues.NoResultsWarning("mutant tree is empty. save nothing."), stacklevel=2)
         return
 
     mutants_to_save = mutant_tree.all_mutant_ids
@@ -629,7 +632,9 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
         return
 
     if os.path.exists(output_mut_txt_fn):
-        warnings.warn(issues.OverridesWarning(f"Mutant table exists and will be overriden! {output_mut_txt_fn}"))
+        warnings.warn(
+            issues.OverridesWarning(f"Mutant table exists and will be overriden! {output_mut_txt_fn}"), stacklevel=2
+        )
         write_input_mutant_table(
             output_mut_txt_fn,
             [mt.raw_mutant_id for mt in mutant_tree.all_mutant_objects],

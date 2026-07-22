@@ -10,12 +10,17 @@ import argparse
 import sys
 from pathlib import Path
 
-from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.Qt import QtWidgets
 from REvoDesign.Qt.ui_runtime_loader import load_runtime_ui
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 UI_PATH = REPO_ROOT / "src/REvoDesign/UI/REvoDesign.ui"
 LINGUIST_PROJECT = REPO_ROOT / "src/REvoDesign/UI/liguist.pro"
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise RuntimeError(message)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -36,26 +41,26 @@ def main(argv: list[str] | None = None) -> int:
     window, ui = load_runtime_ui(UI_PATH)
     try:
         # --- RuntimeUiProxy i18n contract ---
-        assert hasattr(ui, "trans"), "RuntimeUiProxy must expose a `trans` attribute for legacy i18n code"
+        require(hasattr(ui, "trans"), "RuntimeUiProxy must expose a `trans` attribute for legacy i18n code")
         trans = ui.trans
-        assert hasattr(trans, "load"), "translator must expose `load`"
-        assert hasattr(trans, "isEmpty"), "translator must expose `isEmpty`"
-        assert hasattr(trans, "translate"), "translator must expose `translate`"
+        require(hasattr(trans, "load"), "translator must expose `load`")
+        require(hasattr(trans, "isEmpty"), "translator must expose `isEmpty`")
+        require(hasattr(trans, "translate"), "translator must expose `translate`")
 
         # retranslateUi must work
         ui.retranslateUi(window)
 
         # `trans` must survive retranslateUi's internal refresh_bindings call
-        assert hasattr(ui, "trans"), "RuntimeUiProxy.trans must survive retranslateUi → refresh_bindings"
+        require(hasattr(ui, "trans"), "RuntimeUiProxy.trans must survive retranslateUi -> refresh_bindings")
 
         # --- Dynamic language action registry ---
-        assert hasattr(ui, "menuLanguage"), "menuLanguage menu must be available for dynamic actions"
+        require(hasattr(ui, "menuLanguage"), "menuLanguage menu must be available for dynamic actions")
         new_action = QtWidgets.QAction()
         new_action.setObjectName("actionTestLang")
-        setattr(ui, "actionTestLang", new_action)
+        ui.actionTestLang = new_action
         ui.menuLanguage.addAction(new_action)
-        assert hasattr(ui, "actionTestLang"), "RuntimeUiProxy must accept dynamic action attributes"
-        assert getattr(ui, "actionTestLang") is new_action
+        require(hasattr(ui, "actionTestLang"), "RuntimeUiProxy must accept dynamic action attributes")
+        require(ui.actionTestLang is new_action, "RuntimeUiProxy must retain dynamic action attributes")
 
         # --- LanguageSwitch instantiation / exercise (smoke) ---
         # LanguageSwitch depends on a ConfigBus singleton that has `ui` already
@@ -68,9 +73,9 @@ def main(argv: list[str] | None = None) -> int:
         config_bus.ui = ui
 
         lang_switch = LanguageSwitch(window)
-        assert hasattr(lang_switch, "trans"), "LanguageSwitch must own a `trans` reference"
-        assert lang_switch.trans is not None, "LanguageSwitch.trans must not be None"
-        assert hasattr(lang_switch.trans, "load"), "LanguageSwitch.trans must be a translator-like object"
+        require(hasattr(lang_switch, "trans"), "LanguageSwitch must own a `trans` reference")
+        require(lang_switch.trans is not None, "LanguageSwitch.trans must not be None")
+        require(hasattr(lang_switch.trans, "load"), "LanguageSwitch.trans must be a translator-like object")
 
         # English / source-language switch must not raise
         english = lang_switch.language_items[0]
