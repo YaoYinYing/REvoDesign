@@ -57,8 +57,8 @@ def test_certificate_validity_can_be_configured(monkeypatch, tmp_path):
     expires_at = datetime.datetime.strptime(
         cert.get_notAfter().decode("utf-8"),
         "%Y%m%d%H%M%SZ",
-    ).replace(tzinfo=datetime.UTC)
-    now = datetime.datetime.now(datetime.UTC)
+    ).replace(tzinfo=datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.timezone.utc)
 
     assert datetime.timedelta(days=2, hours=23) < expires_at - now <= datetime.timedelta(days=3, minutes=1)
 

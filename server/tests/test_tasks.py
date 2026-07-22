@@ -13,9 +13,8 @@ import zipfile
 from pathlib import Path
 
 import docker
-import pytest
+import requests
 from conftest import (
-    _admin_client_auth,
     _extract_md5,
     _insert_pending_task,
     _load_pssm_module,
@@ -358,7 +357,10 @@ def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
             "RUNNER_GID": "5678",
         },
     )
-    monkeypatch.setattr(module.routes, "_local_user_identity", lambda: "pytest:staff-1000:20")
+    upload_file = module.app.view_functions["upload_file"]
+    while "_local_user_identity" not in upload_file.__globals__:
+        upload_file = upload_file.__wrapped__
+    monkeypatch.setitem(upload_file.__globals__, "_local_user_identity", lambda: "pytest:staff-1000:20")
 
     class _DummyAsyncResult:
         id = "celery-test-id"
