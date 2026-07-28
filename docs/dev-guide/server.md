@@ -134,8 +134,9 @@ The server is a pip-installable package at ``server/pssm_gremlin_server/``
 |--------|---------|
 | ``pssm_gremlin.py`` | Flask web entrypoint, user DB bootstrap, and web-only helpers |
 | ``config.py`` | Side-effect-free environment parsing and ``GremlinConfig`` |
-| ``maintenance/manager.py`` | Standalone APScheduler entrypoint and environment-driven job registration |
-| ``maintenance/tasks/`` | Independent registration-digest and result-retention tasks; cleanup helpers are shared with web routes |
+| ``maintenance/model.py`` | ``PeriodicTask`` contract for task configuration and APScheduler registration |
+| ``maintenance/manager.py`` | Standalone APScheduler entrypoint that imports task objects and calls their common ``register()`` interface |
+| ``maintenance/tasks/`` | One self-configuring task object per module; each owns its environment, enabled state, callable, limits, trigger, and registration arguments |
 | ``task_runtime.py`` | Celery instance, task DB, Docker runner, archives, and ``run_gremlin_task`` |
 | ``routes.py`` | All ``@app.route`` HTTP handlers — page routes, task API, auth API, admin API |
 | ``auth.py`` | Token serialisation, ``UserDatabase`` (SQLite/SQLAlchemy), ``login_required`` decorator, email verification, password reset |
@@ -147,6 +148,12 @@ Static assets (CSS, JS) are served from ``server/pssm_gremlin_server/static/``.
 HTML templates are in ``server/pssm_gremlin_server/templates/``.
 Tests live at ``server/tests/`` with a dedicated CI workflow
 (``.github/workflows/server-test.yml``).
+
+To add a periodic maintenance job, create one module under
+``maintenance/tasks/`` containing a ``PeriodicTask`` subclass and one exported
+task object, then import that object into ``maintenance/manager.py``. The task's
+``configure()`` method reads its environment variables; ``register()`` applies
+its ``args`` to ``scheduler.add_job`` only when ``is_enabled`` is true.
 
 ### Key Design Decisions
 

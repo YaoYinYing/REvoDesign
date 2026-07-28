@@ -19,6 +19,20 @@ The server stack contains:
 - `redis`: Celery broker/backend
 - `runner` image: GREMLIN/PSSM execution container launched by `worker`
 
+Periodic jobs follow this package boundary:
+
+```text
+pssm_gremlin_server/maintenance/
+├── model.py                 # PeriodicTask interface
+├── manager.py               # imports task objects and calls register()
+└── tasks/
+    ├── admin_digest.py      # self-configuring admin_digest_task
+    └── result_cleanup.py    # self-configuring result_cleanup_task
+```
+
+Each task object owns its environment configuration, enabled state, callable,
+maximum instances, trigger, and `scheduler.add_job` arguments.
+
 Only `worker` receives `/var/run/docker.sock`. The web container submits tasks
 through Redis and has no Docker socket or user-database overlap with the worker.
 

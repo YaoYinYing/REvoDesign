@@ -11,10 +11,13 @@ import os
 import re
 import shutil
 import time
+from collections.abc import Callable
+from datetime import datetime, timezone
 from typing import Any
 
-from pssm_gremlin_server.config import GremlinConfig
+from pssm_gremlin_server.config import GremlinConfig, env_int
 from pssm_gremlin_server.db import TaskDatabase
+from pssm_gremlin_server.maintenance.model import PeriodicTask
 
 _TASK_ID_PATTERN = re.compile(r"[a-fA-F0-9]{32}$")
 _TERMINAL_RESULT_STATUSES = {"finished", "failed", "cancelled"}
@@ -101,3 +104,36 @@ def run_result_cleanup(retention_days: int) -> int:
     if cleaned:
         logging.info("Removed expired result artifacts for %d task(s)", cleaned)
     return cleaned
+
+
+class ResultCleanupTask(PeriodicTask):
+    """Environment-configured terminal-result retention cleanup."""
+
+    id = "result-retention-cleanup"
+
+    @property
+    def task_method(self) -> Callable[..., Any]:
+        return run_result_cleanup
+
+    def configure(self) -> None:
+        retention_days = env_int("RESULT_RETENTION_DAYS", 0)
+        self.env = {"RESULT_RETENTION_DAYS": retention_days}
+        self._is_enabled = False
+        self._args = {}
+
+        if retention_days < 0:
+            raise ValueError("RESULT_RETENTION_DAYS must be zero or positive")
+        if retention_days == 0:
+            return
+
+        self._is_enabled = True
+        self._args = {
+            "trigger": "interval",
+            "days": 1,
+            "args": (retention_days,),
+            "misfire_grace_time": 86400,
+            "next_run_time": datetime.now(timezone.utc),
+        }
+
+
+result_cleanup_task = ResultCleanupTask()

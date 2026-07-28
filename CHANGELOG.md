@@ -101,8 +101,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GREMLIN server: maintenance scheduler**: replaced the
   two Gunicorn daemon loops with one dedicated APScheduler 3.x maintenance
   service that has no HTTP port or Docker socket. Jobs are organized under
-  `maintenance/tasks/` and cleanup remains disabled when
-  `RESULT_RETENTION_DAYS` is unset.
+  `maintenance/tasks/` as self-configuring `PeriodicTask` objects; the manager
+  only imports and registers them through a common interface. Cleanup remains
+  disabled when `RESULT_RETENTION_DAYS` is unset.
 - **GREMLIN server: Docker restart modes**: `restart` now defaults to
   `--mode=dev`, which rebuilds local images with the host UID/GID.
   `--mode=prod` instead pulls the configured published images and starts with

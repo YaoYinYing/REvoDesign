@@ -7,7 +7,10 @@ from __future__ import annotations
 import pytest
 
 from pssm_gremlin_server.maintenance import manager
+from pssm_gremlin_server.maintenance.model import PeriodicTask
 from pssm_gremlin_server.maintenance.tasks import admin_digest
+from pssm_gremlin_server.maintenance.tasks.admin_digest import admin_digest_task
+from pssm_gremlin_server.maintenance.tasks.result_cleanup import result_cleanup_task
 
 
 class RecordingScheduler:
@@ -40,26 +43,72 @@ def test_configure_jobs_registers_enabled_digest_and_cleanup(monkeypatch):
     ]
 
     digest_func, digest_trigger, digest_options = scheduler.jobs[0]
-    assert digest_func is manager.run_admin_digest
+    assert digest_func is admin_digest_task.task_method
     assert digest_trigger == "interval"
     assert digest_options["minutes"] == 15
+    assert digest_options["id"] == admin_digest_task.id
     assert digest_options["coalesce"] is True
     assert digest_options["max_instances"] == 1
+    assert admin_digest_task.is_enabled is True
+    assert admin_digest_task.env == {
+        "ADMIN_NEW_USER_INFORM": 15,
+        "ADMIN_NOTIFY_EMAIL": "admin@example.com",
+    }
 
     cleanup_func, cleanup_trigger, cleanup_options = scheduler.jobs[1]
-    assert cleanup_func is manager.run_result_cleanup
+    assert cleanup_func is result_cleanup_task.task_method
     assert cleanup_trigger == "interval"
     assert cleanup_options["days"] == 1
     assert cleanup_options["args"] == (30,)
+    assert cleanup_options["id"] == result_cleanup_task.id
     assert cleanup_options["next_run_time"] is not None
     assert cleanup_options["coalesce"] is True
     assert cleanup_options["max_instances"] == 1
+    assert result_cleanup_task.is_enabled is True
+    assert result_cleanup_task.env == {"RESULT_RETENTION_DAYS": 30}
 
 
 def test_admin_digest_task_delegates_to_email_service(monkeypatch):
     monkeypatch.setattr(admin_digest, "send_admin_digest", lambda: True)
 
     assert admin_digest.run_admin_digest() is True
+
+
+def test_task_register_reconfigures_from_current_environment(monkeypatch):
+    monkeypatch.setenv("ADMIN_NEW_USER_INFORM", "15")
+    monkeypatch.setenv("ADMIN_NOTIFY_EMAIL", "admin@example.com")
+    scheduler = RecordingScheduler()
+
+    assert admin_digest_task.register(scheduler) is True
+
+    monkeypatch.delenv("ADMIN_NEW_USER_INFORM")
+    assert admin_digest_task.register(scheduler) is False
+    assert admin_digest_task.is_enabled is False
+    assert admin_digest_task.args == {}
+    assert len(scheduler.jobs) == 1
+
+
+def test_manager_uses_periodic_task_register_interface():
+    calls = []
+
+    class StubTask(PeriodicTask):
+        id = "stub-task"
+
+        @property
+        def task_method(self):
+            return lambda: None
+
+        def configure(self):
+            raise AssertionError("manager must delegate configuration to register")
+
+        def register(self, scheduler):
+            calls.append(scheduler)
+            return True
+
+    scheduler = RecordingScheduler()
+
+    assert manager.configure_jobs(scheduler, (StubTask(),)) == ["stub-task"]
+    assert calls == [scheduler]
 
 
 @pytest.mark.parametrize("name", ["ADMIN_NEW_USER_INFORM", "RESULT_RETENTION_DAYS"])
