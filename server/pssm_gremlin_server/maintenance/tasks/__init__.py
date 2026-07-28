@@ -5,6 +5,7 @@
 """Self-configuring periodic maintenance task objects."""
 
 from pssm_gremlin_server.maintenance.tasks.admin_digest import admin_digest_task
+from pssm_gremlin_server.maintenance.tasks.database_backup import database_backup_task
 from pssm_gremlin_server.maintenance.tasks.result_cleanup import result_cleanup_task
 
-__all__ = ["admin_digest_task", "result_cleanup_task"]
+__all__ = ["admin_digest_task", "database_backup_task", "result_cleanup_task"]

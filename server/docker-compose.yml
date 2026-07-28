@@ -56,6 +56,9 @@ x-maintenance-env: &maintenance-env
   ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
   ADMIN_NEW_USER_INFORM: ${ADMIN_NEW_USER_INFORM:-0}
   RESULT_RETENTION_DAYS: ${RESULT_RETENTION_DAYS:-}
+  BACKUP_DB_CRON: ${BACKUP_DB_CRON:-}
+  BACKUP_DB_PATH: ${BACKUP_DB_PATH:-}
+  MAX_DB_BACKUP: ${MAX_DB_BACKUP:-}
 
 x-docker-socket-access: &docker-socket-access
   # Docker socket group access is host-root-equivalent — the Docker API

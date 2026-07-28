@@ -10,6 +10,7 @@ from pssm_gremlin_server.maintenance import manager
 from pssm_gremlin_server.maintenance.model import PeriodicTask
 from pssm_gremlin_server.maintenance.tasks import admin_digest
 from pssm_gremlin_server.maintenance.tasks.admin_digest import admin_digest_task
+from pssm_gremlin_server.maintenance.tasks.database_backup import database_backup_task
 from pssm_gremlin_server.maintenance.tasks.result_cleanup import result_cleanup_task
 
 
@@ -25,6 +26,9 @@ def test_unset_maintenance_settings_register_no_jobs(monkeypatch):
     monkeypatch.delenv("ADMIN_NEW_USER_INFORM", raising=False)
     monkeypatch.delenv("ADMIN_NOTIFY_EMAIL", raising=False)
     monkeypatch.delenv("RESULT_RETENTION_DAYS", raising=False)
+    monkeypatch.delenv("BACKUP_DB_CRON", raising=False)
+    monkeypatch.delenv("BACKUP_DB_PATH", raising=False)
+    monkeypatch.delenv("MAX_DB_BACKUP", raising=False)
     scheduler = RecordingScheduler()
 
     assert manager.configure_jobs(scheduler) == []
@@ -35,6 +39,9 @@ def test_configure_jobs_registers_enabled_digest_and_cleanup(monkeypatch):
     monkeypatch.setenv("ADMIN_NEW_USER_INFORM", "15")
     monkeypatch.setenv("ADMIN_NOTIFY_EMAIL", "admin@example.com")
     monkeypatch.setenv("RESULT_RETENTION_DAYS", "30")
+    monkeypatch.delenv("BACKUP_DB_CRON", raising=False)
+    monkeypatch.delenv("BACKUP_DB_PATH", raising=False)
+    monkeypatch.delenv("MAX_DB_BACKUP", raising=False)
     scheduler = RecordingScheduler()
 
     assert manager.configure_jobs(scheduler) == [
@@ -66,6 +73,81 @@ def test_configure_jobs_registers_enabled_digest_and_cleanup(monkeypatch):
     assert cleanup_options["max_instances"] == 1
     assert result_cleanup_task.is_enabled is True
     assert result_cleanup_task.env == {"RESULT_RETENTION_DAYS": 30}
+
+
+def test_configure_jobs_registers_database_backup_cron(monkeypatch, tmp_path):
+    monkeypatch.delenv("ADMIN_NEW_USER_INFORM", raising=False)
+    monkeypatch.delenv("ADMIN_NOTIFY_EMAIL", raising=False)
+    monkeypatch.delenv("RESULT_RETENTION_DAYS", raising=False)
+    monkeypatch.setenv("BACKUP_DB_CRON", "0 0 * * *")
+    monkeypatch.setenv("BACKUP_DB_PATH", str(tmp_path / "backups"))
+    monkeypatch.setenv("MAX_DB_BACKUP", "30")
+    monkeypatch.setenv("TZ", "UTC")
+    scheduler = RecordingScheduler()
+
+    assert manager.configure_jobs(scheduler) == ["database-backup"]
+
+    backup_func, backup_trigger, backup_options = scheduler.jobs[0]
+    assert backup_func is database_backup_task.task_method
+    assert backup_trigger is database_backup_task.args["trigger"]
+    assert backup_options["args"] == (str(tmp_path / "backups"), 30)
+    assert backup_options["id"] == database_backup_task.id
+    assert backup_options["coalesce"] is True
+    assert backup_options["max_instances"] == 1
+    assert database_backup_task.is_enabled is True
+    assert database_backup_task.env == {
+        "BACKUP_DB_CRON": "0 0 * * *",
+        "BACKUP_DB_PATH": str(tmp_path / "backups"),
+        "MAX_DB_BACKUP": 30,
+    }
+
+
+def test_database_backup_retention_is_unlimited_when_unset(monkeypatch, tmp_path):
+    monkeypatch.setenv("BACKUP_DB_CRON", "0 0 * * *")
+    monkeypatch.setenv("BACKUP_DB_PATH", str(tmp_path / "backups"))
+    monkeypatch.delenv("MAX_DB_BACKUP", raising=False)
+
+    database_backup_task.configure()
+
+    assert database_backup_task.is_enabled is True
+    assert database_backup_task.env["MAX_DB_BACKUP"] is None
+    assert database_backup_task.args["args"] == (str(tmp_path / "backups"), None)
+
+
+def test_database_backup_ignores_other_settings_when_cron_is_unset(monkeypatch):
+    monkeypatch.delenv("BACKUP_DB_CRON", raising=False)
+    monkeypatch.setenv("BACKUP_DB_PATH", "/unused")
+    monkeypatch.setenv("MAX_DB_BACKUP", "not-an-integer")
+
+    database_backup_task.configure()
+
+    assert database_backup_task.is_enabled is False
+    assert database_backup_task.args == {}
+
+
+@pytest.mark.parametrize(
+    ("env", "message"),
+    [
+        ({"BACKUP_DB_CRON": "0 0 * * *"}, "BACKUP_DB_PATH is required"),
+        (
+            {"BACKUP_DB_CRON": "not a cron", "BACKUP_DB_PATH": "/tmp/backups"},
+            "Wrong number of fields",
+        ),
+        (
+            {"BACKUP_DB_CRON": "0 0 * * *", "BACKUP_DB_PATH": "/tmp/backups", "MAX_DB_BACKUP": "0"},
+            "MAX_DB_BACKUP must be a positive integer",
+        ),
+    ],
+)
+def test_database_backup_configuration_rejects_invalid_values(monkeypatch, env, message):
+    monkeypatch.delenv("BACKUP_DB_CRON", raising=False)
+    monkeypatch.delenv("BACKUP_DB_PATH", raising=False)
+    monkeypatch.delenv("MAX_DB_BACKUP", raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+
+    with pytest.raises(ValueError, match=message):
+        database_backup_task.configure()
 
 
 def test_admin_digest_task_delegates_to_email_service(monkeypatch):
@@ -116,6 +198,9 @@ def test_negative_maintenance_interval_is_rejected(monkeypatch, name):
     monkeypatch.delenv("ADMIN_NEW_USER_INFORM", raising=False)
     monkeypatch.delenv("ADMIN_NOTIFY_EMAIL", raising=False)
     monkeypatch.delenv("RESULT_RETENTION_DAYS", raising=False)
+    monkeypatch.delenv("BACKUP_DB_CRON", raising=False)
+    monkeypatch.delenv("BACKUP_DB_PATH", raising=False)
+    monkeypatch.delenv("MAX_DB_BACKUP", raising=False)
     monkeypatch.setenv(name, "-1")
 
     with pytest.raises(ValueError, match=f"{name} must be zero or positive"):

@@ -167,6 +167,8 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
     assert "RESULT_RETENTION_DAYS" not in web_auth_env
     assert "PUBLIC_DASHBOARD" not in web_auth_env
     assert "RESULT_RETENTION_DAYS" in maintenance_env
+    for backup_setting in ("BACKUP_DB_CRON", "BACKUP_DB_PATH", "MAX_DB_BACKUP"):
+        assert backup_setting in maintenance_env
     assert "web-auth-env" in web
     assert "/var/lib/revodesign-auth" in web
     assert "/var/run/docker.sock" not in web

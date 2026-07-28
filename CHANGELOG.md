@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- **GREMLIN server: scheduled database backups**: added an opt-in
+  `database_backup_task` that uses SQLite's online backup API to create
+  integrity-checked snapshot sets containing both task and user databases.
+  `BACKUP_DB_CRON` controls the five-field cron schedule and is disabled when
+  unset; `BACKUP_DB_PATH` selects persistent snapshot storage; and
+  `MAX_DB_BACKUP` prunes complete snapshot sets while remaining unlimited when
+  unset. The documented daily/retention defaults are `0 0 * * *` and 30.
 - **GREMLIN server: result retention cleanup**: `RESULT_RETENTION_DAYS` now
   removes result directories and archives for expired finished, failed, or
   cancelled tasks during a daily maintenance job. Task audit rows are retained,
@@ -115,10 +122,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--no-build`; it enforces the published-image identity contract of
   `RUNNER_UID=1000` and `RUNNER_GID=1000`.
 - **GREMLIN server: Celery isolation**: the Celery worker can now launch without
-  user DB access. The web process alone receives `users.sqlite3`, authentication
-  and email secrets through the web-only `AUTH_DIR`; the worker keeps task data,
-  UniRef databases, and Docker runner access. `AUTH_DIR` is documented as the
-  host path and `USER_DB_PATH` as the web container path to the same database.
+  user DB access. Web and maintenance receive `users.sqlite3` and their required
+  authentication/email settings; maintenance uses them only for scheduled email
+  and backup tasks, while the worker keeps task data, UniRef databases, and
+  Docker runner access. `AUTH_DIR` is documented as the host path and
+  `USER_DB_PATH` as the container path to the same database.
 - **GREMLIN server: pip package** — renamed from `pssm_gremlin` to `pssm_gremlin_server` with `pyproject.toml` for pip-installability. Server tests moved from `tests/server/` to `server/tests/` with dedicated CI workflow (`.github/workflows/server-test.yml`).
 - **GREMLIN server: Pydantic data models** — request/response validation hardened with typed Pydantic models at the API boundary (`schemas.py`), replacing ad-hoc `str(payload.get(...))` validation across all auth/admin route handlers.
 - **REvoDesign test suite** — removed server-only dependency pins from the root
@@ -172,7 +180,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GREMLIN server: user DB upgrade compatibility**: older SQLite user
   databases now gain the new registration-profile columns safely, including
   concurrent web startup. The explicit `migrate-auth-db` command moves the
-  legacy database from shared `SERVER_DIR` into web-only `AUTH_DIR`, verifies
+  legacy database from shared `SERVER_DIR` into web/maintenance-only `AUTH_DIR`, verifies
   integrity and user counts, and keeps a rollback database. It uses SQLite's
   backup API so committed WAL data is included; no manual database move is
   required.

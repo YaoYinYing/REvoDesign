@@ -60,7 +60,7 @@ orchestrated by Docker Compose:
 │  - REST API (/PSSM_GREMLIN/api/...)    │
 │  - Web UI (create_task, dashboard)     │
 │  - Bearer-token auth + API keys        │
-│  - Owns web-only users.sqlite3         │
+│  - Owns isolated users.sqlite3         │
 │  - No Docker socket                    │
 └────┬────────────────────────────────┬───┘
      │ Celery tasks
@@ -93,7 +93,7 @@ orchestrated by Docker Compose:
 The separate `maintenance` service runs APScheduler without an HTTP port or
 Docker socket. It shares the web service's access to the task and user
 databases so it can send registration digests and, when explicitly enabled,
-remove expired result artifacts.
+remove expired result artifacts and create consistent database snapshots.
 
 <figure markdown="span">
 ![REvoDesign evolutionary data calculation service architecture](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/server-arch.png){ width="600" }
@@ -119,7 +119,7 @@ the admin user-control system.
 | Service | Base Image | Role |
 |---------|-----------|------|
 | **web** | `python:3.12-slim` | Flask + Gunicorn HTTP server. Serves the web UI and REST API. |
-| **maintenance** | Same as `web` | Single APScheduler process for registration digests and optional result retention. No HTTP port or Docker socket. |
+| **maintenance** | Same as `web` | Single APScheduler process for registration digests, optional result retention, and database backups. No HTTP port or Docker socket. |
 | **worker** | Same as `web` | Celery worker that receives `run_gremlin_task` jobs from Redis. |
 | **redis** | `redis:7.2-alpine` | Celery message broker and result backend. |
 | **runner** | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `worker`. |
@@ -136,7 +136,7 @@ The server is a pip-installable package at ``server/pssm_gremlin_server/``
 | ``config.py`` | Side-effect-free environment parsing and ``GremlinConfig`` |
 | ``maintenance/model.py`` | ``PeriodicTask`` contract for task configuration and APScheduler registration |
 | ``maintenance/manager.py`` | Standalone APScheduler entrypoint that imports task objects and calls their common ``register()`` interface |
-| ``maintenance/tasks/`` | One self-configuring task object per module; each owns its environment, enabled state, callable, limits, trigger, and registration arguments |
+| ``maintenance/tasks/`` | One self-configuring task object per module: registration digest, result cleanup, and consistent task/user SQLite backups |
 | ``task_runtime.py`` | Celery instance, task DB, Docker runner, archives, and ``run_gremlin_task`` |
 | ``routes.py`` | All ``@app.route`` HTTP handlers — page routes, task API, auth API, admin API |
 | ``auth.py`` | Token serialisation, ``UserDatabase`` (SQLite/SQLAlchemy), ``login_required`` decorator, email verification, password reset |
@@ -307,8 +307,8 @@ Important environment variables (see the organized sections in
 | `DB_UNIREF90` | UniRef90 BLAST database prefix path |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens (set in production) |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days) |
-| `AUTH_DIR` | Host directory containing `users.sqlite3`; mounted only into web and required to be outside `SERVER_DIR` |
-| `USER_DB_PATH` | Path through which web sees that database inside its container (default: `/var/lib/revodesign-auth/users.sqlite3`) |
+| `AUTH_DIR` | Host directory containing `users.sqlite3`; mounted only into web and maintenance and required to be outside `SERVER_DIR` |
+| `USER_DB_PATH` | Path through which web and maintenance see that database inside their containers (default: `/var/lib/revodesign-auth/users.sqlite3`) |
 | `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires email service) |
 | `SMTP_HOST` | SMTP server hostname (stdlib, always available) |
 | `SMTP_PORT` | SMTP port (default: 587) |
@@ -329,6 +329,9 @@ Important environment variables (see the organized sections in
 | `GUNICORN_WORKERS` | Gunicorn web worker count |
 | `PORT` | Public HTTP port (default: 8080) |
 | `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives; leave unset to disable cleanup |
+| `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots; unset disables the task. Recommended daily value: `0 0 * * *` |
+| `BACKUP_DB_PATH` | Snapshot directory inside maintenance; `/var/lib/revodesign-auth/backups` maps to `${AUTH_DIR}/backups` on the host |
+| `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain; unset is unlimited, recommended value is `30` |
 | `ADMIN_USERS` | Comma-separated admin usernames |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated recipients for new-registration digests |
@@ -337,22 +340,29 @@ Important environment variables (see the organized sections in
 | `TZ` | Timezone for logs |
 
 `AUTH_DIR` is a Docker-host path, whereas `USER_DB_PATH` is a path inside the
-web container. They refer to the same file through the Compose volume mapping:
+web and maintenance containers. They refer to the same file through the
+Compose volume mapping:
 
 ```text
 ${AUTH_DIR}/users.sqlite3
     -> web: /var/lib/revodesign-auth/users.sqlite3
+    -> maintenance: /var/lib/revodesign-auth/users.sqlite3
     -> worker: not mounted
 ```
 
 For example, `AUTH_DIR=/srv/revodesign/auth` and the default
 `USER_DB_PATH=/var/lib/revodesign-auth/users.sqlite3` make the host file
-`/srv/revodesign/auth/users.sqlite3` available to web at `USER_DB_PATH`.
+`/srv/revodesign/auth/users.sqlite3` available to web and maintenance at
+`USER_DB_PATH`.
 `AUTH_DIR` cannot be nested below `SERVER_DIR`, because the worker receives the
 entire `SERVER_DIR` mount and would then inherit access to the user database.
 Fresh deployments only need to create a writable `AUTH_DIR`; upgrades from the
 old shared layout must run `restart_pssm_flask.sh migrate-auth-db` while the
 stack is stopped.
+
+With the recommended `BACKUP_DB_PATH=/var/lib/revodesign-auth/backups`, each
+successful run creates `${AUTH_DIR}/backups/<UTC timestamp>/tasks.sqlite3` and
+`users.sqlite3`. Retention counts complete timestamped snapshot directories.
 
 ### Setup Steps
 

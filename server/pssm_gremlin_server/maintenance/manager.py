@@ -13,9 +13,10 @@ from collections.abc import Iterable
 from apscheduler.schedulers.blocking import BlockingScheduler
 from pssm_gremlin_server.maintenance.model import PeriodicTask
 from pssm_gremlin_server.maintenance.tasks.admin_digest import admin_digest_task
+from pssm_gremlin_server.maintenance.tasks.database_backup import database_backup_task
 from pssm_gremlin_server.maintenance.tasks.result_cleanup import result_cleanup_task
 
-PERIODIC_TASKS = (admin_digest_task, result_cleanup_task)
+PERIODIC_TASKS = (admin_digest_task, result_cleanup_task, database_backup_task)
 
 
 def configure_jobs(

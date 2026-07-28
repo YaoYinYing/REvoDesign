@@ -14,7 +14,7 @@ is intentionally excluded.
 The server stack contains:
 
 - `web`: Flask + Gunicorn API/UI service
-- `maintenance`: APScheduler process for registration digests and optional result cleanup
+- `maintenance`: APScheduler process for registration digests, optional result cleanup, and database backups
 - `worker`: Celery worker for background jobs
 - `redis`: Celery broker/backend
 - `runner` image: GREMLIN/PSSM execution container launched by `worker`
@@ -27,6 +27,7 @@ pssm_gremlin_server/maintenance/
 ├── manager.py               # imports task objects and calls register()
 └── tasks/
     ├── admin_digest.py      # self-configuring admin_digest_task
+    ├── database_backup.py   # consistent task/user SQLite snapshots
     └── result_cleanup.py    # self-configuring result_cleanup_task
 ```
 
@@ -158,8 +159,8 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `DB_UNIREF90` | UniRef90 BLAST prefix path (default: `{SERVER_DIR}/db/uniref90/uniref90`). |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
-| `AUTH_DIR` | Host-side directory containing `users.sqlite3`; Compose mounts it only into web. It must be outside `SERVER_DIR`. |
-| `USER_DB_PATH` | Container-side path used by web to open the user DB. Keep the default `/var/lib/revodesign-auth/users.sqlite3` unless the Compose mount target also changes. |
+| `AUTH_DIR` | Host-side directory containing `users.sqlite3`; Compose mounts it only into web and maintenance. It must be outside `SERVER_DIR`. |
+| `USER_DB_PATH` | Container-side path used by web and maintenance to open the user DB. Keep the default `/var/lib/revodesign-auth/users.sqlite3` unless the Compose mount target also changes. |
 | `ENABLE_REGISTER` | Set to `true` to enable self-registration; configure either SMTP or Resend email delivery. |
 | `SMTP_*`, `RESEND_*` | Email delivery settings. Resend takes priority when both backends are configured. |
 | `SERVER_BASE_URL` | Public base URL for email links and HTTPS-sensitive auth-cookie settings. |
@@ -171,6 +172,9 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `PORT` | Public HTTP port. |
 | `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives. Leave unset to disable cleanup; task audit rows remain. |
+| `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots. Leave unset to disable; recommended daily schedule: `0 0 * * *`. |
+| `BACKUP_DB_PATH` | Snapshot directory inside the maintenance container. `/var/lib/revodesign-auth/backups` persists at `${AUTH_DIR}/backups` on the host. |
+| `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain. Leave unset for unlimited history; recommended value: `30`. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated admin email addresses for new-user registration digests (default: empty = no notification). |
 | `ADMIN_NEW_USER_INFORM` | Interval in minutes between new-user digest emails (default: `0` = disabled). |
@@ -185,10 +189,10 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 points of view:
 
 ```text
-Docker host                                  web container
-/srv/revodesign/auth/users.sqlite3     ->    /var/lib/revodesign-auth/users.sqlite3
-^^^^^^^^^^^^^^^^^^^^^^^                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AUTH_DIR                                      USER_DB_PATH
+Docker host                           web / maintenance containers
+/srv/revodesign/auth/users.sqlite3 -> /var/lib/revodesign-auth/users.sqlite3
+^^^^^^^^^^^^^^^^^^^^^^^                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AUTH_DIR                               USER_DB_PATH
 ```
 
 With the example configuration:
@@ -204,18 +208,32 @@ Compose applies these boundaries:
 | Process | Sees `SERVER_DIR` | Sees `AUTH_DIR` | Can open the user DB |
 | --- | --- | --- | --- |
 | Web | Yes | Yes, mounted at `/var/lib/revodesign-auth` | Yes |
+| Maintenance | Yes | Yes, mounted at `/var/lib/revodesign-auth` | Yes, for email and backup tasks |
 | Celery worker | Yes | No | No |
 
 `AUTH_DIR` is therefore not an application data path passed to Python. It is a
-Docker-host path used to create a private volume mount for web. It must be a
-sibling of, rather than a child of, `SERVER_DIR`: mounting all of `SERVER_DIR`
-into the worker would otherwise expose any nested auth directory through that
-parent mount.
+Docker-host path used to create a private volume mount for web and maintenance.
+It must be a sibling of, rather than a child of, `SERVER_DIR`: mounting all of
+`SERVER_DIR` into the worker would otherwise expose any nested auth directory
+through that parent mount.
 
 On a new installation, create `AUTH_DIR` with write access for
 `RUNNER_UID:RUNNER_GID`; web creates `users.sqlite3` there on first start. Keep
 `USER_DB_PATH` at its default unless you deliberately change the target side of
 the Compose volume mount.
+
+When database backups are enabled, each successful run creates one complete
+snapshot set:
+
+```text
+${AUTH_DIR}/backups/20260101T000000.000000Z/
+├── tasks.sqlite3
+└── users.sqlite3
+```
+
+Copies are made through SQLite's online backup API and checked before the
+snapshot directory is published. `MAX_DB_BACKUP` counts these complete
+timestamped directories, not individual database files.
 
 ### CDN IP header reference
 
@@ -564,7 +582,7 @@ banned users, and login throttling are maintained in
 ### Data
 
 - User passwords are hashed with `werkzeug.security.generate_password_hash` (pbkdf2:sha256).
-- The user database is stored under the web-only `AUTH_DIR`. The task database,
+- The user database is stored under the web/maintenance-only `AUTH_DIR`. The task database,
   uploads, and results remain under `SERVER_DIR`, which web and worker share.
 - All API request payloads are validated through typed Pydantic models
   (``schemas.py``) before reaching business logic — malformed input is rejected
