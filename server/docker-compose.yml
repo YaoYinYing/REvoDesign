@@ -1,11 +1,12 @@
 # version: "3.9"
 
-x-common-env: &common-env
+x-task-env: &task-env
   SERVER_IMAGE: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root}
   RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
 
   SERVER_DIR: ${SERVER_DIR}
   LOG_DIR: ${LOG_DIR}
+  DB_PATH: ${DB_PATH:-}
 
   DB_UNIREF30: ${DB_UNIREF30}
   DB_UNIREF90: ${DB_UNIREF90}
@@ -16,25 +17,23 @@ x-common-env: &common-env
 
   NPROC: ${NPROC:-8}
   MAXMEM: ${MAXMEM:-64}
-  GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
   WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
-  
+
   RUNNER_UID: ${RUNNER_UID:-1000}
   RUNNER_GID: ${RUNNER_GID:-1000}
-  DOCKER_GID: ${DOCKER_GID:?Run server/run/restart_pssm_flask.sh so DOCKER_GID is auto-detected, or export it explicitly}
   RUNNER_USERNAME: ${RUNNER_USERNAME:-revodesign}
   RUNNER_GROUP: ${RUNNER_GROUP:-revodesign}
 
-  PORT: ${PORT:-8080}
-
-  PUBLIC_DASHBOARD: ${PUBLIC_DASHBOARD:-false}
-  ADMIN_USERS: ${ADMIN_USERS:-admin}
-
   TZ: ${TZ:-Europe/London}
 
+x-web-auth-env: &web-auth-env
+  PORT: ${PORT:-8080}
+  GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+  PUBLIC_DASHBOARD: ${PUBLIC_DASHBOARD:-false}
+  ADMIN_USERS: ${ADMIN_USERS:-admin}
   AUTH_SECRET_KEY: ${AUTH_SECRET_KEY:-}
   AUTH_TOKEN_MAX_AGE: ${AUTH_TOKEN_MAX_AGE:-604800}
-  USER_DB_PATH: ${USER_DB_PATH:-}
+  USER_DB_PATH: ${USER_DB_PATH:-/var/lib/revodesign-auth/users.sqlite3}
   ENABLE_REGISTER: ${ENABLE_REGISTER:-false}
 
   SMTP_HOST: ${SMTP_HOST:-}
@@ -87,12 +86,11 @@ services:
         RUNNER_GROUP: ${RUNNER_GROUP}
         PORT: ${PORT:-8080}
     environment:
-      <<: *common-env
+      <<: [*task-env, *web-auth-env]
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
     depends_on:
       - redis
-    <<: *docker-socket-access
     command: >-
       gunicorn -w ${GUNICORN_WORKERS:-2}
       --preload
@@ -106,10 +104,8 @@ services:
       - "${PORT:-8080}:${PORT:-8080}"
     volumes:
       - ${SERVER_DIR}:${SERVER_DIR}
-      - ${DB_UNIREF30}:${DB_UNIREF30}:ro
-      - ${DB_UNIREF90}:${DB_UNIREF90}:ro
+      - ${AUTH_DIR:-./auth-data}:/var/lib/revodesign-auth
       - ${LOG_DIR}:${LOG_DIR}
-      - /var/run/docker.sock:/var/run/docker.sock
 
   worker:
     image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root}
@@ -118,11 +114,11 @@ services:
     <<: *docker-socket-access
 
     environment:
-      <<: *common-env
+      <<: *task-env
     depends_on:
       - redis
     command: >-
-      celery -A pssm_gremlin_server.pssm_gremlin.celery worker
+      celery -A pssm_gremlin_server.task_runtime.celery worker
       --loglevel=info
       --concurrency=${WORKER_CONCURRENCY:-2}
       --logfile ${LOG_DIR}/celery-worker.log
@@ -146,7 +142,7 @@ services:
         RUNNER_USERNAME: ${RUNNER_USERNAME}
         RUNNER_GROUP: ${RUNNER_GROUP}
     environment:
-      <<: *common-env
+      <<: *task-env
     command: ["sleep", "infinity"]
     restart: "no"
 
