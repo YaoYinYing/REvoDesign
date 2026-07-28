@@ -38,6 +38,20 @@ def _validate_database(path: Path) -> int:
         return int(conn.execute("SELECT COUNT(*) FROM users").fetchone()[0])
 
 
+def _backup_database(source: Path, destination: Path) -> None:
+    """Create a self-contained SQLite snapshot, including committed WAL data."""
+    with sqlite3.connect(source) as source_conn:
+        with sqlite3.connect(destination) as destination_conn:
+            source_conn.backup(destination_conn)
+    shutil.copystat(source, destination)
+
+
+def _remove_sqlite_files(database: Path) -> None:
+    database.unlink(missing_ok=True)
+    for suffix in ("-wal", "-shm"):
+        Path(f"{database}{suffix}").unlink(missing_ok=True)
+
+
 def migrate_auth_database(server_dir: Path, auth_dir: Path) -> AuthMigrationResult:
     server_dir = server_dir.expanduser().resolve()
     auth_dir = auth_dir.expanduser().resolve()
@@ -64,16 +78,20 @@ def migrate_auth_database(server_dir: Path, auth_dir: Path) -> AuthMigrationResu
     rollback_backup = auth_dir / f"users.sqlite3.pre-isolation.{stamp}.bak"
     legacy_count = _validate_database(legacy_db)
     try:
-        shutil.copy2(legacy_db, temporary)
+        # A filesystem copy of only users.sqlite3 is incomplete when committed
+        # schema/data still lives in users.sqlite3-wal. SQLite's backup API
+        # produces one consistent, standalone database from both files.
+        _backup_database(legacy_db, temporary)
         copied_count = _validate_database(temporary)
         if copied_count != legacy_count:
             raise RuntimeError(
                 f"User count mismatch after copy: source={legacy_count}, destination={copied_count}"
-            )
+        )
+        shutil.copy2(temporary, rollback_backup)
         os.replace(temporary, destination)
-        shutil.move(str(legacy_db), rollback_backup)
+        _remove_sqlite_files(legacy_db)
     finally:
-        temporary.unlink(missing_ok=True)
+        _remove_sqlite_files(temporary)
 
     return AuthMigrationResult(
         destination=destination,

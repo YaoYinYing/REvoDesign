@@ -126,6 +126,50 @@ def test_auth_database_migration_is_verified_and_recoverable(tmp_path):
     assert migrate_auth_database(server_dir, auth_dir).already_migrated is True
 
 
+def test_auth_database_migration_includes_uncheckpointed_wal(tmp_path):
+    from pssm_gremlin_server.migrate_auth_db import migrate_auth_database
+
+    server_dir = tmp_path / "shared-task-data"
+    auth_dir = tmp_path / "web-only-auth"
+    server_dir.mkdir()
+    legacy = server_dir / "users.sqlite3"
+    writer = """
+import os
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.execute("PRAGMA journal_mode=WAL")
+conn.execute("PRAGMA wal_autocheckpoint=0")
+conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT)")
+conn.execute("INSERT INTO users (username) VALUES ('wal-user')")
+conn.commit()
+os._exit(0)
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", writer, str(legacy)],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert Path(f"{legacy}-wal").is_file()
+
+    migration = migrate_auth_database(server_dir, auth_dir)
+
+    assert migration.user_count == 1
+    with sqlite3.connect(migration.destination) as conn:
+        assert conn.execute("SELECT username FROM users").fetchall() == [("wal-user",)]
+    assert migration.rollback_backup is not None
+    with sqlite3.connect(migration.rollback_backup) as conn:
+        assert conn.execute("SELECT username FROM users").fetchall() == [("wal-user",)]
+    assert not legacy.exists()
+    assert not Path(f"{legacy}-wal").exists()
+    assert not Path(f"{legacy}-shm").exists()
+    assert not list(auth_dir.glob("users.sqlite3.migrating.*"))
+
+
 def test_auth_database_migration_rejects_shared_auth_directory(tmp_path):
     from pssm_gremlin_server.migrate_auth_db import migrate_auth_database
 
