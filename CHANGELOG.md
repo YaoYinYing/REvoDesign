@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- **GREMLIN server: result retention cleanup**: `RESULT_RETENTION_DAYS` now
+  removes result directories and archives for expired finished, failed, or
+  cancelled tasks during a daily web-side cleanup. Task audit rows are retained,
+  and `0` disables cleanup for backward compatibility.
 - **GREMLIN server: registration profile details**: registration now requires
   full name, affiliation, academic position (undergraduate, Master's, PhD,
   postdoctoral, faculty, industry, etc.), and PI name. The same information is
@@ -60,7 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Self-service password change (`PUT /api/auth/me`) with profile page at `/PSSM_GREMLIN/profile`.
   - HTML email verification page at `/PSSM_GREMLIN/api/auth/verify-email`.
   - Rate limiting on login (5/min/IP) and registration (3/hr/IP).
-  - Redis password support via `REDIS_PASSWORD` env var.
   - Default admin bootstrap on first run (no seeding files needed).
   - Long-lived API keys (`X-API-Key` header) with restricted privileges — manageable via Profile page and REST API.
   - Email domain allowlisting (`ALLOWED_EMAIL_DOMAINS`) and plus-address normalisation (`user+tag@domain` → `user@domain`).
@@ -145,6 +148,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
+- **GREMLIN server deployment documentation**: aligned README, developer guide,
+  and `.env.example` with the dev/prod restart modes, published-image
+  `1000:1000` identity contract, registration profile fields, SMTP-or-Resend
+  email support, auth-storage boundary, and Docker socket authority. Removed
+  misleading `REDIS_PASSWORD` Compose guidance because the current stack does
+  not configure Redis authentication, and restored the documented
+  `RUNNER_HOST_ROOT` override to the worker environment.
 - **GREMLIN server: user DB upgrade compatibility**: older SQLite user
   databases now gain the new registration-profile columns safely, including
   concurrent web startup. The explicit `migrate-auth-db` command moves the

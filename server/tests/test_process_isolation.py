@@ -154,11 +154,15 @@ assert task_runtime.task_store.path == os.path.abspath(os.environ["DB_PATH"])
 def test_compose_isolates_worker_auth_and_web_docker_socket():
     compose = (Path(REPO_DIR) / "server" / "docker-compose.yml").read_text(encoding="utf-8")
     task_env = compose.split("x-task-env:", 1)[1].split("x-web-auth-env:", 1)[0]
+    web_auth_env = compose.split("x-web-auth-env:", 1)[1].split("x-docker-socket-access:", 1)[0]
     web = compose.split("  web:", 1)[1].split("  worker:", 1)[0]
     worker = compose.split("  worker:", 1)[1].split("  runner:", 1)[0]
 
     for secret in ("USER_DB_PATH", "AUTH_SECRET_KEY", "SMTP_PASSWORD", "RESEND_API_KEY"):
         assert secret not in task_env
+    assert "RUNNER_HOST_ROOT" in task_env
+    assert "RESULT_RETENTION_DAYS" not in task_env
+    assert "RESULT_RETENTION_DAYS" in web_auth_env
     assert "web-auth-env" in web
     assert "/var/lib/revodesign-auth" in web
     assert "/var/run/docker.sock" not in web

@@ -38,8 +38,8 @@ system computes its MD5 hash as a unique task identifier, creates an isolated
 directory for input/output data, and enqueues the job onto a Celery message
 queue. Task state progresses through: **pending** → **running** → **packing
 results** → **finished** (or **failed**). The actual computation runs in an
-isolated Docker container per task, preventing interference between
-concurrent jobs. When complete, all result files (PSSM, co-evolution coupling
+separate Docker container per task, keeping runtime dependencies and artifacts
+apart across concurrent jobs. When complete, all result files (PSSM, co-evolution coupling
 scores, MSA files) are packaged into a ZIP archive for one-click download
 from the dashboard. Users can also cancel queued or running tasks.
 
@@ -91,13 +91,15 @@ The service stack is fully containerized and orchestrated via Docker Compose.
 Deployment requires only database files, environment variables, and a single
 command. Services run as non-root users; only the worker receives the Docker
 socket and its supplementary socket group.
-User task data is organized by user identity and task MD5, with strict
-permission isolation.
+User task data is organized by user identity and task MD5, with
+application-level ownership checks on task access.
 
 User accounts have three roles: `admin` (full access), `user` (registered user
 with API and web access), and `guest` (publicly shared, web-dashboard-only —
 no API keys, no password/profile changes, no task deletion). Self-registration
-requires a server-generated math CAPTCHA to prevent automated signups.
+requires full name, affiliation, academic position, PI name, and a
+server-generated math CAPTCHA. Profile details are visible to the user and in
+the admin user-control system.
 
 ### Services
 
@@ -209,7 +211,7 @@ cookie-only writes are rejected to avoid CSRF on browser sessions.
 | `GET` | `/PSSM_GREMLIN/user_control` | Admin-only user management page (web UI) |
 | `GET` | `/PSSM_GREMLIN/api/auth/admin/users` | List all users (safe fields, excludes soft-deleted) |
 | `POST` | `/PSSM_GREMLIN/api/auth/admin/users` | Create user (pre-verified, immediately active) |
-| `PUT` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Update user fields (email, affiliation, password, statuses) |
+| `PUT` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Update profile fields, email, password, role, and account statuses |
 | `DELETE` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Soft-delete user (record kept for audit) |
 | `POST` | `/PSSM_GREMLIN/api/auth/admin/users/batch` | Batch enable / disable / delete |
 
@@ -262,12 +264,20 @@ The GitHub Actions workflow at `.github/workflows/docker-image.yml` builds
 both images on `workflow_dispatch`, tags them with the date and `latest`,
 and pushes to Docker Hub.
 
+Local builds remain the development workflow. Use `restart --mode=dev` to
+build images with the deployment host UID/GID. Use `restart --mode=prod` to
+pull the configured published images and start with `--no-build`; published
+images require `RUNNER_UID=1000` and `RUNNER_GID=1000`. The selected env file
+controls paths, secrets, and resources independently from the restart mode.
+
 ### Environment Configuration
 
-Required environment variables (defined in `docker-compose.yml`):
+Important environment variables (see the organized sections in
+`server/.env.example`):
 
 | Variable | Description |
 |----------|-------------|
+| `SERVER_IMAGE` / `RUNNER_IMAGE` | Built locally in dev mode or pulled from their configured references in prod mode |
 | `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and results; never contains the user DB |
 | `LOG_DIR` | Host directory for Gunicorn/Celery logs |
 | `DB_UNIREF30` | UniRef30 HHsuite database prefix path |
@@ -287,16 +297,21 @@ Required environment variables (defined in `docker-compose.yml`):
 | `RESEND_API_KEY` | Resend API key (optional; takes priority over SMTP when set) |
 | `RESEND_FROM_ADDR` | Sender address for Resend (default: onboarding@resend.dev) |
 | `RESEND_FROM_NAME` | Sender display name for Resend |
-| `SERVER_BASE_URL` | Public base URL for verification links |
-| `REDIS_PASSWORD` | Optional Redis authentication password |
-| `RUNNER_UID` / `RUNNER_GID` | Non-root user for runner containers |
+| `SERVER_BASE_URL` | Public base URL for email links and HTTPS-sensitive auth-cookie settings |
+| `RUNNER_UID` / `RUNNER_GID` | Dev may match the host; published production images require `1000:1000` |
 | `DOCKER_GID` | Runtime value auto-detected by `restart_pssm_flask.sh` for Docker Compose interpolation. Override only as a shell variable when detection is wrong |
 | `NPROC` | CPU threads for runner |
 | `MAXMEM` | Memory cap (GB) for HHblits (`-maxmem`) |
+| `WORKER_CONCURRENCY` | Concurrent Celery jobs |
+| `GUNICORN_WORKERS` | Gunicorn web worker count |
 | `PORT` | Public HTTP port (default: 8080) |
+| `RESULT_RETENTION_DAYS` | Days to retain terminal-task result directories and archives; cleanup runs daily, retains task audit rows, and is disabled by `0` |
 | `PUBLIC_DASHBOARD` | Per-user task isolation (default: `false`) |
 | `ADMIN_USERS` | Comma-separated admin usernames |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
+| `ADMIN_NOTIFY_EMAIL` | Comma-separated recipients for new-registration digests |
+| `ADMIN_NEW_USER_INFORM` | Digest interval in minutes (`0` disables it) |
+| `CLIENT_IP_HEADERS` / `CLIENT_COUNTRY_HEADER` | Trusted proxy headers for registration and request metadata |
 | `TZ` | Timezone for logs |
 
 `AUTH_DIR` is a Docker-host path, whereas `USER_DB_PATH` is a path inside the
@@ -332,7 +347,7 @@ stack is stopped.
 3. **Configure authentication**:
    - On first run, a default admin user is created automatically (username: `admin`, password auto-generated and displayed by `restart_pssm_flask.sh`).
    - Change the admin password immediately via the Profile page.
-   - Optionally enable self-registration with `ENABLE_REGISTER=true` and SMTP settings.
+   - Optionally enable self-registration with `ENABLE_REGISTER=true` and either SMTP or Resend settings.
 
 4. **Build and run** using the helper script:
    ```bash
@@ -509,8 +524,8 @@ submitted task -> failed with "Docker daemon unavailable" or PermissionError
 ```
 
 B result: the socket is absent from web and accessible from worker. This is the
-required production boundary; worker socket access remains host-root-equivalent.
-not expose Docker control. Expected evidence:
+required service boundary; worker socket access remains host-root-equivalent.
+The HTTP surface must still not expose Docker control. Expected evidence:
 
 ```text
 limited user /api/auth/admin/users -> 403

@@ -3,10 +3,11 @@
 The server is a Docker-deployed Flask + Celery + Docker-runner web service for
 GREMLIN co-evolution analysis.
 
-## Production Deployment
+## Docker Deployment
 
-This section describes the production Docker deployment.
-Native/manual deployment is intentionally excluded.
+This guide covers both local-image development (`--mode=dev`) and
+published-image production (`--mode=prod`). Native/manual production deployment
+is intentionally excluded.
 
 ## Overview
 
@@ -22,7 +23,7 @@ through Redis and has no Docker socket or user-database overlap with the worker.
 
 ## 0. Prerequisites
 
-Install the following on the production host:
+Install the following on the deployment host:
 
 - Docker Engine 24+ with Compose plugin
 - NCBI BLAST+ (`makeblastdb`)
@@ -134,6 +135,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 
 | Variable | Purpose |
 | --- | --- |
+| `SERVER_IMAGE`, `RUNNER_IMAGE` | Image names built locally in dev mode or pulled in prod mode. Production must use full published Docker Hub references. |
 | `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and result folders (default: `./pssm_gremlin_data`). Never store the user database here. |
 | `RUNNER_HOST_ROOT` | Host root allowed for Docker runner bind mounts (default: parent of `SERVER_DIR`). |
 | `LOG_DIR` | Host directory for Gunicorn/Celery logs. |
@@ -143,19 +145,17 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
 | `AUTH_DIR` | Host-side directory containing `users.sqlite3`; Compose mounts it only into web. It must be outside `SERVER_DIR`. |
 | `USER_DB_PATH` | Container-side path used by web to open the user DB. Keep the default `/var/lib/revodesign-auth/users.sqlite3` unless the Compose mount target also changes. |
-| `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires Resend API key). |
-| `RESEND_API_KEY` | Resend API key for sending verification and password-reset emails. |
-| `RESEND_FROM_ADDR` | Sender email address (verified domain in Resend). |
-| `RESEND_FROM_NAME` | Sender display name (default: REvoDesign GREMLIN Server). |
-| `SERVER_BASE_URL` | Public base URL for generating verification links. |
-| `REDIS_PASSWORD` | Optional Redis authentication password. |
-| `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID (non-root required). |
+| `ENABLE_REGISTER` | Set to `true` to enable self-registration; configure either SMTP or Resend email delivery. |
+| `SMTP_*`, `RESEND_*` | Email delivery settings. Resend takes priority when both backends are configured. |
+| `SERVER_BASE_URL` | Public base URL for email links and HTTPS-sensitive auth-cookie settings. |
+| `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID. Dev may match the host; published production images require `1000:1000`. |
 | `DOCKER_GID` | Auto-detected by `restart_pssm_flask.sh` at runtime for Docker Compose interpolation. Override only as a shell variable when detection is wrong. |
 | `NPROC` | CPU threads passed to runner. |
 | `MAXMEM` | Memory cap (GB) passed to hhblits (`-maxmem`) inside runner script. |
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `PORT` | Public HTTP port. |
+| `RESULT_RETENTION_DAYS` | Days to retain result directories and archives for terminal tasks. Cleanup runs daily and retains task audit rows; `0` disables it. |
 | `PUBLIC_DASHBOARD` | `false` by default; scopes task visibility to owner unless admin. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated admin email addresses for new-user registration digests (default: empty = no notification). |
@@ -261,9 +261,12 @@ If the user database is empty, a default admin account is created automatically:
 - Password: auto-generated and displayed in the restart script output.
   Change immediately after first login.
 
-Set `ENABLE_REGISTER=true` and `RESEND_API_KEY` to allow self-registration.
-Users receive a verification email; accounts must be verified before use.
-Without a Resend API key, registration is disabled — use the admin API to create accounts.
+Set `ENABLE_REGISTER=true` and configure either SMTP or Resend to allow
+self-registration. Registration requires full name, affiliation, academic
+position, and PI name. These fields appear on the user's profile page and in
+the admin user-control system. Users receive a verification email and must be
+verified before use. Without a working email backend, use the admin API to
+create accounts.
 
 ### API authentication
 
@@ -396,11 +399,21 @@ start normally. The web process creates `${AUTH_DIR}/users.sqlite3`.
 
 ### Equivalent Docker Compose commands
 
+Development mode:
+
+```bash
+docker compose -f server/docker-compose.yml --env-file server/.env.local down
+docker compose -f server/docker-compose.yml --env-file server/.env.local --profile runner build runner
+docker compose -f server/docker-compose.yml --env-file server/.env.local build web worker
+docker compose -f server/docker-compose.yml --env-file server/.env.local up --no-build -d redis web worker
+```
+
+Production mode:
+
 ```bash
 docker compose -f server/docker-compose.yml --env-file server/.env.production down
-docker compose -f server/docker-compose.yml --env-file server/.env.production --profile runner build runner
-docker compose -f server/docker-compose.yml --env-file server/.env.production build web worker
-docker compose -f server/docker-compose.yml --env-file server/.env.production up -d redis web worker
+docker compose -f server/docker-compose.yml --env-file server/.env.production --profile runner pull web runner
+docker compose -f server/docker-compose.yml --env-file server/.env.production up --no-build -d redis web worker
 ```
 
 ### Zero-downtime Gunicorn reload
@@ -495,9 +508,13 @@ You can start from:
 
 ### Docker socket
 
-Only the worker mounts `/var/run/docker.sock` to spawn runner containers. This is a security boundary:
+Only the worker mounts `/var/run/docker.sock` to spawn runner containers. This
+separates Docker authority from the public web process, but it is not a
+container-escape boundary:
 
-- The worker runs as a non-root user with group-based Docker access.
+- The worker runs as a non-root user for file ownership, but Docker socket
+  access remains effectively Docker-daemon/host-level authority regardless of
+  its primary UID.
 - `restart_pssm_flask.sh` auto-detects `DOCKER_GID` at runtime and exports it
   for Docker Compose.  Do not persist host-specific socket groups in the env
   file.  If tasks fail with `PermissionError(13, 'Permission denied')`, compare
@@ -526,8 +543,9 @@ banned users, and login throttling are maintained in
 
 ### Redis
 
-- Set `REDIS_PASSWORD` in production to enable Redis authentication.
 - Redis is on an internal Docker network; do not expose its port publicly.
+- The current Compose stack does not configure Redis authentication. Do not
+  assume that setting `REDIS_PASSWORD` alone enables it.
 
 ### Data
 

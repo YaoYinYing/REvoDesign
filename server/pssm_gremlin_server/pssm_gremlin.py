@@ -419,6 +419,56 @@ def _is_deleted_status(status: Any) -> bool:
     return normalized in {"deleted:finshed", "deleted:cancel"}
 
 
+def _cleanup_expired_task_artifacts(retention_days: int, *, now: float | None = None) -> int:
+    """Delete result artifacts for terminal tasks older than *retention_days*."""
+    cutoff = (time.time() if now is None else now) - retention_days * 86400
+    cleaned = 0
+    for task in task_store.list_tasks():
+        status = str(task.get("status") or "").strip().lower()
+        finished_at = task.get("finished_at")
+        if status not in {"finished", "failed", "cancelled"} or finished_at is None or finished_at > cutoff:
+            continue
+        _delete_task_artifacts(task)
+        task_store.update_task(
+            task["md5sum"],
+            status=_deleted_status_from_task(task),
+            celery_task_id=None,
+        )
+        cleaned += 1
+    return cleaned
+
+
+_result_cleanup_thread = None
+
+
+def start_result_cleanup() -> None:
+    """Start daily cleanup of expired terminal-task artifacts when enabled."""
+    global _result_cleanup_thread
+    if _result_cleanup_thread is not None:
+        return
+    retention_days = _env_int("RESULT_RETENTION_DAYS", 0)
+    if retention_days <= 0:
+        return
+
+    import threading
+
+    def _cleanup_loop() -> None:
+        while True:
+            try:
+                cleaned = _cleanup_expired_task_artifacts(retention_days)
+                if cleaned:
+                    logging.info("Removed expired result artifacts for %d task(s)", cleaned)
+            except Exception:
+                logging.exception("Result retention cleanup failed")
+            time.sleep(86400)
+
+    _result_cleanup_thread = threading.Thread(target=_cleanup_loop, daemon=True)
+    _result_cleanup_thread.start()
+
+
+start_result_cleanup()
+
+
 # Compatibility exports for callers that historically imported task symbols
 # from this web module.  New code imports them from task_runtime directly.
 _build_running_trace = task_runtime._build_running_trace

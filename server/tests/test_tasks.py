@@ -348,6 +348,61 @@ def test_delete_task_artifacts_skips_paths_outside_results_folder(monkeypatch, t
     assert external_result_dir.exists()
 
 
+def test_cleanup_expired_task_artifacts_only_removes_old_terminal_results(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    now = 2_000_000_000.0
+    old_finished_at = now - 31 * 86400
+    recent_finished_at = now - 29 * 86400
+    tasks = (
+        ("finished", old_finished_at, "deleted:finshed", True),
+        ("failed", old_finished_at, "deleted:cancel", True),
+        ("cancelled", old_finished_at, "deleted:cancel", True),
+        ("finished", recent_finished_at, "finished", False),
+        ("running", old_finished_at, "running", False),
+    )
+    task_artifacts = []
+
+    for status, finished_at, _expected_status, _expired in tasks:
+        md5sum = uuid.uuid4().hex
+        result_dir = Path(module.app.config["RESULTS_FOLDER"]) / md5sum
+        result_dir.mkdir(parents=True)
+        (result_dir / "result.txt").write_text("result\n", encoding="utf-8")
+        zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
+        zip_path.write_bytes(b"archive")
+        module.task_store.upsert_task(
+            md5sum,
+            filename="input.fasta",
+            file_path=str(result_dir / "input.fasta"),
+            result_dir=str(result_dir),
+            uploaded_at=finished_at - 60,
+            finished_at=finished_at,
+            status=status,
+            is_binary=0,
+            source_ip="127.0.0.1",
+            user_agent="pytest",
+            username="tester",
+        )
+        task_artifacts.append((md5sum, result_dir, zip_path))
+
+    assert module._cleanup_expired_task_artifacts(30, now=now) == 3
+
+    for (_status, _finished_at, expected_status, expired), (md5sum, result_dir, zip_path) in zip(
+        tasks, task_artifacts, strict=True
+    ):
+        task = module.task_store.get_task(md5sum)
+        assert task is not None
+        assert task["status"] == expected_status
+        assert result_dir.exists() is not expired
+        assert zip_path.exists() is not expired
+
+
 def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
