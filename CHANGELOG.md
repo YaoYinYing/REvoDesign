@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- **GREMLIN server: registration profile details**: registration now requires
+  full name, affiliation, academic position (undergraduate, Master's, PhD,
+  postdoctoral, faculty, industry, etc.), and PI name. The same information is
+  shown on the user's profile page and in the admin user-control system, where
+  admins can also create or modify these fields.
 - **Server test coverage + security A/B tests**: 121 new server tests covering auth
   endpoints (`/api/auth/me`, API key CRUD, CAPTCHA, password reset), UserDatabase
   methods (`get_user_by_email`, `validate_api_key`, `user_count`, digest
@@ -91,6 +96,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
 
 ### Changed
+- **GREMLIN server: Celery isolation**: the Celery worker can now launch without
+  user DB access. The web process alone receives `users.sqlite3`, authentication
+  and email secrets through the web-only `AUTH_DIR`; the worker keeps task data,
+  UniRef databases, and Docker runner access. `AUTH_DIR` is documented as the
+  host path and `USER_DB_PATH` as the web container path to the same database.
 - **GREMLIN server: pip package** — renamed from `pssm_gremlin` to `pssm_gremlin_server` with `pyproject.toml` for pip-installability. Server tests moved from `tests/server/` to `server/tests/` with dedicated CI workflow (`.github/workflows/server-test.yml`).
 - **GREMLIN server: Pydantic data models** — request/response validation hardened with typed Pydantic models at the API boundary (`schemas.py`), replacing ad-hoc `str(payload.get(...))` validation across all auth/admin route handlers.
 - **REvoDesign test suite** — removed server-test dependencies (Celery, Flask, Flask-HTTPAuth, SQLAlchemy, Docker SDK) from `make prepare-test`; server tests are now self-contained under `server/tests/` with their own `pyproject.toml`.
@@ -130,6 +140,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
+- **GREMLIN server: user DB upgrade compatibility**: older SQLite user
+  databases now gain the new registration-profile columns safely, including
+  concurrent web startup. The explicit `migrate-auth-db` command moves the
+  legacy database from shared `SERVER_DIR` into web-only `AUTH_DIR`, verifies
+  integrity and user counts, and keeps a rollback database. It uses SQLite's
+  backup API so committed WAL data is included; no manual database move is
+  required.
 - **Package manager self-bootstrap**: manager UI and extras registry now
   bootstrap into a writable runtime directory instead of writing into `src/` or
   an installed package directory. Bootstrap fetches use bounded timeouts and
