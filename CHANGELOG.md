@@ -28,8 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unset. The documented daily/retention defaults are `0 0 * * *` and 30.
 - **GREMLIN server: result retention cleanup**: `RESULT_RETENTION_DAYS` now
   removes result directories and archives for expired finished, failed, or
-  cancelled tasks during a daily maintenance job. Task audit rows are retained,
-  and leaving the setting unset disables cleanup.
+  cancelled tasks during a daily maintenance job. Fractional days are accepted
+  (`0.1` = 2.4 hours). Task audit rows are retained, and leaving the setting
+  unset disables cleanup.
 - **GREMLIN server: registration profile details**: registration now requires
   full name, affiliation, academic position (undergraduate, Master's, PhD,
   postdoctoral, faculty, industry, etc.), and PI name. The same information is

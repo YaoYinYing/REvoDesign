@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass
 
@@ -38,6 +39,21 @@ def env_int(var: str, default: int) -> int:
         return int(raw)
     except ValueError as exc:
         raise ValueError(f"Environment variable {var} must be an integer, got {raw!r}") from exc
+
+
+def env_float(var: str, default: float) -> float:
+    raw = os.environ.get(var, "")
+    if not raw:
+        return default
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        raise ValueError(
+            f"Environment variable {var} must be a finite number, got {raw!r}"
+        ) from exc
+    if not math.isfinite(value):
+        raise ValueError(f"Environment variable {var} must be a finite number, got {raw!r}")
+    return value
 
 
 def env_path(var: str, default: str) -> str:

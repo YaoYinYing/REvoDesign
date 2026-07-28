@@ -6,9 +6,30 @@ from __future__ import annotations
 
 import pytest
 from conftest import _load_pssm_module
+from pssm_gremlin_server.config import env_float
 
 # config tests
 # ==================================================================
+
+
+def test_env_float_accepts_fractional_values(monkeypatch):
+    monkeypatch.setenv("RESULT_RETENTION_DAYS", "0.1")
+
+    assert env_float("RESULT_RETENTION_DAYS", 0.0) == pytest.approx(0.1)
+
+
+def test_env_float_uses_default_when_unset(monkeypatch):
+    monkeypatch.delenv("RESULT_RETENTION_DAYS", raising=False)
+
+    assert env_float("RESULT_RETENTION_DAYS", 2.5) == 2.5
+
+
+@pytest.mark.parametrize("value", ["not-a-number", "nan", "inf", "-inf"])
+def test_env_float_rejects_non_finite_or_invalid_values(monkeypatch, value):
+    monkeypatch.setenv("RESULT_RETENTION_DAYS", value)
+
+    with pytest.raises(ValueError, match="must be a finite number"):
+        env_float("RESULT_RETENTION_DAYS", 0.0)
 
 
 def test_pssm_config_uses_numeric_runner_identity(monkeypatch, tmp_path):

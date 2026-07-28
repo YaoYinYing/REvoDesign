@@ -15,7 +15,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
-from pssm_gremlin_server.config import GremlinConfig, env_int
+from pssm_gremlin_server.config import GremlinConfig, env_float
 from pssm_gremlin_server.db import TaskDatabase
 from pssm_gremlin_server.maintenance.model import PeriodicTask
 
@@ -66,7 +66,7 @@ def delete_task_artifacts(task: dict[str, Any], results_folder: str) -> None:
 
 
 def cleanup_expired_task_artifacts(
-    retention_days: int,
+    retention_days: float,
     *,
     task_store: TaskDatabase,
     results_folder: str,
@@ -92,7 +92,7 @@ def cleanup_expired_task_artifacts(
     return cleaned
 
 
-def run_result_cleanup(retention_days: int) -> int:
+def run_result_cleanup(retention_days: float) -> int:
     """Open the configured task store and run one result-retention pass."""
     config = GremlinConfig.from_env()
     task_store = TaskDatabase(config.db_path)
@@ -116,7 +116,7 @@ class ResultCleanupTask(PeriodicTask):
         return run_result_cleanup
 
     def configure(self) -> None:
-        retention_days = env_int("RESULT_RETENTION_DAYS", 0)
+        retention_days = env_float("RESULT_RETENTION_DAYS", 0.0)
         self.env = {"RESULT_RETENTION_DAYS": retention_days}
         self._is_enabled = False
         self._args = {}

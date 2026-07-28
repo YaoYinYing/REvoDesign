@@ -328,7 +328,7 @@ Important environment variables (see the organized sections in
 | `WORKER_CONCURRENCY` | Concurrent Celery jobs |
 | `GUNICORN_WORKERS` | Gunicorn web worker count |
 | `PORT` | Public HTTP port (default: 8080) |
-| `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives; leave unset to disable cleanup |
+| `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives; fractions are allowed (`0.1` = 2.4 hours), and unset disables cleanup |
 | `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots; unset disables the task. Recommended daily value: `0 0 * * *` |
 | `BACKUP_DB_PATH` | Snapshot directory inside maintenance; `/var/lib/revodesign-auth/backups` maps to `${AUTH_DIR}/backups` on the host |
 | `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain; unset is unlimited, recommended value is `30` |

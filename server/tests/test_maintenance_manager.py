@@ -75,6 +75,20 @@ def test_configure_jobs_registers_enabled_digest_and_cleanup(monkeypatch):
     assert result_cleanup_task.env == {"RESULT_RETENTION_DAYS": 30}
 
 
+def test_result_cleanup_accepts_fractional_retention_days(monkeypatch):
+    monkeypatch.delenv("ADMIN_NEW_USER_INFORM", raising=False)
+    monkeypatch.delenv("ADMIN_NOTIFY_EMAIL", raising=False)
+    monkeypatch.setenv("RESULT_RETENTION_DAYS", "0.1")
+    monkeypatch.delenv("BACKUP_DB_CRON", raising=False)
+    scheduler = RecordingScheduler()
+
+    assert manager.configure_jobs(scheduler) == ["result-retention-cleanup"]
+    _, trigger, options = scheduler.jobs[0]
+    assert trigger == "interval"
+    assert options["args"] == pytest.approx((0.1,))
+    assert result_cleanup_task.env["RESULT_RETENTION_DAYS"] == pytest.approx(0.1)
+
+
 def test_configure_jobs_registers_database_backup_cron(monkeypatch, tmp_path):
     monkeypatch.delenv("ADMIN_NEW_USER_INFORM", raising=False)
     monkeypatch.delenv("ADMIN_NOTIFY_EMAIL", raising=False)
