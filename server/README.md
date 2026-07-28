@@ -121,7 +121,8 @@ cp server/.env.example server/.env.production
 All restart helpers support `REVODESIGN_SERVER_ENV`:
 
 ```bash
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart
+REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart_pssm_flask.sh restart --mode=dev
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
 ```
 
 Fallback when `REVODESIGN_SERVER_ENV` is unset:
@@ -342,8 +343,11 @@ No sudo required.
 # initialize the env file and print detected Docker socket group
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh setup
 
-# full restart cycle (down + build + up)
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart
+# development: down + local build using host UID/GID + up
+REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart_pssm_flask.sh restart --mode=dev
+
+# production: down + pull configured Docker Hub images + up without building
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
 
 # subcommands
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh migrate-auth-db
@@ -351,6 +355,23 @@ REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh up
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
 ```
+
+`restart` defaults to `--mode=dev` for backward compatibility. Only the
+`--mode=value` spelling is accepted, and mode is independent from the selected
+environment file:
+
+- `REVODESIGN_SERVER_ENV` selects paths, secrets, and resource settings.
+- `--mode=dev` builds the runner and server images locally, then starts with
+  `--no-build`. This is the authoritative development workflow and preserves
+  host UID/GID ownership for writable bind mounts.
+- `--mode=prod` pulls the configured `SERVER_IMAGE` and `RUNNER_IMAGE`, then
+  starts with `--no-build`. Published images use the fixed `1000:1000` identity,
+  so production mode rejects any other `RUNNER_UID` or `RUNNER_GID`.
+
+Provision production bind-mounted directories as writable by UID/GID
+`1000:1000`. This identity contract provides non-root execution and compatible
+file ownership; it is not a container-escape boundary. The worker's Docker
+socket access still grants effective Docker-daemon/host-level authority.
 
 ### Isolate an existing user database
 
@@ -361,7 +382,7 @@ the stack, and run the explicit migration once:
 ```bash
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh migrate-auth-db
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
 ```
 
 The migration refuses to overwrite an existing destination, checks SQLite

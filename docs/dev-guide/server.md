@@ -339,7 +339,7 @@ stack is stopped.
    REVODESIGN_SERVER_ENV=server/.env.production \
      bash server/run/restart_pssm_flask.sh setup
    REVODESIGN_SERVER_ENV=server/.env.production \
-     bash server/run/restart_pssm_flask.sh restart
+     bash server/run/restart_pssm_flask.sh restart --mode=prod
    ```
 
 5. **Access** the web UI at `http://<host>:<port>/PSSM_GREMLIN/dashboard`

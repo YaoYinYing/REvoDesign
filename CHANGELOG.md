@@ -96,6 +96,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
 
 ### Changed
+- **GREMLIN server: Docker restart modes**: `restart` now defaults to
+  `--mode=dev`, which rebuilds local images with the host UID/GID.
+  `--mode=prod` instead pulls the configured published images and starts with
+  `--no-build`; it enforces the published-image identity contract of
+  `RUNNER_UID=1000` and `RUNNER_GID=1000`.
 - **GREMLIN server: Celery isolation**: the Celery worker can now launch without
   user DB access. The web process alone receives `users.sqlite3`, authentication
   and email secrets through the web-only `AUTH_DIR`; the worker keeps task data,

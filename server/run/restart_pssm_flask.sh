@@ -38,6 +38,7 @@ ENV_FILE="$(resolve_env_file)"
 usage() {
   cat <<'USAGE'
 Usage: bash server/run/restart_pssm_flask.sh [setup|build|up|down|restart|migrate-auth-db]
+       bash server/run/restart_pssm_flask.sh restart [--mode=dev|--mode=prod]
 
 Environment:
   REVODESIGN_SERVER_ENV
@@ -49,7 +50,9 @@ Subcommands:
   build    Build runner image and web/worker images.
   up       Start redis/web/worker with docker compose.
   down     Stop and remove the compose stack.
-  restart  Run down + build + up. Default when no subcommand is provided.
+  restart  Restart in dev mode by default.
+           --mode=dev:  down, build local images with host UID/GID, then up.
+           --mode=prod: down, pull configured images, then up without building.
   migrate-auth-db
            Move the legacy SERVER_DIR/users.sqlite3 into the web-only AUTH_DIR
            after verification. The stack must be stopped.
@@ -176,6 +179,14 @@ resolve_runner_identity() {
   echo "Using runner identity ${RUNNER_UID}:${RUNNER_GID} (user ${_user}, group ${_group})."
 }
 
+require_production_identity() {
+  resolve_runner_identity
+  if [[ "${RUNNER_UID}" != "1000" || "${RUNNER_GID}" != "1000" ]]; then
+    echo "Production images require RUNNER_UID=1000 and RUNNER_GID=1000; got ${RUNNER_UID}:${RUNNER_GID}." >&2
+    exit 1
+  fi
+}
+
 validate_auth_storage() (
   set +u
   set -a
@@ -234,7 +245,7 @@ cmd_up() {
   ensure_docker_gid
   resolve_runner_identity
   echo "Starting services via docker compose..."
-  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d redis web worker
+  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up "$@" -d redis web worker
 }
 
 cmd_down() {
@@ -282,6 +293,10 @@ cmd_restart() {
   set +a
   set -u
 
+  if [[ "${MODE}" == "prod" ]]; then
+    require_production_identity
+  fi
+
   _auth_dir="${AUTH_DIR:-${SCRIPT_DIR}/../auth-data}"
   _user_db="${_auth_dir}/users.sqlite3"
   _legacy_user_db="${SERVER_DIR}/users.sqlite3"
@@ -308,8 +323,16 @@ cmd_restart() {
     fi
   fi
 
-  cmd_build
-  cmd_up
+  case "${MODE}" in
+    dev)
+      cmd_build
+      ;;
+    prod)
+      echo "Pulling configured production images..."
+      "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" --profile runner pull web runner
+      ;;
+  esac
+  cmd_up --no-build
 
   DOMAIN="0.0.0.0"
   PORT="${PORT:-8080}"
@@ -321,6 +344,38 @@ cmd_restart() {
 }
 
 SUBCOMMAND="${1:-restart}"
+MODE="dev"
+
+if [[ $# -gt 2 ]]; then
+  echo "Too many arguments." >&2
+  usage
+  exit 1
+fi
+if [[ $# -eq 2 ]]; then
+  case "$2" in
+    --mode=dev)
+      MODE="dev"
+      ;;
+    --mode=prod)
+      MODE="prod"
+      ;;
+    --mode=*)
+      echo "Invalid mode: ${2#--mode=}. Expected dev or prod." >&2
+      usage
+      exit 1
+      ;;
+    *)
+      echo "Unexpected argument: $2. Use --mode=dev or --mode=prod." >&2
+      usage
+      exit 1
+      ;;
+  esac
+  if [[ "${SUBCOMMAND}" != "restart" ]]; then
+    echo "--mode is only supported by the restart subcommand." >&2
+    usage
+    exit 1
+  fi
+fi
 
 echo "Using env file: ${ENV_FILE}"
 
