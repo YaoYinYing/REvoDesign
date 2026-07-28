@@ -206,7 +206,12 @@ def upload_file():
     if existing_task and existing_task["status"] == "finished":
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
 
-    if existing_task and existing_task["status"] in {"pending", "running", "packing results"}:
+    if existing_task and existing_task["status"] in {
+        "pending",
+        "running",
+        "packing results",
+        *task_store.CLEANUP_CLAIM_STATUSES,
+    }:
         return jsonify({"status": "Task already queued or running", "md5sum": md5sum}), 202
 
     # ponytail: per-user cap on active tasks — the expensive resource is the
@@ -332,6 +337,10 @@ def run_gremlin(md5sum):
         return jsonify({"status": "packing results", "md5sum": md5sum}), 202
     if status == "cancelled":
         return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
+    if status in task_store.CLEANUP_CLAIM_STATUSES:
+        return jsonify({"status": status, "md5sum": md5sum}), 202
+    if status in task_store.CLEANUP_STATUSES:
+        return jsonify({"status": status, "md5sum": md5sum}), 200
     if status == "deleted:finshed":
         return jsonify({"status": "deleted:finshed", "md5sum": md5sum}), 200
     if status == "deleted:cancel":
@@ -497,7 +506,8 @@ def task_dashboard():
                 "submitted_timestamp": submitted_time or 0,
                 "sequence": fasta_seq,
                 "owner": task.get("username") or "-",
-                "can_delete": is_admin or (task.get("username") == current_user),
+                "can_delete": (is_admin or task.get("username") == current_user)
+                and task["status"] not in task_store.CLEANUP_CLAIM_STATUSES,
                 "running_trace": _build_running_trace(task),
                 "error": _sanitize_task_error(task, task.get("error")),
             }
@@ -528,6 +538,8 @@ def delete_task(md5sum):
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
     if not _task_delete_allowed(task):
         return _task_access_denied(md5sum)
+    if task["status"] in task_store.CLEANUP_CLAIM_STATUSES:
+        return jsonify({"error": "Task cleanup is already in progress", "md5sum": md5sum}), 409
 
     if task["status"] in {"pending", "running", "packing results"}:
         _revoke_celery_task(task)
@@ -588,6 +600,9 @@ def delete_tasks_batch():
             continue
         if not _task_delete_allowed(task):
             forbidden.append(md5sum)
+            continue
+        if task["status"] in task_store.CLEANUP_CLAIM_STATUSES:
+            ignored.append(md5sum)
             continue
 
         if task["status"] in {"pending", "running", "packing results"}:

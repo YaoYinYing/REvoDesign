@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 from conftest import _load_pssm_module
-from pssm_gremlin_server.config import env_float
+from pssm_gremlin_server.config import env_csv, env_float
 
 # config tests
 # ==================================================================
@@ -30,6 +30,12 @@ def test_env_float_rejects_non_finite_or_invalid_values(monkeypatch, value):
 
     with pytest.raises(ValueError, match="must be a finite number"):
         env_float("RESULT_RETENTION_DAYS", 0.0)
+
+
+def test_env_csv_uses_default_when_explicitly_empty(monkeypatch):
+    monkeypatch.setenv("ADMIN_USERS", "")
+
+    assert env_csv("ADMIN_USERS", "admin") == ["admin"]
 
 
 def test_pssm_config_uses_numeric_runner_identity(monkeypatch, tmp_path):

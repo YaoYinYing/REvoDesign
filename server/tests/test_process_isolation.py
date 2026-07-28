@@ -30,7 +30,7 @@ def _run_restart_script(tmp_path, *arguments, uid="1000", gid="1000"):
     auth_dir = tmp_path / "auth"
     log_dir = tmp_path / "logs"
     for path in (task_dir, auth_dir, log_dir):
-        path.mkdir()
+        path.mkdir(exist_ok=True)
     env_file = tmp_path / "server.env"
     env_file.write_text(
         "\n".join(
@@ -103,6 +103,42 @@ def test_restart_mode_validation(tmp_path):
     spelling_result, _ = _run_restart_script(tmp_path / "spelling", "restart", "--mode", "prod")
     assert spelling_result.returncode != 0
     assert "Too many arguments" in spelling_result.stderr
+
+
+def test_restart_backup_includes_uncheckpointed_user_db_wal(tmp_path):
+    auth_dir = tmp_path / "auth"
+    auth_dir.mkdir(parents=True)
+    user_db = auth_dir / "users.sqlite3"
+    writer = """
+import os
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.execute("PRAGMA journal_mode=WAL")
+conn.execute("PRAGMA wal_autocheckpoint=0")
+conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT)")
+conn.execute("INSERT INTO users (username) VALUES ('wal-user')")
+conn.commit()
+os._exit(0)
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", writer, str(user_db)],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert Path(f"{user_db}-wal").is_file()
+
+    restart, _commands = _run_restart_script(tmp_path, "restart")
+
+    assert restart.returncode == 0, restart.stderr
+    backups = list(auth_dir.glob("users.sqlite3.bak.*"))
+    assert len(backups) == 1
+    with sqlite3.connect(backups[0]) as conn:
+        assert conn.execute("SELECT username FROM users").fetchall() == [("wal-user",)]
 
 
 def test_worker_runtime_import_has_no_auth_or_flask_side_effects(tmp_path):

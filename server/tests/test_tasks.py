@@ -361,9 +361,10 @@ def test_cleanup_expired_task_artifacts_only_removes_old_terminal_results(monkey
     old_finished_at = now - 31 * 86400
     recent_finished_at = now - 29 * 86400
     tasks = (
-        ("finished", old_finished_at, "deleted:finshed", True),
-        ("failed", old_finished_at, "deleted:cancel", True),
-        ("cancelled", old_finished_at, "deleted:cancel", True),
+        ("finished", old_finished_at, "cleaned:finished", True),
+        ("failed", old_finished_at, "cleaned:cancel", True),
+        ("cancelled", old_finished_at, "cleaned:cancel", True),
+        ("deleting:finished", old_finished_at, "cleaned:finished", True),
         ("finished", recent_finished_at, "finished", False),
         ("running", old_finished_at, "running", False),
     )
@@ -400,7 +401,7 @@ def test_cleanup_expired_task_artifacts_only_removes_old_terminal_results(monkey
             results_folder=module.app.config["RESULTS_FOLDER"],
             now=now,
         )
-        == 3
+        == 4
     )
 
     for (_status, _finished_at, expected_status, expired), (md5sum, result_dir, zip_path) in zip(
@@ -411,6 +412,59 @@ def test_cleanup_expired_task_artifacts_only_removes_old_terminal_results(monkey
         assert task["status"] == expected_status
         assert result_dir.exists() is not expired
         assert zip_path.exists() is not expired
+
+
+def test_cleanup_skips_task_replaced_before_atomic_claim(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    now = 2_000_000_000.0
+    md5sum = uuid.uuid4().hex
+    result_dir = Path(module.app.config["RESULTS_FOLDER"]) / md5sum
+    result_dir.mkdir(parents=True)
+    fresh_artifact = result_dir / "fresh-result.txt"
+    module.task_store.upsert_task(
+        md5sum,
+        filename="input.fasta",
+        file_path=str(result_dir / "input.fasta"),
+        result_dir=str(result_dir),
+        uploaded_at=now - 32 * 86400,
+        finished_at=now - 31 * 86400,
+        status="finished",
+        is_binary=0,
+        username="tester",
+    )
+    original_claim = module.task_store.claim_task_cleanup
+
+    def replace_then_claim(task_id, **claim):
+        module.task_store.update_task(
+            task_id,
+            uploaded_at=now,
+            finished_at=None,
+            status="pending",
+        )
+        fresh_artifact.write_text("new run\n", encoding="utf-8")
+        return original_claim(task_id, **claim)
+
+    monkeypatch.setattr(module.task_store, "claim_task_cleanup", replace_then_claim)
+    from pssm_gremlin_server.maintenance.tasks.result_cleanup import cleanup_expired_task_artifacts
+
+    assert (
+        cleanup_expired_task_artifacts(
+            30,
+            task_store=module.task_store,
+            results_folder=module.app.config["RESULTS_FOLDER"],
+            now=now,
+        )
+        == 0
+    )
+    assert module.task_store.get_task(md5sum)["status"] == "pending"
+    assert fresh_artifact.read_text(encoding="utf-8") == "new run\n"
 
 
 def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
@@ -888,6 +942,45 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
     running = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=owner_header)
     assert running.status_code == 200
     assert running.json["status"] == "deleted:finshed"
+
+
+def test_cleanup_claim_blocks_resubmission_and_user_deletion(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+
+    class _DummyAsyncResult:
+        id = "celery-test-id"
+
+    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+    content = b">cleanup-race\nACDE\n"
+
+    submitted = client.post(
+        "/PSSM_GREMLIN/api/post",
+        data={"file": (io.BytesIO(content), "cleanup-race.fasta")},
+        headers=auth_header,
+    )
+    assert submitted.status_code == 302
+    md5sum = _extract_md5(submitted.headers["Location"])
+    module.task_store.update_task(md5sum, status="deleting:cancel")
+
+    resubmitted = client.post(
+        "/PSSM_GREMLIN/api/post",
+        data={"file": (io.BytesIO(content), "cleanup-race.fasta")},
+        headers=auth_header,
+    )
+    deleted = client.delete(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=auth_header)
+
+    assert resubmitted.status_code == 202
+    assert deleted.status_code == 409
+    assert module.task_store.get_task(md5sum)["status"] == "deleting:cancel"
 
 
 def test_dashboard_hides_deleted_tasks_until_resubmitted(monkeypatch, tmp_path):

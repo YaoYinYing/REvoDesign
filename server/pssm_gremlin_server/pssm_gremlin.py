@@ -354,9 +354,14 @@ def _deleted_status_from_task(task: dict[str, Any]) -> str:
 
 
 def _is_deleted_status(status: Any) -> bool:
-    """True when *status* is a deleted state (``deleted:finshed`` or ``deleted:cancel``)."""
+    """True when task artifacts were removed by a user or maintenance."""
     normalized = str(status or "").strip().lower()
-    return normalized in {"deleted:finshed", "deleted:cancel"}
+    return normalized in {
+        "deleted:finshed",
+        "deleted:cancel",
+        "cleaned:finished",
+        "cleaned:cancel",
+    }
 
 
 # Compatibility exports for callers that historically imported task symbols

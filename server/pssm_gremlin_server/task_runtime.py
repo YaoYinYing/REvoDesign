@@ -167,7 +167,15 @@ def _build_running_trace(task: dict[str, Any]) -> str:
 
 def _is_terminal_status(status: Any) -> bool:
     normalized = str(status or "").strip().lower()
-    return normalized in {"deleted:finshed", "deleted:cancel", "cancelled"}
+    return normalized in {
+        "deleted:finshed",
+        "deleted:cancel",
+        "deleting:finished",
+        "deleting:cancel",
+        "cleaned:finished",
+        "cleaned:cancel",
+        "cancelled",
+    }
 
 
 def _task_is_terminal(md5sum: str) -> bool:

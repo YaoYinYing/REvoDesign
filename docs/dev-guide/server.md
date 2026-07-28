@@ -260,6 +260,10 @@ still applying the requested action to other selected users.
 | `finished` | Results ready for download |
 | `failed` | Computation error |
 | `cancelled` | User-cancelled task |
+| `deleting:finished` | Maintenance has claimed completed-task artifacts for deletion |
+| `deleting:cancel` | Maintenance has claimed failed/cancelled-task artifacts for deletion |
+| `cleaned:finished` | Retention cleanup removed completed-task artifacts |
+| `cleaned:cancel` | Retention cleanup removed failed/cancelled-task artifacts |
 | `deleted:finshed` | Soft-deleted after completion |
 | `deleted:cancel` | Soft-deleted before completion |
 

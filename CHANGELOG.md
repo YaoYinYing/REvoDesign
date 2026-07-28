@@ -106,6 +106,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
 
 ### Changed
+- **GREMLIN server: cleanup and restart safety**: result retention now claims
+  unchanged expired rows before deleting artifacts, so concurrent resubmissions
+  cannot be removed. Automatic cleanup records use `cleaned:*` states, keeping
+  `deleted:*` states specific to user actions. Restart rollback copies now use
+  SQLite's backup API and include committed WAL data.
 - **GREMLIN server: private task isolation**: removed `PUBLIC_DASHBOARD`
   because its former behavior exposed sequences and results and allowed
   cross-user task cancellation. Existing environment entries are silently

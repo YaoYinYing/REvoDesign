@@ -64,7 +64,8 @@ def env_path(var: str, default: str) -> str:
 
 
 def env_csv(var: str, default: str) -> list[str]:
-    return [value for raw in os.environ.get(var, default).split(",") if (value := raw.strip())]
+    source = os.environ.get(var) or default
+    return [value for raw in source.split(",") if (value := raw.strip())]
 
 
 def format_runner_identity(user_value: str, group_value: str) -> str:

@@ -23,6 +23,10 @@
     "finished": { label: "Finished", css: "status-finished", accent: "var(--finished)" },
     "failed": { label: "Failed", css: "status-failed", accent: "var(--failed)" },
     "cancelled": { label: "Cancelled", css: "status-cancelled", accent: "var(--cancelled)" },
+    "deleting:finished": { label: "Deleting (Finished)", css: "status-deleted", accent: "var(--deleted)" },
+    "deleting:cancel": { label: "Deleting (Cancel)", css: "status-deleted", accent: "var(--deleted)" },
+    "cleaned:finished": { label: "Cleaned (Finished)", css: "status-deleted", accent: "var(--deleted)" },
+    "cleaned:cancel": { label: "Cleaned (Cancel)", css: "status-deleted", accent: "var(--deleted)" },
     "deleted:finshed": { label: "Deleted (Finished)", css: "status-deleted", accent: "var(--deleted)" },
     "deleted:cancel": { label: "Deleted (Cancel)", css: "status-deleted", accent: "var(--deleted)" },
   };
@@ -99,7 +103,9 @@
       if (task.status === "finished") counts.finished += 1;
       if (task.status === "failed") counts.failed += 1;
       if (task.status === "cancelled") counts.cancelled += 1;
-      if (task.status === "deleted:finshed" || task.status === "deleted:cancel") counts.deleted += 1;
+      if (task.status === "deleting:finished" || task.status === "deleting:cancel" ||
+          task.status === "cleaned:finished" || task.status === "cleaned:cancel" ||
+          task.status === "deleted:finshed" || task.status === "deleted:cancel") counts.deleted += 1;
     });
     document.getElementById("totalTasks").textContent = counts.total;
     document.getElementById("inQueue").textContent = counts.pending;

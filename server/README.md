@@ -514,10 +514,18 @@ Current server states:
 - `finished`
 - `failed`
 - `cancelled`
+- `deleting:finished`
+- `deleting:cancel`
+- `cleaned:finished`
+- `cleaned:cancel`
 - `deleted:finshed`
 - `deleted:cancel`
 
 Deletion is tracked in sqlite (soft-delete). Task records remain for audit/debug.
+The `deleting:*` states are short-lived maintenance claims that prevent a
+concurrent resubmission from reusing artifacts while cleanup is in progress.
+The final `cleaned:*` states identify automatic retention cleanup; `deleted:*`
+states remain reserved for explicit user deletion.
 The `deleted:finshed` spelling is intentionally preserved for runtime compatibility.
 
 ## 8. Optional Public Access

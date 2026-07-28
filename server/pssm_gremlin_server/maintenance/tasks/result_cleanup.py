@@ -21,6 +21,15 @@ from pssm_gremlin_server.maintenance.model import PeriodicTask
 
 _TASK_ID_PATTERN = re.compile(r"[a-fA-F0-9]{32}$")
 _TERMINAL_RESULT_STATUSES = {"finished", "failed", "cancelled"}
+_CLEANUP_CLAIMS = {
+    "finished": ("deleting:finished", "cleaned:finished"),
+    "failed": ("deleting:cancel", "cleaned:cancel"),
+    "cancelled": ("deleting:cancel", "cleaned:cancel"),
+}
+_CLAIMED_CLEANUPS = {
+    claim_status: cleaned_status
+    for claim_status, cleaned_status in _CLEANUP_CLAIMS.values()
+}
 
 
 def _path_is_within(base_dir: str, candidate: str) -> bool:
@@ -80,14 +89,28 @@ def cleanup_expired_task_artifacts(
     for task in task_store.list_tasks():
         status = str(task.get("status") or "").strip().lower()
         finished_at = task.get("finished_at")
-        if status not in _TERMINAL_RESULT_STATUSES or finished_at is None or finished_at > cutoff:
-            continue
+        if status in _CLAIMED_CLEANUPS:
+            claim_status = status
+            cleaned_status = _CLAIMED_CLEANUPS[status]
+        else:
+            if status not in _TERMINAL_RESULT_STATUSES or finished_at is None or finished_at > cutoff:
+                continue
+            claim_status, cleaned_status = _CLEANUP_CLAIMS[status]
+            if not task_store.claim_task_cleanup(
+                task["md5sum"],
+                expected_status=status,
+                expected_finished_at=finished_at,
+                claim_status=claim_status,
+            ):
+                continue
         delete_task_artifacts(task, results_folder)
-        task_store.update_task(
+        if not task_store.complete_task_cleanup(
             task["md5sum"],
-            status=deleted_status_from_task(task),
-            celery_task_id=None,
-        )
+            claim_status=claim_status,
+            cleaned_status=cleaned_status,
+        ):
+            logging.warning("Cleanup claim changed before completion for task %s", task["md5sum"])
+            continue
         cleaned += 1
     return cleaned
 

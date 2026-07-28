@@ -316,7 +316,14 @@ cmd_restart() {
   if [[ -f "${_user_db}" ]]; then
     # Backup existing DB before schema migrations run on startup.
     _backup="${_auth_dir}/users.sqlite3.bak.$(date +%Y%m%d-%H%M%S)"
-    if cp "${_user_db}" "${_backup}" 2>/dev/null; then
+    if python3 - "${_user_db}" "${_backup}" <<'PY'
+import sqlite3
+import sys
+
+with sqlite3.connect(sys.argv[1]) as source, sqlite3.connect(sys.argv[2]) as destination:
+    source.backup(destination)
+PY
+    then
       echo "Backed up user DB to ${_backup}"
     else
       echo "Warning: cannot back up user DB — skipping" >&2

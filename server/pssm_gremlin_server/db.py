@@ -34,7 +34,9 @@ class TaskDatabase:
     """Minimal SQLite-based task tracker for GREMLIN jobs."""
 
     DELETED_STATUSES = {"deleted:finshed", "deleted:cancel"}
-    TERMINAL_STATUSES = {"deleted:finshed", "deleted:cancel", "cancelled"}
+    CLEANUP_STATUSES = {"cleaned:finished", "cleaned:cancel"}
+    CLEANUP_CLAIM_STATUSES = {"deleting:finished", "deleting:cancel"}
+    TERMINAL_STATUSES = DELETED_STATUSES | CLEANUP_STATUSES | CLEANUP_CLAIM_STATUSES | {"cancelled"}
 
     VALID_STATUSES = {
         "pending",
@@ -43,6 +45,10 @@ class TaskDatabase:
         "finished",
         "failed",
         "cancelled",
+        "deleting:finished",
+        "deleting:cancel",
+        "cleaned:finished",
+        "cleaned:cancel",
         "deleted:finshed",
         "deleted:cancel",
     }
@@ -180,6 +186,46 @@ class TaskDatabase:
             stmt = stmt.where(self.tasks_table.c.status.notin_(tuple(self.TERMINAL_STATUSES)))
         with self.engine.begin() as conn:
             conn.execute(stmt)
+
+    def claim_task_cleanup(
+        self,
+        md5sum: str,
+        *,
+        expected_status: str,
+        expected_finished_at: float,
+        claim_status: str,
+    ) -> bool:
+        """Atomically claim one unchanged terminal task for artifact deletion."""
+        if claim_status not in self.CLEANUP_CLAIM_STATUSES:
+            raise ValueError(f"Invalid cleanup claim status {claim_status}")
+        stmt = (
+            update(self.tasks_table)
+            .where(
+                self.tasks_table.c.md5sum == md5sum,
+                self.tasks_table.c.status == expected_status,
+                self.tasks_table.c.finished_at == expected_finished_at,
+            )
+            .values(status=claim_status, celery_task_id=None)
+        )
+        with self.engine.begin() as conn:
+            return conn.execute(stmt).rowcount == 1
+
+    def complete_task_cleanup(self, md5sum: str, *, claim_status: str, cleaned_status: str) -> bool:
+        """Finish a claimed cleanup without overwriting a replacement task."""
+        if claim_status not in self.CLEANUP_CLAIM_STATUSES:
+            raise ValueError(f"Invalid cleanup claim status {claim_status}")
+        if cleaned_status not in self.CLEANUP_STATUSES:
+            raise ValueError(f"Invalid cleaned status {cleaned_status}")
+        stmt = (
+            update(self.tasks_table)
+            .where(
+                self.tasks_table.c.md5sum == md5sum,
+                self.tasks_table.c.status == claim_status,
+            )
+            .values(status=cleaned_status, celery_task_id=None)
+        )
+        with self.engine.begin() as conn:
+            return conn.execute(stmt).rowcount == 1
 
     def get_task(self, md5sum: str) -> dict | None:
         stmt = select(self.tasks_table).where(self.tasks_table.c.md5sum == md5sum)
