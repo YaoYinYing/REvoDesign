@@ -619,6 +619,41 @@ def test_user_database_upgrade_adds_research_profile_columns(tmp_path):
     assert legacy["pi_name"] is None
 
 
+def test_user_database_upgrade_tolerates_duplicate_column_race():
+    """A second startup process may lose ALTER TABLE without aborting."""
+    import sqlalchemy as sa
+
+    from pssm_gremlin_server.auth import UserDatabase
+
+    class RacingConnection:
+        def exec_driver_sql(self, statement):
+            raise sa.exc.OperationalError(
+                statement,
+                {},
+                Exception("duplicate column name: full_name"),
+            )
+
+    existing: set[str] = set()
+    added = UserDatabase._add_column_if_missing(RacingConnection(), existing, "full_name", "TEXT")
+
+    assert added is False
+    assert "full_name" in existing
+
+
+def test_user_database_upgrade_does_not_hide_other_operational_errors():
+    """Only the expected duplicate-column race is recoverable."""
+    import sqlalchemy as sa
+
+    from pssm_gremlin_server.auth import UserDatabase
+
+    class FailingConnection:
+        def exec_driver_sql(self, statement):
+            raise sa.exc.OperationalError(statement, {}, Exception("disk I/O error"))
+
+    with pytest.raises(sa.exc.OperationalError, match="disk I/O error"):
+        UserDatabase._add_column_if_missing(FailingConnection(), set(), "full_name", "TEXT")
+
+
 def test_user_db_get_user_by_email(monkeypatch, tmp_path):
     """UserDatabase.get_user_by_email finds user by case-insensitive email."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})

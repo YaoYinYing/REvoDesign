@@ -143,20 +143,45 @@ class UserDatabase:
         self.engine = sa.create_engine(
             f"sqlite:///{self.path}",
             future=True,
-            connect_args={"check_same_thread": False},
+            connect_args={"check_same_thread": False, "timeout": 30},
         )
         self._initialize()
 
     def _initialize(self) -> None:
         with self.engine.begin() as conn:
+            conn.exec_driver_sql("PRAGMA busy_timeout=30000;")
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
             _metadata.create_all(conn, checkfirst=True)
             self._ensure_columns(conn)
 
     @staticmethod
+    def _add_column_if_missing(conn, existing: set[str], column: str, column_type: str) -> bool:
+        """Add one legacy-migration column without failing a startup race.
+
+        The web and Celery processes can import the application concurrently.
+        Both may observe the same column as missing, but only one can add it.
+        Ignore only SQLite's duplicate-column result; every other database
+        error remains fatal.
+        """
+        if column in existing:
+            return False
+        try:
+            conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {column} {column_type};")
+        except sa.exc.OperationalError as exc:
+            message = str(exc).lower()
+            if "duplicate column name" not in message:
+                raise
+            logging.info("User database column %s was added by another startup process.", column)
+            existing.add(column)
+            return False
+        existing.add(column)
+        return True
+
+    @staticmethod
     def _ensure_columns(conn) -> None:
         existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()}
+        admin_notified_missing = "admin_notified" not in existing
         for col, coltype in [
             ("api_key_hash", "TEXT"),
             ("full_name", "TEXT"),
@@ -176,17 +201,15 @@ class UserDatabase:
             ("registration_ip", "TEXT"),
             ("registration_country", "TEXT"),
         ]:
-            if col not in existing:
-                conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype};")
-        if "token_version" not in existing:
-            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0;")
+            UserDatabase._add_column_if_missing(conn, existing, col, coltype)
+        UserDatabase._add_column_if_missing(conn, existing, "token_version", "INTEGER DEFAULT 0")
         # Backfill any NULL token_version (idempotent, runs every startup)
         conn.exec_driver_sql("UPDATE users SET token_version = 0 WHERE token_version IS NULL")
         # When adding admin_notified for the first time, mark all existing
         # non-admin users as notified so they don't appear in the first digest.
         # Admins are always excluded from the digest.  This is intentionally
         # gated — we only want this on the very first migration.
-        if "admin_notified" not in existing:
+        if admin_notified_missing:
             conn.exec_driver_sql("UPDATE users SET admin_notified = 1 WHERE is_admin = 0")
         # Idempotent backfills — run every startup (not gated) so legacy rows
         # that predate a column get their NULLs patched even when the column
