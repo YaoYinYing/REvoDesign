@@ -302,7 +302,7 @@ Important environment variables (see the organized sections in
 |----------|-------------|
 | `SERVER_IMAGE` / `RUNNER_IMAGE` | Built locally in dev mode or pulled from their configured references in prod mode |
 | `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and results; never contains the user DB |
-| `LOG_DIR` | Host directory for Gunicorn/Celery logs |
+| `LOG_DIR` | Host directory for Gunicorn, Celery, and `maintenance.log` |
 | `DB_UNIREF30` | UniRef30 HHsuite database prefix path |
 | `DB_UNIREF90` | UniRef90 BLAST database prefix path |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens (set in production) |

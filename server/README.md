@@ -154,7 +154,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `SERVER_IMAGE`, `RUNNER_IMAGE` | Image names built locally in dev mode or pulled in prod mode. Production must use full published Docker Hub references. |
 | `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and result folders (default: `./pssm_gremlin_data`). Never store the user database here. |
 | `RUNNER_HOST_ROOT` | Host root allowed for Docker runner bind mounts (default: parent of `SERVER_DIR`). |
-| `LOG_DIR` | Host directory for Gunicorn/Celery logs. |
+| `LOG_DIR` | Host directory for Gunicorn, Celery, and `maintenance.log`. |
 | `DB_UNIREF30` | UniRef30 prefix path (default: `{SERVER_DIR}/db/uniref30/UniRef30_2022_02`). |
 | `DB_UNIREF90` | UniRef90 BLAST prefix path (default: `{SERVER_DIR}/db/uniref90/uniref90`). |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |

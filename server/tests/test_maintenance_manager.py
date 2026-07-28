@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from pssm_gremlin_server.maintenance import manager
@@ -20,6 +22,27 @@ class RecordingScheduler:
 
     def add_job(self, func, trigger, **kwargs):
         self.jobs.append((func, trigger, kwargs))
+
+
+def test_configure_logging_writes_maintenance_log(monkeypatch, tmp_path):
+    monkeypatch.setenv("LOG_DIR", str(tmp_path))
+    logger = logging.getLogger(f"maintenance-test-{id(tmp_path)}")
+    logger.propagate = False
+
+    try:
+        log_path = manager.configure_logging(logger=logger)
+        logger.info("maintenance log test")
+        for handler in logger.handlers:
+            handler.flush()
+
+        assert log_path == str(tmp_path / "maintenance.log")
+        assert "maintenance log test" in (tmp_path / "maintenance.log").read_text(
+            encoding="utf-8"
+        )
+    finally:
+        for handler in logger.handlers[:]:
+            handler.close()
+            logger.removeHandler(handler)
 
 
 def test_unset_maintenance_settings_register_no_jobs(monkeypatch):
