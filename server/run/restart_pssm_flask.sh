@@ -37,7 +37,8 @@ ENV_FILE="$(resolve_env_file)"
 
 usage() {
   cat <<'USAGE'
-Usage: bash server/run/restart_pssm_flask.sh [setup|build|up|down|restart]
+Usage: bash server/run/restart_pssm_flask.sh [setup|build|up|down|restart|migrate-auth-db]
+       bash server/run/restart_pssm_flask.sh restart [--mode=dev|--mode=prod]
 
 Environment:
   REVODESIGN_SERVER_ENV
@@ -49,7 +50,12 @@ Subcommands:
   build    Build runner image and web/worker images.
   up       Start redis/web/worker with docker compose.
   down     Stop and remove the compose stack.
-  restart  Run down + build + up. Default when no subcommand is provided.
+  restart  Restart in dev mode by default.
+           --mode=dev:  down, build local images with host UID/GID, then up.
+           --mode=prod: down, pull configured images, then up without building.
+  migrate-auth-db
+           Move the legacy SERVER_DIR/users.sqlite3 into the web-only AUTH_DIR
+           after verification. The stack must be stopped.
 USAGE
 }
 
@@ -173,6 +179,32 @@ resolve_runner_identity() {
   echo "Using runner identity ${RUNNER_UID}:${RUNNER_GID} (user ${_user}, group ${_group})."
 }
 
+require_production_identity() {
+  resolve_runner_identity
+  if [[ "${RUNNER_UID}" != "1000" || "${RUNNER_GID}" != "1000" ]]; then
+    echo "Production images require RUNNER_UID=1000 and RUNNER_GID=1000; got ${RUNNER_UID}:${RUNNER_GID}." >&2
+    exit 1
+  fi
+}
+
+validate_auth_storage() (
+  set +u
+  set -a
+  source "${ENV_FILE}"
+  set +a
+  set -u
+  if [[ -z "${AUTH_DIR:-}" ]]; then
+    echo "AUTH_DIR must be set to a web-only host directory outside SERVER_DIR." >&2
+    exit 1
+  fi
+  python3 -c '
+import os, sys
+server_dir, auth_dir = map(os.path.realpath, sys.argv[1:3])
+if os.path.commonpath([server_dir, auth_dir]) == server_dir:
+    raise SystemExit("AUTH_DIR must be outside SERVER_DIR")
+' "${SERVER_DIR}" "${AUTH_DIR}"
+)
+
 cmd_setup() {
   local _detected_docker_gid=""
 
@@ -209,10 +241,11 @@ cmd_build() {
 
 cmd_up() {
   require_env_file
+  validate_auth_storage
   ensure_docker_gid
   resolve_runner_identity
   echo "Starting services via docker compose..."
-  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d redis web worker
+  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up "$@" -d redis web maintenance worker
 }
 
 cmd_down() {
@@ -223,6 +256,35 @@ cmd_down() {
   "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" down
 }
 
+cmd_migrate_auth_db() {
+  require_env_file
+  validate_auth_storage
+  ensure_docker_gid
+  resolve_runner_identity
+  set +u
+  set -a
+  source "${ENV_FILE}"
+  set +a
+  set -u
+
+  local _auth_dir="${AUTH_DIR:-}"
+  local _running=""
+  if [[ -z "${_auth_dir}" ]]; then
+    echo "AUTH_DIR must be set to a host directory outside SERVER_DIR." >&2
+    exit 1
+  fi
+
+  _running="$("${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" ps -q web maintenance worker 2>/dev/null || true)"
+  if [[ -n "${_running}" ]]; then
+    echo "Stop web, maintenance, and worker before migrating: restart_pssm_flask.sh down" >&2
+    exit 1
+  fi
+
+  PYTHONPATH="${SCRIPT_DIR}/.." python3 -m pssm_gremlin_server.migrate_auth_db \
+    --server-dir "${SERVER_DIR}" \
+    --auth-dir "${_auth_dir}"
+}
+
 cmd_restart() {
   # Source env early — first boot may need a generated admin password.
   set +u
@@ -231,7 +293,18 @@ cmd_restart() {
   set +a
   set -u
 
-  _user_db="${SERVER_DIR}/users.sqlite3"
+  if [[ "${MODE}" == "prod" ]]; then
+    require_production_identity
+  fi
+
+  _auth_dir="${AUTH_DIR:-${SCRIPT_DIR}/../auth-data}"
+  _user_db="${_auth_dir}/users.sqlite3"
+  _legacy_user_db="${SERVER_DIR}/users.sqlite3"
+  if [[ -f "${_legacy_user_db}" && ! -f "${_user_db}" ]]; then
+    echo "Legacy user DB detected at ${_legacy_user_db}." >&2
+    echo "Run the migrate-auth-db subcommand before restarting this release." >&2
+    exit 1
+  fi
   if [[ ! -f "${_user_db}" ]]; then
     # First boot — generate and export the admin password.
     _admin_pw="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
@@ -242,17 +315,31 @@ cmd_restart() {
 
   if [[ -f "${_user_db}" ]]; then
     # Backup existing DB before schema migrations run on startup.
-    # Run inside the web container so file ownership matches SERVER_DIR.
-    _backup="${SERVER_DIR}/users.sqlite3.bak.$(date +%Y%m%d-%H%M%S)"
-    if "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" run --rm --no-deps --entrypoint /bin/cp web "${_user_db}" "${_backup}" 2>/dev/null; then
+    _backup="${_auth_dir}/users.sqlite3.bak.$(date +%Y%m%d-%H%M%S)"
+    if python3 - "${_user_db}" "${_backup}" <<'PY'
+import sqlite3
+import sys
+
+with sqlite3.connect(sys.argv[1]) as source, sqlite3.connect(sys.argv[2]) as destination:
+    source.backup(destination)
+PY
+    then
       echo "Backed up user DB to ${_backup}"
     else
       echo "Warning: cannot back up user DB — skipping" >&2
     fi
   fi
 
-  cmd_build
-  cmd_up
+  case "${MODE}" in
+    dev)
+      cmd_build
+      ;;
+    prod)
+      echo "Pulling configured production images..."
+      "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" --profile runner pull web runner
+      ;;
+  esac
+  cmd_up --no-build
 
   DOMAIN="0.0.0.0"
   PORT="${PORT:-8080}"
@@ -264,6 +351,38 @@ cmd_restart() {
 }
 
 SUBCOMMAND="${1:-restart}"
+MODE="dev"
+
+if [[ $# -gt 2 ]]; then
+  echo "Too many arguments." >&2
+  usage
+  exit 1
+fi
+if [[ $# -eq 2 ]]; then
+  case "$2" in
+    --mode=dev)
+      MODE="dev"
+      ;;
+    --mode=prod)
+      MODE="prod"
+      ;;
+    --mode=*)
+      echo "Invalid mode: ${2#--mode=}. Expected dev or prod." >&2
+      usage
+      exit 1
+      ;;
+    *)
+      echo "Unexpected argument: $2. Use --mode=dev or --mode=prod." >&2
+      usage
+      exit 1
+      ;;
+  esac
+  if [[ "${SUBCOMMAND}" != "restart" ]]; then
+    echo "--mode is only supported by the restart subcommand." >&2
+    usage
+    exit 1
+  fi
+fi
 
 echo "Using env file: ${ENV_FILE}"
 
@@ -284,6 +403,9 @@ case "${SUBCOMMAND}" in
     ;;
   restart)
     cmd_restart
+    ;;
+  migrate-auth-db)
+    cmd_migrate_auth_db
     ;;
   -h|--help|help)
     usage

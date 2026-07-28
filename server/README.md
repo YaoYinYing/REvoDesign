@@ -3,25 +3,43 @@
 The server is a Docker-deployed Flask + Celery + Docker-runner web service for
 GREMLIN co-evolution analysis.
 
-## Production Deployment
+## Docker Deployment
 
-This section describes the production Docker deployment.
-Native/manual deployment is intentionally excluded.
+This guide covers both local-image development (`--mode=dev`) and
+published-image production (`--mode=prod`). Native/manual production deployment
+is intentionally excluded.
 
 ## Overview
 
 The server stack contains:
 
 - `web`: Flask + Gunicorn API/UI service
+- `maintenance`: APScheduler process for registration digests, optional result cleanup, and database backups
 - `worker`: Celery worker for background jobs
 - `redis`: Celery broker/backend
-- `runner` image: GREMLIN/PSSM execution container launched by `web`/`worker` through Docker socket access
+- `runner` image: GREMLIN/PSSM execution container launched by `worker`
 
-Both `web` and `worker` must access `/var/run/docker.sock` to start runner containers.
+Periodic jobs follow this package boundary:
+
+```text
+pssm_gremlin_server/maintenance/
+├── model.py                 # PeriodicTask interface
+├── manager.py               # imports task objects and calls register()
+└── tasks/
+    ├── admin_digest.py      # self-configuring admin_digest_task
+    ├── database_backup.py   # consistent task/user SQLite snapshots
+    └── result_cleanup.py    # self-configuring result_cleanup_task
+```
+
+Each task object owns its environment configuration, enabled state, callable,
+maximum instances, trigger, and `scheduler.add_job` arguments.
+
+Only `worker` receives `/var/run/docker.sock`. The web container submits tasks
+through Redis and has no Docker socket or user-database overlap with the worker.
 
 ## 0. Prerequisites
 
-Install the following on the production host:
+Install the following on the deployment host:
 
 - Docker Engine 24+ with Compose plugin
 - NCBI BLAST+ (`makeblastdb`)
@@ -88,6 +106,7 @@ sudo adduser --system --group --no-create-home --shell /usr/sbin/nologin revodes
 sudo usermod -aG docker revodesign
 
 sudo mkdir -p /srv/revodesign/server
+sudo mkdir -p /srv/revodesign/auth
 sudo mkdir -p /srv/revodesign/logs
 
 # grant full and recurse access to this user
@@ -119,7 +138,8 @@ cp server/.env.example server/.env.production
 All restart helpers support `REVODESIGN_SERVER_ENV`:
 
 ```bash
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart
+REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart_pssm_flask.sh restart --mode=dev
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
 ```
 
 Fallback when `REVODESIGN_SERVER_ENV` is unset:
@@ -131,28 +151,30 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 
 | Variable | Purpose |
 | --- | --- |
-| `SERVER_DIR` | Host root for uploads, sqlite, and result folders (default: `./pssm_gremlin_data`). |
+| `SERVER_IMAGE`, `RUNNER_IMAGE` | Image names built locally in dev mode or pulled in prod mode. Production must use full published Docker Hub references. |
+| `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and result folders (default: `./pssm_gremlin_data`). Never store the user database here. |
 | `RUNNER_HOST_ROOT` | Host root allowed for Docker runner bind mounts (default: parent of `SERVER_DIR`). |
-| `LOG_DIR` | Host directory for Gunicorn/Celery logs. |
+| `LOG_DIR` | Host directory for Gunicorn, Celery, and `maintenance.log`. |
 | `DB_UNIREF30` | UniRef30 prefix path (default: `{SERVER_DIR}/db/uniref30/UniRef30_2022_02`). |
 | `DB_UNIREF90` | UniRef90 BLAST prefix path (default: `{SERVER_DIR}/db/uniref90/uniref90`). |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
-| `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`). |
-| `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires Resend API key). |
-| `RESEND_API_KEY` | Resend API key for sending verification and password-reset emails. |
-| `RESEND_FROM_ADDR` | Sender email address (verified domain in Resend). |
-| `RESEND_FROM_NAME` | Sender display name (default: REvoDesign GREMLIN Server). |
-| `SERVER_BASE_URL` | Public base URL for generating verification links. |
-| `REDIS_PASSWORD` | Optional Redis authentication password. |
-| `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID (non-root required). |
+| `AUTH_DIR` | Host-side directory containing `users.sqlite3`; Compose mounts it only into web and maintenance. It must be outside `SERVER_DIR`. |
+| `USER_DB_PATH` | Container-side path used by web and maintenance to open the user DB. Keep the default `/var/lib/revodesign-auth/users.sqlite3` unless the Compose mount target also changes. |
+| `ENABLE_REGISTER` | Set to `true` to enable self-registration; configure either SMTP or Resend email delivery. |
+| `SMTP_*`, `RESEND_*` | Email delivery settings. Resend takes priority when both backends are configured. |
+| `SERVER_BASE_URL` | Public base URL for email links and HTTPS-sensitive auth-cookie settings. |
+| `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID. Dev may match the host; published production images require `1000:1000`. |
 | `DOCKER_GID` | Auto-detected by `restart_pssm_flask.sh` at runtime for Docker Compose interpolation. Override only as a shell variable when detection is wrong. |
 | `NPROC` | CPU threads passed to runner. |
 | `MAXMEM` | Memory cap (GB) passed to hhblits (`-maxmem`) inside runner script. |
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `PORT` | Public HTTP port. |
-| `PUBLIC_DASHBOARD` | `false` by default; scopes task visibility to owner unless admin. |
+| `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives. Fractions are allowed (`0.1` = 2.4 hours). Leave unset to disable cleanup; task audit rows remain. |
+| `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots. Leave unset to disable; recommended daily schedule: `0 0 * * *`. |
+| `BACKUP_DB_PATH` | Snapshot directory inside the maintenance container. `/var/lib/revodesign-auth/backups` persists at `${AUTH_DIR}/backups` on the host. |
+| `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain. Leave unset for unlimited history; recommended value: `30`. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated admin email addresses for new-user registration digests (default: empty = no notification). |
 | `ADMIN_NEW_USER_INFORM` | Interval in minutes between new-user digest emails (default: `0` = disabled). |
@@ -160,6 +182,58 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `TZ` | Timezone for logs. |
 | `CLIENT_IP_HEADERS` | Comma-separated list of HTTP headers to try for the real client IP, in priority order (default: `X-Forwarded-For, X-Real-IP`). See CDN reference below. |
 | `CLIENT_COUNTRY_HEADER` | Single HTTP header carrying the client country code, e.g. `CF-IPCountry` for Cloudflare (default: empty = disabled). |
+
+### Authentication storage: host path versus container path
+
+`AUTH_DIR` and `USER_DB_PATH` describe the same storage from two different
+points of view:
+
+```text
+Docker host                           web / maintenance containers
+/srv/revodesign/auth/users.sqlite3 -> /var/lib/revodesign-auth/users.sqlite3
+^^^^^^^^^^^^^^^^^^^^^^^                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AUTH_DIR                               USER_DB_PATH
+```
+
+With the example configuration:
+
+```dotenv
+SERVER_DIR=/srv/revodesign/server
+AUTH_DIR=/srv/revodesign/auth
+USER_DB_PATH=/var/lib/revodesign-auth/users.sqlite3
+```
+
+Compose applies these boundaries:
+
+| Process | Sees `SERVER_DIR` | Sees `AUTH_DIR` | Can open the user DB |
+| --- | --- | --- | --- |
+| Web | Yes | Yes, mounted at `/var/lib/revodesign-auth` | Yes |
+| Maintenance | Yes | Yes, mounted at `/var/lib/revodesign-auth` | Yes, for email and backup tasks |
+| Celery worker | Yes | No | No |
+
+`AUTH_DIR` is therefore not an application data path passed to Python. It is a
+Docker-host path used to create a private volume mount for web and maintenance.
+It must be a sibling of, rather than a child of, `SERVER_DIR`: mounting all of
+`SERVER_DIR` into the worker would otherwise expose any nested auth directory
+through that parent mount.
+
+On a new installation, create `AUTH_DIR` with write access for
+`RUNNER_UID:RUNNER_GID`; web creates `users.sqlite3` there on first start. Keep
+`USER_DB_PATH` at its default unless you deliberately change the target side of
+the Compose volume mount.
+
+When database backups are enabled, each successful run creates one complete
+snapshot set:
+
+```text
+${AUTH_DIR}/backups/20260101T000000.000000Z/
+├── tasks.sqlite3
+└── users.sqlite3
+```
+
+Copies are made through SQLite's online backup API and checked before the
+snapshot directory is published. `MAX_DB_BACKUP` counts these complete
+timestamped directories, not individual database files.
 
 ### CDN IP header reference
 
@@ -219,9 +293,12 @@ If the user database is empty, a default admin account is created automatically:
 - Password: auto-generated and displayed in the restart script output.
   Change immediately after first login.
 
-Set `ENABLE_REGISTER=true` and `RESEND_API_KEY` to allow self-registration.
-Users receive a verification email; accounts must be verified before use.
-Without a Resend API key, registration is disabled — use the admin API to create accounts.
+Set `ENABLE_REGISTER=true` and configure either SMTP or Resend to allow
+self-registration. Registration requires full name, affiliation, academic
+position, and PI name. These fields appear on the user's profile page and in
+the admin user-control system. Users receive a verification email and must be
+verified before use. Without a working email backend, use the admin API to
+create accounts.
 
 ### API authentication
 
@@ -301,22 +378,74 @@ No sudo required.
 # initialize the env file and print detected Docker socket group
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh setup
 
-# full restart cycle (down + build + up)
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart
+# development: down + local build using host UID/GID + up
+REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart_pssm_flask.sh restart --mode=dev
+
+# production: down + pull configured Docker Hub images + up without building
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
 
 # subcommands
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh migrate-auth-db
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh build
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh up
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
 ```
 
+`restart` defaults to `--mode=dev` for backward compatibility. Only the
+`--mode=value` spelling is accepted, and mode is independent from the selected
+environment file:
+
+- `REVODESIGN_SERVER_ENV` selects paths, secrets, and resource settings.
+- `--mode=dev` builds the runner and server images locally, then starts with
+  `--no-build`. This is the authoritative development workflow and preserves
+  host UID/GID ownership for writable bind mounts.
+- `--mode=prod` pulls the configured `SERVER_IMAGE` and `RUNNER_IMAGE`, then
+  starts with `--no-build`. Published images use the fixed `1000:1000` identity,
+  so production mode rejects any other `RUNNER_UID` or `RUNNER_GID`.
+
+Provision production bind-mounted directories as writable by UID/GID
+`1000:1000`. This identity contract provides non-root execution and compatible
+file ownership; it is not a container-escape boundary. The worker's Docker
+socket access still grants effective Docker-daemon/host-level authority.
+
+### Isolate an existing user database
+
+This step is only for an upgrade where the old database still exists at
+`${SERVER_DIR}/users.sqlite3`. Set `AUTH_DIR` to its new host directory, stop
+the stack, and run the explicit migration once:
+
+```bash
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh migrate-auth-db
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
+```
+
+The migration refuses to overwrite an existing destination, checks SQLite
+integrity and user counts, and moves the legacy copy into `AUTH_DIR` as a
+timestamped rollback backup. To roll back while the stack is stopped, restore
+that backup to the original `${SERVER_DIR}/users.sqlite3` path and deploy the
+previous Compose configuration.
+
+For a fresh installation there is nothing to migrate: create `AUTH_DIR` and
+start normally. The web process creates `${AUTH_DIR}/users.sqlite3`.
+
 ### Equivalent Docker Compose commands
+
+Development mode:
+
+```bash
+docker compose -f server/docker-compose.yml --env-file server/.env.local down
+docker compose -f server/docker-compose.yml --env-file server/.env.local --profile runner build runner
+docker compose -f server/docker-compose.yml --env-file server/.env.local build web worker
+docker compose -f server/docker-compose.yml --env-file server/.env.local up --no-build -d redis web maintenance worker
+```
+
+Production mode:
 
 ```bash
 docker compose -f server/docker-compose.yml --env-file server/.env.production down
-docker compose -f server/docker-compose.yml --env-file server/.env.production --profile runner build runner
-docker compose -f server/docker-compose.yml --env-file server/.env.production build web worker
-docker compose -f server/docker-compose.yml --env-file server/.env.production up -d redis web worker
+docker compose -f server/docker-compose.yml --env-file server/.env.production --profile runner pull web runner
+docker compose -f server/docker-compose.yml --env-file server/.env.production up --no-build -d redis web maintenance worker
 ```
 
 ### Zero-downtime Gunicorn reload
@@ -385,10 +514,18 @@ Current server states:
 - `finished`
 - `failed`
 - `cancelled`
+- `deleting:finished`
+- `deleting:cancel`
+- `cleaned:finished`
+- `cleaned:cancel`
 - `deleted:finshed`
 - `deleted:cancel`
 
 Deletion is tracked in sqlite (soft-delete). Task records remain for audit/debug.
+The `deleting:*` states are short-lived maintenance claims that prevent a
+concurrent resubmission from reusing artifacts while cleanup is in progress.
+The final `cleaned:*` states identify automatic retention cleanup; `deleted:*`
+states remain reserved for explicit user deletion.
 The `deleted:finshed` spelling is intentionally preserved for runtime compatibility.
 
 ## 8. Optional Public Access
@@ -411,9 +548,13 @@ You can start from:
 
 ### Docker socket
 
-The web and worker containers mount `/var/run/docker.sock` to spawn runner containers. This is a security boundary:
+Only the worker mounts `/var/run/docker.sock` to spawn runner containers. This
+separates Docker authority from the public web process, but it is not a
+container-escape boundary:
 
-- The web/worker run as a non-root user with group-based Docker access.
+- The worker runs as a non-root user for file ownership, but Docker socket
+  access remains effectively Docker-daemon/host-level authority regardless of
+  its primary UID.
 - `restart_pssm_flask.sh` auto-detects `DOCKER_GID` at runtime and exports it
   for Docker Compose.  Do not persist host-specific socket groups in the env
   file.  If tasks fail with `PermissionError(13, 'Permission denied')`, compare
@@ -442,14 +583,15 @@ banned users, and login throttling are maintained in
 
 ### Redis
 
-- Set `REDIS_PASSWORD` in production to enable Redis authentication.
 - Redis is on an internal Docker network; do not expose its port publicly.
+- The current Compose stack does not configure Redis authentication. Do not
+  assume that setting `REDIS_PASSWORD` alone enables it.
 
 ### Data
 
 - User passwords are hashed with `werkzeug.security.generate_password_hash` (pbkdf2:sha256).
-- User database (`users.sqlite3`) and task database (`pssm_gremlin.sqlite3`) are
-  stored under `SERVER_DIR`, not in the web root.
+- The user database is stored under the web/maintenance-only `AUTH_DIR`. The task database,
+  uploads, and results remain under `SERVER_DIR`, which web and worker share.
 - All API request payloads are validated through typed Pydantic models
   (``schemas.py``) before reaching business logic — malformed input is rejected
   at the boundary.
@@ -462,7 +604,8 @@ banned users, and login throttling are maintained in
 ## 10. Operations Notes
 
 - Restrict Docker socket access to trusted operators only.
-- Keep `PUBLIC_DASHBOARD=false` for private per-user isolation.
+- Task visibility and operations are always restricted to the owner or an
+  administrator.
 - Regularly back up sqlite and result archives.
 - If a task is deleted, result artifacts are removed, but the sqlite record remains for audit.
 
@@ -472,8 +615,11 @@ banned users, and login throttling are maintained in
 # Install in editable mode with test dependencies
 pip install -e "server/[test]"
 
-# Run non-Docker tests from the repo root
-pytest server/tests/ -v -k "not Docker and not docker"
+# Run the server-owned non-Docker suite
+make -C server test
+
+# Run the same coverage target used by server CI
+make -C server test-cov
 
 # Run the server directly without Docker
 python -m pssm_gremlin_server.pssm_gremlin

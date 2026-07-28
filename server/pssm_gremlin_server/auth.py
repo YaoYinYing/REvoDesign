@@ -25,6 +25,9 @@ from typing import Any
 import sqlalchemy as sa
 from flask import current_app, g, jsonify, redirect, request, url_for
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+from pssm_gremlin_server.config import env_bool as _env_bool
+from pssm_gremlin_server.config import env_int as _env_int
+from pssm_gremlin_server.config import env_str as _env_str
 from werkzeug.security import check_password_hash, generate_password_hash
 
 # Pre-computed dummy hash used for constant-time comparison when a login
@@ -50,40 +53,6 @@ except ImportError:
     _HAS_RESEND = False
 
 # ---------------------------------------------------------------------------
-# Configuration helpers
-# ---------------------------------------------------------------------------
-
-
-def _env_bool(var: str, default: bool) -> bool:
-    raw = os.environ.get(var)
-    if raw is None or raw == "":
-        return default
-    value = raw.strip().lower()
-    if value in {"1", "true", "yes", "on"}:
-        return True
-    if value in {"0", "false", "no", "off"}:
-        return False
-    raise ValueError(f"Environment variable {var} must be a boolean value " "(one of: true/false/1/0/yes/no/on/off).")
-
-
-def _env_str(var: str, default: str) -> str:
-    # ponytail: treat empty string as unset — docker compose passes
-    # ${VAR:-} which yields "" when VAR is absent in the env file.
-    value = os.environ.get(var)
-    return value if value else default
-
-
-def _env_int(var: str, default: int) -> int:
-    raw = os.environ.get(var, "")
-    if not raw:
-        return default
-    try:
-        return int(raw)
-    except ValueError as exc:
-        raise ValueError(f"Environment variable {var} must be an integer, got {raw!r}") from exc
-
-
-# ---------------------------------------------------------------------------
 # User database
 # ---------------------------------------------------------------------------
 
@@ -100,7 +69,10 @@ _users_table = sa.Table(
     sa.Column("is_admin", sa.Boolean, nullable=False, default=False),
     sa.Column("created_at", sa.Float, nullable=False),
     sa.Column("api_key_hash", sa.String(256), nullable=True),
+    sa.Column("full_name", sa.String(128), nullable=True),
     sa.Column("affiliation", sa.String(256), nullable=True),
+    sa.Column("position", sa.String(64), nullable=True),
+    sa.Column("pi_name", sa.String(128), nullable=True),
     sa.Column("terms_agreed", sa.Boolean, nullable=False, default=False),
     sa.Column("registration_status", sa.String(32), nullable=False, default="email_sent"),
     sa.Column("user_status", sa.String(32), nullable=False, default="pending"),
@@ -140,23 +112,51 @@ class UserDatabase:
         self.engine = sa.create_engine(
             f"sqlite:///{self.path}",
             future=True,
-            connect_args={"check_same_thread": False},
+            connect_args={"check_same_thread": False, "timeout": 30},
         )
         self._initialize()
 
     def _initialize(self) -> None:
         with self.engine.begin() as conn:
+            conn.exec_driver_sql("PRAGMA busy_timeout=30000;")
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
             _metadata.create_all(conn, checkfirst=True)
             self._ensure_columns(conn)
 
     @staticmethod
+    def _add_column_if_missing(conn, existing: set[str], column: str, column_type: str) -> bool:
+        """Add one legacy-migration column without failing a startup race.
+
+        The web and Celery processes can import the application concurrently.
+        Both may observe the same column as missing, but only one can add it.
+        Ignore only SQLite's duplicate-column result; every other database
+        error remains fatal.
+        """
+        if column in existing:
+            return False
+        try:
+            conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {column} {column_type};")
+        except sa.exc.OperationalError as exc:
+            message = str(exc).lower()
+            if "duplicate column name" not in message:
+                raise
+            logging.info("User database column %s was added by another startup process.", column)
+            existing.add(column)
+            return False
+        existing.add(column)
+        return True
+
+    @staticmethod
     def _ensure_columns(conn) -> None:
         existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()}
+        admin_notified_missing = "admin_notified" not in existing
         for col, coltype in [
             ("api_key_hash", "TEXT"),
+            ("full_name", "TEXT"),
             ("affiliation", "TEXT"),
+            ("position", "TEXT"),
+            ("pi_name", "TEXT"),
             ("terms_agreed", "INTEGER"),
             ("registration_status", "TEXT"),
             ("user_status", "TEXT"),
@@ -170,17 +170,15 @@ class UserDatabase:
             ("registration_ip", "TEXT"),
             ("registration_country", "TEXT"),
         ]:
-            if col not in existing:
-                conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype};")
-        if "token_version" not in existing:
-            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0;")
+            UserDatabase._add_column_if_missing(conn, existing, col, coltype)
+        UserDatabase._add_column_if_missing(conn, existing, "token_version", "INTEGER DEFAULT 0")
         # Backfill any NULL token_version (idempotent, runs every startup)
         conn.exec_driver_sql("UPDATE users SET token_version = 0 WHERE token_version IS NULL")
         # When adding admin_notified for the first time, mark all existing
         # non-admin users as notified so they don't appear in the first digest.
         # Admins are always excluded from the digest.  This is intentionally
         # gated — we only want this on the very first migration.
-        if "admin_notified" not in existing:
+        if admin_notified_missing:
             conn.exec_driver_sql("UPDATE users SET admin_notified = 1 WHERE is_admin = 0")
         # Idempotent backfills — run every startup (not gated) so legacy rows
         # that predate a column get their NULLs patched even when the column
@@ -205,7 +203,10 @@ class UserDatabase:
         *,
         is_admin: bool = False,
         role: str = "user",
+        full_name: str | None = None,
         affiliation: str | None = None,
+        position: str | None = None,
+        pi_name: str | None = None,
         terms_agreed: bool = False,
         registration_status: str = "email_sent",
         user_status: str = "pending",
@@ -222,7 +223,10 @@ class UserDatabase:
             is_admin=is_admin,
             role=role,
             created_at=now,
+            full_name=full_name,
             affiliation=affiliation,
+            position=position,
+            pi_name=pi_name,
             terms_agreed=terms_agreed,
             registration_status=registration_status,
             registration_ip=registration_ip,
@@ -244,7 +248,8 @@ class UserDatabase:
 
         Allowed keys: ``username``, ``email``, ``password_hash``,
         ``email_verified``, ``is_admin``, ``api_key_hash``,
-        ``affiliation``, ``terms_agreed``, ``registration_status``,
+        ``full_name``, ``affiliation``, ``position``, ``pi_name``,
+        ``terms_agreed``, ``registration_status``,
         ``user_status``, ``approved_by``, ``approved_at``.
         Password and API key values must be pre-hashed by the caller.
         """
@@ -255,7 +260,10 @@ class UserDatabase:
             "email_verified",
             "is_admin",
             "api_key_hash",
+            "full_name",
             "affiliation",
+            "position",
+            "pi_name",
             "terms_agreed",
             "registration_status",
             "user_status",

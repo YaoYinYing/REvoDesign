@@ -19,6 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- **GREMLIN server: scheduled database backups**: added an opt-in
+  `database_backup_task` that uses SQLite's online backup API to create
+  integrity-checked snapshot sets containing both task and user databases.
+  `BACKUP_DB_CRON` controls the five-field cron schedule and is disabled when
+  unset; `BACKUP_DB_PATH` selects persistent snapshot storage; and
+  `MAX_DB_BACKUP` prunes complete snapshot sets while remaining unlimited when
+  unset. The documented daily/retention defaults are `0 0 * * *` and 30.
+- **GREMLIN server: result retention cleanup**: `RESULT_RETENTION_DAYS` now
+  removes result directories and archives for expired finished, failed, or
+  cancelled tasks during a daily maintenance job. Fractional days are accepted
+  (`0.1` = 2.4 hours). Task audit rows are retained, and leaving the setting
+  unset disables cleanup.
+- **GREMLIN server: registration profile details**: registration now requires
+  full name, affiliation, academic position (undergraduate, Master's, PhD,
+  postdoctoral, faculty, industry, etc.), and PI name. The same information is
+  shown on the user's profile page and in the admin user-control system, where
+  admins can also create or modify these fields.
 - **Server test coverage + security A/B tests**: 121 new server tests covering auth
   endpoints (`/api/auth/me`, API key CRUD, CAPTCHA, password reset), UserDatabase
   methods (`get_user_by_email`, `validate_api_key`, `user_count`, digest
@@ -39,8 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Admin registration digest**: periodic email to `ADMIN_NOTIFY_EMAIL` listing new
   registrations that haven't been included in a prior digest. Each user appears
   only once (`admin_notified` column). Interval set by `ADMIN_NEW_USER_INFORM`
-  (minutes, default `0` = disabled). A `threading.Thread` daemon runs the digest
-  loop in the web process.
+  (minutes, default `0` = disabled).
 - **FASTA content validation**: uploads must contain valid FASTA content (first
   non-blank line starts with `>`). Catches renamed docx/jpg/exe files that pass
   the binary-detection check.
@@ -55,7 +71,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Self-service password change (`PUT /api/auth/me`) with profile page at `/PSSM_GREMLIN/profile`.
   - HTML email verification page at `/PSSM_GREMLIN/api/auth/verify-email`.
   - Rate limiting on login (5/min/IP) and registration (3/hr/IP).
-  - Redis password support via `REDIS_PASSWORD` env var.
   - Default admin bootstrap on first run (no seeding files needed).
   - Long-lived API keys (`X-API-Key` header) with restricted privileges — manageable via Profile page and REST API.
   - Email domain allowlisting (`ALLOWED_EMAIL_DOMAINS`) and plus-address normalisation (`user+tag@domain` → `user@domain`).
@@ -91,9 +106,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
 
 ### Changed
+- **GREMLIN server: cleanup and restart safety**: result retention now claims
+  unchanged expired rows before deleting artifacts, so concurrent resubmissions
+  cannot be removed. Automatic cleanup records use `cleaned:*` states, keeping
+  `deleted:*` states specific to user actions. Restart rollback copies now use
+  SQLite's backup API and include committed WAL data.
+- **GREMLIN server: private task isolation**: removed `PUBLIC_DASHBOARD`
+  because its former behavior exposed sequences and results and allowed
+  cross-user task cancellation. Existing environment entries are silently
+  ignored; task visibility and operations are always restricted to the owner
+  or an administrator.
+- **GREMLIN server: maintenance scheduler**: replaced the
+  two Gunicorn daemon loops with one dedicated APScheduler 3.x maintenance
+  service that has no HTTP port or Docker socket. Jobs are organized under
+  `maintenance/tasks/` as self-configuring `PeriodicTask` objects; the manager
+  only imports and registers them through a common interface. The service writes
+  to `${LOG_DIR}/maintenance.log` while retaining container console output.
+  Cleanup remains disabled when `RESULT_RETENTION_DAYS` is unset.
+- **GREMLIN server: Docker restart modes**: `restart` now defaults to
+  `--mode=dev`, which rebuilds local images with the host UID/GID.
+  `--mode=prod` instead pulls the configured published images and starts with
+  `--no-build`; it enforces the published-image identity contract of
+  `RUNNER_UID=1000` and `RUNNER_GID=1000`.
+- **GREMLIN server: Celery isolation**: the Celery worker can now launch without
+  user DB access. Web and maintenance receive `users.sqlite3` and their required
+  authentication/email settings; maintenance uses them only for scheduled email
+  and backup tasks, while the worker keeps task data, UniRef databases, and
+  Docker runner access. `AUTH_DIR` is documented as the host path and
+  `USER_DB_PATH` as the container path to the same database.
 - **GREMLIN server: pip package** — renamed from `pssm_gremlin` to `pssm_gremlin_server` with `pyproject.toml` for pip-installability. Server tests moved from `tests/server/` to `server/tests/` with dedicated CI workflow (`.github/workflows/server-test.yml`).
 - **GREMLIN server: Pydantic data models** — request/response validation hardened with typed Pydantic models at the API boundary (`schemas.py`), replacing ad-hoc `str(payload.get(...))` validation across all auth/admin route handlers.
-- **REvoDesign test suite** — removed server-test dependencies (Celery, Flask, Flask-HTTPAuth, SQLAlchemy, Docker SDK) from `make prepare-test`; server tests are now self-contained under `server/tests/` with their own `pyproject.toml`.
+- **REvoDesign test suite** — removed server-only dependency pins from the root
+  `test` extra; server tests and Makefile targets are now self-contained under
+  `server/`. The server CI workflow now calls the server-owned coverage target
+  instead of duplicating pytest filters and dependencies, with pytest and
+  coverage configuration also moved under `server/`.
 - **GREMLIN server: module split** — `pssm_gremlin.py` refactored from ~1500 lines into `db.py` (TaskDatabase), `routes.py` (HTTP handlers), `ratelimit.py` (rate limiter), and slimmed-down main module.
 - **GREMLIN server: SMTP-gated registration** — self-registration and email verification now require SMTP to be configured.
 - Docker Compose: removed `group_add: "0"` (root group) from `x-docker-socket-access`.
@@ -130,6 +177,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
 
 ### Fixed
+- **GREMLIN server deployment documentation**: aligned README, developer guide,
+  and `.env.example` with the dev/prod restart modes, published-image
+  `1000:1000` identity contract, registration profile fields, SMTP-or-Resend
+  email support, auth-storage boundary, and Docker socket authority. Removed
+  misleading `REDIS_PASSWORD` Compose guidance because the current stack does
+  not configure Redis authentication, and restored the documented
+  `RUNNER_HOST_ROOT` override to the worker environment.
+- **GREMLIN server: user DB upgrade compatibility**: older SQLite user
+  databases now gain the new registration-profile columns safely, including
+  concurrent web startup. The explicit `migrate-auth-db` command moves the
+  legacy database from shared `SERVER_DIR` into web/maintenance-only `AUTH_DIR`, verifies
+  integrity and user counts, and keeps a rollback database. It uses SQLite's
+  backup API so committed WAL data is included; no manual database move is
+  required.
 - **Package manager self-bootstrap**: manager UI and extras registry now
   bootstrap into a writable runtime directory instead of writing into `src/` or
   an installed package directory. Bootstrap fetches use bounded timeouts and

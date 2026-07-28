@@ -4,9 +4,9 @@
 
 """pytest configuration and shared helpers for pssm_gremlin_server tests.
 
-Run from the repo root::
+Run through the server-owned Makefile::
 
-    pytest server/tests/ -k "not Docker and not docker"
+    make -C server test
 """
 
 from __future__ import annotations
@@ -148,7 +148,9 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
     if _pg is not None:
         _pg.__dict__.pop("routes", None)
         _pg.__dict__.pop("pssm_gremlin", None)
+        _pg.__dict__.pop("task_runtime", None)
     sys.modules.pop("pssm_gremlin_server.routes", None)
+    sys.modules.pop("pssm_gremlin_server.task_runtime", None)
     sys.modules[module_name] = module
     sys.modules["pssm_gremlin_server.pssm_gremlin"] = module
     try:
@@ -158,9 +160,11 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
         sys.modules.pop(module_name, None)
         sys.modules.pop("pssm_gremlin_server.pssm_gremlin", None)
         sys.modules.pop("pssm_gremlin_server.routes", None)
+        sys.modules.pop("pssm_gremlin_server.task_runtime", None)
         if _pg is not None:
             _pg.__dict__.pop("routes", None)
             _pg.__dict__.pop("pssm_gremlin", None)
+            _pg.__dict__.pop("task_runtime", None)
 
 
 # ── test client auth helpers ───────────────────────────────────────────────────
@@ -512,18 +516,24 @@ class DockerServerStack:
         password = f"test_password_{secrets.token_hex(32)}"
         self.username = "admin"
         self.password = password
-        self.db_path = self.state_dir / "pssm_gremlin_server.sqlite3"
+        self.db_path = self.server_dir / "pssm_gremlin_server.sqlite3"
         if self._needs_relaxed_permissions:
             self._relax_permissions()
         self.containers: list[str] = []
-        self.volumes = [
-            (str(self.state_dir), str(self.state_dir), "rw"),
+        self.web_volumes = [
+            (str(self.server_dir), str(self.server_dir), "rw"),
+            (str(self.users_dir), str(self.users_dir), "rw"),
+            (str(self.log_dir), str(self.log_dir), "rw"),
+        ]
+        self.worker_volumes = [
+            (str(self.server_dir), str(self.server_dir), "rw"),
             (self.miniuc["uniref30_mount"], self.miniuc["uniref30_mount"], "ro"),
             (self.miniuc["uniref90_mount"], self.miniuc["uniref90_mount"], "ro"),
+            (str(self.log_dir), str(self.log_dir), "rw"),
             ("/var/run/docker.sock", "/var/run/docker.sock", "rw"),
         ]
         redis_url = f"redis://{self.redis_name}:6379/0"
-        self.env = {
+        self.task_env = {
             "SERVER_DIR": str(self.server_dir),
             "DB_PATH": str(self.db_path),
             "DB_UNIREF30": self.miniuc["uniref30_prefix"],
@@ -540,6 +550,10 @@ class DockerServerStack:
             "BROKER_URL": redis_url,
             "RESULT_BACKEND": redis_url,
         }
+        self.web_env = {
+            **self.task_env,
+            "USER_DB_PATH": str(self.users_dir / "users.sqlite3"),
+        }
 
     def start(self, server_ready_timeout: float = 120.0, max_attempts: int = 3):
         _run_command(["docker", "network", "create", self.network])
@@ -555,7 +569,7 @@ class DockerServerStack:
                     timeout=server_ready_timeout,
                     web_container=self.web_name,
                 )
-                _inject_admin_password(str(self.server_dir / "users.sqlite3"), self.username, self.password)
+                _inject_admin_password(str(self.users_dir / "users.sqlite3"), self.username, self.password)
                 break
             except AssertionError:
                 if attempt < max_attempts - 1:
@@ -565,9 +579,9 @@ class DockerServerStack:
                     raise
         self._start_worker()
 
-    def _env_args(self) -> list[str]:
+    def _env_args(self, environment: dict[str, str]) -> list[str]:
         args: list[str] = []
-        for key, value in self.env.items():
+        for key, value in environment.items():
             args.extend(["-e", f"{key}={value}"])
         return args
 
@@ -615,12 +629,12 @@ class DockerServerStack:
             "--network",
             self.network,
             *self._docker_group_args(),
-            *_volume_args(self.volumes),
-            *self._env_args(),
+            *_volume_args(self.worker_volumes),
+            *self._env_args(self.task_env),
             self.server_image_tag,
             "celery",
             "-A",
-            "pssm_gremlin_server.pssm_gremlin.celery",
+            "pssm_gremlin_server.task_runtime.celery",
             "worker",
             "--loglevel=info",
             "--concurrency=1",
@@ -641,9 +655,8 @@ class DockerServerStack:
             self.network,
             "-p",
             f"{self.port}:{self.port}",
-            *self._docker_group_args(),
-            *_volume_args(self.volumes),
-            *self._env_args(),
+            *_volume_args(self.web_volumes),
+            *self._env_args(self.web_env),
             self.server_image_tag,
             "gunicorn",
             "-w",

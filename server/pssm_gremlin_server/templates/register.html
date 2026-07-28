@@ -33,13 +33,38 @@
         <input type="email" id="email" class="text-input" placeholder="you@example.com" required autocomplete="email">
       </div>
       <div class="field">
+        <label for="fullName">Full name</label>
+        <input type="text" id="fullName" class="text-input" placeholder="Your full name" maxlength="128" required autocomplete="name">
+      </div>
+      <div class="field">
+        <label for="affiliation">Affiliation</label>
+        <input type="text" id="affiliation" class="text-input" placeholder="University / Institute / Company" maxlength="256" required autocomplete="organization">
+      </div>
+      <div class="field">
+        <label for="position">Position</label>
+        <select id="position" class="text-input" required>
+          <option value="" selected disabled>Select your position</option>
+          <option value="undergraduate_student">Undergraduate student</option>
+          <option value="masters_student">Master&rsquo;s student</option>
+          <option value="phd_student">PhD student</option>
+          <option value="postdoctoral_researcher">Postdoctoral researcher</option>
+          <option value="research_assistant">Research assistant</option>
+          <option value="lecturer">Lecturer</option>
+          <option value="assistant_professor">Assistant professor</option>
+          <option value="associate_professor">Associate professor</option>
+          <option value="professor">Professor</option>
+          <option value="industry_researcher">Industry researcher</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="piName">PI / supervisor name</label>
+        <input type="text" id="piName" class="text-input" placeholder="Principal investigator or supervisor" maxlength="128" required>
+      </div>
+      <div class="field">
         <label for="password">Password</label>
         <input type="password" id="password" class="text-input" placeholder="At least 8 characters" minlength="8" required autocomplete="new-password">
         <p class="hint">Minimum 8 characters.</p>
-      </div>
-      <div class="field">
-        <label for="affiliation">Affiliation <span class="muted">(optional)</span></label>
-        <input type="text" id="affiliation" class="text-input" placeholder="University / Institute / Company">
       </div>
       <div class="field checkbox-field">
         <label class="checkbox-label">

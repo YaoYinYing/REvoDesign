@@ -42,10 +42,8 @@ from pssm_gremlin_server.auth import (
     validate_reset_token,
 )
 from pssm_gremlin_server.pssm_gremlin import (
-    CONFIG,
     ENABLE_REGISTER,
     TEMPLATE_IMAGE_DIR,
-    _build_running_trace,
     _client_country,
     _client_ip,
     _current_username,
@@ -55,25 +53,14 @@ from pssm_gremlin_server.pssm_gremlin import (
     _is_binary_file,
     _is_deleted_status,
     _is_fasta_content,
-    _local_user_identity,
-    _normalize_task_id,
-    _pack_failed_results_archive,
     _request_metadata,
     _revoke_celery_task,
-    _safe_join,
-    _sanitize_task_error,
     _task_access_allowed,
     _task_access_denied,
     _task_delete_allowed,
     _task_id_for_upload,
     _task_zip_download_name,
-    _task_zip_path,
-    _virtual_upload_path,
     app,
-    format_times,
-    format_walltime,
-    run_gremlin_task,
-    task_store,
 )
 from pssm_gremlin_server.ratelimit import rate_limit
 from pssm_gremlin_server.schemas import (
@@ -86,6 +73,20 @@ from pssm_gremlin_server.schemas import (
     RegisterRequest,
     ResetPasswordRequest,
     UserResponse,
+)
+from pssm_gremlin_server.task_runtime import (
+    _build_running_trace,
+    _local_user_identity,
+    _normalize_task_id,
+    _pack_failed_results_archive,
+    _safe_join,
+    _sanitize_task_error,
+    _task_zip_path,
+    _virtual_upload_path,
+    format_times,
+    format_walltime,
+    run_gremlin_task,
+    task_store,
 )
 from pydantic import ValidationError
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -205,7 +206,12 @@ def upload_file():
     if existing_task and existing_task["status"] == "finished":
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
 
-    if existing_task and existing_task["status"] in {"pending", "running", "packing results"}:
+    if existing_task and existing_task["status"] in {
+        "pending",
+        "running",
+        "packing results",
+        *task_store.CLEANUP_CLAIM_STATUSES,
+    }:
         return jsonify({"status": "Task already queued or running", "md5sum": md5sum}), 202
 
     # ponytail: per-user cap on active tasks — the expensive resource is the
@@ -331,6 +337,10 @@ def run_gremlin(md5sum):
         return jsonify({"status": "packing results", "md5sum": md5sum}), 202
     if status == "cancelled":
         return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
+    if status in task_store.CLEANUP_CLAIM_STATUSES:
+        return jsonify({"status": status, "md5sum": md5sum}), 202
+    if status in task_store.CLEANUP_STATUSES:
+        return jsonify({"status": status, "md5sum": md5sum}), 200
     if status == "deleted:finshed":
         return jsonify({"status": "deleted:finshed", "md5sum": md5sum}), 200
     if status == "deleted:cancel":
@@ -460,7 +470,7 @@ def task_dashboard():
     current_user = _current_username() or ""
     is_admin = _is_admin_user(current_user)
     all_tasks = task_store.list_tasks()
-    if is_admin or CONFIG.public_dashboard:
+    if is_admin:
         scoped_tasks = all_tasks
     else:
         scoped_tasks = [task for task in all_tasks if task.get("username") == current_user]
@@ -496,7 +506,8 @@ def task_dashboard():
                 "submitted_timestamp": submitted_time or 0,
                 "sequence": fasta_seq,
                 "owner": task.get("username") or "-",
-                "can_delete": is_admin or (task.get("username") == current_user),
+                "can_delete": (is_admin or task.get("username") == current_user)
+                and task["status"] not in task_store.CLEANUP_CLAIM_STATUSES,
                 "running_trace": _build_running_trace(task),
                 "error": _sanitize_task_error(task, task.get("error")),
             }
@@ -527,6 +538,8 @@ def delete_task(md5sum):
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
     if not _task_delete_allowed(task):
         return _task_access_denied(md5sum)
+    if task["status"] in task_store.CLEANUP_CLAIM_STATUSES:
+        return jsonify({"error": "Task cleanup is already in progress", "md5sum": md5sum}), 409
 
     if task["status"] in {"pending", "running", "packing results"}:
         _revoke_celery_task(task)
@@ -587,6 +600,9 @@ def delete_tasks_batch():
             continue
         if not _task_delete_allowed(task):
             forbidden.append(md5sum)
+            continue
+        if task["status"] in task_store.CLEANUP_CLAIM_STATUSES:
+            ignored.append(md5sum)
             continue
 
         if task["status"] in {"pending", "running", "packing results"}:
@@ -828,7 +844,10 @@ def auth_register():
         username=req.username,
         email=req.email,
         password=req.password,
+        full_name=req.full_name,
         affiliation=req.affiliation,
+        position=req.position,
+        pi_name=req.pi_name,
         terms_agreed=req.terms_agreed,
         registration_ip=_client_ip(),
         registration_country=_client_country(),
@@ -991,6 +1010,10 @@ def auth_me():
                 "email_verified": user["email_verified"],
                 "is_admin": user["is_admin"],
                 "role": user.get("role", "user"),
+                "full_name": user.get("full_name"),
+                "affiliation": user.get("affiliation"),
+                "position": user.get("position"),
+                "pi_name": user.get("pi_name"),
             }
         ),
         200,
@@ -1106,7 +1129,10 @@ def admin_create_user():
         password=req.password,
         is_admin=req.is_admin or (req.role == "admin"),
         role=req.role,
+        full_name=req.full_name,
         affiliation=req.affiliation,
+        position=req.position,
+        pi_name=req.pi_name,
         registration_status="approved",
         user_status="active",
     )
@@ -1160,6 +1186,12 @@ def admin_manage_user(user_id):
         return jsonify({"error": "Administrators cannot ban their own account"}), 400
     if req.affiliation is not None:
         update_fields["affiliation"] = req.affiliation
+    if req.full_name is not None:
+        update_fields["full_name"] = req.full_name
+    if "position" in req.model_fields_set:
+        update_fields["position"] = req.position
+    if req.pi_name is not None:
+        update_fields["pi_name"] = req.pi_name
     if req.password is not None:
         update_fields["password_hash"] = generate_password_hash(req.password)
     if req.registration_status is not None:

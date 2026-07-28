@@ -37,6 +37,34 @@
   border-left: 3px solid var(--accent);
 }
 
+/* ---- Research profile details ---- */
+
+.profile-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
+  margin: 1.4rem 0 0;
+}
+
+.profile-details div {
+  min-width: 0;
+}
+
+.profile-details dt {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.profile-details dd {
+  margin: 0.25rem 0 0;
+  color: var(--ink);
+  font-size: 0.94rem;
+  overflow-wrap: anywhere;
+}
+
 /* ---- Form ---- */
 
 .auth-form {
@@ -206,5 +234,9 @@ html[data-theme="dark"] .section-heading {
 
   .hero {
     border-radius: 14px;
+  }
+
+  .profile-details {
+    grid-template-columns: 1fr;
   }
 }

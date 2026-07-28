@@ -263,8 +263,8 @@ def test_admin_create_user_with_affiliation(monkeypatch, tmp_path):
     assert user["email_verified"] is True
 
 
-def test_register_with_affiliation_and_terms(monkeypatch, tmp_path):
-    """Registration accepts affiliation and requires terms_agreed."""
+def test_register_with_required_research_profile_and_terms(monkeypatch, tmp_path):
+    """Registration stores the required research-profile fields."""
     module = _load_pssm_module(
         monkeypatch,
         tmp_path,
@@ -291,7 +291,10 @@ def test_register_with_affiliation_and_terms(monkeypatch, tmp_path):
                 "username": "reguser",
                 "email": "reg@test.local",
                 "password": "regpass123",
+                "full_name": "Ada Researcher",
                 "affiliation": "Stanford",
+                "position": "phd_student",
+                "pi_name": "Prof. Grace Hopper",
                 "terms_agreed": True,
                 "captcha_token": captcha_token,
                 "captcha_answer": "7",
@@ -301,7 +304,10 @@ def test_register_with_affiliation_and_terms(monkeypatch, tmp_path):
     assert resp.status_code == 201
     user = db.get_user_by_username("reguser")
     assert user is not None
+    assert user["full_name"] == "Ada Researcher"
     assert user["affiliation"] == "Stanford"
+    assert user["position"] == "phd_student"
+    assert user["pi_name"] == "Prof. Grace Hopper"
     assert user["terms_agreed"] is True
     assert user["registration_status"] == "email_sent"
     assert user["user_status"] == "pending"
@@ -334,6 +340,10 @@ def test_register_rejects_without_terms(monkeypatch, tmp_path):
                 "username": "noterms",
                 "email": "noterms@test.local",
                 "password": "regpass123",
+                "full_name": "No Terms",
+                "affiliation": "Example University",
+                "position": "undergraduate_student",
+                "pi_name": "Example Supervisor",
                 "captcha_token": captcha_token,
                 "captcha_answer": "7",
             }
@@ -342,6 +352,38 @@ def test_register_rejects_without_terms(monkeypatch, tmp_path):
     assert resp.status_code == 400
     data = json.loads(resp.text)
     assert "Terms of Service" in data.get("error", "")
+
+
+def test_register_rejects_missing_research_profile(monkeypatch, tmp_path):
+    """Self-registration requires name, affiliation, position, and PI name."""
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ENABLE_REGISTER": "true",
+            "SMTP_HOST": "localhost",
+        },
+    )
+    from pssm_gremlin_server.auth import _serializer
+
+    client = module.app.test_client()
+    captcha_token: str = _serializer.dumps({"answer": 7, "purpose": "captcha"})
+    resp = client.post(
+        "/PSSM_GREMLIN/api/auth/register",
+        json={
+            "username": "missingprofile",
+            "email": "missing@test.local",
+            "password": "regpass123",
+            "terms_agreed": True,
+            "captcha_token": captcha_token,
+            "captcha_answer": "7",
+        },
+    )
+
+    assert resp.status_code == 400
+    assert module.app.config["user_db"].get_user_by_username("missingprofile") is None
 
 
 def test_user_control_page_requires_admin(monkeypatch, tmp_path):

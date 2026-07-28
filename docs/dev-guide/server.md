@@ -38,14 +38,15 @@ system computes its MD5 hash as a unique task identifier, creates an isolated
 directory for input/output data, and enqueues the job onto a Celery message
 queue. Task state progresses through: **pending** → **running** → **packing
 results** → **finished** (or **failed**). The actual computation runs in an
-isolated Docker container per task, preventing interference between
-concurrent jobs. When complete, all result files (PSSM, co-evolution coupling
+separate Docker container per task, keeping runtime dependencies and artifacts
+apart across concurrent jobs. When complete, all result files (PSSM, co-evolution coupling
 scores, MSA files) are packaged into a ZIP archive for one-click download
 from the dashboard. Users can also cancel queued or running tasks.
 
 ## Architecture
 
-The server has four containerized services, orchestrated by Docker Compose:
+The server has four long-lived services plus on-demand runner containers,
+orchestrated by Docker Compose:
 
 ```
                 ┌──────────────────┐
@@ -59,11 +60,11 @@ The server has four containerized services, orchestrated by Docker Compose:
 │  - REST API (/PSSM_GREMLIN/api/...)    │
 │  - Web UI (create_task, dashboard)     │
 │  - Bearer-token auth + API keys        │
-│  - Dispatches runner containers        │
-│  - Needs /var/run/docker.sock          │
+│  - Owns isolated users.sqlite3         │
+│  - No Docker socket                    │
 └────┬────────────────────────────────┬───┘
-     │ Celery tasks                   │ docker socket
-     ▼                                ▼
+     │ Celery tasks
+     ▼
 ┌──────────┐               ┌──────────────────┐
 │  redis   │◄──────────────│  worker (Celery) │
 │ (broker) │  task queue   │  Background job   │
@@ -80,7 +81,19 @@ The server has four containerized services, orchestrated by Docker Compose:
                     │  Mounts: FASTA, DB        │
                     │  dirs, output dir         │
                     └──────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│ maintenance (APScheduler)               │
+│ - Registration digest and cleanup jobs │
+│ - Shares task and user SQLite storage   │
+│ - No HTTP port or Docker socket         │
+└─────────────────────────────────────────┘
 ```
+
+The separate `maintenance` service runs APScheduler without an HTTP port or
+Docker socket. It shares the web service's access to the task and user
+databases so it can send registration digests and, when explicitly enabled,
+remove expired result artifacts and create consistent database snapshots.
 
 <figure markdown="span">
 ![REvoDesign evolutionary data calculation service architecture](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/server-arch.png){ width="600" }
@@ -89,23 +102,27 @@ The server has four containerized services, orchestrated by Docker Compose:
 
 The service stack is fully containerized and orchestrated via Docker Compose.
 Deployment requires only database files, environment variables, and a single
-command. Services run as non-root users with group-based Docker socket access.
-User task data is organized by user identity and task MD5, with strict
-permission isolation.
+command. Services run as non-root users; only the worker receives the Docker
+socket and its supplementary socket group.
+User task data is organized by user identity and task MD5, with
+application-level ownership checks on task access.
 
 User accounts have three roles: `admin` (full access), `user` (registered user
 with API and web access), and `guest` (publicly shared, web-dashboard-only —
 no API keys, no password/profile changes, no task deletion). Self-registration
-requires a server-generated math CAPTCHA to prevent automated signups.
+requires full name, affiliation, academic position, PI name, and a
+server-generated math CAPTCHA. Profile details are visible to the user and in
+the admin user-control system.
 
 ### Services
 
 | Service | Base Image | Role |
 |---------|-----------|------|
 | **web** | `python:3.12-slim` | Flask + Gunicorn HTTP server. Serves the web UI and REST API. |
+| **maintenance** | Same as `web` | Single APScheduler process for registration digests, optional result retention, and database backups. No HTTP port or Docker socket. |
 | **worker** | Same as `web` | Celery worker that receives `run_gremlin_task` jobs from Redis. |
 | **redis** | `redis:7.2-alpine` | Celery message broker and result backend. |
-| **runner** | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `web`/`worker` via the Docker socket. |
+| **runner** | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `worker`. |
 
 ### Code Structure
 
@@ -115,7 +132,12 @@ The server is a pip-installable package at ``server/pssm_gremlin_server/``
 
 | Module | Purpose |
 |--------|---------|
-| ``pssm_gremlin.py`` | Flask app factory, Celery instance, ``GremlinConfig``, Docker runner helpers |
+| ``pssm_gremlin.py`` | Flask web entrypoint, user DB bootstrap, and web-only helpers |
+| ``config.py`` | Side-effect-free environment parsing and ``GremlinConfig`` |
+| ``maintenance/model.py`` | ``PeriodicTask`` contract for task configuration and APScheduler registration |
+| ``maintenance/manager.py`` | Standalone APScheduler entrypoint that imports task objects and calls their common ``register()`` interface |
+| ``maintenance/tasks/`` | One self-configuring task object per module: registration digest, result cleanup, and consistent task/user SQLite backups |
+| ``task_runtime.py`` | Celery instance, task DB, Docker runner, archives, and ``run_gremlin_task`` |
 | ``routes.py`` | All ``@app.route`` HTTP handlers — page routes, task API, auth API, admin API |
 | ``auth.py`` | Token serialisation, ``UserDatabase`` (SQLite/SQLAlchemy), ``login_required`` decorator, email verification, password reset |
 | ``schemas.py`` | Pydantic request/response models — ``LoginRequest``, ``RegisterRequest``, ``AdminCreateUserRequest``, ``AdminUpdateUserRequest``, ``BatchUserRequest``, ``UserResponse``, and more |
@@ -127,9 +149,15 @@ HTML templates are in ``server/pssm_gremlin_server/templates/``.
 Tests live at ``server/tests/`` with a dedicated CI workflow
 (``.github/workflows/server-test.yml``).
 
+To add a periodic maintenance job, create one module under
+``maintenance/tasks/`` containing a ``PeriodicTask`` subclass and one exported
+task object, then import that object into ``maintenance/manager.py``. The task's
+``configure()`` method reads its environment variables; ``register()`` applies
+its ``args`` to ``scheduler.add_job`` only when ``is_enabled`` is true.
+
 ### Key Design Decisions
 
-- **Docker-out-of-Docker**: The `web` and `worker` containers bind-mount
+- **Docker-out-of-Docker**: Only the `worker` container bind-mounts
   `/var/run/docker.sock` to create and manage `runner` containers on the host
   Docker daemon. This isolates the heavy bioinformatics dependencies (older
   Python, TensorFlow 1.x, HHsuite) into the runner image, keeping the server
@@ -206,7 +234,7 @@ cookie-only writes are rejected to avoid CSRF on browser sessions.
 | `GET` | `/PSSM_GREMLIN/user_control` | Admin-only user management page (web UI) |
 | `GET` | `/PSSM_GREMLIN/api/auth/admin/users` | List all users (safe fields, excludes soft-deleted) |
 | `POST` | `/PSSM_GREMLIN/api/auth/admin/users` | Create user (pre-verified, immediately active) |
-| `PUT` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Update user fields (email, affiliation, password, statuses) |
+| `PUT` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Update profile fields, email, password, role, and account statuses |
 | `DELETE` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Soft-delete user (record kept for audit) |
 | `POST` | `/PSSM_GREMLIN/api/auth/admin/users/batch` | Batch enable / disable / delete |
 
@@ -232,6 +260,10 @@ still applying the requested action to other selected users.
 | `finished` | Results ready for download |
 | `failed` | Computation error |
 | `cancelled` | User-cancelled task |
+| `deleting:finished` | Maintenance has claimed completed-task artifacts for deletion |
+| `deleting:cancel` | Maintenance has claimed failed/cancelled-task artifacts for deletion |
+| `cleaned:finished` | Retention cleanup removed completed-task artifacts |
+| `cleaned:cancel` | Retention cleanup removed failed/cancelled-task artifacts |
 | `deleted:finshed` | Soft-deleted after completion |
 | `deleted:cancel` | Soft-deleted before completion |
 
@@ -259,19 +291,28 @@ The GitHub Actions workflow at `.github/workflows/docker-image.yml` builds
 both images on `workflow_dispatch`, tags them with the date and `latest`,
 and pushes to Docker Hub.
 
+Local builds remain the development workflow. Use `restart --mode=dev` to
+build images with the deployment host UID/GID. Use `restart --mode=prod` to
+pull the configured published images and start with `--no-build`; published
+images require `RUNNER_UID=1000` and `RUNNER_GID=1000`. The selected env file
+controls paths, secrets, and resources independently from the restart mode.
+
 ### Environment Configuration
 
-Required environment variables (defined in `docker-compose.yml`):
+Important environment variables (see the organized sections in
+`server/.env.example`):
 
 | Variable | Description |
 |----------|-------------|
-| `SERVER_DIR` | Host root for uploads, SQLite, and result folders |
-| `LOG_DIR` | Host directory for Gunicorn/Celery logs |
+| `SERVER_IMAGE` / `RUNNER_IMAGE` | Built locally in dev mode or pulled from their configured references in prod mode |
+| `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and results; never contains the user DB |
+| `LOG_DIR` | Host directory for Gunicorn, Celery, and `maintenance.log` |
 | `DB_UNIREF30` | UniRef30 HHsuite database prefix path |
 | `DB_UNIREF90` | UniRef90 BLAST database prefix path |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens (set in production) |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days) |
-| `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`) |
+| `AUTH_DIR` | Host directory containing `users.sqlite3`; mounted only into web and maintenance and required to be outside `SERVER_DIR` |
+| `USER_DB_PATH` | Path through which web and maintenance see that database inside their containers (default: `/var/lib/revodesign-auth/users.sqlite3`) |
 | `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires email service) |
 | `SMTP_HOST` | SMTP server hostname (stdlib, always available) |
 | `SMTP_PORT` | SMTP port (default: 587) |
@@ -283,17 +324,49 @@ Required environment variables (defined in `docker-compose.yml`):
 | `RESEND_API_KEY` | Resend API key (optional; takes priority over SMTP when set) |
 | `RESEND_FROM_ADDR` | Sender address for Resend (default: onboarding@resend.dev) |
 | `RESEND_FROM_NAME` | Sender display name for Resend |
-| `SERVER_BASE_URL` | Public base URL for verification links |
-| `REDIS_PASSWORD` | Optional Redis authentication password |
-| `RUNNER_UID` / `RUNNER_GID` | Non-root user for runner containers |
+| `SERVER_BASE_URL` | Public base URL for email links and HTTPS-sensitive auth-cookie settings |
+| `RUNNER_UID` / `RUNNER_GID` | Dev may match the host; published production images require `1000:1000` |
 | `DOCKER_GID` | Runtime value auto-detected by `restart_pssm_flask.sh` for Docker Compose interpolation. Override only as a shell variable when detection is wrong |
 | `NPROC` | CPU threads for runner |
 | `MAXMEM` | Memory cap (GB) for HHblits (`-maxmem`) |
+| `WORKER_CONCURRENCY` | Concurrent Celery jobs |
+| `GUNICORN_WORKERS` | Gunicorn web worker count |
 | `PORT` | Public HTTP port (default: 8080) |
-| `PUBLIC_DASHBOARD` | Per-user task isolation (default: `false`) |
+| `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives; fractions are allowed (`0.1` = 2.4 hours), and unset disables cleanup |
+| `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots; unset disables the task. Recommended daily value: `0 0 * * *` |
+| `BACKUP_DB_PATH` | Snapshot directory inside maintenance; `/var/lib/revodesign-auth/backups` maps to `${AUTH_DIR}/backups` on the host |
+| `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain; unset is unlimited, recommended value is `30` |
 | `ADMIN_USERS` | Comma-separated admin usernames |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
+| `ADMIN_NOTIFY_EMAIL` | Comma-separated recipients for new-registration digests |
+| `ADMIN_NEW_USER_INFORM` | Digest interval in minutes (`0` disables it) |
+| `CLIENT_IP_HEADERS` / `CLIENT_COUNTRY_HEADER` | Trusted proxy headers for registration and request metadata |
 | `TZ` | Timezone for logs |
+
+`AUTH_DIR` is a Docker-host path, whereas `USER_DB_PATH` is a path inside the
+web and maintenance containers. They refer to the same file through the
+Compose volume mapping:
+
+```text
+${AUTH_DIR}/users.sqlite3
+    -> web: /var/lib/revodesign-auth/users.sqlite3
+    -> maintenance: /var/lib/revodesign-auth/users.sqlite3
+    -> worker: not mounted
+```
+
+For example, `AUTH_DIR=/srv/revodesign/auth` and the default
+`USER_DB_PATH=/var/lib/revodesign-auth/users.sqlite3` make the host file
+`/srv/revodesign/auth/users.sqlite3` available to web and maintenance at
+`USER_DB_PATH`.
+`AUTH_DIR` cannot be nested below `SERVER_DIR`, because the worker receives the
+entire `SERVER_DIR` mount and would then inherit access to the user database.
+Fresh deployments only need to create a writable `AUTH_DIR`; upgrades from the
+old shared layout must run `restart_pssm_flask.sh migrate-auth-db` while the
+stack is stopped.
+
+With the recommended `BACKUP_DB_PATH=/var/lib/revodesign-auth/backups`, each
+successful run creates `${AUTH_DIR}/backups/<UTC timestamp>/tasks.sqlite3` and
+`users.sqlite3`. Retention counts complete timestamped snapshot directories.
 
 ### Setup Steps
 
@@ -310,14 +383,14 @@ Required environment variables (defined in `docker-compose.yml`):
 3. **Configure authentication**:
    - On first run, a default admin user is created automatically (username: `admin`, password auto-generated and displayed by `restart_pssm_flask.sh`).
    - Change the admin password immediately via the Profile page.
-   - Optionally enable self-registration with `ENABLE_REGISTER=true` and SMTP settings.
+   - Optionally enable self-registration with `ENABLE_REGISTER=true` and either SMTP or Resend settings.
 
 4. **Build and run** using the helper script:
    ```bash
    REVODESIGN_SERVER_ENV=server/.env.production \
      bash server/run/restart_pssm_flask.sh setup
    REVODESIGN_SERVER_ENV=server/.env.production \
-     bash server/run/restart_pssm_flask.sh restart
+     bash server/run/restart_pssm_flask.sh restart --mode=prod
    ```
 
 5. **Access** the web UI at `http://<host>:<port>/PSSM_GREMLIN/dashboard`
@@ -358,30 +431,34 @@ The runner conda environment is defined at
 - BLAST 2.13, HHsuite 3.3, HMMER 3.3.2
 - Channels: defaults, conda-forge, bioconda
 
-The server's Python dependencies are declared in ``server/pyproject.toml``
-with an optional ``[resend]`` extra for the Resend email SDK.  They include
-Flask 3.x, Celery 5.x (with Redis), SQLAlchemy 2.x, Pydantic 2.x,
-itsdangerous, werkzeug, and the Docker SDK for Python.
+The server's Python dependencies are declared only in
+``server/pyproject.toml``, with an optional ``[resend]`` extra for the Resend
+email SDK. They include Flask 3.x, APScheduler 3.x, Celery 5.x (with Redis),
+SQLAlchemy 2.x, Pydantic 2.x, itsdangerous, werkzeug, and the Docker SDK for
+Python.
 
 ## Testing
 
-Server tests live under ``server/tests/`` and are run from the repo root:
+Server tests and their Makefile live under ``server/``:
 
 ```bash
 # Install the server package in editable mode with test deps
 pip install -e "server/[test]"
 
 # Run non-Docker tests (fast, no external services needed)
-pytest server/tests/ -v -k "not Docker and not docker"
+make -C server test
 
 # Run all tests including Docker integration tests
-pytest server/tests/ -v
+make -C server test-all
 ```
 
 The test suite uses the same ``_load_pssm_module`` pattern to create isolated
 Flask test clients with temporary SQLite databases and environment variables.
 A dedicated CI workflow (``.github/workflows/server-test.yml``) runs non-Docker
-tests on every push touching ``server/**``.
+tests on every push touching ``server/**``. CI calls
+``make -C server test-cov`` rather than maintaining a separate pytest command;
+the server-local ``pyproject.toml`` and ``.coveragerc`` keep its pytest and
+coverage configuration independent from the root REvoDesign suite.
 
 ### Current Security Test Coverage
 
@@ -426,9 +503,9 @@ changes.
 Run these checks after auth, account-status, Docker Compose, user/group, or
 runner-launch changes:
 
-- **Docker socket A/B attack test**: verify whether web/worker can access
-  `/var/run/docker.sock`.  If they can, prove the HTTP API still cannot expose
-  Docker control: low-privilege users must not reach admin APIs, cookie-only
+- **Docker socket boundary test**: verify that web has no
+  `/var/run/docker.sock` mount and worker can access it. Prove the HTTP API
+  cannot expose Docker control: low-privilege users must not reach admin APIs, cookie-only
   task writes must fail with Bearer-token errors, Docker-like routes such as
   `/containers/json` must not exist on the Flask port, and uploads must not let
   users choose image, command, privileged mode, bind source paths, or socket
@@ -473,24 +550,22 @@ docker inspect server-web-1 server-worker-1 \
   --format '{{.Name}} User={{.Config.User}} Groups={{json .HostConfig.GroupAdd}} Mounts={{json .Mounts}}'
 docker exec server-web-1 id
 docker exec server-worker-1 id
-docker exec server-web-1 ls -ln /var/run/docker.sock
 docker exec server-worker-1 ls -ln /var/run/docker.sock
 ```
 
-A result: the socket is not accessible from web/worker. This proves the live
-instance is not Docker-root-escape-capable, but Docker-backed task execution
-will fail until permissions are fixed. Expected evidence:
+A result: the socket is absent from web and inaccessible from worker. Web is
+correctly isolated, but Docker-backed task execution will fail until worker
+permissions are fixed. Expected evidence:
 
 ```text
 /var/run/docker.sock -> srw-rw---- 1 0 0 ...
-docker.from_env() from web/worker -> PermissionError(13, 'Permission denied')
+docker.from_env() from worker -> PermissionError(13, 'Permission denied')
 submitted task -> failed with "Docker daemon unavailable" or PermissionError
 ```
 
-B result: the socket is accessible from web/worker. This is operationally
-required for runner containers, but it is host-root-equivalent if arbitrary code
-ever runs in web/worker. In this case the test must prove the HTTP contract does
-not expose Docker control. Expected evidence:
+B result: the socket is absent from web and accessible from worker. This is the
+required service boundary; worker socket access remains host-root-equivalent.
+The HTTP surface must still not expose Docker control. Expected evidence:
 
 ```text
 limited user /api/auth/admin/users -> 403

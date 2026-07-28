@@ -34,7 +34,9 @@ class TaskDatabase:
     """Minimal SQLite-based task tracker for GREMLIN jobs."""
 
     DELETED_STATUSES = {"deleted:finshed", "deleted:cancel"}
-    TERMINAL_STATUSES = {"deleted:finshed", "deleted:cancel", "cancelled"}
+    CLEANUP_STATUSES = {"cleaned:finished", "cleaned:cancel"}
+    CLEANUP_CLAIM_STATUSES = {"deleting:finished", "deleting:cancel"}
+    TERMINAL_STATUSES = DELETED_STATUSES | CLEANUP_STATUSES | CLEANUP_CLAIM_STATUSES | {"cancelled"}
 
     VALID_STATUSES = {
         "pending",
@@ -43,6 +45,10 @@ class TaskDatabase:
         "finished",
         "failed",
         "cancelled",
+        "deleting:finished",
+        "deleting:cancel",
+        "cleaned:finished",
+        "cleaned:cancel",
         "deleted:finshed",
         "deleted:cancel",
     }
@@ -53,7 +59,7 @@ class TaskDatabase:
         self.engine = create_engine(
             f"sqlite:///{self.path}",
             future=True,
-            connect_args={"check_same_thread": False},
+            connect_args={"check_same_thread": False, "timeout": 30},
         )
         self.metadata = MetaData()
         self.tasks_table = Table(
@@ -97,6 +103,7 @@ class TaskDatabase:
 
     @staticmethod
     def _safe_apply_pragmas(conn) -> None:
+        conn.exec_driver_sql("PRAGMA busy_timeout=30000;")
         # During dockerized server tests, concurrent web/worker startup can briefly
         # contend on the same SQLite file. Retrying PRAGMA setup avoids process
         # exit on transient lock without changing DB semantics.
@@ -116,14 +123,24 @@ class TaskDatabase:
                 time.sleep(0.2 * (attempt + 1))
 
     @staticmethod
+    def _add_column_if_missing(conn, existing: set[str], column: str, column_type: str) -> None:
+        if column in existing:
+            return
+        sql_column = f'"{column}"' if " " in column else column
+        try:
+            conn.exec_driver_sql(f"ALTER TABLE tasks ADD COLUMN {sql_column} {column_type};")
+        except OperationalError as exc:
+            if "duplicate column name" not in str(exc).lower():
+                raise
+            logging.info("Task database column %s was added by another startup process.", column)
+        existing.add(column)
+
+    @staticmethod
     def _ensure_columns(conn) -> None:
         existing_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(tasks);").fetchall()}
-        if "local user" not in existing_columns:
-            conn.exec_driver_sql('ALTER TABLE tasks ADD COLUMN "local user" TEXT;')
-        if "request_headers" not in existing_columns:
-            conn.exec_driver_sql("ALTER TABLE tasks ADD COLUMN request_headers TEXT;")
-        if "run_stage" not in existing_columns:
-            conn.exec_driver_sql("ALTER TABLE tasks ADD COLUMN run_stage TEXT;")
+        TaskDatabase._add_column_if_missing(conn, existing_columns, "local user", "TEXT")
+        TaskDatabase._add_column_if_missing(conn, existing_columns, "request_headers", "TEXT")
+        TaskDatabase._add_column_if_missing(conn, existing_columns, "run_stage", "TEXT")
 
     @staticmethod
     def _normalize_task_row(row: dict) -> dict:
@@ -169,6 +186,46 @@ class TaskDatabase:
             stmt = stmt.where(self.tasks_table.c.status.notin_(tuple(self.TERMINAL_STATUSES)))
         with self.engine.begin() as conn:
             conn.execute(stmt)
+
+    def claim_task_cleanup(
+        self,
+        md5sum: str,
+        *,
+        expected_status: str,
+        expected_finished_at: float,
+        claim_status: str,
+    ) -> bool:
+        """Atomically claim one unchanged terminal task for artifact deletion."""
+        if claim_status not in self.CLEANUP_CLAIM_STATUSES:
+            raise ValueError(f"Invalid cleanup claim status {claim_status}")
+        stmt = (
+            update(self.tasks_table)
+            .where(
+                self.tasks_table.c.md5sum == md5sum,
+                self.tasks_table.c.status == expected_status,
+                self.tasks_table.c.finished_at == expected_finished_at,
+            )
+            .values(status=claim_status, celery_task_id=None)
+        )
+        with self.engine.begin() as conn:
+            return conn.execute(stmt).rowcount == 1
+
+    def complete_task_cleanup(self, md5sum: str, *, claim_status: str, cleaned_status: str) -> bool:
+        """Finish a claimed cleanup without overwriting a replacement task."""
+        if claim_status not in self.CLEANUP_CLAIM_STATUSES:
+            raise ValueError(f"Invalid cleanup claim status {claim_status}")
+        if cleaned_status not in self.CLEANUP_STATUSES:
+            raise ValueError(f"Invalid cleaned status {cleaned_status}")
+        stmt = (
+            update(self.tasks_table)
+            .where(
+                self.tasks_table.c.md5sum == md5sum,
+                self.tasks_table.c.status == claim_status,
+            )
+            .values(status=cleaned_status, celery_task_id=None)
+        )
+        with self.engine.begin() as conn:
+            return conn.execute(stmt).rowcount == 1
 
     def get_task(self, md5sum: str) -> dict | None:
         stmt = select(self.tasks_table).where(self.tasks_table.c.md5sum == md5sum)

@@ -36,7 +36,7 @@ utility commands. Run `make help` to see all targets inline.
 | | `clean` | Remove build artifacts, caches, coverage files, temp directories, and test outputs |
 | | `help` | Print all available targets and their descriptions |
 | **Setup** | `setup-display-gha` | Install X11 libraries and start Xvfb for headless Qt testing on GitHub Actions / CircleCI |
-| | `prepare-test` | Install pytest, coverage, and server-test dependencies (celery, docker, Flask, SQLAlchemy) |
+| | `prepare-test` | Install pytest and coverage tooling for the root REvoDesign test suite |
 
 ## Usage Notes
 

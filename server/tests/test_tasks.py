@@ -98,7 +98,7 @@ def test_run_gremlin_task_handles_docker_daemon_error(monkeypatch, tmp_path):
             "Error while fetching server API version: ('Connection aborted.', PermissionError(13, 'Permission denied'))"
         )
 
-    monkeypatch.setattr(module, "run_pssm_gremlin_in_docker", _raise_docker_error)
+    monkeypatch.setattr(module.task_runtime, "run_pssm_gremlin_in_docker", _raise_docker_error)
 
     module.run_gremlin_task(md5sum)
     task = module.task_store.get_task(md5sum)
@@ -156,8 +156,8 @@ def test_run_pssm_gremlin_in_docker_limits_thread_env(monkeypatch, tmp_path):
     class _DummyDockerClient:
         containers = _DummyContainers()
 
-    monkeypatch.setattr(module.docker, "from_env", lambda: _DummyDockerClient())
-    monkeypatch.setattr(module.signal, "signal", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(module.task_runtime.docker, "from_env", lambda: _DummyDockerClient())
+    monkeypatch.setattr(module.task_runtime.signal, "signal", lambda *_args, **_kwargs: None)
 
     module.run_pssm_gremlin_in_docker(
         fasta_path=str(input_fasta),
@@ -215,8 +215,8 @@ def test_run_gremlin_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
         (output_path / "pssm_msa" / "input_ascii_mtx_file").write_text("pssm\n", encoding="utf-8")
 
     monkeypatch.setattr(module.task_store, "update_task", _track_update)
-    monkeypatch.setattr(module, "run_pssm_gremlin_in_docker", _fake_runner)
-    monkeypatch.setattr(module, "_local_user_identity", lambda: "pytest:staff-1000:20")
+    monkeypatch.setattr(module.task_runtime, "run_pssm_gremlin_in_docker", _fake_runner)
+    monkeypatch.setattr(module.task_runtime, "_local_user_identity", lambda: "pytest:staff-1000:20")
 
     module.run_gremlin_task(md5sum)
 
@@ -309,8 +309,8 @@ def test_run_gremlin_task_does_not_resurrect_deleted_task(monkeypatch, tmp_path)
         module._delete_task_artifacts(task)
 
     monkeypatch.setattr(module.task_store, "update_task", _track_update)
-    monkeypatch.setattr(module, "run_pssm_gremlin_in_docker", _fake_runner)
-    monkeypatch.setattr(module, "_local_user_identity", lambda: "pytest:staff-1000:20")
+    monkeypatch.setattr(module.task_runtime, "run_pssm_gremlin_in_docker", _fake_runner)
+    monkeypatch.setattr(module.task_runtime, "_local_user_identity", lambda: "pytest:staff-1000:20")
 
     module.run_gremlin_task(md5sum)
 
@@ -346,6 +346,125 @@ def test_delete_task_artifacts_skips_paths_outside_results_folder(monkeypatch, t
     )
 
     assert external_result_dir.exists()
+
+
+def test_cleanup_expired_task_artifacts_only_removes_old_terminal_results(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    now = 2_000_000_000.0
+    old_finished_at = now - 31 * 86400
+    recent_finished_at = now - 29 * 86400
+    tasks = (
+        ("finished", old_finished_at, "cleaned:finished", True),
+        ("failed", old_finished_at, "cleaned:cancel", True),
+        ("cancelled", old_finished_at, "cleaned:cancel", True),
+        ("deleting:finished", old_finished_at, "cleaned:finished", True),
+        ("finished", recent_finished_at, "finished", False),
+        ("running", old_finished_at, "running", False),
+    )
+    task_artifacts = []
+
+    for status, finished_at, _expected_status, _expired in tasks:
+        md5sum = uuid.uuid4().hex
+        result_dir = Path(module.app.config["RESULTS_FOLDER"]) / md5sum
+        result_dir.mkdir(parents=True)
+        (result_dir / "result.txt").write_text("result\n", encoding="utf-8")
+        zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
+        zip_path.write_bytes(b"archive")
+        module.task_store.upsert_task(
+            md5sum,
+            filename="input.fasta",
+            file_path=str(result_dir / "input.fasta"),
+            result_dir=str(result_dir),
+            uploaded_at=finished_at - 60,
+            finished_at=finished_at,
+            status=status,
+            is_binary=0,
+            source_ip="127.0.0.1",
+            user_agent="pytest",
+            username="tester",
+        )
+        task_artifacts.append((md5sum, result_dir, zip_path))
+
+    from pssm_gremlin_server.maintenance.tasks.result_cleanup import cleanup_expired_task_artifacts
+
+    assert (
+        cleanup_expired_task_artifacts(
+            30,
+            task_store=module.task_store,
+            results_folder=module.app.config["RESULTS_FOLDER"],
+            now=now,
+        )
+        == 4
+    )
+
+    for (_status, _finished_at, expected_status, expired), (md5sum, result_dir, zip_path) in zip(
+        tasks, task_artifacts, strict=True
+    ):
+        task = module.task_store.get_task(md5sum)
+        assert task is not None
+        assert task["status"] == expected_status
+        assert result_dir.exists() is not expired
+        assert zip_path.exists() is not expired
+
+
+def test_cleanup_skips_task_replaced_before_atomic_claim(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    now = 2_000_000_000.0
+    md5sum = uuid.uuid4().hex
+    result_dir = Path(module.app.config["RESULTS_FOLDER"]) / md5sum
+    result_dir.mkdir(parents=True)
+    fresh_artifact = result_dir / "fresh-result.txt"
+    module.task_store.upsert_task(
+        md5sum,
+        filename="input.fasta",
+        file_path=str(result_dir / "input.fasta"),
+        result_dir=str(result_dir),
+        uploaded_at=now - 32 * 86400,
+        finished_at=now - 31 * 86400,
+        status="finished",
+        is_binary=0,
+        username="tester",
+    )
+    original_claim = module.task_store.claim_task_cleanup
+
+    def replace_then_claim(task_id, **claim):
+        module.task_store.update_task(
+            task_id,
+            uploaded_at=now,
+            finished_at=None,
+            status="pending",
+        )
+        fresh_artifact.write_text("new run\n", encoding="utf-8")
+        return original_claim(task_id, **claim)
+
+    monkeypatch.setattr(module.task_store, "claim_task_cleanup", replace_then_claim)
+    from pssm_gremlin_server.maintenance.tasks.result_cleanup import cleanup_expired_task_artifacts
+
+    assert (
+        cleanup_expired_task_artifacts(
+            30,
+            task_store=module.task_store,
+            results_folder=module.app.config["RESULTS_FOLDER"],
+            now=now,
+        )
+        == 0
+    )
+    assert module.task_store.get_task(md5sum)["status"] == "pending"
+    assert fresh_artifact.read_text(encoding="utf-8") == "new run\n"
 
 
 def test_upload_records_headers_and_local_user(monkeypatch, tmp_path):
@@ -588,7 +707,7 @@ def test_private_dashboard_blocks_non_owner_access(monkeypatch, tmp_path):
     assert md5sum not in other_dashboard.get_data(as_text=True)
 
 
-def test_public_dashboard_allows_cross_user_task_access(monkeypatch, tmp_path):
+def test_removed_public_dashboard_env_is_silently_ignored(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
         tmp_path,
@@ -616,13 +735,15 @@ def test_public_dashboard_allows_cross_user_task_access(monkeypatch, tmp_path):
     assert upload.status_code == 302
     md5sum = _extract_md5(upload.headers["Location"])
 
-    other_running = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=other_header)
-    assert other_running.status_code == 202
-    assert other_running.json["status"] == "pending"
+    for route in ("running", "results", "download", "cancel"):
+        method = client.post if route == "cancel" else client.get
+        response = method(f"/PSSM_GREMLIN/api/{route}/{md5sum}", headers=other_header)
+        assert response.status_code == 403
+        assert response.json["status"] == "forbidden"
 
     other_dashboard = client.get("/PSSM_GREMLIN/dashboard", headers=other_header)
     assert other_dashboard.status_code == 200
-    assert md5sum in other_dashboard.get_data(as_text=True)
+    assert md5sum not in other_dashboard.get_data(as_text=True)
 
 
 def test_dashboard_running_trace_reflects_log_progress(monkeypatch, tmp_path):
@@ -663,14 +784,13 @@ def test_dashboard_running_trace_reflects_log_progress(monkeypatch, tmp_path):
     assert "blast: searching for consensus profile [pending]" in body
 
 
-def test_public_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
+def test_task_id_is_scoped_by_user(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
         tmp_path,
         extra_env={
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
-            "PUBLIC_DASHBOARD": "true",
         },
     )
 
@@ -822,6 +942,45 @@ def test_owner_can_delete_own_task_results(monkeypatch, tmp_path):
     running = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=owner_header)
     assert running.status_code == 200
     assert running.json["status"] == "deleted:finshed"
+
+
+def test_cleanup_claim_blocks_resubmission_and_user_deletion(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+
+    class _DummyAsyncResult:
+        id = "celery-test-id"
+
+    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *args, **kwargs: _DummyAsyncResult())
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+    content = b">cleanup-race\nACDE\n"
+
+    submitted = client.post(
+        "/PSSM_GREMLIN/api/post",
+        data={"file": (io.BytesIO(content), "cleanup-race.fasta")},
+        headers=auth_header,
+    )
+    assert submitted.status_code == 302
+    md5sum = _extract_md5(submitted.headers["Location"])
+    module.task_store.update_task(md5sum, status="deleting:cancel")
+
+    resubmitted = client.post(
+        "/PSSM_GREMLIN/api/post",
+        data={"file": (io.BytesIO(content), "cleanup-race.fasta")},
+        headers=auth_header,
+    )
+    deleted = client.delete(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=auth_header)
+
+    assert resubmitted.status_code == 202
+    assert deleted.status_code == 409
+    assert module.task_store.get_task(md5sum)["status"] == "deleting:cancel"
 
 
 def test_dashboard_hides_deleted_tasks_until_resubmitted(monkeypatch, tmp_path):
