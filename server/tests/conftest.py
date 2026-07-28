@@ -119,6 +119,8 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
         "DB_UNIREF30": str(env_root / "uniref30"),
         "DB_UNIREF90": str(env_root / "uniref90"),
         "LOG_DIR": str(log_dir),
+        "ADMIN_USERS": "admin",
+        "ADMIN_BOOTSTRAP_CREDENTIALS": "admin\ttest-admin-password",
     }
     for key, value in base_env.items():
         monkeypatch.setenv(key, value)
@@ -539,6 +541,8 @@ class DockerServerStack:
             "DB_UNIREF30": self.miniuc["uniref30_prefix"],
             "DB_UNIREF90": self.miniuc["uniref90_prefix"],
             "LOG_DIR": str(self.log_dir),
+            "ADMIN_USERS": self.username,
+            "ADMIN_BOOTSTRAP_CREDENTIALS": f"{self.username}\t{self.password}",
             "NPROC": "4",
             "GUNICORN_WORKERS": "2",
             "WORKER_CONCURRENCY": "2",

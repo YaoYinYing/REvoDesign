@@ -15,7 +15,14 @@ import sqlalchemy as sa
 from conftest import REPO_DIR
 
 
-def _run_restart_script(tmp_path, *arguments, uid="1000", gid="1000"):
+def _run_restart_script(
+    tmp_path,
+    *arguments,
+    uid="1000",
+    gid="1000",
+    admins="admin",
+    omit_settings=(),
+):
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir(parents=True)
     docker_log = tmp_path / "docker.log"
@@ -32,21 +39,25 @@ def _run_restart_script(tmp_path, *arguments, uid="1000", gid="1000"):
     for path in (task_dir, auth_dir, log_dir):
         path.mkdir(exist_ok=True)
     env_file = tmp_path / "server.env"
+    settings = {
+        "SERVER_DIR": str(task_dir),
+        "AUTH_DIR": str(auth_dir),
+        "LOG_DIR": str(log_dir),
+        "DB_UNIREF30": str(tmp_path / "uniref30"),
+        "DB_UNIREF90": str(tmp_path / "uniref90"),
+        "ADMIN_USERS": admins,
+        "RUNNER_UID": uid,
+        "RUNNER_GID": gid,
+        "RUNNER_USERNAME": "revodesign",
+        "RUNNER_GROUP": "revodesign",
+        "SERVER_IMAGE": "example/revodesign-server:latest",
+        "RUNNER_IMAGE": "example/revodesign-runner:latest",
+    }
     env_file.write_text(
         "\n".join(
-            (
-                f"SERVER_DIR={task_dir}",
-                f"AUTH_DIR={auth_dir}",
-                f"LOG_DIR={log_dir}",
-                f"DB_UNIREF30={tmp_path / 'uniref30'}",
-                f"DB_UNIREF90={tmp_path / 'uniref90'}",
-                f"RUNNER_UID={uid}",
-                f"RUNNER_GID={gid}",
-                "RUNNER_USERNAME=revodesign",
-                "RUNNER_GROUP=revodesign",
-                "SERVER_IMAGE=example/revodesign-server:latest",
-                "RUNNER_IMAGE=example/revodesign-runner:latest",
-            )
+            f"{name}={value}"
+            for name, value in settings.items()
+            if name not in omit_settings
         ),
         encoding="utf-8",
     )
@@ -76,6 +87,7 @@ def _run_restart_script(tmp_path, *arguments, uid="1000", gid="1000"):
 def test_restart_modes_choose_build_or_pull(tmp_path):
     dev_result, dev_commands = _run_restart_script(tmp_path / "dev", "restart")
     assert dev_result.returncode == 0, dev_result.stderr
+    assert "Admin login — username: admin  password:" in dev_result.stdout
     assert any("--profile runner build runner" in command for command in dev_commands)
     assert any("build web worker" in command for command in dev_commands)
     assert not any(" pull " in command for command in dev_commands)
@@ -87,6 +99,23 @@ def test_restart_modes_choose_build_or_pull(tmp_path):
     pull_index = next(i for i, command in enumerate(prod_commands) if " pull web runner" in command)
     up_index = next(i for i, command in enumerate(prod_commands) if "up --no-build" in command)
     assert pull_index < up_index
+
+
+def test_restart_generates_distinct_password_for_each_configured_admin(tmp_path):
+    result, _commands = _run_restart_script(
+        tmp_path,
+        "restart",
+        admins="admin,group_admin",
+    )
+
+    assert result.returncode == 0, result.stderr
+    login_lines = [
+        line for line in result.stdout.splitlines() if line.startswith("Admin login — ")
+    ]
+    assert [line.split()[4] for line in login_lines] == ["admin", "group_admin"]
+    passwords = [line.rsplit("password: ", 1)[1] for line in login_lines]
+    assert len(set(passwords)) == 2
+    assert all(len(password) == 32 for password in passwords)
 
 
 def test_restart_mode_validation(tmp_path):
@@ -103,6 +132,23 @@ def test_restart_mode_validation(tmp_path):
     spelling_result, _ = _run_restart_script(tmp_path / "spelling", "restart", "--mode", "prod")
     assert spelling_result.returncode != 0
     assert "Too many arguments" in spelling_result.stderr
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["SERVER_DIR", "DB_UNIREF30", "DB_UNIREF90", "ADMIN_USERS"],
+)
+def test_restart_rejects_missing_required_settings_before_shutdown(tmp_path, name):
+    result, commands = _run_restart_script(
+        tmp_path / name.lower(),
+        "restart",
+        omit_settings=(name,),
+    )
+
+    assert result.returncode != 0
+    assert f"Missing required setting(s)" in result.stderr
+    assert name in result.stderr
+    assert not any(" down" in command or " build " in command or " pull " in command or " up " in command for command in commands)
 
 
 def test_restart_backup_includes_uncheckpointed_user_db_wal(tmp_path):
@@ -165,6 +211,8 @@ assert task_runtime.task_store.path == os.path.abspath(os.environ["DB_PATH"])
             "PYTHONPATH": str(server_dir),
             "SERVER_DIR": str(task_dir),
             "DB_PATH": str(task_dir / "tasks.sqlite3"),
+            "DB_UNIREF30": str(tmp_path / "uniref30"),
+            "DB_UNIREF90": str(tmp_path / "uniref90"),
             "USER_DB_PATH": str(user_db),
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",

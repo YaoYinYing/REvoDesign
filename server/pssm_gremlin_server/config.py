@@ -63,6 +63,17 @@ def env_path(var: str, default: str) -> str:
     return os.path.abspath(default)
 
 
+def env_required_path(var: str) -> str:
+    return os.path.abspath(os.path.expanduser(env_required(var)))
+
+
+def env_required(var: str) -> str:
+    value = os.environ.get(var, "").strip()
+    if not value:
+        raise RuntimeError(f"Required environment variable {var} is not set")
+    return value
+
+
 def env_csv(var: str, default: str) -> list[str]:
     source = os.environ.get(var) or default
     return [value for raw in source.split(",") if (value := raw.strip())]
@@ -111,11 +122,6 @@ def ensure_directories(*paths: str) -> None:
         os.makedirs(path, exist_ok=True)
 
 
-DEFAULT_SERVER_DIR = os.path.abspath(os.path.join(os.getcwd(), "pssm_gremlin_data"))
-DEFAULT_UNIREF30_DB = os.path.join(DEFAULT_SERVER_DIR, "db", "uniref30", "UniRef30_2022_02")
-DEFAULT_UNIREF90_DB = os.path.join(DEFAULT_SERVER_DIR, "db", "uniref90", "uniref90")
-
-
 @dataclass(frozen=True, slots=True)
 class GremlinConfig:
     """Centralized configuration for GREMLIN paths and runtime settings."""
@@ -134,7 +140,7 @@ class GremlinConfig:
 
     @classmethod
     def from_env(cls) -> GremlinConfig:
-        server_dir = env_path("SERVER_DIR", DEFAULT_SERVER_DIR)
+        server_dir = env_required_path("SERVER_DIR")
         return cls(
             server_dir=server_dir,
             upload_folder=os.path.join(server_dir, "upload"),
@@ -142,8 +148,8 @@ class GremlinConfig:
             db_path=env_path("DB_PATH", os.path.join(server_dir, "pssm_gremlin.sqlite3")),
             docker_image=os.environ.get("RUNNER_IMAGE", "revodesign-pssm-gremlin"),
             docker_user=resolve_docker_user(),
-            uniref30_db=env_path("DB_UNIREF30", DEFAULT_UNIREF30_DB),
-            uniref90_db=env_path("DB_UNIREF90", DEFAULT_UNIREF90_DB),
+            uniref30_db=env_required_path("DB_UNIREF30"),
+            uniref90_db=env_required_path("DB_UNIREF90"),
             nproc=env_int("NPROC", 16),
             maxmem=env_int("MAXMEM", 64),
             port=env_int("PORT", 8080),

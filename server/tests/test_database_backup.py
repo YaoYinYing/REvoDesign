@@ -27,6 +27,8 @@ def _configure_sources(monkeypatch, tmp_path):
     monkeypatch.setenv("SERVER_DIR", str(tmp_path))
     monkeypatch.setenv("DB_PATH", str(task_db))
     monkeypatch.setenv("USER_DB_PATH", str(user_db))
+    monkeypatch.setenv("DB_UNIREF30", str(tmp_path / "uniref30"))
+    monkeypatch.setenv("DB_UNIREF90", str(tmp_path / "uniref90"))
     monkeypatch.setenv("RUNNER_UID", "1234")
     monkeypatch.setenv("RUNNER_GID", "5678")
     return task_db, user_db

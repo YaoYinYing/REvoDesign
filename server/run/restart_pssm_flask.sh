@@ -3,11 +3,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SERVER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-COMPOSE_FILE="${SERVER_DIR}/docker-compose.yml"
-ENV_EXAMPLE_FILE="${SERVER_DIR}/.env.example"
-PRIMARY_ENV_FILE="${SERVER_DIR}/.env.production"
-FALLBACK_ENV_FILE="${SERVER_DIR}/.env"
+SERVER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+COMPOSE_FILE="${SERVER_ROOT}/docker-compose.yml"
+ENV_EXAMPLE_FILE="${SERVER_ROOT}/.env.example"
+PRIMARY_ENV_FILE="${SERVER_ROOT}/.env.production"
+FALLBACK_ENV_FILE="${SERVER_ROOT}/.env"
 CALLER_DIR="$(pwd)"
 
 resolve_env_file() {
@@ -65,6 +65,28 @@ require_env_file() {
     exit 1
   fi
 }
+
+validate_required_settings() (
+  set +u
+  set -a
+  source "${ENV_FILE}"
+  set +a
+  set -u
+
+  local missing=()
+  local name=""
+  local value=""
+  for name in SERVER_DIR DB_UNIREF30 DB_UNIREF90 ADMIN_USERS; do
+    value="${!name:-}"
+    if [[ -z "${value//[[:space:]]/}" ]]; then
+      missing+=("${name}")
+    fi
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "Missing required setting(s) in ${ENV_FILE}: ${missing[*]}" >&2
+    exit 1
+  fi
+)
 
 if docker compose version >/dev/null 2>&1; then
   COMPOSE_CMD=(docker compose)
@@ -229,6 +251,7 @@ cmd_setup() {
 
 cmd_build() {
   require_env_file
+  validate_required_settings
   ensure_docker_gid
   resolve_runner_identity
 
@@ -241,6 +264,7 @@ cmd_build() {
 
 cmd_up() {
   require_env_file
+  validate_required_settings
   validate_auth_storage
   ensure_docker_gid
   resolve_runner_identity
@@ -286,7 +310,9 @@ cmd_migrate_auth_db() {
 }
 
 cmd_restart() {
-  # Source env early — first boot may need a generated admin password.
+  require_env_file
+  validate_required_settings
+  # Source the validated deployment settings.
   set +u
   set -a
   source "${ENV_FILE}"
@@ -299,18 +325,53 @@ cmd_restart() {
 
   _auth_dir="${AUTH_DIR:-${SCRIPT_DIR}/../auth-data}"
   _user_db="${_auth_dir}/users.sqlite3"
+  _admin_login_lines=()
   _legacy_user_db="${SERVER_DIR}/users.sqlite3"
   if [[ -f "${_legacy_user_db}" && ! -f "${_user_db}" ]]; then
     echo "Legacy user DB detected at ${_legacy_user_db}." >&2
     echo "Run the migrate-auth-db subcommand before restarting this release." >&2
     exit 1
   fi
-  if [[ ! -f "${_user_db}" ]]; then
-    # First boot — generate and export the admin password.
-    _admin_pw="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
-    export DEFAULT_ADMIN_PASSWORD="${_admin_pw}"
-  fi
+  _needs_admin_bootstrap="$(
+    python3 - "${_user_db}" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
 
+path = Path(sys.argv[1])
+if not path.is_file():
+    print("yes")
+else:
+    try:
+        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+            has_users = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'users'"
+            ).fetchone()
+            count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] if has_users else 0
+        print("yes" if count == 0 else "no")
+    except sqlite3.Error:
+        print("no")
+PY
+  )"
+  if [[ "${_needs_admin_bootstrap}" == "yes" ]]; then
+    _admin_bootstrap_credentials=""
+    IFS=',' read -r -a _configured_admins <<< "${ADMIN_USERS}"
+    for _admin_username in "${_configured_admins[@]}"; do
+      _admin_username="${_admin_username#"${_admin_username%%[![:space:]]*}"}"
+      _admin_username="${_admin_username%"${_admin_username##*[![:space:]]}"}"
+      if [[ -z "${_admin_username}" ]]; then
+        continue
+      fi
+      _admin_pw="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
+      _admin_bootstrap_credentials+="${_admin_username}"$'\t'"${_admin_pw}"$'\n'
+      _admin_login_lines+=("Admin login — username: ${_admin_username}  password: ${_admin_pw}")
+    done
+    if [[ ${#_admin_login_lines[@]} -eq 0 ]]; then
+      echo "ADMIN_USERS must contain at least one username." >&2
+      exit 1
+    fi
+    export ADMIN_BOOTSTRAP_CREDENTIALS="${_admin_bootstrap_credentials}"
+  fi
   cmd_down
 
   if [[ -f "${_user_db}" ]]; then
@@ -345,8 +406,8 @@ PY
   PORT="${PORT:-8080}"
   echo "Deployment completed."
   echo "Flask app is now running at http://${DOMAIN}:${PORT}/PSSM_GREMLIN/dashboard"
-  if [[ -n "${_admin_pw:-}" ]]; then
-    echo "Admin login — username: admin  password: ${_admin_pw}"
+  if [[ ${#_admin_login_lines[@]} -gt 0 ]]; then
+    printf '%s\n' "${_admin_login_lines[@]}"
   fi
 }
 
@@ -386,7 +447,7 @@ fi
 
 echo "Using env file: ${ENV_FILE}"
 
-pushd "${SERVER_DIR}" >/dev/null
+pushd "${SERVER_ROOT}" >/dev/null
 
 case "${SUBCOMMAND}" in
   setup)

@@ -305,10 +305,11 @@ Important environment variables (see the organized sections in
 | Variable | Description |
 |----------|-------------|
 | `SERVER_IMAGE` / `RUNNER_IMAGE` | Built locally in dev mode or pulled from their configured references in prod mode |
-| `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and results; never contains the user DB |
+| `SERVER_DIR` | Required host root shared by web and worker for uploads, task SQLite, and results; never contains the user DB |
 | `LOG_DIR` | Host directory for Gunicorn, Celery, and `maintenance.log` |
-| `DB_UNIREF30` | UniRef30 HHsuite database prefix path |
-| `DB_UNIREF90` | UniRef90 BLAST database prefix path |
+| `DB_UNIREF30` | Required UniRef30 HHsuite database prefix path |
+| `DB_UNIREF90` | Required UniRef90 BLAST database prefix path |
+| `ADMIN_USERS` | Required comma-separated bootstrap-administrator usernames; the restart script generates and transiently supplies one password per account |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens (set in production) |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days) |
 | `AUTH_DIR` | Host directory containing `users.sqlite3`; mounted only into web and maintenance and required to be outside `SERVER_DIR` |

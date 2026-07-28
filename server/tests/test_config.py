@@ -62,27 +62,38 @@ def test_pssm_config_uses_named_runner_identity(monkeypatch, tmp_path):
     assert module.CONFIG.docker_user == "revodesign:revodesign_appgroup"
 
 
-def test_pssm_config_defaults_are_not_cluster_paths(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
-    module = _load_pssm_module(
-        monkeypatch,
-        tmp_path,
-        extra_env={
-            "RUNNER_UID": "1234",
-            "RUNNER_GID": "5678",
-            "SERVER_DIR": None,
-            "DB_PATH": None,
-            "DB_UNIREF30": None,
-            "DB_UNIREF90": None,
-            "RUNNER_HOST_ROOT": None,
-        },
-    )
+@pytest.mark.parametrize(
+    "name",
+    ["SERVER_DIR", "DB_UNIREF30", "DB_UNIREF90"],
+)
+def test_pssm_config_requires_deployment_settings_before_database_setup(monkeypatch, tmp_path, name):
+    with pytest.raises(RuntimeError, match=f"Required environment variable {name} is not set"):
+        _load_pssm_module(
+            monkeypatch,
+            tmp_path,
+            extra_env={
+                "RUNNER_UID": "1234",
+                "RUNNER_GID": "5678",
+                name: None,
+            },
+        )
 
-    assert module.CONFIG.server_dir.endswith("pssm_gremlin_data")
-    assert not module.CONFIG.server_dir.startswith("/mnt/")
-    assert not module.CONFIG.uniref30_db.startswith("/mnt/")
-    assert not module.CONFIG.uniref90_db.startswith("/mnt/")
-    assert module._ROOT_MOUNT_DIRECTORY == str(module.Path(module.CONFIG.server_dir).parent)
+    assert not (tmp_path / "pssm_env" / "users.sqlite3").exists()
+
+
+def test_pssm_app_requires_admin_users_before_database_setup(monkeypatch, tmp_path):
+    with pytest.raises(RuntimeError, match="ADMIN_USERS is not set"):
+        _load_pssm_module(
+            monkeypatch,
+            tmp_path,
+            extra_env={
+                "RUNNER_UID": "1234",
+                "RUNNER_GID": "5678",
+                "ADMIN_USERS": None,
+            },
+        )
+
+    assert not (tmp_path / "pssm_env" / "users.sqlite3").exists()
 
 
 def test_pssm_config_uses_runner_host_root_override(monkeypatch, tmp_path):

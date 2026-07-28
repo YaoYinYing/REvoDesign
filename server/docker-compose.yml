@@ -30,7 +30,7 @@ x-task-env: &task-env
 x-web-auth-env: &web-auth-env
   PORT: ${PORT:-8080}
   GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
-  ADMIN_USERS: ${ADMIN_USERS:-admin}
+  ADMIN_USERS: ${ADMIN_USERS}
   AUTH_SECRET_KEY: ${AUTH_SECRET_KEY:-}
   AUTH_TOKEN_MAX_AGE: ${AUTH_TOKEN_MAX_AGE:-604800}
   USER_DB_PATH: ${USER_DB_PATH:-/var/lib/revodesign-auth/users.sqlite3}
@@ -48,7 +48,6 @@ x-web-auth-env: &web-auth-env
   RESEND_FROM_NAME: ${RESEND_FROM_NAME:-REvoDesign GREMLIN Server}
   SERVER_BASE_URL: ${SERVER_BASE_URL:-http://localhost:8080}
   ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
-  DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
   CLIENT_IP_HEADERS: ${CLIENT_IP_HEADERS:-X-Forwarded-For,X-Real-IP}
   CLIENT_COUNTRY_HEADER: ${CLIENT_COUNTRY_HEADER:-}
 
@@ -93,6 +92,7 @@ services:
         PORT: ${PORT:-8080}
     environment:
       <<: [*task-env, *web-auth-env]
+      ADMIN_BOOTSTRAP_CREDENTIALS: ${ADMIN_BOOTSTRAP_CREDENTIALS:-}
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
     depends_on:

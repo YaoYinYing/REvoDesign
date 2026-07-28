@@ -92,7 +92,8 @@ _users_table = sa.Table(
 def _get_user_db_path() -> str:
     """Resolve the user database path.
 
-    Uses ``USER_DB_PATH`` env var, falling back to ``{SERVER_DIR}/users.sqlite3``.
+    Uses ``USER_DB_PATH`` env var, falling back to the required
+    ``{SERVER_DIR}/users.sqlite3``.
     """
     from_server_dir = os.environ.get("SERVER_DIR", "")
     default = (

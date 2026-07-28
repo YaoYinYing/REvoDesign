@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```
 ## [Unreleased]
+### Changed
+- **GREMLIN server: explicit deployment configuration**: removed implicit
+  server/database path and bootstrap-admin defaults. `SERVER_DIR`,
+  `DB_UNIREF30`, `DB_UNIREF90`, and `ADMIN_USERS` are now mandatory; both
+  the restart script and direct server startup fail before touching the
+  database when any required setting is absent. The initial administrator
+  passwords are generated one-by-one and supplied transiently by the restart
+  script instead of being stored in the env file.
 
 ## [1.9.1] - 2026-07-28
 ### Added

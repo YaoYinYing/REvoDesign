@@ -496,15 +496,27 @@ def test_admin_batch_operations_skip_self_lockout(monkeypatch, tmp_path):
 
 
 def test_bootstrap_admin_has_correct_statuses(monkeypatch, tmp_path):
-    """First-run bootstrap admin gets approved+active statuses."""
-    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    """Every first-run bootstrap admin gets approved+active statuses."""
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ADMIN_USERS": "admin,group_admin",
+            "ADMIN_BOOTSTRAP_CREDENTIALS": (
+                "admin\ttest-admin-password\n"
+                "group_admin\ttest-group-admin-password"
+            ),
+        },
+    )
     db = module.app.config["user_db"]
-    # The module's bootstrap code should have created 'admin' already
-    admin = db.get_user_by_username("admin")
-    assert admin is not None
-    assert admin["registration_status"] == "approved"
-    assert admin["user_status"] == "active"
-    assert admin["is_admin"] is True
+    for username in ("admin", "group_admin"):
+        admin = db.get_user_by_username(username)
+        assert admin is not None
+        assert admin["registration_status"] == "approved"
+        assert admin["user_status"] == "active"
+        assert admin["is_admin"] is True
 
 
 # ==================================================================

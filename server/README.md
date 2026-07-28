@@ -152,11 +152,12 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | Variable | Purpose |
 | --- | --- |
 | `SERVER_IMAGE`, `RUNNER_IMAGE` | Image names built locally in dev mode or pulled in prod mode. Production must use full published Docker Hub references. |
-| `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and result folders (default: `./pssm_gremlin_data`). Never store the user database here. |
+| `SERVER_DIR` | Required host root shared by web and worker for uploads, task SQLite, and result folders. Never store the user database here. |
 | `RUNNER_HOST_ROOT` | Host root allowed for Docker runner bind mounts (default: parent of `SERVER_DIR`). |
 | `LOG_DIR` | Host directory for Gunicorn, Celery, and `maintenance.log`. |
-| `DB_UNIREF30` | UniRef30 prefix path (default: `{SERVER_DIR}/db/uniref30/UniRef30_2022_02`). |
-| `DB_UNIREF90` | UniRef90 BLAST prefix path (default: `{SERVER_DIR}/db/uniref90/uniref90`). |
+| `DB_UNIREF30` | Required UniRef30 prefix path. |
+| `DB_UNIREF90` | Required UniRef90 BLAST prefix path. |
+| `ADMIN_USERS` | Required comma-separated administrator usernames. On an empty user database, the restart script creates each account and prints a distinct generated password. |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
 | `AUTH_DIR` | Host-side directory containing `users.sqlite3`; Compose mounts it only into web and maintenance. It must be outside `SERVER_DIR`. |
@@ -287,11 +288,14 @@ fail validation on another.
 
 ### First run
 
-If the user database is empty, a default admin account is created automatically:
+If the user database is empty, every username in the required `ADMIN_USERS`
+list is created automatically:
 
-- Username: `admin` (customize with `DEFAULT_ADMIN_USERNAME`)
-- Password: auto-generated and displayed in the restart script output.
-  Change immediately after first login.
+- Passwords: generated separately and printed once by
+  `restart_pssm_flask.sh`. Change each after first login.
+
+Bootstrap passwords must not be stored in the env file. They are transient
+first-boot values supplied by the restart script only.
 
 Set `ENABLE_REGISTER=true` and configure either SMTP or Resend to allow
 self-registration. Registration requires full name, affiliation, academic

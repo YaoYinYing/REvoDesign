@@ -11,7 +11,7 @@ import os
 from collections.abc import Iterable
 
 from apscheduler.schedulers.blocking import BlockingScheduler
-from pssm_gremlin_server.config import DEFAULT_SERVER_DIR, env_path
+from pssm_gremlin_server.config import GremlinConfig, env_path
 from pssm_gremlin_server.maintenance.model import PeriodicTask
 from pssm_gremlin_server.maintenance.tasks.admin_digest import admin_digest_task
 from pssm_gremlin_server.maintenance.tasks.database_backup import database_backup_task
@@ -29,7 +29,7 @@ def configure_logging(
     """Write maintenance logs to ``LOG_DIR`` while retaining console output."""
     resolved_log_dir = log_dir or env_path(
         "LOG_DIR",
-        os.path.join(DEFAULT_SERVER_DIR, "logs"),
+        os.path.join(os.getcwd(), "pssm_gremlin_data", "logs"),
     )
     os.makedirs(resolved_log_dir, exist_ok=True)
     log_path = os.path.join(resolved_log_dir, LOG_FILENAME)
@@ -66,6 +66,7 @@ def build_scheduler() -> BlockingScheduler:
 
 
 def main() -> int:
+    GremlinConfig.from_env()
     configure_logging()
     build_scheduler().start()
     return 0
