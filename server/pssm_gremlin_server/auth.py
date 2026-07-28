@@ -25,6 +25,9 @@ from typing import Any
 import sqlalchemy as sa
 from flask import current_app, g, jsonify, redirect, request, url_for
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+from pssm_gremlin_server.config import env_bool as _env_bool
+from pssm_gremlin_server.config import env_int as _env_int
+from pssm_gremlin_server.config import env_str as _env_str
 from werkzeug.security import check_password_hash, generate_password_hash
 
 # Pre-computed dummy hash used for constant-time comparison when a login
@@ -48,40 +51,6 @@ except ImportError:
     _resend_module = None  # type: ignore[assignment]
     _resend_key = ""
     _HAS_RESEND = False
-
-# ---------------------------------------------------------------------------
-# Configuration helpers
-# ---------------------------------------------------------------------------
-
-
-def _env_bool(var: str, default: bool) -> bool:
-    raw = os.environ.get(var)
-    if raw is None or raw == "":
-        return default
-    value = raw.strip().lower()
-    if value in {"1", "true", "yes", "on"}:
-        return True
-    if value in {"0", "false", "no", "off"}:
-        return False
-    raise ValueError(f"Environment variable {var} must be a boolean value " "(one of: true/false/1/0/yes/no/on/off).")
-
-
-def _env_str(var: str, default: str) -> str:
-    # ponytail: treat empty string as unset — docker compose passes
-    # ${VAR:-} which yields "" when VAR is absent in the env file.
-    value = os.environ.get(var)
-    return value if value else default
-
-
-def _env_int(var: str, default: int) -> int:
-    raw = os.environ.get(var, "")
-    if not raw:
-        return default
-    try:
-        return int(raw)
-    except ValueError as exc:
-        raise ValueError(f"Environment variable {var} must be an integer, got {raw!r}") from exc
-
 
 # ---------------------------------------------------------------------------
 # User database

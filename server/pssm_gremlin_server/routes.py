@@ -45,7 +45,6 @@ from pssm_gremlin_server.pssm_gremlin import (
     CONFIG,
     ENABLE_REGISTER,
     TEMPLATE_IMAGE_DIR,
-    _build_running_trace,
     _client_country,
     _client_ip,
     _current_username,
@@ -55,25 +54,14 @@ from pssm_gremlin_server.pssm_gremlin import (
     _is_binary_file,
     _is_deleted_status,
     _is_fasta_content,
-    _local_user_identity,
-    _normalize_task_id,
-    _pack_failed_results_archive,
     _request_metadata,
     _revoke_celery_task,
-    _safe_join,
-    _sanitize_task_error,
     _task_access_allowed,
     _task_access_denied,
     _task_delete_allowed,
     _task_id_for_upload,
     _task_zip_download_name,
-    _task_zip_path,
-    _virtual_upload_path,
     app,
-    format_times,
-    format_walltime,
-    run_gremlin_task,
-    task_store,
 )
 from pssm_gremlin_server.ratelimit import rate_limit
 from pssm_gremlin_server.schemas import (
@@ -86,6 +74,20 @@ from pssm_gremlin_server.schemas import (
     RegisterRequest,
     ResetPasswordRequest,
     UserResponse,
+)
+from pssm_gremlin_server.task_runtime import (
+    _build_running_trace,
+    _local_user_identity,
+    _normalize_task_id,
+    _pack_failed_results_archive,
+    _safe_join,
+    _sanitize_task_error,
+    _task_zip_path,
+    _virtual_upload_path,
+    format_times,
+    format_walltime,
+    run_gremlin_task,
+    task_store,
 )
 from pydantic import ValidationError
 from werkzeug.security import check_password_hash, generate_password_hash
