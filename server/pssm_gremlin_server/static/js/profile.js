@@ -9,6 +9,19 @@
   var statusEl = document.getElementById("status");
   var submitBtn = document.getElementById("submitBtn");
   var infoEl = document.getElementById("userInfo");
+  var POSITION_LABELS = {
+    undergraduate_student: "Undergraduate student",
+    masters_student: "Master’s student",
+    phd_student: "PhD student",
+    postdoctoral_researcher: "Postdoctoral researcher",
+    research_assistant: "Research assistant",
+    lecturer: "Lecturer",
+    assistant_professor: "Assistant professor",
+    associate_professor: "Associate professor",
+    professor: "Professor",
+    industry_researcher: "Industry researcher",
+    other: "Other"
+  };
 
   T.initToggle(document.getElementById("themeToggle"));
 
@@ -18,6 +31,11 @@
     .then(function (user) {
       var label = user.role === "guest" ? " (guest account)" : "";
       infoEl.textContent = "Logged in as " + user.username + " (" + user.email + ")" + label;
+      document.getElementById("profileFullName").textContent = user.full_name || "Not provided";
+      document.getElementById("profileAffiliation").textContent = user.affiliation || "Not provided";
+      document.getElementById("profilePosition").textContent =
+        POSITION_LABELS[user.position] || user.position || "Not provided";
+      document.getElementById("profilePiName").textContent = user.pi_name || "Not provided";
       if (user.role === "guest") {
         document.getElementById("passwordSection").style.display = "none";
         document.getElementById("apiKeySection").style.display = "none";

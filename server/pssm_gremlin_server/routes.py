@@ -828,7 +828,10 @@ def auth_register():
         username=req.username,
         email=req.email,
         password=req.password,
+        full_name=req.full_name,
         affiliation=req.affiliation,
+        position=req.position,
+        pi_name=req.pi_name,
         terms_agreed=req.terms_agreed,
         registration_ip=_client_ip(),
         registration_country=_client_country(),
@@ -991,6 +994,10 @@ def auth_me():
                 "email_verified": user["email_verified"],
                 "is_admin": user["is_admin"],
                 "role": user.get("role", "user"),
+                "full_name": user.get("full_name"),
+                "affiliation": user.get("affiliation"),
+                "position": user.get("position"),
+                "pi_name": user.get("pi_name"),
             }
         ),
         200,
@@ -1106,7 +1113,10 @@ def admin_create_user():
         password=req.password,
         is_admin=req.is_admin or (req.role == "admin"),
         role=req.role,
+        full_name=req.full_name,
         affiliation=req.affiliation,
+        position=req.position,
+        pi_name=req.pi_name,
         registration_status="approved",
         user_status="active",
     )
@@ -1160,6 +1170,12 @@ def admin_manage_user(user_id):
         return jsonify({"error": "Administrators cannot ban their own account"}), 400
     if req.affiliation is not None:
         update_fields["affiliation"] = req.affiliation
+    if req.full_name is not None:
+        update_fields["full_name"] = req.full_name
+    if "position" in req.model_fields_set:
+        update_fields["position"] = req.position
+    if req.pi_name is not None:
+        update_fields["pi_name"] = req.pi_name
     if req.password is not None:
         update_fields["password_hash"] = generate_password_hash(req.password)
     if req.registration_status is not None:

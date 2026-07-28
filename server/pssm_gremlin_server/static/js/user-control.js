@@ -26,6 +26,19 @@
     user: "User",
     guest: "Guest",
   };
+  var POSITION_LABELS = {
+    undergraduate_student: "Undergraduate student",
+    masters_student: "Master’s student",
+    phd_student: "PhD student",
+    postdoctoral_researcher: "Postdoctoral researcher",
+    research_assistant: "Research assistant",
+    lecturer: "Lecturer",
+    assistant_professor: "Assistant professor",
+    associate_professor: "Associate professor",
+    professor: "Professor",
+    industry_researcher: "Industry researcher",
+    other: "Other",
+  };
 
   // ---- Tab switching ----
 
@@ -100,7 +113,7 @@
   // ---- Load user list (Tab A) ----
 
   var userTableBody = document.getElementById("userTableBody");
-  var COLSPAN = 7;
+  var COLSPAN = 11;
 
   function loadCurrentUser() {
     return A.authFetch("/PSSM_GREMLIN/api/auth/me")
@@ -152,7 +165,10 @@
       '<td class="col-select"><input type="checkbox"' + selectAttrs + '></td>' +
       '<td class="col-email">' + escapeHtml(u.email || "—") + '</td>' +
       '<td class="col-ip muted">' + escapeHtml(u.registration_ip || "—") + (u.registration_country ? ' <span class="country-tag">' + escapeHtml(u.registration_country) + '</span>' : '') + '</td>' +
+      '<td class="col-name">' + escapeHtml(u.full_name || "—") + '</td>' +
       '<td class="col-affil">' + escapeHtml(u.affiliation || "—") + '</td>' +
+      '<td class="col-position">' + escapeHtml(POSITION_LABELS[u.position] || u.position || "—") + '</td>' +
+      '<td class="col-pi">' + escapeHtml(u.pi_name || "—") + '</td>' +
       '<td class="col-role"><span class="status-badge ' + escapeAttr(u.role || "user") + '">' + escapeHtml(ROLE_LABELS[u.role] || u.role || "User") + '</span></td>' +
       '<td class="col-reg"><span class="status-badge ' + escapeAttr(u.registration_status) + '">' + escapeHtml(regLabel) + '</span></td>' +
       '<td class="col-user"><span class="status-badge ' + escapeAttr(u.user_status) + '">' + escapeHtml(userLabel) + '</span></td>' +
@@ -240,7 +256,10 @@
       '<td class="col-select">—</td>' +
       '<td><input type="email" class="text-input edit-input" id="editEmail" value="' + escapeHtml(u.email || "") + '"></td>' +
       '<td class="muted">—</td>' +
+      '<td><input type="text" class="text-input edit-input" id="editFullName" value="' + escapeHtml(u.full_name || "") + '" maxlength="128"></td>' +
       '<td><input type="text" class="text-input edit-input" id="editAffiliation" value="' + escapeHtml(u.affiliation || "") + '"></td>' +
+      '<td><select class="text-input edit-input" id="editPosition">' + buildPositionOptions(u.position) + '</select></td>' +
+      '<td><input type="text" class="text-input edit-input" id="editPiName" value="' + escapeHtml(u.pi_name || "") + '" maxlength="128"></td>' +
       '<td><select class="text-input edit-input" id="editRole">' +
         '<option value="admin"' + ((u.role || "user") === "admin" ? " selected" : "") + (self ? " disabled" : "") + '>Admin</option>' +
         '<option value="user"' + ((u.role || "user") === "user" ? " selected" : "") + '>User</option>' +
@@ -264,7 +283,7 @@
     pwRow.innerHTML =
       '<td></td>' +
       '<td colspan="2"><input type="password" class="text-input edit-input" id="editPassword" placeholder="New password (leave empty to keep)" minlength="8" autocomplete="new-password"></td>' +
-      '<td colspan="5" class="muted" style="font-size:0.76rem">Leave blank to keep current password</td>';
+      '<td colspan="8" class="muted" style="font-size:0.76rem">Leave blank to keep current password</td>';
     tr.parentNode.insertBefore(pwRow, tr.nextSibling);
 
     tr._origHTML = origHTML;
@@ -274,7 +293,10 @@
     tr.querySelector(".edit-save").addEventListener("click", function () {
       var payload = {
         email: document.getElementById("editEmail").value.trim(),
+        full_name: document.getElementById("editFullName").value.trim(),
         affiliation: document.getElementById("editAffiliation").value.trim(),
+        position: document.getElementById("editPosition").value || null,
+        pi_name: document.getElementById("editPiName").value.trim(),
         role: document.getElementById("editRole").value,
         registration_status: document.getElementById("editRegStatus").value,
         user_status: document.getElementById("editUserStatus").value,
@@ -328,7 +350,10 @@
       username: document.getElementById("newUsername").value.trim(),
       email: document.getElementById("newEmail").value.trim(),
       password: document.getElementById("newPassword").value,
+      full_name: document.getElementById("newFullName").value.trim() || null,
       affiliation: document.getElementById("newAffiliation").value.trim(),
+      position: document.getElementById("newPosition").value || null,
+      pi_name: document.getElementById("newPiName").value.trim() || null,
       role: document.getElementById("newRole").value,
     };
 
@@ -378,6 +403,15 @@
   function escapeAttr(input) {
     if (!input) return "";
     return String(input).replace(/[^a-zA-Z0-9_-]/g, "");
+  }
+
+  function buildPositionOptions(selected) {
+    var html = '<option value="">Not specified</option>';
+    Object.keys(POSITION_LABELS).forEach(function (value) {
+      html += '<option value="' + value + '"' + (selected === value ? " selected" : "") + '>' +
+        escapeHtml(POSITION_LABELS[value]) + '</option>';
+    });
+    return html;
   }
 
   // Initial load

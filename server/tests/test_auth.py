@@ -30,6 +30,10 @@ def test_auth_me_returns_current_user(monkeypatch, tmp_path):
     assert resp.status_code == 200
     data = json.loads(resp.text)
     assert data["username"] == "tester"
+    assert data["full_name"] is None
+    assert data["affiliation"] is None
+    assert data["position"] is None
+    assert data["pi_name"] is None
     assert "password_hash" not in data
     assert "api_key_hash" not in data
 
@@ -583,6 +587,38 @@ def test_unverified_email_cannot_authenticate(monkeypatch, tmp_path):
 # ==================================================================
 
 
+def test_user_database_upgrade_adds_research_profile_columns(tmp_path):
+    """An existing users database gains nullable profile fields on startup."""
+    import sqlite3
+
+    from pssm_gremlin_server.auth import UserDatabase
+
+    db_path = tmp_path / "legacy-users.sqlite3"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                email_verified INTEGER NOT NULL,
+                is_admin INTEGER NOT NULL,
+                created_at FLOAT NOT NULL
+            )
+            """
+        )
+        conn.execute("INSERT INTO users VALUES (1, 'legacy', 'legacy@example.com', 'hash', 1, 0, 1.0)")
+
+    db = UserDatabase(str(db_path))
+    legacy = db.get_user(1)
+    assert legacy is not None
+    assert legacy["full_name"] is None
+    assert legacy["affiliation"] is None
+    assert legacy["position"] is None
+    assert legacy["pi_name"] is None
+
+
 def test_user_db_get_user_by_email(monkeypatch, tmp_path):
     """UserDatabase.get_user_by_email finds user by case-insensitive email."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
@@ -704,6 +740,10 @@ def test_rate_limit_on_register_endpoint(monkeypatch, tmp_path):
         "username": "ratelimit_test",
         "email": "rl@test.local",
         "password": "pass12345678",
+        "full_name": "Rate Limit",
+        "affiliation": "Example University",
+        "position": "research_assistant",
+        "pi_name": "Example PI",
         "terms_agreed": True,
         "captcha_token": captcha_token,
         "captcha_answer": "7",
@@ -979,7 +1019,10 @@ def test_schema_user_response_excludes_password_hash(monkeypatch, tmp_path):
         email_verified=True,
         is_admin=False,
         role="user",
+        full_name=None,
         affiliation=None,
+        position=None,
+        pi_name=None,
         registration_status="approved",
         user_status="active",
         created_at=1234567890.0,

@@ -15,6 +15,20 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+AcademicPosition = Literal[
+    "undergraduate_student",
+    "masters_student",
+    "phd_student",
+    "postdoctoral_researcher",
+    "research_assistant",
+    "lecturer",
+    "assistant_professor",
+    "associate_professor",
+    "professor",
+    "industry_researcher",
+    "other",
+]
+
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
@@ -59,10 +73,20 @@ class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=64)
     email: str
     password: str = Field(min_length=8)
-    affiliation: str | None = None
+    full_name: str = Field(min_length=1, max_length=128)
+    affiliation: str = Field(min_length=1, max_length=256)
+    position: AcademicPosition
+    pi_name: str = Field(min_length=1, max_length=128)
     terms_agreed: bool = False
     captcha_token: str
     captcha_answer: str
+
+    @field_validator("full_name", "affiliation", "pi_name", mode="before")
+    @classmethod
+    def _strip_required_profile_field(cls, v: str) -> str:
+        if not isinstance(v, str) or not v.strip():
+            raise ValueError("field must not be blank")
+        return v.strip()
 
     @field_validator("email", mode="before")
     @classmethod
@@ -83,7 +107,10 @@ class AdminCreateUserRequest(BaseModel):
     username: str = Field(min_length=3, max_length=64)
     email: str
     password: str = Field(min_length=8)
+    full_name: str | None = Field(default=None, max_length=128)
     affiliation: str | None = None
+    position: AcademicPosition | None = None
+    pi_name: str | None = Field(default=None, max_length=128)
     is_admin: bool = False
     role: str = "user"
 
@@ -104,7 +131,10 @@ class AdminUpdateUserRequest(BaseModel):
     """Fields admin may update on a user.  All optional — only sent keys change."""
 
     email: str | None = None
+    full_name: str | None = Field(default=None, max_length=128)
     affiliation: str | None = None
+    position: AcademicPosition | None = None
+    pi_name: str | None = Field(default=None, max_length=128)
     password: str | None = Field(default=None, min_length=8)
     registration_status: Literal["approved", "rejected"] | None = None
     user_status: Literal["active", "banned"] | None = None
@@ -163,7 +193,10 @@ class UserResponse(BaseModel):
     email_verified: bool
     is_admin: bool
     role: str
+    full_name: str | None = None
     affiliation: str | None
+    position: str | None = None
+    pi_name: str | None = None
     registration_status: str
     user_status: str
     created_at: float | None
