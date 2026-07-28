@@ -268,14 +268,14 @@ Required environment variables (defined in `docker-compose.yml`):
 
 | Variable | Description |
 |----------|-------------|
-| `SERVER_DIR` | Host root for uploads, SQLite, and result folders |
+| `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and results; never contains the user DB |
 | `LOG_DIR` | Host directory for Gunicorn/Celery logs |
 | `DB_UNIREF30` | UniRef30 HHsuite database prefix path |
 | `DB_UNIREF90` | UniRef90 BLAST database prefix path |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens (set in production) |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days) |
-| `AUTH_DIR` | Host auth-data directory mounted only into web |
-| `USER_DB_PATH` | User database path inside web (default: `/var/lib/revodesign-auth/users.sqlite3`) |
+| `AUTH_DIR` | Host directory containing `users.sqlite3`; mounted only into web and required to be outside `SERVER_DIR` |
+| `USER_DB_PATH` | Path through which web sees that database inside its container (default: `/var/lib/revodesign-auth/users.sqlite3`) |
 | `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires email service) |
 | `SMTP_HOST` | SMTP server hostname (stdlib, always available) |
 | `SMTP_PORT` | SMTP port (default: 587) |
@@ -298,6 +298,24 @@ Required environment variables (defined in `docker-compose.yml`):
 | `ADMIN_USERS` | Comma-separated admin usernames |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
 | `TZ` | Timezone for logs |
+
+`AUTH_DIR` is a Docker-host path, whereas `USER_DB_PATH` is a path inside the
+web container. They refer to the same file through the Compose volume mapping:
+
+```text
+${AUTH_DIR}/users.sqlite3
+    -> web: /var/lib/revodesign-auth/users.sqlite3
+    -> worker: not mounted
+```
+
+For example, `AUTH_DIR=/srv/revodesign/auth` and the default
+`USER_DB_PATH=/var/lib/revodesign-auth/users.sqlite3` make the host file
+`/srv/revodesign/auth/users.sqlite3` available to web at `USER_DB_PATH`.
+`AUTH_DIR` cannot be nested below `SERVER_DIR`, because the worker receives the
+entire `SERVER_DIR` mount and would then inherit access to the user database.
+Fresh deployments only need to create a writable `AUTH_DIR`; upgrades from the
+old shared layout must run `restart_pssm_flask.sh migrate-auth-db` while the
+stack is stopped.
 
 ### Setup Steps
 

@@ -133,15 +133,15 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 
 | Variable | Purpose |
 | --- | --- |
-| `SERVER_DIR` | Host root for uploads, task SQLite, and result folders (default: `./pssm_gremlin_data`). |
+| `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and result folders (default: `./pssm_gremlin_data`). Never store the user database here. |
 | `RUNNER_HOST_ROOT` | Host root allowed for Docker runner bind mounts (default: parent of `SERVER_DIR`). |
 | `LOG_DIR` | Host directory for Gunicorn/Celery logs. |
 | `DB_UNIREF30` | UniRef30 prefix path (default: `{SERVER_DIR}/db/uniref30/UniRef30_2022_02`). |
 | `DB_UNIREF90` | UniRef90 BLAST prefix path (default: `{SERVER_DIR}/db/uniref90/uniref90`). |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
-| `AUTH_DIR` | Host directory mounted only into web for authentication data. Must be outside `SERVER_DIR`. |
-| `USER_DB_PATH` | User DB path inside web (default: `/var/lib/revodesign-auth/users.sqlite3`). |
+| `AUTH_DIR` | Host-side directory containing `users.sqlite3`; Compose mounts it only into web. It must be outside `SERVER_DIR`. |
+| `USER_DB_PATH` | Container-side path used by web to open the user DB. Keep the default `/var/lib/revodesign-auth/users.sqlite3` unless the Compose mount target also changes. |
 | `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires Resend API key). |
 | `RESEND_API_KEY` | Resend API key for sending verification and password-reset emails. |
 | `RESEND_FROM_ADDR` | Sender email address (verified domain in Resend). |
@@ -163,6 +163,44 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `TZ` | Timezone for logs. |
 | `CLIENT_IP_HEADERS` | Comma-separated list of HTTP headers to try for the real client IP, in priority order (default: `X-Forwarded-For, X-Real-IP`). See CDN reference below. |
 | `CLIENT_COUNTRY_HEADER` | Single HTTP header carrying the client country code, e.g. `CF-IPCountry` for Cloudflare (default: empty = disabled). |
+
+### Authentication storage: host path versus container path
+
+`AUTH_DIR` and `USER_DB_PATH` describe the same storage from two different
+points of view:
+
+```text
+Docker host                                  web container
+/srv/revodesign/auth/users.sqlite3     ->    /var/lib/revodesign-auth/users.sqlite3
+^^^^^^^^^^^^^^^^^^^^^^^                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AUTH_DIR                                      USER_DB_PATH
+```
+
+With the example configuration:
+
+```dotenv
+SERVER_DIR=/srv/revodesign/server
+AUTH_DIR=/srv/revodesign/auth
+USER_DB_PATH=/var/lib/revodesign-auth/users.sqlite3
+```
+
+Compose applies these boundaries:
+
+| Process | Sees `SERVER_DIR` | Sees `AUTH_DIR` | Can open the user DB |
+| --- | --- | --- | --- |
+| Web | Yes | Yes, mounted at `/var/lib/revodesign-auth` | Yes |
+| Celery worker | Yes | No | No |
+
+`AUTH_DIR` is therefore not an application data path passed to Python. It is a
+Docker-host path used to create a private volume mount for web. It must be a
+sibling of, rather than a child of, `SERVER_DIR`: mounting all of `SERVER_DIR`
+into the worker would otherwise expose any nested auth directory through that
+parent mount.
+
+On a new installation, create `AUTH_DIR` with write access for
+`RUNNER_UID:RUNNER_GID`; web creates `users.sqlite3` there on first start. Keep
+`USER_DB_PATH` at its default unless you deliberately change the target side of
+the Compose volume mount.
 
 ### CDN IP header reference
 
@@ -316,8 +354,9 @@ REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.
 
 ### Isolate an existing user database
 
-Set `AUTH_DIR` to a host directory outside `SERVER_DIR`, stop the stack, and
-run the explicit migration once:
+This step is only for an upgrade where the old database still exists at
+`${SERVER_DIR}/users.sqlite3`. Set `AUTH_DIR` to its new host directory, stop
+the stack, and run the explicit migration once:
 
 ```bash
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
@@ -330,6 +369,9 @@ integrity and user counts, and moves the legacy copy into `AUTH_DIR` as a
 timestamped rollback backup. To roll back while the stack is stopped, restore
 that backup to the original `${SERVER_DIR}/users.sqlite3` path and deploy the
 previous Compose configuration.
+
+For a fresh installation there is nothing to migrate: create `AUTH_DIR` and
+start normally. The web process creates `${AUTH_DIR}/users.sqlite3`.
 
 ### Equivalent Docker Compose commands
 
