@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```
 ## [Unreleased]
+
+## [1.9.1] - 2026-07-28
 ### Added
 - **GREMLIN server: scheduled database backups**: added an opt-in
   `database_backup_task` that uses SQLite's online backup API to create
