@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 import smtplib
 import time
 from collections.abc import Callable
@@ -392,10 +393,7 @@ class UserDatabase:
 # Token serialiser
 # ---------------------------------------------------------------------------
 
-_SECRET_KEY = _env_str(
-    "AUTH_SECRET_KEY",
-    os.environ.get("SECRET_KEY", os.urandom(32).hex()),
-)
+_SECRET_KEY = secrets.token_hex(32)
 
 _TOKEN_MAX_AGE = _env_int("AUTH_TOKEN_MAX_AGE", 7 * 24 * 3600)  # 7 days
 

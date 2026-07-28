@@ -237,6 +237,7 @@ assert task_runtime.task_store.path == os.path.abspath(os.environ["DB_PATH"])
 
 def test_compose_isolates_worker_auth_and_web_docker_socket():
     compose = (Path(REPO_DIR) / "server" / "docker-compose.yml").read_text(encoding="utf-8")
+    assert "AUTH_SECRET_KEY" not in compose
     task_env = compose.split("x-task-env:", 1)[1].split("x-web-auth-env:", 1)[0]
     web_auth_env = compose.split("x-web-auth-env:", 1)[1].split("x-maintenance-env:", 1)[0]
     maintenance_env = compose.split("x-maintenance-env:", 1)[1].split("x-docker-socket-access:", 1)[0]

@@ -158,7 +158,6 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `DB_UNIREF30` | Required UniRef30 prefix path. |
 | `DB_UNIREF90` | Required UniRef90 BLAST prefix path. |
 | `ADMIN_USERS` | Required comma-separated administrator usernames. On an empty user database, the restart script creates each account and prints a distinct generated password. |
-| `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
 | `AUTH_DIR` | Host-side directory containing `users.sqlite3`; Compose mounts it only into web and maintenance. It must be outside `SERVER_DIR`. |
 | `USER_DB_PATH` | Container-side path used by web and maintenance to open the user DB. Keep the default `/var/lib/revodesign-auth/users.sqlite3` unless the Compose mount target also changes. |
@@ -285,6 +284,9 @@ Gunicorn workers are started with `--preload` so the auth secret key is
 generated once in the arbiter before forking.  Without this, each worker
 independently generates its own signing key, making tokens from one worker
 fail validation on another.
+
+The key is intentionally ephemeral. Restarting the web service logs users out
+and invalidates outstanding verification and password-reset links.
 
 ### First run
 
@@ -576,7 +578,8 @@ banned users, and login throttling are maintained in
 
 ### Authentication
 
-- Set `AUTH_SECRET_KEY` to a fixed, high-entropy value in production; otherwise tokens are lost on restart.
+- Authentication signing keys are ephemeral; restarting web invalidates
+  existing login, verification, and password-reset tokens.
 - Browser page navigations use an `HttpOnly`/`SameSite=Lax` cookie; JavaScript
   cannot read it, so logout requires the server endpoint (`POST /api/auth/logout`).
 - Rate limiting: 5 login attempts/minute/IP, 3 registrations/hour/IP.

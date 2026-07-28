@@ -166,8 +166,8 @@ its ``args`` to ``scheduler.add_job`` only when ``is_enabled`` is true.
   dispatched via Celery so the HTTP request returns immediately with a task
   ID for polling.
 - **Gunicorn `--preload`**: The WSGI application is loaded in the arbiter
-  before workers are forked, ensuring shared module state (especially the
-  `AUTH_SECRET_KEY` used for token signing) is consistent across workers.
+  before workers are forked, ensuring the ephemeral token-signing key is
+  consistent across workers for the lifetime of the web service.
 - **Pydantic at the API boundary**: All inbound request payloads are
   validated through typed Pydantic models (``schemas.py``) before reaching
   business logic.  Response serialisation uses ``UserResponse`` to guarantee
@@ -310,7 +310,6 @@ Important environment variables (see the organized sections in
 | `DB_UNIREF30` | Required UniRef30 HHsuite database prefix path |
 | `DB_UNIREF90` | Required UniRef90 BLAST database prefix path |
 | `ADMIN_USERS` | Required comma-separated bootstrap-administrator usernames; the restart script generates and transiently supplies one password per account |
-| `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens (set in production) |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days) |
 | `AUTH_DIR` | Host directory containing `users.sqlite3`; mounted only into web and maintenance and required to be outside `SERVER_DIR` |
 | `USER_DB_PATH` | Path through which web and maintenance see that database inside their containers (default: `/var/lib/revodesign-auth/users.sqlite3`) |

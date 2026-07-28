@@ -33,15 +33,9 @@ from pssm_gremlin_server.maintenance.tasks.result_cleanup import (
     deleted_status_from_task as _result_deleted_status,
 )
 
-# Ensure AUTH_SECRET_KEY is set *before* auth.py initialises its token
-# serializer, otherwise multi-worker gunicorn generates independent signing
-# keys per worker and tokens from one worker fail validation on another.
-if not os.environ.get("AUTH_SECRET_KEY"):
-    os.environ["AUTH_SECRET_KEY"] = os.urandom(32).hex()
-
 from pssm_gremlin_server.auth import UserDatabase  # noqa: E402
+from pssm_gremlin_server.auth import _SECRET_KEY as _TOKEN_SIGNING_KEY  # noqa: E402
 from pssm_gremlin_server.auth import _env_bool  # noqa: E402
-from pssm_gremlin_server.auth import _env_str  # noqa: E402
 
 CONFIG = GremlinConfig.from_env()
 _env_required("ADMIN_USERS")
@@ -89,11 +83,8 @@ _user_db = UserDatabase()
 app.config["user_db"] = _user_db
 ENABLE_REGISTER = _env_bool("ENABLE_REGISTER", False)
 
-# Secrets for token signing — reuse a shared secret or generate a random one.
-# In production set AUTH_SECRET_KEY to a fixed, high-entropy value so tokens
-# survive process restarts.
-_token_key = _env_str("AUTH_SECRET_KEY", os.urandom(32).hex())
-app.secret_key = app.secret_key or _token_key
+# Gunicorn preloads this once, then forks workers with the same ephemeral key.
+app.secret_key = app.secret_key or _TOKEN_SIGNING_KEY
 
 
 # Bootstrap every configured admin if the user database is empty.

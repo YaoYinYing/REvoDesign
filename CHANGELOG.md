@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   database when any required setting is absent. The initial administrator
   passwords are generated one-by-one and supplied transiently by the restart
   script instead of being stored in the env file.
+- **GREMLIN server: ephemeral signing key**: removed the configurable
+  `AUTH_SECRET_KEY`. Gunicorn generates one in memory per preloaded web launch;
+  restarting web intentionally invalidates active login, verification, and
+  password-reset tokens.
 
 ## [1.9.1] - 2026-07-28
 ### Added
