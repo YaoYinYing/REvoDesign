@@ -329,7 +329,6 @@ Important environment variables (see the organized sections in
 | `GUNICORN_WORKERS` | Gunicorn web worker count |
 | `PORT` | Public HTTP port (default: 8080) |
 | `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives; leave unset to disable cleanup |
-| `PUBLIC_DASHBOARD` | Per-user task isolation (default: `false`) |
 | `ADMIN_USERS` | Comma-separated admin usernames |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated recipients for new-registration digests |

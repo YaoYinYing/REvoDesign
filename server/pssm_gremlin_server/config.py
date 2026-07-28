@@ -114,7 +114,6 @@ class GremlinConfig:
     nproc: int
     maxmem: int
     port: int
-    public_dashboard: bool
 
     @classmethod
     def from_env(cls) -> GremlinConfig:
@@ -131,5 +130,4 @@ class GremlinConfig:
             nproc=env_int("NPROC", 16),
             maxmem=env_int("MAXMEM", 64),
             port=env_int("PORT", 8080),
-            public_dashboard=env_bool("PUBLIC_DASHBOARD", False),
         )

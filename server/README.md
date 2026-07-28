@@ -171,7 +171,6 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `PORT` | Public HTTP port. |
 | `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives. Leave unset to disable cleanup; task audit rows remain. |
-| `PUBLIC_DASHBOARD` | `false` by default; scopes task visibility to owner unless admin. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated admin email addresses for new-user registration digests (default: empty = no notification). |
 | `ADMIN_NEW_USER_INFORM` | Interval in minutes between new-user digest emails (default: `0` = disabled). |
@@ -579,7 +578,8 @@ banned users, and login throttling are maintained in
 ## 10. Operations Notes
 
 - Restrict Docker socket access to trusted operators only.
-- Keep `PUBLIC_DASHBOARD=false` for private per-user isolation.
+- Task visibility and operations are always restricted to the owner or an
+  administrator.
 - Regularly back up sqlite and result archives.
 - If a task is deleted, result artifacts are removed, but the sqlite record remains for audit.
 

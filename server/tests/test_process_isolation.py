@@ -165,6 +165,7 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
     assert "RUNNER_HOST_ROOT" in task_env
     assert "RESULT_RETENTION_DAYS" not in task_env
     assert "RESULT_RETENTION_DAYS" not in web_auth_env
+    assert "PUBLIC_DASHBOARD" not in web_auth_env
     assert "RESULT_RETENTION_DAYS" in maintenance_env
     assert "web-auth-env" in web
     assert "/var/lib/revodesign-auth" in web

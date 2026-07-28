@@ -98,6 +98,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
 
 ### Changed
+- **GREMLIN server: private task isolation**: removed `PUBLIC_DASHBOARD`
+  because its former behavior exposed sequences and results and allowed
+  cross-user task cancellation. Existing environment entries are silently
+  ignored; task visibility and operations are always restricted to the owner
+  or an administrator.
 - **GREMLIN server: maintenance scheduler**: replaced the
   two Gunicorn daemon loops with one dedicated APScheduler 3.x maintenance
   service that has no HTTP port or Docker socket. Jobs are organized under

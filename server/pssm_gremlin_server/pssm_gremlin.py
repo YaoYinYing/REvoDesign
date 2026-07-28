@@ -303,8 +303,6 @@ def _is_admin_user(username: str | None = None) -> bool:
 def _task_access_allowed(task: dict[str, Any]) -> bool:
     if _is_admin_user():
         return True
-    if CONFIG.public_dashboard:
-        return True
     current_user = _current_username() or ""
     return bool(current_user) and task.get("username") == current_user
 

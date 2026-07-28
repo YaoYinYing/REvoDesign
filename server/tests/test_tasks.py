@@ -653,7 +653,7 @@ def test_private_dashboard_blocks_non_owner_access(monkeypatch, tmp_path):
     assert md5sum not in other_dashboard.get_data(as_text=True)
 
 
-def test_public_dashboard_allows_cross_user_task_access(monkeypatch, tmp_path):
+def test_removed_public_dashboard_env_is_silently_ignored(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
         tmp_path,
@@ -681,13 +681,15 @@ def test_public_dashboard_allows_cross_user_task_access(monkeypatch, tmp_path):
     assert upload.status_code == 302
     md5sum = _extract_md5(upload.headers["Location"])
 
-    other_running = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=other_header)
-    assert other_running.status_code == 202
-    assert other_running.json["status"] == "pending"
+    for route in ("running", "results", "download", "cancel"):
+        method = client.post if route == "cancel" else client.get
+        response = method(f"/PSSM_GREMLIN/api/{route}/{md5sum}", headers=other_header)
+        assert response.status_code == 403
+        assert response.json["status"] == "forbidden"
 
     other_dashboard = client.get("/PSSM_GREMLIN/dashboard", headers=other_header)
     assert other_dashboard.status_code == 200
-    assert md5sum in other_dashboard.get_data(as_text=True)
+    assert md5sum not in other_dashboard.get_data(as_text=True)
 
 
 def test_dashboard_running_trace_reflects_log_progress(monkeypatch, tmp_path):
@@ -728,14 +730,13 @@ def test_dashboard_running_trace_reflects_log_progress(monkeypatch, tmp_path):
     assert "blast: searching for consensus profile [pending]" in body
 
 
-def test_public_mode_scopes_task_id_by_user(monkeypatch, tmp_path):
+def test_task_id_is_scoped_by_user(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
         tmp_path,
         extra_env={
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
-            "PUBLIC_DASHBOARD": "true",
         },
     )
 

@@ -42,7 +42,6 @@ from pssm_gremlin_server.auth import (
     validate_reset_token,
 )
 from pssm_gremlin_server.pssm_gremlin import (
-    CONFIG,
     ENABLE_REGISTER,
     TEMPLATE_IMAGE_DIR,
     _client_country,
@@ -462,7 +461,7 @@ def task_dashboard():
     current_user = _current_username() or ""
     is_admin = _is_admin_user(current_user)
     all_tasks = task_store.list_tasks()
-    if is_admin or CONFIG.public_dashboard:
+    if is_admin:
         scoped_tasks = all_tasks
     else:
         scoped_tasks = [task for task in all_tasks if task.get("username") == current_user]
