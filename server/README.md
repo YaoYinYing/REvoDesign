@@ -592,6 +592,9 @@ pip install -e "server/[test]"
 # Run the server-owned non-Docker suite
 make -C server test
 
+# Run the same coverage target used by server CI
+make -C server test-cov
+
 # Run the server directly without Docker
 python -m pssm_gremlin_server.pssm_gremlin
 ```

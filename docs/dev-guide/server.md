@@ -442,7 +442,10 @@ make -C server test-all
 The test suite uses the same ``_load_pssm_module`` pattern to create isolated
 Flask test clients with temporary SQLite databases and environment variables.
 A dedicated CI workflow (``.github/workflows/server-test.yml``) runs non-Docker
-tests on every push touching ``server/**``.
+tests on every push touching ``server/**``. CI calls
+``make -C server test-cov`` rather than maintaining a separate pytest command;
+the server-local ``pyproject.toml`` and ``.coveragerc`` keep its pytest and
+coverage configuration independent from the root REvoDesign suite.
 
 ### Current Security Test Coverage
 

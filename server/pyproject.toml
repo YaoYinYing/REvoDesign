@@ -49,3 +49,6 @@ pssm_gremlin_server = [
     "static/css/*",
     "static/js/*",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

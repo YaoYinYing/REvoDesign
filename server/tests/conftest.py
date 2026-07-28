@@ -4,9 +4,9 @@
 
 """pytest configuration and shared helpers for pssm_gremlin_server tests.
 
-Run from the repo root::
+Run through the server-owned Makefile::
 
-    pytest server/tests/ -k "not Docker and not docker"
+    make -C server test
 """
 
 from __future__ import annotations

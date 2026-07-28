@@ -118,7 +118,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GREMLIN server: Pydantic data models** — request/response validation hardened with typed Pydantic models at the API boundary (`schemas.py`), replacing ad-hoc `str(payload.get(...))` validation across all auth/admin route handlers.
 - **REvoDesign test suite** — removed server-only dependency pins from the root
   `test` extra; server tests and Makefile targets are now self-contained under
-  `server/`.
+  `server/`. The server CI workflow now calls the server-owned coverage target
+  instead of duplicating pytest filters and dependencies, with pytest and
+  coverage configuration also moved under `server/`.
 - **GREMLIN server: module split** — `pssm_gremlin.py` refactored from ~1500 lines into `db.py` (TaskDatabase), `routes.py` (HTTP handlers), `ratelimit.py` (rate limiter), and slimmed-down main module.
 - **GREMLIN server: SMTP-gated registration** — self-registration and email verification now require SMTP to be configured.
 - Docker Compose: removed `group_add: "0"` (root group) from `x-docker-socket-access`.
