@@ -10,7 +10,6 @@ import json
 import logging
 import os
 import re
-import shutil
 import time
 from pathlib import Path
 from typing import Any
@@ -24,13 +23,17 @@ from pssm_gremlin_server.config import (
     GremlinConfig,
     ensure_directories as _ensure_directories,
     env_csv as _env_csv,
-    env_int as _env_int,
     env_path as _env_path,
     format_runner_identity as _format_runner_identity,
     resolve_docker_user as _resolve_docker_user,
 )
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
+
+from pssm_gremlin_server.maintenance.tasks.result_cleanup import (
+    delete_task_artifacts as _delete_result_artifacts,
+    deleted_status_from_task as _result_deleted_status,
+)
 
 # Ensure AUTH_SECRET_KEY is set *before* auth.py initialises its token
 # serializer, otherwise multi-worker gunicorn generates independent signing
@@ -41,7 +44,6 @@ if not os.environ.get("AUTH_SECRET_KEY"):
 from pssm_gremlin_server.auth import UserDatabase  # noqa: E402
 from pssm_gremlin_server.auth import _env_bool  # noqa: E402
 from pssm_gremlin_server.auth import _env_str  # noqa: E402
-from pssm_gremlin_server.auth import send_admin_digest  # noqa: E402
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
@@ -119,45 +121,6 @@ if _user_db.user_count() == 0:
         if _created_admin and not _created_admin.get("email_verified"):
             _user_db.verify_email(_created_admin["id"])
         logging.info("Default admin user %r already exists after bootstrap race.", _default_admin)
-
-
-_digest_thread = None
-
-
-def start_admin_digest() -> None:
-    """Start the web-only registration digest loop once when configured."""
-    global _digest_thread
-    if _digest_thread is not None:
-        return
-    admin_digest_minutes = _env_int("ADMIN_NEW_USER_INFORM", 0)
-    if admin_digest_minutes <= 0 or not _env_str("ADMIN_NOTIFY_EMAIL", ""):
-        return
-
-    import secrets
-    import threading
-
-    digest_lock = os.path.join(_env_str("SERVER_DIR", os.getcwd()), ".admin_digest.lock")
-
-    def _digest_loop() -> None:
-        while True:
-            jitter = secrets.randbelow(10001) / 1000 - 5
-            time.sleep(admin_digest_minutes * 60 + jitter)
-            try:
-                import fcntl
-
-                with open(digest_lock, "w") as _lock_fh:
-                    fcntl.flock(_lock_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    send_admin_digest()
-            except OSError:
-                pass
-            except Exception:
-                logging.exception("Admin digest thread failed")
-
-    _digest_thread = threading.Thread(target=_digest_loop, daemon=True)
-    _digest_thread.start()
-
-
-start_admin_digest()
 
 
 # Worker-safe task runtime.  This module has no Flask/auth dependency, so the
@@ -374,23 +337,7 @@ def _task_delete_allowed(task: dict[str, Any]) -> bool:
 
 
 def _delete_task_artifacts(task: dict[str, Any]) -> None:
-    result_dir = task.get("result_dir")
-    if result_dir:
-        safe_result_dir = os.path.abspath(str(result_dir))
-        if os.path.isdir(safe_result_dir):
-            if safe_result_dir in {os.path.abspath(os.sep), os.path.abspath(os.path.expanduser("~"))}:
-                logging.warning("Refusing to delete unsafe root-like directory: %s", safe_result_dir)
-            elif not _path_is_within(app.config["RESULTS_FOLDER"], safe_result_dir):
-                logging.warning("Refusing to delete result directory outside RESULTS_FOLDER: %s", safe_result_dir)
-            else:
-                shutil.rmtree(safe_result_dir, ignore_errors=True)
-    try:
-        zip_path = _task_zip_path(task)
-    except ValueError:
-        logging.warning("Refusing to delete zip for invalid task id: %s", task.get("md5sum"))
-        return
-    if os.path.exists(zip_path):
-        os.remove(zip_path)
+    _delete_result_artifacts(task, app.config["RESULTS_FOLDER"])
 
 
 def _revoke_celery_task(task: dict[str, Any]) -> None:
@@ -405,68 +352,13 @@ def _revoke_celery_task(task: dict[str, Any]) -> None:
 
 
 def _deleted_status_from_task(task: dict[str, Any]) -> str:
-    current_status = str(task.get("status") or "").strip().lower()
-    if current_status in {"deleted:finshed", "deleted:cancel"}:
-        return current_status
-    if current_status == "finished":
-        return "deleted:finshed"
-    return "deleted:cancel"
+    return _result_deleted_status(task)
 
 
 def _is_deleted_status(status: Any) -> bool:
     """True when *status* is a deleted state (``deleted:finshed`` or ``deleted:cancel``)."""
     normalized = str(status or "").strip().lower()
     return normalized in {"deleted:finshed", "deleted:cancel"}
-
-
-def _cleanup_expired_task_artifacts(retention_days: int, *, now: float | None = None) -> int:
-    """Delete result artifacts for terminal tasks older than *retention_days*."""
-    cutoff = (time.time() if now is None else now) - retention_days * 86400
-    cleaned = 0
-    for task in task_store.list_tasks():
-        status = str(task.get("status") or "").strip().lower()
-        finished_at = task.get("finished_at")
-        if status not in {"finished", "failed", "cancelled"} or finished_at is None or finished_at > cutoff:
-            continue
-        _delete_task_artifacts(task)
-        task_store.update_task(
-            task["md5sum"],
-            status=_deleted_status_from_task(task),
-            celery_task_id=None,
-        )
-        cleaned += 1
-    return cleaned
-
-
-_result_cleanup_thread = None
-
-
-def start_result_cleanup() -> None:
-    """Start daily cleanup of expired terminal-task artifacts when enabled."""
-    global _result_cleanup_thread
-    if _result_cleanup_thread is not None:
-        return
-    retention_days = _env_int("RESULT_RETENTION_DAYS", 0)
-    if retention_days <= 0:
-        return
-
-    import threading
-
-    def _cleanup_loop() -> None:
-        while True:
-            try:
-                cleaned = _cleanup_expired_task_artifacts(retention_days)
-                if cleaned:
-                    logging.info("Removed expired result artifacts for %d task(s)", cleaned)
-            except Exception:
-                logging.exception("Result retention cleanup failed")
-            time.sleep(86400)
-
-    _result_cleanup_thread = threading.Thread(target=_cleanup_loop, daemon=True)
-    _result_cleanup_thread.start()
-
-
-start_result_cleanup()
 
 
 # Compatibility exports for callers that historically imported task symbols

@@ -391,7 +391,17 @@ def test_cleanup_expired_task_artifacts_only_removes_old_terminal_results(monkey
         )
         task_artifacts.append((md5sum, result_dir, zip_path))
 
-    assert module._cleanup_expired_task_artifacts(30, now=now) == 3
+    from pssm_gremlin_server.maintenance.tasks.result_cleanup import cleanup_expired_task_artifacts
+
+    assert (
+        cleanup_expired_task_artifacts(
+            30,
+            task_store=module.task_store,
+            results_folder=module.app.config["RESULTS_FOLDER"],
+            now=now,
+        )
+        == 3
+    )
 
     for (_status, _finished_at, expected_status, expired), (md5sum, result_dir, zip_path) in zip(
         tasks, task_artifacts, strict=True

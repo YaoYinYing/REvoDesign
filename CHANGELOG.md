@@ -21,8 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **GREMLIN server: result retention cleanup**: `RESULT_RETENTION_DAYS` now
   removes result directories and archives for expired finished, failed, or
-  cancelled tasks during a daily web-side cleanup. Task audit rows are retained,
-  and `0` disables cleanup for backward compatibility.
+  cancelled tasks during a daily maintenance job. Task audit rows are retained,
+  and leaving the setting unset disables cleanup.
 - **GREMLIN server: registration profile details**: registration now requires
   full name, affiliation, academic position (undergraduate, Master's, PhD,
   postdoctoral, faculty, industry, etc.), and PI name. The same information is
@@ -48,8 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Admin registration digest**: periodic email to `ADMIN_NOTIFY_EMAIL` listing new
   registrations that haven't been included in a prior digest. Each user appears
   only once (`admin_notified` column). Interval set by `ADMIN_NEW_USER_INFORM`
-  (minutes, default `0` = disabled). A `threading.Thread` daemon runs the digest
-  loop in the web process.
+  (minutes, default `0` = disabled).
 - **FASTA content validation**: uploads must contain valid FASTA content (first
   non-blank line starts with `>`). Catches renamed docx/jpg/exe files that pass
   the binary-detection check.
@@ -99,6 +98,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
 
 ### Changed
+- **GREMLIN server: maintenance scheduler**: replaced the
+  two Gunicorn daemon loops with one dedicated APScheduler 3.x maintenance
+  service that has no HTTP port or Docker socket. Jobs are organized under
+  `maintenance/tasks/` and cleanup remains disabled when
+  `RESULT_RETENTION_DAYS` is unset.
 - **GREMLIN server: Docker restart modes**: `restart` now defaults to
   `--mode=dev`, which rebuilds local images with the host UID/GID.
   `--mode=prod` instead pulls the configured published images and starts with
@@ -111,7 +115,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   host path and `USER_DB_PATH` as the web container path to the same database.
 - **GREMLIN server: pip package** — renamed from `pssm_gremlin` to `pssm_gremlin_server` with `pyproject.toml` for pip-installability. Server tests moved from `tests/server/` to `server/tests/` with dedicated CI workflow (`.github/workflows/server-test.yml`).
 - **GREMLIN server: Pydantic data models** — request/response validation hardened with typed Pydantic models at the API boundary (`schemas.py`), replacing ad-hoc `str(payload.get(...))` validation across all auth/admin route handlers.
-- **REvoDesign test suite** — removed server-test dependencies (Celery, Flask, Flask-HTTPAuth, SQLAlchemy, Docker SDK) from `make prepare-test`; server tests are now self-contained under `server/tests/` with their own `pyproject.toml`.
+- **REvoDesign test suite** — removed server-only dependency pins from the root
+  `test` extra; server tests and Makefile targets are now self-contained under
+  `server/`.
 - **GREMLIN server: module split** — `pssm_gremlin.py` refactored from ~1500 lines into `db.py` (TaskDatabase), `routes.py` (HTTP handlers), `ratelimit.py` (rate limiter), and slimmed-down main module.
 - **GREMLIN server: SMTP-gated registration** — self-registration and email verification now require SMTP to be configured.
 - Docker Compose: removed `group_add: "0"` (root group) from `x-docker-socket-access`.

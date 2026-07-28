@@ -45,7 +45,8 @@ from the dashboard. Users can also cancel queued or running tasks.
 
 ## Architecture
 
-The server has four containerized services, orchestrated by Docker Compose:
+The server has four long-lived services plus on-demand runner containers,
+orchestrated by Docker Compose:
 
 ```
                 ┌──────────────────┐
@@ -80,7 +81,19 @@ The server has four containerized services, orchestrated by Docker Compose:
                     │  Mounts: FASTA, DB        │
                     │  dirs, output dir         │
                     └──────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│ maintenance (APScheduler)               │
+│ - Registration digest and cleanup jobs │
+│ - Shares task and user SQLite storage   │
+│ - No HTTP port or Docker socket         │
+└─────────────────────────────────────────┘
 ```
+
+The separate `maintenance` service runs APScheduler without an HTTP port or
+Docker socket. It shares the web service's access to the task and user
+databases so it can send registration digests and, when explicitly enabled,
+remove expired result artifacts.
 
 <figure markdown="span">
 ![REvoDesign evolutionary data calculation service architecture](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/server-arch.png){ width="600" }
@@ -106,6 +119,7 @@ the admin user-control system.
 | Service | Base Image | Role |
 |---------|-----------|------|
 | **web** | `python:3.12-slim` | Flask + Gunicorn HTTP server. Serves the web UI and REST API. |
+| **maintenance** | Same as `web` | Single APScheduler process for registration digests and optional result retention. No HTTP port or Docker socket. |
 | **worker** | Same as `web` | Celery worker that receives `run_gremlin_task` jobs from Redis. |
 | **redis** | `redis:7.2-alpine` | Celery message broker and result backend. |
 | **runner** | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `worker`. |
@@ -118,8 +132,10 @@ The server is a pip-installable package at ``server/pssm_gremlin_server/``
 
 | Module | Purpose |
 |--------|---------|
-| ``pssm_gremlin.py`` | Flask web entrypoint, user DB bootstrap, notification startup, and web-only helpers |
+| ``pssm_gremlin.py`` | Flask web entrypoint, user DB bootstrap, and web-only helpers |
 | ``config.py`` | Side-effect-free environment parsing and ``GremlinConfig`` |
+| ``maintenance/manager.py`` | Standalone APScheduler entrypoint and environment-driven job registration |
+| ``maintenance/tasks/`` | Independent registration-digest and result-retention tasks; cleanup helpers are shared with web routes |
 | ``task_runtime.py`` | Celery instance, task DB, Docker runner, archives, and ``run_gremlin_task`` |
 | ``routes.py`` | All ``@app.route`` HTTP handlers — page routes, task API, auth API, admin API |
 | ``auth.py`` | Token serialisation, ``UserDatabase`` (SQLite/SQLAlchemy), ``login_required`` decorator, email verification, password reset |
@@ -305,7 +321,7 @@ Important environment variables (see the organized sections in
 | `WORKER_CONCURRENCY` | Concurrent Celery jobs |
 | `GUNICORN_WORKERS` | Gunicorn web worker count |
 | `PORT` | Public HTTP port (default: 8080) |
-| `RESULT_RETENTION_DAYS` | Days to retain terminal-task result directories and archives; cleanup runs daily, retains task audit rows, and is disabled by `0` |
+| `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives; leave unset to disable cleanup |
 | `PUBLIC_DASHBOARD` | Per-user task isolation (default: `false`) |
 | `ADMIN_USERS` | Comma-separated admin usernames |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
@@ -395,24 +411,25 @@ The runner conda environment is defined at
 - BLAST 2.13, HHsuite 3.3, HMMER 3.3.2
 - Channels: defaults, conda-forge, bioconda
 
-The server's Python dependencies are declared in ``server/pyproject.toml``
-with an optional ``[resend]`` extra for the Resend email SDK.  They include
-Flask 3.x, Celery 5.x (with Redis), SQLAlchemy 2.x, Pydantic 2.x,
-itsdangerous, werkzeug, and the Docker SDK for Python.
+The server's Python dependencies are declared only in
+``server/pyproject.toml``, with an optional ``[resend]`` extra for the Resend
+email SDK. They include Flask 3.x, APScheduler 3.x, Celery 5.x (with Redis),
+SQLAlchemy 2.x, Pydantic 2.x, itsdangerous, werkzeug, and the Docker SDK for
+Python.
 
 ## Testing
 
-Server tests live under ``server/tests/`` and are run from the repo root:
+Server tests and their Makefile live under ``server/``:
 
 ```bash
 # Install the server package in editable mode with test deps
 pip install -e "server/[test]"
 
 # Run non-Docker tests (fast, no external services needed)
-pytest server/tests/ -v -k "not Docker and not docker"
+make -C server test
 
 # Run all tests including Docker integration tests
-pytest server/tests/ -v
+make -C server test-all
 ```
 
 The test suite uses the same ``_load_pssm_module`` pattern to create isolated

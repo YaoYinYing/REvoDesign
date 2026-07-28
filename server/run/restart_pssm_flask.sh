@@ -245,7 +245,7 @@ cmd_up() {
   ensure_docker_gid
   resolve_runner_identity
   echo "Starting services via docker compose..."
-  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up "$@" -d redis web worker
+  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up "$@" -d redis web maintenance worker
 }
 
 cmd_down() {
@@ -274,9 +274,9 @@ cmd_migrate_auth_db() {
     exit 1
   fi
 
-  _running="$("${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" ps -q web worker 2>/dev/null || true)"
+  _running="$("${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" ps -q web maintenance worker 2>/dev/null || true)"
   if [[ -n "${_running}" ]]; then
-    echo "Stop web and worker before migrating: restart_pssm_flask.sh down" >&2
+    echo "Stop web, maintenance, and worker before migrating: restart_pssm_flask.sh down" >&2
     exit 1
   fi
 

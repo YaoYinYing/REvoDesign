@@ -31,7 +31,6 @@ x-web-auth-env: &web-auth-env
   PORT: ${PORT:-8080}
   GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
   PUBLIC_DASHBOARD: ${PUBLIC_DASHBOARD:-false}
-  RESULT_RETENTION_DAYS: ${RESULT_RETENTION_DAYS:-0}
   ADMIN_USERS: ${ADMIN_USERS:-admin}
   AUTH_SECRET_KEY: ${AUTH_SECRET_KEY:-}
   AUTH_TOKEN_MAX_AGE: ${AUTH_TOKEN_MAX_AGE:-604800}
@@ -50,11 +49,14 @@ x-web-auth-env: &web-auth-env
   RESEND_FROM_NAME: ${RESEND_FROM_NAME:-REvoDesign GREMLIN Server}
   SERVER_BASE_URL: ${SERVER_BASE_URL:-http://localhost:8080}
   ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
-  ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
-  ADMIN_NEW_USER_INFORM: ${ADMIN_NEW_USER_INFORM:-0}
   DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
   CLIENT_IP_HEADERS: ${CLIENT_IP_HEADERS:-X-Forwarded-For,X-Real-IP}
   CLIENT_COUNTRY_HEADER: ${CLIENT_COUNTRY_HEADER:-}
+
+x-maintenance-env: &maintenance-env
+  ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
+  ADMIN_NEW_USER_INFORM: ${ADMIN_NEW_USER_INFORM:-0}
+  RESULT_RETENTION_DAYS: ${RESULT_RETENTION_DAYS:-}
 
 x-docker-socket-access: &docker-socket-access
   # Docker socket group access is host-root-equivalent — the Docker API
@@ -104,6 +106,19 @@ services:
     working_dir: /app/server
     ports:
       - "${PORT:-8080}:${PORT:-8080}"
+    volumes:
+      - ${SERVER_DIR}:${SERVER_DIR}
+      - ${AUTH_DIR:-./auth-data}:/var/lib/revodesign-auth
+      - ${LOG_DIR}:${LOG_DIR}
+
+  maintenance:
+    image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root}
+    environment:
+      <<: [*task-env, *web-auth-env, *maintenance-env]
+    restart: unless-stopped
+    user: ${RUNNER_UID}:${RUNNER_GID}
+    command: python -m pssm_gremlin_server.maintenance.manager
+    working_dir: /app/server
     volumes:
       - ${SERVER_DIR}:${SERVER_DIR}
       - ${AUTH_DIR:-./auth-data}:/var/lib/revodesign-auth

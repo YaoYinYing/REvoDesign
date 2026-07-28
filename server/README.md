@@ -14,6 +14,7 @@ is intentionally excluded.
 The server stack contains:
 
 - `web`: Flask + Gunicorn API/UI service
+- `maintenance`: APScheduler process for registration digests and optional result cleanup
 - `worker`: Celery worker for background jobs
 - `redis`: Celery broker/backend
 - `runner` image: GREMLIN/PSSM execution container launched by `worker`
@@ -155,7 +156,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `PORT` | Public HTTP port. |
-| `RESULT_RETENTION_DAYS` | Days to retain result directories and archives for terminal tasks. Cleanup runs daily and retains task audit rows; `0` disables it. |
+| `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives. Leave unset to disable cleanup; task audit rows remain. |
 | `PUBLIC_DASHBOARD` | `false` by default; scopes task visibility to owner unless admin. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated admin email addresses for new-user registration digests (default: empty = no notification). |
@@ -405,7 +406,7 @@ Development mode:
 docker compose -f server/docker-compose.yml --env-file server/.env.local down
 docker compose -f server/docker-compose.yml --env-file server/.env.local --profile runner build runner
 docker compose -f server/docker-compose.yml --env-file server/.env.local build web worker
-docker compose -f server/docker-compose.yml --env-file server/.env.local up --no-build -d redis web worker
+docker compose -f server/docker-compose.yml --env-file server/.env.local up --no-build -d redis web maintenance worker
 ```
 
 Production mode:
@@ -413,7 +414,7 @@ Production mode:
 ```bash
 docker compose -f server/docker-compose.yml --env-file server/.env.production down
 docker compose -f server/docker-compose.yml --env-file server/.env.production --profile runner pull web runner
-docker compose -f server/docker-compose.yml --env-file server/.env.production up --no-build -d redis web worker
+docker compose -f server/docker-compose.yml --env-file server/.env.production up --no-build -d redis web maintenance worker
 ```
 
 ### Zero-downtime Gunicorn reload
@@ -574,8 +575,8 @@ banned users, and login throttling are maintained in
 # Install in editable mode with test dependencies
 pip install -e "server/[test]"
 
-# Run non-Docker tests from the repo root
-pytest server/tests/ -v -k "not Docker and not docker"
+# Run the server-owned non-Docker suite
+make -C server test
 
 # Run the server directly without Docker
 python -m pssm_gremlin_server.pssm_gremlin
