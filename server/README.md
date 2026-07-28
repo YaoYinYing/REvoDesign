@@ -15,9 +15,10 @@ The server stack contains:
 - `web`: Flask + Gunicorn API/UI service
 - `worker`: Celery worker for background jobs
 - `redis`: Celery broker/backend
-- `runner` image: GREMLIN/PSSM execution container launched by `web`/`worker` through Docker socket access
+- `runner` image: GREMLIN/PSSM execution container launched by `worker`
 
-Both `web` and `worker` must access `/var/run/docker.sock` to start runner containers.
+Only `worker` receives `/var/run/docker.sock`. The web container submits tasks
+through Redis and has no Docker socket or user-database overlap with the worker.
 
 ## 0. Prerequisites
 
@@ -88,6 +89,7 @@ sudo adduser --system --group --no-create-home --shell /usr/sbin/nologin revodes
 sudo usermod -aG docker revodesign
 
 sudo mkdir -p /srv/revodesign/server
+sudo mkdir -p /srv/revodesign/auth
 sudo mkdir -p /srv/revodesign/logs
 
 # grant full and recurse access to this user
@@ -131,14 +133,15 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 
 | Variable | Purpose |
 | --- | --- |
-| `SERVER_DIR` | Host root for uploads, sqlite, and result folders (default: `./pssm_gremlin_data`). |
+| `SERVER_DIR` | Host root for uploads, task SQLite, and result folders (default: `./pssm_gremlin_data`). |
 | `RUNNER_HOST_ROOT` | Host root allowed for Docker runner bind mounts (default: parent of `SERVER_DIR`). |
 | `LOG_DIR` | Host directory for Gunicorn/Celery logs. |
 | `DB_UNIREF30` | UniRef30 prefix path (default: `{SERVER_DIR}/db/uniref30/UniRef30_2022_02`). |
 | `DB_UNIREF90` | UniRef90 BLAST prefix path (default: `{SERVER_DIR}/db/uniref90/uniref90`). |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
-| `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`). |
+| `AUTH_DIR` | Host directory mounted only into web for authentication data. Must be outside `SERVER_DIR`. |
+| `USER_DB_PATH` | User DB path inside web (default: `/var/lib/revodesign-auth/users.sqlite3`). |
 | `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires Resend API key). |
 | `RESEND_API_KEY` | Resend API key for sending verification and password-reset emails. |
 | `RESEND_FROM_ADDR` | Sender email address (verified domain in Resend). |
@@ -305,10 +308,28 @@ REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart
 
 # subcommands
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh migrate-auth-db
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh build
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh up
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
 ```
+
+### Isolate an existing user database
+
+Set `AUTH_DIR` to a host directory outside `SERVER_DIR`, stop the stack, and
+run the explicit migration once:
+
+```bash
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh migrate-auth-db
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart
+```
+
+The migration refuses to overwrite an existing destination, checks SQLite
+integrity and user counts, and moves the legacy copy into `AUTH_DIR` as a
+timestamped rollback backup. To roll back while the stack is stopped, restore
+that backup to the original `${SERVER_DIR}/users.sqlite3` path and deploy the
+previous Compose configuration.
 
 ### Equivalent Docker Compose commands
 
@@ -411,9 +432,9 @@ You can start from:
 
 ### Docker socket
 
-The web and worker containers mount `/var/run/docker.sock` to spawn runner containers. This is a security boundary:
+Only the worker mounts `/var/run/docker.sock` to spawn runner containers. This is a security boundary:
 
-- The web/worker run as a non-root user with group-based Docker access.
+- The worker runs as a non-root user with group-based Docker access.
 - `restart_pssm_flask.sh` auto-detects `DOCKER_GID` at runtime and exports it
   for Docker Compose.  Do not persist host-specific socket groups in the env
   file.  If tasks fail with `PermissionError(13, 'Permission denied')`, compare
@@ -448,8 +469,8 @@ banned users, and login throttling are maintained in
 ### Data
 
 - User passwords are hashed with `werkzeug.security.generate_password_hash` (pbkdf2:sha256).
-- User database (`users.sqlite3`) and task database (`pssm_gremlin.sqlite3`) are
-  stored under `SERVER_DIR`, not in the web root.
+- The user database is stored under the web-only `AUTH_DIR`. The task database,
+  uploads, and results remain under `SERVER_DIR`, which web and worker share.
 - All API request payloads are validated through typed Pydantic models
   (``schemas.py``) before reaching business logic — malformed input is rejected
   at the boundary.

@@ -59,11 +59,11 @@ The server has four containerized services, orchestrated by Docker Compose:
 │  - REST API (/PSSM_GREMLIN/api/...)    │
 │  - Web UI (create_task, dashboard)     │
 │  - Bearer-token auth + API keys        │
-│  - Dispatches runner containers        │
-│  - Needs /var/run/docker.sock          │
+│  - Owns web-only users.sqlite3         │
+│  - No Docker socket                    │
 └────┬────────────────────────────────┬───┘
-     │ Celery tasks                   │ docker socket
-     ▼                                ▼
+     │ Celery tasks
+     ▼
 ┌──────────┐               ┌──────────────────┐
 │  redis   │◄──────────────│  worker (Celery) │
 │ (broker) │  task queue   │  Background job   │
@@ -89,7 +89,8 @@ The server has four containerized services, orchestrated by Docker Compose:
 
 The service stack is fully containerized and orchestrated via Docker Compose.
 Deployment requires only database files, environment variables, and a single
-command. Services run as non-root users with group-based Docker socket access.
+command. Services run as non-root users; only the worker receives the Docker
+socket and its supplementary socket group.
 User task data is organized by user identity and task MD5, with strict
 permission isolation.
 
@@ -105,7 +106,7 @@ requires a server-generated math CAPTCHA to prevent automated signups.
 | **web** | `python:3.12-slim` | Flask + Gunicorn HTTP server. Serves the web UI and REST API. |
 | **worker** | Same as `web` | Celery worker that receives `run_gremlin_task` jobs from Redis. |
 | **redis** | `redis:7.2-alpine` | Celery message broker and result backend. |
-| **runner** | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `web`/`worker` via the Docker socket. |
+| **runner** | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `worker`. |
 
 ### Code Structure
 
@@ -115,7 +116,9 @@ The server is a pip-installable package at ``server/pssm_gremlin_server/``
 
 | Module | Purpose |
 |--------|---------|
-| ``pssm_gremlin.py`` | Flask app factory, Celery instance, ``GremlinConfig``, Docker runner helpers |
+| ``pssm_gremlin.py`` | Flask web entrypoint, user DB bootstrap, notification startup, and web-only helpers |
+| ``config.py`` | Side-effect-free environment parsing and ``GremlinConfig`` |
+| ``task_runtime.py`` | Celery instance, task DB, Docker runner, archives, and ``run_gremlin_task`` |
 | ``routes.py`` | All ``@app.route`` HTTP handlers — page routes, task API, auth API, admin API |
 | ``auth.py`` | Token serialisation, ``UserDatabase`` (SQLite/SQLAlchemy), ``login_required`` decorator, email verification, password reset |
 | ``schemas.py`` | Pydantic request/response models — ``LoginRequest``, ``RegisterRequest``, ``AdminCreateUserRequest``, ``AdminUpdateUserRequest``, ``BatchUserRequest``, ``UserResponse``, and more |
@@ -129,7 +132,7 @@ Tests live at ``server/tests/`` with a dedicated CI workflow
 
 ### Key Design Decisions
 
-- **Docker-out-of-Docker**: The `web` and `worker` containers bind-mount
+- **Docker-out-of-Docker**: Only the `worker` container bind-mounts
   `/var/run/docker.sock` to create and manage `runner` containers on the host
   Docker daemon. This isolates the heavy bioinformatics dependencies (older
   Python, TensorFlow 1.x, HHsuite) into the runner image, keeping the server
@@ -271,7 +274,8 @@ Required environment variables (defined in `docker-compose.yml`):
 | `DB_UNIREF90` | UniRef90 BLAST database prefix path |
 | `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens (set in production) |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days) |
-| `USER_DB_PATH` | Path to the user database (default: `{SERVER_DIR}/users.sqlite3`) |
+| `AUTH_DIR` | Host auth-data directory mounted only into web |
+| `USER_DB_PATH` | User database path inside web (default: `/var/lib/revodesign-auth/users.sqlite3`) |
 | `ENABLE_REGISTER` | Set to `true` to enable self-registration (requires email service) |
 | `SMTP_HOST` | SMTP server hostname (stdlib, always available) |
 | `SMTP_PORT` | SMTP port (default: 587) |
@@ -426,9 +430,9 @@ changes.
 Run these checks after auth, account-status, Docker Compose, user/group, or
 runner-launch changes:
 
-- **Docker socket A/B attack test**: verify whether web/worker can access
-  `/var/run/docker.sock`.  If they can, prove the HTTP API still cannot expose
-  Docker control: low-privilege users must not reach admin APIs, cookie-only
+- **Docker socket boundary test**: verify that web has no
+  `/var/run/docker.sock` mount and worker can access it. Prove the HTTP API
+  cannot expose Docker control: low-privilege users must not reach admin APIs, cookie-only
   task writes must fail with Bearer-token errors, Docker-like routes such as
   `/containers/json` must not exist on the Flask port, and uploads must not let
   users choose image, command, privileged mode, bind source paths, or socket
@@ -473,23 +477,21 @@ docker inspect server-web-1 server-worker-1 \
   --format '{{.Name}} User={{.Config.User}} Groups={{json .HostConfig.GroupAdd}} Mounts={{json .Mounts}}'
 docker exec server-web-1 id
 docker exec server-worker-1 id
-docker exec server-web-1 ls -ln /var/run/docker.sock
 docker exec server-worker-1 ls -ln /var/run/docker.sock
 ```
 
-A result: the socket is not accessible from web/worker. This proves the live
-instance is not Docker-root-escape-capable, but Docker-backed task execution
-will fail until permissions are fixed. Expected evidence:
+A result: the socket is absent from web and inaccessible from worker. Web is
+correctly isolated, but Docker-backed task execution will fail until worker
+permissions are fixed. Expected evidence:
 
 ```text
 /var/run/docker.sock -> srw-rw---- 1 0 0 ...
-docker.from_env() from web/worker -> PermissionError(13, 'Permission denied')
+docker.from_env() from worker -> PermissionError(13, 'Permission denied')
 submitted task -> failed with "Docker daemon unavailable" or PermissionError
 ```
 
-B result: the socket is accessible from web/worker. This is operationally
-required for runner containers, but it is host-root-equivalent if arbitrary code
-ever runs in web/worker. In this case the test must prove the HTTP contract does
+B result: the socket is absent from web and accessible from worker. This is the
+required production boundary; worker socket access remains host-root-equivalent.
 not expose Docker control. Expected evidence:
 
 ```text
