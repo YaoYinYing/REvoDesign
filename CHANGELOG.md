@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Changed
+- **GREMLIN server: canonical user roles**: authorization now uses `role` as
+  its sole authority. On startup, databases containing the deprecated
+  `is_admin` column silently promote flagged administrators into `role`, then
+  immediately drop the obsolete column. Bootstrap and user-management APIs now
+  accept only `role`.
 - **GREMLIN server: explicit deployment configuration**: removed implicit
   server/database path and bootstrap-admin defaults. `SERVER_DIR`,
   `DB_UNIREF30`, `DB_UNIREF90`, and `ADMIN_USERS` are now mandatory; both

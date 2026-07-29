@@ -31,7 +31,7 @@ def _admin_client_auth(module, username: str = "sysadmin") -> dict[str, str]:
             username=username,
             email=f"{username}@test.local",
             password="admin_password",
-            is_admin=True,
+            role="admin",
             registration_status="approved",
             user_status="active",
         )
@@ -263,6 +263,33 @@ def test_admin_create_user_with_affiliation(monkeypatch, tmp_path):
     assert user["registration_status"] == "approved"
     assert user["user_status"] == "active"
     assert user["email_verified"] is True
+
+
+def test_admin_create_user_ignores_legacy_is_admin_input(monkeypatch, tmp_path):
+    """Only role can grant admin access; the removed boolean input is inert."""
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+    db = module.app.config["user_db"]
+
+    resp = client.post(
+        "/PSSM_GREMLIN/api/auth/admin/users",
+        headers={**admin_header, "Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "username": "legacyflag",
+                "email": "legacy-flag@test.local",
+                "password": "pass1234",
+                "is_admin": True,
+                "role": "user",
+            }
+        ),
+    )
+    assert resp.status_code == 201
+    user = db.get_user_by_username("legacyflag")
+    assert user is not None
+    assert user["role"] == "user"
+    assert "is_admin" not in user
 
 
 def test_register_with_required_research_profile_and_terms(monkeypatch, tmp_path):
@@ -665,7 +692,7 @@ def test_bootstrap_admin_has_correct_statuses(monkeypatch, tmp_path):
         assert admin is not None
         assert admin["registration_status"] == "approved"
         assert admin["user_status"] == "active"
-        assert admin["is_admin"] is True
+        assert admin["role"] == "admin"
 
 
 # ==================================================================

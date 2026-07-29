@@ -113,6 +113,9 @@ no API keys, no password/profile changes, no task deletion). Self-registration
 requires full name, affiliation, academic position, PI name, and a
 server-generated math CAPTCHA. Profile details are visible to the user and in
 the admin user-control system.
+`role` is the authorization authority. When opening an older SQLite database,
+the server silently promotes rows flagged by the deprecated `is_admin` column
+and then drops that column.
 
 ### Services
 
@@ -343,7 +346,6 @@ Important environment variables (see the organized sections in
 | `ROTATE_LOG_MAX_LINENO` | Optional positive line-count threshold for ZIP log rotation; unset disables this trigger |
 | `ROTATE_LOG_PERIOD` | Optional quoted five-field crontab expression for scheduled rotation (for example, `"0 0 * * *"` for daily at midnight); unset disables this trigger |
 | `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest archives first. A newly created archive is retained even when it temporarily exceeds the cap |
-| `ADMIN_USERS` | Comma-separated admin usernames |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated recipients for new-registration digests |
 | `ADMIN_NEW_USER_INFORM` | Digest interval in minutes (`0` disables it) |
@@ -648,7 +650,7 @@ r = admin.post(
         "email": name + "@audit.local",
         "password": pw,
         "affiliation": "audit",
-        "is_admin": False,
+        "role": "user",
     },
     timeout=10,
 )

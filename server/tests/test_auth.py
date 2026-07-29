@@ -34,6 +34,7 @@ def test_auth_me_returns_current_user(monkeypatch, tmp_path):
     assert data["affiliation"] is None
     assert data["position"] is None
     assert data["pi_name"] is None
+    assert "is_admin" not in data
     assert "password_hash" not in data
     assert "api_key_hash" not in data
 
@@ -608,7 +609,7 @@ def test_user_database_upgrade_adds_research_profile_columns(tmp_path):
             )
             """
         )
-        conn.execute("INSERT INTO users VALUES (1, 'legacy', 'legacy@example.com', 'hash', 1, 0, 1.0)")
+        conn.execute("INSERT INTO users VALUES (1, 'legacy', 'legacy@example.com', 'hash', 1, 1, 1.0)")
 
     db = UserDatabase(str(db_path))
     legacy = db.get_user(1)
@@ -617,6 +618,75 @@ def test_user_database_upgrade_adds_research_profile_columns(tmp_path):
     assert legacy["affiliation"] is None
     assert legacy["position"] is None
     assert legacy["pi_name"] is None
+    assert legacy["role"] == "admin"
+    assert "is_admin" not in legacy
+
+
+def test_user_database_upgrade_promotes_admin_role_and_drops_deprecated_column(tmp_path):
+    """The deprecated flag is migrated into role and immediately removed."""
+    import sqlite3
+
+    from pssm_gremlin_server.auth import UserDatabase
+
+    db_path = tmp_path / "inconsistent-users.sqlite3"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                email_verified INTEGER NOT NULL,
+                is_admin INTEGER NOT NULL,
+                created_at FLOAT NOT NULL,
+                role TEXT
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO users VALUES "
+            "(1, 'legacy_admin', 'legacy-admin@example.com', 'hash', 1, 1, 1.0, 'user')"
+        )
+
+    db = UserDatabase(str(db_path))
+    upgraded = db.get_user(1)
+    assert upgraded is not None
+    assert upgraded["role"] == "admin"
+    assert "is_admin" not in upgraded
+    with db.engine.connect() as conn:
+        columns = {
+            row[1]
+            for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()
+        }
+    assert "is_admin" not in columns
+    reopened = UserDatabase(str(db_path)).get_user(1)
+    assert reopened is not None
+    assert reopened["role"] == "admin"
+
+
+def test_user_database_uses_role_without_admin_flag(tmp_path):
+    """New databases and writes contain only the canonical role."""
+    from pssm_gremlin_server.auth import UserDatabase
+
+    db = UserDatabase(str(tmp_path / "users.sqlite3"))
+    user = db.create_user(
+        username="role_admin",
+        email="role-admin@example.com",
+        password="pass1234",
+        role="admin",
+    )
+    assert user["role"] == "admin"
+    assert "is_admin" not in user
+
+    db.update_user(user["id"], role="user")
+    demoted = db.get_user(user["id"])
+    assert demoted is not None
+    assert demoted["role"] == "user"
+    assert "is_admin" not in demoted
+
+    with pytest.raises(ValueError, match="was removed"):
+        db.update_user(user["id"], is_admin=True)
 
 
 def test_user_database_upgrade_tolerates_duplicate_column_race():
@@ -1030,6 +1100,7 @@ def test_schema_admin_create_user_rejects_invalid_role(monkeypatch, tmp_path):
 
     with pytest.raises(ValidationError):
         AdminCreateUserRequest(username="test", email="t@t.com", password="pass1234", role="superadmin")
+    assert "is_admin" not in AdminCreateUserRequest.model_fields
 
 
 def test_schema_batch_user_requires_nonempty_user_ids(monkeypatch, tmp_path):
@@ -1052,7 +1123,6 @@ def test_schema_user_response_excludes_password_hash(monkeypatch, tmp_path):
         username="test",
         email="t@t.com",
         email_verified=True,
-        is_admin=False,
         role="user",
         full_name=None,
         affiliation=None,

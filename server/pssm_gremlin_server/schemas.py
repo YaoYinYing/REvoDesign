@@ -111,7 +111,6 @@ class AdminCreateUserRequest(BaseModel):
     affiliation: str | None = None
     position: AcademicPosition | None = None
     pi_name: str | None = Field(default=None, max_length=128)
-    is_admin: bool = False
     role: str = "user"
 
     @field_validator("email", mode="before")
@@ -191,7 +190,6 @@ class UserResponse(BaseModel):
     username: str
     email: str
     email_verified: bool
-    is_admin: bool
     role: str
     full_name: str | None = None
     affiliation: str | None
