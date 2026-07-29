@@ -14,6 +14,11 @@ from tests.conftest import TestWorker
 
 
 class TestREvoDesignPlugin:
+    def test_unexpected_file_dialog_fails_fast(self, test_worker: TestWorker):
+        test_worker.test_id = test_worker.method_name()
+        with pytest.raises(AssertionError, match="Unexpected file dialog"):
+            test_worker.plugin.file_dialog.browse_filename(mode="r")
+
     @pytest.mark.bootstrap
     @pytest.mark.dependency(name="tabs_bootstrap_ui", scope="session")
     def test_plugin_gui_visibility(self, test_worker: TestWorker):

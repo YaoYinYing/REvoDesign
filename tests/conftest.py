@@ -7,6 +7,8 @@
 pytest configuration
 """
 
+# isort: skip_file -- import-time path patches must precede REvoDesign imports.
+
 from __future__ import annotations
 
 import gc
@@ -62,7 +64,7 @@ platformdirs.user_cache_dir = _static_platform_dir(CACHE_DIRNAME)
 
 # import hydra as unmocked_hydra
 
-# isort: split -- REvoDesign imports below are safe now that platformdirs is patched
+# REvoDesign imports below are safe only after the platformdirs patches above.
 import REvoDesign.tools.package_manager as package_manager
 from REvoDesign import REvoDesignPlugin
 from REvoDesign.basic.abc_singleton import reset_singletons
@@ -727,11 +729,22 @@ def test_worker(
 
     w = TestWorker(qtbot, plugin)
 
+    def fail_on_unexpected_file_dialog(*args, **kwargs) -> None:
+        raise AssertionError(f"Unexpected file dialog during {w.test_id!r}: args={args!r}, kwargs={kwargs!r}")
+
+    file_dialog_patch = patch.object(
+        w.plugin.file_dialog,
+        "browse_filename",
+        side_effect=fail_on_unexpected_file_dialog,
+    )
+    file_dialog_patch.start()
+
     def final_action():
         w.teardown()
 
-    yield w
+    request.addfinalizer(file_dialog_patch.stop)
     request.addfinalizer(final_action)
+    yield w
 
 
 @pytest.fixture

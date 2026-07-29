@@ -13,7 +13,9 @@ from tests.conftest import TestWorker
 
 
 @pytest.mark.serial
-@pytest.mark.dependency(depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare"], scope="session")
+@pytest.mark.dependency(
+    depends=["tabs_bootstrap_ui", "tabs_bootstrap_prepare", "tabs_prepare_pocket_session"], scope="session"
+)
 class TestREvoDesignPlugin_TabConfig:
 
     @pytest.mark.skipif(not PIPPack_worker.installed, reason="PIPPack not installed")

@@ -72,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **GUI test dependency safety**: run the pocket-session producer before the
+  PIPPack/ProteinMPNN case and fail immediately if a `TestWorker` case
+  unexpectedly opens a modal file dialog in headless CI.
 - **Repository-wide DeepSource audit**: reconcile bug-risk, anti-pattern,
   security, and performance occurrences across server, desktop, tools, and
   development scripts; fix reproducible findings and document narrow

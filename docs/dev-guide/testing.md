@@ -63,6 +63,13 @@ A helper class for package manager UI tests. Provides:
 - `save_screenshot(widget, basename)` — capture widget state
 - `sleep(ms)` — controlled waits with `refresh_window()` pumping
 
+### `TestWorker` file-dialog guard
+
+GUI cases using the `test_worker` fixture fail immediately if they unexpectedly
+open a file dialog. Supply required input and output paths through the test
+configuration, and declare generated-artifact prerequisites with
+`pytest-dependency`; a modal dialog cannot be answered by headless CI.
+
 ### Other fixtures
 
 | Fixture | Purpose |
