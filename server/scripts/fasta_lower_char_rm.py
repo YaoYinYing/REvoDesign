@@ -17,10 +17,9 @@ import sys
 def char_filter(input):
     if re.match(r"^>", input):
         return input
-    else:
-        for item in "abcdefghijklmnopqrstuvwxyz":
-            input = "".join(input.split(item))
-        return input
+    for item in "abcdefghijklmnopqrstuvwxyz":
+        input = "".join(input.split(item))
+    return input
 
 
 if __name__ == "__main__":

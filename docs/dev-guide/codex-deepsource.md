@@ -29,7 +29,7 @@ curl -sS -L -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.
 If static HTML is insufficient, use the same UA for authenticated GraphQL/API
 calls (with CSRF/cookies) and save raw payloads for traceability.
 
-### Selecting the authoritative result set
+### Selecting the authoritative result sets
 
 Before editing code:
 
@@ -38,13 +38,19 @@ Before editing code:
 2. Resolve that run's analyzer check ID with `repositoryRunDetail`.
 3. Query `checkAllIssues` separately for `BUG_RISK`, `ANTI_PATTERN`,
    `SECURITY`, and `PERFORMANCE`.
-4. Compare every returned path and line with the analyzed revision.
+4. Query the repository issue inventory for the same four categories and
+   expand every issue rule's occurrences.
+5. Compare every returned path and line with the analyzed revision.
 
-Repository-level issue inventory is useful for historical triage, but it can
-temporarily retain occurrences that no longer match the analyzed source. Do not
-turn those entries into a fix queue until their code pattern is reproduced in
-the matching revision. Keep both payloads when they disagree so the PR can
-distinguish current-run remediation from stale dashboard state.
+The analyzer check and repository inventory answer different questions. A
+passing run confirms that the analyzed change has no blocking findings or
+failing metrics; it does not prove that the repository backlog is empty. Use
+the repository inventory as the complete cleanup queue.
+
+Inventory line references can lag behind source changes. Reproduce each pattern
+against the matching revision before editing, but do not discard the remaining
+active inventory because individual locations are stale. Keep both payloads so
+the PR can distinguish change-level validation from repository-wide cleanup.
 
 ## Classification Model
 

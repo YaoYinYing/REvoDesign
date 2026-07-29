@@ -56,8 +56,7 @@ a2n = {a: i for i, a in enumerate(alphabet)}
 def aa2num(aa):
     if aa in a2n:
         return a2n[aa]
-    else:
-        return a2n["-"]
+    return a2n["-"]
 
 
 ###################################

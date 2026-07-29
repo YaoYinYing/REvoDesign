@@ -22,8 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DeepSource server cleanup**: resolved the current Bug Risk and Anti-pattern
   findings by exposing stable public task-runtime compatibility names, removing
   duplicate/unused imports, and decomposing upload, dashboard, task-deletion,
-  and admin-user routes below the configured complexity threshold. The current
-  scan contains no Security or Performance findings.
+  and admin-user routes below the configured complexity threshold.
+- **DeepSource repository cleanup**: removed every reproducible
+  `no-else-return` (`PYL-R1705`) and `no-else-continue` (`PYL-R1724`) finding
+  across the tracked Python tree.
 - **CI: source-aware checks**: Bare Tests and Pylint now run only for desktop
   application changes, while Server Tests run only for server implementation,
   test, packaging, or deployment changes. Documentation-only and unrelated

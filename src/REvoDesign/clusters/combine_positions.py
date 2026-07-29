@@ -29,8 +29,7 @@ class GenerateVariantsinFastafile:
             for line in f:
                 if line[0] == ">":
                     continue
-                else:
-                    self.fastaseq = self.fastaseq + line.strip()
+                self.fastaseq = self.fastaseq + line.strip()
 
     @staticmethod
     def get_fastasequence_from_file(inputfile):
@@ -39,8 +38,7 @@ class GenerateVariantsinFastafile:
             for line in f:
                 if line[0] == ">":
                     continue
-                else:
-                    fasta_seq += line.strip()
+                fasta_seq += line.strip()
         return fasta_seq
 
     def insert_mutations(self, position, native, newmutation, newfasta):

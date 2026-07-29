@@ -91,21 +91,20 @@ def resolve_choice_from(choice_from_str: str):
             range_type, choice_from_str = choice_from_str.split(":", 1)
             if range_type == "range":
                 return range(*map(int, choice_from_str.split(",")))
-            else:
-                return FloatRange.from_str(choice_from_str)
+            return FloatRange.from_str(choice_from_str)
         except TypeError as e:
             raise issues.InvalidInputError(
                 "range input expect an input string in pattern range:[<start>,]<end>[,<step>]",
                 f"not `{choice_from_str}`",
             ) from e
-    elif choice_from_str.startswith("REvoDesign."):
+    if choice_from_str.startswith("REvoDesign."):
         resolved_callable = resolve_dotted_function(choice_from_str)
         if not isinstance(resolved_callable, Callable):
             raise issues.ConfigurationError(f"Expected as a callable: {choice_from_str}: {resolved_callable}")
         return resolved_callable()  # Get callable dynamically
-    elif choice_from_str.startswith("CFG:"):
+    if choice_from_str.startswith("CFG:"):
         return resolve_dotted_config_item(choice_from_str)
-    elif choice_from_str.startswith("LAMBDA:"):
+    if choice_from_str.startswith("LAMBDA:"):
         return resolve_lambda_expression(choice_from_str)
 
     raise issues.ConfigurationError(f"Unable to parse {choice_from_str}")

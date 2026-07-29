@@ -1604,7 +1604,7 @@ def widget_signal_tape(widget: QtWidgets.QWidget, event, disconnect: bool = Fals
         return
 
     # Handle combo box widgets with text change signals
-    elif isinstance(widget, QtWidgets.QComboBox):
+    if isinstance(widget, QtWidgets.QComboBox):
         if disconnect:
             widget.currentTextChanged.disconnect(event)
             widget.editTextChanged.disconnect(event)
@@ -1614,7 +1614,7 @@ def widget_signal_tape(widget: QtWidgets.QWidget, event, disconnect: bool = Fals
         return
 
     # Handle line edit widgets with text change signals
-    elif isinstance(widget, QtWidgets.QLineEdit):
+    if isinstance(widget, QtWidgets.QLineEdit):
         if disconnect:
             widget.textChanged.disconnect(event)
             widget.textEdited.disconnect(event)
@@ -1624,7 +1624,7 @@ def widget_signal_tape(widget: QtWidgets.QWidget, event, disconnect: bool = Fals
         return
 
     # Handle checkbox widgets with state change signals
-    elif isinstance(widget, QtWidgets.QCheckBox):
+    if isinstance(widget, QtWidgets.QCheckBox):
         if disconnect:
             widget.stateChanged.disconnect(event)
             return
@@ -1632,8 +1632,7 @@ def widget_signal_tape(widget: QtWidgets.QWidget, event, disconnect: bool = Fals
         return
 
     # Raise an error for unsupported widget types
-    else:
-        raise NotImplementedError(f"{widget} {type(widget)} is not supported yet")
+    raise NotImplementedError(f"{widget} {type(widget)} is not supported yet")
 
 
 def refresh_widget_while_another_changed(

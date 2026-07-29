@@ -72,8 +72,7 @@ def aa2num(aa):
     """convert aa into num"""
     if aa in a2n:
         return a2n[aa]
-    else:
-        return a2n["-"]
+    return a2n["-"]
 
 
 # ## Functions for prepping the MSA (Multiple sequence alignment)
@@ -262,9 +261,8 @@ def GREMLIN(msa, opt_type="adam", opt_iter=100, opt_rate=1.0, batch_size=None):
     def feed(feed_all=False):
         if batch_size is None or feed_all:
             return {MSA: msa["msa"], MSA_weights: msa["weights"]}
-        else:
-            idx = np.random.randint(0, msa["nrow"], size=batch_size)
-            return {MSA: msa["msa"][idx], MSA_weights: msa["weights"][idx]}
+        idx = np.random.randint(0, msa["nrow"], size=batch_size)
+        return {MSA: msa["msa"][idx], MSA_weights: msa["weights"][idx]}
 
     # optimize!
     # edited by Yinying Yao
