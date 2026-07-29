@@ -5,6 +5,8 @@
 from __future__ import annotations
 
 import json
+import os
+import zipfile
 
 import pytest
 from conftest import (
@@ -402,6 +404,153 @@ def test_user_control_page_requires_admin(monkeypatch, tmp_path):
     assert resp.status_code == 403
 
 
+def test_log_viewer_page_requires_admin(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+
+    response = client.get(
+        "/PSSM_GREMLIN/logs",
+        headers=_admin_client_auth(module),
+    )
+    assert response.status_code == 200
+    assert b"Gunicorn access" in response.data
+    assert b"Maintenance" in response.data
+    assert b"/static/js/log-viewer.js" in response.data
+
+    response = client.get(
+        "/PSSM_GREMLIN/dashboard",
+        headers=_admin_client_auth(module),
+    )
+    assert response.status_code == 200
+    assert b'href="/PSSM_GREMLIN/logs"' in response.data
+
+    response = client.get(
+        "/PSSM_GREMLIN/logs",
+        headers=_test_client_auth(module),
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.parametrize(
+    ("log_name", "filename"),
+    [
+        ("gunicorn-access", "gunicorn-access.log"),
+        ("gunicorn-error", "gunicorn-error.log"),
+        ("celery-worker", "celery-worker.log"),
+        ("maintenance", "maintenance.log"),
+    ],
+)
+def test_admin_can_stream_fixed_server_logs(monkeypatch, tmp_path, log_name, filename):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    content = f"{filename}: first\n{filename}: second\n".encode()
+    log_dir = os.environ["LOG_DIR"]
+    with open(os.path.join(log_dir, filename), "wb") as handle:
+        handle.write(content)
+
+    response = module.app.test_client().get(
+        f"/PSSM_GREMLIN/api/auth/admin/logs/{log_name}",
+        headers=_admin_client_auth(module),
+        buffered=False,
+    )
+
+    assert response.status_code == 200
+    assert response.is_streamed
+    assert b"".join(response.response) == content
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_server_log_stream_rejects_non_admin_and_unknown_names(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+
+    response = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/maintenance",
+        headers=_test_client_auth(module),
+    )
+    assert response.status_code == 403
+
+    response = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/not-a-log",
+        headers=_admin_client_auth(module),
+    )
+    assert response.status_code == 404
+
+
+def test_admin_can_list_and_download_rotated_logs(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    log_dir = os.environ["LOG_DIR"]
+    archive_name = "maintenance.log.20260729T000000000000Z.zip"
+    archive_path = os.path.join(log_dir, archive_name)
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr("maintenance.log", "rotated entry\n")
+    with open(os.path.join(log_dir, "unrelated.zip"), "wb") as handle:
+        handle.write(b"not managed")
+
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+    response = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/archives",
+        headers=admin_header,
+    )
+
+    assert response.status_code == 200
+    groups = {group["id"]: group for group in response.get_json()["logs"]}
+    assert [item["filename"] for item in groups["maintenance"]["archives"]] == [
+        archive_name
+    ]
+    assert all(
+        item["filename"] != "unrelated.zip"
+        for group in groups.values()
+        for item in group["archives"]
+    )
+
+    response = client.get(
+        f"/PSSM_GREMLIN/api/auth/admin/logs/archives/{archive_name}",
+        headers=admin_header,
+    )
+    assert response.status_code == 200
+    assert response.data.startswith(b"PK")
+    assert "attachment" in response.headers["Content-Disposition"]
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_rotated_log_endpoints_reject_non_admin_and_unmanaged_files(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+
+    response = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/archives",
+        headers=_test_client_auth(module),
+    )
+    assert response.status_code == 403
+
+    response = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/archives/unrelated.zip",
+        headers=_admin_client_auth(module),
+    )
+    assert response.status_code == 404
+
+
 def test_user_verify_endpoint(monkeypatch, tmp_path):
     """GET /PSSM_GREMLIN/user_verify validates token and sets verified status."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
@@ -496,15 +645,27 @@ def test_admin_batch_operations_skip_self_lockout(monkeypatch, tmp_path):
 
 
 def test_bootstrap_admin_has_correct_statuses(monkeypatch, tmp_path):
-    """First-run bootstrap admin gets approved+active statuses."""
-    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    """Every first-run bootstrap admin gets approved+active statuses."""
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ADMIN_USERS": "admin,group_admin",
+            "ADMIN_BOOTSTRAP_CREDENTIALS": (
+                "admin\ttest-admin-password\n"
+                "group_admin\ttest-group-admin-password"
+            ),
+        },
+    )
     db = module.app.config["user_db"]
-    # The module's bootstrap code should have created 'admin' already
-    admin = db.get_user_by_username("admin")
-    assert admin is not None
-    assert admin["registration_status"] == "approved"
-    assert admin["user_status"] == "active"
-    assert admin["is_admin"] is True
+    for username in ("admin", "group_admin"):
+        admin = db.get_user_by_username(username)
+        assert admin is not None
+        assert admin["registration_status"] == "approved"
+        assert admin["user_status"] == "active"
+        assert admin["is_admin"] is True
 
 
 # ==================================================================

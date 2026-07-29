@@ -3,11 +3,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SERVER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-COMPOSE_FILE="${SERVER_DIR}/docker-compose.yml"
-ENV_EXAMPLE_FILE="${SERVER_DIR}/.env.example"
-PRIMARY_ENV_FILE="${SERVER_DIR}/.env.production"
-FALLBACK_ENV_FILE="${SERVER_DIR}/.env"
+SERVER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+COMPOSE_FILE="${SERVER_ROOT}/docker-compose.yml"
+ENV_EXAMPLE_FILE="${SERVER_ROOT}/.env.example"
+PRIMARY_ENV_FILE="${SERVER_ROOT}/.env.production"
+FALLBACK_ENV_FILE="${SERVER_ROOT}/.env"
 CALLER_DIR="$(pwd)"
 
 resolve_env_file() {
@@ -65,6 +65,28 @@ require_env_file() {
     exit 1
   fi
 }
+
+validate_required_settings() (
+  set +u
+  set -a
+  source "${ENV_FILE}"
+  set +a
+  set -u
+
+  local missing=()
+  local name=""
+  local value=""
+  for name in SERVER_DIR DB_UNIREF30 DB_UNIREF90 ADMIN_USERS; do
+    value="${!name:-}"
+    if [[ -z "${value//[[:space:]]/}" ]]; then
+      missing+=("${name}")
+    fi
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "Missing required setting(s) in ${ENV_FILE}: ${missing[*]}" >&2
+    exit 1
+  fi
+)
 
 if docker compose version >/dev/null 2>&1; then
   COMPOSE_CMD=(docker compose)
@@ -205,6 +227,91 @@ if os.path.commonpath([server_dir, auth_dir]) == server_dir:
 ' "${SERVER_DIR}" "${AUTH_DIR}"
 )
 
+ADMIN_LOGIN_LINES=()
+
+prepare_admin_bootstrap() {
+  set +u
+  set -a
+  source "${ENV_FILE}"
+  set +a
+  set -u
+
+  local auth_dir="${AUTH_DIR:-${SCRIPT_DIR}/../auth-data}"
+  local user_db="${auth_dir}/users.sqlite3"
+  local legacy_user_db="${SERVER_DIR}/users.sqlite3"
+  local needs_admin_bootstrap=""
+  local admin_bootstrap_credentials=""
+  local admin_username=""
+  local admin_pw=""
+  local seen_admin=""
+  local -a configured_admins=()
+  local -a seen_admins=()
+
+  if [[ -f "${legacy_user_db}" && ! -f "${user_db}" ]]; then
+    echo "Legacy user DB detected at ${legacy_user_db}." >&2
+    echo "Run the migrate-auth-db subcommand before starting this release." >&2
+    exit 1
+  fi
+  if [[ -n "${ADMIN_BOOTSTRAP_CREDENTIALS:-}" ]]; then
+    return
+  fi
+
+  needs_admin_bootstrap="$(
+    python3 - "${user_db}" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if not path.is_file():
+    print("yes")
+else:
+    try:
+        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+            has_users = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'users'"
+            ).fetchone()
+            count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] if has_users else 0
+        print("yes" if count == 0 else "no")
+    except sqlite3.Error:
+        print("no")
+PY
+  )"
+  if [[ "${needs_admin_bootstrap}" != "yes" ]]; then
+    return
+  fi
+
+  IFS=',' read -r -a configured_admins <<< "${ADMIN_USERS}"
+  for admin_username in "${configured_admins[@]}"; do
+    admin_username="${admin_username#"${admin_username%%[![:space:]]*}"}"
+    admin_username="${admin_username%"${admin_username##*[![:space:]]}"}"
+    if [[ -z "${admin_username}" ]]; then
+      continue
+    fi
+    for seen_admin in "${seen_admins[@]}"; do
+      if [[ "${seen_admin}" == "${admin_username}" ]]; then
+        echo "ADMIN_USERS must not contain duplicate usernames: ${admin_username}" >&2
+        exit 1
+      fi
+    done
+    seen_admins+=("${admin_username}")
+    admin_pw="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
+    admin_bootstrap_credentials+="${admin_username}"$'\t'"${admin_pw}"$'\n'
+    ADMIN_LOGIN_LINES+=("Admin login — username: ${admin_username}  password: ${admin_pw}")
+  done
+  if [[ ${#ADMIN_LOGIN_LINES[@]} -eq 0 ]]; then
+    echo "ADMIN_USERS must contain at least one username." >&2
+    exit 1
+  fi
+  export ADMIN_BOOTSTRAP_CREDENTIALS="${admin_bootstrap_credentials}"
+}
+
+print_admin_logins() {
+  if [[ ${#ADMIN_LOGIN_LINES[@]} -gt 0 ]]; then
+    printf '%s\n' "${ADMIN_LOGIN_LINES[@]}"
+  fi
+}
+
 cmd_setup() {
   local _detected_docker_gid=""
 
@@ -229,6 +336,7 @@ cmd_setup() {
 
 cmd_build() {
   require_env_file
+  validate_required_settings
   ensure_docker_gid
   resolve_runner_identity
 
@@ -241,11 +349,14 @@ cmd_build() {
 
 cmd_up() {
   require_env_file
+  validate_required_settings
   validate_auth_storage
+  prepare_admin_bootstrap
   ensure_docker_gid
   resolve_runner_identity
   echo "Starting services via docker compose..."
   "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up "$@" -d redis web maintenance worker
+  print_admin_logins
 }
 
 cmd_down() {
@@ -286,7 +397,9 @@ cmd_migrate_auth_db() {
 }
 
 cmd_restart() {
-  # Source env early — first boot may need a generated admin password.
+  require_env_file
+  validate_required_settings
+  # Source the validated deployment settings.
   set +u
   set -a
   source "${ENV_FILE}"
@@ -297,20 +410,9 @@ cmd_restart() {
     require_production_identity
   fi
 
+  prepare_admin_bootstrap
   _auth_dir="${AUTH_DIR:-${SCRIPT_DIR}/../auth-data}"
   _user_db="${_auth_dir}/users.sqlite3"
-  _legacy_user_db="${SERVER_DIR}/users.sqlite3"
-  if [[ -f "${_legacy_user_db}" && ! -f "${_user_db}" ]]; then
-    echo "Legacy user DB detected at ${_legacy_user_db}." >&2
-    echo "Run the migrate-auth-db subcommand before restarting this release." >&2
-    exit 1
-  fi
-  if [[ ! -f "${_user_db}" ]]; then
-    # First boot — generate and export the admin password.
-    _admin_pw="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
-    export DEFAULT_ADMIN_PASSWORD="${_admin_pw}"
-  fi
-
   cmd_down
 
   if [[ -f "${_user_db}" ]]; then
@@ -345,9 +447,6 @@ PY
   PORT="${PORT:-8080}"
   echo "Deployment completed."
   echo "Flask app is now running at http://${DOMAIN}:${PORT}/PSSM_GREMLIN/dashboard"
-  if [[ -n "${_admin_pw:-}" ]]; then
-    echo "Admin login — username: admin  password: ${_admin_pw}"
-  fi
 }
 
 SUBCOMMAND="${1:-restart}"
@@ -386,7 +485,7 @@ fi
 
 echo "Using env file: ${ENV_FILE}"
 
-pushd "${SERVER_DIR}" >/dev/null
+pushd "${SERVER_ROOT}" >/dev/null
 
 case "${SUBCOMMAND}" in
   setup)

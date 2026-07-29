@@ -119,7 +119,7 @@ the admin user-control system.
 | Service | Base Image | Role |
 |---------|-----------|------|
 | **web** | `python:3.12-slim` | Flask + Gunicorn HTTP server. Serves the web UI and REST API. |
-| **maintenance** | Same as `web` | Single APScheduler process for registration digests, optional result retention, and database backups. No HTTP port or Docker socket. |
+| **maintenance** | Same as `web` | Single APScheduler process for registration digests, optional result retention, database backups, and log rotation. No HTTP port or Docker socket. |
 | **worker** | Same as `web` | Celery worker that receives `run_gremlin_task` jobs from Redis. |
 | **redis** | `redis:7.2-alpine` | Celery message broker and result backend. |
 | **runner** | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `worker`. |
@@ -136,7 +136,7 @@ The server is a pip-installable package at ``server/pssm_gremlin_server/``
 | ``config.py`` | Side-effect-free environment parsing and ``GremlinConfig`` |
 | ``maintenance/model.py`` | ``PeriodicTask`` contract for task configuration and APScheduler registration |
 | ``maintenance/manager.py`` | Standalone APScheduler entrypoint that imports task objects and calls their common ``register()`` interface |
-| ``maintenance/tasks/`` | One self-configuring task object per module: registration digest, result cleanup, and consistent task/user SQLite backups |
+| ``maintenance/tasks/`` | One self-configuring task object per module: registration digest, result cleanup, log rotation, and consistent task/user SQLite backups |
 | ``task_runtime.py`` | Celery instance, task DB, Docker runner, archives, and ``run_gremlin_task`` |
 | ``routes.py`` | All ``@app.route`` HTTP handlers — page routes, task API, auth API, admin API |
 | ``auth.py`` | Token serialisation, ``UserDatabase`` (SQLite/SQLAlchemy), ``login_required`` decorator, email verification, password reset |
@@ -166,8 +166,8 @@ its ``args`` to ``scheduler.add_job`` only when ``is_enabled`` is true.
   dispatched via Celery so the HTTP request returns immediately with a task
   ID for polling.
 - **Gunicorn `--preload`**: The WSGI application is loaded in the arbiter
-  before workers are forked, ensuring shared module state (especially the
-  `AUTH_SECRET_KEY` used for token signing) is consistent across workers.
+  before workers are forked, ensuring the ephemeral token-signing key is
+  consistent across workers for the lifetime of the web service.
 - **Pydantic at the API boundary**: All inbound request payloads are
   validated through typed Pydantic models (``schemas.py``) before reaching
   business logic.  Response serialisation uses ``UserResponse`` to guarantee
@@ -232,6 +232,10 @@ cookie-only writes are rejected to avoid CSRF on browser sessions.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/PSSM_GREMLIN/user_control` | Admin-only user management page (web UI) |
+| `GET` | `/PSSM_GREMLIN/logs` | Admin-only viewer for the four active service logs |
+| `GET` | `/PSSM_GREMLIN/api/auth/admin/logs/<name>` | Stream one fixed active service log |
+| `GET` | `/PSSM_GREMLIN/api/auth/admin/logs/archives` | List rotated ZIP archives grouped under the four fixed service logs |
+| `GET` | `/PSSM_GREMLIN/api/auth/admin/logs/archives/<filename>` | Download one managed rotated-log ZIP |
 | `GET` | `/PSSM_GREMLIN/api/auth/admin/users` | List all users (safe fields, excludes soft-deleted) |
 | `POST` | `/PSSM_GREMLIN/api/auth/admin/users` | Create user (pre-verified, immediately active) |
 | `PUT` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Update profile fields, email, password, role, and account statuses |
@@ -305,11 +309,11 @@ Important environment variables (see the organized sections in
 | Variable | Description |
 |----------|-------------|
 | `SERVER_IMAGE` / `RUNNER_IMAGE` | Built locally in dev mode or pulled from their configured references in prod mode |
-| `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and results; never contains the user DB |
+| `SERVER_DIR` | Required host root shared by web and worker for uploads, task SQLite, and results; never contains the user DB |
 | `LOG_DIR` | Host directory for Gunicorn, Celery, and `maintenance.log` |
-| `DB_UNIREF30` | UniRef30 HHsuite database prefix path |
-| `DB_UNIREF90` | UniRef90 BLAST database prefix path |
-| `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens (set in production) |
+| `DB_UNIREF30` | Required UniRef30 HHsuite database prefix path |
+| `DB_UNIREF90` | Required UniRef90 BLAST database prefix path |
+| `ADMIN_USERS` | Required comma-separated bootstrap-administrator usernames; the restart script generates and transiently supplies one password per account |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days) |
 | `AUTH_DIR` | Host directory containing `users.sqlite3`; mounted only into web and maintenance and required to be outside `SERVER_DIR` |
 | `USER_DB_PATH` | Path through which web and maintenance see that database inside their containers (default: `/var/lib/revodesign-auth/users.sqlite3`) |
@@ -336,6 +340,9 @@ Important environment variables (see the organized sections in
 | `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots; unset disables the task. Recommended daily value: `0 0 * * *` |
 | `BACKUP_DB_PATH` | Snapshot directory inside maintenance; `/var/lib/revodesign-auth/backups` maps to `${AUTH_DIR}/backups` on the host |
 | `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain; unset is unlimited, recommended value is `30` |
+| `ROTATE_LOG_MAX_LINENO` | Optional positive line-count threshold for ZIP log rotation; unset disables this trigger |
+| `ROTATE_LOG_PERIOD` | Optional quoted five-field crontab expression for scheduled rotation (for example, `"0 0 * * *"` for daily at midnight); unset disables this trigger |
+| `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest archives first. A newly created archive is retained even when it temporarily exceeds the cap |
 | `ADMIN_USERS` | Comma-separated admin usernames |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated recipients for new-registration digests |
@@ -392,6 +399,9 @@ successful run creates `${AUTH_DIR}/backups/<UTC timestamp>/tasks.sqlite3` and
    REVODESIGN_SERVER_ENV=server/.env.production \
      bash server/run/restart_pssm_flask.sh restart --mode=prod
    ```
+   Use the helper script for the first start; direct Docker Compose startup is
+   rejected while the user database is empty because bootstrap passwords are
+   generated and supplied transiently by the script.
 
 5. **Access** the web UI at `http://<host>:<port>/PSSM_GREMLIN/dashboard`
 

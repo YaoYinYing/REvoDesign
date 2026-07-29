@@ -15,12 +15,14 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import re
 import shutil
 import time
+from pathlib import Path
 from typing import Any
 
 from celery.result import AsyncResult
-from flask import current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Response, current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 from pssm_gremlin_server.auth import (
     _DUMMY_PASSWORD_HASH,
     UserDatabase,
@@ -142,6 +144,15 @@ def user_control_page():
     if not g.current_user.get("is_admin"):
         return render_template("error.html", code=403, message="Admin access required"), 403
     return render_template("user_control.html", is_admin_user=True)
+
+
+@app.route("/PSSM_GREMLIN/logs", methods=["GET"])
+@login_required
+def log_viewer_page():
+    """Admin-only active-log viewer."""
+    if not g.current_user.get("is_admin"):
+        return render_template("error.html", code=403, message="Admin access required"), 403
+    return render_template("log_viewer.html")
 
 
 @app.route("/favicon.ico", methods=["GET"])
@@ -673,6 +684,134 @@ def require_admin():
     if not g.current_user.get("is_admin"):
         return jsonify({"error": "Admin access required"}), 403
     return None
+
+
+_ADMIN_LOG_FILES = {
+    "gunicorn-access": "gunicorn-access.log",
+    "gunicorn-error": "gunicorn-error.log",
+    "celery-worker": "celery-worker.log",
+    "maintenance": "maintenance.log",
+}
+_ADMIN_LOG_ARCHIVE_PATTERN = re.compile(
+    rf"(?:{'|'.join(re.escape(name) for name in _ADMIN_LOG_FILES.values())})"
+    r"\.\d{8}T\d{12}Z\.zip"
+)
+
+
+def _admin_log_archive_path(archive_name: str) -> Path | None:
+    """Resolve one managed rotated-log ZIP without allowing arbitrary paths."""
+    if _ADMIN_LOG_ARCHIVE_PATTERN.fullmatch(archive_name) is None:
+        return None
+    log_dir = os.environ.get("LOG_DIR", "").strip()
+    if not log_dir:
+        return None
+    archive_path = Path(log_dir).resolve() / archive_name
+    if archive_path.is_symlink() or not archive_path.is_file():
+        return None
+    return archive_path
+
+
+@app.route("/PSSM_GREMLIN/api/auth/admin/logs/archives", methods=["GET"])
+@login_required
+def admin_log_archives():
+    """List managed rotated-log ZIPs grouped by active log."""
+    if _blocked := require_admin():
+        return _blocked
+    log_dir = os.environ.get("LOG_DIR", "").strip()
+    if not log_dir:
+        return jsonify({"error": "LOG_DIR is not configured"}), 503
+
+    directory = Path(log_dir).resolve()
+    groups = []
+    for log_name, filename in _ADMIN_LOG_FILES.items():
+        archives = []
+        for archive in directory.glob(f"{filename}.*.zip"):
+            if (
+                _ADMIN_LOG_ARCHIVE_PATTERN.fullmatch(archive.name) is None
+                or archive.is_symlink()
+                or not archive.is_file()
+            ):
+                continue
+            try:
+                stat = archive.stat()
+            except OSError:
+                continue
+            archives.append(
+                {
+                    "filename": archive.name,
+                    "size": stat.st_size,
+                    "modified_at": stat.st_mtime,
+                }
+            )
+        archives.sort(key=lambda item: (item["modified_at"], item["filename"]), reverse=True)
+        groups.append(
+            {
+                "id": log_name,
+                "filename": filename,
+                "archives": archives,
+            }
+        )
+    return jsonify({"logs": groups})
+
+
+@app.route(
+    "/PSSM_GREMLIN/api/auth/admin/logs/archives/<archive_name>",
+    methods=["GET"],
+)
+@login_required
+def admin_download_log_archive(archive_name: str):
+    """Download one managed rotated-log ZIP."""
+    if _blocked := require_admin():
+        return _blocked
+    archive_path = _admin_log_archive_path(archive_name)
+    if archive_path is None:
+        return jsonify({"error": "Log archive is not available"}), 404
+    response = send_from_directory(
+        archive_path.parent,
+        archive_path.name,
+        as_attachment=True,
+        download_name=archive_path.name,
+        mimetype="application/zip",
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route("/PSSM_GREMLIN/api/auth/admin/logs/<log_name>", methods=["GET"])
+@login_required
+def admin_stream_log(log_name: str):
+    """Stream one fixed, unrotated server log to an administrator."""
+    if _blocked := require_admin():
+        return _blocked
+    filename = _ADMIN_LOG_FILES.get(log_name)
+    if filename is None:
+        return jsonify({"error": "Unknown log"}), 404
+
+    log_dir = os.environ.get("LOG_DIR", "").strip()
+    if not log_dir:
+        return jsonify({"error": "LOG_DIR is not configured"}), 503
+    log_path = Path(log_dir).resolve() / filename
+    if log_path.is_symlink() or not log_path.is_file():
+        return jsonify({"error": "Log is not available"}), 404
+    try:
+        handle = log_path.open("rb")
+    except OSError:
+        return jsonify({"error": "Log is not available"}), 404
+
+    def stream():
+        with handle:
+            while chunk := handle.read(64 * 1024):
+                yield chunk
+
+    return Response(
+        stream(),
+        mimetype="text/plain",
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 def _reject_guest():

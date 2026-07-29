@@ -17,13 +17,11 @@ from typing import Any
 from celery.result import AsyncResult
 from flask import Flask, g, jsonify, request
 from pssm_gremlin_server.config import (
-    DEFAULT_SERVER_DIR,
-    DEFAULT_UNIREF30_DB,
-    DEFAULT_UNIREF90_DB,
     GremlinConfig,
     ensure_directories as _ensure_directories,
     env_csv as _env_csv,
     env_path as _env_path,
+    env_required as _env_required,
     format_runner_identity as _format_runner_identity,
     resolve_docker_user as _resolve_docker_user,
 )
@@ -35,15 +33,18 @@ from pssm_gremlin_server.maintenance.tasks.result_cleanup import (
     deleted_status_from_task as _result_deleted_status,
 )
 
-# Ensure AUTH_SECRET_KEY is set *before* auth.py initialises its token
-# serializer, otherwise multi-worker gunicorn generates independent signing
-# keys per worker and tokens from one worker fail validation on another.
-if not os.environ.get("AUTH_SECRET_KEY"):
-    os.environ["AUTH_SECRET_KEY"] = os.urandom(32).hex()
-
 from pssm_gremlin_server.auth import UserDatabase  # noqa: E402
+from pssm_gremlin_server.auth import _SECRET_KEY as _TOKEN_SIGNING_KEY  # noqa: E402
 from pssm_gremlin_server.auth import _env_bool  # noqa: E402
-from pssm_gremlin_server.auth import _env_str  # noqa: E402
+
+CONFIG = GremlinConfig.from_env()
+_env_required("ADMIN_USERS")
+_ADMIN_USERNAMES = tuple(_env_csv("ADMIN_USERS", ""))
+if not _ADMIN_USERNAMES:
+    raise RuntimeError("Required environment variable ADMIN_USERS must contain a username")
+if len(_ADMIN_USERNAMES) != len(set(_ADMIN_USERNAMES)):
+    raise RuntimeError("Environment variable ADMIN_USERS must not contain duplicate usernames")
+ADMIN_USERS = set(_ADMIN_USERNAMES)
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
@@ -82,45 +83,46 @@ _user_db = UserDatabase()
 app.config["user_db"] = _user_db
 ENABLE_REGISTER = _env_bool("ENABLE_REGISTER", False)
 
-# Secrets for token signing — reuse a shared secret or generate a random one.
-# In production set AUTH_SECRET_KEY to a fixed, high-entropy value so tokens
-# survive process restarts.
-_token_key = _env_str("AUTH_SECRET_KEY", os.urandom(32).hex())
-app.secret_key = app.secret_key or _token_key
+# Gunicorn preloads this once, then forks workers with the same ephemeral key.
+app.secret_key = app.secret_key or _TOKEN_SIGNING_KEY
 
 
-CONFIG = GremlinConfig.from_env()
-
-
-ADMIN_USERS = set(_env_csv("ADMIN_USERS", "admin"))
-
-# Bootstrap: if the user database is empty (first run), create a default
-# admin account so the server isn't locked out.
+# Bootstrap every configured admin if the user database is empty.
 if _user_db.user_count() == 0:
-    _default_admin = _env_str("DEFAULT_ADMIN_USERNAME", "admin")
-    _default_pass = _env_str("DEFAULT_ADMIN_PASSWORD", os.urandom(16).hex())
-    try:
-        _created_admin = _user_db.create_user(
-            username=_default_admin,
-            email=f"{_default_admin}@revodesign.local",
-            password=_default_pass,
-            is_admin=True,
-            registration_status="approved",
-            user_status="active",
+    _credential_lines = os.environ.get("ADMIN_BOOTSTRAP_CREDENTIALS", "").splitlines()
+    _bootstrap_passwords = dict(
+        line.split("\t", 1) for line in _credential_lines if "\t" in line
+    )
+    if set(_bootstrap_passwords) != ADMIN_USERS:
+        raise RuntimeError(
+            "Bootstrap credentials for every ADMIN_USERS entry are required for an empty "
+            "user database; start the deployment with restart_pssm_flask.sh"
         )
-        _user_db.verify_email(_created_admin["id"])
-        logging.warning(
-            "No users found — created default admin user %r with an auto-generated password. "
-            "Log in and change it immediately.",
-            _default_admin,
-        )
-    except IntegrityError:
-        # Web and Celery can import the app concurrently on first boot.  If
-        # another process won the bootstrap insert race, continue with it.
-        _created_admin = _user_db.get_user_by_username(_default_admin)
-        if _created_admin and not _created_admin.get("email_verified"):
+    for _admin_username in _ADMIN_USERNAMES:
+        try:
+            _created_admin = _user_db.create_user(
+                username=_admin_username,
+                email=f"{_admin_username}@revodesign.local",
+                password=_bootstrap_passwords[_admin_username],
+                is_admin=True,
+                registration_status="approved",
+                user_status="active",
+            )
             _user_db.verify_email(_created_admin["id"])
-        logging.info("Default admin user %r already exists after bootstrap race.", _default_admin)
+            logging.warning(
+                "No users found — created configured admin user %r. "
+                "Log in and change its password immediately.",
+                _admin_username,
+            )
+        except IntegrityError:
+            # Concurrent import may win an individual bootstrap insert race.
+            _created_admin = _user_db.get_user_by_username(_admin_username)
+            if _created_admin and not _created_admin.get("email_verified"):
+                _user_db.verify_email(_created_admin["id"])
+            logging.info(
+                "Configured admin user %r already exists after bootstrap race.",
+                _admin_username,
+            )
 
 
 # Worker-safe task runtime.  This module has no Flask/auth dependency, so the

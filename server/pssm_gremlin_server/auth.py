@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 import smtplib
 import time
 from collections.abc import Callable
@@ -92,7 +93,8 @@ _users_table = sa.Table(
 def _get_user_db_path() -> str:
     """Resolve the user database path.
 
-    Uses ``USER_DB_PATH`` env var, falling back to ``{SERVER_DIR}/users.sqlite3``.
+    Uses ``USER_DB_PATH`` env var, falling back to the required
+    ``{SERVER_DIR}/users.sqlite3``.
     """
     from_server_dir = os.environ.get("SERVER_DIR", "")
     default = (
@@ -391,10 +393,7 @@ class UserDatabase:
 # Token serialiser
 # ---------------------------------------------------------------------------
 
-_SECRET_KEY = _env_str(
-    "AUTH_SECRET_KEY",
-    os.environ.get("SECRET_KEY", os.urandom(32).hex()),
-)
+_SECRET_KEY = secrets.token_hex(32)
 
 _TOKEN_MAX_AGE = _env_int("AUTH_TOKEN_MAX_AGE", 7 * 24 * 3600)  # 7 days
 

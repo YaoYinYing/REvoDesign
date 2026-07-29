@@ -14,7 +14,8 @@ is intentionally excluded.
 The server stack contains:
 
 - `web`: Flask + Gunicorn API/UI service
-- `maintenance`: APScheduler process for registration digests, optional result cleanup, and database backups
+- `maintenance`: APScheduler process for registration digests, result cleanup,
+  database backups, and log rotation
 - `worker`: Celery worker for background jobs
 - `redis`: Celery broker/backend
 - `runner` image: GREMLIN/PSSM execution container launched by `worker`
@@ -28,6 +29,7 @@ pssm_gremlin_server/maintenance/
 └── tasks/
     ├── admin_digest.py      # self-configuring admin_digest_task
     ├── database_backup.py   # consistent task/user SQLite snapshots
+    ├── log_rotation.py      # ZIP rotation and total-size pruning
     └── result_cleanup.py    # self-configuring result_cleanup_task
 ```
 
@@ -152,12 +154,12 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | Variable | Purpose |
 | --- | --- |
 | `SERVER_IMAGE`, `RUNNER_IMAGE` | Image names built locally in dev mode or pulled in prod mode. Production must use full published Docker Hub references. |
-| `SERVER_DIR` | Host root shared by web and worker for uploads, task SQLite, and result folders (default: `./pssm_gremlin_data`). Never store the user database here. |
+| `SERVER_DIR` | Required host root shared by web and worker for uploads, task SQLite, and result folders. Never store the user database here. |
 | `RUNNER_HOST_ROOT` | Host root allowed for Docker runner bind mounts (default: parent of `SERVER_DIR`). |
 | `LOG_DIR` | Host directory for Gunicorn, Celery, and `maintenance.log`. |
-| `DB_UNIREF30` | UniRef30 prefix path (default: `{SERVER_DIR}/db/uniref30/UniRef30_2022_02`). |
-| `DB_UNIREF90` | UniRef90 BLAST prefix path (default: `{SERVER_DIR}/db/uniref90/uniref90`). |
-| `AUTH_SECRET_KEY` | Fixed secret for signing auth tokens. Set in production so tokens survive restarts. |
+| `DB_UNIREF30` | Required UniRef30 prefix path. |
+| `DB_UNIREF90` | Required UniRef90 BLAST prefix path. |
+| `ADMIN_USERS` | Required comma-separated administrator usernames. On an empty user database, the restart script creates each account and prints a distinct generated password. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
 | `AUTH_DIR` | Host-side directory containing `users.sqlite3`; Compose mounts it only into web and maintenance. It must be outside `SERVER_DIR`. |
 | `USER_DB_PATH` | Container-side path used by web and maintenance to open the user DB. Keep the default `/var/lib/revodesign-auth/users.sqlite3` unless the Compose mount target also changes. |
@@ -175,6 +177,9 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots. Leave unset to disable; recommended daily schedule: `0 0 * * *`. |
 | `BACKUP_DB_PATH` | Snapshot directory inside the maintenance container. `/var/lib/revodesign-auth/backups` persists at `${AUTH_DIR}/backups` on the host. |
 | `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain. Leave unset for unlimited history; recommended value: `30`. |
+| `ROTATE_LOG_MAX_LINENO` | Optional line-count rotation threshold; unset disables this trigger. |
+| `ROTATE_LOG_PERIOD` | Optional quoted five-field crontab expression for scheduled rotation (for example, `"0 0 * * *"` for daily at midnight); unset disables this trigger. |
+| `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest ZIPs first. A newly created archive is retained even when it temporarily exceeds the cap. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated admin email addresses for new-user registration digests (default: empty = no notification). |
 | `ADMIN_NEW_USER_INFORM` | Interval in minutes between new-user digest emails (default: `0` = disabled). |
@@ -285,13 +290,19 @@ generated once in the arbiter before forking.  Without this, each worker
 independently generates its own signing key, making tokens from one worker
 fail validation on another.
 
+The key is intentionally ephemeral. Restarting the web service logs users out
+and invalidates outstanding verification and password-reset links.
+
 ### First run
 
-If the user database is empty, a default admin account is created automatically:
+If the user database is empty, every username in the required `ADMIN_USERS`
+list is created automatically:
 
-- Username: `admin` (customize with `DEFAULT_ADMIN_USERNAME`)
-- Password: auto-generated and displayed in the restart script output.
-  Change immediately after first login.
+- Passwords: generated separately and printed once by
+  `restart_pssm_flask.sh`. Change each after first login.
+
+Bootstrap passwords must not be stored in the env file. They are transient
+first-boot values supplied by the restart script only.
 
 Set `ENABLE_REGISTER=true` and configure either SMTP or Resend to allow
 self-registration. Registration requires full name, affiliation, academic
@@ -332,6 +343,12 @@ curl -X POST -H "Authorization: Bearer <admin-token>" \
 Admins cannot ban or delete their own account.  Direct self-ban/self-delete
 requests return HTTP 400, and batch Disable/Delete skips the acting admin while
 still applying the requested action to other selected users.
+
+The dashboard header also links administrators to `/PSSM_GREMLIN/logs`. That
+standalone page loads only the selected active Gunicorn access, Gunicorn error,
+Celery worker, or maintenance log and streams it incrementally. Its lazy
+file tree lists rotated ZIP archives under those same four logs and permits
+individual downloads; arbitrary filesystem paths are not exposed.
 
 ### API keys (programmatic access)
 
@@ -430,6 +447,11 @@ For a fresh installation there is nothing to migrate: create `AUTH_DIR` and
 start normally. The web process creates `${AUTH_DIR}/users.sqlite3`.
 
 ### Equivalent Docker Compose commands
+
+These commands are equivalent only after `users.sqlite3` contains an account.
+On a fresh installation, use the helper script's `up` or `restart` command so
+it can generate and pass transient bootstrap credentials. A direct Compose
+startup with an empty user database is rejected.
 
 Development mode:
 
@@ -572,7 +594,8 @@ banned users, and login throttling are maintained in
 
 ### Authentication
 
-- Set `AUTH_SECRET_KEY` to a fixed, high-entropy value in production; otherwise tokens are lost on restart.
+- Authentication signing keys are ephemeral; restarting web invalidates
+  existing login, verification, and password-reset tokens.
 - Browser page navigations use an `HttpOnly`/`SameSite=Lax` cookie; JavaScript
   cannot read it, so logout requires the server endpoint (`POST /api/auth/logout`).
 - Rate limiting: 5 login attempts/minute/IP, 3 registrations/hour/IP.
