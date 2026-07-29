@@ -515,6 +515,14 @@ class ExtrasGroups:
         return [item for item in self.all_extras if item.name == name]
 
 
+def _resolve_temporary_path(filepath: str) -> Path:
+    target_path = Path(filepath).resolve()
+    temporary_root = Path(tempfile.gettempdir()).resolve()
+    if not target_path.is_relative_to(temporary_root):
+        raise ValueError("Bootstrap files must be located in the temporary directory")
+    return target_path
+
+
 def fetch_gist_file(ui_file_url: str, save_to_file: str, *, timeout: float = 10.0) -> None:
     """
     Fetch the UI file from the given URL, save it to a temporary file, and yield its absolute path.
@@ -530,10 +538,7 @@ def fetch_gist_file(ui_file_url: str, save_to_file: str, *, timeout: float = 10.
     if not ui_file_url.startswith("https"):
         raise ValueError("URL must start with 'https'")
 
-    target_path = Path(save_to_file).resolve()
-    temporary_root = Path(tempfile.gettempdir()).resolve()
-    if not target_path.is_relative_to(temporary_root):
-        raise ValueError("Bootstrap downloads must be written to a temporary file")
+    target_path = _resolve_temporary_path(save_to_file)
 
     try:
         # Fetch the file content and write it to the temporary file
@@ -639,7 +644,8 @@ def write_bootstrap_extras_json(remote_data: dict[str, Any]) -> None:
 
 def _compute_hmac(filepath: str) -> str:
     """Compute HMAC-SHA256 of a file using the embedded manager key."""
-    with open(filepath, "rb") as fh:
+    target_path = _resolve_temporary_path(filepath)
+    with target_path.open("rb") as fh:  # skipcq: PTC-W6004
         return hmac.new(_MANAGER_HMAC_KEY, fh.read(), "sha256").hexdigest()
 
 

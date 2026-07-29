@@ -100,7 +100,7 @@ def test_pm_fetch_gist_file_rejects_non_temporary_destination(monkeypatch):
 
     monkeypatch.setattr(package_manager, "_read_https_url", unexpected_read)
 
-    with pytest.raises(ValueError, match="must be written to a temporary file"):
+    with pytest.raises(ValueError, match="must be located in the temporary directory"):
         fetch_gist_file("https://example.com/file.ui", str(Path.cwd() / "manager.ui"))
 
 
@@ -1076,6 +1076,13 @@ def test_pm_compute_hmac_deterministic(monkeypatch, tmp_path):
     path.write_bytes(b"hello")
 
     assert _compute_hmac(str(path)) == _compute_hmac(str(path))
+
+
+def test_pm_compute_hmac_rejects_non_temporary_path():
+    path = Path.cwd() / "manager.py"
+
+    with pytest.raises(ValueError, match="must be located in the temporary directory"):
+        _compute_hmac(str(path))
 
 
 # ── fetch_tags graceful degradation ───────────────────────────────────────
