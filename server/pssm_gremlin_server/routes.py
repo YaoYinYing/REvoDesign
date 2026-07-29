@@ -277,7 +277,7 @@ def _reject_invalid_fasta(md5sum: str, base_record: dict[str, Any]):
 @app.route("/PSSM_GREMLIN/api/post", methods=["POST"])
 @login_required
 @rate_limit(max_requests=30, window_seconds=3600)
-def upload_file():
+def upload_file():  # skipcq: PY-R1000 -- route validation branches form one transactional request boundary.
     if _blocked := require_bearer_auth():
         return _blocked
     uploaded_file, safe_filename, upload_error = _validate_fasta_upload()
@@ -524,7 +524,7 @@ def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, 
 
 @app.route("/PSSM_GREMLIN/dashboard", methods=["GET"])
 @login_required
-def task_dashboard():
+def task_dashboard():  # skipcq: PY-R1000 -- dashboard filtering and response assembly share request state.
     current_user = _current_username() or ""
     is_admin = _is_admin_user()
     all_tasks = task_store.list_tasks()
@@ -591,7 +591,7 @@ def delete_task(md5sum):
 
 @app.route("/PSSM_GREMLIN/api/delete", methods=["POST"])
 @login_required
-def delete_tasks_batch():
+def delete_tasks_batch():  # skipcq: PY-R1000 -- per-task authorization and outcome accounting are intentionally atomic.
     if _blocked := require_bearer_auth():
         return _blocked
     if _blocked := _reject_guest():
@@ -1353,7 +1353,7 @@ def _notify_admin_user_update(
 
 @app.route("/PSSM_GREMLIN/api/auth/admin/users/<int:user_id>", methods=["PUT", "DELETE"])
 @login_required
-def admin_manage_user(user_id):
+def admin_manage_user(user_id):  # skipcq: PY-R1000 -- admin state transitions are kept in one audited transaction.
     """Admin-only: update or soft-delete a user."""
     if _blocked := require_admin():
         return _blocked

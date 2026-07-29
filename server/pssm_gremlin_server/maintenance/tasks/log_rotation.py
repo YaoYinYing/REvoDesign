@@ -101,18 +101,12 @@ def _rotate_logs(
     for log_path in sorted(directory.glob("*.log")):
         if max_size is not None:
             _prune_oldest_archives(directory, max_size, created_archives)
-        rotate_for_size = (
-            max_size is not None and _managed_log_size(directory) > max_size
-        )
+        rotate_for_size = max_size is not None and _managed_log_size(directory) > max_size
         by_lines = max_lines is not None and _line_count(log_path) > max_lines
-        if log_path.stat().st_size == 0 or not (
-            by_lines or rotate_for_period or rotate_for_size
-        ):
+        if log_path.stat().st_size == 0 or not (by_lines or rotate_for_period or rotate_for_size):
             continue
 
-        timestamp = datetime.fromtimestamp(current_time, timezone.utc).strftime(
-            "%Y%m%dT%H%M%S%fZ"
-        )
+        timestamp = datetime.fromtimestamp(current_time, timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         archive = log_path.with_name(f"{log_path.name}.{timestamp}.zip")
         with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_DEFLATED) as bundle:
             bundle.write(log_path, arcname=log_path.name)
@@ -152,6 +146,10 @@ class LogRotationTask(PeriodicTask):
 
     id = "log-rotation"
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._threshold_args: dict[str, Any] = {}
+
     @property
     def task_method(self) -> Callable[..., Any]:
         return rotate_logs
@@ -174,7 +172,7 @@ class LogRotationTask(PeriodicTask):
             "LOG_DIR": log_dir,
         }
         self._args = {}
-        self._threshold_args: dict[str, Any] = {}
+        self._threshold_args = {}
         self._is_enabled = False
 
         if max_lines is not None and max_lines <= 0:

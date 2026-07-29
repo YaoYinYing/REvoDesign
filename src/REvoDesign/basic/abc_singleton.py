@@ -255,6 +255,11 @@ class SingletonAbstract(ABC):
         """
         cls._instance = None
 
+    @classmethod
+    def is_initialized(cls) -> bool:
+        """Return whether this singleton class currently owns an instance."""
+        return cls._instance is not None
+
 
 def reset_singletons():
     """
@@ -269,7 +274,5 @@ def reset_singletons():
     """
     # gracefully reset all singleton classes
     for cls in SingletonAbstract.__subclasses__():
-        # check if the singleton class instance exists
-        if hasattr(cls, "_instance") and cls._instance is not None:
-            # reset the instance of the singleton class
+        if cls.is_initialized():
             cls.reset_instance()

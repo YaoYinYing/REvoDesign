@@ -36,7 +36,7 @@ class ServerControlAbstract(SingletonAbstract):
         The ServerMonitor will automatically start and stop the server when the actions are triggered.
     """
 
-    def singleton_init(self):
+    def singleton_init(self):  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
         self.server_thread: threading.Thread | None = None
         self.is_running = False
         self.server: uvicorn.Server | None = None
@@ -48,7 +48,6 @@ class ServerControlAbstract(SingletonAbstract):
         """
         if self.is_running:
             print("Server is already running.")
-            return
 
     def stop_server(self):
         """
@@ -128,6 +127,10 @@ class MenuActionServerMonitor(QtCore.QObject):
     def _stop_server(self):
         self.controller.stop_server()
         self._update_led_status()
+
+    def start_server(self):
+        """Start the monitored server through the same UI-aware path."""
+        self._start_server()
 
     def _update_led_status(self):
         """

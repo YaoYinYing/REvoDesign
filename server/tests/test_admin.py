@@ -10,14 +10,7 @@ import os
 import zipfile
 
 import pytest
-from conftest import (
-    _admin_client_auth,
-    _extract_md5,
-    _insert_pending_task,
-    _load_pssm_module,
-    _test_client_auth,
-    _upsert_task_for_user,
-)
+from conftest import _extract_md5, _insert_pending_task, _load_pssm_module, _test_client_auth, _upsert_task_for_user
 
 # Admin user control helpers
 # ==================================================================
@@ -566,14 +559,8 @@ def test_admin_can_list_and_download_rotated_logs(monkeypatch, tmp_path):
 
     assert response.status_code == 200
     groups = {group["id"]: group for group in response.get_json()["logs"]}
-    assert [item["filename"] for item in groups["maintenance"]["archives"]] == [
-        archive_name
-    ]
-    assert all(
-        item["filename"] != "unrelated.zip"
-        for group in groups.values()
-        for item in group["archives"]
-    )
+    assert [item["filename"] for item in groups["maintenance"]["archives"]] == [archive_name]
+    assert all(item["filename"] != "unrelated.zip" for group in groups.values() for item in group["archives"])
 
     response = client.get(
         f"/PSSM_GREMLIN/api/auth/admin/logs/archives/{archive_name}",
@@ -708,10 +695,7 @@ def test_bootstrap_admin_has_correct_statuses(monkeypatch, tmp_path):
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
             "ADMIN_USERS": "admin,group_admin",
-            "ADMIN_BOOTSTRAP_CREDENTIALS": (
-                "admin\ttest-admin-password\n"
-                "group_admin\ttest-group-admin-password"
-            ),
+            "ADMIN_BOOTSTRAP_CREDENTIALS": ("admin\ttest-admin-password\n" "group_admin\ttest-group-admin-password"),
         },
     )
     db = module.app.config["user_db"]

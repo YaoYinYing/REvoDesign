@@ -11,11 +11,7 @@ import zipfile
 
 import pytest
 from pssm_gremlin_server.maintenance.tasks import log_rotation as log_rotation_module
-
-from pssm_gremlin_server.maintenance.tasks.log_rotation import (
-    log_rotation_task,
-    rotate_logs,
-)
+from pssm_gremlin_server.maintenance.tasks.log_rotation import log_rotation_task, rotate_logs
 
 
 def test_line_threshold_rotates_to_zip_and_truncates_live_log(tmp_path):

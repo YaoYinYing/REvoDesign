@@ -88,21 +88,17 @@ def test_server_control_start_stop():
 # -----------------------------------------------------------------------------
 
 
-def test_menu_action_server_monitor(test_worker):
+def test_menu_action_server_monitor(qapp):
     """
     Test that triggering the on/off actions calls MockServerControl
     methods and updates icon states.
     """
 
-    from REvoDesign.driver.ui_driver import StoresWidget
-
-    menu_monitor = StoresWidget().server_switches["Editor_Backend"]
-
     # Create QActions that simulate start/stop menu items
-    action_start = menu_monitor.action_on
-
-    action_stop = menu_monitor.action_off
-    menu_item = menu_monitor.menu_item
+    action_start = QtWidgets.QAction()
+    action_stop = QtWidgets.QAction()
+    menu_item = QtWidgets.QMenu()
+    menu_monitor = MenuActionServerMonitor(MockServerControl, action_start, action_stop, menu_item)
 
     assert menu_item is not None
 

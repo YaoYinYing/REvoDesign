@@ -144,11 +144,9 @@ def shortcut_color_by_plddt(selection="all", align_target=0, chain_to_align="A")
         # hide other objects if we dont align all to this align template
         cmd.select("not_aligned_but_enabled", f"(enabled) and not ({selection})")
         cmd.disable("not_aligned_but_enabled")
-        # cmd.enable(selection)
 
         # perform an 'alignto' operation to the selection
         util.mass_align("align_temp", 1, _self=cmd)
-        # cmd.cealign(target='align_temp',mobile=selection)
 
         # re-enable the disabled objects
         cmd.enable("not_aligned_but_enabled")
@@ -157,16 +155,8 @@ def shortcut_color_by_plddt(selection="all", align_target=0, chain_to_align="A")
 
 # see https://pymolwiki.org/index.php/Color_By_Mutations
 
-"""
-created by Christoph Malisi.
-
-Creates an alignment of two proteins and superimposes them.
-Aligned residues that are different in the two (i.e. mutations) are highlighted and
-colored according to their difference in the BLOSUM90 matrix.
-Is meant to be used for similar proteins, e.g. close homologs or point mutants,
-to visualize their differences.
-
-"""
+# Created by Christoph Malisi. Creates an alignment of two proteins and
+# superimposes them, highlighting mutations with BLOSUM90-based colors.
 
 
 # Yinying replaced the original blosum90 matrix with biopython code.
@@ -205,7 +195,8 @@ def getBlosum90ColorName(aa1, aa2):
 
     # red = [1.0, 0.0, 0.0], blue = [0.0, 0.0, 1.0]
     bcolor = (1.0 - b, 0.0, b)
-    col_name = "0x%02x%02x%02x" % tuple(int(b * 0xFF) for b in bcolor)
+    red, green, blue = (int(channel * 0xFF) for channel in bcolor)
+    col_name = f"0x{red:02x}{green:02x}{blue:02x}"
     return col_name
 
 
@@ -356,7 +347,7 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
     cmd.deselect()
 
 
-def _read_b_factors(
+def _read_b_factors(  # skipcq: PY-R1000 -- supported structure formats share one validation pipeline.
     file_path: str,
     label_x: str | int | None = 0,
     label_y: str | int | None = 1,
@@ -434,7 +425,7 @@ def _read_b_factors(
             logging.debug(f"Read {len(bfactor_data)} B-factors from file {file_path}")
             logging.debug(f"B-factors: {bfactor_data}")
             # reconstruct positions according to the number of lines, a guessed value
-            pos_data = [x for x in range(1, len(bfactor_data) + 1)]
+            pos_data = list(range(1, len(bfactor_data) + 1))
             logging.debug(f"Positions: {pos_data}")
 
             # 2 * N

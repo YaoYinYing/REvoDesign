@@ -54,7 +54,8 @@ class DiffPack_worker(MutateRunnerAbstract):
         self._cache_bootstrapped = False
         self._ensure_cache_ready()
 
-    def _resolve_config_path(self, config_setting: str) -> str:
+    @staticmethod
+    def _resolve_config_path(config_setting: str) -> str:
         from diffpack.util import get_default_config_path
 
         cfg = (config_setting or "").strip()

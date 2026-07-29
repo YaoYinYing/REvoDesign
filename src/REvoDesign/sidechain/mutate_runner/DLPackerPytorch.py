@@ -76,7 +76,6 @@ class DLPackerPytorch_worker(MutateRunnerAbstract):
             f'{os.path.basename(self.pdb_file).removesuffix(".pdb")}_reconstructed.pdb',
         )
         dlpacker_worker.reconstruct_protein(order="sequence", output_filename=temperal_relaxed_pdb)
-        del dlpacker_worker
         return temperal_relaxed_pdb
 
     def run_mutate(self, mutant: Mutant):
@@ -108,7 +107,6 @@ class DLPackerPytorch_worker(MutateRunnerAbstract):
             output_filename=temp_pdb_path,
         )
 
-        del dlpacker_worker
         return temp_pdb_path
 
     def _get_reconstruct_area(self, mutant_obj: Mutant, reconstruct_area_radius: float = -1):
@@ -138,7 +136,6 @@ class DLPackerPytorch_worker(MutateRunnerAbstract):
         if reconstruct_area:
             reconstruct_area = list(set(reconstruct_area))
 
-        del dlpacker_worker
         return reconstruct_area
 
     def run_mutate_parallel(

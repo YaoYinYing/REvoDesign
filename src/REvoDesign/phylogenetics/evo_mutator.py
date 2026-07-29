@@ -2,8 +2,6 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-from __future__ import annotations
-
 """
 Evolutionary involved mutation processings
 
@@ -11,6 +9,8 @@ TODO: need refactor:
 1. GREMLIN analyser: use CGO to replace bonding
 2. Decision making workflow: refactor
 """
+
+from __future__ import annotations
 
 import asyncio
 import itertools
@@ -107,6 +107,7 @@ class MutateWorker:
             "designable_sequences", RosettaPyProteinSequence.from_dict, cfg="runtime"
         )
         self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(self.design_chain_id)
+        self.design: REvoDesigner | None = None
 
     def run_mutant_loading_from_profile(self):
         try:
@@ -181,7 +182,7 @@ class MutateWorker:
             else:
                 (
                     mutation_json_fp,
-                    mutation_png_fp,
+                    _mutation_png_fp,
                 ) = self.design.setup_profile_design(
                     custom_indices_fp=custom_indices_fp,
                     cutoff=tuple(cutoff),
@@ -231,6 +232,7 @@ class VisualizingWorker:
         )
 
         self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(self.design_chain_id)
+        self.visualizer: MutantVisualizer | None = None
 
     def visualize_mutants(self):
         input_mut_table_csv = self.bus.get_value("ui.visualize.input.from_mutant_txt")
@@ -276,8 +278,6 @@ class VisualizingWorker:
                 logging.debug("No profile is given. Expected to use score labels")
 
             elif design_profile_format in IMPLEMENTED_DESIGNERS:
-                from REvoDesign.magician import Magician
-
                 run_worker_thread_in_pool(
                     worker_function=Magician().setup,
                     gimmick_name=design_profile_format,
@@ -287,8 +287,6 @@ class VisualizingWorker:
                 )
 
             else:
-                from REvoDesign.magician import Magician
-
                 Magician().setup()  # cool it down
                 self.visualizer.profile_scoring_df = self.visualizer.parse_profile(
                     profile_fp=design_profile,
@@ -378,9 +376,8 @@ class ChainBinder:
         for chain in self.structure[0]:  # Access the first model
             if chain.id == chain_id:
                 for residue in chain:
-                    if residue.id[1] == int(residue_id):  # Match residue number
-                        if "CA" in residue:
-                            return residue["CA"]
+                    if residue.id[1] == int(residue_id) and "CA" in residue:
+                        return residue["CA"]
         raise ValueError(f"CA atom not found in chain {chain_id}, residue {residue_id}")
 
     def _get_dist(
@@ -502,6 +499,10 @@ class GremlinAnalyser:
         self.explored_mutant_tree: MutantTree = MutantTree({})
         self.mutant_tree_coevolved = MutantTree({})
         self.picked_gremlin_mutant: Mutant = None
+        self.gremlin_tool: GREMLIN_Tools | None = None
+        self.gremlin_tool_a2a_mode = False
+        self.gremlin_workpath = ""
+        self.picked_gremlin_group_id = ""
 
         self.magician: Magician = Magician()
 
@@ -638,8 +639,8 @@ class GremlinAnalyser:
 
         self.coevolved_pairs = IterableLoop(iterable=tuple(filter(self.coevolved_pairs_filter, coevolved_pairs)))
 
-        del coevolved_pairs
-        del chain_binder
+        del coevolved_pairs  # skipcq: PTC-W0043 -- release a potentially large table before rendering.
+        del chain_binder  # skipcq: PTC-W0043 -- release the temporary structure before rendering.
 
         if self.coevolved_pairs.empty:
             warnings.warn(issues.NoResultsWarning("No coevolved_pairs passes filter."), stacklevel=2)
@@ -677,12 +678,14 @@ class GremlinAnalyser:
     def coevolved_pairs_filter(p: CoevolvedPair) -> bool:
         if p.empty:
             return False
-        if not [x for x in p.all_res_pairs_selections.values()]:
+        if not p.all_res_pairs_selections:
             return False
 
         return True
 
-    def plot_coevolved_pair_in_pymol(self):
+    def plot_coevolved_pair_in_pymol(  # skipcq: PY-R1000 -- PyMOL rendering branches share selection state.
+        self,
+    ):
         # Suspend visual updates during batch creation — prevents UI freeze
         cmd.set("suspend_updates", 1)
         try:
@@ -853,7 +856,7 @@ class GremlinAnalyser:
 
         cmd.orient(selection=f"byres ({_sele}) around 15", animate=1)
 
-    def load_co_evolving_pairs(
+    def load_co_evolving_pairs(  # skipcq: PY-R1000 -- parser compatibility branches share validation state.
         self,
         walk_to_next=True,
     ):
@@ -993,7 +996,7 @@ class GremlinAnalyser:
 
             self.activate_focused_interaction()
 
-            del visualizer
+            del visualizer  # skipcq: PTC-W0043 -- release the PyMOL helper before broadcasting.
 
             # create a small mutant tree and send to broadcaster.
             mutant_tree = MutantTree({self.picked_gremlin_group_id: {mutant: mutant_obj}})
@@ -1154,8 +1157,6 @@ class GremlinAnalyser:
             f"{self.picked_gremlin_mutant.mutant_score:.4f}",
         )
 
-        return
-
     def refresh_magician(self):
 
         magician = run_worker_thread_in_pool(
@@ -1169,8 +1170,6 @@ class GremlinAnalyser:
         if magician is None:
             raise issues.UnexpectedWorkflowError("Magician failed to initialize.")
         self.magician = magician
-
-        return
 
     def to_broadcaster(self, mutant_tree: MutantTree):
         if self.ws_server and self.ws_server.is_running and not mutant_tree.empty:

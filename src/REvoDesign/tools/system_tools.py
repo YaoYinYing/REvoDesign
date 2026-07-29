@@ -60,7 +60,7 @@ class SystemInfoReduced(SingletonAbstract):
     A singleton class that provides system information.
     """
 
-    def singleton_init(self):
+    def singleton_init(self):  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
         self.info: immutabledict = immutabledict(issue_collection(network=False))
         self.initialized = True
 

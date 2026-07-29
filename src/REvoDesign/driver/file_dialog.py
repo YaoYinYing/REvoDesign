@@ -37,7 +37,9 @@ class FileDialog(SingletonAbstract):
     This ensures that file dialog operations are centralized and shareable across different tabs.
     """
 
-    def singleton_init(self, window: Any | None, pwd: str | None):
+    def singleton_init(  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
+        self, window: Any | None, pwd: str | None
+    ):
         """
         Initializes the singleton instance of FileDialog.
 

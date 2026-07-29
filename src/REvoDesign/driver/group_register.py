@@ -16,7 +16,6 @@ from RosettaPy.node import NodeHintT
 from REvoDesign.Qt import QtGui
 
 from ..basic import GroupRegistryItem as GR
-from ..tools.customized_widgets import create_cmap_icon
 
 
 # define actions
@@ -28,13 +27,13 @@ class CallableGroupValues:
 
     @staticmethod
     def list_score_matrix() -> list:
-        score_matrix = [
-            mtx for mtx in os.listdir(os.path.join(substitution_matrices.__path__[0], "data"))  # type: ignore
-        ]
+        score_matrix = os.listdir(os.path.join(substitution_matrices.__path__[0], "data"))  # type: ignore
         return score_matrix
 
     @staticmethod
     def list_color_map() -> dict:
+        from ..tools.customized_widgets import create_cmap_icon
+
         cmap_group = {_cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap)) for _cmap in matplotlib.colormaps()}
         return cmap_group
 

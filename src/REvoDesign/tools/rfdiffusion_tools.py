@@ -194,8 +194,8 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         import torch
         from scipy.ndimage import gaussian_filter
 
-        x_min, y_min, z_min = np.min(self.ligand_coords, axis=0) - margin
-        x_max, y_max, z_max = np.max(self.ligand_coords, axis=0) + margin
+        x_min, y_min, _z_min = np.min(self.ligand_coords, axis=0) - margin
+        x_max, y_max, _z_max = np.max(self.ligand_coords, axis=0) + margin
 
         z_plane = np.median(self.ligand_coords[:, 2])
         xs = np.linspace(x_min, x_max, grid_size)

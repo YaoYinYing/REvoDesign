@@ -29,7 +29,7 @@ from ._client import (
     write_json,
     write_normalized_scores_csv,
 )
-from ._models import OpenKineticsConfigurationError
+from ._models import OpenKineticsConfigurationError, OpenKineticsValidationError
 from ._pdb import resolve_substrate_metadata
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -51,6 +51,23 @@ CREATE TABLE IF NOT EXISTS variant_cache (
     cached_at_utc    TEXT NOT NULL
 )
 """
+
+
+def _merge_cached_and_fresh_scores(
+    cached_scores: list[dict[str, Any] | None],
+    fresh_scores: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    uncached_indices = [index for index, score in enumerate(cached_scores) if score is None]
+    if len(fresh_scores) < len(uncached_indices):
+        raise OpenKineticsValidationError(
+            f"Expected at least {len(uncached_indices)} fresh prediction rows, received {len(fresh_scores)}"
+        )
+
+    merged_scores = cached_scores.copy()
+    for index, fresh_score in zip(uncached_indices, fresh_scores):
+        merged_scores[index] = fresh_score
+    return [score for score in merged_scores if score is not None]
+
 
 _OPENKINETICS_PREDICTOR_BIBTEX = r"""@misc{OpenKineticsPredictorCitationPending,
   title = {OpenKineticsPredictor: open-source platform for kinetic parameter prediction},
@@ -185,7 +202,7 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
 
     @classmethod
     @abstractmethod
-    def built_in_defaults(cls) -> dict[str, str]:
+    def built_in_defaults(_cls) -> dict[str, str]:
         """Return ``{"method": ..., "prediction_type": ...}``."""
 
     def __init__(
@@ -300,7 +317,7 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
         variants: list[dict[str, Any]],
         substrate_smiles: str,
     ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-        local_rows = OpenKineticsClient._normalize_score_variants_input(variants)
+        local_rows = OpenKineticsClient.normalize_score_variants_input(variants)
         api_rows = build_openkinetics_data_rows(local_rows, substrate_smiles)
         return local_rows, api_rows
 
@@ -401,7 +418,7 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
 
     # -- main scoring entry point ------------------------------------------
 
-    def score_variants(
+    def score_variants(  # skipcq: PY-R1000 -- cache, API, and fallback results require coordinated ordering.
         self,
         variants,
         substrate_smiles: str,
@@ -498,13 +515,7 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
                 self._write_variant_cache(ck, fresh_row)
 
         # Merge cached + fresh, preserving original order.
-        fresh_iter = iter(fresh_scores)
-        merged_scores: list[dict[str, Any]] = []
-        for i in range(len(local_rows)):
-            if cached_scores[i] is not None:
-                merged_scores.append(cached_scores[i])
-            else:
-                merged_scores.append(next(fresh_iter))
+        merged_scores = _merge_cached_and_fresh_scores(cached_scores, fresh_scores)
 
         if output_csv_path:
             write_normalized_scores_csv(output_csv_path, merged_scores)
@@ -545,7 +556,7 @@ _SCORER_SPECS: tuple[tuple[str, str, str, str, str], ...] = (
 
 def _built_in_defaults(method: str, prediction_type: str):
     @classmethod
-    def built_in_defaults(cls) -> dict[str, str]:
+    def built_in_defaults(_cls) -> dict[str, str]:
         return {"method": method, "prediction_type": prediction_type}
 
     return built_in_defaults
@@ -553,18 +564,18 @@ def _built_in_defaults(method: str, prediction_type: str):
 
 OPENKINETICS_SCORER_CLASS_NAMES = tuple(spec[0] for spec in _SCORER_SPECS)
 
-for class_name, scorer_name, method, prediction_type, citation_key in _SCORER_SPECS:
+for class_name, scorer_name, spec_method, spec_prediction_type, citation_key in _SCORER_SPECS:
     globals()[class_name] = type(
         class_name,
         (OpenKineticsScorerAbstract,),
         {
             "__module__": __name__,
             "name": scorer_name,
-            "prefer_lower": prediction_type.lower() == "km",
+            "prefer_lower": spec_prediction_type.lower() == "km",
             "__bibtex__": {
                 **OpenKineticsScorerAbstract.__bibtex__,
                 citation_key: _PREDICTOR_BIBTEX[citation_key],
             },
-            "built_in_defaults": _built_in_defaults(method, prediction_type),
+            "built_in_defaults": _built_in_defaults(spec_method, spec_prediction_type),
         },
     )

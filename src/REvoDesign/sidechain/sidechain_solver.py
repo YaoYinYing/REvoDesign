@@ -70,7 +70,7 @@ class SidechainSolverConfig:
 
 
 class SidechainSolver(SingletonAbstract):
-    def singleton_init(self):
+    def singleton_init(self):  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
         # If not, set the instance attributes
         self.bus: ConfigBus = ConfigBus()
         self.mutate_runner: MutateRunnerAbstract = None  # type: ignore

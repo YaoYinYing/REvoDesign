@@ -337,7 +337,7 @@ def format_walltime(seconds: Any) -> str:
 
 
 @celery.task(name="run_gremlin_task")
-def run_gremlin_task(md5sum):
+def run_gremlin_task(md5sum):  # skipcq: PY-R1000 -- pipeline cleanup and status transitions require one owner.
     task = task_store.get_task(md5sum)
     if not task:
         logging.error("Task %s missing from database", md5sum)

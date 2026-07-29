@@ -14,8 +14,19 @@ from immutabledict import immutabledict
 
 from REvoDesign.Qt import QtGui, QtWidgets
 
-DEFAULT_FONT: QtGui.QFont = None  # type: ignore
-CURRENT_FONT: QtGui.QFont = None  # type: ignore
+
+@dataclass
+class _FontState:
+    default: QtGui.QFont | None = None
+    current: QtGui.QFont | None = None
+
+
+_FONT_STATE = _FontState()
+
+
+def preferred_font() -> QtGui.QFont | None:
+    """Return the selected application font, falling back to the startup font."""
+    return _FONT_STATE.current or _FONT_STATE.default
 
 
 @dataclass(frozen=True)
@@ -69,13 +80,10 @@ class FontSetter:
         # family list, so we compute it lazily.
         self._font_families_cache: list[str] | None = None
         self.flavored_fonts = FlavoredFonts.OS_TYPE_FONT_TABLE
-        global DEFAULT_FONT
-        global CURRENT_FONT
-
-        DEFAULT_FONT = self.main_window.font()
+        _FONT_STATE.default = self.main_window.font()
 
         self.set_window_font()
-        CURRENT_FONT = self.main_window.font()
+        _FONT_STATE.current = self.main_window.font()
 
     @staticmethod
     def _list_font_families() -> list[str]:
@@ -137,13 +145,13 @@ def set_font(font: QtGui.QFont | str | None = None):
 
     Args:
         font (QtGui.QFont | str | None): The font object, font name string or None to use.
-                                       If None, the default font (DEFAULT_FONT) will be used.
+                                       If None, the captured startup font will be used.
 
     Returns:
         None
     """
     if not font:
-        font = DEFAULT_FONT
+        font = _FONT_STATE.default
     if isinstance(font, str):
         font = QtGui.QFont(font)
 
@@ -166,6 +174,4 @@ def set_font_dialog():
     fq = QtWidgets.QFontDialog()
     if fq.exec():
         set_font(fq.currentFont())
-        global CURRENT_FONT
-
-        CURRENT_FONT = fq.currentFont()
+        _FONT_STATE.current = fq.currentFont()

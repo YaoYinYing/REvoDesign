@@ -26,10 +26,7 @@ _CLEANUP_CLAIMS = {
     "failed": ("deleting:cancel", "cleaned:cancel"),
     "cancelled": ("deleting:cancel", "cleaned:cancel"),
 }
-_CLAIMED_CLEANUPS = {
-    claim_status: cleaned_status
-    for claim_status, cleaned_status in _CLEANUP_CLAIMS.values()
-}
+_CLAIMED_CLEANUPS = dict(_CLEANUP_CLAIMS.values())
 
 
 def _path_is_within(base_dir: str, candidate: str) -> bool:

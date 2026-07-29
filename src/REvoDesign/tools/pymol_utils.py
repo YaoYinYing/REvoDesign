@@ -36,7 +36,7 @@ def is_hidden_object(selection="(all)"):
 
 
 def fetch_exclusion_expressions():
-    return [""] + [sel for sel in refresh_all_selections()]
+    return [""] + list(refresh_all_selections())
 
 
 def is_polymer_protein(sele=""):
@@ -277,7 +277,7 @@ def get_molecule_sequence(molecule, chain_id, keep_missing=True) -> str:
 
     protein_letters_3to1_upper = {key.upper(): val.upper() for key, val in IUPACData.protein_letters_3to1.items()}
 
-    CA = [atom for atom in cmd.get_model(f"( {molecule} and c. {chain_id} and n. CA )").atom]
+    CA = list(cmd.get_model(f"( {molecule} and c. {chain_id} and n. CA )").atom)
     if keep_missing:
         resi = [int(atom.resi) for atom in CA]
         resi_max = max(resi)
@@ -465,9 +465,6 @@ def make_temperal_input_pdb(
 
 
 def extract_smiles_from_chain(molecule, chain_id="", segment_id="", resn="", selection="") -> list[str]:
-    from rdkit import Chem
-    from rdkit.Chem import MolToSmiles
-
     """
     Function: extract_smiles_from_chain
     Usage: smiles_string = extract_smiles_from_chain(molecule, chain_id=None, segment_id=None)
@@ -492,6 +489,9 @@ def extract_smiles_from_chain(molecule, chain_id="", segment_id="", resn="", sel
     Returns:
     - str: The SMILES string list of the specified molecule
     """
+    from rdkit import Chem
+    from rdkit.Chem import MolToSmiles
+
     # Step 1: Create a temporary input PDB file
     temp_pdb = make_temperal_input_pdb(
         molecule,

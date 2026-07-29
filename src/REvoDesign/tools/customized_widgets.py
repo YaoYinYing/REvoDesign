@@ -1,12 +1,13 @@
+# skipcq: PYL-R0401 -- Qt widget helpers use runtime-only ConfigBus imports to avoid initialization cycles.
 # Copyright (c) 2026 The REvoDesign Developers.
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-from __future__ import annotations
-
 """
 Custom widgets for REvoDesign.
 """
+
+from __future__ import annotations
 
 import gc
 import json
@@ -95,11 +96,11 @@ class REvoDesignWidget(QtWidgets.QWidget):
             allow_repeat (bool): If True, allows multiple instances of the widget with the same name. Defaults to False.
             parent (Optional[QWidget]): The parent widget. Defaults to None.
         """
-        from REvoDesign.application.font.font_manager import CURRENT_FONT, DEFAULT_FONT
+        from REvoDesign.application.font.font_manager import preferred_font
 
         super().__init__(parent=parent)
         if not parent:
-            font = CURRENT_FONT or DEFAULT_FONT
+            font = preferred_font()
             if font is not None:
                 self.setFont(font)
 
@@ -502,6 +503,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         self._tips: dict[tuple[int, int], str] = {}
         # Per-cell WT flag cache
         self._wt_flags: dict[tuple[int, int], bool] = {}
+        self._placeholder_widget: QtWidgets.QWidget | None = None
 
         # --- Clean interaction-state model ---
         # _hover_index: transient, cleared on leaveEvent / mouse outside matrix
@@ -1109,7 +1111,8 @@ class QButtonMatrix(QtWidgets.QWidget):
     # Mouse interaction
     # -----------------------------------------------------------------
 
-    def _event_pos(self, event: QtGui.QMouseEvent) -> QtCore.QPoint:
+    @staticmethod
+    def _event_pos(event: QtGui.QMouseEvent) -> QtCore.QPoint:
         """Return the mouse position in a Qt5/Qt6-safe way."""
         pos = getattr(event, "position", None)
         if pos is not None:
@@ -1192,7 +1195,8 @@ class QButtonMatrixGremlin(QButtonMatrix):
         self.pair_i = pair_i
         self.pair_j = pair_j
 
-    def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
+    @staticmethod
+    def get_WT_label(row_name: str, col_name: str, row: int, col: int) -> str:
         return "WT"
 
     def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
@@ -1349,13 +1353,13 @@ def getOpenFileNameWithExt(*args, **kwargs):
     """
     import re
 
-    fname, filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)  # type: ignore
+    fname, selected_filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)  # type: ignore
 
     if not fname:
         return ""
 
     if "." not in os.path.split(fname)[-1]:
-        m = re.search(r"\*(\.[\w\.]+)", filter)
+        m = re.search(r"\*(\.[\w\.]+)", selected_filter)
         if m:
             # append first extension from filter
             fname += m.group(1)
@@ -1407,7 +1411,7 @@ def set_widget_value(widget: QtWidgets.QLineEdit | QtWidgets.QLCDNumber | QtWidg
 # fmt: on
 
 
-def set_widget_value(widget, value):
+def set_widget_value(widget, value):  # skipcq: PY-R1000 -- centralized Qt type dispatch preserves caller compatibility.
     """
     Sets the value of a PyQt5 widget based on the provided value.
 
@@ -1671,7 +1675,7 @@ class ParallelExecutor:
         self.n_jobs = n_jobs
 
         # guessing backend according to OS
-        if not backend == "auto":
+        if backend != "auto":
             self.backend = backend
         else:
             self.backend = "loky"
@@ -1748,6 +1752,7 @@ class QtParallelExecutor(QtCore.QThread):
         self.args = args
         self.n_jobs = n_jobs
         self.executor = ParallelExecutor(func, args, n_jobs, backend, verbose)
+        self.results = []
 
     def run(self):
         self.results = self.executor.run()
@@ -2200,7 +2205,9 @@ class ValueDialog(REvoDesignWidget):
             return
         widget_signal_tape(widget, self._on_wiget_changed)
 
-    def _add_field_to_table(self, row: int, asked_value: AskedValue):
+    def _add_field_to_table(  # skipcq: PY-R1000 -- field-type dispatch shares table bookkeeping.
+        self, row: int, asked_value: AskedValue
+    ):
         """
         Adds a key-value pair to the table as a row.
 
@@ -2607,6 +2614,7 @@ class AppendableValueDialog(QtWidgets.QDialog):
         # Initialize main layout
         self.layout = QtWidgets.QVBoxLayout()
         self.row_widgets = []  # Keep track of row widgets
+        self.updated_values: list[AskedValue] = []
 
         # Create scroll area for rows
         self.scroll_area = QtWidgets.QScrollArea()

@@ -62,6 +62,7 @@ class ClusterRunner:
         }
 
         self.nproc = bus.get_value("ui.header_panel.nproc", int)
+        self.plot_space = None
 
     @staticmethod
     def _sanitize_worker_count(num_proc: int) -> int:
@@ -199,7 +200,8 @@ class ClusterRunner:
             clustering.shuffle_variant = self.shuffle_variant
             clustering.random_seed = self.cluster_random_seed
             clustering.substitution_matrix = self.cluster_substitution_matrix
-            clustering._save_dir = self.PWD
+            # ClusterMethodManager guarantees this internal lifecycle contract across implementations.
+            clustering._save_dir = self.PWD  # skipcq: PYL-W0212
             clustering.chain_id = self.design_chain_id
             clustering.wt_sequence = self.design_sequence
             clustering.evo_pssm_profile = self.evo_pssm_profile

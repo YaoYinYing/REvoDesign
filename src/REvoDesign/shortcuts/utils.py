@@ -250,10 +250,13 @@ class DialogWrapperRegistry:
         - A callable with no arguments (if has_dynamic_values=False)
         """
         logging.debug(f"Registering function {func_id}")
+        logging.debug(
+            "Legacy progress-bar preference for %s: %s; threaded calls use the thread dashboard",
+            func_id,
+            use_progressbar,
+        )
         if use_thread:
-            self.funcs[func_id] = partial(
-                run_wrapped_func_in_thread, func, use_progressbar=use_progressbar, **kwargs or {}
-            )
+            self.funcs[func_id] = partial(run_wrapped_func_in_thread, func, **kwargs or {})
         else:
             self.funcs[func_id] = func
 
@@ -261,7 +264,7 @@ class DialogWrapperRegistry:
 
             self.call(func_id, dynamic_values)
 
-        def window_wrapper(dynamic_values: list[AskedValueDynamic] | None = None):
+        def window_wrapper(_dynamic_values: list[AskedValueDynamic] | None = None):
             self.call(func_id)
 
         if has_dynamic_values:
@@ -294,7 +297,6 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         Args:
             func_id (str): The ID of the function to unregister.
         """
-        # logging.debug(f"Unregistering function {func_id}")
         del self.funcs[func_id]
 
     def call(self, func_id: str, dynamic_values: list[AskedValueDynamic] | None = None):
@@ -338,7 +340,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         wrapped_func_window(dynamic_values=dynamic_values or [])
 
 
-def run_wrapped_func_in_thread(func, use_progressbar: bool = True, **kwargs):
+def run_wrapped_func_in_thread(func, **kwargs):
     """
     Runs the wrapped process with parameters collected from the dialog.
 

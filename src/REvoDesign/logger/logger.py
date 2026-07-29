@@ -124,12 +124,6 @@ def setup_logging_from_dictconfig(
     stdout_handler.setFormatter(python_logging.Formatter(log_config.formatters.simple.format))
     log_handlers.append(stdout_handler)
 
-    # stderr_handler = python_logging.StreamHandler()
-    # stderr_handler.setLevel(log_config.handlers.stderr.level)
-    # stderr_handler.setFormatter(
-    #     python_logging.Formatter(log_config.formatters.simple.format)
-    # )
-
     if file_filename is not None:
         file_handler = python_logging_handlers.RotatingFileHandler(
             filename=file_filename,
@@ -311,9 +305,10 @@ def logger_level_setter_ng(settings: dict[str, str]):
     # save the logger config
     logger_config = ConfigBus().cfg_group["logger"]
 
-    # update the global variable out of the closure
-    global LOGGER_CONFIG
-    LOGGER_CONFIG = logger_config.cfg
+    # Preserve the exported DictConfig object's identity so modules that
+    # imported LOGGER_CONFIG continue to observe runtime updates.
+    LOGGER_CONFIG.clear()
+    LOGGER_CONFIG.update(logger_config.cfg)
 
     # save it to file
     logger_config.save()

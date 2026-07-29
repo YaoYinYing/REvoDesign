@@ -100,7 +100,7 @@ def shortcut_dump_sidechains(
 
 
 def shortcut_dump_fasta_from_struct(
-    format: str = "fasta",
+    output_format: str = "fasta",
     chain_ids: list[str] | None = None,
     output_dir: str = "dumped_sequences",
     drop_missing_residue: bool = False,
@@ -109,7 +109,7 @@ def shortcut_dump_fasta_from_struct(
     """
     Runs the dump_fasta_from_struct function with parameters collected from the dialog.
     Args:
-        format (str): Format of the output file. Defaults to "fasta".
+        output_format (str): Format of the output file. Defaults to "fasta".
         chain_ids (list[str]): List of chain IDs to dump. Defaults to [].
         output_dir (str): Directory path to save the output file. Defaults to 'dumped_sequences'.
         drop_missing_residue (bool): Whether to drop missing residues. Defaults to False.
@@ -126,7 +126,7 @@ def shortcut_dump_fasta_from_struct(
     os.makedirs(output_dir, exist_ok=True)
     if suffix:
         suffix = f"_{suffix}"
-    output_path = os.path.join(output_dir, f"{molecule}_{''.join(chain_ids)}{suffix}.{format}")
+    output_path = os.path.join(output_dir, f"{molecule}_{''.join(chain_ids)}{suffix}.{output_format}")
     all_seq_records = []
     for chain_id in chain_ids:
         sequence: str | None = designable_sequences.get(chain_id)
@@ -142,11 +142,11 @@ def shortcut_dump_fasta_from_struct(
 
     try:
         with open(output_path, "w", encoding="utf-8") as f:
-            SeqIO.write(all_seq_records, f, format)
+            SeqIO.write(all_seq_records, f, output_format)
     except Bio.StreamModeError as e:
         logging.warning(f"Error occurs while dumping sequence: {e} Retry with binary mode.")
         with open(output_path, "wb") as f:
-            SeqIO.write(all_seq_records, f, format)  # type: ignore
+            SeqIO.write(all_seq_records, f, output_format)  # type: ignore
     except ValueError as e:
         os.remove(output_path)
         logging.error(f"Error occurs while dumping sequence: {e} Clean up the output file.")

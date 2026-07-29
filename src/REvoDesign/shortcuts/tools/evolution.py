@@ -41,7 +41,7 @@ class GremlinPytorch(TorchModuleAbstract, ThirdPartyModuleAbstract):
         # internal import to avoid circular imports and torch missing
         from REvoDesign.phylogenetics.gremlin_pytorch import GREMLIN, mk_msa, parse_fasta
 
-        headers, seqs = parse_fasta(fasta_file)
+        _headers, seqs = parse_fasta(fasta_file)
         msa = mk_msa(seqs)
         mrf = GREMLIN(
             msa,
@@ -64,5 +64,5 @@ def run_gremlin(fasta_file: str, mrf_file_save: str, gremlin_iter: int = 100, de
     app = GremlinPytorch(device)
     app.run(fasta_file, mrf_file_save, gremlin_iter)
     app.cleanup()
-    del app
+    del app  # skipcq: PTC-W0043 -- drop model state before the explicit collection below.
     gc.collect()

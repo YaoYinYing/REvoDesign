@@ -159,26 +159,26 @@ REvoDesign -- Makes enzyme redesign tasks easier to all."""
 
         @staticmethod
         def debug(msg: str, *args, **kwargs):
-            print(f"[DEBUG]: {msg}") if LOGGER_LEVEL < 10 else None
+            print(f"[DEBUG]: {msg % args if args else msg}") if LOGGER_LEVEL < 10 else None
 
         @staticmethod
         def info(msg: str, *args, **kwargs):
-            print(f"[INFO]: {msg}") if LOGGER_LEVEL < 20 else None
+            print(f"[INFO]: {msg % args if args else msg}") if LOGGER_LEVEL < 20 else None
 
         @staticmethod
         def warning(msg: str, *args, **kwargs):
-            print(f"[WARNING]: {msg}") if LOGGER_LEVEL < 30 else None
+            print(f"[WARNING]: {msg % args if args else msg}") if LOGGER_LEVEL < 30 else None
 
         @staticmethod
         def error(msg: str, *args, **kwargs):
-            print(f"[ERROR]: {msg}") if LOGGER_LEVEL < 40 else None
+            print(f"[ERROR]: {msg % args if args else msg}") if LOGGER_LEVEL < 40 else None
 
         @staticmethod
         def critical(msg: str, *args, **kwargs):
-            print(f"[CRITICAL]: {msg}") if LOGGER_LEVEL < 50 else None
+            print(f"[CRITICAL]: {msg % args if args else msg}") if LOGGER_LEVEL < 50 else None
 
     logging = MockLogger()  # noqa: F811 -- intentional override for package manager mode
-    logging.info(f"Package manager is running via PyMOL: {__file__}.")
+    logging.info("Package manager is running via PyMOL: %s.", __file__)
 
 
 else:
@@ -302,7 +302,9 @@ GITHUB_TAG_CACHE_TTL_SECONDS = 15 * 60
 _GITHUB_TAG_CACHE: dict[str, tuple[float, list[str]]] = {}
 
 
-def _python_version_matches(spec: str | None, current_version: str | None) -> bool:
+def _python_version_matches(  # skipcq: PY-R1000 -- compatibility grammar is intentionally evaluated in one parser.
+    spec: str | None, current_version: str | None
+) -> bool:
     """
     Check if the current Python version matches the specified version specification.
 
@@ -516,11 +518,38 @@ class ExtrasGroups:
 
 
 def _resolve_temporary_path(filepath: str) -> Path:
-    target_path = Path(filepath).resolve()
+    requested_path = Path(os.path.abspath(filepath))
+    target_path = requested_path.parent.resolve() / requested_path.name
     temporary_root = Path(tempfile.gettempdir()).resolve()
     if not target_path.is_relative_to(temporary_root):
         raise ValueError("Bootstrap files must be located in the temporary directory")
     return target_path
+
+
+@contextmanager
+def _open_temporary_file(filepath: str, flags: int):
+    """Open a temporary file without following replaceable path symlinks."""
+    target_path = _resolve_temporary_path(filepath)
+    temporary_root = Path(tempfile.gettempdir()).resolve()
+    relative_path = target_path.relative_to(temporary_root)
+    if not relative_path.parts:
+        raise ValueError("Bootstrap file path must name a file")
+
+    directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    file_flags = flags | getattr(os, "O_NOFOLLOW", 0)
+    directory_fd = os.open(temporary_root, directory_flags)
+    try:
+        for component in relative_path.parts[:-1]:
+            next_fd = os.open(component, directory_flags, dir_fd=directory_fd)
+            os.close(directory_fd)
+            directory_fd = next_fd
+        file_fd = os.open(relative_path.name, file_flags, 0o600, dir_fd=directory_fd)
+        try:
+            yield file_fd
+        finally:
+            os.close(file_fd)
+    finally:
+        os.close(directory_fd)
 
 
 def fetch_gist_file(ui_file_url: str, save_to_file: str, *, timeout: float = 10.0) -> None:
@@ -538,15 +567,15 @@ def fetch_gist_file(ui_file_url: str, save_to_file: str, *, timeout: float = 10.
     if not ui_file_url.startswith("https"):
         raise ValueError("URL must start with 'https'")
 
-    target_path = _resolve_temporary_path(save_to_file)
+    _resolve_temporary_path(save_to_file)
 
     try:
         # Fetch the file content and write it to the temporary file
         ui_data = _read_https_url(ui_file_url, timeout=timeout).decode("utf-8")
-        with target_path.open("w") as ui_handle:  # skipcq: PTC-W6004
-            ui_handle.write(ui_data)
+        with _open_temporary_file(save_to_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC) as file_fd:
+            os.write(file_fd, ui_data.encode("utf-8"))
 
-    except (URLError, HTTPError) as e:
+    except URLError as e:
         raise URLError(f"Failed to download file: {e}") from e
     except ValueError as e:
         raise ValueError(f"Invalid URL: {e}") from e
@@ -568,7 +597,7 @@ def fetch_gist_json(url: str) -> dict[str, Any]:
     try:
         data = _read_https_url(url, timeout=10).decode("utf-8")
         json_data = json.loads(data)
-        logging.debug("Extras table is fetched and parsed: \n" f"{json_data}")
+        logging.debug("Extras table is fetched and parsed:\n%s", json_data)
 
         # Validate the structure of the fetched data
         if not isinstance(json_data, dict):
@@ -576,7 +605,7 @@ def fetch_gist_json(url: str) -> dict[str, Any]:
             return {}
         return json_data
     except Exception as e:
-        logging.error(f"Error fetching or validating the JSON data: {e}: ")
+        logging.error("Error fetching or validating the JSON data: %s: ", e)
         return {}
 
 
@@ -619,14 +648,14 @@ def load_bootstrap_extras_json(path: Path | None = None) -> dict[str, Any]:
         with path.open(encoding="utf-8") as json_handle:
             json_data = json.load(json_handle)
     except OSError as e:
-        logging.error(f"Error loading packaged extras table from {path}: {e}")
+        logging.error("Error loading packaged extras table from %s: %s", path, e)
         return {}
     except json.JSONDecodeError as e:
-        logging.error(f"Error decoding packaged extras table from {path}: {e}")
+        logging.error("Error decoding packaged extras table from %s: %s", path, e)
         return {}
 
     if not isinstance(json_data, dict):
-        logging.error(f"Error loading packaged extras table from {path}: expected a dictionary.")
+        logging.error("Error loading packaged extras table from %s: expected a dictionary.", path)
         return {}
     return json_data
 
@@ -644,9 +673,9 @@ def write_bootstrap_extras_json(remote_data: dict[str, Any]) -> None:
 
 def _compute_hmac(filepath: str) -> str:
     """Compute HMAC-SHA256 of a file using the embedded manager key."""
-    target_path = _resolve_temporary_path(filepath)
-    with target_path.open("rb") as fh:  # skipcq: PTC-W6004
-        return hmac.new(_MANAGER_HMAC_KEY, fh.read(), "sha256").hexdigest()
+    with _open_temporary_file(filepath, os.O_RDONLY) as file_fd:
+        with os.fdopen(os.dup(file_fd), "rb") as file_handle:
+            return hmac.new(_MANAGER_HMAC_KEY, file_handle.read(), "sha256").hexdigest()
 
 
 def verify_manifest(assets: dict[str, str], manifest: dict[str, str]) -> bool:
@@ -692,7 +721,7 @@ class LiveProcessResult(subprocess.CompletedProcess):
 
 
 def run_command(
-    cmd: tuple[str] | list[str],
+    command: tuple[str] | list[str],
     verbose: bool = False,
     env: Mapping[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
@@ -700,7 +729,7 @@ def run_command(
     Execute a command with real-time output streaming, while capturing stdout and stderr.
 
     Parameters:
-    - cmd: List or tuple of command and arguments.
+    - command: List or tuple of command and arguments.
     - verbose: If True, prints output in real time and logs errors.
     - env: Optional environment variables to pass to the subprocess.
 
@@ -711,7 +740,7 @@ def run_command(
     - RuntimeError: if the command fails and verbose is True.
     """
     if verbose:
-        logging.info(f"Launching command: {' '.join(cmd)}")
+        logging.info("Launching command: %s", " ".join(command))
 
     # Clone and patch environment for macOS if needed
     patched_env = os.environ.copy()
@@ -724,12 +753,12 @@ def run_command(
     def stream_reader(pipe: io.IOBase, collector: list[str], label: str):
         for line in iter(pipe.readline, ""):
             if verbose:
-                logging.info(f"[{label}] {line.rstrip()}")
+                logging.info("[%s] %s", label, line.rstrip())
             collector.append(line)
         pipe.close()
 
     process = subprocess.Popen(  # nosec B603
-        cmd,
+        command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -755,7 +784,7 @@ def run_command(
         raise RuntimeError(f"--> Command failed:\n{'-' * 79}\n{stderr_text.strip()}\n{'-' * 79}")
 
     return LiveProcessResult(
-        args=cmd,
+        args=command,
         returncode=process.returncode,
         stdout=stdout_text,
         stderr=stderr_text,
@@ -774,7 +803,7 @@ class CheckableListView(QtWidgets.QWidget):
         model: The data model instance used by the list view.
     """
 
-    def __init__(self, list_view, items: ExtrasGroups, filter: PlatformInfo, parent=None):
+    def __init__(self, list_view, items: ExtrasGroups, platform_filter: PlatformInfo, parent=None):
         """
         Initializes the CheckableListView instance.
 
@@ -800,8 +829,8 @@ class CheckableListView(QtWidgets.QWidget):
         self.model.clear()
 
         self.items = items
-        self.filter = filter
-        python_version_filter = filter.get("PYTHON_VERSION")
+        self.platform_filter = platform_filter
+        python_version_filter = platform_filter.get("PYTHON_VERSION")
 
         for e in self.items.entities:
             # Add as a separator
@@ -817,15 +846,17 @@ class CheckableListView(QtWidgets.QWidget):
 
             for _e in e.extras:
                 if _e.platform:
-                    if any(not filter.get(f"HAS_{p}") for p in _e.platform):
-                        logging.debug(f"Skipping {_e.name} for {_e.platform}")
+                    if any(not platform_filter.get(f"HAS_{p}") for p in _e.platform):
+                        logging.debug("Skipping %s for %s", _e.name, _e.platform)
                         continue
 
                 if _e.python_version and python_version_filter:
                     if not _python_version_matches(_e.python_version, python_version_filter):
                         logging.debug(
-                            f"Skipping {_e.name} due to python version"
-                            f"({python_version_filter} requires {_e.python_version})",
+                            "Skipping %s due to python version (%s requires %s)",
+                            _e.name,
+                            python_version_filter,
+                            _e.python_version,
                         )
                         continue
 
@@ -862,7 +893,7 @@ class CheckableListView(QtWidgets.QWidget):
             A list of strings representing the texts of all checked items.
         """
         checked_items = self._get_items_by_check_state(QtCompat.Checked)
-        logging.debug(f"Checked: {checked_items}")
+        logging.debug("Checked: %s", checked_items)
         return checked_items.extras_id_list
 
     def check_all(self):
@@ -952,16 +983,16 @@ class GitSolver:
         Resolve available package managers once so callers do not shell out repeatedly.
         """
         self.has_git = shutil.which("git")
-        logging.debug(f"Command tool check: git: {self.has_git}")
+        logging.debug("Command tool check: git: %s", self.has_git)
 
         for installer in self.INSTALLERS:
             detected = shutil.which(installer.executable)
             setattr(self, installer.attr, detected)
-            logging.debug(f"Command tool check: {installer.executable}: {detected}")
+            logging.debug("Command tool check: %s: %s", installer.executable, detected)
 
         self.has_sudo = shutil.which("sudo") if os.name != "nt" else None
         if self.has_sudo:
-            logging.debug(f"Command tool check: sudo: {self.has_sudo}")
+            logging.debug("Command tool check: sudo: %s", self.has_sudo)
 
     def _build_install_command(self, installer: PackageManagerCommand) -> list[str] | None:
         pkg_manager = getattr(self, installer.attr, None)
@@ -1128,14 +1159,14 @@ class PIPInstaller:
             pip_cmd.append("-U")
 
         if mirror:
-            logging.info(f"using mirror from {mirror}")
+            logging.info("using mirror from %s", mirror)
             pip_cmd.extend(["-i", mirror])
         if verbose_level < 0:
             pip_cmd.append(f"-{'q' * -verbose_level}")
         elif verbose_level > 0:
             pip_cmd.append(f"-{'v' * verbose_level}")
 
-        logging.debug(f"Using verbose level {verbose_level}")
+        logging.debug("Using verbose level %s", verbose_level)
 
         result = run_command(pip_cmd, verbose=self.verbose_level > -1, env=env or self.env)
         return result
@@ -1227,6 +1258,7 @@ class REvoDesignPackageManager:
     extra_checkbox: CheckableListView = None  # type: ignore
     pip_installer: PIPInstaller = None  # type: ignore
     remote_extra_group_data: ExtrasGroups = None  # type: ignore
+    menu: Any = None
 
     def ensure_ui_file(self, upgrade: bool = False):
         """Return the manager UI file path, fetching from Gist if needed.
@@ -1385,7 +1417,7 @@ class REvoDesignPackageManager:
         try:
             yield
         except Exception as e:
-            logging.error(f"Error occurred: {e}")
+            logging.error("Error occurred: %s", e)
         self.dialog.setEnabled(True)
         logging.debug("Dialog unlocked.")
 
@@ -1472,7 +1504,7 @@ class REvoDesignPackageManager:
                 env={},
             )
 
-        logging.info(f"using proxy: {proxy}")
+        logging.info("using proxy: %s", proxy)
         proxy_env = {
             "http_proxy": proxy,
             "https_proxy": proxy,
@@ -1512,7 +1544,7 @@ class REvoDesignPackageManager:
 
         # Create and position the extra components checkbox list
         self.extra_checkbox = CheckableListView(
-            self.installer_ui.listView_extras, self.remote_extra_group_data, filter=PLATFORM_INFO
+            self.installer_ui.listView_extras, self.remote_extra_group_data, platform_filter=PLATFORM_INFO
         )
 
     def load_bootstrap_json(self):
@@ -1669,7 +1701,7 @@ class REvoDesignPackageManager:
             pos (QPoint): The position where the menu should be shown, in widget coordinates.
         """
         # Show the menu at the position of the mouse cursor
-        logging.debug(f"showing menu at {pos}")
+        logging.debug("showing menu at %s", pos)
         global_pos = self.installer_ui.mapToGlobal(pos)
         qexec(self.menu, global_pos)
 
@@ -1992,14 +2024,14 @@ class REvoDesignPackageManager:
         # Iterate over the dependency table
         for e in self.remote_extra_group_data.all_extras:
             if e.extras_id not in checked_depts_to_uninstall:
-                logging.debug(f"Skip unchecked item: {e.name}")
+                logging.debug("Skip unchecked item: %s", e.name)
                 continue
             # Uninstall each package associated with the checked dependency
             for _p in e.depts:
-                logging.info(f"Removing {_p}...")
+                logging.info("Removing %s...", _p)
                 self.pip_installer.uninstall(_p)
 
-    def install(self):
+    def install(self):  # skipcq: PY-R1000 -- installer decisions share one UI and rollback boundary.
         """
         Handles the installation process based on user-selected options.
 
@@ -2622,7 +2654,7 @@ class ThreadExecutionManager(QtCore.QObject):
             overlay.cleanup()
         self.abort_overlays.clear()
 
-    def _kill_thread(self) -> None:
+    def kill_thread(self) -> None:
         self._handle_abort_request()
         self.worker_thread.wait(100)
         if self.worker_thread.isRunning():
@@ -2633,7 +2665,7 @@ class ThreadExecutionManager(QtCore.QObject):
     def kill_entry(cls, entry: ThreadPoolEntry) -> None:
         manager = cls._instances.get(entry.thread_id)
         if manager is not None:
-            manager._kill_thread()
+            manager.kill_thread()
             ThreadPoolRegistry.unregister(manager.worker_thread)
             cls._instances.pop(entry.thread_id, None)
         else:
@@ -2654,7 +2686,7 @@ class ThreadExecutionManager(QtCore.QObject):
         buttons: QtWidgets.QPushButton | Iterable[QtWidgets.QPushButton] | None,
     ) -> tuple[QtWidgets.QPushButton, ...]:
         if buttons is None:
-            return tuple()
+            return ()
         if isinstance(buttons, QtWidgets.QPushButton):
             return (buttons,)
         return tuple(button for button in buttons if isinstance(button, QtWidgets.QPushButton))
@@ -2773,23 +2805,23 @@ def get_github_repo_tags(repo_url: str, *, timeout: float = 5.0) -> list[str]:
         try:
             tag_names = [tag["name"] for tag in tags]
         except (KeyError, TypeError) as e:
-            logging.error(f"Failed to extract tag names from GitHub response: {e}")
+            logging.error("Failed to extract tag names from GitHub response: %s", e)
             return list(cached[1]) if cached else []
         _GITHUB_TAG_CACHE[api_url] = (time.monotonic(), tag_names)
         return tag_names
     except HTTPError as e:
         # Handle HTTP errors (e.g., repository not found, rate limit exceeded)
-        logging.warning(f"GitHub API returned status code {e.code}")
+        logging.warning("GitHub API returned status code %s", e.code)
         return list(cached[1]) if cached else []
     except URLError as e:
         # Handle URL errors (e.g., network issues)
-        logging.error(f"Failed to reach the server. Reason: {e.reason}")
+        logging.error("Failed to reach the server. Reason: %s", e.reason)
         return list(cached[1]) if cached else []
     except json.JSONDecodeError as e:
-        logging.error(f"Failed to decode GitHub tags response as JSON: {e}")
+        logging.error("Failed to decode GitHub tags response as JSON: %s", e)
         return list(cached[1]) if cached else []
     except TypeError as e:
-        logging.error(f"Failed to parse GitHub tags response: {e}")
+        logging.error("Failed to parse GitHub tags response: %s", e)
         return list(cached[1]) if cached else []
 
 
@@ -3155,7 +3187,7 @@ def filter_sensitive_data(env):
     return filtered_env
 
 
-def issue_collection(
+def issue_collection(  # skipcq: PY-R1000 -- diagnostic collection redacts and packages one coherent snapshot.
     collect_dummy: bool = False,
     network: bool = True,
     drop_sensitives: bool = True,
@@ -3359,11 +3391,11 @@ def issue_collection(
         info["REvoDesign::Version"] = revodesign.__version__
         info["REvoDesign::Config"] = revodesign.REVODESIGN_CONFIG_FILE
 
-        ui_language = ConfigBus().cfg_group["main"].cfg.language if ConfigBus._instance is not None else "N/A"
+        ui_language = ConfigBus().cfg_group["main"].cfg.language if ConfigBus.is_initialized() else "N/A"
         info["REvoDesign::UI::Language"] = ui_language
 
         logfile_in_cfg = (
-            ConfigBus().cfg_group["logger"].cfg.handlers.file.filename if ConfigBus._instance is not None else "N/A"
+            ConfigBus().cfg_group["logger"].cfg.handlers.file.filename if ConfigBus.is_initialized() else "N/A"
         )
         if logfile_in_cfg == "AUTO":
             from platformdirs import user_log_path
@@ -3405,9 +3437,7 @@ def issue_collection(
             ConfigBus = _load_module("REvoDesign.driver.ui_driver").ConfigBus
 
             dummy_payload["Dummy::REvoDesign::Configurations"] = (
-                ConfigConverter().convert(ConfigBus().cfg_group["main"].cfg)
-                if ConfigBus._instance is not None
-                else "N/A"
+                ConfigConverter().convert(ConfigBus().cfg_group["main"].cfg) if ConfigBus.is_initialized() else "N/A"
             )
 
         return dummy_payload
@@ -3494,7 +3524,7 @@ def hold_trigger_button(
             b.setProperty("held", True)  # Mark the button as held
             b.setProperty("original_style", b.styleSheet() if b.styleSheet() else "")
             start_breathing_animation(b)
-            logging.debug(f"Held button: {b.text()}: ({b.objectName()})")
+            logging.debug("Held button: %s: (%s)", b.text(), b.objectName())
         yield
     finally:
         for b in buttons:
@@ -3502,7 +3532,7 @@ def hold_trigger_button(
             stop_breathing_animation(b)
             b.setStyleSheet(b.property("original_style") if b.property("original_style") else "")
             b.setEnabled(True)  # Re-enable the button
-            logging.debug(f"Released button: {b.text()}: ({b.objectName()})")
+            logging.debug("Released button: %s: (%s)", b.text(), b.objectName())
 
 
 # TODO: cleanups
@@ -3529,7 +3559,7 @@ def solve_installation_config(
     """
     extra_string = f"[{extras}]" if extras else ""
     package_string = f"{package_name}{extra_string}"
-    logging.info(f"Installing as {package_string}...")
+    logging.info("Installing as %s...", package_string)
 
     # Handle installation from a GitHub URL with a tag
     if source and source.startswith("https://"):
@@ -3577,7 +3607,7 @@ def __init_plugin__(app=None):
     """
     Add an entry to the PyMOL "Plugin" menu
     """
-    logging.info(f"REvoDesign entrypoint is located at {os.path.dirname(__file__)}")
+    logging.info("REvoDesign entrypoint is located at %s", os.path.dirname(__file__))
 
     manager_plugin: REvoDesignPackageManager | None = None
 

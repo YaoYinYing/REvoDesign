@@ -72,6 +72,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **Repository-wide DeepSource audit**: reconcile bug-risk, anti-pattern,
+  security, and performance occurrences across server, desktop, tools, and
+  development scripts; fix reproducible findings and document narrow
+  suppressions for intentional compatibility and bootstrap patterns.
+- **DeepSource critical/major correctness**: reject incomplete OpenKinetics
+  result batches before merging cached scores, and remove duplicate UI type-map
+  entries and a redundant Qt import.
 - **GREMLIN server: position-label validation**: validate the residue and
   positive numeric position components separately so valid labels such as
   `A_1` no longer abort fresh GREMLIN runs.

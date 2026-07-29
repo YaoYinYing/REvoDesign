@@ -138,11 +138,11 @@ class FileDownloadRegistry(CitableModuleAbstract):
 
         self.pooches: list[pooch.Pooch] = []
 
-        for base_url in all_base_urls:
+        for candidate_base_url in all_base_urls:
             my_pooch = pooch.create(
                 path=self.customized_directory,
                 version=self.version,
-                base_url=base_url,
+                base_url=candidate_base_url,
                 registry=self.registry,
                 retry_if_failed=self.retry_count,
             )

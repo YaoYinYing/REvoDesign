@@ -100,7 +100,8 @@ def shortcut_sdf2rosetta_params(
         RosettaCmdTask(
             cmd=[
                 sys.executable,
-                os.path.join(converter._rosetta_python_script_dir, "molfile_to_params.py"),
+                # RosettaPy exposes this bundled-script location only through this compatibility attribute.
+                os.path.join(converter._rosetta_python_script_dir, "molfile_to_params.py"),  # skipcq: PYL-W0212
                 f"{sdf_path}",
                 "-n",
                 ligand_name,

@@ -184,14 +184,14 @@ class CustomAdamOpt(Optimizer):
                 mt = st["mt"]
                 vt = st["vt"]
 
-                # mt <- b1*mt + (1-b1)*grad
+                # Update the first-moment estimate.
                 mt.mul_(b1).add_(grad, alpha=(1 - b1))
 
                 # vt <- b2*vt + (1-b2)*sum(grad^2)
                 grad_sq_sum = torch.sum(grad * grad)
                 vt.mul_(b2).add_(grad_sq_sum, alpha=(1 - b2))
 
-                # step_size = lr / sqrt(vt + 1e-8)
+                # Scale the learning rate by the second-moment estimate.
                 denom = vt.sqrt().add_(1e-8)
                 step_size = lr / denom
 
@@ -234,7 +234,7 @@ class GremlinTorch(nn.Module):
         # H = sum_{i,k} MSA_oh[b,i,k]*VW[b,i,k]
         #   but i,k in VW => i->j dimension in VW is different, so we do a direct multiply:
         H = (MSA_oh * VW).sum(dim=(1, 2))
-        # Z = sum_i(logsumexp(VW[b,i,:]))
+        # Compute the partition term across positions.
         Z = torch.logsumexp(VW, dim=2).sum(dim=1)
         PLL = H - Z
         negPLL = -(PLL * MSA_weights).sum() / (MSA_weights.sum() + 1e-8)
@@ -289,7 +289,7 @@ def GREMLIN(
     elif opt_type.lower() == "lbfgs":
         optimizer = torch.optim.LBFGS(model.parameters(), lr=lr, max_iter=opt_iter)
     else:
-        raise ValueError("Unknown opt_type: %s" % opt_type)
+        raise ValueError(f"Unknown opt_type: {opt_type}")
 
     def full_loss():
         with torch.no_grad():

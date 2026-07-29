@@ -77,7 +77,6 @@ class GenerateVariantsinFastafile:
         newfasta = fastasequence
         for aa_idx, aa in enumerate(fastasequence):
             if aa_idx == position - 1:
-                # print("Native,Pos,Design",native,position,fastasequence[aa],fastasequence[aa] == native)
                 if aa != native:
                     raise ValueError(f"WT mismatch at position {position}: expected {native}, found {aa}")
                 newfasta = newfasta[0 : position - 1] + newmutation + newfasta[position:]
@@ -142,6 +141,7 @@ class Combinations:
         self.combi = 1
         # target fasta file
         self.fastafile = ""
+        self.expected_output_fasta: pathlib.Path | None = None
 
     def setdata(self, datafile):
         """
@@ -198,20 +198,18 @@ class Combinations:
         b = combinations(self.list_of_mutations, self.combi)
 
         mutations = []
-        # self.fastasequence = self.gvf.get_fastasequence_from_file( fastafile)
         # insert method here to evaluate the WT AA with the given fasta
         self.evalute_fasta_file()
 
         for j in b:
-            eval = self.getUniquePositions(list(j))
+            evaluation = self.getUniquePositions(list(j))
             if self.debug == 1:
                 print(j)
-            if eval:
+            if evaluation:
                 mutations.append(j)
 
         # rewrite to parallel
         dummy = list(range(len(mutations)))
-        # print("length of designs:: ",dummy)
 
         with ThreadPoolExecutor(self.processors) as p:
             name_seq = p.map(self.generate_fasta_in_parallel, mutations, dummy)

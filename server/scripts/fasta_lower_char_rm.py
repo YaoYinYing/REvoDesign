@@ -9,17 +9,17 @@
 
 
 import pathlib
-import re
+import string
 import sys
+
+LOWERCASE_TRANSLATION = str.maketrans(dict.fromkeys(string.ascii_lowercase))
 
 
 # remove lowercase in sequence but not its title
-def char_filter(input):
-    if re.match(r"^>", input):
-        return input
-    for item in "abcdefghijklmnopqrstuvwxyz":
-        input = "".join(input.split(item))
-    return input
+def char_filter(text):
+    if text.startswith(">"):
+        return text
+    return text.translate(LOWERCASE_TRANSLATION)
 
 
 if __name__ == "__main__":
@@ -30,12 +30,8 @@ if __name__ == "__main__":
 
         output_fn = input_fn.parent.joinpath(f"{input_fn.stem}_aln.fas")
 
-        with open(output_fn, "w") as out_fn:
-            treated = ""
-            with open(input_fn) as in_fn:
-                in_rd = in_fn.readlines()
-                for line in in_rd:
-                    treated += char_filter(line)
-            out_fn.write(treated)
+        with open(output_fn, "w") as out_fn, open(input_fn) as in_fn:
+            for line in in_fn:
+                out_fn.write(char_filter(line))
 
         print(output_fn)

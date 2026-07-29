@@ -56,6 +56,7 @@ class MutantVisualizer:
         self.min_score_profile = 0
         self.max_score_profile = 0
         self.mutant_tree: MutantTree = MutantTree({})
+        self.mutagenesis_sessions = []
 
         self.consider_global_score_from_profile = False
 
@@ -147,7 +148,6 @@ class MutantVisualizer:
             )
 
         if not self.full:
-            # logging.debug(f'Removing:  {new_obj_name} and not ( ({" or ".join(mut_pos)}) and (sidechain or n. CA))')
             cmd.remove(f' {new_obj_name} and not ( ({" or ".join(mut_pos)}) and (sidechain or n. CA))')
 
         # set backbone color
@@ -236,7 +236,7 @@ class MutantVisualizer:
             "Invalid file format. Only CSV, TSV, Microsoft Excel Table, FASTA and TXT formats are supported."
         )
 
-    def run(self):
+    def run(self):  # skipcq: PY-R1000 -- visualization setup is a stateful PyMOL workflow.
         """
         Runs mutation tasks.
 
@@ -422,4 +422,3 @@ class MutantVisualizer:
                 ),
                 stacklevel=2,
             )
-            return

@@ -43,7 +43,6 @@ config = tf.ConfigProto(
     device_count={"CPU": cpu_num},
     inter_op_parallelism_threads=cpu_num,
     intra_op_parallelism_threads=cpu_num,
-    # log_device_placement=True,
     allow_soft_placement=True,
 )
 
@@ -60,8 +59,8 @@ config = tf.ConfigProto(
 alphabet = "ARNDCQEGHILKMFPSTWYV-"
 states = len(alphabet)
 a2n = {}
-for a, n in zip(alphabet, range(states)):
-    a2n[a] = n
+for amino_acid, state_index in zip(alphabet, range(states)):
+    a2n[amino_acid] = state_index
 
 
 ################
@@ -107,8 +106,6 @@ def filt_gaps(msa, gap_cutoff=0.5):
 
 def get_eff(msa, eff_cutoff=0.8):
     """compute effective weight for each sequence"""
-    msa.shape[1]
-
     # pairwise identity
     msa_sm = 1.0 - squareform(pdist(msa, "hamming"))
 
@@ -314,12 +311,12 @@ def GREMLIN(msa, opt_type="adam", opt_iter=100, opt_rate=1.0, batch_size=None):
 # PREP MSA
 # ===============================================================================
 # parse fasta
-names, seqs = parse_fasta(MSA_pth)
+names, input_sequences = parse_fasta(MSA_pth)
 print("Alignment has been parsed!")
 # process input sequences
-msa = mk_msa(seqs)
+msa_data = mk_msa(input_sequences)
 
-mrf = GREMLIN(msa, opt_iter=gremlin_iter)
+mrf_data = GREMLIN(msa_data, opt_iter=gremlin_iter)
 
 
 # ## Explore the contact map
@@ -372,10 +369,10 @@ def plot_mtx(mtx, key="zscore", vmin=1, vmax=3):
 
 # save mtx file
 with open(f"{pth}/{instance}.GREMLIN.mrf.pkl", "wb") as mrf_file:
-    pickle.dump(mrf, mrf_file)
+    pickle.dump(mrf_data, mrf_file)
 
-mtx = get_mtx(mrf)
-plot_mtx(mtx)
+mtx_data = get_mtx(mrf_data)
+plot_mtx(mtx_data)
 
 # ## Look at top co-evolving residue pairs
 
@@ -389,12 +386,16 @@ plot_mtx(mtx)
 #   for this index use i_aa and j_aa!
 
 # adding amino acid to index
-mtx["i_aa"] = np.array([alphabet[msa["msa_ori"][0][i]] + "_" + str(i + 1) for i in mtx["i"]])
-mtx["j_aa"] = np.array([alphabet[msa["msa_ori"][0][j]] + "_" + str(j + 1) for j in mtx["j"]])
+mtx_data["i_aa"] = np.array(
+    [alphabet[msa_data["msa_ori"][0][position_i]] + "_" + str(position_i + 1) for position_i in mtx_data["i"]]
+)
+mtx_data["j_aa"] = np.array(
+    [alphabet[msa_data["msa_ori"][0][position_j]] + "_" + str(position_j + 1) for position_j in mtx_data["j"]]
+)
 
 
 # load mtx into pandas dataframe
-pd_mtx = pd.DataFrame(mtx, columns=["i", "j", "apc", "zscore", "i_aa", "j_aa"])
+pd_mtx = pd.DataFrame(mtx_data, columns=["i", "j", "apc", "zscore", "i_aa", "j_aa"])
 
 # get contacts with sequence seperation > 5
 # sort by zscore, show top 10
@@ -419,7 +420,7 @@ def plot_v(mrf):
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, y: al_a[x]))
 
 
-plot_v(mrf)
+plot_v(mrf_data)
 
 
 def plot_w(mrf, i, j, i_aa, j_aa):
@@ -454,15 +455,14 @@ def plot_w(mrf, i, j, i_aa, j_aa):
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, y: al_a[x]))
     plt.title(f"W for positions {i_aa} and {j_aa}")
     plt.savefig(pth / f"W_for_positions_{i_aa}_and_{j_aa}.png")
-    # plt.show()
 
 
-for n in range(50):
-    i = int(top.iloc[n]["i"])
-    j = int(top.iloc[n]["j"])
-    i_aa = top.iloc[n]["i_aa"]
-    j_aa = top.iloc[n]["j_aa"]
-    plot_w(mrf, i, j, i_aa, j_aa)
+for contact_rank in range(50):
+    contact_i = int(top.iloc[contact_rank]["i"])
+    contact_j = int(top.iloc[contact_rank]["j"])
+    contact_i_aa = top.iloc[contact_rank]["i_aa"]
+    contact_j_aa = top.iloc[contact_rank]["j_aa"]
+    plot_w(mrf_data, contact_i, contact_j, contact_i_aa, contact_j_aa)
 
 # ## Useful input features for NN (Neural Networks)
 #
@@ -473,15 +473,15 @@ for n in range(50):
 # value.
 
 
-w_out = np.zeros((msa["ncol_ori"], msa["ncol_ori"], 442))
-v_out = np.zeros((msa["ncol_ori"], 21))
+w_out = np.zeros((msa_data["ncol_ori"], msa_data["ncol_ori"], 442))
+v_out = np.zeros((msa_data["ncol_ori"], 21))
 
-mrf_ = np.reshape(mrf["w"], (-1, 441))
-mtx_ = np.expand_dims(mtx["apc"], -1)
+mrf_ = np.reshape(mrf_data["w"], (-1, 441))
+mtx_ = np.expand_dims(mtx_data["apc"], -1)
 
-w_out[(mtx["i"], mtx["j"])] = np.concatenate((mrf_, mtx_), -1)
+w_out[(mtx_data["i"], mtx_data["j"])] = np.concatenate((mrf_, mtx_), -1)
 w_out += np.transpose(w_out, (1, 0, 2))
-v_out[mrf["v_idx"]] = mrf["v"]
+v_out[mrf_data["v_idx"]] = mrf_data["v"]
 
 print("w_out", w_out.shape)
 print("v_out", v_out.shape)

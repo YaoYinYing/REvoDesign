@@ -57,9 +57,6 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         configures and starts the Uvicorn server in a separate thread, and
         attempts to open the server URL in the default browser.
         """
-        """
-        Behavior of the server start action.
-        """
         # Create a ConfigBus instance to read configuration information
         bus = ConfigBus()
 

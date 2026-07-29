@@ -15,7 +15,7 @@ class ConfigStore(SingletonAbstract):
     A centralized configuration store using SingletonAbstract and DictConfig for thread-safe configuration management.
     """
 
-    def singleton_init(self):
+    def singleton_init(self):  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
         self.cfg = DictConfig({})  # Initialize the configuration store with an empty DictConfig
 
     def set(self, key: str, value: Any) -> None:

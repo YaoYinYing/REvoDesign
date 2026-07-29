@@ -146,7 +146,7 @@ def verify_token(token: str, request: Request):
 # Application Lifecycle
 # -----------------------
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(application: FastAPI):
     config_store = ConfigStore()
     html_dir = config_store.get("editor.backend.html_dir")
     if not html_dir:
@@ -156,7 +156,7 @@ async def lifespan(app: FastAPI):
         # re-fetch the updated value from config store
         html_dir = config_store.get("editor.backend.html_dir")
 
-    app.mount("/static", StaticFiles(directory=html_dir), name="static")
+    application.mount("/static", StaticFiles(directory=html_dir), name="static")
 
     # Load and store whitelists at application startup
     editable_files, readonly_files = get_file_whitelist()

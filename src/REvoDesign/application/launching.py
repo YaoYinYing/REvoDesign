@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
@@ -40,18 +41,23 @@ _STYLESHEET_LIGHT = """
     QProgressBar#progressBar::chunk { background-color: #3db8b0; border-radius: 2px; }
 """
 
-_step: int = 0
-_total_steps: int = 0
-_start_time: float = 0.0
-_timer: QtCore.QTimer | None = None
+
+@dataclass
+class _LaunchingState:
+    step: int = 0
+    total_steps: int = 0
+    start_time: float = 0.0
+    timer: QtCore.QTimer | None = None
+
+
+_STATE = _LaunchingState()
 
 
 def init(total_steps: int) -> None:
     """Reset the step counter and elapsed-time clock before a bootstrap sequence."""
-    global _step, _total_steps, _start_time
-    _step = 0
-    _total_steps = total_steps
-    _start_time = time.monotonic()
+    _STATE.step = 0
+    _STATE.total_steps = total_steps
+    _STATE.start_time = time.monotonic()
 
 
 def stylesheet() -> str:
@@ -73,30 +79,28 @@ def update_status(splash_proxy: RuntimeUiProxy | None, message: str) -> None:
     """
     if splash_proxy is None:
         return
-    global _step, _timer
-    if _timer is None:
+    if _STATE.timer is None:
         # Capture splash_proxy in a closure so the timer callback can
         # update labelInfoRight without a module-level proxy global.
         def _tick() -> None:
-            elapsed = time.monotonic() - _start_time
+            elapsed = time.monotonic() - _STATE.start_time
             current = splash_proxy.labelInfoRight.text()
             # Replace the previous " · N.Ns" suffix if present, else append.
             base = current.split("  ·  ")[0] if "  ·  " in current else current
             splash_proxy.labelInfoRight.setText(f"{base}  ·  {elapsed:.1f}s")
 
-        _timer = QtCore.QTimer()
-        _timer.timeout.connect(_tick)
-        _timer.start(100)  # ponytail: single global timer; per-splash QTimer if concurrency needed
-    _step += 1
+        _STATE.timer = QtCore.QTimer()
+        _STATE.timer.timeout.connect(_tick)
+        _STATE.timer.start(100)  # ponytail: single timer; per-splash QTimer if concurrency needed
+    _STATE.step += 1
     splash_proxy.labelStatus.setText(_tr("LaunchingPage", message))
-    splash_proxy.progressBar.setRange(0, _total_steps)
-    splash_proxy.progressBar.setValue(_step)
+    splash_proxy.progressBar.setRange(0, _STATE.total_steps)
+    splash_proxy.progressBar.setValue(_STATE.step)
     QtWidgets.QApplication.processEvents()
 
 
 def stop_elapsed_timer() -> None:
     """Stop the elapsed-time timer. Call after the splash screen is closed."""
-    global _timer
-    if _timer is not None:
-        _timer.stop()
-        _timer = None
+    if _STATE.timer is not None:
+        _STATE.timer.stop()
+        _STATE.timer = None

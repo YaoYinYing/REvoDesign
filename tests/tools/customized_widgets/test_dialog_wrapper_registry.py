@@ -49,7 +49,7 @@ def test_dialog_wrapper_registry_register_with_thread(mock_partial, mock_load_ya
     registry.register("test_func", dummy_function, use_thread=True, use_progressbar=False, kwargs=kwargs)
 
     assert "test_func" in registry.funcs
-    mock_partial.assert_called_once_with(run_wrapped_func_in_thread, dummy_function, use_progressbar=False, **kwargs)
+    mock_partial.assert_called_once_with(run_wrapped_func_in_thread, dummy_function, **kwargs)
 
 
 @patch("REvoDesign.shortcuts.utils.Path.exists", return_value=True)

@@ -67,20 +67,35 @@ the browser UI. Start from a fresh anonymous cookie jar created by the public
 Issues page:
 
 ```bash
-deepsource_cookie_jar="$(mktemp)"
+deepsource_work_dir="$(mktemp -d)"
+trap 'rm -rf "${deepsource_work_dir}"' EXIT
+deepsource_cookie_jar="${deepsource_work_dir}/cookies"
+deepsource_issues_html="${deepsource_work_dir}/issues.html"
+deepsource_payload="${deepsource_work_dir}/inventory-payload.json"
+deepsource_inventory="${deepsource_work_dir}/inventory.json"
 deepsource_issues_url="https://app.deepsource.com/gh/YaoYinYing/REvoDesign/issues/"
 
 curl -sS -L \
   -A "Mozilla/5.0" \
   -c "${deepsource_cookie_jar}" \
   "${deepsource_issues_url}" \
-  -o /tmp/deepsource_issues.html
+  -o "${deepsource_issues_html}"
+
+# The public Issues page initializes the frontend session. A read-only GET to
+# the GraphQL endpoint then issues the anonymous CSRF cookie required for POST.
+curl -sS -L \
+  -A "Mozilla/5.0" \
+  -b "${deepsource_cookie_jar}" \
+  -c "${deepsource_cookie_jar}" \
+  "https://app.deepsource.com/graphql/" \
+  -o /dev/null
 
 deepsource_csrf="$(
   awk 'BEGIN {FS="\t"} !/^#/ && $6 == "csrftoken" {print $7}' \
     "${deepsource_cookie_jar}"
 )"
 
+# Write the captured GraphQL request body to "${deepsource_payload}" here.
 curl -sS "https://app.deepsource.com/graphql/" \
   -X POST \
   -b "${deepsource_cookie_jar}" \
@@ -88,8 +103,8 @@ curl -sS "https://app.deepsource.com/graphql/" \
   -H "Referer: ${deepsource_issues_url}" \
   -H "Origin: https://app.deepsource.com" \
   -H "Content-Type: application/json" \
-  --data-binary @/tmp/deepsource_inventory_payload.json \
-  -o /tmp/deepsource_inventory.json
+  --data-binary @"${deepsource_payload}" \
+  -o "${deepsource_inventory}"
 ```
 
 Use only the anonymous `csrftoken` issued by the public page. Do not reuse a
@@ -103,8 +118,8 @@ payload, and validate its fields before relying on it. Private operation names
 and response shapes can change independently of the documented PAT API.
 
 Never commit a token, cookie value, CSRF value, or unsanitized request header.
-Save sanitized exports under `/tmp` with the queried repository, branch, commit
-SHA, timestamp, filters, and pagination cursor.
+Save sanitized exports inside the private temporary directory with the queried
+repository, branch, commit SHA, timestamp, filters, and pagination cursor.
 
 ### Repository-wide cleanup query
 
@@ -114,13 +129,19 @@ models the relationship as:
 
 ```graphql
 query RepositoryBacklog(
-  $login: String!
+  $provider: VCSProviderChoices!
+  $owner: String!
   $name: String!
+  $issueType: String!
   $issuesAfter: String
 ) {
-  repository(login: $login, name: $name, vcsProvider: GITHUB) {
-    defaultBranch
-    issues(first: 100, after: $issuesAfter, analyzerIn: ["python"]) {
+  repository(provider: $provider, owner: $owner, name: $name) {
+    issues(
+      first: 100
+      after: $issuesAfter
+      issueType: $issueType
+      analyzer: "python"
+    ) {
       totalCount
       pageInfo {
         hasNextPage
@@ -160,8 +181,43 @@ query RepositoryBacklog(
 }
 ```
 
-This example shows the data relationship, not a complete exporter. A production
-exporter must paginate both connections:
+The outer query returns the first occurrence page for every matching issue.
+Paginate a nested connection independently by querying its repository-issue
+node:
+
+```graphql
+query RepositoryIssueOccurrences(
+  $issueId: ID!
+  $occurrencesAfter: String
+) {
+  node(id: $issueId) {
+    ... on RepositoryIssue {
+      shortcode
+      checkIssues(first: 100, after: $occurrencesAfter) {
+        totalCount
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        edges {
+          cursor
+          node {
+            id
+            path
+            beginLine
+            beginColumn
+            endLine
+            endColumn
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+These examples show the current public frontend data relationship, not a
+complete exporter. A production exporter must paginate both connections:
 
 1. paginate `repository.issues` until `hasNextPage` is false;
 2. independently paginate `checkIssues` for every repository issue;
@@ -233,6 +289,28 @@ git ls-files -z -- '*.py' |
 
 Do not replace the DeepSource inventory with local lint output: analyzer
 versions, configuration, suppressions, and rule implementations can differ.
+
+### Reconciliation invariant
+
+“No discrepancy” means every exported occurrence ID is accounted for exactly
+once. Maintain a manifest whose mutually exclusive outcomes are:
+
+- **fixed**: the current code still reproduced the issue and the patch removes it;
+- **suppressed**: the pattern is intentional, and a narrow inline suppression
+  records why changing it would be less safe;
+- **stale**: the referenced code no longer exists or no longer reproduces the
+  rule at the recorded revision.
+
+The sum of those outcomes must equal the complete repository occurrence count
+for the four requested categories. Do not call an occurrence stale merely
+because its line number moved, and do not use a run-level issue count as the
+denominator.
+
+For graph findings such as `PYL-R0401`, many reported paths may describe one
+import cycle. Fix shared eager-import roots first, rerun the complete graph, and
+only then suppress a remaining intentional plugin-bootstrap cycle at the
+smallest stable module boundary. A suppression is an audited outcome, not a
+silent omission.
 
 ## Classification Model
 

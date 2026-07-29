@@ -77,7 +77,8 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         from colabdesign.mpnn.model import aa_order
 
         for k in aa:
-            self.mpnn_model._inputs["bias"][:, aa_order[k]] += 0.5
+            # ColabDesign's supported bias customization is stored in its model input mapping.
+            self.mpnn_model._inputs["bias"][:, aa_order[k]] += 0.5  # skipcq: PYL-W0212
 
     def scorer(self, mutant: Mutant | RosettaPyProteinSequence, **kwargs) -> float:
         """

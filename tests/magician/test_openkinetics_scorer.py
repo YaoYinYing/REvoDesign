@@ -34,7 +34,7 @@ from REvoDesign.magician.designers.openkinetics import (
     relabel_pdb_position_to_sequential,
     resolve_substrate_metadata,
 )
-from REvoDesign.magician.designers.openkinetics._scorers import CataProKcatKmScorer
+from REvoDesign.magician.designers.openkinetics._scorers import CataProKcatKmScorer, _merge_cached_and_fresh_scores
 
 # Fixture-collection helpers live in scripts/dev/, not in the production package.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "dev"))
@@ -483,6 +483,20 @@ def test_openkinetics_scorer_cache_hit(tmp_path):
     assert "test-key" not in (cache_dir / "variant_cache.db").read_bytes().decode("latin-1")
     assert "OpenKineticsPredictor" in CitationManager().called_citations
     assert "CataPro" in CitationManager().called_citations
+
+
+def test_openkinetics_score_merge_preserves_order_and_rejects_missing_rows():
+    cached = [{"variant_id": "cached"}, None, {"variant_id": "also-cached"}, None]
+    fresh = [{"variant_id": "fresh-1"}, {"variant_id": "fresh-2"}]
+
+    assert [row["variant_id"] for row in _merge_cached_and_fresh_scores(cached, fresh)] == [
+        "cached",
+        "fresh-1",
+        "also-cached",
+        "fresh-2",
+    ]
+    with pytest.raises(OpenKineticsValidationError, match="Expected at least 2 fresh prediction rows, received 1"):
+        _merge_cached_and_fresh_scores(cached, fresh[:1])
 
 
 def test_openkinetics_predictor_classes_include_method_citations():

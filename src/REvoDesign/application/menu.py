@@ -208,7 +208,7 @@ def menu_links() -> tuple[MenuItem, ...]:
 def core_menu_links(app: REvoDesignPlugin) -> tuple[MenuItem, ...]:
     """Core application menu items wired directly to *app* methods."""
     import REvoDesign
-    from REvoDesign.Qt import QtCore, QtGui
+    from REvoDesign.Qt import QtGui
     from REvoDesign.tools.customized_widgets import notify_box
 
     _REPO_URL = "https://github.com/YaoYinYing/REvoDesign"

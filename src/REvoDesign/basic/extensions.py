@@ -10,7 +10,7 @@ Data classes with file extensions used in the REvoDesign plugin.
 import os
 from dataclasses import dataclass
 
-from .. import issues
+from ..issues import InternalError
 
 
 @dataclass(frozen=True)
@@ -166,13 +166,13 @@ class FileExtensionCollection:
             return fname[: -len(matched_ext)]
 
         # otherwise, raise no match error
-        raise issues.InternalError(
+        raise InternalError(
             f"Unexpect error in file extension collection: {fname} does not match any extension of {self.list_dot_ext}"
         )
 
     @classmethod
     def from_dict(cls, dic: dict, prefix: str = "") -> "FileExtensionCollection":
-        return cls(tuple([FileExtension(d[0], f'{prefix}{d[1].lstrip("*.")}') for d in dic.items()]))
+        return cls(tuple(FileExtension(d[0], f'{prefix}{d[1].lstrip("*.")}') for d in dic.items()))
 
 
 def resolve_extension(extension: str) -> FileExtensionCollection:

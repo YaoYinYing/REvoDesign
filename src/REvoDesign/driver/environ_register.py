@@ -17,7 +17,7 @@ def register_environment_variables():
 
     logging = ROOT_LOGGER.getChild(__name__)
 
-    if ConfigBus._instance is None:
+    if not ConfigBus.is_initialized():
         raise issues.UnexpectedWorkflowError("ConfigBus must be initialized before creating EnvironBindItemCollection")
 
     bus = ConfigBus()

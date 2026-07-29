@@ -40,6 +40,11 @@ class MultiMutantDesigner:
         This method initializes the MultiMutantDesigner with the given parameters,
         sets up necessary attributes, and initializes the mutant tree for design.
         """
+        self.save_mutant_table: str | None = None
+        self.in_design_multi_design_case = MutantTree()
+        self.design_pool_tree_copy = None
+        self.design_case_id_in_pymol = ""
+
         # get the bus
         self.bus = ConfigBus()
         self.refresh_options()
@@ -194,7 +199,7 @@ class MultiMutantDesigner:
         for m in self.in_design_multi_design_case.all_mutant_objects:
             m.mutant_score = tmp_mutant_obj.mutant_score
 
-        return
+        return tmp_mutant_obj
 
     def start_new_design(self):
         """
@@ -317,7 +322,7 @@ class MultiMutantDesigner:
             # bond internal CAs in a multi-design mutant.
             current_mutant_info = mutant_obj.mutations
             if len(current_mutant_info) > 1:
-                positions_pairwise = [x for x in pairwise([_mut.position for _mut in current_mutant_info])]
+                positions_pairwise = list(pairwise([_mut.position for _mut in current_mutant_info]))
                 logging.info(f"Pairwised position: {positions_pairwise}")
 
                 for resi_a, resi_b in positions_pairwise:
@@ -356,7 +361,7 @@ class MultiMutantDesigner:
             logging.warning("Undoing the last design.")
 
         (
-            undo_branch,
+            _undo_branch,
             undo_mutant_id,
             undo_mutant_obj,
         ) = self.in_design_multi_design_case.pop()
@@ -384,7 +389,7 @@ class MultiMutantDesigner:
             # bond internal CA in a multi-design mutant.
             current_mutant_info = undo_mutant_obj.mutations
             if len(current_mutant_info) > 1:
-                positions_pairwise = [x for x in pairwise([_mut.position for _mut in current_mutant_info])]
+                positions_pairwise = list(pairwise([_mut.position for _mut in current_mutant_info]))
                 logging.info(f"Pairwised position: {positions_pairwise}")
 
                 for resi_a, resi_b in positions_pairwise:

@@ -445,7 +445,8 @@ defining-attr-methods= [
     "__init__",
     "__new__",
     "setUp",
-    "__post_init__"
+    "__post_init__",
+    "singleton_init"
 ]
 exclude-protected= [
     "_asdict",

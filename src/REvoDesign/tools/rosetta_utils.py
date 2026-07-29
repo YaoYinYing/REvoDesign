@@ -1,3 +1,4 @@
+# skipcq: PYL-R0401 -- optional Rosetta adapters are discovered lazily through the plugin registry.
 # Copyright (c) 2026 The REvoDesign Developers.
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
@@ -210,8 +211,7 @@ def is_docker_available() -> bool:
     """
     try:
         # Attempt to create a Docker client and then release the reference to test Docker's availability.
-        client = docker.from_env()
-        del client
+        docker.from_env()
         return True
     except docker.errors.DockerException as e:
         # If Docker is not available, issue a warning and return False.

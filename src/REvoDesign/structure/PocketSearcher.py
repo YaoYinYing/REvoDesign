@@ -62,7 +62,7 @@ class PocketSearcher:
         _sele = selection.replace(" ", "").split(",")
 
         # Join the elements with underscores and create a descriptive string.
-        return "_".join([_sel for _sel in _sele]), " or ".join([f"r. {_sel}" for _sel in _sele])
+        return "_".join(_sele), " or ".join(f"r. {_sel}" for _sel in _sele)
 
     def search_pockets(self):
         cmd.load(self.input_pse)

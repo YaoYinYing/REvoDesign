@@ -54,11 +54,7 @@ def _run_restart_script(
         "RUNNER_IMAGE": "example/revodesign-runner:latest",
     }
     env_file.write_text(
-        "\n".join(
-            f"{name}={value}"
-            for name, value in settings.items()
-            if name not in omit_settings
-        ),
+        "\n".join(f"{name}={value}" for name, value in settings.items() if name not in omit_settings),
         encoding="utf-8",
     )
     env = os.environ.copy()
@@ -109,9 +105,7 @@ def test_restart_generates_distinct_password_for_each_configured_admin(tmp_path)
     )
 
     assert result.returncode == 0, result.stderr
-    login_lines = [
-        line for line in result.stdout.splitlines() if line.startswith("Admin login — ")
-    ]
+    login_lines = [line for line in result.stdout.splitlines() if line.startswith("Admin login — ")]
     assert [line.split()[4] for line in login_lines] == ["admin", "group_admin"]
     passwords = [line.rsplit("password: ", 1)[1] for line in login_lines]
     assert len(set(passwords)) == 2
@@ -169,7 +163,9 @@ def test_restart_rejects_missing_required_settings_before_shutdown(tmp_path, nam
     assert result.returncode != 0
     assert "Missing required setting(s)" in result.stderr
     assert name in result.stderr
-    assert not any(" down" in command or " build " in command or " pull " in command or " up " in command for command in commands)
+    assert not any(
+        " down" in command or " build " in command or " pull " in command or " up " in command for command in commands
+    )
 
 
 def test_restart_backup_includes_uncheckpointed_user_db_wal(tmp_path):

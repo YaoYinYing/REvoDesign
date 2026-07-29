@@ -180,7 +180,6 @@ def save_configuration(new_cfg: DictConfig, config_name: str = "main"):
     cfg_save_fp = os.path.join(REVODESIGN_CONFIG_DIR, f"{config_name}.yaml")
     OmegaConf.save(new_cfg, cfg_save_fp)
     print(f"Saved configuration: {cfg_save_fp}")
-    return
 
 
 def experiment_config(name: str = "experiments") -> str:
@@ -393,7 +392,7 @@ def _yaml_key_signature(path: str) -> frozenset[tuple[str, ...]]:
     cfg = OmegaConf.load(path)
     container = OmegaConf.to_container(cfg, resolve=False)
     bag: set[tuple[str, ...]] = set()
-    _collect_key_paths(container, tuple(), bag)
+    _collect_key_paths(container, (), bag)
     return frozenset(bag)
 
 

@@ -64,7 +64,7 @@ class Magician(SingletonAbstract):
     and cooling down gimmicks based on different configurations.
     """
 
-    def singleton_init(self):
+    def singleton_init(self):  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
         """
         Initializes the Magician instance, including setting up the configuration bus, initializing the gimmick,
         and creating an instance of the assistant.

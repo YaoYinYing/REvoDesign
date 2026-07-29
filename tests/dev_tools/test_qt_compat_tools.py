@@ -78,7 +78,7 @@ def test_install_qt6_aliases_adds_scoped_enum_containers_and_moved_classes():
     original_widgets = qt_wrapper.QtWidgets
     original_network = qt_wrapper.QtNetwork
     original_websockets = qt_wrapper.QtWebSockets
-    original_installed = qt_wrapper._ALIASES_INSTALLED
+    original_installed = qt_wrapper._ALIAS_STATE["installed"]
 
     try:
         qt_wrapper.QtCore = _FakeQtCore
@@ -86,7 +86,7 @@ def test_install_qt6_aliases_adds_scoped_enum_containers_and_moved_classes():
         qt_wrapper.QtWidgets = _FakeQtWidgets
         qt_wrapper.QtNetwork = None
         qt_wrapper.QtWebSockets = None
-        qt_wrapper._ALIASES_INSTALLED = False
+        qt_wrapper._ALIAS_STATE["installed"] = False
         qt_wrapper.install_qt6_aliases()
     finally:
         qt_wrapper.QtCore = original_core
@@ -94,7 +94,7 @@ def test_install_qt6_aliases_adds_scoped_enum_containers_and_moved_classes():
         qt_wrapper.QtWidgets = original_widgets
         qt_wrapper.QtNetwork = original_network
         qt_wrapper.QtWebSockets = original_websockets
-        qt_wrapper._ALIASES_INSTALLED = original_installed
+        qt_wrapper._ALIAS_STATE["installed"] = original_installed
 
     assert _FakeQtGui.QAction is _FakeQtWidgets.QAction
     assert _FakeQtGui.QActionGroup is _FakeQtWidgets.QActionGroup
