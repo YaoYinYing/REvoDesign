@@ -39,7 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GREMLIN server: admin log viewer**: a standalone page linked from the
   administrator dashboard lazily streams the four active Gunicorn access,
   Gunicorn error, Celery worker, and maintenance logs through fixed-name
-  admin-only endpoints.
+  admin-only endpoints. Rotated ZIPs are grouped in a lazy file tree and can
+  be downloaded individually.
 
 ## [1.9.1] - 2026-07-28
 ### Added

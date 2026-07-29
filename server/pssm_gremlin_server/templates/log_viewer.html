@@ -39,6 +39,15 @@
     <p class="log-status muted" id="logStatus" role="status">Loading Gunicorn access…</p>
     <pre class="log-output" id="logOutput" tabindex="0" aria-live="polite"></pre>
   </section>
+
+  <details class="panel archive-panel" id="archivePanel">
+    <summary>Rotated log files</summary>
+    <div class="archive-actions">
+      <p class="muted" id="archiveStatus" role="status">Expand to load available ZIP archives.</p>
+      <button class="btn btn-soft" type="button" id="refreshArchives">Refresh</button>
+    </div>
+    <div class="archive-tree" id="archiveTree"></div>
+  </details>
 </main>
 
 <script src="/static/js/auth-api.js"></script>

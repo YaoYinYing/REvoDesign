@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import os
+import zipfile
 
 import pytest
 from conftest import (
@@ -482,6 +483,69 @@ def test_server_log_stream_rejects_non_admin_and_unknown_names(monkeypatch, tmp_
 
     response = client.get(
         "/PSSM_GREMLIN/api/auth/admin/logs/not-a-log",
+        headers=_admin_client_auth(module),
+    )
+    assert response.status_code == 404
+
+
+def test_admin_can_list_and_download_rotated_logs(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    log_dir = os.environ["LOG_DIR"]
+    archive_name = "maintenance.log.20260729T000000000000Z.zip"
+    archive_path = os.path.join(log_dir, archive_name)
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr("maintenance.log", "rotated entry\n")
+    with open(os.path.join(log_dir, "unrelated.zip"), "wb") as handle:
+        handle.write(b"not managed")
+
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+    response = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/archives",
+        headers=admin_header,
+    )
+
+    assert response.status_code == 200
+    groups = {group["id"]: group for group in response.get_json()["logs"]}
+    assert [item["filename"] for item in groups["maintenance"]["archives"]] == [
+        archive_name
+    ]
+    assert all(
+        item["filename"] != "unrelated.zip"
+        for group in groups.values()
+        for item in group["archives"]
+    )
+
+    response = client.get(
+        f"/PSSM_GREMLIN/api/auth/admin/logs/archives/{archive_name}",
+        headers=admin_header,
+    )
+    assert response.status_code == 200
+    assert response.data.startswith(b"PK")
+    assert "attachment" in response.headers["Content-Disposition"]
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_rotated_log_endpoints_reject_non_admin_and_unmanaged_files(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+
+    response = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/archives",
+        headers=_test_client_auth(module),
+    )
+    assert response.status_code == 403
+
+    response = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/archives/unrelated.zip",
         headers=_admin_client_auth(module),
     )
     assert response.status_code == 404

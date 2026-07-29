@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from celery.result import AsyncResult
-from flask import Response, current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Response, current_app, g, jsonify, redirect, render_template, request, send_file, send_from_directory, url_for
 from pssm_gremlin_server.auth import (
     _DUMMY_PASSWORD_HASH,
     UserDatabase,
@@ -691,6 +691,83 @@ _ADMIN_LOG_FILES = {
     "celery-worker": "celery-worker.log",
     "maintenance": "maintenance.log",
 }
+
+
+def _admin_log_archive_path(archive_name: str) -> Path | None:
+    """Resolve one managed rotated-log ZIP without allowing arbitrary paths."""
+    if not any(
+        archive_name.startswith(f"{filename}.") and archive_name.endswith(".zip")
+        for filename in _ADMIN_LOG_FILES.values()
+    ):
+        return None
+    log_dir = os.environ.get("LOG_DIR", "").strip()
+    if not log_dir:
+        return None
+    archive_path = Path(log_dir).resolve() / archive_name
+    if archive_path.is_symlink() or not archive_path.is_file():
+        return None
+    return archive_path
+
+
+@app.route("/PSSM_GREMLIN/api/auth/admin/logs/archives", methods=["GET"])
+@login_required
+def admin_log_archives():
+    """List managed rotated-log ZIPs grouped by active log."""
+    if _blocked := require_admin():
+        return _blocked
+    log_dir = os.environ.get("LOG_DIR", "").strip()
+    if not log_dir:
+        return jsonify({"error": "LOG_DIR is not configured"}), 503
+
+    directory = Path(log_dir).resolve()
+    groups = []
+    for log_name, filename in _ADMIN_LOG_FILES.items():
+        archives = []
+        for archive in directory.glob(f"{filename}.*.zip"):
+            if archive.is_symlink() or not archive.is_file():
+                continue
+            try:
+                stat = archive.stat()
+            except OSError:
+                continue
+            archives.append(
+                {
+                    "filename": archive.name,
+                    "size": stat.st_size,
+                    "modified_at": stat.st_mtime,
+                }
+            )
+        archives.sort(key=lambda item: (item["modified_at"], item["filename"]), reverse=True)
+        groups.append(
+            {
+                "id": log_name,
+                "filename": filename,
+                "archives": archives,
+            }
+        )
+    return jsonify({"logs": groups})
+
+
+@app.route(
+    "/PSSM_GREMLIN/api/auth/admin/logs/archives/<archive_name>",
+    methods=["GET"],
+)
+@login_required
+def admin_download_log_archive(archive_name: str):
+    """Download one managed rotated-log ZIP."""
+    if _blocked := require_admin():
+        return _blocked
+    archive_path = _admin_log_archive_path(archive_name)
+    if archive_path is None:
+        return jsonify({"error": "Log archive is not available"}), 404
+    response = send_file(
+        archive_path,
+        as_attachment=True,
+        download_name=archive_path.name,
+        mimetype="application/zip",
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.route("/PSSM_GREMLIN/api/auth/admin/logs/<log_name>", methods=["GET"])

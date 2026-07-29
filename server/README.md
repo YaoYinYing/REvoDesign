@@ -346,8 +346,9 @@ still applying the requested action to other selected users.
 
 The dashboard header also links administrators to `/PSSM_GREMLIN/logs`. That
 standalone page loads only the selected active Gunicorn access, Gunicorn error,
-Celery worker, or maintenance log and streams it incrementally. Rotated ZIP
-archives and arbitrary filesystem paths are not exposed.
+Celery worker, or maintenance log and streams it incrementally. Its lazy
+file tree lists rotated ZIP archives under those same four logs and permits
+individual downloads; arbitrary filesystem paths are not exposed.
 
 ### API keys (programmatic access)
 

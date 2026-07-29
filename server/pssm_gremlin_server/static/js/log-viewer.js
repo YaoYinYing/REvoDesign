@@ -9,6 +9,10 @@
   var output = document.getElementById("logOutput");
   var status = document.getElementById("logStatus");
   var buttons = document.querySelectorAll(".log-select");
+  var archivePanel = document.getElementById("archivePanel");
+  var archiveTree = document.getElementById("archiveTree");
+  var archiveStatus = document.getElementById("archiveStatus");
+  var archivesLoaded = false;
 
   T.initToggle(document.getElementById("themeToggle"));
 
@@ -61,6 +65,73 @@
     }
   }
 
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    var units = ["KiB", "MiB", "GiB", "TiB"];
+    var value = bytes;
+    var unit = "B";
+    for (var i = 0; i < units.length && value >= 1024; i += 1) {
+      value /= 1024;
+      unit = units[i];
+    }
+    return value.toFixed(value >= 10 ? 0 : 1) + " " + unit;
+  }
+
+  function renderArchives(groups) {
+    archiveTree.textContent = "";
+    groups.forEach(function (group) {
+      var branch = document.createElement("details");
+      branch.className = "archive-branch";
+      branch.open = group.archives.length > 0;
+
+      var summary = document.createElement("summary");
+      summary.textContent = group.filename + " (" + group.archives.length + ")";
+      branch.appendChild(summary);
+
+      var list = document.createElement("ul");
+      group.archives.forEach(function (archive) {
+        var item = document.createElement("li");
+        var link = document.createElement("a");
+        link.href = "/PSSM_GREMLIN/api/auth/admin/logs/archives/" +
+          encodeURIComponent(archive.filename);
+        link.download = archive.filename;
+        link.textContent = archive.filename;
+        item.appendChild(link);
+
+        var metadata = document.createElement("span");
+        metadata.className = "archive-meta";
+        metadata.textContent = formatSize(archive.size) + " · " +
+          new Date(archive.modified_at * 1000).toLocaleString();
+        item.appendChild(metadata);
+        list.appendChild(item);
+      });
+      if (!group.archives.length) {
+        var empty = document.createElement("li");
+        empty.className = "muted";
+        empty.textContent = "No rotated files";
+        list.appendChild(empty);
+      }
+      branch.appendChild(list);
+      archiveTree.appendChild(branch);
+    });
+  }
+
+  async function loadArchives() {
+    archiveStatus.textContent = "Loading rotated logs…";
+    try {
+      var response = await A.authFetch(
+        "/PSSM_GREMLIN/api/auth/admin/logs/archives"
+      );
+      var result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to load rotated logs");
+      renderArchives(result.logs || []);
+      archivesLoaded = true;
+      archiveStatus.textContent = "Rotated logs loaded.";
+    } catch (error) {
+      archiveStatus.textContent = error.message || "Failed to load rotated logs.";
+    }
+  }
+
   buttons.forEach(function (button) {
     button.addEventListener("click", function () {
       buttons.forEach(function (item) { item.classList.remove("active"); });
@@ -70,6 +141,10 @@
     });
   });
   document.getElementById("refreshLog").addEventListener("click", loadSelectedLog);
+  archivePanel.addEventListener("toggle", function () {
+    if (archivePanel.open && !archivesLoaded) loadArchives();
+  });
+  document.getElementById("refreshArchives").addEventListener("click", loadArchives);
   document.getElementById("logoutBtn").addEventListener("click", function () {
     A.authFetch("/PSSM_GREMLIN/api/auth/logout", { method: "POST" })
       .then(function () { A.clearToken(); window.location.href = "/PSSM_GREMLIN/login"; })

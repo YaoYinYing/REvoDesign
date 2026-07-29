@@ -61,3 +61,55 @@ html[data-theme="dark"] .log-select.active {
   background: var(--accent);
   color: #f0f9ff;
 }
+
+.archive-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.archive-panel > summary,
+.archive-branch > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.archive-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.75rem 0;
+}
+
+.archive-actions p {
+  margin: 0;
+}
+
+.archive-tree {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.archive-branch {
+  border-left: 2px solid var(--line);
+  padding: 0.4rem 0 0.4rem 0.8rem;
+}
+
+.archive-branch ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.archive-branch li {
+  margin: 0.35rem 0;
+}
+
+.archive-branch a {
+  overflow-wrap: anywhere;
+}
+
+.archive-meta {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+}

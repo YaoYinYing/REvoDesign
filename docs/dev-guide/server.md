@@ -233,7 +233,9 @@ cookie-only writes are rejected to avoid CSRF on browser sessions.
 |--------|----------|-------------|
 | `GET` | `/PSSM_GREMLIN/user_control` | Admin-only user management page (web UI) |
 | `GET` | `/PSSM_GREMLIN/logs` | Admin-only viewer for the four active service logs |
-| `GET` | `/PSSM_GREMLIN/api/auth/admin/logs/<name>` | Stream one fixed active service log; rotated archives are not exposed |
+| `GET` | `/PSSM_GREMLIN/api/auth/admin/logs/<name>` | Stream one fixed active service log |
+| `GET` | `/PSSM_GREMLIN/api/auth/admin/logs/archives` | List rotated ZIP archives grouped under the four fixed service logs |
+| `GET` | `/PSSM_GREMLIN/api/auth/admin/logs/archives/<filename>` | Download one managed rotated-log ZIP |
 | `GET` | `/PSSM_GREMLIN/api/auth/admin/users` | List all users (safe fields, excludes soft-deleted) |
 | `POST` | `/PSSM_GREMLIN/api/auth/admin/users` | Create user (pre-verified, immediately active) |
 | `PUT` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Update profile fields, email, password, role, and account statuses |
