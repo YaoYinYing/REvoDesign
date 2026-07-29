@@ -57,6 +57,9 @@ x-maintenance-env: &maintenance-env
   BACKUP_DB_CRON: ${BACKUP_DB_CRON:-}
   BACKUP_DB_PATH: ${BACKUP_DB_PATH:-}
   MAX_DB_BACKUP: ${MAX_DB_BACKUP:-}
+  ROTATE_LOG_MAX_LINENO: ${ROTATE_LOG_MAX_LINENO:-}
+  ROTATE_LOG_PERIOD: ${ROTATE_LOG_PERIOD:-}
+  MAX_LOG_SIZE: ${MAX_LOG_SIZE:-}
 
 x-docker-socket-access: &docker-socket-access
   # Docker socket group access is host-root-equivalent — the Docker API

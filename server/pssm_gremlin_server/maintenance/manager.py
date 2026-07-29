@@ -15,9 +15,15 @@ from pssm_gremlin_server.config import GremlinConfig, env_path
 from pssm_gremlin_server.maintenance.model import PeriodicTask
 from pssm_gremlin_server.maintenance.tasks.admin_digest import admin_digest_task
 from pssm_gremlin_server.maintenance.tasks.database_backup import database_backup_task
+from pssm_gremlin_server.maintenance.tasks.log_rotation import log_rotation_task
 from pssm_gremlin_server.maintenance.tasks.result_cleanup import result_cleanup_task
 
-PERIODIC_TASKS = (admin_digest_task, result_cleanup_task, database_backup_task)
+PERIODIC_TASKS = (
+    admin_digest_task,
+    result_cleanup_task,
+    database_backup_task,
+    log_rotation_task,
+)
 LOG_FILENAME = "maintenance.log"
 
 

@@ -13,6 +13,7 @@ from pssm_gremlin_server.maintenance.model import PeriodicTask
 from pssm_gremlin_server.maintenance.tasks import admin_digest
 from pssm_gremlin_server.maintenance.tasks.admin_digest import admin_digest_task
 from pssm_gremlin_server.maintenance.tasks.database_backup import database_backup_task
+from pssm_gremlin_server.maintenance.tasks.log_rotation import log_rotation_task
 from pssm_gremlin_server.maintenance.tasks.result_cleanup import result_cleanup_task
 
 
@@ -22,6 +23,12 @@ class RecordingScheduler:
 
     def add_job(self, func, trigger, **kwargs):
         self.jobs.append((func, trigger, kwargs))
+
+
+@pytest.fixture(autouse=True)
+def _clear_log_rotation_settings(monkeypatch):
+    for name in ("ROTATE_LOG_MAX_LINENO", "ROTATE_LOG_PERIOD", "MAX_LOG_SIZE"):
+        monkeypatch.delenv(name, raising=False)
 
 
 def test_configure_logging_writes_maintenance_log(monkeypatch, tmp_path):
@@ -137,6 +144,20 @@ def test_configure_jobs_registers_database_backup_cron(monkeypatch, tmp_path):
         "BACKUP_DB_PATH": str(tmp_path / "backups"),
         "MAX_DB_BACKUP": 30,
     }
+
+
+def test_configure_jobs_registers_log_rotation(monkeypatch, tmp_path):
+    monkeypatch.setenv("LOG_DIR", str(tmp_path))
+    monkeypatch.setenv("ROTATE_LOG_PERIOD", "1")
+    scheduler = RecordingScheduler()
+
+    assert manager.configure_jobs(scheduler) == ["log-rotation"]
+
+    task_func, trigger, options = scheduler.jobs[0]
+    assert task_func is log_rotation_task.task_method
+    assert trigger == "interval"
+    assert options["hours"] == 1
+    assert options["args"] == (str(tmp_path), None, 1.0, None)
 
 
 def test_database_backup_retention_is_unlimited_when_unset(monkeypatch, tmp_path):

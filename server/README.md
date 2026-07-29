@@ -14,7 +14,8 @@ is intentionally excluded.
 The server stack contains:
 
 - `web`: Flask + Gunicorn API/UI service
-- `maintenance`: APScheduler process for registration digests, optional result cleanup, and database backups
+- `maintenance`: APScheduler process for registration digests, result cleanup,
+  database backups, and log rotation
 - `worker`: Celery worker for background jobs
 - `redis`: Celery broker/backend
 - `runner` image: GREMLIN/PSSM execution container launched by `worker`
@@ -28,6 +29,7 @@ pssm_gremlin_server/maintenance/
 └── tasks/
     ├── admin_digest.py      # self-configuring admin_digest_task
     ├── database_backup.py   # consistent task/user SQLite snapshots
+    ├── log_rotation.py      # ZIP rotation and total-size pruning
     └── result_cleanup.py    # self-configuring result_cleanup_task
 ```
 
@@ -175,6 +177,9 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots. Leave unset to disable; recommended daily schedule: `0 0 * * *`. |
 | `BACKUP_DB_PATH` | Snapshot directory inside the maintenance container. `/var/lib/revodesign-auth/backups` persists at `${AUTH_DIR}/backups` on the host. |
 | `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain. Leave unset for unlimited history; recommended value: `30`. |
+| `ROTATE_LOG_MAX_LINENO` | Optional line-count rotation threshold; unset disables this trigger. |
+| `ROTATE_LOG_PERIOD` | Optional period in days (`1` daily, `7` weekly, `30` monthly); unset disables this trigger. |
+| `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest ZIPs first. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated admin email addresses for new-user registration digests (default: empty = no notification). |
 | `ADMIN_NEW_USER_INFORM` | Interval in minutes between new-user digest emails (default: `0` = disabled). |

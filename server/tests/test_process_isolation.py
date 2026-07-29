@@ -250,6 +250,14 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
     assert "RUNNER_HOST_ROOT" in task_env
     assert "RESULT_RETENTION_DAYS" not in task_env
     assert "RESULT_RETENTION_DAYS" not in web_auth_env
+    for rotation_setting in (
+        "ROTATE_LOG_MAX_LINENO",
+        "ROTATE_LOG_PERIOD",
+        "MAX_LOG_SIZE",
+    ):
+        assert rotation_setting not in task_env
+        assert rotation_setting not in web_auth_env
+        assert rotation_setting in maintenance_env
     assert "PUBLIC_DASHBOARD" not in web_auth_env
     assert "RESULT_RETENTION_DAYS" in maintenance_env
     for backup_setting in ("BACKUP_DB_CRON", "BACKUP_DB_PATH", "MAX_DB_BACKUP"):

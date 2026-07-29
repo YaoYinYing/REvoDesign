@@ -136,7 +136,7 @@ The server is a pip-installable package at ``server/pssm_gremlin_server/``
 | ``config.py`` | Side-effect-free environment parsing and ``GremlinConfig`` |
 | ``maintenance/model.py`` | ``PeriodicTask`` contract for task configuration and APScheduler registration |
 | ``maintenance/manager.py`` | Standalone APScheduler entrypoint that imports task objects and calls their common ``register()`` interface |
-| ``maintenance/tasks/`` | One self-configuring task object per module: registration digest, result cleanup, and consistent task/user SQLite backups |
+| ``maintenance/tasks/`` | One self-configuring task object per module: registration digest, result cleanup, log rotation, and consistent task/user SQLite backups |
 | ``task_runtime.py`` | Celery instance, task DB, Docker runner, archives, and ``run_gremlin_task`` |
 | ``routes.py`` | All ``@app.route`` HTTP handlers — page routes, task API, auth API, admin API |
 | ``auth.py`` | Token serialisation, ``UserDatabase`` (SQLite/SQLAlchemy), ``login_required`` decorator, email verification, password reset |
@@ -336,6 +336,9 @@ Important environment variables (see the organized sections in
 | `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots; unset disables the task. Recommended daily value: `0 0 * * *` |
 | `BACKUP_DB_PATH` | Snapshot directory inside maintenance; `/var/lib/revodesign-auth/backups` maps to `${AUTH_DIR}/backups` on the host |
 | `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain; unset is unlimited, recommended value is `30` |
+| `ROTATE_LOG_MAX_LINENO` | Optional positive line-count threshold for ZIP log rotation; unset disables this trigger |
+| `ROTATE_LOG_PERIOD` | Optional positive rotation period in days (`1` daily, `7` weekly, `30` monthly); unset disables this trigger |
+| `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest archives first |
 | `ADMIN_USERS` | Comma-separated admin usernames |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated recipients for new-registration digests |
