@@ -16,41 +16,153 @@ findings first, while keeping behavior stable and tests green.
 4. Every risky fix must have verification
 5. Keep changelog and docs updated in the same PR
 
-## Accessing DeepSource Issues
+## DeepSource Data Model
 
-Use a regular browser user agent:
+DeepSource exposes two related but non-interchangeable result sets:
 
-```bash
-curl -sS -L -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" \
-  "https://app.deepsource.com/gh/YaoYinYing/REvoDesign/issues" \
-  -o /tmp/deepsource_issues.html
+| Model | Scope | Use |
+|-------|-------|-----|
+| Repository issues and occurrences | Active findings in the repository's default branch | Build and measure the complete cleanup queue |
+| Analysis run and analyzer checks | Findings introduced between a run's `baseOid` and `commitOid` | Detect regressions from one commit or pull request |
+
+An `Issue` is a rule definition such as `PYL-R1705`. An occurrence is one
+location where that rule was raised. Count both:
+
+- **rule count** measures how many distinct issue types remain;
+- **occurrence count** measures how many code locations remain.
+
+Do not compare a repository occurrence count with a run issue count. DeepSource
+ignores issues introduced before an analysis run's `baseOid`, so a passing run
+can coexist with a large default-branch backlog.
+
+## Accessing DeepSource Data
+
+Use the supported GraphQL endpoint with a DeepSource personal access token:
+
+```text
+POST https://api.deepsource.com/graphql/
+Authorization: Bearer <PERSONAL_ACCESS_TOKEN>
+Content-Type: application/json
 ```
 
-If static HTML is insufficient, use the same UA for authenticated GraphQL/API
-calls (with CSRF/cookies) and save raw payloads for traceability.
+Never commit the token, browser cookies, CSRF values, or unsanitized request
+headers. Save sanitized JSON responses under `/tmp` with the queried repository,
+branch, commit SHA, timestamp, variables, and pagination cursor.
 
-### Selecting the authoritative result sets
+The dashboard remains useful for interactive inspection, but HTML scraping and
+private frontend operations are fallback diagnostics, not the audit contract.
+Frontend query names and response shapes can change independently of the
+documented API.
+
+### Repository-wide cleanup query
+
+Start with `repository { issues { ... } }` and expand every repository issue's
+occurrences. The public schema models the relationship as:
+
+```graphql
+query RepositoryBacklog(
+  $login: String!
+  $name: String!
+  $issuesAfter: String
+) {
+  repository(login: $login, name: $name, vcsProvider: GITHUB) {
+    defaultBranch
+    issues(first: 100, after: $issuesAfter, analyzerIn: ["python"]) {
+      totalCount
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      edges {
+        cursor
+        node {
+          id
+          issue {
+            shortcode
+            title
+            category
+            severity
+          }
+          occurrences(first: 100) {
+            totalCount
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            edges {
+              cursor
+              node {
+                id
+                path
+                beginLine
+                beginColumn
+                endLine
+                endColumn
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+This example shows the data relationship, not a complete exporter. A production
+exporter must paginate both connections:
+
+1. paginate `repository.issues` until `hasNextPage` is false;
+2. independently paginate `occurrences` for every repository issue;
+3. reject incomplete snapshots rather than silently trusting the first page;
+4. sum occurrence totals by category and compare them with the dashboard.
+
+### Run-level regression query
+
+Use `run(commitOid: ...)` and its checks only after establishing the repository
+inventory. Record at least:
+
+- `baseOid` and `commitOid`;
+- run and check status;
+- introduced, resolved, and suppressed occurrence counts;
+- every returned issue path, shortcode, category, and severity;
+- failing metrics and quality-gate configuration.
+
+The run result answers, “What did this changeset introduce or resolve?” It does
+not answer, “What remains everywhere in the repository?”
+
+## Audit Workflow
 
 Before editing code:
 
-1. Confirm the latest default-branch run's `commitOid` matches the repository
-   revision being audited.
-2. Resolve that run's analyzer check ID with `repositoryRunDetail`.
-3. Query `checkAllIssues` separately for `BUG_RISK`, `ANTI_PATTERN`,
-   `SECURITY`, and `PERFORMANCE`.
-4. Query the repository issue inventory for the same four categories and
-   expand every issue rule's occurrences.
-5. Compare every returned path and line with the analyzed revision.
+1. Record the current default branch and commit SHA.
+2. Export the complete repository issue inventory with all occurrence pages.
+3. Filter the inventory to the requested categories: Bug Risk, Anti-pattern,
+   Security, and Performance.
+4. Report rule counts and occurrence counts separately.
+5. Compare every occurrence with the recorded default-branch revision.
+6. If a line reference has drifted, search the entire tracked source tree for
+   the rule's pattern and record the mismatch; do not discard the rest of the
+   category.
+7. Group reproducible occurrences by shortcode and root cause.
+8. Fix and test one reviewable batch.
+9. Push the batch and use its analysis run as a regression gate.
+10. Repeat until the local manifest has no unresolved validated occurrences.
 
-The analyzer check and repository inventory answer different questions. A
-passing run confirms that the analyzed change has no blocking findings or
-failing metrics; it does not prove that the repository backlog is empty. Use
-the repository inventory as the complete cleanup queue.
+Repository inventory describes the default branch, so a pull-request branch
+cannot prove that the default-branch backlog has cleared. After merge, wait for
+the new default-branch analysis, export the repository inventory again, and
+reconcile every rule and occurrence with the pre-fix snapshot.
 
-Inventory line references can lag behind source changes. Reproduce each pattern
-against the matching revision before editing, but do not discard the remaining
-active inventory because individual locations are stale. Keep both payloads so
-the PR can distinguish change-level validation from repository-wide cleanup.
+For rules supported by local tooling, add an independent full-repository gate.
+For example:
+
+```bash
+git ls-files -z -- '*.py' |
+  xargs -0 pylint --disable=all --enable=PYL-R1705,PYL-R1724
+```
+
+Do not replace the DeepSource inventory with local lint output: analyzer
+versions, configuration, suppressions, and rule implementations can differ.
 
 ## Classification Model
 
@@ -197,9 +309,9 @@ keyword expression.
 
 Use this table in PR bodies:
 
-| DeepSource ID | Rule | Danger | Complexity | Files | Fix summary | Validation |
-|---------------|------|--------|------------|-------|-------------|------------|
-| ... | PY-XXXX | D1 | C1 | `src/...` | safer error path | `kw-test ...` |
+| Occurrence ID | Rule | Category | Danger | Complexity | File:line | Status | Validation |
+|---------------|------|----------|--------|------------|-----------|--------|------------|
+| ... | PY-XXXX | Bug Risk | D1 | C1 | `src/...:42` | fixed | `kw-test ...` |
 
 ## Anti-Patterns
 
@@ -215,9 +327,15 @@ A batch is done only if **all** are true:
 
 1. Selected findings are fixed or explicitly deferred with reason
 2. No new regressions in targeted tests
-3. `CHANGELOG.md` updated
-4. Rationale documented for non-obvious changes
-5. Diff remains minimal and reviewable
+3. The full-repository local checker for the selected rules is clean, when available
+4. The pushed batch's DeepSource run introduces no blocking regression
+5. `CHANGELOG.md` updated
+6. Rationale documented for non-obvious changes
+7. Diff remains minimal and reviewable
+
+The complete campaign is done only after a post-merge default-branch inventory
+confirms that every targeted occurrence is resolved or explicitly suppressed
+with a documented justification.
 
 ## Operational Notes for Future AI-Assisted Runs
 
@@ -230,6 +348,10 @@ A batch is done only if **all** are true:
 
 ## See Also
 
+- [DeepSource API overview](https://docs.deepsource.com/docs/developers/api)
+- [DeepSource repository API](https://docs.deepsource.com/docs/developers/api/repository)
+- [DeepSource analysis run API](https://docs.deepsource.com/docs/developers/api/analysis-run)
+- [DeepSource issue model](https://docs.deepsource.com/docs/developers/api/issue)
 - [AI-Assisted Codacy Fix Playbook](codex-codacy.md) — companion playbook for Codacy
 - [Testing](testing.md) — test framework and CI workflow
 - [CI/CD](ci-cd.md) — GitHub Actions configuration

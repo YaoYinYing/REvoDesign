@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DeepSource repository cleanup**: removed every reproducible
   `no-else-return` (`PYL-R1705`) and `no-else-continue` (`PYL-R1724`) finding
   across the tracked Python tree.
+- **DeepSource audit workflow**: made the default-branch repository occurrence
+  inventory the cleanup source of truth and reserved analysis-run results for
+  per-changeset regression checks.
 - **CI: source-aware checks**: Bare Tests and Pylint now run only for desktop
   application changes, while Server Tests run only for server implementation,
   test, packaging, or deployment changes. Documentation-only and unrelated
