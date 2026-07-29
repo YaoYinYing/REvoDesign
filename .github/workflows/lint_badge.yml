@@ -3,8 +3,16 @@ name: Pylint
 on:
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "pyproject.toml"
+      - ".github/workflows/lint_badge.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "src/**"
+      - "pyproject.toml"
+      - ".github/workflows/lint_badge.yml"
   release:
     types: [created]
   workflow_dispatch:
