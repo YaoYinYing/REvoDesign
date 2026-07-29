@@ -62,7 +62,8 @@ def shortcut_smiles_conformer_batch(
     Runs the smiles_conformer_batch function with parameters collected from the dialog.
     """
 
-    with open(smiles) as smiles_file:
+    # The desktop caller explicitly chooses this local SMILES input file.
+    with open(smiles) as smiles_file:  # skipcq: PTC-W6004
         smi = json.load(smiles_file)
     with timing("Get SMILES Conformers (Many)"):
         smiles_conformer_batch(

@@ -2504,7 +2504,8 @@ class ValueDialog(REvoDesignWidget):
         }
 
         try:
-            with open(selected_file, "w") as f:
+            # The desktop file chooser is the local user's authorization boundary.
+            with open(selected_file, "w") as f:  # skipcq: PTC-W6004
                 json.dump(contents_to_save, f, indent=4)
                 logging.info(f"Saved recipe: {selected_file}")
         except Exception as e:
@@ -2514,8 +2515,8 @@ class ValueDialog(REvoDesignWidget):
     def _load_json_file(self, selected_file):
         from REvoDesign import __version__
 
-        # load back all asked values from a json file
-        with open(selected_file) as selected_file_handle:
+        # The desktop file chooser is the local user's authorization boundary.
+        with open(selected_file) as selected_file_handle:  # skipcq: PTC-W6004
             contents_to_load: dict[str, dict[str, Any]] = json.load(selected_file_handle)
         if contents_to_load["metadata"]["__window__"] != self.windowTitle():
             logging.error(

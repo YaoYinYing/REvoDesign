@@ -530,10 +530,15 @@ def fetch_gist_file(ui_file_url: str, save_to_file: str, *, timeout: float = 10.
     if not ui_file_url.startswith("https"):
         raise ValueError("URL must start with 'https'")
 
+    target_path = Path(save_to_file).resolve()
+    temporary_root = Path(tempfile.gettempdir()).resolve()
+    if not target_path.is_relative_to(temporary_root):
+        raise ValueError("Bootstrap downloads must be written to a temporary file")
+
     try:
         # Fetch the file content and write it to the temporary file
         ui_data = _read_https_url(ui_file_url, timeout=timeout).decode("utf-8")
-        with open(save_to_file, "w") as ui_handle:
+        with target_path.open("w") as ui_handle:  # skipcq: PTC-W6004
             ui_handle.write(ui_data)
 
     except (URLError, HTTPError) as e:

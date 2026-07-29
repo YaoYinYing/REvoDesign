@@ -163,8 +163,8 @@ def setup_logging_from_dictconfig(
         respect_handler_level=True,
     )
 
-    # Configure the root logger
-    python_logging.basicConfig(
+    # All handler classes and destinations come from the typed application config.
+    python_logging.basicConfig(  # skipcq: PY-A6006
         level=log_config.loggers.root.level,
         handlers=[queue_handler],
     )  # Adjust as needed
@@ -252,7 +252,8 @@ def reload_logging_config():
     # or logging.config.dictConfig for dictionary/JSON/YAML configs
     from ..bootstrap.set_config import ConfigConverter
 
-    python_logging_config.dictConfig(ConfigConverter.convert(LOGGER_CONFIG))
+    # LOGGER_CONFIG is application-owned; no external dictionary is accepted here.
+    python_logging_config.dictConfig(ConfigConverter.convert(LOGGER_CONFIG))  # skipcq: PY-A6006
 
 
 def logger_level_setter_ng(settings: dict[str, str]):

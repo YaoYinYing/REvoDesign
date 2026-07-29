@@ -136,7 +136,8 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         )
 
     def write_fasta_to_file(self, tmpfastafile):
-        with open(tmpfastafile, "w") as f:
+        # The caller owns this local temporary-output path.
+        with open(tmpfastafile, "w") as f:  # skipcq: PTC-W6004
             for line in self.seqs:
                 f.write(">" + line + "\n")
                 f.write(str(self.seqs[line]) + "\n")

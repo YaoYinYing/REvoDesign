@@ -83,7 +83,8 @@ def parse_fasta(filename, limit=-1):
     """function to parse fasta"""
     header = []
     sequence = []
-    with open(filename) as lines:
+    # The CLI user explicitly authorizes this local input path.
+    with open(filename) as lines:  # skipcq: PTC-W6004
         for line in lines:
             line = line.rstrip()
             if line[0] == ">":
@@ -423,10 +424,13 @@ plot_v(mrf)
 
 
 def plot_w(mrf, i, j, i_aa, j_aa):
+    if i_aa not in alphabet or j_aa not in alphabet:
+        raise ValueError("Amino-acid labels must use the configured alphabet")
     n = int(np.where((mrf["w_idx"][:, 0] == i) & (mrf["w_idx"][:, 1] == j))[0])
     w = mrf["w"][n]
 
-    with open(f"{pth}/W_for_positions_{str(i_aa)}_{str(j_aa)}.csv", "w") as f:
+    csv_path = pth / f"W_for_positions_{i_aa}_{j_aa}.csv"
+    with csv_path.open("w") as f:  # skipcq: PTC-W6004
         f.write(",")
         for k in alphabet:
             f.write(k + ",")
@@ -450,7 +454,7 @@ def plot_w(mrf, i, j, i_aa, j_aa):
     ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, y: al_a[x]))
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, y: al_a[x]))
     plt.title(f"W for positions {i_aa} and {j_aa}")
-    plt.savefig(f"{pth}/W_for_positions_{i_aa}_and_{j_aa}.png")
+    plt.savefig(pth / f"W_for_positions_{i_aa}_and_{j_aa}.png")
     # plt.show()
 
 

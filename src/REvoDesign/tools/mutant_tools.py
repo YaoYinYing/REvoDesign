@@ -487,7 +487,8 @@ def process_mutations(data):
 
 
 def read_profile_design_mutations(filename):
-    with open(filename) as mutation_file:
+    # The desktop caller explicitly chooses this local input path.
+    with open(filename) as mutation_file:  # skipcq: PTC-W6004
         data = json.load(mutation_file)
     return process_mutations(data)
 
@@ -659,7 +660,8 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
 
 
 def write_input_mutant_table(output_mut_txt_fn, mutant_list):
-    with open(output_mut_txt_fn, "w") as f:
+    # The desktop file chooser validates the parent and authorizes this output path.
+    with open(output_mut_txt_fn, "w") as f:  # skipcq: PTC-W6004
         f.write("\n".join(mutant_list) if mutant_list else "")
 
 

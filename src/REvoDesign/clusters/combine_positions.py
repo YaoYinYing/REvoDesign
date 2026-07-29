@@ -25,7 +25,8 @@ class GenerateVariantsinFastafile:
         self.filename_id = ""
 
     def getdata(self, inputfile):
-        with open(inputfile) as f:
+        # The desktop caller explicitly chooses this local FASTA input path.
+        with open(inputfile) as f:  # skipcq: PTC-W6004
             for line in f:
                 if line[0] == ">":
                     continue
@@ -34,7 +35,8 @@ class GenerateVariantsinFastafile:
     @staticmethod
     def get_fastasequence_from_file(inputfile):
         fasta_seq = ""
-        with open(inputfile) as f:
+        # The desktop caller explicitly chooses this local FASTA input path.
+        with open(inputfile) as f:  # skipcq: PTC-W6004
             for line in f:
                 if line[0] == ">":
                     continue
@@ -90,7 +92,8 @@ class GenerateVariantsinFastafile:
             filename = self.name + self.group + ".fasta"
             # print filename
 
-        with open(filename + self.filename_id, "w") as f:
+        # The desktop caller explicitly chooses this local output name.
+        with open(filename + self.filename_id, "w") as f:  # skipcq: PTC-W6004
             f.write(">" + filename.split(".")[0] + "\n")
             f.write(self.newfasta)
 
@@ -144,7 +147,8 @@ class Combinations:
         """
         Make sure that there are no redundant mutations in the input
         """
-        with open(datafile) as f:
+        # The desktop caller explicitly chooses this local mutation-table path.
+        with open(datafile) as f:  # skipcq: PTC-W6004
             for line in f:
                 _line = line.strip()
                 mut_obj = extract_mutants_from_mutant_id(_line, sequences={self.chain_id: self.fastasequence})

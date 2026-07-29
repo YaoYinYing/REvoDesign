@@ -67,7 +67,8 @@ def aa2num(aa):
 def parse_fasta(filename, limit=-1):
     headers = []
     seqs = []
-    with open(filename) as f:
+    # The desktop caller explicitly chooses this local input path.
+    with open(filename) as f:  # skipcq: PTC-W6004
         for line in f:
             line = line.strip()
             if not line:

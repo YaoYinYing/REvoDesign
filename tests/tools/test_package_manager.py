@@ -12,6 +12,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError, URLError
@@ -69,10 +70,12 @@ def test_pm_fetch_gist_file_invalid_url():
 
 def test_pm_fetch_gist_file_url_error():
     mock_url = "https://example.com/file.ui"
+    with tempfile.NamedTemporaryFile() as tmp_file:
+        save_to_file = tmp_file.name
 
-    with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("Mock error")):
-        with pytest.raises(urllib.error.URLError, match="Failed to download file:"):
-            fetch_gist_file(mock_url, "temp_file.ui")
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("Mock error")):
+            with pytest.raises(urllib.error.URLError, match="Failed to download file:"):
+                fetch_gist_file(mock_url, save_to_file)
 
 
 def test_pm_fetch_gist_file_uses_timeout(monkeypatch, tmp_path):
@@ -89,6 +92,16 @@ def test_pm_fetch_gist_file_uses_timeout(monkeypatch, tmp_path):
 
     assert output.read_text() == "mock UI content"
     assert calls == [("https://example.com/file.ui", {"timeout": 3})]
+
+
+def test_pm_fetch_gist_file_rejects_non_temporary_destination(monkeypatch):
+    def unexpected_read(*_args, **_kwargs):
+        raise AssertionError("invalid destinations must be rejected before downloading")
+
+    monkeypatch.setattr(package_manager, "_read_https_url", unexpected_read)
+
+    with pytest.raises(ValueError, match="must be written to a temporary file"):
+        fetch_gist_file("https://example.com/file.ui", str(Path.cwd() / "manager.ui"))
 
 
 # Test for fetch_gist_json

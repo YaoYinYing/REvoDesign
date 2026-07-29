@@ -37,7 +37,19 @@ can coexist with a large default-branch backlog.
 
 ## Accessing DeepSource Data
 
-Use the supported GraphQL endpoint with a DeepSource personal access token:
+For this public repository, start with the public Issues dashboard:
+
+```text
+https://app.deepsource.com/gh/YaoYinYing/REvoDesign/issues/
+```
+
+No login or personal access token is required to read its issue categories,
+counts, rule details, and occurrences in a regular browser. Record the visible
+category totals before exporting details, then reconcile the export back to
+those totals.
+
+For repeatable automation, the supported GraphQL endpoint is also available
+with a DeepSource personal access token:
 
 ```text
 POST https://api.deepsource.com/graphql/
@@ -45,19 +57,60 @@ Authorization: Bearer <PERSONAL_ACCESS_TOKEN>
 Content-Type: application/json
 ```
 
-Never commit the token, browser cookies, CSRF values, or unsanitized request
-headers. Save sanitized JSON responses under `/tmp` with the queried repository,
-branch, commit SHA, timestamp, variables, and pagination cursor.
+The token is optional for auditing a public repository; it is an automation
+credential, not a prerequisite for reading public findings.
 
-The dashboard remains useful for interactive inspection, but HTML scraping and
-private frontend operations are fallback diagnostics, not the audit contract.
-Frontend query names and response shapes can change independently of the
-documented API.
+### Public frontend export without a PAT
+
+Coding agents can use the public dashboard's GraphQL requests without driving
+the browser UI. Start from a fresh anonymous cookie jar created by the public
+Issues page:
+
+```bash
+deepsource_cookie_jar="$(mktemp)"
+deepsource_issues_url="https://app.deepsource.com/gh/YaoYinYing/REvoDesign/issues/"
+
+curl -sS -L \
+  -A "Mozilla/5.0" \
+  -c "${deepsource_cookie_jar}" \
+  "${deepsource_issues_url}" \
+  -o /tmp/deepsource_issues.html
+
+deepsource_csrf="$(
+  awk 'BEGIN {FS="\t"} !/^#/ && $6 == "csrftoken" {print $7}' \
+    "${deepsource_cookie_jar}"
+)"
+
+curl -sS "https://app.deepsource.com/graphql/" \
+  -X POST \
+  -b "${deepsource_cookie_jar}" \
+  -H "x-csrftoken: ${deepsource_csrf}" \
+  -H "Referer: ${deepsource_issues_url}" \
+  -H "Origin: https://app.deepsource.com" \
+  -H "Content-Type: application/json" \
+  --data-binary @/tmp/deepsource_inventory_payload.json \
+  -o /tmp/deepsource_inventory.json
+```
+
+Use only the anonymous `csrftoken` issued by the public page. Do not reuse a
+browser profile, authenticated session cookie, or an existing general-purpose
+cookie jar. Fail if the token is empty, the response contains GraphQL errors, or
+the response is HTML instead of JSON.
+
+The frontend GraphQL schema is an implementation detail. Recover its current
+repository-issue query shape from the public page assets, snapshot the exact
+payload, and validate its fields before relying on it. Private operation names
+and response shapes can change independently of the documented PAT API.
+
+Never commit a token, cookie value, CSRF value, or unsanitized request header.
+Save sanitized exports under `/tmp` with the queried repository, branch, commit
+SHA, timestamp, filters, and pagination cursor.
 
 ### Repository-wide cleanup query
 
 Start with `repository { issues { ... } }` and expand every repository issue's
-occurrences. The public schema models the relationship as:
+`checkIssues` connection. At the time of writing, the public frontend schema
+models the relationship as:
 
 ```graphql
 query RepositoryBacklog(
@@ -77,13 +130,12 @@ query RepositoryBacklog(
         cursor
         node {
           id
-          issue {
-            shortcode
-            title
-            category
-            severity
-          }
-          occurrences(first: 100) {
+          shortcode
+          title
+          issueType
+          severity
+          occurrenceCount
+          checkIssues(first: 100) {
             totalCount
             pageInfo {
               hasNextPage
@@ -112,9 +164,27 @@ This example shows the data relationship, not a complete exporter. A production
 exporter must paginate both connections:
 
 1. paginate `repository.issues` until `hasNextPage` is false;
-2. independently paginate `occurrences` for every repository issue;
+2. independently paginate `checkIssues` for every repository issue;
 3. reject incomplete snapshots rather than silently trusting the first page;
-4. sum occurrence totals by category and compare them with the dashboard.
+4. verify each issue's collected edge count equals both `occurrenceCount` and
+   `checkIssues.totalCount`;
+5. reject duplicate occurrence IDs, including duplicates across issue pages;
+6. sum unique occurrence IDs by category and compare them with the dashboard.
+
+For the default-branch snapshot at `fac8eec56efd2604b72e394182f8e67675e5650b`,
+the completeness invariant was:
+
+```text
+Bug Risk 49 + Anti-pattern 459 + Security 27 + Performance 60
+= 595 dashboard occurrences
+= 595 exported occurrence IDs
+= 595 unique occurrence IDs
+```
+
+The `PYL-R0401` cyclic-import issue alone had 122 occurrences, so its first 100
+edges were not a complete result. The second occurrence page supplied the
+remaining 22. This nested pagination is mandatory even when the outer
+`repository.issues` connection says `hasNextPage: false`.
 
 ### Run-level regression query
 

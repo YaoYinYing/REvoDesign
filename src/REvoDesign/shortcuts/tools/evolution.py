@@ -55,7 +55,8 @@ class GremlinPytorch(TorchModuleAbstract, ThirdPartyModuleAbstract):
             device=self.device,
         )
         # save mtx file
-        with open(mrf_file_save, "wb") as f:
+        # The desktop caller explicitly chooses this local output path.
+        with open(mrf_file_save, "wb") as f:  # skipcq: PTC-W6004
             pickle.dump(mrf, f)
 
 

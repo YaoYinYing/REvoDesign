@@ -28,7 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   across the tracked Python tree.
 - **DeepSource audit workflow**: made the default-branch repository occurrence
   inventory the cleanup source of truth and reserved analysis-run results for
-  per-changeset regression checks.
+  per-changeset regression checks. Public-repository findings are read directly
+  from the browser-visible dashboard; API tokens remain optional automation
+  credentials.
+- **DeepSource security triage**: constrained bootstrap downloads to the
+  operating-system temporary directory, validated GREMLIN filename labels, and
+  documented intentional local-file and application-owned logging boundaries.
 - **CI: source-aware checks**: Bare Tests and Pylint now run only for desktop
   application changes, while Server Tests run only for server implementation,
   test, packaging, or deployment changes. Documentation-only and unrelated
