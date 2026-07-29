@@ -19,9 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Changed
-- **CI: source-aware desktop checks**: Bare Tests and Pylint now run only when
-  their desktop application sources, tests, dependencies, or workflow
-  definitions change, avoiding those matrices on server-only pull requests.
+- **CI: source-aware checks**: Bare Tests and Pylint now run only for desktop
+  application changes, while Server Tests run only for server implementation,
+  test, packaging, or deployment changes. Documentation-only and unrelated
+  pull requests avoid those matrices.
 - **GREMLIN server: canonical user roles**: authorization now uses `role` as
   its sole authority. On startup, databases containing the deprecated
   `is_admin` column silently promote flagged administrators into `role`, then
