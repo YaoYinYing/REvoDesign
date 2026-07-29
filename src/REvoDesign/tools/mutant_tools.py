@@ -570,8 +570,6 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
         visualizer.nproc = nproc
         visualizer.input_session = input_pdb
-        # visualizer.sequence = sequence
-
         visualizer.full = cfg.ui.visualize.full_pdb
         visualizer.cmap = cmap_reverser(
             bus.get_value("ui.header_panel.cmap.default"), bus.get_value("ui.header_panel.cmap.reverse_score")

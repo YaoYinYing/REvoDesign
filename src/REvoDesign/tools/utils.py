@@ -1,4 +1,5 @@
 # skipcq: PYL-R0401 -- shared helpers use local imports to break runtime cycles in the plugin bootstrap graph.
+# pylint: disable=cyclic-import
 # Copyright (c) 2026 The REvoDesign Developers.
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only

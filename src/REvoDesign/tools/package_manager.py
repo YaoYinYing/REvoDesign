@@ -673,9 +673,8 @@ def write_bootstrap_extras_json(remote_data: dict[str, Any]) -> None:
 
 def _compute_hmac(filepath: str) -> str:
     """Compute HMAC-SHA256 of a file using the embedded manager key."""
-    with _open_temporary_file(filepath, os.O_RDONLY) as file_fd:
-        with os.fdopen(os.dup(file_fd), "rb") as file_handle:
-            return hmac.new(_MANAGER_HMAC_KEY, file_handle.read(), "sha256").hexdigest()
+    with _open_temporary_file(filepath, os.O_RDONLY) as file_fd, os.fdopen(os.dup(file_fd), "rb") as file_handle:
+        return hmac.new(_MANAGER_HMAC_KEY, file_handle.read(), "sha256").hexdigest()
 
 
 def verify_manifest(assets: dict[str, str], manifest: dict[str, str]) -> bool:
@@ -845,20 +844,22 @@ class CheckableListView(QtWidgets.QWidget):
             self.model.appendRow(separator_item)
 
             for _e in e.extras:
-                if _e.platform:
-                    if any(not platform_filter.get(f"HAS_{p}") for p in _e.platform):
-                        logging.debug("Skipping %s for %s", _e.name, _e.platform)
-                        continue
+                if _e.platform and any(not platform_filter.get(f"HAS_{p}") for p in _e.platform):
+                    logging.debug("Skipping %s for %s", _e.name, _e.platform)
+                    continue
 
-                if _e.python_version and python_version_filter:
-                    if not _python_version_matches(_e.python_version, python_version_filter):
-                        logging.debug(
-                            "Skipping %s due to python version (%s requires %s)",
-                            _e.name,
-                            python_version_filter,
-                            _e.python_version,
-                        )
-                        continue
+                if (
+                    _e.python_version
+                    and python_version_filter
+                    and not _python_version_matches(_e.python_version, python_version_filter)
+                ):
+                    logging.debug(
+                        "Skipping %s due to python version (%s requires %s)",
+                        _e.name,
+                        python_version_filter,
+                        _e.python_version,
+                    )
+                    continue
 
                 # Add as a regular checkable item
                 item = QtGui.QStandardItem(_e.name)
@@ -1029,7 +1030,7 @@ class GitSolver:
 
         # Execute the Git installation command in a worker thread and monitor progress
         git_install_std = run_command(
-            cmd=git_fetch_command,
+            command=git_fetch_command,
             verbose=True,
             env=env,
         )
@@ -2754,11 +2755,14 @@ class WorkerThread(QtCore.QThread):
         RunningProcessRegistry.terminate(self)
         self.interrupt_signal.emit()
 
-    def _handle_interrupt(self) -> None:
+    @staticmethod
+    def _handle_interrupt() -> None:
         logging.debug("WorkerThread interrupt signal handled.")
 
 
-def get_github_repo_tags(repo_url: str, *, timeout: float = 5.0) -> list[str]:
+def get_github_repo_tags(  # skipcq: PY-R1000 -- URL validation, cache fallback, and response parsing form one request boundary.
+    repo_url: str, *, timeout: float = 5.0
+) -> list[str]:
     """
     Retrieve all released tags of a GitHub repository using urllib.
 

@@ -283,12 +283,4 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         cbar.set_label("Potential", fontsize=12)
         cbar.set_ticks([-9, -6, -3, 0, 3])
 
-        # plt.show()
         plt.savefig(save_to, dpi=300, bbox_inches="tight")
-
-
-# # Example usage:
-# visualizer = SubstratePotentialVisualizer(
-#     pdb_path="/path/to/1SUO.pdb", lig_key="HEM"
-# )
-# visualizer.plot_potential_field(save_to='HEM.png')

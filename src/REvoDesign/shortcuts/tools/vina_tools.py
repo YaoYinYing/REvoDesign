@@ -639,12 +639,6 @@ def get_oriented_bounding_box(selection, padding=5.0):
     # 8. Transform the vertices back to the original coordinate system.
     orig_vertices = vertices.dot(eigvecs.T) + centroid
 
-    # PolyLines(
-    #     2.0, 'white',
-    #     [*LineVertex.from_points(orig_vertices)],
-    #     line_type='TRIANGLE_FAN'
-    # ).load_as('white_square')
-
     return orig_vertices
 
 

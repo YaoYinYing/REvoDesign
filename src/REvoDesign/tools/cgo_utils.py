@@ -2002,7 +2002,6 @@ def __easter_egg():
 
     # if the date is December 24-25th, show a Christmas tree
     today = datetime.date.today()
-    # print(f'Today is {today}')
     if today.month == 12 and today.day in (24, 25, 26, 27, 28):
         return _dec25tree()
     return _aptx4869()
@@ -2070,9 +2069,6 @@ def _aptx4869():
         color=Color("black").array,
     )
 
-    # from ..shortcuts.tools.vina_tools import showaxes
-
-    # showaxes()
     poision.load_as("APTX-4869")
 
     cmd.turn("z", 16)

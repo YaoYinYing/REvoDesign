@@ -91,7 +91,8 @@ class DglSolver:
                 stacklevel=2,
             )
 
-    def _install_approved(self, index_link: str) -> bool:
+    @staticmethod
+    def _install_approved(index_link: str) -> bool:
         if os.environ.get(DGL_INSTALL_APPROVAL_ENV) == "1":
             return True
         if not _has_qapplication():

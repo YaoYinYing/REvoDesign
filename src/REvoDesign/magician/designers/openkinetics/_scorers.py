@@ -312,8 +312,8 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
 
     # -- helpers -----------------------------------------------------------
 
+    @staticmethod
     def _prepare_rows(
-        self,
         variants: list[dict[str, Any]],
         substrate_smiles: str,
     ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:

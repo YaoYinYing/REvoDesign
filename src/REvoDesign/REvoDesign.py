@@ -1066,20 +1066,19 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     cmd.delete(item)
                     cmd.refresh()
 
-        if session is not None and os.path.exists(session):
-            if not overwrite:
-                # Ask whether to overide
-                confirmed = decide(
-                    title="Override current session?",
-                    description="Your current session will be overriden. \n \
-                        Are you really sure? ",
-                )
+        if session is not None and os.path.exists(session) and not overwrite:
+            # Ask whether to overide
+            confirmed = decide(
+                title="Override current session?",
+                description="Your current session will be overriden. \n \
+                    Are you really sure? ",
+            )
 
-                if not confirmed:
-                    session = self.file_dialog.browse_filename(mode="w", exts=(file_extensions.Session,))
+            if not confirmed:
+                session = self.file_dialog.browse_filename(mode="w", exts=(file_extensions.Session,))
 
-                if not session:
-                    return
+            if not session:
+                return
 
         cmd.save(filename=session)
 
