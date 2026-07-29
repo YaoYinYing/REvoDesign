@@ -288,12 +288,14 @@ PY
     if [[ -z "${admin_username}" ]]; then
       continue
     fi
-    for seen_admin in "${seen_admins[@]}"; do
-      if [[ "${seen_admin}" == "${admin_username}" ]]; then
-        echo "ADMIN_USERS must not contain duplicate usernames: ${admin_username}" >&2
-        exit 1
-      fi
-    done
+    if (( ${#seen_admins[@]} > 0 )); then
+      for seen_admin in "${seen_admins[@]}"; do
+        if [[ "${seen_admin}" == "${admin_username}" ]]; then
+          echo "ADMIN_USERS must not contain duplicate usernames: ${admin_username}" >&2
+          exit 1
+        fi
+      done
+    fi
     seen_admins+=("${admin_username}")
     admin_pw="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
     admin_bootstrap_credentials+="${admin_username}"$'\t'"${admin_pw}"$'\n'

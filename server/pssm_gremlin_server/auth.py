@@ -186,23 +186,17 @@ class UserDatabase:
             try:
                 # Preserve both genuinely legacy administrators and rows
                 # created by the old is_admin=1, role='user' bootstrap bug.
-                conn.exec_driver_sql(
-                    "UPDATE users SET role = 'admin' WHERE is_admin = 1"
-                )
+                conn.exec_driver_sql("UPDATE users SET role = 'admin' WHERE is_admin = 1")
                 conn.exec_driver_sql("ALTER TABLE users DROP COLUMN is_admin")
             except sa.exc.OperationalError:
                 # Another startup process may have completed the same silent
                 # migration after our initial PRAGMA read.
-                current = {
-                    row[1]
-                    for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()
-                }
+                current = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()}
                 if "is_admin" in current:
                     raise
             existing.discard("is_admin")
         conn.exec_driver_sql(
-            "UPDATE users SET role = 'user' "
-            "WHERE role IS NULL OR role NOT IN ('admin', 'user', 'guest')"
+            "UPDATE users SET role = 'user' " "WHERE role IS NULL OR role NOT IN ('admin', 'user', 'guest')"
         )
         # When adding admin_notified for the first time, mark all existing
         # non-admin users as notified so they don't appear in the first digest.
@@ -296,9 +290,8 @@ class UserDatabase:
         values = {k: v for k, v in fields.items() if k in _allowed}
         if "is_admin" in fields:
             raise ValueError("is_admin was removed; update role instead")
-        if "role" in values:
-            if values["role"] not in {"admin", "user", "guest"}:
-                raise ValueError(f"Unsupported user role: {values['role']!r}")
+        if "role" in values and values["role"] not in {"admin", "user", "guest"}:
+            raise ValueError(f"Unsupported user role: {values['role']!r}")
         if not values:
             return
         stmt = sa.update(_users_table).where(_users_table.c.id == user_id).values(**values)
@@ -714,8 +707,6 @@ def _purge_expired_captcha_nonces(now: float) -> None:
 
 def generate_captcha() -> tuple[str, str]:
     """Return ``(question, token)`` for a math CAPTCHA challenge."""
-    import secrets
-
     a = secrets.randbelow(10)
     b = secrets.randbelow(9) + 1  # avoid zero — makes the answer less trivial
     answer = a + b

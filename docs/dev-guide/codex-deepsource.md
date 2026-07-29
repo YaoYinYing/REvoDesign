@@ -29,6 +29,23 @@ curl -sS -L -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.
 If static HTML is insufficient, use the same UA for authenticated GraphQL/API
 calls (with CSRF/cookies) and save raw payloads for traceability.
 
+### Selecting the authoritative result set
+
+Before editing code:
+
+1. Confirm the latest default-branch run's `commitOid` matches the repository
+   revision being audited.
+2. Resolve that run's analyzer check ID with `repositoryRunDetail`.
+3. Query `checkAllIssues` separately for `BUG_RISK`, `ANTI_PATTERN`,
+   `SECURITY`, and `PERFORMANCE`.
+4. Compare every returned path and line with the analyzed revision.
+
+Repository-level issue inventory is useful for historical triage, but it can
+temporarily retain occurrences that no longer match the analyzed source. Do not
+turn those entries into a fix queue until their code pattern is reproduced in
+the matching revision. Keep both payloads when they disagree so the PR can
+distinguish current-run remediation from stale dashboard state.
+
 ## Classification Model
 
 Classify each finding on two axes: danger and complexity.

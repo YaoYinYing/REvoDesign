@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Changed
+- **DeepSource server cleanup**: resolved the current Bug Risk and Anti-pattern
+  findings by exposing stable public task-runtime compatibility names, removing
+  duplicate/unused imports, and decomposing upload, dashboard, task-deletion,
+  and admin-user routes below the configured complexity threshold. The current
+  scan contains no Security or Performance findings.
 - **CI: source-aware checks**: Bare Tests and Pylint now run only for desktop
   application changes, while Server Tests run only for server implementation,
   test, packaging, or deployment changes. Documentation-only and unrelated
@@ -55,6 +60,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Gunicorn error, Celery worker, and maintenance logs through fixed-name
   admin-only endpoints. Rotated ZIPs are grouped in a lazy file tree and can
   be downloaded individually.
+
+### Fixed
+- **macOS deployment test compatibility**: guard iteration over the initially
+  empty administrator-deduplication array so Bash 3.2 with `set -u` can run the
+  bootstrap path and still reject duplicate `ADMIN_USERS` entries.
 
 ## [1.9.1] - 2026-07-28
 ### Added

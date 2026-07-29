@@ -10,32 +10,25 @@ import json
 import logging
 import os
 import re
-import time
 from pathlib import Path
 from typing import Any
 
 from celery.result import AsyncResult
 from flask import Flask, g, jsonify, request
-from pssm_gremlin_server.config import (
-    GremlinConfig,
-    ensure_directories as _ensure_directories,
-    env_csv as _env_csv,
-    env_path as _env_path,
-    env_required as _env_required,
-    format_runner_identity as _format_runner_identity,
-    resolve_docker_user as _resolve_docker_user,
-)
+from pssm_gremlin_server.auth import _SECRET_KEY as _TOKEN_SIGNING_KEY  # noqa: E402
+from pssm_gremlin_server.auth import UserDatabase  # noqa: E402
+from pssm_gremlin_server.auth import _env_bool  # noqa: E402
+from pssm_gremlin_server.config import GremlinConfig
+from pssm_gremlin_server.config import ensure_directories as _ensure_directories
+from pssm_gremlin_server.config import env_csv as _env_csv
+from pssm_gremlin_server.config import env_path as _env_path
+from pssm_gremlin_server.config import env_required as _env_required
+from pssm_gremlin_server.config import format_runner_identity as _format_runner_identity
+from pssm_gremlin_server.config import resolve_docker_user as _resolve_docker_user
+from pssm_gremlin_server.maintenance.tasks.result_cleanup import delete_task_artifacts as _delete_result_artifacts
+from pssm_gremlin_server.maintenance.tasks.result_cleanup import deleted_status_from_task as _result_deleted_status
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
-
-from pssm_gremlin_server.maintenance.tasks.result_cleanup import (
-    delete_task_artifacts as _delete_result_artifacts,
-    deleted_status_from_task as _result_deleted_status,
-)
-
-from pssm_gremlin_server.auth import UserDatabase  # noqa: E402
-from pssm_gremlin_server.auth import _SECRET_KEY as _TOKEN_SIGNING_KEY  # noqa: E402
-from pssm_gremlin_server.auth import _env_bool  # noqa: E402
 
 CONFIG = GremlinConfig.from_env()
 _env_required("ADMIN_USERS")
@@ -90,9 +83,7 @@ app.secret_key = app.secret_key or _TOKEN_SIGNING_KEY
 # Bootstrap every configured admin if the user database is empty.
 if _user_db.user_count() == 0:
     _credential_lines = os.environ.get("ADMIN_BOOTSTRAP_CREDENTIALS", "").splitlines()
-    _bootstrap_passwords = dict(
-        line.split("\t", 1) for line in _credential_lines if "\t" in line
-    )
+    _bootstrap_passwords = dict(line.split("\t", 1) for line in _credential_lines if "\t" in line)
     if set(_bootstrap_passwords) != ADMIN_USERS:
         raise RuntimeError(
             "Bootstrap credentials for every ADMIN_USERS entry are required for an empty "
@@ -110,8 +101,7 @@ if _user_db.user_count() == 0:
             )
             _user_db.verify_email(_created_admin["id"])
             logging.warning(
-                "No users found — created configured admin user %r. "
-                "Log in and change its password immediately.",
+                "No users found — created configured admin user %r. " "Log in and change its password immediately.",
                 _admin_username,
             )
         except IntegrityError:
@@ -364,14 +354,14 @@ def _is_deleted_status(status: Any) -> bool:
 
 # Compatibility exports for callers that historically imported task symbols
 # from this web module.  New code imports them from task_runtime directly.
-_build_running_trace = task_runtime._build_running_trace
-_extract_stage_from_log_line = task_runtime._extract_stage_from_log_line
-_is_terminal_status = task_runtime._is_terminal_status
-_pack_failed_results_archive = task_runtime._pack_failed_results_archive
-_pack_results_archive = task_runtime._pack_results_archive
-_ROOT_MOUNT_DIRECTORY = task_runtime._ROOT_MOUNT_DIRECTORY
-_runner_thread_env = task_runtime._runner_thread_env
-_task_is_terminal = task_runtime._task_is_terminal
+_build_running_trace = task_runtime.build_running_trace
+_extract_stage_from_log_line = task_runtime.extract_stage_from_log_line
+_is_terminal_status = task_runtime.is_terminal_status
+_pack_failed_results_archive = task_runtime.pack_failed_results_archive
+_pack_results_archive = task_runtime.pack_results_archive
+_ROOT_MOUNT_DIRECTORY = task_runtime.ROOT_MOUNT_DIRECTORY
+_runner_thread_env = task_runtime.runner_thread_env
+_task_is_terminal = task_runtime.task_is_terminal
 format_times = task_runtime.format_times
 format_walltime = task_runtime.format_walltime
 run_gremlin_task = task_runtime.run_gremlin_task
