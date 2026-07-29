@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 
 import pytest
 from conftest import (
@@ -72,6 +73,129 @@ def test_attack_download_path_traversal_in_task_id(monkeypatch, tmp_path):
         for route in ("running", "results", "download"):
             resp = client.get(f"/PSSM_GREMLIN/api/{route}/{tid}", headers=auth_header)
             assert resp.status_code in {400, 404}, f"{route} {tid!r}: got {resp.status_code}"
+
+
+@pytest.mark.parametrize(
+    "archive_name",
+    [
+        "../outside.zip",
+        "..%2Foutside.zip",
+        "%2e%2e%2foutside.zip",
+        "..%5Coutside.zip",
+        "%2Fetc%2Fpasswd",
+        "%5C%5Cserver%5Cshare%5Csecret.zip",
+        "C:%5CWindows%5Cwin.ini",
+        "maintenance.log.C:%5CWindows%5Csecret.zip",
+        "maintenance.log.%2e%2e%2foutside.zip",
+        "maintenance.log.%252e%252e%252foutside.zip",
+        "maintenance.log.%00.zip",
+        "maintenance.log.%E2%88%95..%E2%88%95outside.zip",
+        "maintenance.log.evil.zip",
+        "maintenance.log.20260729T010203123456Z.zip.bak",
+        "gunicorn-access.log....%2Foutside.zip",
+    ],
+)
+def test_attack_log_archive_download_rejects_traversal_and_prefix_spoofing(
+    monkeypatch,
+    tmp_path,
+    archive_name,
+):
+    """Encoded separators, dot segments, and prefix spoofing never select a file."""
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    log_dir = os.environ["LOG_DIR"]
+    sentinel = b"must-not-be-downloaded"
+    with open(os.path.join(log_dir, "maintenance.log.evil.zip"), "wb") as handle:
+        handle.write(sentinel)
+
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+    listing = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/archives",
+        headers=admin_header,
+    )
+    response = client.get(
+        f"/PSSM_GREMLIN/api/auth/admin/logs/archives/{archive_name}",
+        headers=admin_header,
+    )
+
+    assert listing.status_code == 200
+    assert b"maintenance.log.evil.zip" not in listing.data
+    assert response.status_code in {400, 404}
+    assert sentinel not in response.data
+
+
+def test_attack_log_archive_listing_and_download_reject_symlink_escape(
+    monkeypatch,
+    tmp_path,
+):
+    """A valid-looking archive symlink cannot escape LOG_DIR."""
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    log_dir = os.environ["LOG_DIR"]
+    outside = tmp_path / "outside-secret.zip"
+    sentinel = b"outside-log-directory"
+    outside.write_bytes(sentinel)
+    archive_name = "maintenance.log.20260729T010203123456Z.zip"
+    os.symlink(outside, os.path.join(log_dir, archive_name))
+
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+    listing = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/archives",
+        headers=admin_header,
+    )
+    download = client.get(
+        f"/PSSM_GREMLIN/api/auth/admin/logs/archives/{archive_name}",
+        headers=admin_header,
+    )
+
+    assert listing.status_code == 200
+    assert archive_name.encode() not in listing.data
+    assert download.status_code == 404
+    assert sentinel not in download.data
+
+
+@pytest.mark.parametrize(
+    "log_name",
+    [
+        "../maintenance",
+        "..%2Fmaintenance",
+        "%2e%2e%2fmaintenance",
+        "maintenance%2F..%2Fgunicorn-error",
+        "..%5Cmaintenance",
+        "%5C%5Cserver%5Cshare",
+        "maintenance.log",
+    ],
+)
+def test_attack_active_log_stream_rejects_traversal_names(
+    monkeypatch,
+    tmp_path,
+    log_name,
+):
+    """The active-log endpoint accepts only its four opaque identifiers."""
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    sentinel = b"active-log-secret"
+    outside = tmp_path / "outside.log"
+    outside.write_bytes(sentinel)
+
+    response = module.app.test_client().get(
+        f"/PSSM_GREMLIN/api/auth/admin/logs/{log_name}",
+        headers=_admin_client_auth(module),
+    )
+
+    assert response.status_code in {400, 404}
+    assert sentinel not in response.data
 
 
 def test_attack_register_with_path_traversal_email(monkeypatch, tmp_path):

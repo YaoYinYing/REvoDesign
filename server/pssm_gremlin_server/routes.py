@@ -15,13 +15,14 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import re
 import shutil
 import time
 from pathlib import Path
 from typing import Any
 
 from celery.result import AsyncResult
-from flask import Response, current_app, g, jsonify, redirect, render_template, request, send_file, send_from_directory, url_for
+from flask import Response, current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 from pssm_gremlin_server.auth import (
     _DUMMY_PASSWORD_HASH,
     UserDatabase,
@@ -691,14 +692,15 @@ _ADMIN_LOG_FILES = {
     "celery-worker": "celery-worker.log",
     "maintenance": "maintenance.log",
 }
+_ADMIN_LOG_ARCHIVE_PATTERN = re.compile(
+    rf"(?:{'|'.join(re.escape(name) for name in _ADMIN_LOG_FILES.values())})"
+    r"\.\d{8}T\d{12}Z\.zip"
+)
 
 
 def _admin_log_archive_path(archive_name: str) -> Path | None:
     """Resolve one managed rotated-log ZIP without allowing arbitrary paths."""
-    if not any(
-        archive_name.startswith(f"{filename}.") and archive_name.endswith(".zip")
-        for filename in _ADMIN_LOG_FILES.values()
-    ):
+    if _ADMIN_LOG_ARCHIVE_PATTERN.fullmatch(archive_name) is None:
         return None
     log_dir = os.environ.get("LOG_DIR", "").strip()
     if not log_dir:
@@ -724,7 +726,11 @@ def admin_log_archives():
     for log_name, filename in _ADMIN_LOG_FILES.items():
         archives = []
         for archive in directory.glob(f"{filename}.*.zip"):
-            if archive.is_symlink() or not archive.is_file():
+            if (
+                _ADMIN_LOG_ARCHIVE_PATTERN.fullmatch(archive.name) is None
+                or archive.is_symlink()
+                or not archive.is_file()
+            ):
                 continue
             try:
                 stat = archive.stat()
@@ -760,8 +766,9 @@ def admin_download_log_archive(archive_name: str):
     archive_path = _admin_log_archive_path(archive_name)
     if archive_path is None:
         return jsonify({"error": "Log archive is not available"}), 404
-    response = send_file(
-        archive_path,
+    response = send_from_directory(
+        archive_path.parent,
+        archive_path.name,
         as_attachment=True,
         download_name=archive_path.name,
         mimetype="application/zip",
