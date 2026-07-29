@@ -117,7 +117,7 @@ if _user_db.user_count() == 0:
 
 # Worker-safe task runtime.  This module has no Flask/auth dependency, so the
 # Celery process imports it directly without opening the user database.
-from pssm_gremlin_server import task_runtime  # noqa: E402
+task_runtime = importlib.import_module("pssm_gremlin_server.task_runtime")
 
 celery = task_runtime.celery
 task_store = task_runtime.task_store

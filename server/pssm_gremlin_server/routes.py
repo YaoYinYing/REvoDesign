@@ -1272,6 +1272,49 @@ def admin_create_user():
     return jsonify({"message": "User created", "username": req.username}), 201
 
 
+def _admin_email_update(db: UserDatabase, user_id: int, email: str | None):
+    if email is None:
+        return {}, None
+    existing = db.get_user_by_email(email)
+    if existing and existing["id"] != user_id:
+        return None, (jsonify({"error": "Email address already in use"}), 409)
+    return {"email": email}, None
+
+
+def _admin_profile_update_fields(req: AdminUpdateUserRequest) -> dict[str, Any]:
+    update_fields = {
+        field: value
+        for field in ("affiliation", "full_name", "pi_name", "user_status")
+        if (value := getattr(req, field)) is not None
+    }
+    if "position" in req.model_fields_set:
+        update_fields["position"] = req.position
+    if req.password is not None:
+        update_fields["password_hash"] = generate_password_hash(req.password)
+    return update_fields
+
+
+def _admin_registration_update_fields(
+    db: UserDatabase,
+    user_id: int,
+    user: dict[str, Any],
+    registration_status: str | None,
+) -> dict[str, Any]:
+    update_fields: dict[str, Any] = {}
+    if registration_status is None:
+        return update_fields
+    update_fields["registration_status"] = registration_status
+    # Admin approval implies email verification — avoid the gap where
+    # an unverified self-registered account becomes active without
+    # proving email ownership.
+    if registration_status == "approved":
+        if not user.get("email_verified"):
+            db.verify_email(user_id)
+        update_fields["approved_by"] = g.current_user["id"]
+        update_fields["approved_at"] = time.time()
+    return update_fields
+
+
 def _admin_user_update_fields(
     db: UserDatabase,
     user_id: int,
@@ -1280,43 +1323,17 @@ def _admin_user_update_fields(
     req: AdminUpdateUserRequest,
 ):
     """Build validated fields for an admin user update."""
-    update_fields: dict[str, Any] = {}
-    if req.email is not None:
-        email = req.email
-        existing = db.get_user_by_email(email)
-        if existing and existing["id"] != user_id:
-            return None, (jsonify({"error": "Email address already in use"}), 409)
-        update_fields["email"] = email
+    update_fields, update_error = _admin_email_update(db, user_id, req.email)
+    if update_error is not None:
+        return None, update_error
     if is_self and req.user_status == "banned":
         return None, (jsonify({"error": "Administrators cannot ban their own account"}), 400)
-    if req.affiliation is not None:
-        update_fields["affiliation"] = req.affiliation
-    if req.full_name is not None:
-        update_fields["full_name"] = req.full_name
-    if "position" in req.model_fields_set:
-        update_fields["position"] = req.position
-    if req.pi_name is not None:
-        update_fields["pi_name"] = req.pi_name
-    if req.password is not None:
-        update_fields["password_hash"] = generate_password_hash(req.password)
-    if req.registration_status is not None:
-        update_fields["registration_status"] = req.registration_status
-        # Admin approval implies email verification — avoid the gap where
-        # an unverified self-registered account becomes active without
-        # proving email ownership.
-        if req.registration_status == "approved" and not user.get("email_verified"):
-            db.verify_email(user_id)
-    if req.user_status is not None:
-        update_fields["user_status"] = req.user_status
+    update_fields.update(_admin_profile_update_fields(req))
+    update_fields.update(_admin_registration_update_fields(db, user_id, user, req.registration_status))
     if req.role is not None:
         if is_self:
             return None, (jsonify({"error": "Administrators cannot change their own role"}), 400)
         update_fields["role"] = req.role
-
-    new_reg = update_fields.get("registration_status")
-    if new_reg == "approved":
-        update_fields["approved_by"] = g.current_user["id"]
-        update_fields["approved_at"] = time.time()
     return update_fields, None
 
 
