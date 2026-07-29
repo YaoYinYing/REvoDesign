@@ -342,7 +342,7 @@ Important environment variables (see the organized sections in
 | `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain; unset is unlimited, recommended value is `30` |
 | `ROTATE_LOG_MAX_LINENO` | Optional positive line-count threshold for ZIP log rotation; unset disables this trigger |
 | `ROTATE_LOG_PERIOD` | Optional quoted five-field crontab expression for scheduled rotation (for example, `"0 0 * * *"` for daily at midnight); unset disables this trigger |
-| `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest archives first |
+| `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest archives first. A newly created archive is retained even when it temporarily exceeds the cap |
 | `ADMIN_USERS` | Comma-separated admin usernames |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated recipients for new-registration digests |
@@ -399,6 +399,9 @@ successful run creates `${AUTH_DIR}/backups/<UTC timestamp>/tasks.sqlite3` and
    REVODESIGN_SERVER_ENV=server/.env.production \
      bash server/run/restart_pssm_flask.sh restart --mode=prod
    ```
+   Use the helper script for the first start; direct Docker Compose startup is
+   rejected while the user database is empty because bootstrap passwords are
+   generated and supplied transiently by the script.
 
 5. **Access** the web UI at `http://<host>:<port>/PSSM_GREMLIN/dashboard`
 

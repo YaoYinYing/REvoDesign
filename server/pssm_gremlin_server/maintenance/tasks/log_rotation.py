@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import threading
 import time
 import zipfile
 from collections.abc import Callable
@@ -34,6 +35,7 @@ _SIZE_MULTIPLIERS = {
     "T": 1024**4,
     "TB": 1024**4,
 }
+_ROTATION_LOCK = threading.Lock()
 
 
 def parse_log_size(value: str) -> int:
@@ -57,8 +59,13 @@ def _managed_log_size(log_dir: Path) -> int:
     return sum(path.stat().st_size for path in paths if path.is_file())
 
 
-def _prune_oldest_archives(log_dir: Path, max_size: int) -> None:
+def _prune_oldest_archives(
+    log_dir: Path,
+    max_size: int,
+    protected: set[Path] | None = None,
+) -> None:
     total = _managed_log_size(log_dir)
+    protected = protected or set()
     archives = sorted(
         log_dir.glob("*.log.*.zip"),
         key=lambda path: (path.stat().st_mtime, path.name),
@@ -66,13 +73,15 @@ def _prune_oldest_archives(log_dir: Path, max_size: int) -> None:
     for archive in archives:
         if total <= max_size:
             break
+        if archive in protected:
+            continue
         size = archive.stat().st_size
         archive.unlink()
         total -= size
         logging.info("Removed oldest rotated log %s", archive)
 
 
-def rotate_logs(
+def _rotate_logs(
     log_dir: str,
     max_lines: int | None,
     rotate_for_period: bool,
@@ -80,16 +89,21 @@ def rotate_logs(
     *,
     now: float | None = None,
 ) -> int:
-    """Rotate matching logs, enforce the total size cap, and return the count."""
+    """Perform one log-rotation pass without concurrency control."""
     current_time = time.time() if now is None else now
     directory = Path(log_dir)
     rotated = 0
+    created_archives: set[Path] = set()
 
     if max_size is not None:
         _prune_oldest_archives(directory, max_size)
-    rotate_for_size = max_size is not None and _managed_log_size(directory) > max_size
 
     for log_path in sorted(directory.glob("*.log")):
+        if max_size is not None:
+            _prune_oldest_archives(directory, max_size, created_archives)
+        rotate_for_size = (
+            max_size is not None and _managed_log_size(directory) > max_size
+        )
         by_lines = max_lines is not None and _line_count(log_path) > max_lines
         if log_path.stat().st_size == 0 or not (
             by_lines or rotate_for_period or rotate_for_size
@@ -102,6 +116,7 @@ def rotate_logs(
         archive = log_path.with_name(f"{log_path.name}.{timestamp}.zip")
         with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_DEFLATED) as bundle:
             bundle.write(log_path, arcname=log_path.name)
+        created_archives.add(archive)
         # ponytail: copy-truncate keeps existing process file descriptors valid;
         # use service-specific reopen signals only if the tiny write race matters.
         log_path.open("w", encoding="utf-8").close()
@@ -109,8 +124,27 @@ def rotate_logs(
         logging.info("Rotated log %s to %s", log_path, archive)
 
     if max_size is not None:
-        _prune_oldest_archives(directory, max_size)
+        _prune_oldest_archives(directory, max_size, created_archives)
     return rotated
+
+
+def rotate_logs(
+    log_dir: str,
+    max_lines: int | None,
+    rotate_for_period: bool,
+    max_size: int | None,
+    *,
+    now: float | None = None,
+) -> int:
+    """Serialize and run one log-rotation pass."""
+    with _ROTATION_LOCK:
+        return _rotate_logs(
+            log_dir,
+            max_lines,
+            rotate_for_period,
+            max_size,
+            now=now,
+        )
 
 
 class LogRotationTask(PeriodicTask):

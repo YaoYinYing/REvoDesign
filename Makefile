@@ -80,13 +80,15 @@ upload-gists:
 	# JSONs for installer
 	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesignExtrasTableRich.json jsons/REvoDesignExtrasTableRich.json
 	# HMAC manifest — key is extracted from the uploaded source file
-	@python tools/generate_gist_manifest.py /tmp/manifest.json
-	@trap 'rm -f /tmp/manifest.json' EXIT; \
+	@tmp_dir="$$(mktemp -d)" || exit; \
+	trap 'rm -rf "$$tmp_dir"' 0; \
+	manifest="$$tmp_dir/manifest.json"; \
+	python tools/generate_gist_manifest.py "$$manifest" || exit; \
 	files="$$(gh gist view c1e8bfe0fc0b9c60bf49ea04a550a044 --files)" || exit; \
 	if printf '%s\n' "$$files" | grep -Fxq manifest.json; then \
-		gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f manifest.json /tmp/manifest.json; \
+		gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f manifest.json "$$manifest"; \
 	else \
-		gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 --add /tmp/manifest.json; \
+		gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 --add "$$manifest"; \
 	fi
 
 install-pymol-plugin:

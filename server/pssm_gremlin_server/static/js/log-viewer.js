@@ -45,13 +45,13 @@
         var reader = response.body.getReader();
         var decoder = new TextDecoder();
         var byteCount = 0;
-        while (true) {
-          var result = await reader.read();
-          if (result.done) break;
+        var result = await reader.read();
+        while (!result.done) {
           byteCount += result.value.byteLength;
           output.appendChild(document.createTextNode(decoder.decode(result.value, { stream: true })));
           output.scrollTop = output.scrollHeight;
           status.textContent = "Streaming " + selectedLog + " — " + byteCount + " bytes";
+          result = await reader.read();
         }
         output.appendChild(document.createTextNode(decoder.decode()));
       }
@@ -67,12 +67,20 @@
 
   function formatSize(bytes) {
     if (bytes < 1024) return bytes + " B";
-    var units = ["KiB", "MiB", "GiB", "TiB"];
-    var value = bytes;
-    var unit = "B";
-    for (var i = 0; i < units.length && value >= 1024; i += 1) {
-      value /= 1024;
-      unit = units[i];
+    var value;
+    var unit;
+    if (bytes < 1024 * 1024) {
+      value = bytes / 1024;
+      unit = "KiB";
+    } else if (bytes < 1024 * 1024 * 1024) {
+      value = bytes / (1024 * 1024);
+      unit = "MiB";
+    } else if (bytes < 1024 * 1024 * 1024 * 1024) {
+      value = bytes / (1024 * 1024 * 1024);
+      unit = "GiB";
+    } else {
+      value = bytes / (1024 * 1024 * 1024 * 1024);
+      unit = "TiB";
     }
     return value.toFixed(value >= 10 ? 0 : 1) + " " + unit;
   }
@@ -146,9 +154,13 @@
   });
   document.getElementById("refreshArchives").addEventListener("click", loadArchives);
   document.getElementById("logoutBtn").addEventListener("click", function () {
+    function finishLogout() {
+      A.clearToken();
+      window.location.replace("/PSSM_GREMLIN/login");
+    }
     A.authFetch("/PSSM_GREMLIN/api/auth/logout", { method: "POST" })
-      .then(function () { A.clearToken(); window.location.href = "/PSSM_GREMLIN/login"; })
-      .catch(function () { A.clearToken(); window.location.href = "/PSSM_GREMLIN/login"; });
+      .then(finishLogout)
+      .catch(finishLogout);
   });
   loadSelectedLog();
 }());

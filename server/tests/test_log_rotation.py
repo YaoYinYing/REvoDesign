@@ -5,9 +5,12 @@
 from __future__ import annotations
 
 import os
+import threading
+import time
 import zipfile
 
 import pytest
+from pssm_gremlin_server.maintenance.tasks import log_rotation as log_rotation_module
 
 from pssm_gremlin_server.maintenance.tasks.log_rotation import (
     log_rotation_task,
@@ -36,6 +39,39 @@ def test_scheduled_period_rotates_nonempty_logs(tmp_path):
     assert rotate_logs(str(tmp_path), None, True, None, now=1_000_000) == 1
 
 
+def test_rotation_passes_are_serialized_across_scheduler_jobs(monkeypatch, tmp_path):
+    active = 0
+    max_active = 0
+    state_lock = threading.Lock()
+    start = threading.Barrier(3)
+
+    def recording_rotation(*_args, **_kwargs):
+        nonlocal active, max_active
+        with state_lock:
+            active += 1
+            max_active = max(max_active, active)
+        time.sleep(0.05)
+        with state_lock:
+            active -= 1
+        return 0
+
+    monkeypatch.setattr(log_rotation_module, "_rotate_logs", recording_rotation)
+
+    def run_rotation():
+        start.wait()
+        rotate_logs(str(tmp_path), 1, False, None)
+
+    threads = [threading.Thread(target=run_rotation) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    start.wait()
+    for thread in threads:
+        thread.join(timeout=2)
+
+    assert all(not thread.is_alive() for thread in threads)
+    assert max_active == 1
+
+
 def test_size_cap_removes_oldest_archive_before_touching_live_log(tmp_path):
     log = tmp_path / "web.log"
     log.write_bytes(b"x" * 300_000)
@@ -55,13 +91,29 @@ def test_size_cap_removes_oldest_archive_before_touching_live_log(tmp_path):
 
 def test_size_cap_rotates_live_log_when_archives_cannot_reduce_total(tmp_path):
     log = tmp_path / "web.log"
-    log.write_bytes(os.urandom(2 * 1024**2))
+    content = os.urandom(2 * 1024**2)
+    log.write_bytes(content)
 
     assert rotate_logs(str(tmp_path), None, False, 1024**2, now=3) == 1
 
-    total = sum(path.stat().st_size for path in tmp_path.glob("web.log*"))
+    archives = list(tmp_path.glob("web.log.*.zip"))
+    assert len(archives) == 1
+    with zipfile.ZipFile(archives[0]) as bundle:
+        assert bundle.read("web.log") == content
     assert log.stat().st_size == 0
-    assert total <= 1024**2
+
+
+def test_size_rotation_stops_after_total_falls_below_cap(tmp_path):
+    large = tmp_path / "a.log"
+    untouched = tmp_path / "b.log"
+    large.write_bytes(b"x" * (2 * 1024**2))
+    untouched.write_text("keep me\n", encoding="utf-8")
+
+    assert rotate_logs(str(tmp_path), None, False, 1024**2, now=3) == 1
+
+    assert large.stat().st_size == 0
+    assert untouched.read_text(encoding="utf-8") == "keep me\n"
+    assert not list(tmp_path.glob("b.log.*.zip"))
 
 
 def test_log_rotation_task_configures_all_triggers(monkeypatch, tmp_path):

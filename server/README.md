@@ -179,7 +179,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain. Leave unset for unlimited history; recommended value: `30`. |
 | `ROTATE_LOG_MAX_LINENO` | Optional line-count rotation threshold; unset disables this trigger. |
 | `ROTATE_LOG_PERIOD` | Optional quoted five-field crontab expression for scheduled rotation (for example, `"0 0 * * *"` for daily at midnight); unset disables this trigger. |
-| `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest ZIPs first. |
+| `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest ZIPs first. A newly created archive is retained even when it temporarily exceeds the cap. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated admin email addresses for new-user registration digests (default: empty = no notification). |
 | `ADMIN_NEW_USER_INFORM` | Interval in minutes between new-user digest emails (default: `0` = disabled). |
@@ -447,6 +447,11 @@ For a fresh installation there is nothing to migrate: create `AUTH_DIR` and
 start normally. The web process creates `${AUTH_DIR}/users.sqlite3`.
 
 ### Equivalent Docker Compose commands
+
+These commands are equivalent only after `users.sqlite3` contains an account.
+On a fresh installation, use the helper script's `up` or `restart` command so
+it can generate and pass transient bootstrap credentials. A direct Compose
+startup with an empty user database is rejected.
 
 Development mode:
 

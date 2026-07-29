@@ -118,6 +118,27 @@ def test_restart_generates_distinct_password_for_each_configured_admin(tmp_path)
     assert all(len(password) == 32 for password in passwords)
 
 
+def test_up_generates_bootstrap_password_for_empty_user_database(tmp_path):
+    result, commands = _run_restart_script(tmp_path, "up")
+
+    assert result.returncode == 0, result.stderr
+    assert "Admin login — username: admin  password:" in result.stdout
+    assert any("up -d redis web maintenance worker" in command for command in commands)
+
+
+def test_up_rejects_duplicate_admin_usernames_before_start(tmp_path):
+    result, commands = _run_restart_script(
+        tmp_path,
+        "up",
+        admins="admin,admin",
+    )
+
+    assert result.returncode != 0
+    assert "ADMIN_USERS must not contain duplicate usernames: admin" in result.stderr
+    assert "Admin login" not in result.stdout
+    assert not any("up -d redis web maintenance worker" in command for command in commands)
+
+
 def test_restart_mode_validation(tmp_path):
     identity_result, identity_commands = _run_restart_script(
         tmp_path / "identity",
@@ -146,7 +167,7 @@ def test_restart_rejects_missing_required_settings_before_shutdown(tmp_path, nam
     )
 
     assert result.returncode != 0
-    assert f"Missing required setting(s)" in result.stderr
+    assert "Missing required setting(s)" in result.stderr
     assert name in result.stderr
     assert not any(" down" in command or " build " in command or " pull " in command or " up " in command for command in commands)
 

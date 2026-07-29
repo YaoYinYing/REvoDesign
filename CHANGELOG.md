@@ -25,7 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the restart script and direct server startup fail before touching the
   database when any required setting is absent. The initial administrator
   passwords are generated one-by-one and supplied transiently by the restart
-  script instead of being stored in the env file.
+  script instead of being stored in the env file. Both `up` and `restart`
+  support first-start bootstrap; direct Compose startup with an empty user
+  database remains rejected.
 - **GREMLIN server: ephemeral signing key**: removed the configurable
   `AUTH_SECRET_KEY`. Gunicorn generates one in memory per preloaded web launch;
   restarting web intentionally invalidates active login, verification, and
@@ -35,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exceeded or on the `ROTATE_LOG_PERIOD` crontab schedule. Either unset trigger
   is disabled; `MAX_LOG_SIZE` optionally caps active logs plus ZIP archives
   using bytes or K/M/G/T suffixes and removes the oldest archives first.
+  Cron and threshold executions are serialized to protect ZIP/truncate
+  operations from overlap. Archives created in the current pass are protected
+  from immediate pruning so the only surviving copy is never discarded.
   Leaving all three settings unset disables rotation.
 - **GREMLIN server: admin log viewer**: a standalone page linked from the
   administrator dashboard lazily streams the four active Gunicorn access,
