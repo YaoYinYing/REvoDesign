@@ -159,7 +159,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `LOG_DIR` | Host directory for Gunicorn, Celery, and `maintenance.log`. |
 | `DB_UNIREF30` | Required UniRef30 prefix path. |
 | `DB_UNIREF90` | Required UniRef90 BLAST prefix path. |
-| `ADMIN_USERS` | Required comma-separated administrator usernames. On an empty user database, the restart script creates each account and prints a distinct generated password. |
+| `ADMIN_USERS` | Required comma-separated bootstrap-administrator usernames. On an empty user database, the restart script creates each account and prints a distinct generated password; afterward, database roles control authorization. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
 | `AUTH_DIR` | Host-side directory containing `users.sqlite3`; Compose mounts it only into web and maintenance. It must be outside `SERVER_DIR`. |
 | `USER_DB_PATH` | Container-side path used by web and maintenance to open the user DB. Keep the default `/var/lib/revodesign-auth/users.sqlite3` unless the Compose mount target also changes. |
@@ -180,7 +180,6 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `ROTATE_LOG_MAX_LINENO` | Optional line-count rotation threshold; unset disables this trigger. |
 | `ROTATE_LOG_PERIOD` | Optional quoted five-field crontab expression for scheduled rotation (for example, `"0 0 * * *"` for daily at midnight); unset disables this trigger. |
 | `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest ZIPs first. A newly created archive is retained even when it temporarily exceeds the cap. |
-| `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated admin email addresses for new-user registration digests (default: empty = no notification). |
 | `ADMIN_NEW_USER_INFORM` | Interval in minutes between new-user digest emails (default: `0` = disabled). |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Also normalises plus-aliased addresses (`user+tag@domain` → `user@domain`). |
@@ -338,7 +337,9 @@ curl -X POST -H "Authorization: Bearer <admin-token>" \
   "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/admin/users"
 ```
 
-`role` may be `admin`, `user`, or `guest`.
+`role` may be `admin`, `user`, or `guest` and is the sole authorization
+authority. On upgrade, the server silently promotes administrators stored in
+the deprecated `is_admin` column and then drops that column.
 
 Admins cannot ban or delete their own account.  Direct self-ban/self-delete
 requests return HTTP 400, and batch Disable/Delete skips the acting admin while

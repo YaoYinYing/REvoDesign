@@ -5,12 +5,32 @@ on:
   push:
     branches: [main]
     paths:
-      - "server/**"
+      - "server/pssm_gremlin_server/**"
+      - "server/tests/**"
+      - "server/run/**"
+      - "server/scripts/**"
+      - "server/docker/**"
+      - "server/env/**"
+      - "server/docker-compose.yml"
+      - "server/REvoDesign_PSSM_GREMLIN.sh"
+      - "server/Makefile"
+      - "server/pyproject.toml"
+      - "server/.coveragerc"
       - ".github/workflows/server-test.yml"
   pull_request:
     branches: [main]
     paths:
-      - "server/**"
+      - "server/pssm_gremlin_server/**"
+      - "server/tests/**"
+      - "server/run/**"
+      - "server/scripts/**"
+      - "server/docker/**"
+      - "server/env/**"
+      - "server/docker-compose.yml"
+      - "server/REvoDesign_PSSM_GREMLIN.sh"
+      - "server/Makefile"
+      - "server/pyproject.toml"
+      - "server/.coveragerc"
       - ".github/workflows/server-test.yml"
 
 jobs:

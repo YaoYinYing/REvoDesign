@@ -4,8 +4,30 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "dev/**"
+      - "scripts/dev/**"
+      - "jsons/**"
+      - "Makefile"
+      - "pyproject.toml"
+      - ".coveragerc"
+      - "codecov.yml"
+      - ".github/workflows/unit_tests_tag.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "dev/**"
+      - "scripts/dev/**"
+      - "jsons/**"
+      - "Makefile"
+      - "pyproject.toml"
+      - ".coveragerc"
+      - "codecov.yml"
+      - ".github/workflows/unit_tests_tag.yml"
   release:
     types: [created]
 

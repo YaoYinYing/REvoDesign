@@ -104,7 +104,7 @@ if _user_db.user_count() == 0:
                 username=_admin_username,
                 email=f"{_admin_username}@revodesign.local",
                 password=_bootstrap_passwords[_admin_username],
-                is_admin=True,
+                role="admin",
                 registration_status="approved",
                 user_status="active",
             )
@@ -292,14 +292,10 @@ def _task_zip_download_name(task: dict[str, Any]) -> str:
     return f"{prefix}_{task['md5sum']}_PSSM_GREMLIN_results.zip"
 
 
-def _is_admin_user(username: str | None = None) -> bool:
-    # DB-based admin check — covers admins created through the user-control UI
+def _is_admin_user() -> bool:
+    """Return whether the authenticated user has the canonical admin role."""
     user = g.get("current_user")
-    if user and (user.get("role") == "admin" or user.get("is_admin")):
-        return True
-    # Legacy env-var-based check
-    target = (username if username is not None else _current_username()) or ""
-    return target in ADMIN_USERS
+    return bool(user and user.get("role") == "admin")
 
 
 def _task_access_allowed(task: dict[str, Any]) -> bool:
@@ -331,7 +327,7 @@ def _task_id_for_upload(content_md5: str, username: str | None) -> str:
 
 def _task_delete_allowed(task: dict[str, Any]) -> bool:
     current_user = _current_username() or ""
-    if _is_admin_user(current_user):
+    if _is_admin_user():
         return True
     return bool(current_user) and task.get("username") == current_user
 

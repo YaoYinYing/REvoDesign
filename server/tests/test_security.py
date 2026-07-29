@@ -668,7 +668,6 @@ def test_attack_admin_batch_delete_other_admin_blocked(monkeypatch, tmp_path):
         username="other_admin",
         email="other_admin@test.local",
         password="pass1234",
-        is_admin=True,
         role="admin",
         registration_status="approved",
         user_status="active",
@@ -756,7 +755,7 @@ def test_attack_admin_promotion_via_self_registration_blocked(monkeypatch, tmp_p
         db = module.app.config["user_db"]
         user = db.get_user_by_username("wannabe_admin")
         assert user["role"] == "user"
-        assert not user["is_admin"]
+        assert "is_admin" not in user
 
 
 def test_attack_captcha_token_single_use(monkeypatch, tmp_path):

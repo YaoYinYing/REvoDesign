@@ -203,7 +203,7 @@ def _admin_client_auth(module, username: str = "sysadmin") -> dict[str, str]:
             username=username,
             email=f"{username}@test.local",
             password="admin_password",
-            is_admin=True,
+            role="admin",
             registration_status="approved",
             user_status="active",
         )

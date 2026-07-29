@@ -141,7 +141,7 @@ def profile_page():
 @login_required
 def user_control_page():
     """Admin-only user management page."""
-    if not g.current_user.get("is_admin"):
+    if g.current_user.get("role") != "admin":
         return render_template("error.html", code=403, message="Admin access required"), 403
     return render_template("user_control.html", is_admin_user=True)
 
@@ -150,7 +150,7 @@ def user_control_page():
 @login_required
 def log_viewer_page():
     """Admin-only active-log viewer."""
-    if not g.current_user.get("is_admin"):
+    if g.current_user.get("role") != "admin":
         return render_template("error.html", code=403, message="Admin access required"), 403
     return render_template("log_viewer.html")
 
@@ -479,7 +479,7 @@ def cancel_task(md5sum):
 @login_required
 def task_dashboard():
     current_user = _current_username() or ""
-    is_admin = _is_admin_user(current_user)
+    is_admin = _is_admin_user()
     all_tasks = task_store.list_tasks()
     if is_admin:
         scoped_tasks = all_tasks
@@ -678,10 +678,10 @@ def _get_user_db() -> UserDatabase:
 
 
 def require_admin():
-    """Return 403 if the current user is not an admin (DB ``is_admin`` column)."""
+    """Return 403 unless the current user has the canonical admin role."""
     if _blocked := require_web_login():
         return _blocked
-    if not g.current_user.get("is_admin"):
+    if g.current_user.get("role") != "admin":
         return jsonify({"error": "Admin access required"}), 403
     return None
 
@@ -1147,7 +1147,6 @@ def auth_me():
                 "username": user["username"],
                 "email": user["email"],
                 "email_verified": user["email_verified"],
-                "is_admin": user["is_admin"],
                 "role": user.get("role", "user"),
                 "full_name": user.get("full_name"),
                 "affiliation": user.get("affiliation"),
@@ -1266,7 +1265,6 @@ def admin_create_user():
         username=req.username,
         email=req.email,
         password=req.password,
-        is_admin=req.is_admin or (req.role == "admin"),
         role=req.role,
         full_name=req.full_name,
         affiliation=req.affiliation,
@@ -1286,7 +1284,7 @@ def admin_create_user():
 def admin_manage_user(user_id):
     """Admin-only: update user status or delete a user.
 
-    ``PUT`` — update ``registration_status``, ``user_status``, or ``is_admin``.
+    ``PUT`` — update registration, account status, or role.
     ``DELETE`` — permanently remove the user.
     """
     if _blocked := require_admin():
@@ -1346,7 +1344,6 @@ def admin_manage_user(user_id):
         if is_self:
             return jsonify({"error": "Administrators cannot change their own role"}), 400
         update_fields["role"] = req.role
-        update_fields["is_admin"] = req.role == "admin"
 
     # Only set approved_by / approved_at when the admin is actually approving.
     new_reg = update_fields.get("registration_status")
@@ -1410,7 +1407,7 @@ def admin_batch_users():
             continue
         if uid == admin_id and req.action in {"disable", "delete"}:
             continue  # don't let an admin lock themselves out
-        if user.get("is_admin") and req.action == "disable":
+        if user.get("role") == "admin" and req.action == "disable":
             continue  # don't disable other admins
         db.update_user(uid, **updates)
         count += 1

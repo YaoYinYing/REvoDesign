@@ -67,7 +67,6 @@ _users_table = sa.Table(
     sa.Column("email", sa.String(256), nullable=False, unique=True),
     sa.Column("password_hash", sa.String(256), nullable=False),
     sa.Column("email_verified", sa.Boolean, nullable=False, default=False),
-    sa.Column("is_admin", sa.Boolean, nullable=False, default=False),
     sa.Column("created_at", sa.Float, nullable=False),
     sa.Column("api_key_hash", sa.String(256), nullable=True),
     sa.Column("full_name", sa.String(128), nullable=True),
@@ -152,6 +151,7 @@ class UserDatabase:
     @staticmethod
     def _ensure_columns(conn) -> None:
         existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()}
+        has_deprecated_is_admin = "is_admin" in existing
         admin_notified_missing = "admin_notified" not in existing
         for col, coltype in [
             ("api_key_hash", "TEXT"),
@@ -176,21 +176,39 @@ class UserDatabase:
         UserDatabase._add_column_if_missing(conn, existing, "token_version", "INTEGER DEFAULT 0")
         # Backfill any NULL token_version (idempotent, runs every startup)
         conn.exec_driver_sql("UPDATE users SET token_version = 0 WHERE token_version IS NULL")
-        # When adding admin_notified for the first time, mark all existing
-        # non-admin users as notified so they don't appear in the first digest.
-        # Admins are always excluded from the digest.  This is intentionally
-        # gated — we only want this on the very first migration.
-        if admin_notified_missing:
-            conn.exec_driver_sql("UPDATE users SET admin_notified = 1 WHERE is_admin = 0")
         # Idempotent backfills — run every startup (not gated) so legacy rows
         # that predate a column get their NULLs patched even when the column
         # was added by a previous deployment that didn't include a backfill.
         conn.exec_driver_sql("UPDATE users SET deleted = 0 WHERE deleted IS NULL")
         conn.exec_driver_sql("UPDATE users SET registration_status = 'approved' " "WHERE registration_status IS NULL")
         conn.exec_driver_sql("UPDATE users SET user_status = 'active' WHERE user_status IS NULL")
+        if has_deprecated_is_admin:
+            try:
+                # Preserve both genuinely legacy administrators and rows
+                # created by the old is_admin=1, role='user' bootstrap bug.
+                conn.exec_driver_sql(
+                    "UPDATE users SET role = 'admin' WHERE is_admin = 1"
+                )
+                conn.exec_driver_sql("ALTER TABLE users DROP COLUMN is_admin")
+            except sa.exc.OperationalError:
+                # Another startup process may have completed the same silent
+                # migration after our initial PRAGMA read.
+                current = {
+                    row[1]
+                    for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()
+                }
+                if "is_admin" in current:
+                    raise
+            existing.discard("is_admin")
         conn.exec_driver_sql(
-            "UPDATE users SET role = CASE WHEN is_admin THEN 'admin' ELSE 'user' END " "WHERE role IS NULL"
+            "UPDATE users SET role = 'user' "
+            "WHERE role IS NULL OR role NOT IN ('admin', 'user', 'guest')"
         )
+        # When adding admin_notified for the first time, mark all existing
+        # non-admin users as notified so they don't appear in the first digest.
+        # This runs after role normalization because role is authoritative.
+        if admin_notified_missing:
+            conn.exec_driver_sql("UPDATE users SET admin_notified = 1 WHERE role != 'admin'")
         conn.exec_driver_sql(
             "UPDATE users SET verification_resend_count = 0 " "WHERE verification_resend_count IS NULL"
         )
@@ -203,7 +221,6 @@ class UserDatabase:
         email: str,
         password: str,
         *,
-        is_admin: bool = False,
         role: str = "user",
         full_name: str | None = None,
         affiliation: str | None = None,
@@ -216,13 +233,14 @@ class UserDatabase:
         registration_country: str | None = None,
     ) -> dict[str, Any]:
         """Insert a new user.  Returns the row as a dict."""
+        if role not in {"admin", "user", "guest"}:
+            raise ValueError(f"Unsupported user role: {role!r}")
         now = time.time()
         stmt = sa.insert(_users_table).values(
             username=username,
             email=email.lower().strip(),
             password_hash=generate_password_hash(password),
             email_verified=False,
-            is_admin=is_admin,
             role=role,
             created_at=now,
             full_name=full_name,
@@ -249,7 +267,7 @@ class UserDatabase:
         """Update allowed user fields in-place.
 
         Allowed keys: ``username``, ``email``, ``password_hash``,
-        ``email_verified``, ``is_admin``, ``api_key_hash``,
+        ``email_verified``, ``api_key_hash``,
         ``full_name``, ``affiliation``, ``position``, ``pi_name``,
         ``terms_agreed``, ``registration_status``,
         ``user_status``, ``approved_by``, ``approved_at``.
@@ -260,7 +278,6 @@ class UserDatabase:
             "email",
             "password_hash",
             "email_verified",
-            "is_admin",
             "api_key_hash",
             "full_name",
             "affiliation",
@@ -277,6 +294,11 @@ class UserDatabase:
             "role",
         }
         values = {k: v for k, v in fields.items() if k in _allowed}
+        if "is_admin" in fields:
+            raise ValueError("is_admin was removed; update role instead")
+        if "role" in values:
+            if values["role"] not in {"admin", "user", "guest"}:
+                raise ValueError(f"Unsupported user role: {values['role']!r}")
         if not values:
             return
         stmt = sa.update(_users_table).where(_users_table.c.id == user_id).values(**values)
@@ -364,7 +386,7 @@ class UserDatabase:
             sa.select(_users_table)
             .where(
                 _users_table.c.admin_notified == False,  # noqa: E712
-                _users_table.c.is_admin == False,  # noqa: E712
+                _users_table.c.role != "admin",
             )
             .order_by(sa.asc(_users_table.c.created_at))
         )
