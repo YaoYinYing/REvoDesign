@@ -119,7 +119,7 @@ the admin user-control system.
 | Service | Base Image | Role |
 |---------|-----------|------|
 | **web** | `python:3.12-slim` | Flask + Gunicorn HTTP server. Serves the web UI and REST API. |
-| **maintenance** | Same as `web` | Single APScheduler process for registration digests, optional result retention, and database backups. No HTTP port or Docker socket. |
+| **maintenance** | Same as `web` | Single APScheduler process for registration digests, optional result retention, database backups, and log rotation. No HTTP port or Docker socket. |
 | **worker** | Same as `web` | Celery worker that receives `run_gremlin_task` jobs from Redis. |
 | **redis** | `redis:7.2-alpine` | Celery message broker and result backend. |
 | **runner** | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `worker`. |
@@ -232,6 +232,8 @@ cookie-only writes are rejected to avoid CSRF on browser sessions.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/PSSM_GREMLIN/user_control` | Admin-only user management page (web UI) |
+| `GET` | `/PSSM_GREMLIN/logs` | Admin-only viewer for the four active service logs |
+| `GET` | `/PSSM_GREMLIN/api/auth/admin/logs/<name>` | Stream one fixed active service log; rotated archives are not exposed |
 | `GET` | `/PSSM_GREMLIN/api/auth/admin/users` | List all users (safe fields, excludes soft-deleted) |
 | `POST` | `/PSSM_GREMLIN/api/auth/admin/users` | Create user (pre-verified, immediately active) |
 | `PUT` | `/PSSM_GREMLIN/api/auth/admin/users/<id>` | Update profile fields, email, password, role, and account statuses |
@@ -337,7 +339,7 @@ Important environment variables (see the organized sections in
 | `BACKUP_DB_PATH` | Snapshot directory inside maintenance; `/var/lib/revodesign-auth/backups` maps to `${AUTH_DIR}/backups` on the host |
 | `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain; unset is unlimited, recommended value is `30` |
 | `ROTATE_LOG_MAX_LINENO` | Optional positive line-count threshold for ZIP log rotation; unset disables this trigger |
-| `ROTATE_LOG_PERIOD` | Optional positive rotation period in days (`1` daily, `7` weekly, `30` monthly); unset disables this trigger |
+| `ROTATE_LOG_PERIOD` | Optional quoted five-field crontab expression for scheduled rotation (for example, `"0 0 * * *"` for daily at midnight); unset disables this trigger |
 | `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest archives first |
 | `ADMIN_USERS` | Comma-separated admin usernames |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated allowed email domains for self-registration (empty = all allowed). Plus-aliased addresses normalised. |

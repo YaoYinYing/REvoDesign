@@ -32,10 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   password-reset tokens.
 - **GREMLIN server: automatic log rotation**: the maintenance scheduler can
   ZIP and copy-truncate `LOG_DIR/*.log` after `ROTATE_LOG_MAX_LINENO` is
-  exceeded or every `ROTATE_LOG_PERIOD` days. Either unset trigger is disabled;
-  `MAX_LOG_SIZE` optionally caps active logs plus ZIP archives using bytes or
-  K/M/G/T suffixes and removes the oldest archives first. Leaving all three
-  settings unset disables rotation.
+  exceeded or on the `ROTATE_LOG_PERIOD` crontab schedule. Either unset trigger
+  is disabled; `MAX_LOG_SIZE` optionally caps active logs plus ZIP archives
+  using bytes or K/M/G/T suffixes and removes the oldest archives first.
+  Leaving all three settings unset disables rotation.
+- **GREMLIN server: admin log viewer**: a standalone page linked from the
+  administrator dashboard lazily streams the four active Gunicorn access,
+  Gunicorn error, Celery worker, and maintenance logs through fixed-name
+  admin-only endpoints.
 
 ## [1.9.1] - 2026-07-28
 ### Added

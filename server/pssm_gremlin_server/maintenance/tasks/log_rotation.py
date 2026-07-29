@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""ZIP and copy-truncate server logs on line-count or age thresholds."""
+"""ZIP and copy-truncate server logs on configured triggers."""
 
 from __future__ import annotations
 
@@ -16,7 +16,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from pssm_gremlin_server.config import env_float, env_int, env_path
+from apscheduler.schedulers.base import BaseScheduler
+from apscheduler.triggers.cron import CronTrigger
+from pssm_gremlin_server.config import env_int, env_path
 from pssm_gremlin_server.maintenance.model import PeriodicTask
 
 _SIZE_PATTERN = re.compile(r"(\d+(?:\.\d+)?)\s*([KMGT]?B?)?", re.IGNORECASE)
@@ -73,7 +75,7 @@ def _prune_oldest_archives(log_dir: Path, max_size: int) -> None:
 def rotate_logs(
     log_dir: str,
     max_lines: int | None,
-    period_days: float | None,
+    rotate_for_period: bool,
     max_size: int | None,
     *,
     now: float | None = None,
@@ -88,17 +90,10 @@ def rotate_logs(
     rotate_for_size = max_size is not None and _managed_log_size(directory) > max_size
 
     for log_path in sorted(directory.glob("*.log")):
-        marker = log_path.with_name(f".{log_path.name}.rotation")
-        if not marker.exists():
-            marker.touch()
-            os.utime(marker, (current_time, current_time))
-
         by_lines = max_lines is not None and _line_count(log_path) > max_lines
-        by_period = (
-            period_days is not None
-            and current_time - marker.stat().st_mtime >= period_days * 86400
-        )
-        if log_path.stat().st_size == 0 or not (by_lines or by_period or rotate_for_size):
+        if log_path.stat().st_size == 0 or not (
+            by_lines or rotate_for_period or rotate_for_size
+        ):
             continue
 
         timestamp = datetime.fromtimestamp(current_time, timezone.utc).strftime(
@@ -110,7 +105,6 @@ def rotate_logs(
         # ponytail: copy-truncate keeps existing process file descriptors valid;
         # use service-specific reopen signals only if the tiny write race matters.
         log_path.open("w", encoding="utf-8").close()
-        os.utime(marker, (current_time, current_time))
         rotated += 1
         logging.info("Rotated log %s to %s", log_path, archive)
 
@@ -133,7 +127,6 @@ class LogRotationTask(PeriodicTask):
         period_raw = os.environ.get("ROTATE_LOG_PERIOD", "").strip()
         max_size_raw = os.environ.get("MAX_LOG_SIZE", "").strip()
         max_lines = env_int("ROTATE_LOG_MAX_LINENO", 0) if max_lines_raw else None
-        period_days = env_float("ROTATE_LOG_PERIOD", 0.0) if period_raw else None
         max_size = parse_log_size(max_size_raw) if max_size_raw else None
         log_dir = env_path(
             "LOG_DIR",
@@ -142,28 +135,64 @@ class LogRotationTask(PeriodicTask):
 
         self.env = {
             "ROTATE_LOG_MAX_LINENO": max_lines,
-            "ROTATE_LOG_PERIOD": period_days,
+            "ROTATE_LOG_PERIOD": period_raw,
             "MAX_LOG_SIZE": max_size,
             "LOG_DIR": log_dir,
         }
         self._args = {}
+        self._threshold_args: dict[str, Any] = {}
         self._is_enabled = False
 
         if max_lines is not None and max_lines <= 0:
             raise ValueError("ROTATE_LOG_MAX_LINENO must be a positive integer when set")
-        if period_days is not None and period_days <= 0:
-            raise ValueError("ROTATE_LOG_PERIOD must be a positive number when set")
-        if max_lines is None and period_days is None and max_size is None:
+        if max_lines is None and not period_raw and max_size is None:
             return
 
+        if period_raw:
+            self._args = {
+                "trigger": CronTrigger.from_crontab(
+                    period_raw,
+                    timezone=os.environ.get("TZ", "UTC"),
+                ),
+                "args": (log_dir, None, True, max_size),
+                "misfire_grace_time": 3600,
+            }
+        if max_lines is not None or max_size is not None:
+            self._threshold_args = {
+                "trigger": "interval",
+                "hours": 1,
+                "args": (log_dir, max_lines, False, max_size),
+                "misfire_grace_time": 3600,
+                "next_run_time": datetime.now(timezone.utc),
+            }
+            if not period_raw:
+                self._args = self._threshold_args
+
         self._is_enabled = True
-        self._args = {
-            "trigger": "interval",
-            "hours": 1,
-            "args": (log_dir, max_lines, period_days, max_size),
-            "misfire_grace_time": 3600,
-            "next_run_time": datetime.now(timezone.utc),
-        }
+
+    def register(self, scheduler: BaseScheduler) -> bool:
+        """Register cron rotation and hourly thresholds independently."""
+        self.configure()
+        if not self.is_enabled:
+            return False
+        if self._threshold_args and self.env["ROTATE_LOG_PERIOD"]:
+            scheduler.add_job(
+                self.task_method,
+                id=f"{self.id}-thresholds",
+                replace_existing=True,
+                coalesce=True,
+                max_instances=self.max_instances,
+                **self._threshold_args,
+            )
+        scheduler.add_job(
+            self.task_method,
+            id=self.id,
+            replace_existing=True,
+            coalesce=True,
+            max_instances=self.max_instances,
+            **self.args,
+        )
+        return True
 
 
 log_rotation_task = LogRotationTask()

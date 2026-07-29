@@ -20,7 +20,7 @@ def test_line_threshold_rotates_to_zip_and_truncates_live_log(tmp_path):
     content = "one\ntwo\nthree\n"
     log.write_text(content, encoding="utf-8")
 
-    assert rotate_logs(str(tmp_path), 2, None, None, now=1_000_000) == 1
+    assert rotate_logs(str(tmp_path), 2, False, None, now=1_000_000) == 1
 
     archives = list(tmp_path.glob("worker.log.*.zip"))
     assert len(archives) == 1
@@ -29,12 +29,11 @@ def test_line_threshold_rotates_to_zip_and_truncates_live_log(tmp_path):
     assert log.read_text(encoding="utf-8") == ""
 
 
-def test_period_uses_persistent_marker(tmp_path):
+def test_scheduled_period_rotates_nonempty_logs(tmp_path):
     log = tmp_path / "maintenance.log"
     log.write_text("entry\n", encoding="utf-8")
 
-    assert rotate_logs(str(tmp_path), None, 1, None, now=1_000_000) == 0
-    assert rotate_logs(str(tmp_path), None, 1, None, now=1_086_400) == 1
+    assert rotate_logs(str(tmp_path), None, True, None, now=1_000_000) == 1
 
 
 def test_size_cap_removes_oldest_archive_before_touching_live_log(tmp_path):
@@ -47,7 +46,7 @@ def test_size_cap_removes_oldest_archive_before_touching_live_log(tmp_path):
     os.utime(oldest, (1, 1))
     os.utime(newest, (2, 2))
 
-    assert rotate_logs(str(tmp_path), None, None, 800_000, now=3) == 0
+    assert rotate_logs(str(tmp_path), None, False, 800_000, now=3) == 0
 
     assert not oldest.exists()
     assert newest.exists()
@@ -58,7 +57,7 @@ def test_size_cap_rotates_live_log_when_archives_cannot_reduce_total(tmp_path):
     log = tmp_path / "web.log"
     log.write_bytes(os.urandom(2 * 1024**2))
 
-    assert rotate_logs(str(tmp_path), None, None, 1024**2, now=3) == 1
+    assert rotate_logs(str(tmp_path), None, False, 1024**2, now=3) == 1
 
     total = sum(path.stat().st_size for path in tmp_path.glob("web.log*"))
     assert log.stat().st_size == 0
@@ -68,7 +67,7 @@ def test_size_cap_rotates_live_log_when_archives_cannot_reduce_total(tmp_path):
 def test_log_rotation_task_configures_all_triggers(monkeypatch, tmp_path):
     monkeypatch.setenv("LOG_DIR", str(tmp_path))
     monkeypatch.setenv("ROTATE_LOG_MAX_LINENO", "1000")
-    monkeypatch.setenv("ROTATE_LOG_PERIOD", "7")
+    monkeypatch.setenv("ROTATE_LOG_PERIOD", "0 0 * * *")
     monkeypatch.setenv("MAX_LOG_SIZE", "512.5M")
 
     log_rotation_task.configure()
@@ -76,16 +75,15 @@ def test_log_rotation_task_configures_all_triggers(monkeypatch, tmp_path):
     assert log_rotation_task.is_enabled is True
     assert log_rotation_task.env == {
         "ROTATE_LOG_MAX_LINENO": 1000,
-        "ROTATE_LOG_PERIOD": 7.0,
+        "ROTATE_LOG_PERIOD": "0 0 * * *",
         "MAX_LOG_SIZE": int(512.5 * 1024**2),
         "LOG_DIR": str(tmp_path),
     }
-    assert log_rotation_task.args["trigger"] == "interval"
-    assert log_rotation_task.args["hours"] == 1
+    assert log_rotation_task.args["trigger"].timezone is not None
     assert log_rotation_task.args["args"] == (
         str(tmp_path),
-        1000,
-        7.0,
+        None,
+        True,
         int(512.5 * 1024**2),
     )
 
@@ -94,7 +92,7 @@ def test_log_rotation_task_configures_all_triggers(monkeypatch, tmp_path):
     ("name", "value", "message"),
     [
         ("ROTATE_LOG_MAX_LINENO", "0", "must be a positive integer"),
-        ("ROTATE_LOG_PERIOD", "-1", "must be a positive number"),
+        ("ROTATE_LOG_PERIOD", "not a cron", "Wrong number of fields"),
         ("MAX_LOG_SIZE", "0", "must be positive"),
     ],
 )

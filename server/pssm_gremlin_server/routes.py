@@ -17,10 +17,11 @@ import logging
 import os
 import shutil
 import time
+from pathlib import Path
 from typing import Any
 
 from celery.result import AsyncResult
-from flask import current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Response, current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 from pssm_gremlin_server.auth import (
     _DUMMY_PASSWORD_HASH,
     UserDatabase,
@@ -142,6 +143,15 @@ def user_control_page():
     if not g.current_user.get("is_admin"):
         return render_template("error.html", code=403, message="Admin access required"), 403
     return render_template("user_control.html", is_admin_user=True)
+
+
+@app.route("/PSSM_GREMLIN/logs", methods=["GET"])
+@login_required
+def log_viewer_page():
+    """Admin-only active-log viewer."""
+    if not g.current_user.get("is_admin"):
+        return render_template("error.html", code=403, message="Admin access required"), 403
+    return render_template("log_viewer.html")
 
 
 @app.route("/favicon.ico", methods=["GET"])
@@ -673,6 +683,51 @@ def require_admin():
     if not g.current_user.get("is_admin"):
         return jsonify({"error": "Admin access required"}), 403
     return None
+
+
+_ADMIN_LOG_FILES = {
+    "gunicorn-access": "gunicorn-access.log",
+    "gunicorn-error": "gunicorn-error.log",
+    "celery-worker": "celery-worker.log",
+    "maintenance": "maintenance.log",
+}
+
+
+@app.route("/PSSM_GREMLIN/api/auth/admin/logs/<log_name>", methods=["GET"])
+@login_required
+def admin_stream_log(log_name: str):
+    """Stream one fixed, unrotated server log to an administrator."""
+    if _blocked := require_admin():
+        return _blocked
+    filename = _ADMIN_LOG_FILES.get(log_name)
+    if filename is None:
+        return jsonify({"error": "Unknown log"}), 404
+
+    log_dir = os.environ.get("LOG_DIR", "").strip()
+    if not log_dir:
+        return jsonify({"error": "LOG_DIR is not configured"}), 503
+    log_path = Path(log_dir).resolve() / filename
+    if log_path.is_symlink() or not log_path.is_file():
+        return jsonify({"error": "Log is not available"}), 404
+    try:
+        handle = log_path.open("rb")
+    except OSError:
+        return jsonify({"error": "Log is not available"}), 404
+
+    def stream():
+        with handle:
+            while chunk := handle.read(64 * 1024):
+                yield chunk
+
+    return Response(
+        stream(),
+        mimetype="text/plain",
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 def _reject_guest():

@@ -148,16 +148,25 @@ def test_configure_jobs_registers_database_backup_cron(monkeypatch, tmp_path):
 
 def test_configure_jobs_registers_log_rotation(monkeypatch, tmp_path):
     monkeypatch.setenv("LOG_DIR", str(tmp_path))
-    monkeypatch.setenv("ROTATE_LOG_PERIOD", "1")
+    monkeypatch.setenv("ROTATE_LOG_MAX_LINENO", "1000")
+    monkeypatch.setenv("ROTATE_LOG_PERIOD", "0 0 * * *")
     scheduler = RecordingScheduler()
 
     assert manager.configure_jobs(scheduler) == ["log-rotation"]
 
-    task_func, trigger, options = scheduler.jobs[0]
+    assert len(scheduler.jobs) == 2
+    threshold_func, threshold_trigger, threshold_options = scheduler.jobs[0]
+    assert threshold_func is log_rotation_task.task_method
+    assert threshold_trigger == "interval"
+    assert threshold_options["hours"] == 1
+    assert threshold_options["args"] == (str(tmp_path), 1000, False, None)
+    assert threshold_options["id"] == "log-rotation-thresholds"
+
+    task_func, trigger, options = scheduler.jobs[1]
     assert task_func is log_rotation_task.task_method
-    assert trigger == "interval"
-    assert options["hours"] == 1
-    assert options["args"] == (str(tmp_path), None, 1.0, None)
+    assert trigger is log_rotation_task.args["trigger"]
+    assert options["args"] == (str(tmp_path), None, True, None)
+    assert options["id"] == log_rotation_task.id
 
 
 def test_database_backup_retention_is_unlimited_when_unset(monkeypatch, tmp_path):

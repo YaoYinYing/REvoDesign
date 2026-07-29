@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 import pytest
 from conftest import (
@@ -400,6 +401,90 @@ def test_user_control_page_requires_admin(monkeypatch, tmp_path):
 
     resp = client.get("/PSSM_GREMLIN/user_control", headers=user_header)
     assert resp.status_code == 403
+
+
+def test_log_viewer_page_requires_admin(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+
+    response = client.get(
+        "/PSSM_GREMLIN/logs",
+        headers=_admin_client_auth(module),
+    )
+    assert response.status_code == 200
+    assert b"Gunicorn access" in response.data
+    assert b"Maintenance" in response.data
+    assert b"/static/js/log-viewer.js" in response.data
+
+    response = client.get(
+        "/PSSM_GREMLIN/dashboard",
+        headers=_admin_client_auth(module),
+    )
+    assert response.status_code == 200
+    assert b'href="/PSSM_GREMLIN/logs"' in response.data
+
+    response = client.get(
+        "/PSSM_GREMLIN/logs",
+        headers=_test_client_auth(module),
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.parametrize(
+    ("log_name", "filename"),
+    [
+        ("gunicorn-access", "gunicorn-access.log"),
+        ("gunicorn-error", "gunicorn-error.log"),
+        ("celery-worker", "celery-worker.log"),
+        ("maintenance", "maintenance.log"),
+    ],
+)
+def test_admin_can_stream_fixed_server_logs(monkeypatch, tmp_path, log_name, filename):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    content = f"{filename}: first\n{filename}: second\n".encode()
+    log_dir = os.environ["LOG_DIR"]
+    with open(os.path.join(log_dir, filename), "wb") as handle:
+        handle.write(content)
+
+    response = module.app.test_client().get(
+        f"/PSSM_GREMLIN/api/auth/admin/logs/{log_name}",
+        headers=_admin_client_auth(module),
+        buffered=False,
+    )
+
+    assert response.status_code == 200
+    assert response.is_streamed
+    assert b"".join(response.response) == content
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_server_log_stream_rejects_non_admin_and_unknown_names(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+
+    response = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/maintenance",
+        headers=_test_client_auth(module),
+    )
+    assert response.status_code == 403
+
+    response = client.get(
+        "/PSSM_GREMLIN/api/auth/admin/logs/not-a-log",
+        headers=_admin_client_auth(module),
+    )
+    assert response.status_code == 404
 
 
 def test_user_verify_endpoint(monkeypatch, tmp_path):

@@ -178,7 +178,7 @@ Fallback when `REVODESIGN_SERVER_ENV` is unset:
 | `BACKUP_DB_PATH` | Snapshot directory inside the maintenance container. `/var/lib/revodesign-auth/backups` persists at `${AUTH_DIR}/backups` on the host. |
 | `MAX_DB_BACKUP` | Maximum complete snapshot sets to retain. Leave unset for unlimited history; recommended value: `30`. |
 | `ROTATE_LOG_MAX_LINENO` | Optional line-count rotation threshold; unset disables this trigger. |
-| `ROTATE_LOG_PERIOD` | Optional period in days (`1` daily, `7` weekly, `30` monthly); unset disables this trigger. |
+| `ROTATE_LOG_PERIOD` | Optional quoted five-field crontab expression for scheduled rotation (for example, `"0 0 * * *"` for daily at midnight); unset disables this trigger. |
 | `MAX_LOG_SIZE` | Optional total cap for active logs plus ZIP archives; accepts bytes or K/M/G/T suffixes and removes oldest ZIPs first. |
 | `ADMIN_USERS` | Comma-separated admin usernames for cross-user management. |
 | `ADMIN_NOTIFY_EMAIL` | Comma-separated admin email addresses for new-user registration digests (default: empty = no notification). |
@@ -343,6 +343,11 @@ curl -X POST -H "Authorization: Bearer <admin-token>" \
 Admins cannot ban or delete their own account.  Direct self-ban/self-delete
 requests return HTTP 400, and batch Disable/Delete skips the acting admin while
 still applying the requested action to other selected users.
+
+The dashboard header also links administrators to `/PSSM_GREMLIN/logs`. That
+standalone page loads only the selected active Gunicorn access, Gunicorn error,
+Celery worker, or maintenance log and streams it incrementally. Rotated ZIP
+archives and arbitrary filesystem paths are not exposed.
 
 ### API keys (programmatic access)
 
