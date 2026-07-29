@@ -312,6 +312,13 @@ only then suppress a remaining intentional plugin-bootstrap cycle at the
 smallest stable module boundary. A suppression is an audited outcome, not a
 silent omission.
 
+DeepSource may report import-cycle graph results as synthetic line-zero
+occurrences and ignore an otherwise valid module-local Pylint directive. When
+all remaining cycles belong to one verified intentional bootstrap graph, record
+the rationale beside a rule-specific `cyclic-import` disable in the shared
+Pylint configuration. Do not use that analyzer-level exception until a fresh
+run proves that no unrelated cycle remains.
+
 ## Classification Model
 
 Classify each finding on two axes: danger and complexity.

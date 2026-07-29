@@ -347,6 +347,9 @@ limit-inference-results=100
 
 [tool.pylint.'MESSAGES CONTROL']
 enable="c-extension-no-member"
+# DeepSource reports the intentional plugin-bootstrap graph as synthetic line-0
+# PYL-R0401 occurrences, where module-local suppressions are not applied.
+disable="cyclic-import"
 
 [tool.pylint.'REPORTS']
 
