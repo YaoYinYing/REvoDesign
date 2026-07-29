@@ -12,8 +12,6 @@
 
 import os
 import pathlib
-
-# MRF model serialization uses trusted data.
 import pickle  # nosec B403
 import sys
 
@@ -22,6 +20,7 @@ import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from gremlin_labels import validate_position_label
 from scipy import stats
 from scipy.spatial.distance import pdist, squareform
 from tensorflow.python.framework import ops
@@ -424,8 +423,8 @@ plot_v(mrf)
 
 
 def plot_w(mrf, i, j, i_aa, j_aa):
-    if i_aa not in alphabet or j_aa not in alphabet:
-        raise ValueError("Amino-acid labels must use the configured alphabet")
+    i_aa = validate_position_label(i_aa, alphabet)
+    j_aa = validate_position_label(j_aa, alphabet)
     n = int(np.where((mrf["w_idx"][:, 0] == i) & (mrf["w_idx"][:, 1] == j))[0])
     w = mrf["w"][n]
 

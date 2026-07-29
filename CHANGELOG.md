@@ -72,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **GREMLIN server: position-label validation**: validate the residue and
+  positive numeric position components separately so valid labels such as
+  `A_1` no longer abort fresh GREMLIN runs.
 - **GREMLIN server: notification logging privacy**: failed administrator
   approval and rejection notifications now log the target user ID instead of
   the recipient email address.
