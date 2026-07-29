@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import zipfile
@@ -111,6 +112,33 @@ def test_admin_can_update_user_status(monkeypatch, tmp_path):
     assert resp.status_code == 200
     updated = db.get_user(user["id"])
     assert updated["user_status"] == "banned"
+
+
+@pytest.mark.parametrize(
+    ("registration_status", "sender_name", "warning"),
+    (
+        ("approved", "send_approval_email", "Approval email failed for"),
+        ("rejected", "send_rejection_email", "Rejection email failed for"),
+    ),
+)
+def test_admin_notification_failure_logs_user_id_not_email(
+    monkeypatch,
+    tmp_path,
+    caplog,
+    registration_status,
+    sender_name,
+    warning,
+):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    db = module.app.config["user_db"]
+    user = db.create_user(username=f"{registration_status}_target", email="private@test.local", password="pass1234")
+    route_globals = inspect.unwrap(module.app.view_functions["admin_manage_user"]).__globals__
+    monkeypatch.setitem(route_globals, sender_name, lambda _user: False)
+
+    route_globals["_notify_admin_user_update"](db, user["id"], user, registration_status)
+
+    assert caplog.messages[-1] == f"{warning} {user['id']!r}"
+    assert user["email"] not in caplog.text
 
 
 def test_banned_user_cannot_authenticate_with_existing_credentials(monkeypatch, tmp_path):

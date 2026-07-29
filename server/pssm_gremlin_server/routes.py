@@ -1346,9 +1346,9 @@ def _notify_admin_user_update(
     if registration_status == "approved":
         approved_user = db.get_user(user_id) or user
         if not send_approval_email(approved_user):
-            logging.warning("Approval email failed for %r", approved_user["email"])
+            logging.warning("Approval email failed for %r", user_id)
     elif registration_status == "rejected" and not send_rejection_email(user):
-        logging.warning("Rejection email failed for %r", user["email"])
+        logging.warning("Rejection email failed for %r", user_id)
 
 
 @app.route("/PSSM_GREMLIN/api/auth/admin/users/<int:user_id>", methods=["PUT", "DELETE"])

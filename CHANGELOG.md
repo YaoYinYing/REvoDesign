@@ -72,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **GREMLIN server: notification logging privacy**: failed administrator
+  approval and rejection notifications now log the target user ID instead of
+  the recipient email address.
 - **macOS deployment test compatibility**: guard iteration over the initially
   empty administrator-deduplication array so Bash 3.2 with `set -u` can run the
   bootstrap path and still reject duplicate `ADMIN_USERS` entries.
