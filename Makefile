@@ -80,7 +80,7 @@ upload-gists:
 	# JSONs for installer
 	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesignExtrasTableRich.json jsons/REvoDesignExtrasTableRich.json
 	# HMAC manifest — key is extracted from the uploaded source file
-	@python -c 'import hmac, json, re; from pathlib import Path; src = Path("src/REvoDesign/tools/package_manager.py").read_text(); m = re.search(r"_MANAGER_HMAC_KEY\s*=\s*bytes\.fromhex\(\"([a-f0-9]+)\"\)", src); assert m, "_MANAGER_HMAC_KEY not found"; key = bytes.fromhex(m.group(1)); files = {"REvoDesign_PyMOL.py": "src/REvoDesign/tools/package_manager.py", "REvoDesign-PyMOL-entry.ui": "src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui", "REvoDesignExtrasTableRich.json": "jsons/REvoDesignExtrasTableRich.json"}; manifest = {name: hmac.new(key, Path(path).read_bytes(), "sha256").hexdigest() for name, path in files.items()}; Path("/tmp/manifest.json").write_text(json.dumps(manifest, indent=2) + "\n"); print("Manifest:", json.dumps(manifest, indent=2))'
+	@python tools/generate_gist_manifest.py /tmp/manifest.json
 	@trap 'rm -f /tmp/manifest.json' EXIT; \
 	files="$$(gh gist view c1e8bfe0fc0b9c60bf49ea04a550a044 --files)" || exit; \
 	if printf '%s\n' "$$files" | grep -Fxq manifest.json; then \
