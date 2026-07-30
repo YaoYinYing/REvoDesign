@@ -68,12 +68,8 @@ class MeetingRoom:
     host: Client
     clients: dict[str, Client]
 
-    def get_user_by_uuid(self, uuid: str):
-        if self.empty:
-            return None
-        user = self.clients.get(uuid)
-        if user:
-            return user
+    def get_user_by_uuid(self, uuid: str) -> Client | None:
+        return self.clients.get(uuid)
 
     def does_user_exist(self, uuid: str) -> bool:
         return uuid in self.clients
