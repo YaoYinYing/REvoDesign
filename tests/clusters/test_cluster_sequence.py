@@ -7,7 +7,7 @@ import random
 
 from Bio import SeqIO
 
-from REvoDesign.clusters.cluster_sequence import Clustering
+from REvoDesign.clusters.cluster_sequence import Clustering, _shutdown_loky_process_pool
 
 
 class _DummySignal:
@@ -29,6 +29,9 @@ class _FakeQtParallelExecutor:
 
     def isFinished(self):
         return self._finished
+
+    def wait(self):
+        return True
 
     def handle_result(self):
         return self._results
@@ -83,6 +86,22 @@ def test_cluster_representative_is_deterministic_and_not_random(monkeypatch, tmp
     assert first_center_content == first_compat_content
     assert second_center_content == second_compat_content
     assert first_center_content == second_center_content
+
+
+def test_cluster_shutdown_releases_loky_workers(monkeypatch):
+    from joblib.externals.loky import reusable_executor
+
+    shutdown_calls = []
+
+    class _FakeExecutor:
+        def shutdown(self, *, wait, kill_workers):
+            shutdown_calls.append((wait, kill_workers))
+
+    monkeypatch.setattr(reusable_executor, "_executor", _FakeExecutor())
+
+    _shutdown_loky_process_pool()
+
+    assert shutdown_calls == [(True, True)]
 
 
 class _FakeRosettaAnalyser:

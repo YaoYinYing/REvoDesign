@@ -33,6 +33,15 @@ logging = ROOT_LOGGER.getChild(__name__)
 matplotlib.use("Agg")
 
 
+def _shutdown_loky_process_pool() -> None:
+    """Release joblib workers created by the cluster alignment batches."""
+    from joblib.externals.loky import reusable_executor
+
+    executor = reusable_executor._executor  # skipcq: PYL-W0212 -- loky exposes no public current-pool accessor.
+    if executor is not None:
+        executor.shutdown(wait=True, kill_workers=True)
+
+
 @dataclass(frozen=True)
 class ClusterInputSpec:
     key: str
@@ -303,6 +312,7 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
                     while not parallel_executor.isFinished():
                         refresh_window()
                         time.sleep(0.01)
+                    parallel_executor.wait()
 
                     progressbar.setValue(batch_count)
                     refresh_window()
@@ -322,7 +332,10 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
                 progressbar.setValue(workload)
 
         logging.info("Calculating...")
-        processing(paramlist, indexlist, self.batch_size, "w")
+        try:
+            processing(paramlist, indexlist, self.batch_size, "w")
+        finally:
+            _shutdown_loky_process_pool()
 
         logging.info("reading buffer ...")
         df = pd.read_csv(self.buffer_file)

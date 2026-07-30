@@ -23,7 +23,7 @@ class MockServerControl(ServerControlAbstract):
 
     def start_server(self):
         super().start_server()  # Will print "Server is already running." if is_running is True
-        if not self.is_running:
+        if not self.is_running and not (self.server_thread and self.server_thread.is_alive()):
             print("Starting server... (Mock)")
             self.is_running = True
             self.server_thread = MagicMock()
@@ -31,6 +31,14 @@ class MockServerControl(ServerControlAbstract):
             self.server = MagicMock()
         else:
             print("Server is already running. (Mock)")
+
+
+@pytest.fixture(autouse=True)
+def reset_mock_server_control():
+    """Keep singleton state from leaking between server-monitor tests."""
+    MockServerControl.reset_instance()
+    yield
+    MockServerControl.reset_instance()
 
 
 # -----------------------------------------------------------------------------
@@ -81,6 +89,23 @@ def test_server_control_start_stop():
     # Attempt to stop server again (should show 'Server is not running.' message)
     control.stop_server()
     assert not control.is_running
+
+
+def test_stop_request_marks_timed_out_server_not_running(monkeypatch):
+    """A slow shutdown must not leave the public running state enabled."""
+    control = MockServerControl()
+    control.start_server()
+    control.server_thread.is_alive.return_value = True
+    monkeypatch.setattr(
+        "REvoDesign.basic.server_monitor.time.monotonic",
+        MagicMock(side_effect=[0, 6]),
+    )
+
+    control.stop_server()
+
+    assert not control.is_running
+    assert control.server_thread is not None
+    assert control.server is not None
 
 
 # -----------------------------------------------------------------------------

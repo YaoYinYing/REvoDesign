@@ -66,9 +66,12 @@ A helper class for package manager UI tests. Provides:
 ### `TestWorker` file-dialog guard
 
 GUI cases using the `test_worker` fixture fail immediately if they unexpectedly
-open a file dialog. Supply required input and output paths through the test
-configuration, and declare generated-artifact prerequisites with
-`pytest-dependency`; a modal dialog cannot be answered by headless CI.
+open a file or notification dialog. Supply required input and output paths
+through the test configuration, and declare generated-artifact prerequisites
+with `pytest-dependency`; a modal dialog cannot be answered by headless CI.
+Tests that intentionally exercise dialog-driven actions must explicitly patch
+the fixture's `test_worker.plugin.file_dialog` instance with the expected
+result.
 
 ### Other fixtures
 

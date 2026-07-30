@@ -73,8 +73,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **GUI test dependency safety**: run the pocket-session producer before the
-  PIPPack/ProteinMPNN case and fail immediately if a `TestWorker` case
-  unexpectedly opens a modal file dialog in headless CI.
+  PIPPack/ProteinMPNN case, release reusable cluster workers after each run,
+  and fail immediately if a `TestWorker` case unexpectedly opens a modal file
+  or notification dialog in headless CI.
+- **Editor server lifecycle**: mark an immediate or timed-out stop request as
+  not running and reject restarts while the previous server thread drains.
+- **Mutant session merge**: use the canonical `run_command(command=...)`
+  interface so visualization no longer raises an unexpected-keyword error.
 - **Repository-wide DeepSource audit**: reconcile bug-risk, anti-pattern,
   security, and performance occurrences across server, desktop, tools, and
   development scripts; fix reproducible findings and document narrow

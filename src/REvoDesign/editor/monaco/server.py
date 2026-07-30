@@ -304,7 +304,7 @@ class ServerControl(ServerControlAbstract):
         self.config_store = ConfigStore()
 
     def start_server(self):
-        if self.is_running:
+        if self.is_running or (self.server_thread and self.server_thread.is_alive()):
             logging.warning("Server is already running.")
             return
 
@@ -397,13 +397,14 @@ class ServerControl(ServerControlAbstract):
         logging.debug(f"ServerControl::Config:{self.config_store.cfg}")
 
     def stop_server(self):
-        if not self.is_running:
+        if not self.is_running and not (self.server_thread and self.server_thread.is_alive()):
             logging.warning("Server is not running.")
             return
 
         print("Stopping server...")
         if self.server:
             self.server.should_exit = True
+        self.is_running = False
         if self.server_thread and self.server_thread.is_alive():
             deadline = time.monotonic() + 5
             while self.server_thread.is_alive() and time.monotonic() < deadline:
@@ -414,5 +415,4 @@ class ServerControl(ServerControlAbstract):
                 return
         self.server_thread = None
         self.server = None
-        self.is_running = False
         distruct_token()

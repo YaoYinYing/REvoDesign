@@ -409,7 +409,7 @@ class MutantVisualizer:
             "--quiet",
         ] + self.mutagenesis_sessions
 
-        merge_results = run_command(cmd=tmp_merge_command)
+        merge_results = run_command(command=tmp_merge_command)
         if merge_results.returncode == 0:
             logging.info(f"Temperal merged result is successfully created at {merged_temp_session}")
             os.rename(merged_temp_session, self.save_session)
