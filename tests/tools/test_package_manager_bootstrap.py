@@ -35,6 +35,126 @@ def test_package_manager_source_survives_simplified_chinese_windows_gbk_transcod
     compile(source.encode("gbk"), str(source_path), "exec")
 
 
+class _MockWindowsKernel32:
+    def __init__(self, *, ansi: int, oem: int, console_output: int):
+        self.ansi = ansi
+        self.oem = oem
+        self.console_output = console_output
+
+    def GetACP(self):
+        return self.ansi
+
+    def GetOEMCP(self):
+        return self.oem
+
+    def GetConsoleOutputCP(self):
+        return self.console_output
+
+
+def test_pm_detect_windows_code_pages_reports_cp936(monkeypatch):
+    kernel32 = _MockWindowsKernel32(ansi=936, oem=936, console_output=936)
+    monkeypatch.setattr(package_manager.sys, "platform", "win32")
+    monkeypatch.setattr(package_manager.ctypes, "WinDLL", lambda *_args, **_kwargs: kernel32, raising=False)
+
+    assert package_manager.detect_windows_code_pages() == {
+        "ansi": 936,
+        "oem": 936,
+        "console_output": 936,
+    }
+
+
+def test_pm_detect_windows_code_pages_skips_non_windows(monkeypatch):
+    monkeypatch.setattr(package_manager.sys, "platform", "linux")
+
+    assert package_manager.detect_windows_code_pages() is None
+
+
+def test_pm_detect_windows_code_pages_fails_open(monkeypatch):
+    monkeypatch.setattr(package_manager.sys, "platform", "win32")
+
+    def fail_detection(*_args, **_kwargs):
+        raise OSError("WinAPI unavailable")
+
+    monkeypatch.setattr(package_manager.ctypes, "WinDLL", fail_detection, raising=False)
+
+    assert package_manager.detect_windows_code_pages() is None
+
+
+def test_pm_schedule_windows_gbk_warning_on_qt_event_loop(monkeypatch):
+    scheduled = []
+    notifications = []
+    monkeypatch.setattr(package_manager, "_WINDOWS_GBK_WARNING_SCHEDULED", False)
+    monkeypatch.setattr(
+        package_manager,
+        "detect_windows_code_pages",
+        lambda: {"ansi": 936, "oem": 936, "console_output": 936},
+    )
+    monkeypatch.setattr(
+        package_manager.QtCore.QTimer,
+        "singleShot",
+        lambda delay, callback: scheduled.append((delay, callback)),
+    )
+    monkeypatch.setattr(
+        package_manager,
+        "notify_box",
+        lambda message, error_type, details=None: notifications.append((message, error_type, details)),
+    )
+
+    assert package_manager.schedule_windows_gbk_warning()
+    assert not package_manager.schedule_windows_gbk_warning()
+    assert len(scheduled) == 1
+    assert scheduled[0][0] == 0
+
+    scheduled[0][1]()
+
+    assert len(notifications) == 1
+    message, error_type, details = notifications[0]
+    assert error_type is RuntimeWarning
+    assert "intl.cpl" in message
+    assert "65001" in message
+    assert "ANSI=936" in details
+    assert "YaoYinYing.github.io/REvoDesign/user-guide/installation/" in details
+
+
+def test_pm_schedule_windows_gbk_warning_skips_cp65001(monkeypatch):
+    monkeypatch.setattr(package_manager, "_WINDOWS_GBK_WARNING_SCHEDULED", False)
+    monkeypatch.setattr(
+        package_manager,
+        "detect_windows_code_pages",
+        lambda: {"ansi": 65001, "oem": 65001, "console_output": 65001},
+    )
+
+    assert not package_manager.schedule_windows_gbk_warning()
+
+
+def test_pm_schedule_windows_gbk_warning_fails_open(monkeypatch):
+    monkeypatch.setattr(package_manager, "_WINDOWS_GBK_WARNING_SCHEDULED", False)
+    monkeypatch.setattr(
+        package_manager,
+        "detect_windows_code_pages",
+        lambda: {"ansi": 936, "oem": 936, "console_output": 936},
+    )
+
+    def fail_scheduling(*_args, **_kwargs):
+        raise RuntimeError("Qt event loop unavailable")
+
+    monkeypatch.setattr(package_manager.QtCore.QTimer, "singleShot", fail_scheduling)
+
+    assert not package_manager.schedule_windows_gbk_warning()
+    assert not package_manager._WINDOWS_GBK_WARNING_SCHEDULED
+
+
+def test_pm_plugin_init_schedules_windows_gbk_warning(monkeypatch):
+    schedule_calls = []
+    monkeypatch.setattr(package_manager, "schedule_windows_gbk_warning", lambda: schedule_calls.append(True))
+    monkeypatch.setattr(package_manager, "addmenuitemqt", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(package_manager, "is_package_installed", lambda _package: False)
+
+    package_manager.__init_plugin__()
+
+    assert schedule_calls == [True]
+
+
 def test_pm_fetch_gist_file_valid_url():
     mock_url = "https://example.com/file.ui"
     mock_data = "mock UI content"
