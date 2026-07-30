@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Installation guide
+    url: https://yaoyinying.github.io/REvoDesign/user-guide/installation/
+    about: Review installation and platform-specific setup instructions before reporting a setup problem.
+  - name: Report a security vulnerability privately
+    url: https://github.com/YaoYinYing/REvoDesign/security/advisories/new
+    about: Do not disclose security vulnerabilities in a public issue.

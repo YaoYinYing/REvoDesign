@@ -1,0 +1,68 @@
+name: Documentation problem
+description: Report missing, unclear, incorrect, or outdated documentation
+title: "docs: "
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping make REvoDesign easier to use.
+
+  - type: checkboxes
+    id: existing-issues
+    attributes:
+      label: Existing issues
+      options:
+        - label: I searched existing issues and did not find the same documentation problem.
+          required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Documentation location
+      description: Link to the page or provide the file path and section heading.
+      placeholder: https://yaoyinying.github.io/REvoDesign/...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: problem-type
+    attributes:
+      label: Type of problem
+      options:
+        - Incorrect or outdated information
+        - Missing information
+        - Unclear instructions
+        - Broken link or example
+        - Typo or formatting
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or unclear?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-change
+    attributes:
+      label: Suggested improvement
+      description: Explain what the documentation should say or show instead.
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add screenshots, related issues, or other useful references.
+
+  - type: checkboxes
+    id: code-of-conduct
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct.
+          required: true

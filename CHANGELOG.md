@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```
 ## [Unreleased]
+### Added
+- **Structured issue reporting**: added GitHub Issue Forms for bugs,
+  installation and environment problems, feature requests, and documentation
+  problems, with private routing for security vulnerabilities.
+
 ### Changed
 - **DeepSource server cleanup**: resolved the current Bug Risk and Anti-pattern
   findings by exposing stable public task-runtime compatibility names, removing
