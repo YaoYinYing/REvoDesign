@@ -21,6 +21,27 @@ Supported operating systems:
 - **Ubuntu Linux 20.04** or later
 - **macOS 12** or later
 
+!!! warning "Non-English Windows users: enable UTF-8 support"
+    This is especially important on Simplified-Chinese Windows, where legacy
+    CMD and Windows PowerShell tools may otherwise use CP936/GBK and produce
+    unreadable output or save downloaded text with the wrong encoding.
+
+    1. Press **Win+R**, enter `intl.cpl`, and press **Enter**.
+    2. Open the **Administrative** tab.
+    3. Select **Change system locale...**.
+    4. Check **Beta: Use Unicode UTF-8 for worldwide language support**.
+    5. Select **OK** and restart Windows when prompted.
+    6. Open CMD or PowerShell and run `chcp`. It should report active code page
+       `65001`.
+
+    Microsoft documents this setting as selecting UTF-8 for the Windows active
+    code page. See
+    [Use UTF-8 code pages in Windows apps](https://learn.microsoft.com/windows/apps/design/globalizing/use-utf8-code-page).
+
+    REvoDesign continues to test the default Simplified-Chinese Windows
+    CP936/GBK path. This setting is a recommended interoperability workaround,
+    not a prerequisite or a substitute for reporting encoding problems.
+
 ## Install PyMOL
 
 REvoDesign requires PyMOL. We recommend installing the open-source build from
