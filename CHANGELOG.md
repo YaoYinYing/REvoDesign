@@ -72,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **PyMOL first-install encoding**: kept the standalone `REvoDesign_PyMOL.py`
+  bootstrapper ASCII-only and added a GBK-transcoding regression test so
+  locale-aware Windows downloads cannot become invalid UTF-8 source.
 - **DeepSource return contracts**: made optional-result helpers return `None`
   explicitly, kept UI callbacks consistently side-effect-only, and corrected
   the abstract classmethod receiver name to clear all current `PYL-R1710` and

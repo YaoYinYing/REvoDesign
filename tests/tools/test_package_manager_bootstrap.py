@@ -7,6 +7,7 @@ import json
 import os
 import tempfile
 import urllib.error
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -24,6 +25,14 @@ from REvoDesign.tools.package_manager import (
     package_manager_bootstrap_dir,
     verify_manifest,
 )
+
+
+def test_package_manager_source_survives_simplified_chinese_windows_gbk_transcoding():
+    source_path = Path(package_manager.__file__)
+    source = source_path.read_text(encoding="utf-8")
+
+    assert source.isascii(), "The standalone PyMOL bootstrapper must remain ASCII-only"
+    compile(source.encode("gbk"), str(source_path), "exec")
 
 
 def test_pm_fetch_gist_file_valid_url():

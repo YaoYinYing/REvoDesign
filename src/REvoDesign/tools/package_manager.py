@@ -213,7 +213,7 @@ MANIFEST_ASSET_MANAGER_UI = "REvoDesign-PyMOL-entry.ui"
 MANIFEST_ASSET_EXTRAS_JSON = "REvoDesignExtrasTableRich.json"
 
 # ponytail: HMAC key prevents a forked manifest from accidentally validating
-# against the wrong installation. Not a secret — it ships in the public Gist.
+# against the wrong installation. Not a secret -- it ships in the public Gist.
 # Value: catches truncation/corruption + accidental cross-project mismatch.
 _MANAGER_HMAC_KEY = bytes.fromhex("bd8c4274c76d312b22a0c3d58aad68860b645f1dcc22e67d3d4fe16bf59c6343")
 
@@ -680,8 +680,8 @@ def _compute_hmac(filepath: str) -> str:
 def verify_manifest(assets: dict[str, str], manifest: dict[str, str]) -> bool:
     """Verify each asset in `assets` matches its HMAC entry in `manifest`.
 
-    ``assets`` maps filename → temp-file path on disk.
-    ``manifest`` maps filename → expected HMAC hex digest.
+    ``assets`` maps filename -> temp-file path on disk.
+    ``manifest`` maps filename -> expected HMAC hex digest.
     """
     for filename, filepath in assets.items():
         expected = manifest.get(filename)
@@ -1857,7 +1857,7 @@ class REvoDesignPackageManager:
         specified GitHub repository,
         and then sets the result as the value of the `comboBox_version` combo box in the UI.
         """
-        # ponytail: non-fatal — offline startup must not show an error popup
+        # ponytail: non-fatal -- offline startup must not show an error popup
         try:
             tags = run_worker_thread_in_pool(worker_function=get_github_repo_tags, repo_url=REPO_URL)
         except Exception:
@@ -2763,7 +2763,7 @@ class WorkerThread(QtCore.QThread):
         logging.debug("WorkerThread interrupt signal handled.")
 
 
-def get_github_repo_tags(  # skipcq: PY-R1000 -- URL validation, cache fallback, and response parsing form one request boundary.
+def get_github_repo_tags(  # skipcq: PY-R1000 -- one request boundary
     repo_url: str, *, timeout: float = 5.0
 ) -> list[str]:
     """
