@@ -280,9 +280,9 @@ BOOTSTRAP_RETRY_DELAYS_SECONDS = (0.5, 2.0, 5.0)
 MANIFEST_ASSET_MANAGER_UI = "REvoDesign-PyMOL-entry.ui"
 MANIFEST_ASSET_EXTRAS_JSON = "REvoDesignExtrasTableRich.json"
 
-# ponytail: HMAC key prevents a forked manifest from accidentally validating
-# against the wrong installation. Not a secret -- it ships in the public Gist.
-# Value: catches truncation/corruption + accidental cross-project mismatch.
+# This public HMAC key is not an authenticity or security boundary. It binds
+# assets to the fetched manifest only to catch truncation, corruption, and
+# accidental cross-project mismatches in the managed bootstrap flow.
 _MANAGER_HMAC_KEY = bytes.fromhex("bd8c4274c76d312b22a0c3d58aad68860b645f1dcc22e67d3d4fe16bf59c6343")
 
 
@@ -1447,7 +1447,7 @@ class REvoDesignPackageManager:
         # Download manifest and both assets to a temp dir, verify HMAC, then apply
         manifest = fetch_gist_json(MANIFEST_URL)
         if not manifest:
-            notify_box("Cannot verify upgrade: manifest unavailable. " "The upgrade source may be compromised.")
+            notify_box("Cannot validate the upgrade because the manifest is unavailable.")
             return
 
         temp_dir = tempfile.mkdtemp()
@@ -1463,7 +1463,7 @@ class REvoDesignPackageManager:
                 "REvoDesign-PyMOL-entry.ui": ui_temp,
             }
             if not verify_manifest(assets, manifest):
-                notify_box("Upgrade verification failed. " "The downloaded files may be corrupted or tampered with.")
+                notify_box("Upgrade validation failed because the downloaded files do not match the manifest.")
                 return
 
             self.upgrade_check(original_file=__file__, new_file=py_temp, title="REvoDesign Manager")

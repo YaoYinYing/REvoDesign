@@ -37,6 +37,28 @@ def test_ascii_source_guard_reports_safe_location_and_codepoint(tmp_path):
     ]
 
 
+def test_ascii_source_guard_reports_invalid_utf8_byte_location(tmp_path):
+    guard = _load_guard()
+    source = tmp_path / "bootstrap.py"
+    source.write_bytes(b"# map \xa1\xfa path\n")
+
+    assert guard.scan_file(source) == [
+        f"{source}:1:7: invalid UTF-8 byte sequence \\xa1; "
+        "standalone distributed Python sources must remain ASCII-only"
+    ]
+
+
+def test_ascii_source_guard_keeps_package_manager_in_default_allowlist(monkeypatch):
+    guard = _load_guard()
+    expected = Path("src/REvoDesign/tools/package_manager.py")
+    scanned_paths = []
+    monkeypatch.setattr(guard, "scan_file", lambda path: scanned_paths.append(path) or [])
+
+    assert expected in guard.ASCII_ONLY_PATHS
+    assert guard.main() == 0
+    assert scanned_paths == [guard.REPO_ROOT / expected]
+
+
 def test_ascii_source_guard_checks_configured_sources(tmp_path, capsys):
     guard = _load_guard()
     source = tmp_path / "bootstrap.py"

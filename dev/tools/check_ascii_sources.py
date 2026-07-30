@@ -25,7 +25,20 @@ def scan_file(path: Path) -> list[str]:
         display_path = path
 
     errors: list[str] = []
-    text = path.read_text(encoding="utf-8")
+    source_bytes = path.read_bytes()
+    try:
+        text = source_bytes.decode("utf-8")
+    except UnicodeDecodeError as error:
+        line_number = source_bytes.count(b"\n", 0, error.start) + 1
+        line_start = source_bytes.rfind(b"\n", 0, error.start) + 1
+        column_number = error.start - line_start + 1
+        escaped = "".join(f"\\x{byte:02x}" for byte in source_bytes[error.start : error.end])
+        return [
+            f"{display_path}:{line_number}:{column_number}: "
+            f"invalid UTF-8 byte sequence {escaped}; "
+            "standalone distributed Python sources must remain ASCII-only"
+        ]
+
     for line_number, line in enumerate(text.splitlines(), start=1):
         for column_number, character in enumerate(line, start=1):
             if character.isascii():
