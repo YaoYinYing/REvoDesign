@@ -1,0 +1,68 @@
+name: Feature request
+description: Propose an improvement or new capability for REvoDesign
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A strong feature request starts with the user or scientific problem, not only a proposed implementation.
+
+  - type: checkboxes
+    id: existing-issues
+    attributes:
+      label: Existing requests
+      options:
+        - label: I searched existing issues and did not find the same request.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or limitation
+      description: What workflow is difficult or impossible today, and who is affected?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-outcome
+    attributes:
+      label: Desired outcome
+      description: Describe the behavior or result you would like.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example-workflow
+    attributes:
+      label: Example workflow
+      description: Show how the feature would be used from start to finish.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe current workarounds or other approaches you considered.
+
+  - type: textarea
+    id: scientific-context
+    attributes:
+      label: Scientific or technical context
+      description: Add relevant methods, references, file formats, integrations, or constraints.
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add mockups, examples, or links if useful. Do not include private or unpublished data.
+
+  - type: checkboxes
+    id: code-of-conduct
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct.
+          required: true

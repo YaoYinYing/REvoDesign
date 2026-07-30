@@ -42,6 +42,12 @@ repos:
         language: script
         pass_filenames: false
 
+      - id: check-standalone-source-ascii
+        name: Keep standalone distributed Python sources ASCII-only
+        entry: python dev/tools/check_ascii_sources.py
+        language: system
+        pass_filenames: false
+
       - id: check-changelog-duplicates
         name: Reject duplicate section headers in CHANGELOG.md
         entry: python dev/tools/check_changelog_duplicates.py CHANGELOG.md

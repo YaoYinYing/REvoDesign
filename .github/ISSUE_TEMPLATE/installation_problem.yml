@@ -1,0 +1,115 @@
+name: Installation or environment problem
+description: Get help with setup, updates, dependencies, startup, or platform compatibility
+title: "fix(install): "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for installation, update, dependency, startup, and operating-system compatibility problems.
+
+        Do not include passwords, API keys, tokens, private structures, or unpublished sequences.
+
+  - type: checkboxes
+    id: existing-issues
+    attributes:
+      label: Existing issues and documentation
+      options:
+        - label: I searched the existing issues and read the installation guide.
+          required: true
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where did the problem occur?
+      options:
+        - Loading the Package Manager plugin
+        - First installation
+        - Updating an existing installation
+        - Installing dependencies
+        - Starting REvoDesign after installation
+        - Connecting to or starting a server
+        - Other or unknown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: method
+    attributes:
+      label: Installation method
+      options:
+        - PyMOL Package Manager
+        - pip or conda
+        - Git checkout
+        - Docker
+        - Other or unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: What happened?
+      description: Include the last successful step and the first failing step.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps or command that failed
+      description: List the exact actions or commands in order.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include exact versions where possible.
+      value: |
+        - REvoDesign version or commit:
+        - PyMOL version:
+        - Python version:
+        - Operating system and version:
+        - CPU architecture:
+        - System display language:
+        - System locale:
+    validations:
+      required: true
+
+  - type: textarea
+    id: windows-encoding
+    attributes:
+      label: Windows language and code-page details
+      description: Complete this section on Windows, especially on a non-English installation. Enter "Not applicable" on other systems.
+      value: |
+        - Output of `chcp` in Command Prompt:
+        - "Beta: Use Unicode UTF-8 for worldwide language support" enabled: Yes / No / Unknown
+        - Shell used: Command Prompt / Windows PowerShell / PowerShell / Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Complete error output
+      description: Paste the full relevant output from the first error onward. Remove secrets and private data first.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: attempts
+    attributes:
+      label: Troubleshooting already attempted
+      description: List any settings changed, commands retried, or workarounds tested.
+
+  - type: checkboxes
+    id: code-of-conduct
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct.
+          required: true

@@ -1,0 +1,98 @@
+name: Bug report
+description: Report reproducible incorrect behavior in REvoDesign
+title: "fix: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve REvoDesign. Please search existing issues before submitting a new report.
+
+        Do not include passwords, API keys, tokens, private structures, or unpublished sequences in this form.
+
+  - type: checkboxes
+    id: existing-issues
+    attributes:
+      label: Existing issues
+      options:
+        - label: I searched the open and closed issues and did not find an existing report.
+          required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - PyMOL plugin or Package Manager
+        - Main REvoDesign interface
+        - Protein design or scoring workflow
+        - Server or API
+        - Command-line or developer tooling
+        - Other or unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and its impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reliable sequence that triggers the problem.
+      placeholder: |
+        1. Start ...
+        2. Open ...
+        3. Select ...
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include exact versions where possible.
+      value: |
+        - REvoDesign version or commit:
+        - Installation method:
+        - PyMOL version:
+        - Python version:
+        - Operating system and version:
+        - System display language and locale:
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or traceback
+      description: Paste relevant terminal output or traceback. Remove secrets and private data first.
+      render: shell
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add screenshots, minimal sample files, or other context if useful.
+
+  - type: checkboxes
+    id: code-of-conduct
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct.
+          required: true
