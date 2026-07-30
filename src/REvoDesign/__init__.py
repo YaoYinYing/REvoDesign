@@ -11,6 +11,7 @@ Importing stack for REvoDesign
 
 # 0. build-in plugin: garbage collector
 import gc
+from typing import Any
 
 # 1. import basic modules
 from REvoDesign.basic import SingletonAbstract
@@ -28,34 +29,41 @@ from REvoDesign.bootstrap import (
 # 3. import File Extentions
 from REvoDesign.common import file_extensions
 
-# 4. import UI bus, depending on SingletonAbstract, logger, configuration
-# root logger initialized at here
-from REvoDesign.driver.ui_driver import ConfigBus
-
-# 5. import logger, which is based on the configuration
+# 4. import logger, which is based on the configuration
 # import it here so that the logger can be seen everywhere
 from REvoDesign.logger import ROOT_LOGGER, setup_logging
 
-# 6. Set version info
+# 5. Set version info
 # version number checker: https://regex101.com/r/6AoOI9/1
 __version__ = "1.9.1"
 # To bump a new version tag, change __version__, use the checker to ensure no syntax error.
 # then use `make tag` at repository root to complete the committing.
 
 
-# 7. enable garbage collection
+# 6. enable garbage collection
 gc.enable()
+
+# Type declarations keep the lazy public exports visible to static analyzers
+# without binding them at runtime; missing attributes still flow through
+# ``__getattr__`` below.
+REvoDesignPlugin: Any
+all_shortcuts: list[str]
+ConfigBus: Any
 
 
 def __getattr__(name: str):
     if name == "REvoDesignPlugin":
-        from REvoDesign.REvoDesign import REvoDesignPlugin
+        from REvoDesign.REvoDesign import REvoDesignPlugin as _REvoDesignPlugin
 
-        return REvoDesignPlugin
+        return _REvoDesignPlugin
     if name == "all_shortcuts":
-        from REvoDesign.shortcuts import __all__ as all_shortcuts
+        from REvoDesign.shortcuts import __all__ as _all_shortcuts
 
-        return all_shortcuts
+        return _all_shortcuts
+    if name == "ConfigBus":
+        from REvoDesign.driver.ui_driver import ConfigBus as _ConfigBus
+
+        return _ConfigBus
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 

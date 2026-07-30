@@ -366,6 +366,7 @@ class MutantTree:
         tree.jump_to_the_best_mutant_in_branch('branch_id')
         """
         self.current_mutant_id = self._jump_to_the_best_mutant_in_branch(branch_id, ascending_order)
+        return self.current_mutant_id
 
     # internal function that returns instead of changes the current stored values
     def _jump_to_the_best_mutant_in_branch(self, branch_id: str, ascending_order: bool = False):
@@ -393,12 +394,13 @@ class MutantTree:
         """
         if not self.current_branch_id:
             self.initialize_current_branch()
-            return
+            return self.current_branch_id, self.current_mutant_id
 
         (
             self.current_branch_id,
             self.current_mutant_id,
         ) = self._walk_the_mutants(walk_forward=walf_forward)
+        return self.current_branch_id, self.current_mutant_id
 
     # internal function that returns instead of changes the current stored values
     def _walk_the_mutants(self, walk_forward: bool = True) -> tuple[int, int]:

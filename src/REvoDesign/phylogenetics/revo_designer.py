@@ -78,6 +78,7 @@ class REvoDesigner:
         self.cmap = "bwr_r"
         self.results = []
         self.nproc = 1
+        self.design_chain_id: list[str] = []
         self.max_abs_profile = 0
         self.create_full_pdb = False
         self.mutant_tree: MutantTree = None
@@ -88,7 +89,7 @@ class REvoDesigner:
         self.citations: CitationManager = CitationManager()
         self.magician: Magician = Magician()
 
-    def plot_custom_indices_segments(
+    def plot_custom_indices_segments(  # skipcq: PY-R1000 -- segment rendering shares a single plotting state.
         self,
         df_ori: pd.DataFrame,
         custom_indices_str="",

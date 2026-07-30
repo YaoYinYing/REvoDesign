@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-from __future__ import annotations
-
 """
 Team work module
 
@@ -12,6 +10,8 @@ Team work module
 # TODO: rename the parent module name as `teamwork`
 # TODO: split-ui: move to a standalone window
 """
+
+from __future__ import annotations
 
 import base64
 import copy
@@ -49,17 +49,15 @@ def _require_websocket_support() -> None:
         raise RuntimeError(f"The active PyMOL Qt backend does not provide QtWebSockets. Active backend: {QT_BACKEND}.")
 
 
-"""
-helpful:
-https://stackoverflow.com/questions/15092076/pyqt-and-websocket-client-listen-websocket-in-background
-https://stackoverflow.com/questions/26270681/can-an-asyncio-event-loop-run-in-the-background-without-suspending-the-python-in
-"""
+# Helpful references:
+# https://stackoverflow.com/questions/15092076/pyqt-and-websocket-client-listen-websocket-in-background
+# https://stackoverflow.com/questions/26270681/can-an-asyncio-event-loop-run-in-the-background-without-suspending-the-python-in
 
 
 @dataclass
 class Client:
     uuid: str
-    client: QtWebSockets.QWebSocket
+    socket: QtWebSockets.QWebSocket
     client_info: dict
     crt: str = None
 
@@ -70,12 +68,8 @@ class MeetingRoom:
     host: Client
     clients: dict[str, Client]
 
-    def get_user_by_uuid(self, uuid: str):
-        if self.empty:
-            return None
-        user = self.clients.get(uuid)
-        if user:
-            return user
+    def get_user_by_uuid(self, uuid: str) -> Client | None:
+        return self.clients.get(uuid)
 
     def does_user_exist(self, uuid: str) -> bool:
         return uuid in self.clients
@@ -87,13 +81,12 @@ class MeetingRoom:
         self.clients[uuid] = user
 
     def get_user_uuid(self, client: QtWebSockets.QWebSocket):
-        return [u for u, c in self.clients.items() if c.client == client][0]
+        return [u for u, c in self.clients.items() if c.socket == client][0]
 
     def kickout(self, uuid: str) -> None:
         client = self.get_user_by_uuid(uuid=uuid)
         self.clients.pop(uuid)
-        client.client.close()
-        return
+        client.socket.close()
 
     @property
     def user_tree(self) -> dict[str, Any]:
@@ -104,7 +97,7 @@ class MeetingRoom:
 
     @property
     def current_clients(self) -> list[QtWebSockets.QWebSocket]:
-        return [client.client for uuid, client in self.clients.items()]
+        return [client.socket for uuid, client in self.clients.items()]
 
     def is_logged_in(self, client) -> bool:
         return client in self.current_clients
@@ -148,7 +141,7 @@ class Broadcaster:
         )
     )
 
-    supported_datatypes = Literal[
+    supported_datatypes = Literal[  # skipcq: PTC-W0018 -- Literal parameters require square-bracket type syntax.
         "MutantTree",
         "PyMOL_prompt",
         "PyMOL_selection",
@@ -164,15 +157,13 @@ class Broadcaster:
         "MessageStack",
     ]
 
-    readble_type: tuple[supported_datatypes] = tuple(
-        [
-            "PyMOL_prompt",
-            "ConfigItem",
-            "ClientInfo",
-            "Text",
-            "RequireKey",
-            "UUID",
-        ]
+    readble_type: tuple[supported_datatypes, ...] = (
+        "PyMOL_prompt",
+        "ConfigItem",
+        "ClientInfo",
+        "Text",
+        "RequireKey",
+        "UUID",
     )
 
     @staticmethod
@@ -227,14 +218,14 @@ class Broadcaster:
         if _QWEBSOCKET_TYPE is not None and isinstance(meetingroom, _QWEBSOCKET_TYPE):
             all_clients = [meetingroom]
         elif isinstance(meetingroom, Client):
-            all_clients = [meetingroom.client]
+            all_clients = [meetingroom.socket]
         elif isinstance(meetingroom, MeetingRoom):
             if not meetingroom or meetingroom.empty:
                 warnings.warn(issues.SocketMeetingRoomIsEmpty("Empty meeting room."), stacklevel=2)
                 return
             all_clients = meetingroom.current_clients
         elif isinstance(meetingroom, list):
-            all_clients = [c.client if isinstance(c, Client) else c for c in meetingroom]
+            all_clients = [c.socket if isinstance(c, Client) else c for c in meetingroom]
         else:
             raise issues.InvalidInputError(f"typing of {meetingroom=} ({type(meetingroom)} is not supported.)")
 
@@ -286,7 +277,12 @@ class Broadcaster:
 
         if not isinstance(obj, list):
             raise issues.FobbidenDataTypeError(f"MessageStack payload must be a list, got {type(obj)}")
-        stacked_data = [{_t: _o for _t, _o in self.digest_dict(unpacked_msg_dict=d)} for d in obj]
+        stacked_data = []
+        for stacked_message in obj:
+            stacked_type, stacked_obj = self.digest_dict(unpacked_msg_dict=stacked_message)
+            if stacked_type is None:
+                return None, None
+            stacked_data.append({stacked_type: stacked_obj})
 
         if not self.is_nestedstack(stacked_data=stacked_data):
             return datatype, stacked_data
@@ -325,7 +321,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
     - is_port_available: Checks if a port is available for use.
     """
 
-    def singleton_init(self):
+    def singleton_init(self):  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
 
         self.bus: ConfigBus = ConfigBus()
         self.meetingroom: MeetingRoom = None
@@ -403,8 +399,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         logging.info(f"Asking {client} for authentication...")
         self.bc_worker.wisper(obj_type="RequireKey", obj="Key please.", client=client)
 
-        return
-
     def get_client_uuid(self, client):
         if not self.meetingroom.is_logged_in(client=client):
             raise issues.SocketError(f"Client is not logged in: {client}")
@@ -472,7 +466,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         None
         """
         message: bytes = message.data()
-        # logging.info("Binary Message:", message)
 
         username, node, user_id = self.client_name_and_node(client=client)
 
@@ -517,7 +510,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
     ):
         # a new client who has not joined yet
 
-        username, node, user_id = self.client_name_and_node(client=client)
+        username, node, _user_id = self.client_name_and_node(client=client)
 
         if client not in self.meetingroom.current_clients:
             from REvoDesign.tools.client_tools import UUIDGenerator
@@ -553,7 +546,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
             self.meetingroom.add_user(
                 uuid=uuid,
-                user=Client(uuid=uuid, client_info=message, client=client),
+                user=Client(uuid=uuid, client_info=message, socket=client),
             )
 
             logging.info(f'Client {message["user"]} from {message["node"]} is join.')
@@ -663,7 +656,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
         self.port = requested_port
 
-        self.do_broadcast_view = self.bus.get_value("ui.socket.broadcast.view")
+        self.view_broadcast_enabled = self.bus.get_value("ui.socket.broadcast.view", bool)
         self.view_broadcast_interval = self.bus.get_value("ui.socket.broadcast.interval", float)
         logging.info(f"Server is reconfigured! \n " f"Key: {self.authentication_key}\n")
 
@@ -747,7 +740,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
 
 class REvoDesignWebSocketClient(SingletonAbstract):
-    def singleton_init(self):
+    def singleton_init(self):  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
         # If not, set the instance attributes
         self.bus: ConfigBus = ConfigBus()
         self.server_url = "localhost"
@@ -878,7 +871,6 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             logging.warning("View update is disabled.")
             return
 
-        # logging.debug('update pymol view')
         cmd.set_view(view)
         return
 

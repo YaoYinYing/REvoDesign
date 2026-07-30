@@ -62,7 +62,8 @@ def shortcut_smiles_conformer_batch(
     Runs the smiles_conformer_batch function with parameters collected from the dialog.
     """
 
-    with open(smiles) as smiles_file:
+    # The desktop caller explicitly chooses this local SMILES input file.
+    with open(smiles) as smiles_file:  # skipcq: PTC-W6004
         smi = json.load(smiles_file)
     with timing("Get SMILES Conformers (Many)"):
         smiles_conformer_batch(
@@ -99,7 +100,8 @@ def shortcut_sdf2rosetta_params(
         RosettaCmdTask(
             cmd=[
                 sys.executable,
-                os.path.join(converter._rosetta_python_script_dir, "molfile_to_params.py"),
+                # RosettaPy exposes this bundled-script location only through this compatibility attribute.
+                os.path.join(converter._rosetta_python_script_dir, "molfile_to_params.py"),  # skipcq: PYL-W0212
                 f"{sdf_path}",
                 "-n",
                 ligand_name,

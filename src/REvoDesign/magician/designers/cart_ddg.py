@@ -55,6 +55,7 @@ class ddg(ExternalDesignerAbstract):
 
         self.pdb_filename = None
         self.initialized = False
+        self.ddg_runner: CartesianDDG | None = None
 
         self.unrelaxed_pdb: str | None = None
         self.relaxed_pdb: str | None = None
@@ -90,7 +91,7 @@ class ddg(ExternalDesignerAbstract):
         if isinstance(self.relaxed_pdb, str) and os.path.isfile(self.relaxed_pdb) and not self.reload:
             self.initialized = True
             return
-        logging.info(f"Relaxing {self.molecule} ...")
+        logging.info("Relaxing %s ...", self.molecule)
         self.relaxed_pdb = self.ddg_runner.relax(nstruct_relax=self.relax_nstruct)
 
         self.initialized = True

@@ -38,6 +38,9 @@ class _FakeQtParallelExecutor:
     def isFinished(self):
         return self._finished
 
+    def wait(self):
+        return True
+
     def handle_result(self):
         return self._results
 

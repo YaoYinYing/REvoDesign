@@ -388,14 +388,13 @@ def _install_moved_class_aliases() -> None:
             setattr(QtGui, attr_name, fallback)
 
 
-_ALIASES_INSTALLED = False
+_ALIAS_STATE = {"installed": False}
 
 
 def install_qt6_aliases() -> None:
     """Install Qt6-style aliases for legacy Qt5 backends."""
 
-    global _ALIASES_INSTALLED
-    if _ALIASES_INSTALLED:
+    if _ALIAS_STATE["installed"]:
         return
 
     _install_moved_class_aliases()
@@ -404,7 +403,7 @@ def install_qt6_aliases() -> None:
     _install_qtgui_scoped_aliases()
     _install_qtnetwork_scoped_aliases()
     _install_qtwebsockets_scoped_aliases()
-    _ALIASES_INSTALLED = True
+    _ALIAS_STATE["installed"] = True
 
 
 def install_qt5_aliases() -> None:

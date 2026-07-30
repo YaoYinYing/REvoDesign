@@ -37,7 +37,9 @@ class FileDialog(SingletonAbstract):
     This ensures that file dialog operations are centralized and shareable across different tabs.
     """
 
-    def singleton_init(self, window: Any | None, pwd: str | None):
+    def singleton_init(  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
+        self, window: Any | None, pwd: str | None
+    ):
         """
         Initializes the singleton instance of FileDialog.
 
@@ -148,6 +150,7 @@ class FileDialog(SingletonAbstract):
         if input_fn:
             ConfigBus().set_widget_value(cfg_item, input_fn)
             return input_fn
+        return None
 
     def open_mutant_table(self, cfg_mutant_table: str, mode: IO_MODE = "r"):
         """Open a mutant table file

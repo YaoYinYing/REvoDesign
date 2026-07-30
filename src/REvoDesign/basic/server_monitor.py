@@ -36,7 +36,7 @@ class ServerControlAbstract(SingletonAbstract):
         The ServerMonitor will automatically start and stop the server when the actions are triggered.
     """
 
-    def singleton_init(self):
+    def singleton_init(self):  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
         self.server_thread: threading.Thread | None = None
         self.is_running = False
         self.server: uvicorn.Server | None = None
@@ -46,21 +46,21 @@ class ServerControlAbstract(SingletonAbstract):
         """
         Behavior of the server start action.
         """
-        if self.is_running:
+        if self.is_running or (self.server_thread and self.server_thread.is_alive()):
             print("Server is already running.")
-            return
 
     def stop_server(self):
         """
         Behavior of the server stop action.
         """
-        if not self.is_running:
+        if not self.is_running and not (self.server_thread and self.server_thread.is_alive()):
             print("Server is not running.")
             return
 
         print("Stopping server...")
         if self.server:
             self.server.should_exit = True
+        self.is_running = False
         if self.server_thread and self.server_thread.is_alive():
             # ponytail: join the plain threading.Thread (not QThread) while
             # pumping Qt events so the UI doesn't freeze.
@@ -69,14 +69,12 @@ class ServerControlAbstract(SingletonAbstract):
                 QtWidgets.QApplication.processEvents()
                 self.server_thread.join(0.05)
             if self.server_thread.is_alive():
-                # Thread didn't stop in time — leave references intact
-                # so a second start_server() can't proceed against an
-                # orphaned daemon thread.
+                # Thread didn't stop in time. Keep its references so start_server()
+                # can reject a restart while the old thread drains.
                 print("Warning: server thread did not stop within timeout")
                 return
         self.server_thread = None
         self.server = None
-        self.is_running = False
 
     def _run_server(self):
         """
@@ -129,11 +127,16 @@ class MenuActionServerMonitor(QtCore.QObject):
         self.controller.stop_server()
         self._update_led_status()
 
+    def start_server(self):
+        """Start the monitored server through the same UI-aware path."""
+        self._start_server()
+
     def _update_led_status(self):
         """
         Update the LED status based on self.controller.is_running.
         """
         if self.menu_item is not None:
             if self.controller.is_running:
-                return self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/green.png")))
-            return self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/red.png")))
+                self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/green.png")))
+            else:
+                self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/red.png")))

@@ -26,7 +26,6 @@ from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCompat
 from REvoDesign.sidechain import SidechainSolver
 from REvoDesign.tools.customized_widgets import QButtonMatrix, REvoDesignWidget
-from REvoDesign.tools.pymol_utils import is_hidden_object
 
 from .utils import cmap_reverser, get_color, timing
 
@@ -220,7 +219,7 @@ def extract_mutant_from_sequences(
 
     if mutant_sequence == wt_sequence:
         logging.warning("WT and mutant sequences are identical.")
-        return
+        return None
 
     if "X" in wt_sequence and not fix_missing:
         warnings.warn(issues.ResidueMissingWarning('WT has missing residue masked as "X"!'), stacklevel=2)
@@ -487,7 +486,8 @@ def process_mutations(data):
 
 
 def read_profile_design_mutations(filename):
-    with open(filename) as mutation_file:
+    # The desktop caller explicitly chooses this local input path.
+    with open(filename) as mutation_file:  # skipcq: PTC-W6004
         data = json.load(mutation_file)
     return process_mutations(data)
 
@@ -511,6 +511,8 @@ def existed_mutant_tree(
     - MutantTree
         An instance of MutantTree class containing the mutant tree structure.
     """
+    from REvoDesign.tools.pymol_utils import is_hidden_object
+
     if isinstance(sequences, Mapping):
         sequences = RosettaPyProteinSequence.from_dict(dict(sequences))
 
@@ -543,7 +545,6 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
     from REvoDesign.common.mutant_visualise import MutantVisualizer
 
     from .pymol_utils import make_temperal_input_pdb
-    from .utils import timing
 
     bus: ConfigBus = ConfigBus()
     sidechain_solver: SidechainSolver = SidechainSolver().refresh()
@@ -569,8 +570,6 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
         visualizer.nproc = nproc
         visualizer.input_session = input_pdb
-        # visualizer.sequence = sequence
-
         visualizer.full = cfg.ui.visualize.full_pdb
         visualizer.cmap = cmap_reverser(
             bus.get_value("ui.header_panel.cmap.default"), bus.get_value("ui.header_panel.cmap.reverse_score")
@@ -655,11 +654,12 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
     output_mut_txt_ckp = os.path.join(output_mut_txt_dir_ckp, output_mut_txt_bn_ckp)
 
     logging.info(f"Saving checkpoint: {output_mut_txt_ckp}")
-    write_input_mutant_table(output_mut_txt_ckp, [mt for mt in mutants_to_save])
+    write_input_mutant_table(output_mut_txt_ckp, list(mutants_to_save))
 
 
 def write_input_mutant_table(output_mut_txt_fn, mutant_list):
-    with open(output_mut_txt_fn, "w") as f:
+    # The desktop file chooser validates the parent and authorizes this output path.
+    with open(output_mut_txt_fn, "w") as f:  # skipcq: PTC-W6004
         f.write("\n".join(mutant_list) if mutant_list else "")
 
 
@@ -709,7 +709,7 @@ def get_mutant_table_columns(mutfile: str):
 # TODO: performance issue
 
 
-def pick_design_from_profile(
+def pick_design_from_profile(  # skipcq: PY-R1000 -- interactive selection branches share PyMOL state.
     profile: str,
     profile_type: str,
     prefer_lower_score: bool = False,
@@ -723,7 +723,7 @@ def pick_design_from_profile(
     from ..bootstrap.set_config import ConfigConverter
     from ..common.mutant_visualise import MutantVisualizer
     from ..phylogenetics.revo_designer import REvoDesigner
-    from ..tools.utils import cmap_reverser, get_color, run_worker_thread_in_pool
+    from ..tools.utils import run_worker_thread_in_pool
 
     bus = ConfigBus()
     molecule = bus.get_value("ui.header_panel.input.molecule", str, reject_none=True)

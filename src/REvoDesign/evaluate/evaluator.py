@@ -34,6 +34,8 @@ class Evaluator:
             "designable_sequences", RosettaPyProteinSequence.from_dict, cfg="runtime"
         )
         self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(self.design_chain_id)
+        self.mutant_tree_candidates = MutantTree({})
+        self.mutant_tree_pssm_selected = MutantTree({})
 
     def activate_focused(self):
         molecule = self.design_molecule
@@ -146,7 +148,7 @@ class Evaluator:
         (
             current_branch_id,
             current_mutant_id,
-        ) = self.mutant_tree_candidates._walk_the_mutants(walk_forward=walk_to_next)
+        ) = self.mutant_tree_candidates.walk_the_mutants(walf_forward=walk_to_next)
 
         set_widget_value(
             progressBar_mutant_choosing,
@@ -251,7 +253,7 @@ class Evaluator:
 
         branch_id = get_widget_value(comboBox_group_ids)
 
-        best_mutant_id = self.mutant_tree_candidates._jump_to_the_best_mutant_in_branch(
+        best_mutant_id = self.mutant_tree_candidates.jump_to_the_best_mutant_in_branch(
             branch_id=branch_id,
             ascending_order=self.bus.get_value("ui.header_panel.cmap.reverse_score"),
         )
@@ -292,7 +294,7 @@ class Evaluator:
 
             set_widget_value(comboBox_group_ids, branch_id)
 
-            best_mutant_id = self.mutant_tree_candidates._jump_to_the_best_mutant_in_branch(
+            best_mutant_id = self.mutant_tree_candidates.jump_to_the_best_mutant_in_branch(
                 branch_id=branch_id,
                 ascending_order=self.bus.get_value("ui.header_panel.cmap.reverse_score"),
             )
@@ -363,7 +365,7 @@ class Evaluator:
         self.mutant_tree_candidates = existed_mutant_tree(sequences=self.designable_sequences, enabled_only=False)
         if self.mutant_tree_candidates.empty:
             logging.error("This sesion may not contain an mutant tree.")
-            return None
+            return
 
         self.mutant_tree_pssm_selected = MutantTree({})
 

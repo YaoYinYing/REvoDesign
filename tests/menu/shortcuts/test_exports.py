@@ -27,7 +27,7 @@ def test_shortcut_dump_fasta_from_struct(
     test_worker.load_session_and_check(pdb_code="9gbw", from_rcsb=True)
     os.makedirs("dumped_sequences", exist_ok=True)
     shortcut_dump_fasta_from_struct(
-        format=format,
+        output_format=format,
         chain_ids=chain_id,
         output_dir="dumped_sequences",
         drop_missing_residue=drop_missing_residue,
@@ -40,7 +40,7 @@ def test_shortcut_dump_fasta_from_struct(
 
     fasta_file_contents = open(expected_fasta_file).readlines()
     assert (
-        len([l for l in fasta_file_contents if l.startswith(">")]) == expected_seq_num
+        len([line for line in fasta_file_contents if line.startswith(">")]) == expected_seq_num
     ), f"Expected {expected_seq_num} sequences in {expected_fasta_file}, but got: \n {fasta_file_contents}"
 
 

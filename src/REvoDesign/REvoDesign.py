@@ -88,6 +88,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.gremlin_worker: GremlinAnalyser = None  # type: ignore
         self.evaluator: Evaluator = None  # type: ignore
+        self.ws_server = None
+        self.ws_client = None
+        self.temperal_session = None
+        self.visualizing_mutant_tree = None
 
         # Plugin-window-scoped child logger
         self.logging = ROOT_LOGGER.getChild(self.__class__.__name__)
@@ -115,7 +119,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # set session file's path if the rest is HOME,
         # usually when a pse or pdb is opened to call PyMOL
-        if pwd_2 and all([os.path.abspath(pwd) == os.path.abspath(os.path.expanduser("~")) for pwd in [pwd_0]]):
+        if pwd_2 and os.path.abspath(pwd_0) == os.path.abspath(os.path.expanduser("~")):
             self.set_working_directory(pwd_2)
             return
 
@@ -199,22 +203,20 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         gc.collect()
 
-        if delete:
-            if decide(
-                "DANGEROUS!!!",
-                "You are reinitializing REvoDesign by DELETING the user configuration file.",
-            ):
-                set_REvoDesign_config_file(delete_user_config_tree=True)
-                warnings.warn(
-                    issues.ConflictWarning(
-                        "Reinitialized with default configuration. " "Restart REvoDesign to take effort."
-                    ),
-                    stacklevel=2,
-                )
+        if delete and decide(
+            "DANGEROUS!!!",
+            "You are reinitializing REvoDesign by DELETING the user configuration file.",
+        ):
+            set_REvoDesign_config_file(delete_user_config_tree=True)
+            warnings.warn(
+                issues.ConflictWarning(
+                    "Reinitialized with default configuration. " "Restart REvoDesign to take effort."
+                ),
+                stacklevel=2,
+            )
 
     def __del__(self):
         """Shutting down."""
-        # self.reinitialize()
         logging = getattr(self, "logging", None)
         if logging is not None:
             logging.warning("REvoDesign is shutting down.")
@@ -650,7 +652,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def reload_molecule_info(self):
         """Reload the molecule in current session."""
         self.temperal_session = tempfile.mkstemp(suffix=".pse")[1]
-        # self.temperal_session= tempfile.NamedTemporaryFile(delete=False)
 
         if not is_empty_session():
             # remove alternative comformations
@@ -758,9 +759,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         return session_path
 
-    """
-    Private functions used only in a specific tab.
-    """
+    # Private functions used only in a specific tab.
 
     # Tab `Determine`
     def reload_determine_tab_setup(self):
@@ -863,7 +862,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     data_type="MutantTree",
                 )
             )
-        del worker
 
     def initialize_design_candidates(self):
         """Initialize Evaluator for human checks"""
@@ -873,7 +871,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.evaluator.initialize_design_candidates()
 
     @require_not_none("evaluator")
-    def recover_mutant_choices_from_checkpoint(self, *args, **kwargs):
+    def recover_mutant_choices_from_checkpoint(self, *_args, **_kwargs):
         """
         This function recovers mutant choices from a checkpoint file
         using an evaluator.
@@ -886,7 +884,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.evaluator.recover_mutant_choices_from_checkpoint(mutant_choice_checkpoint_fn)
 
     @require_not_none("evaluator")
-    def jump_to_the_best_mutant(self, *args, **kwargs):
+    def jump_to_the_best_mutant(self, *_args, **_kwargs):
         """
         This function checks if the evaluator is initialized
         and then jumps to the best mutant.
@@ -894,7 +892,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.evaluator.jump_to_the_best_mutant()
 
     @require_not_none("evaluator")
-    def jump_to_branch(self, *args, **kwargs):
+    def jump_to_branch(self, *_args, **_kwargs):
         """
         This function checks if the evaluator is initialized
         and then jumps to a branch.
@@ -902,7 +900,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.evaluator.jump_to_branch()
 
     @require_not_none("evaluator")
-    def jump_to_a_mutant(self, *args, **kwargs):
+    def jump_to_a_mutant(self, *_args, **_kwargs):
         """
         This function checks if the evaluator is initialized
         and then jumps to a mutant.
@@ -910,7 +908,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.evaluator.jump_to_a_mutant()
 
     @require_not_none("evaluator")
-    def find_all_best_mutants(self, *args, **kwargs):
+    def find_all_best_mutants(self, *_args, **_kwargs):
         """
         This function checks if the evaluator is initialized and
         then calls a method to find all the best mutants.
@@ -935,8 +933,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         with hold_trigger_button(trigger_button), timing("Clustering"):
             worker.run_clustering()
-
-        del worker
 
     # Tab Visualize
 
@@ -1042,8 +1038,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             )
 
-        del worker
-
     def reduce_current_session(
         self,
         session: str | None = None,
@@ -1072,20 +1066,19 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     cmd.delete(item)
                     cmd.refresh()
 
-        if session is not None and os.path.exists(session):
-            if not overwrite:
-                # Ask whether to overide
-                confirmed = decide(
-                    title="Override current session?",
-                    description="Your current session will be overriden. \n \
-                        Are you really sure? ",
-                )
+        if session is not None and os.path.exists(session) and not overwrite:
+            # Ask whether to overide
+            confirmed = decide(
+                title="Override current session?",
+                description="Your current session will be overriden. \n \
+                    Are you really sure? ",
+            )
 
-                if not confirmed:
-                    session = self.file_dialog.browse_filename(mode="w", exts=(file_extensions.Session,))
+            if not confirmed:
+                session = self.file_dialog.browse_filename(mode="w", exts=(file_extensions.Session,))
 
-                if not session:
-                    return
+            if not session:
+                return
 
         cmd.save(filename=session)
 
@@ -1098,7 +1091,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.multi_designer = MultiMutantDesigner()
 
     @require_not_none("multi_designer")
-    def multi_mutagenesis_design_start(self, *args, **kwargs):
+    def multi_mutagenesis_design_start(self, *_args, **_kwargs):
         """Start a new multi design."""
 
         with hold_trigger_button(self.bus.button("multi_design_start_new_design")):
@@ -1120,7 +1113,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.multi_designer.start_new_design()
 
     @require_not_none("multi_designer")
-    def multi_mutagenesis_design_pick_next_mut(self, *args, **kwargs):
+    def multi_mutagenesis_design_pick_next_mut(self, *_args, **_kwargs):
         """
         Picking the next mutant in a multi mutagenesis design process.
         """
@@ -1129,7 +1122,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.multi_designer.pick_next_mutant()
 
     @require_not_none("multi_designer")
-    def multi_mutagenesis_design_undo_picking(self, *args, **kwargs):
+    def multi_mutagenesis_design_undo_picking(self, *_args, **_kwargs):
         """
         Undo a single step of operation in multi mutagenesis design.
         """
@@ -1138,7 +1131,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.multi_designer.undo_previous_mutant()
 
     @require_not_none("multi_designer")
-    def multi_mutagenesis_design_stop_design(self, *args, **kwargs):
+    def multi_mutagenesis_design_stop_design(self, *_args, **_kwargs):
         """
         Terminates the picking process if in a multi design case.
         """
@@ -1149,7 +1142,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.multi_designer.terminate_picking(continue_design=False)
 
     @require_not_none("multi_designer")
-    def multi_mutagenesis_design_save_design(self, *args, **kwargs):
+    def multi_mutagenesis_design_save_design(self, *_args, **_kwargs):
         """
         Exports designed variants.
         """
@@ -1201,7 +1194,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.gremlin_worker.load_gremlin_mrf()
 
     @require_not_none("gremlin_worker")
-    def run_gremlin_tool(self, *args, **kwargs):
+    def run_gremlin_tool(self, *_args, **_kwargs):
         """
         Runs Gremlin tool if a Gremlin worker is available.
         """

@@ -38,6 +38,10 @@ def _patch_bus(monkeypatch, bus):
         def __new__(cls):
             return bus
 
+        @classmethod
+        def is_initialized(cls):
+            return True
+
     monkeypatch.setattr(environ_register, "ConfigBus", FakeConfigBus)
 
 

@@ -91,7 +91,8 @@ class DglSolver:
                 stacklevel=2,
             )
 
-    def _install_approved(self, index_link: str) -> bool:
+    @staticmethod
+    def _install_approved(index_link: str) -> bool:
         if os.environ.get(DGL_INSTALL_APPROVAL_ENV) == "1":
             return True
         if not _has_qapplication():
@@ -291,7 +292,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
     # a copy from `https://github.com/RosettaCommons/RFdiffusion/blob/main/scripts/run_inference.py`
 
     @get_cited
-    def main(self) -> None:
+    def main(self) -> None:  # skipcq: PY-R1000 -- RFdiffusion orchestration owns one model lifecycle.
         """
         Run RFdifussion inference.
         """
@@ -410,7 +411,8 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
                 # run metadata
                 trb = dict(
-                    config=OmegaConf.to_container(sampler._conf, resolve=True),
+                    # RFdiffusion exposes the resolved runtime configuration only on its sampler.
+                    config=OmegaConf.to_container(sampler._conf, resolve=True),  # skipcq: PYL-W0212
                     plddt=plddt_stack.cpu().numpy(),
                     device=self.device,
                     time=time.time() - start_time,

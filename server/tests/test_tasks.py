@@ -14,13 +14,7 @@ from pathlib import Path
 
 import docker
 import requests
-from conftest import (
-    _extract_md5,
-    _insert_pending_task,
-    _load_pssm_module,
-    _test_client_auth,
-    _upsert_task_for_user,
-)
+from conftest import _extract_md5, _load_pssm_module
 from werkzeug.utils import secure_filename
 
 # Flask test-client tests

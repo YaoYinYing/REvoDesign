@@ -21,7 +21,8 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 
 def get_fasta_writer_choices() -> list[str]:
-    return [fmt for fmt in SeqIO._FormatToWriter.keys() if fmt.startswith("fas")]
+    # Biopython does not expose its writer-format registry through a public API.
+    return [fmt for fmt in SeqIO._FormatToWriter if fmt.startswith("fas")]  # skipcq: PYL-W0212
 
 
 def get_designable_chain_ids() -> list[str]:
@@ -67,7 +68,7 @@ def get_pymol_plugin_paths():
     """
     try:
         # Attempt to get PyMOL plugin startup paths
-        return [p for p in pymol.plugins.get_startup_path()]
+        return list(pymol.plugins.get_startup_path())
     except AttributeError as e:
         # Handle headless mode case by logging error and returning empty list
         logging.error(f"PyMOL is running in headless mode. {e}")

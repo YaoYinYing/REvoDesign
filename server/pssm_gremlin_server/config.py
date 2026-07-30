@@ -20,10 +20,7 @@ def env_bool(var: str, default: bool) -> bool:
         return True
     if value in {"0", "false", "no", "off"}:
         return False
-    raise ValueError(
-        f"Environment variable {var} must be a boolean value "
-        "(one of: true/false/1/0/yes/no/on/off)."
-    )
+    raise ValueError(f"Environment variable {var} must be a boolean value " "(one of: true/false/1/0/yes/no/on/off).")
 
 
 def env_str(var: str, default: str) -> str:
@@ -48,9 +45,7 @@ def env_float(var: str, default: float) -> float:
     try:
         value = float(raw)
     except ValueError as exc:
-        raise ValueError(
-            f"Environment variable {var} must be a finite number, got {raw!r}"
-        ) from exc
+        raise ValueError(f"Environment variable {var} must be a finite number, got {raw!r}") from exc
     if not math.isfinite(value):
         raise ValueError(f"Environment variable {var} must be a finite number, got {raw!r}")
     return value

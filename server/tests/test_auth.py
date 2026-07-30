@@ -645,8 +645,7 @@ def test_user_database_upgrade_promotes_admin_role_and_drops_deprecated_column(t
             """
         )
         conn.execute(
-            "INSERT INTO users VALUES "
-            "(1, 'legacy_admin', 'legacy-admin@example.com', 'hash', 1, 1, 1.0, 'user')"
+            "INSERT INTO users VALUES " "(1, 'legacy_admin', 'legacy-admin@example.com', 'hash', 1, 1, 1.0, 'user')"
         )
 
     db = UserDatabase(str(db_path))
@@ -655,10 +654,7 @@ def test_user_database_upgrade_promotes_admin_role_and_drops_deprecated_column(t
     assert upgraded["role"] == "admin"
     assert "is_admin" not in upgraded
     with db.engine.connect() as conn:
-        columns = {
-            row[1]
-            for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()
-        }
+        columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()}
     assert "is_admin" not in columns
     reopened = UserDatabase(str(db_path)).get_user(1)
     assert reopened is not None
@@ -692,7 +688,6 @@ def test_user_database_uses_role_without_admin_flag(tmp_path):
 def test_user_database_upgrade_tolerates_duplicate_column_race():
     """A second startup process may lose ALTER TABLE without aborting."""
     import sqlalchemy as sa
-
     from pssm_gremlin_server.auth import UserDatabase
 
     class RacingConnection:
@@ -713,7 +708,6 @@ def test_user_database_upgrade_tolerates_duplicate_column_race():
 def test_user_database_upgrade_does_not_hide_other_operational_errors():
     """Only the expected duplicate-column race is recoverable."""
     import sqlalchemy as sa
-
     from pssm_gremlin_server.auth import UserDatabase
 
     class FailingConnection:

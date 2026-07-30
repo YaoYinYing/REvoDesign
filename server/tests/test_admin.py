@@ -4,19 +4,13 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import zipfile
 
 import pytest
-from conftest import (
-    _admin_client_auth,
-    _extract_md5,
-    _insert_pending_task,
-    _load_pssm_module,
-    _test_client_auth,
-    _upsert_task_for_user,
-)
+from conftest import _extract_md5, _insert_pending_task, _load_pssm_module, _test_client_auth, _upsert_task_for_user
 
 # Admin user control helpers
 # ==================================================================
@@ -111,6 +105,33 @@ def test_admin_can_update_user_status(monkeypatch, tmp_path):
     assert resp.status_code == 200
     updated = db.get_user(user["id"])
     assert updated["user_status"] == "banned"
+
+
+@pytest.mark.parametrize(
+    ("registration_status", "sender_name", "warning"),
+    (
+        ("approved", "send_approval_email", "Approval email failed for"),
+        ("rejected", "send_rejection_email", "Rejection email failed for"),
+    ),
+)
+def test_admin_notification_failure_logs_user_id_not_email(
+    monkeypatch,
+    tmp_path,
+    caplog,
+    registration_status,
+    sender_name,
+    warning,
+):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    db = module.app.config["user_db"]
+    user = db.create_user(username=f"{registration_status}_target", email="private@test.local", password="pass1234")
+    route_globals = inspect.unwrap(module.app.view_functions["admin_manage_user"]).__globals__
+    monkeypatch.setitem(route_globals, sender_name, lambda _user: False)
+
+    route_globals["_notify_admin_user_update"](db, user["id"], user, registration_status)
+
+    assert caplog.messages[-1] == f"{warning} {user['id']!r}"
+    assert user["email"] not in caplog.text
 
 
 def test_banned_user_cannot_authenticate_with_existing_credentials(monkeypatch, tmp_path):
@@ -538,14 +559,8 @@ def test_admin_can_list_and_download_rotated_logs(monkeypatch, tmp_path):
 
     assert response.status_code == 200
     groups = {group["id"]: group for group in response.get_json()["logs"]}
-    assert [item["filename"] for item in groups["maintenance"]["archives"]] == [
-        archive_name
-    ]
-    assert all(
-        item["filename"] != "unrelated.zip"
-        for group in groups.values()
-        for item in group["archives"]
-    )
+    assert [item["filename"] for item in groups["maintenance"]["archives"]] == [archive_name]
+    assert all(item["filename"] != "unrelated.zip" for group in groups.values() for item in group["archives"])
 
     response = client.get(
         f"/PSSM_GREMLIN/api/auth/admin/logs/archives/{archive_name}",
@@ -680,10 +695,7 @@ def test_bootstrap_admin_has_correct_statuses(monkeypatch, tmp_path):
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
             "ADMIN_USERS": "admin,group_admin",
-            "ADMIN_BOOTSTRAP_CREDENTIALS": (
-                "admin\ttest-admin-password\n"
-                "group_admin\ttest-group-admin-password"
-            ),
+            "ADMIN_BOOTSTRAP_CREDENTIALS": ("admin\ttest-admin-password\n" "group_admin\ttest-group-admin-password"),
         },
     )
     db = module.app.config["user_db"]

@@ -25,22 +25,22 @@ class GenerateVariantsinFastafile:
         self.filename_id = ""
 
     def getdata(self, inputfile):
-        with open(inputfile) as f:
+        # The desktop caller explicitly chooses this local FASTA input path.
+        with open(inputfile) as f:  # skipcq: PTC-W6004
             for line in f:
                 if line[0] == ">":
                     continue
-                else:
-                    self.fastaseq = self.fastaseq + line.strip()
+                self.fastaseq = self.fastaseq + line.strip()
 
     @staticmethod
     def get_fastasequence_from_file(inputfile):
         fasta_seq = ""
-        with open(inputfile) as f:
+        # The desktop caller explicitly chooses this local FASTA input path.
+        with open(inputfile) as f:  # skipcq: PTC-W6004
             for line in f:
                 if line[0] == ">":
                     continue
-                else:
-                    fasta_seq += line.strip()
+                fasta_seq += line.strip()
         return fasta_seq
 
     def insert_mutations(self, position, native, newmutation, newfasta):
@@ -77,7 +77,6 @@ class GenerateVariantsinFastafile:
         newfasta = fastasequence
         for aa_idx, aa in enumerate(fastasequence):
             if aa_idx == position - 1:
-                # print("Native,Pos,Design",native,position,fastasequence[aa],fastasequence[aa] == native)
                 if aa != native:
                     raise ValueError(f"WT mismatch at position {position}: expected {native}, found {aa}")
                 newfasta = newfasta[0 : position - 1] + newmutation + newfasta[position:]
@@ -92,7 +91,8 @@ class GenerateVariantsinFastafile:
             filename = self.name + self.group + ".fasta"
             # print filename
 
-        with open(filename + self.filename_id, "w") as f:
+        # The desktop caller explicitly chooses this local output name.
+        with open(filename + self.filename_id, "w") as f:  # skipcq: PTC-W6004
             f.write(">" + filename.split(".")[0] + "\n")
             f.write(self.newfasta)
 
@@ -141,12 +141,14 @@ class Combinations:
         self.combi = 1
         # target fasta file
         self.fastafile = ""
+        self.expected_output_fasta: pathlib.Path | None = None
 
     def setdata(self, datafile):
         """
         Make sure that there are no redundant mutations in the input
         """
-        with open(datafile) as f:
+        # The desktop caller explicitly chooses this local mutation-table path.
+        with open(datafile) as f:  # skipcq: PTC-W6004
             for line in f:
                 _line = line.strip()
                 mut_obj = extract_mutants_from_mutant_id(_line, sequences={self.chain_id: self.fastasequence})
@@ -196,20 +198,18 @@ class Combinations:
         b = combinations(self.list_of_mutations, self.combi)
 
         mutations = []
-        # self.fastasequence = self.gvf.get_fastasequence_from_file( fastafile)
         # insert method here to evaluate the WT AA with the given fasta
         self.evalute_fasta_file()
 
         for j in b:
-            eval = self.getUniquePositions(list(j))
+            evaluation = self.getUniquePositions(list(j))
             if self.debug == 1:
                 print(j)
-            if eval:
+            if evaluation:
                 mutations.append(j)
 
         # rewrite to parallel
         dummy = list(range(len(mutations)))
-        # print("length of designs:: ",dummy)
 
         with ThreadPoolExecutor(self.processors) as p:
             name_seq = p.map(self.generate_fasta_in_parallel, mutations, dummy)

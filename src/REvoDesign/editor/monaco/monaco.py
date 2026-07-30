@@ -214,7 +214,7 @@ def edit_file_with_monaco(file_path: str):
     server_monitor = StoresWidget().server_switches["Editor_Backend"]
     logging.info(f"Server launch status: {server_monitor.controller.is_running}")
     if not server_monitor.controller.is_running:
-        server_monitor._start_server()
+        server_monitor.start_server()
 
     # Step 3: Validate the file path
     target_file = Path(file_path)

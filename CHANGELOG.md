@@ -19,6 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Changed
+- **DeepSource server cleanup**: resolved the current Bug Risk and Anti-pattern
+  findings by exposing stable public task-runtime compatibility names, removing
+  duplicate/unused imports, and decomposing upload, dashboard, task-deletion,
+  and admin-user routes below the configured complexity threshold.
+- **DeepSource repository cleanup**: removed every reproducible
+  `no-else-return` (`PYL-R1705`) and `no-else-continue` (`PYL-R1724`) finding
+  across the tracked Python tree.
+- **DeepSource audit workflow**: made the default-branch repository occurrence
+  inventory the cleanup source of truth and reserved analysis-run results for
+  per-changeset regression checks. Public-repository findings are read directly
+  from the browser-visible dashboard; API tokens remain optional automation
+  credentials.
+- **DeepSource security triage**: constrained bootstrap downloads to the
+  operating-system temporary directory, validated GREMLIN filename labels, and
+  documented intentional local-file and application-owned logging boundaries.
 - **CI: source-aware checks**: Bare Tests and Pylint now run only for desktop
   application changes, while Server Tests run only for server implementation,
   test, packaging, or deployment changes. Documentation-only and unrelated
@@ -55,6 +70,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Gunicorn error, Celery worker, and maintenance logs through fixed-name
   admin-only endpoints. Rotated ZIPs are grouped in a lazy file tree and can
   be downloaded individually.
+
+### Fixed
+- **DeepSource return contracts**: made optional-result helpers return `None`
+  explicitly, kept UI callbacks consistently side-effect-only, and corrected
+  the abstract classmethod receiver name to clear all current `PYL-R1710` and
+  `PYL-C0202` findings across the repository.
+- **GUI test dependency safety**: run the pocket-session producer before the
+  PIPPack/ProteinMPNN case, release reusable cluster workers after each run,
+  and fail immediately if a `TestWorker` case unexpectedly opens a modal file
+  or notification dialog in headless CI.
+- **Editor server lifecycle**: mark an immediate or timed-out stop request as
+  not running and reject restarts while the previous server thread drains.
+- **Mutant session merge**: use the canonical `run_command(command=...)`
+  interface so visualization no longer raises an unexpected-keyword error.
+- **Repository-wide DeepSource audit**: reconcile bug-risk, anti-pattern,
+  security, and performance occurrences across server, desktop, tools, and
+  development scripts; fix reproducible findings and document narrow
+  suppressions for intentional compatibility and bootstrap patterns.
+- **DeepSource critical/major correctness**: reject incomplete OpenKinetics
+  result batches before merging cached scores, and remove duplicate UI type-map
+  entries and a redundant Qt import.
+- **GREMLIN server: position-label validation**: validate the residue and
+  positive numeric position components separately so valid labels such as
+  `A_1` no longer abort fresh GREMLIN runs.
+- **GREMLIN server: notification logging privacy**: failed administrator
+  approval and rejection notifications now log the target user ID instead of
+  the recipient email address.
+- **macOS deployment test compatibility**: guard iteration over the initially
+  empty administrator-deduplication array so Bash 3.2 with `set -u` can run the
+  bootstrap path and still reject duplicate `ADMIN_USERS` entries.
 
 ## [1.9.1] - 2026-07-28
 ### Added

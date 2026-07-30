@@ -7,7 +7,6 @@ from __future__ import annotations
 import logging
 
 import pytest
-
 from pssm_gremlin_server.maintenance import manager
 from pssm_gremlin_server.maintenance.model import PeriodicTask
 from pssm_gremlin_server.maintenance.tasks import admin_digest
@@ -43,9 +42,7 @@ def test_configure_logging_writes_maintenance_log(monkeypatch, tmp_path):
             handler.flush()
 
         assert log_path == str(tmp_path / "maintenance.log")
-        assert "maintenance log test" in (tmp_path / "maintenance.log").read_text(
-            encoding="utf-8"
-        )
+        assert "maintenance log test" in (tmp_path / "maintenance.log").read_text(encoding="utf-8")
     finally:
         for handler in logger.handlers[:]:
             handler.close()

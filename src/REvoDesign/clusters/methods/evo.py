@@ -59,7 +59,8 @@ class EvoCluster(ClusterMethodAbstract):
         super().__init__(fastafile)
         self.last_component_report: dict[str, object] = {}
 
-    def _normalize_mutation_token(self, token: str) -> str:
+    @staticmethod
+    def _normalize_mutation_token(token: str) -> str:
         token = str(token).strip().replace(":", "")
         token = token.split("_")[0]
         return token
@@ -245,7 +246,9 @@ class EvoCluster(ClusterMethodAbstract):
         total = sum(weight for _, weight, _ in weighted_components)
         return [(name, weight / total, matrix) for name, weight, matrix in weighted_components]
 
-    def _build_evo_distance(self, score_matrix: np.ndarray) -> np.ndarray:
+    def _build_evo_distance(  # skipcq: PY-R1000 -- optional distance terms share normalization state.
+        self, score_matrix: np.ndarray
+    ) -> np.ndarray:
         mutations_per_record = self._get_mutations_per_record()
 
         components = []
@@ -306,7 +309,7 @@ class EvoCluster(ClusterMethodAbstract):
             total_distance += norm_weight * matrix
 
         normalized_weights = {name: norm_weight for name, norm_weight, _ in weighted_components}
-        active_components = [name for name in normalized_weights]
+        active_components = list(normalized_weights)
         skipped_components = {
             name: details for name, details in component_status.items() if name not in active_components
         }

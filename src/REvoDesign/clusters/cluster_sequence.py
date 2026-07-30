@@ -27,12 +27,19 @@ from matplotlib import pyplot as plt
 from REvoDesign.basic import build_plugin_registry
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import ROOT_LOGGER
-from REvoDesign.tools.customized_widgets import refresh_window
-from REvoDesign.tools.utils import minibatches_generator
 
 logging = ROOT_LOGGER.getChild(__name__)
 
 matplotlib.use("Agg")
+
+
+def _shutdown_loky_process_pool() -> None:
+    """Release joblib workers created by the cluster alignment batches."""
+    from joblib.externals.loky import reusable_executor
+
+    executor = reusable_executor._executor  # skipcq: PYL-W0212 -- loky exposes no public current-pool accessor.
+    if executor is not None:
+        executor.shutdown(wait=True, kill_workers=True)
 
 
 @dataclass(frozen=True)
@@ -84,6 +91,11 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         self.records_seqs = []
         self._current_centers: dict[int, SeqRecord] = {}
         self.cluster_output_fp = {}
+        self.aligner: PairwiseAligner | None = None
+        self.buffer_file = ""
+        self.fasta_instance = ""
+        self.save_dir = pathlib.Path(self._save_dir)
+        self._batch_size = self.batch_size
 
         self.chain_id = "A"
         self.wt_sequence = ""
@@ -136,7 +148,8 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         )
 
     def write_fasta_to_file(self, tmpfastafile):
-        with open(tmpfastafile, "w") as f:
+        # The caller owns this local temporary-output path.
+        with open(tmpfastafile, "w") as f:  # skipcq: PTC-W6004
             for line in self.seqs:
                 f.write(">" + line + "\n")
                 f.write(str(self.seqs[line]) + "\n")
@@ -241,7 +254,8 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
             self.write_cluster_center_files(rosetta_centers)
 
     def _calculate_pairwise_scores(self, progressbar) -> np.ndarray:
-        from REvoDesign.tools.customized_widgets import QtParallelExecutor
+        from REvoDesign.tools.customized_widgets import QtParallelExecutor, refresh_window
+        from REvoDesign.tools.utils import minibatches_generator
 
         with open(self.fastafile) as handle:
             self.records = list(SeqIO.parse(handle, "fasta"))
@@ -284,7 +298,7 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
                     start=1,
                 ):
                     start_time = time.perf_counter()
-                    args_list = [(sub_param, sub_index) for sub_param, sub_index in zip(sub_paramlist, sub_indexlist)]
+                    args_list = list(zip(sub_paramlist, sub_indexlist))
 
                     parallel_executor = QtParallelExecutor(
                         self.global_alignment,
@@ -298,6 +312,7 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
                     while not parallel_executor.isFinished():
                         refresh_window()
                         time.sleep(0.01)
+                    parallel_executor.wait()
 
                     progressbar.setValue(batch_count)
                     refresh_window()
@@ -317,7 +332,10 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
                 progressbar.setValue(workload)
 
         logging.info("Calculating...")
-        processing(paramlist, indexlist, self.batch_size, "w")
+        try:
+            processing(paramlist, indexlist, self.batch_size, "w")
+        finally:
+            _shutdown_loky_process_pool()
 
         logging.info("reading buffer ...")
         df = pd.read_csv(self.buffer_file)
@@ -433,22 +451,16 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         self.write_method_report()
 
 
-# Deferred imports to break circular dependency: the method modules import
-# ClusterMethodAbstract from this module, so they can only be loaded after
-# the class is defined.  CLUSTER_METHOD_REGISTRY (below) also discovers
-# these via pkgutil, but the explicit imports make the names available for
-# __all__ and the Clustering alias without extra registry lookups.
-from REvoDesign.clusters.methods.agglomerative import AgglomerativeCluster  # noqa: E402 — deferred for circular-import
-from REvoDesign.clusters.methods.evo import EvoCluster  # noqa: E402
-from REvoDesign.clusters.methods.kmeans import KMeansCluster  # noqa: E402
-from REvoDesign.clusters.methods.legacy import LegacyCluster  # noqa: E402
-
 CLUSTER_METHOD_REGISTRY = build_plugin_registry(
     base_class=ClusterMethodAbstract,
     package="REvoDesign.clusters.methods",
 )
 ALL_CLUSTER_METHOD_CLASSES: list[type[ClusterMethodAbstract]] = list(CLUSTER_METHOD_REGISTRY.all_classes)
 IMPLEMENTED_CLUSTER_METHOD = CLUSTER_METHOD_REGISTRY.implemented_map
+LegacyCluster = IMPLEMENTED_CLUSTER_METHOD["LegacyCluster"]
+AgglomerativeCluster = IMPLEMENTED_CLUSTER_METHOD["AgglomerativeCluster"]
+KMeansCluster = IMPLEMENTED_CLUSTER_METHOD["KMeansCluster"]
+EvoCluster = IMPLEMENTED_CLUSTER_METHOD["EvoCluster"]
 
 
 class ClusterMethodManager:

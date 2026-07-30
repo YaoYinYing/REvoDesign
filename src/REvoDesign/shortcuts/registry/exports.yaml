@@ -2,7 +2,7 @@ dump_fasta_from_struct:
   title: "Dump Sequence from Structure"
   banner: "Dump the sequence of the selected molecule/chain to a sequence file."
   options:
-    - name: "format"
+    - name: "output_format"
       type: str
       default: "fasta"
       reason: "Output format. Default is fasta."

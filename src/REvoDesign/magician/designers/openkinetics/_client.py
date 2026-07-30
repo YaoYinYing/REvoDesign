@@ -82,7 +82,7 @@ def persist_openkinetics_api_key(api_key: str) -> str:
         from REvoDesign import ConfigBus
         from REvoDesign.driver.environ_register import register_environment_variables
 
-        if ConfigBus._instance is not None:
+        if ConfigBus.is_initialized():
             # Update environ.yaml through ConfigBus when it's initialized
             logging.debug("ConfigBus is initialized; updating environ.yaml through ConfigBus.")
             bus = ConfigBus()
@@ -423,7 +423,7 @@ def build_openkinetics_request_payload(
 
 
 # Dead code ?
-def _normalize_result_rows(
+def _normalize_result_rows(  # skipcq: PY-R1000 -- provider compatibility boundary.
     result_payload: Any,
     *,
     method: str,
@@ -432,6 +432,7 @@ def _normalize_result_rows(
     variant_rows: list[dict[str, str]] | None = None,
     job_id: str = "",
 ) -> list[dict[str, Any]]:
+    """Normalize provider result variants at one compatibility boundary."""
     if not isinstance(result_payload, dict):
         raise OpenKineticsValidationError("OpenKinetics result payload must be a JSON object")
 
@@ -669,7 +670,7 @@ class OpenKineticsClient:
             A dictionary containing validation results
         """
         # Normalize score variants in the input data
-        self._normalize_score_variants_input(rows)
+        self.normalize_score_variants_input(rows)
 
         # Create a temporary CSV file for processing
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="", suffix=".csv", delete=False) as handle:
@@ -942,7 +943,7 @@ class OpenKineticsClient:
     # -- variant-input normalisation ---------------------------------------
 
     @staticmethod
-    def _normalize_score_variants_input(
+    def normalize_score_variants_input(
         variants: list[dict[str, Any]],
     ) -> list[dict[str, str]]:
         """Accept a list of variant dicts and normalise to the internal row

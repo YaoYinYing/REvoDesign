@@ -52,7 +52,7 @@ def score_clusters(pdb, chain_id, node_hint: NodeHintT, tasks_dir: str) -> list[
     for k, df in df_dict.items():
         df.loc[:, "branch"] = k
 
-    df_merge = pd.concat([df for df in df_dict.values()])
+    df_merge = pd.concat(list(df_dict.values()))
 
     logging.info(f"Saving cluster scores to cluster.{task_bn}_rosetta.xlsx/csv")
     df_merge.to_excel(f"cluster_scorings/output/cluster.{task_bn}_rosetta.xlsx")

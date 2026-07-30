@@ -40,9 +40,8 @@ def _validate_database(path: Path) -> int:
 
 def _backup_database(source: Path, destination: Path) -> None:
     """Create a self-contained SQLite snapshot, including committed WAL data."""
-    with sqlite3.connect(source) as source_conn:
-        with sqlite3.connect(destination) as destination_conn:
-            source_conn.backup(destination_conn)
+    with sqlite3.connect(source) as source_conn, sqlite3.connect(destination) as destination_conn:
+        source_conn.backup(destination_conn)
     shutil.copystat(source, destination)
 
 
@@ -84,9 +83,7 @@ def migrate_auth_database(server_dir: Path, auth_dir: Path) -> AuthMigrationResu
         _backup_database(legacy_db, temporary)
         copied_count = _validate_database(temporary)
         if copied_count != legacy_count:
-            raise RuntimeError(
-                f"User count mismatch after copy: source={legacy_count}, destination={copied_count}"
-        )
+            raise RuntimeError(f"User count mismatch after copy: source={legacy_count}, destination={copied_count}")
         shutil.copy2(temporary, rollback_backup)
         os.replace(temporary, destination)
         _remove_sqlite_files(legacy_db)

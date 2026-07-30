@@ -371,7 +371,9 @@ def _inspect_function(method: Callable) -> MethodKind | None:
     return None
 
 
-def inspect_method_types(method: Callable) -> MethodKind:
+def inspect_method_types(  # skipcq: PY-R1000 -- descriptor classification is one ordered decision tree.
+    method: Callable,
+) -> MethodKind:
     """
     Inspect the type of a callable: instance method, class method,
     static method, or plain function.
@@ -675,7 +677,9 @@ def _extract_archive_contents(archive_file: str, extract_to: str) -> None:
     raise ValueError(f"Unsupported archive format: {archive_file}")
 
 
-def extract_archive(archive_file: str, extract_to: str):
+def extract_archive(  # skipcq: PY-R1000 -- archive formats share one traversal-safety boundary.
+    archive_file: str, extract_to: str
+):
     """
     Extracts an archive file (zip, tar, tar.gz, tar.bz2, or tar.xz) to a directory.
 

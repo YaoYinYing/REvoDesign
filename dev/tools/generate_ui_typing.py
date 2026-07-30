@@ -51,8 +51,6 @@ WIDGET_CLASS_MAP = {
     "QMenu": "QtWidgets.QMenu",
     "QStatusBar": "QtWidgets.QStatusBar",
     "QToolBar": "QtWidgets.QToolBar",
-    "QScrollArea": "QtWidgets.QScrollArea",
-    "QScrollArea": "QtWidgets.QScrollArea",
     "QTextBrowser": "QtWidgets.QTextBrowser",
     "QTreeWidgetItem": "QtWidgets.QTreeWidgetItem",
     "QTableWidgetItem": "QtWidgets.QTableWidgetItem",

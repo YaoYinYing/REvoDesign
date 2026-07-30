@@ -62,7 +62,8 @@ class _RestrictedUnpickler(pickle.Unpickler):
             raise pickle.UnpicklingError(f"Unsafe collections type in pickle payload: {name}")
 
         if module == "copyreg" and name == "_reconstructor":
-            return importlib.import_module(module)._reconstructor
+            # ``copyreg._reconstructor`` is part of the pickle wire protocol and is explicitly allowlisted here.
+            return importlib.import_module(module)._reconstructor  # skipcq: PYL-W0212
 
         if not _module_is_allowed(module, self.allowed_module_prefixes):
             raise pickle.UnpicklingError(f"Disallowed module in pickle payload: {module}.{name}")

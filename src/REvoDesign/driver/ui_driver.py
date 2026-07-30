@@ -9,6 +9,7 @@ The heart of REvoDesign. A UI-Configuration Bus
 
 from __future__ import annotations
 
+import importlib
 import os
 import shutil
 import time
@@ -28,13 +29,18 @@ from REvoDesign.bootstrap.set_config import list_all_config_files, save_configur
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import LOGGER_CONFIG, ROOT_LOGGER
 from REvoDesign.Qt import QtWidgets
-from REvoDesign.tools.customized_widgets import get_widget_value, notify_box, set_widget_value, widget_signal_tape
 from REvoDesign.tools.utils import CLASS_ARGSLICE
 
 from .group_register import GroupRegistryCollection
 from .widget_link import Config2WidgetIds, PushButtons
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+
+def _widget_tools():
+    """Load widget helpers after ConfigBus is defined to avoid an import cycle."""
+    return importlib.import_module("REvoDesign.tools.customized_widgets")
+
 
 # Define a generic type for converter
 ValueFromConfigT = TypeVar("ValueFromConfigT")
@@ -43,7 +49,7 @@ ValueFromConfigT = TypeVar("ValueFromConfigT")
 
 
 class StoresWidget(SingletonAbstract):
-    def singleton_init(self):
+    def singleton_init(self):  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
         self.server_switches: dict[str, MenuActionServerMonitor] = {}
 
     @classmethod
@@ -57,7 +63,7 @@ class StoresWidget(SingletonAbstract):
             if attr.startswith("_"):
                 continue
 
-            attr_dict: dict | Any = getattr(myinstance, attr)
+            attr_dict: dict | Any = myinstance.__dict__[attr]
             if not isinstance(attr_dict, dict):
                 continue
 
@@ -71,8 +77,6 @@ class StoresWidget(SingletonAbstract):
                         print("done.")
                     except Exception as e:
                         print(f"failed: ({e}).")
-
-            del attr_dict
 
         super().reset_instance()
 
@@ -377,6 +381,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
     headless: bool = True
 
+    # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
     def singleton_init(self, ui=None):
         # logger must be excluded from the  config group, as logger starts before the config bus
         self.cfg_group = Config.from_files(
@@ -435,7 +440,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 logging.debug(f"No values found for widget {gr.cfg_item}")
                 continue
 
-            set_widget_value(widget, group_values)
+            _widget_tools().set_widget_value(widget, group_values)
 
             default_cfg_item = self.w2c.find_config_item(widget_id=gr.cfg_item)
             if default_cfg_item:
@@ -448,7 +453,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         widget = self.get_widget_from_id(widget_id=widget_id)
         if not cfg_item:
             return
-        value = get_widget_value(widget=widget)
+        value = _widget_tools().get_widget_value(widget=widget)
         OmegaConf.update(self.cfg_group["main"].cfg, cfg_item, value)
 
     def _widget_link(self, widget_id: str):
@@ -460,7 +465,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         for widget_id in self.w2c.all_widget_ids:
             widget = self.get_widget_from_id(widget_id=widget_id)
             try:
-                widget_signal_tape(widget, self._widget_link(widget_id))
+                _widget_tools().widget_signal_tape(widget, self._widget_link(widget_id))
             except Exception as e:
                 raise issues.UnknownWidgetError(f"Expect link of {widget_id} with {widget.__name__} is broken.") from e
 
@@ -480,7 +485,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     @require_non_headless
     def get_widget_value(self, cfg_item: str, converter: Callable[[Any], ValueFromConfigT]) -> ValueFromConfigT:
         try:
-            value = get_widget_value(widget=self.get_widget_from_cfg_item(cfg_item))
+            value = _widget_tools().get_widget_value(widget=self.get_widget_from_cfg_item(cfg_item))
         except ValueError as e:
             # record error then re-raise it
             logging.error(f"Error in the configuration item: {cfg_item}: {e}")
@@ -493,7 +498,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     def set_widget_value(self, cfg_item: str, value, hard=False):
         # Sets the value of a UI widget based on its corresponding configuration item.
         widget = self.get_widget_from_cfg_item(cfg_item)
-        set_widget_value(widget=widget, value=value)
+        _widget_tools().set_widget_value(widget=widget, value=value)
         if hard:
             self.set_value(cfg_item=cfg_item, value=value)
 
@@ -502,7 +507,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         # Restores the value of a UI widget to its default configuration setting.
         widget = self.get_widget_from_cfg_item(cfg_item)
         value = self.get_value(cfg_item)
-        set_widget_value(widget=widget, value=value)
+        _widget_tools().set_widget_value(widget=widget, value=value)
 
     def get_cfg_item(self, widget_id: str) -> str:
         # Retrieves the configuration item corresponding to a UI widget ID.
@@ -589,11 +594,11 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             elif reject_none:
                 # not loaded?
                 if not self.get_value("ui.header_panel.input.molecule", None):
-                    notify_box(
+                    _widget_tools().notify_box(
                         "No molecule is loaded in PyMOL. Please load a molecule first.", issues.UnexpectedWorkflowError
                     )
                 # out-of-dated?
-                notify_box(
+                _widget_tools().notify_box(
                     "This configure file might be out of date. "
                     "Please reinitialize REvoDesign (menu->Edit->Reinitialize) and restart PyMOL to fix this.",
                     issues.ConfigureOutofDateError,

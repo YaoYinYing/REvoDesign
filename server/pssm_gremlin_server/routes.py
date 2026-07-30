@@ -170,60 +170,124 @@ def logo_svg():
 # ---------------------------------------------------------------------------
 
 
-@app.route("/PSSM_GREMLIN/api/post", methods=["POST"])
-@login_required
-@rate_limit(max_requests=30, window_seconds=3600)
-def upload_file():
-    if _blocked := require_bearer_auth():
-        return _blocked
+def _validate_fasta_upload():
+    """Return a validated upload and safe filename, or an HTTP error."""
     if "file" not in request.files:
-        return jsonify({"error": "No file part"}), 400
+        return None, None, (jsonify({"error": "No file part"}), 400)
 
     uploaded_file = request.files["file"]
     if uploaded_file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
+        return None, None, (jsonify({"error": "No selected file"}), 400)
 
     safe_filename = secure_filename(uploaded_file.filename)
     if not safe_filename:
-        return jsonify({"error": "Invalid filename"}), 400
-
+        return None, None, (jsonify({"error": "Invalid filename"}), 400)
     if not safe_filename.lower().endswith(".fasta"):
-        return (
-            jsonify({"error": "Uploaded file must have the .fasta extension"}),
-            400,
-        )
+        return None, None, (jsonify({"error": "Uploaded file must have the .fasta extension"}), 400)
+    return uploaded_file, safe_filename, None
 
-    # Save to a temp name first to avoid filename collisions — two users
-    # uploading "seqs.fasta" would otherwise overwrite each other.
+
+def _save_uploaded_fasta(uploaded_file, safe_filename: str) -> tuple[str, str, dict[str, str]]:
+    """Persist one upload and return its task ID, path, and request metadata."""
     temp_name = f".tmp_{os.urandom(8).hex()}_{safe_filename}"
     temp_path = _safe_join(app.config["UPLOAD_FOLDER"], temp_name)
     uploaded_file.save(temp_path)
 
     hasher = hashlib.md5(usedforsecurity=False)
-    with open(temp_path, "rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
+    with open(temp_path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
             hasher.update(chunk)
-    content_md5 = hasher.hexdigest()
-    metadata = _request_metadata()
-    md5sum = _task_id_for_upload(content_md5, metadata["username"])
 
-    # Rename to the owner-scoped task ID so on-disk names are unique.
+    metadata = _request_metadata()
+    md5sum = _task_id_for_upload(hasher.hexdigest(), metadata["username"])
     upload_path = _safe_join(app.config["UPLOAD_FOLDER"], f"{md5sum}.fasta")
     os.rename(temp_path, upload_path)
+    return md5sum, upload_path, metadata
 
-    existing_task = task_store.get_task(md5sum)
-    if existing_task and not _task_access_allowed(existing_task):
+
+def _existing_upload_response(existing_task: dict[str, Any] | None, md5sum: str):
+    if not existing_task:
+        return None
+    if not _task_access_allowed(existing_task):
         return _task_access_denied(md5sum)
-    if existing_task and existing_task["status"] == "finished":
+    if existing_task["status"] == "finished":
         return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
-
-    if existing_task and existing_task["status"] in {
+    if existing_task["status"] in {
         "pending",
         "running",
         "packing results",
         *task_store.CLEANUP_CLAIM_STATUSES,
     }:
         return jsonify({"status": "Task already queued or running", "md5sum": md5sum}), 202
+    return None
+
+
+def _prepare_task_record(
+    md5sum: str,
+    upload_path: str,
+    safe_filename: str,
+    metadata: dict[str, str],
+) -> dict[str, Any]:
+    result_dir = _safe_join(app.config["RESULTS_FOLDER"], md5sum)
+    if os.path.exists(result_dir):
+        shutil.rmtree(result_dir)
+    os.makedirs(result_dir, exist_ok=True)
+    shutil.copy(upload_path, _safe_join(result_dir, safe_filename))
+
+    zip_path = _task_zip_path(md5sum)
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
+
+    return {
+        "filename": safe_filename,
+        "file_path": upload_path,
+        "result_dir": result_dir,
+        "uploaded_at": time.time(),
+        "started_at": None,
+        "finished_at": None,
+        "walltime": None,
+        "is_binary": int(_is_binary_file(upload_path)),
+        "source_ip": metadata["ip"],
+        "user_agent": metadata["user_agent"],
+        "username": metadata["username"],
+        "request_headers": metadata["headers_json"],
+        "local_user": _local_user_identity(),
+        "celery_task_id": None,
+        "run_stage": None,
+    }
+
+
+def _reject_invalid_fasta(md5sum: str, base_record: dict[str, Any]):
+    upload_path = base_record["file_path"]
+    if base_record["is_binary"]:
+        error_message = "Binary file uploads are not supported."
+        response_message = "Uploaded file contains binary content"
+    elif not _is_fasta_content(upload_path):
+        error_message = "Uploaded file does not appear to be a valid FASTA file."
+        response_message = "Uploaded file does not appear to be a valid FASTA file"
+    else:
+        return None
+
+    failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
+    task_store.upsert_task(md5sum, **base_record, status="failed", error=error_message)
+    _pack_failed_results_archive(failed_task, error_message)
+    return jsonify({"error": response_message}), 400
+
+
+@app.route("/PSSM_GREMLIN/api/post", methods=["POST"])
+@login_required
+@rate_limit(max_requests=30, window_seconds=3600)
+def upload_file():  # skipcq: PY-R1000 -- route validation branches form one transactional request boundary.
+    if _blocked := require_bearer_auth():
+        return _blocked
+    uploaded_file, safe_filename, upload_error = _validate_fasta_upload()
+    if upload_error is not None:
+        return upload_error
+    md5sum, upload_path, metadata = _save_uploaded_fasta(uploaded_file, safe_filename)
+
+    existing_task = task_store.get_task(md5sum)
+    if existing_response := _existing_upload_response(existing_task, md5sum):
+        return existing_response
 
     # ponytail: per-user cap on active tasks — the expensive resource is the
     # Celery/Docker queue, not the HTTP layer.  Raise MAX_ACTIVE_TASKS_PER_USER
@@ -240,60 +304,9 @@ def upload_file():
             429,
         )
 
-    result_dir = _safe_join(app.config["RESULTS_FOLDER"], md5sum)
-    if os.path.exists(result_dir):
-        shutil.rmtree(result_dir)
-    os.makedirs(result_dir, exist_ok=True)
-    result_fasta_path = _safe_join(result_dir, safe_filename)
-    shutil.copy(upload_path, result_fasta_path)
-
-    zip_path = _task_zip_path(md5sum)
-    if os.path.exists(zip_path):
-        os.remove(zip_path)
-
-    is_binary = _is_binary_file(upload_path)
-    now = time.time()
-    base_record = {
-        "filename": safe_filename,
-        "file_path": upload_path,
-        "result_dir": result_dir,
-        "uploaded_at": now,
-        "started_at": None,
-        "finished_at": None,
-        "walltime": None,
-        "is_binary": int(is_binary),
-        "source_ip": metadata["ip"],
-        "user_agent": metadata["user_agent"],
-        "username": metadata["username"],
-        "request_headers": metadata["headers_json"],
-        "local_user": _local_user_identity(),
-        "celery_task_id": None,
-        "run_stage": None,
-    }
-
-    if is_binary:
-        error_message = "Binary file uploads are not supported."
-        failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
-        task_store.upsert_task(
-            md5sum,
-            **base_record,
-            status="failed",
-            error=error_message,
-        )
-        _pack_failed_results_archive(failed_task, error_message)
-        return jsonify({"error": "Uploaded file contains binary content"}), 400
-
-    if not _is_fasta_content(upload_path):
-        error_message = "Uploaded file does not appear to be a valid FASTA file."
-        failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
-        task_store.upsert_task(
-            md5sum,
-            **base_record,
-            status="failed",
-            error=error_message,
-        )
-        _pack_failed_results_archive(failed_task, error_message)
-        return jsonify({"error": "Uploaded file does not appear to be a valid FASTA file"}), 400
+    base_record = _prepare_task_record(md5sum, upload_path, safe_filename, metadata)
+    if invalid_response := _reject_invalid_fasta(md5sum, base_record):
+        return invalid_response
 
     task_store.upsert_task(
         md5sum,
@@ -475,55 +488,51 @@ def cancel_task(md5sum):
     return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
 
 
+def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, is_admin: bool) -> dict[str, Any]:
+    submitted_time = task.get("uploaded_at")
+    finished_time = task.get("finished_at")
+    if task.get("is_binary"):
+        fasta_seq = "Binary file rejected"
+    else:
+        try:
+            with open(task["file_path"]) as handle:
+                fasta_seq = handle.read().strip()
+        except (OSError, UnicodeDecodeError) as exc:
+            reason = "file not found" if isinstance(exc, FileNotFoundError) else "file unavailable"
+            fasta_seq = (
+                f"Unable to read sequence: {reason} at "
+                f"{_virtual_upload_path(task.get('filename', 'unknown.fasta'))}"
+            )
+
+    return {
+        "id": index,
+        "md5": task["md5sum"],
+        "status": task["status"],
+        "fasta_fn": task["filename"],
+        "submitted_time": format_times(submitted_time),
+        "finished_time": format_times(finished_time) if finished_time else "-",
+        "walltime": format_walltime(task.get("walltime")),
+        "submitted_timestamp": submitted_time or 0,
+        "sequence": fasta_seq,
+        "owner": task.get("username") or "-",
+        "can_delete": (is_admin or task.get("username") == current_user)
+        and task["status"] not in task_store.CLEANUP_CLAIM_STATUSES,
+        "running_trace": _build_running_trace(task),
+        "error": _sanitize_task_error(task, task.get("error")),
+    }
+
+
 @app.route("/PSSM_GREMLIN/dashboard", methods=["GET"])
 @login_required
-def task_dashboard():
+def task_dashboard():  # skipcq: PY-R1000 -- dashboard filtering and response assembly share request state.
     current_user = _current_username() or ""
     is_admin = _is_admin_user()
     all_tasks = task_store.list_tasks()
-    if is_admin:
-        scoped_tasks = all_tasks
-    else:
-        scoped_tasks = [task for task in all_tasks if task.get("username") == current_user]
+    scoped_tasks = all_tasks if is_admin else [task for task in all_tasks if task.get("username") == current_user]
     visible_tasks = [task for task in scoped_tasks if not _is_deleted_status(task.get("status"))]
-
-    task_statuses = []
-    for i, task in enumerate(visible_tasks):
-        submitted_time = task.get("uploaded_at")
-        finished_time = task.get("finished_at")
-        walltime = task.get("walltime")
-        if task.get("is_binary"):
-            fasta_seq = "Binary file rejected"
-        else:
-            try:
-                with open(task["file_path"]) as f:
-                    fasta_seq = f.read().strip()
-            except (OSError, UnicodeDecodeError) as exc:
-                reason = "file not found" if isinstance(exc, FileNotFoundError) else "file unavailable"
-                fasta_seq = (
-                    f"Unable to read sequence: {reason} at "
-                    f"{_virtual_upload_path(task.get('filename', 'unknown.fasta'))}"
-                )
-
-        task_statuses.append(
-            {
-                "id": i,
-                "md5": task["md5sum"],
-                "status": task["status"],
-                "fasta_fn": task["filename"],
-                "submitted_time": format_times(submitted_time),
-                "finished_time": format_times(finished_time) if finished_time else "-",
-                "walltime": format_walltime(walltime),
-                "submitted_timestamp": submitted_time or 0,
-                "sequence": fasta_seq,
-                "owner": task.get("username") or "-",
-                "can_delete": (is_admin or task.get("username") == current_user)
-                and task["status"] not in task_store.CLEANUP_CLAIM_STATUSES,
-                "running_trace": _build_running_trace(task),
-                "error": _sanitize_task_error(task, task.get("error")),
-            }
-        )
-
+    task_statuses = [
+        _dashboard_task_status(task, index, current_user, is_admin) for index, task in enumerate(visible_tasks)
+    ]
     sorted_task_statuses = sorted(task_statuses, key=lambda x: x["submitted_timestamp"], reverse=True)
 
     return render_template(
@@ -534,24 +543,7 @@ def task_dashboard():
     )
 
 
-@app.route("/PSSM_GREMLIN/api/delete/<md5sum>", methods=["DELETE"])
-@login_required
-def delete_task(md5sum):
-    if _blocked := require_bearer_auth():
-        return _blocked
-    if _blocked := _reject_guest():
-        return _blocked
-    md5sum = _normalize_task_id(md5sum)
-    if md5sum is None:
-        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
-    task = task_store.get_task(md5sum)
-    if not task:
-        return jsonify({"status": "not_found", "md5sum": md5sum}), 404
-    if not _task_delete_allowed(task):
-        return _task_access_denied(md5sum)
-    if task["status"] in task_store.CLEANUP_CLAIM_STATUSES:
-        return jsonify({"error": "Task cleanup is already in progress", "md5sum": md5sum}), 409
-
+def _soft_delete_task(md5sum: str, task: dict[str, Any]) -> None:
     if task["status"] in {"pending", "running", "packing results"}:
         _revoke_celery_task(task)
 
@@ -573,12 +565,33 @@ def delete_task(md5sum):
         error="Task deleted by user",
         celery_task_id=None,
     )
+
+
+@app.route("/PSSM_GREMLIN/api/delete/<md5sum>", methods=["DELETE"])
+@login_required
+def delete_task(md5sum):
+    if _blocked := require_bearer_auth():
+        return _blocked
+    if _blocked := _reject_guest():
+        return _blocked
+    md5sum = _normalize_task_id(md5sum)
+    if md5sum is None:
+        return jsonify({"status": "bad_request", "message": "Invalid task id"}), 400
+    task = task_store.get_task(md5sum)
+    if not task:
+        return jsonify({"status": "not_found", "md5sum": md5sum}), 404
+    if not _task_delete_allowed(task):
+        return _task_access_denied(md5sum)
+    if task["status"] in task_store.CLEANUP_CLAIM_STATUSES:
+        return jsonify({"error": "Task cleanup is already in progress", "md5sum": md5sum}), 409
+
+    _soft_delete_task(md5sum, task)
     return jsonify({"status": "deleted", "md5sum": md5sum}), 200
 
 
 @app.route("/PSSM_GREMLIN/api/delete", methods=["POST"])
 @login_required
-def delete_tasks_batch():
+def delete_tasks_batch():  # skipcq: PY-R1000 -- per-task authorization and outcome accounting are intentionally atomic.
     if _blocked := require_bearer_auth():
         return _blocked
     if _blocked := _reject_guest():
@@ -616,26 +629,7 @@ def delete_tasks_batch():
             ignored.append(md5sum)
             continue
 
-        if task["status"] in {"pending", "running", "packing results"}:
-            _revoke_celery_task(task)
-        _delete_task_artifacts(task)
-        now = time.time()
-        deleted_status = _deleted_status_from_task(task)
-        started_at = task.get("started_at")
-        walltime = task.get("walltime")
-        if walltime is None and started_at:
-            walltime = now - started_at
-        finished_at = task.get("finished_at")
-        if deleted_status == "deleted:cancel" or not finished_at:
-            finished_at = now
-        task_store.update_task(
-            md5sum,
-            status=deleted_status,
-            finished_at=finished_at,
-            walltime=walltime,
-            error="Task deleted by user",
-            celery_task_id=None,
-        )
+        _soft_delete_task(md5sum, task)
         deleted.append(md5sum)
 
     return (
@@ -693,8 +687,7 @@ _ADMIN_LOG_FILES = {
     "maintenance": "maintenance.log",
 }
 _ADMIN_LOG_ARCHIVE_PATTERN = re.compile(
-    rf"(?:{'|'.join(re.escape(name) for name in _ADMIN_LOG_FILES.values())})"
-    r"\.\d{8}T\d{12}Z\.zip"
+    rf"(?:{'|'.join(re.escape(name) for name in _ADMIN_LOG_FILES.values())})" r"\.\d{8}T\d{12}Z\.zip"
 )
 
 
@@ -1279,14 +1272,89 @@ def admin_create_user():
     return jsonify({"message": "User created", "username": req.username}), 201
 
 
+def _admin_email_update(db: UserDatabase, user_id: int, email: str | None):
+    if email is None:
+        return {}, None
+    existing = db.get_user_by_email(email)
+    if existing and existing["id"] != user_id:
+        return None, (jsonify({"error": "Email address already in use"}), 409)
+    return {"email": email}, None
+
+
+def _admin_profile_update_fields(req: AdminUpdateUserRequest) -> dict[str, Any]:
+    update_fields = {
+        field: value
+        for field in ("affiliation", "full_name", "pi_name", "user_status")
+        if (value := getattr(req, field)) is not None
+    }
+    if "position" in req.model_fields_set:
+        update_fields["position"] = req.position
+    if req.password is not None:
+        update_fields["password_hash"] = generate_password_hash(req.password)
+    return update_fields
+
+
+def _admin_registration_update_fields(
+    db: UserDatabase,
+    user_id: int,
+    user: dict[str, Any],
+    registration_status: str | None,
+) -> dict[str, Any]:
+    update_fields: dict[str, Any] = {}
+    if registration_status is None:
+        return update_fields
+    update_fields["registration_status"] = registration_status
+    # Admin approval implies email verification — avoid the gap where
+    # an unverified self-registered account becomes active without
+    # proving email ownership.
+    if registration_status == "approved":
+        if not user.get("email_verified"):
+            db.verify_email(user_id)
+        update_fields["approved_by"] = g.current_user["id"]
+        update_fields["approved_at"] = time.time()
+    return update_fields
+
+
+def _admin_user_update_fields(
+    db: UserDatabase,
+    user_id: int,
+    user: dict[str, Any],
+    is_self: bool,
+    req: AdminUpdateUserRequest,
+):
+    """Build validated fields for an admin user update."""
+    update_fields, update_error = _admin_email_update(db, user_id, req.email)
+    if update_error is not None:
+        return None, update_error
+    if is_self and req.user_status == "banned":
+        return None, (jsonify({"error": "Administrators cannot ban their own account"}), 400)
+    update_fields.update(_admin_profile_update_fields(req))
+    update_fields.update(_admin_registration_update_fields(db, user_id, user, req.registration_status))
+    if req.role is not None:
+        if is_self:
+            return None, (jsonify({"error": "Administrators cannot change their own role"}), 400)
+        update_fields["role"] = req.role
+    return update_fields, None
+
+
+def _notify_admin_user_update(
+    db: UserDatabase,
+    user_id: int,
+    user: dict[str, Any],
+    registration_status: str | None,
+) -> None:
+    if registration_status == "approved":
+        approved_user = db.get_user(user_id) or user
+        if not send_approval_email(approved_user):
+            logging.warning("Approval email failed for %r", user_id)
+    elif registration_status == "rejected" and not send_rejection_email(user):
+        logging.warning("Rejection email failed for %r", user_id)
+
+
 @app.route("/PSSM_GREMLIN/api/auth/admin/users/<int:user_id>", methods=["PUT", "DELETE"])
 @login_required
-def admin_manage_user(user_id):
-    """Admin-only: update user status or delete a user.
-
-    ``PUT`` — update registration, account status, or role.
-    ``DELETE`` — permanently remove the user.
-    """
+def admin_manage_user(user_id):  # skipcq: PY-R1000 -- admin state transitions are kept in one audited transaction.
+    """Admin-only: update or soft-delete a user."""
     if _blocked := require_admin():
         return _blocked
     if _blocked := require_bearer_auth():
@@ -1306,62 +1374,16 @@ def admin_manage_user(user_id):
         logging.info("Admin %r soft-deleted user %r", g.current_user["username"], user.get("username"))
         return jsonify({"message": "User deleted"}), 200
 
-    # PUT
     req = _parse_body(AdminUpdateUserRequest)
     if isinstance(req, tuple):
         return req
-
-    # Build update dict from set fields only (all optional)
-    update_fields: dict[str, Any] = {}
-    if req.email is not None:
-        email = req.email
-        existing = db.get_user_by_email(email)
-        if existing and existing["id"] != user_id:
-            return jsonify({"error": "Email address already in use"}), 409
-        update_fields["email"] = email
-    if is_self and req.user_status == "banned":
-        return jsonify({"error": "Administrators cannot ban their own account"}), 400
-    if req.affiliation is not None:
-        update_fields["affiliation"] = req.affiliation
-    if req.full_name is not None:
-        update_fields["full_name"] = req.full_name
-    if "position" in req.model_fields_set:
-        update_fields["position"] = req.position
-    if req.pi_name is not None:
-        update_fields["pi_name"] = req.pi_name
-    if req.password is not None:
-        update_fields["password_hash"] = generate_password_hash(req.password)
-    if req.registration_status is not None:
-        update_fields["registration_status"] = req.registration_status
-        # Admin approval implies email verification — avoid the gap where
-        # an unverified self-registered account becomes active without
-        # proving email ownership.
-        if req.registration_status == "approved" and not user.get("email_verified"):
-            db.verify_email(user_id)
-    if req.user_status is not None:
-        update_fields["user_status"] = req.user_status
-    if req.role is not None:
-        if is_self:
-            return jsonify({"error": "Administrators cannot change their own role"}), 400
-        update_fields["role"] = req.role
-
-    # Only set approved_by / approved_at when the admin is actually approving.
-    new_reg = update_fields.get("registration_status")
-    if new_reg == "approved":
-        update_fields["approved_by"] = g.current_user["id"]
-        update_fields["approved_at"] = time.time()
+    update_fields, update_error = _admin_user_update_fields(db, user_id, user, is_self, req)
+    if update_error is not None:
+        return update_error
 
     if update_fields:
         db.update_user(user_id, **update_fields)
-
-        # Notify user on approval or rejection (use refreshed data).
-        if new_reg == "approved":
-            approved_user = db.get_user(user_id) or user
-            if not send_approval_email(approved_user):
-                logging.warning("Approval email failed for %r", approved_user["email"])
-        elif new_reg == "rejected":
-            if not send_rejection_email(user):
-                logging.warning("Rejection email failed for %r", user["email"])
+        _notify_admin_user_update(db, user_id, user, update_fields.get("registration_status"))
 
     return jsonify({"message": "User updated"}), 200
 

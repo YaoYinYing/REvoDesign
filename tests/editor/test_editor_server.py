@@ -76,8 +76,11 @@ def reset_rate_limits():
 
 
 @pytest.fixture
-def initialize_server():
+def initialize_server(tmp_path):
     """Initialize ServerControl and clean up after tests."""
+    html_dir = tmp_path / "monaco"
+    html_dir.mkdir()
+    ConfigStore().set("editor.backend.html_dir", str(html_dir))
     server_control = ServerControl()
     yield server_control
     server_control.stop_server()

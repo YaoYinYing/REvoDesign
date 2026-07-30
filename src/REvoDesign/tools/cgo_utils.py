@@ -420,11 +420,13 @@ class GraphicObject:
     A base class representing a graphic object, providing methods to rebuild and load graphic data.
     """
 
+    _data: list[float] = field(default_factory=list, init=False, repr=False)
+
     def rebuild(self):
         """
         Rebuild the CGO data.
         """
-        self._data: list[float] = []
+        self._data = []
 
     def __post_init__(self):
         """
@@ -1514,7 +1516,7 @@ class RoundedRectangle(GraphicObject):
         # Build a closed polyline (LINE_LOOP) from these vertices.
         poly = PolyLines(width=self.line_width, color=self.color, points=vertices, line_type="LINE_LOOP")
         poly.rebuild()
-        self._data = poly._data
+        self._data = poly.data
 
 
 @dataclass
@@ -1958,185 +1960,6 @@ class TextBoard(GraphicObject):
         self._data = goc.data
 
 
-# # --- Helper functions to build specific Platonic solids ---
-
-# def build_tetrahedron(center: Point, size: float):
-#     """
-#     Builds a tetrahedron (4 faces, all triangular).
-#     Uses vertices (1,1,1), (1,-1,-1), (-1,1,-1), (-1,-1,1) scaled so that edge length equals size.
-#     """
-#     # For the tetrahedron defined by these 4 vertices, the edge length is 2√2.
-#     scale = size / (2 * math.sqrt(2))
-#     verts = [
-#         Point(center.x + scale *  1, center.y + scale *  1, center.z + scale *  1),
-#         Point(center.x + scale *  1, center.y + scale * -1, center.z + scale * -1),
-#         Point(center.x + scale * -1, center.y + scale *  1, center.z + scale * -1),
-#         Point(center.x + scale * -1, center.y + scale * -1, center.z + scale *  1)
-#     ]
-#     faces = [
-#         [0, 1, 2],
-#         [0, 3, 1],
-#         [0, 2, 3],
-#         [1, 3, 2]
-#     ]
-#     return verts, faces
-
-# def build_cube(center: Point, size: float):
-#     """
-#     Builds a cube (6 faces, each a square).
-#     The cube edge length is 'size'.
-#     """
-#     s = size / 2
-#     verts = [
-#         Point(center.x - s, center.y - s, center.z - s),  # 0
-#         Point(center.x + s, center.y - s, center.z - s),  # 1
-#         Point(center.x - s, center.y + s, center.z - s),  # 2
-#         Point(center.x + s, center.y + s, center.z - s),  # 3
-#         Point(center.x - s, center.y - s, center.z + s),  # 4
-#         Point(center.x + s, center.y - s, center.z + s),  # 5
-#         Point(center.x - s, center.y + s, center.z + s),  # 6
-#         Point(center.x + s, center.y + s, center.z + s)   # 7
-#     ]
-#     faces = [
-#         [0, 1, 3, 2],  # bottom
-#         [4, 5, 7, 6],  # top
-#         [0, 1, 5, 4],  # front
-#         [1, 3, 7, 5],  # right
-#         [3, 2, 6, 7],  # back
-#         [2, 0, 4, 6]   # left
-#     ]
-#     return verts, faces
-
-# def build_octahedron(center: Point, size: float):
-#     """
-#     Builds an octahedron (8 faces, all triangular).
-#     Standard vertices are (±1,0,0), (0,±1,0), (0,0,±1). For these, the edge length is √2.
-#     """
-#     scale = size / math.sqrt(2)
-#     verts = [
-#         Point(center.x + scale, center.y, center.z),    # 0
-#         Point(center.x - scale, center.y, center.z),    # 1
-#         Point(center.x, center.y + scale, center.z),    # 2
-#         Point(center.x, center.y - scale, center.z),    # 3
-#         Point(center.x, center.y, center.z + scale),    # 4
-#         Point(center.x, center.y, center.z - scale)     # 5
-#     ]
-#     faces = [
-#         [0, 2, 4],
-#         [2, 1, 4],
-#         [1, 3, 4],
-#         [3, 0, 4],
-#         [0, 2, 5],
-#         [2, 1, 5],
-#         [1, 3, 5],
-#         [3, 0, 5]
-#     ]
-#     return verts, faces
-
-# def build_icosahedron(center: Point, size: float):
-#     """
-#     Builds an icosahedron (20 faces, all triangular).
-#     Standard coordinates (before scaling) for an icosahedron:
-#       (0, ±1, ±phi), (±1, ±phi, 0), (±phi, 0, ±1)
-#     For these coordinates the edge length is 2, so we scale by size/2.
-#     """
-#     phi = (1 + math.sqrt(5)) / 2
-#     verts_raw = [
-#         (0,  1,  phi),
-#         (0,  1, -phi),
-#         (0, -1,  phi),
-#         (0, -1, -phi),
-#         (1,  phi, 0),
-#         (1, -phi, 0),
-#         (-1,  phi, 0),
-#         (-1, -phi, 0),
-#         (phi, 0,  1),
-#         (phi, 0, -1),
-#         (-phi, 0,  1),
-#         (-phi, 0, -1)
-#     ]
-#     scale = size / 2  # since standard edge length is 2
-#     verts = [Point(center.x + scale * x, center.y + scale * y, center.z + scale * z) for (x, y, z) in verts_raw]
-#     faces = [
-#         [0, 8, 4],
-#         [0, 4, 6],
-#         [0, 6, 10],
-#         [0, 10, 2],
-#         [0, 2, 8],
-#         [8, 2, 5],
-#         [8, 5, 9],
-#         [8, 9, 4],
-#         [4, 9, 1],
-#         [4, 1, 6],
-#         [6, 1, 11],
-#         [6, 11, 10],
-#         [10, 11, 3],
-#         [10, 3, 2],
-#         [2, 3, 5],
-#         [5, 3, 7],
-#         [5, 7, 9],
-#         [9, 7, 1],
-#         [1, 7, 11],
-#         [11, 7, 3]
-#     ]
-#     return verts, faces
-
-# def build_dodecahedron(center: Point, size: float):
-#     """
-#     Builds a dodecahedron (12 faces, each a regular pentagon).
-#     Its construction is more involved. Here, we provide a placeholder indicating that
-#     a robust dodecahedron implementation is not provided.
-#     """
-#     raise NotImplementedError("Dodecahedron construction is not implemented in this example.")
-
-# # --- RegularPolyhedron Class ---
-
-# @dataclass
-# class RegularPolyhedron(GraphicObject):
-#     """
-#     Represents a regular polyhedron with parametric input.
-
-#     Parameters:
-#         n (int): Number of faces (allowed: 4, 6, 8, 12, or 20).
-#         center (Point): The center of the polyhedron.
-#         size (float): The edge length (size of each face).
-#         color (str): The color of the polyhedron.
-#     """
-#     n: int
-#     center: Point
-#     size: float
-#     color: str = "white"
-
-#     _vertices: List[Point] = None
-#     _faces: List[List[int]] = None
-
-#     def rebuild(self) -> None:
-#         if self.n == 4:
-#             self._vertices, self._faces = build_tetrahedron(self.center, self.size)
-#         elif self.n == 6:
-#             self._vertices, self._faces = build_cube(self.center, self.size)
-#         elif self.n == 8:
-#             self._vertices, self._faces = build_octahedron(self.center, self.size)
-#         elif self.n == 20:
-#             self._vertices, self._faces = build_icosahedron(self.center, self.size)
-#         elif self.n == 12:
-#             self._vertices, self._faces = build_dodecahedron(self.center, self.size)
-#         else:
-#             raise ValueError("Regular polyhedron with n faces not supported. Allowed values: 4, 6, 8, 12, 20.")
-
-#         # Build CGO object by triangulating each face (using a triangle fan)
-#         cgo_obj = []
-#         cgo_obj.extend(Color(self.color).as_cgo)
-#         for face in self._faces:
-#             if len(face) < 3:
-#                 continue
-#             cgo_obj.extend([cgo.BEGIN, cgo.TRIANGLE_FAN])
-#             for idx in face:
-#                 cgo_obj.extend(self._vertices[idx].as_vertex)
-#             cgo_obj.append(cgo.END)
-#         self._data = cgo_obj
-
-
 @dataclass
 class GraphicObjectCollection(GraphicObject):
     """
@@ -2171,358 +1994,14 @@ class GraphicObjectCollection(GraphicObject):
         self._data.extend(tree.flatten([go.data for go in self.objects]))
 
 
-# TEST CASES that can be run from pymol
-# `run src/REvoDesign/tools/cgo_utils.py`
-
-# sphere=Sphere(center=Point(0,0,0),radius=10, color='cyan')
-# sphere.load_as('mysphere')
-
-# cyl=Cylinder()
-# cyl.load_as('my_cyl')
-
-
-# Doughnut(samples=100).load_as('my_treasure')
-
-
-# for i, j in itertools.product(range(2), repeat=2):
-#     Cone(tip=Point(0, 0, 1.4),
-#          base_center=Point(0,0, 0),
-#          radius_tip=0.5,
-#          radius_base=1.5,
-#         color_base='golden', color_tip='sand_brown', caps=(i,j,)).load_as(f'dyamond_{i},{j}')
-
-
-# Triangle(
-#         vertex_a=Point(3, 0, 0),      # 顶点A
-#         vertex_b=Point(0, 3, 0),      # 顶点B
-#         vertex_c=Point(0, 0, 3),      # 顶点C
-
-#         normal_a=Point(0, 0, 1),      # A顶点的法向量
-#         normal_b=Point(0, 1, 0),      # B顶点的法向量
-#         normal_c=Point(1, 0, 0),      # C顶点的法向量
-
-#         color_a='red',         # A的颜色：红色
-#         color_b='green',       # B的颜色：绿色
-#         color_c='blue',        # C的颜色：蓝色
-#     ).load_as('my_triangle')
-
-# TriangleSimple(
-#     vertex_a=Point(1, 0, 0),
-#     vertex_b=Point(0, 1, 0),
-#     vertex_c=Point(0, 0, 1),
-
-#     color_a='cyan',
-#     color_b='yellow',
-#     color_c='magenta',
-#     ).load_as('my_triangle_simple')
-
-
-# Cube(wire_frame=True).load_as('a_colorful_cube')
-# Cube(wire_frame=False).load_as('a_colorful_solid_cube')
-# Cube(
-#     wire_frame=True,
-#     color_w='yellow',
-#     color_x='yellow',
-#     color_y='yellow',
-#     color_z='yellow'
-# ).load_as('a_yellow_box')
-
-# Cube(wire_frame=True,
-#     color_w='white',
-#     color_x='white',
-#     color_y='white',
-#     color_z='white'
-# ).load_as('solid_box')
-
-# Cube(
-#     wire_frame=True,
-#     color_w='black',
-#     color_x='black',
-#     color_y='black',
-#     color_z='black'
-#     ).load_as('a_black_box')
-
-# Square().load_as('a_square')
-
-
-# PolyLines(
-#     2.0, 'yellow',
-#     [LineVertex(Point(0, 0, 0) ),
-#      LineVertex(Point(0, 0, 1) ),
-#      LineVertex(Point(0, 1, 0) ),
-#      LineVertex(Point(1, 0, 0) ),
-#      LineVertex(Point(1, 1, 2) )]
-# ).load_as('yellow_line_strip')
-
-
-# PolyLines(
-#     2.0, 'red',
-#     [LineVertex(Point(0, 0, 0) ),
-#      LineVertex(Point(0, 0, 1) ),
-#      LineVertex(Point(0, 1, 0) ),
-#      LineVertex(Point(1, 0, 0) ),
-#      LineVertex(Point(1, 1, 2) )],
-#      line_type='LINE_LOOP'
-# ).load_as('red_line_loop')
-
-
-# PolyLines(
-#     2.0, 'cyan',
-#     [LineVertex(Point(0, 0, 0) ),
-#      LineVertex(Point(0, 0, 1) ),
-#      LineVertex(Point(0, 1, 0) ),
-#     ],
-#      line_type='TRIANGLE_STRIP'
-# ).load_as('cyan_trangle_shape')
-
-# PolyLines(
-#     2.0, 'violet',
-#     [
-#      LineVertex(Point(0, 0, 0) ),
-#      LineVertex(Point(0, 1, 0) ),
-#      LineVertex(Point(1, 0, 0) ),
-#      LineVertex(Point(1, 1, 0) ),
-#     ],
-#      line_type='TRIANGLE_STRIP'
-# ).load_as('violet_square_shape')
-# PolyLines(
-#     2.0, 'pink',
-#     [                             # continous triangles
-#      LineVertex(Point(0, 0, 0) ), # -\  triangle # 1
-#      LineVertex(Point(0, 1, 0) ), #   |-'  -\  triangle # 2
-#      LineVertex(Point(1, 1, 0) ), # -/       |-'  -\  triangle # 3
-#      LineVertex(Point(1, 0, 0) ), #        -/       |-'
-#      LineVertex(Point(1, 1, 1) ), #               -/
-#     ],
-#      line_type='TRIANGLE_STRIP'
-# ).load_as('pink_3_tri_shape')
-
-
-# PolyLines(
-#     2.0, 'white',
-#     LineVertex.from_points(
-#         (
-#             Point(0, 1, 0),
-#             Point(1, 2, 0),
-#             Point(2, 3, 0),
-#             Point(0, 0.5, 0),
-#             Point(-0.3, 0.5, 0),
-#             Point(0, 0, 0)
-
-#         )
-
-#     ),
-#     line_type='TRIANGLE_FAN'
-# ).load_as('white_square_fan')
-
-
-# Sausage(
-#     p1=Point(0, 0, 1),
-#     p2=Point(0, 0, 2),
-#     radius=0.5,
-#     color_1='red',
-#     color_2='white'
-# ).load_as('tasty_sausage')
-
-
-# PolyLines(
-#     2.0, 'white',
-#     LineVertex.from_points(
-#         (
-#             Point(0, 1, 0),
-#             Point(1, 1, 0),
-#             Point(1, 0, 0),
-#             Point(0, 0, 0)
-#         )
-
-#     ),
-#     line_type='LINE_LOOP'
-# ).load_as('white_square')
-
-
-# PolyLines(
-#     2.0, 'golden',
-#     [
-#      LineVertex(Point(-1,1, 0) ), # left top
-#      LineVertex(Point(0, 0, 1.4) ), # tip
-#      LineVertex(Point(1, 1, 0) ), # right top
-#      LineVertex(Point(1, -1, 0) ), # right bottom
-#      LineVertex(Point(0, 0, 1.4) ), # tip again
-#      LineVertex(Point(-1, -1, 0) ), # left bottom
-#      LineVertex(Point(-1,1, 0) ), # left top back
-#     ],
-#      line_type='TRIANGLE_STRIP'
-# ).load_as('pyramid')
-
-
-# PolyLines(
-#     4.0, 'white',
-#     [
-#      LineVertex(Point(-1,1, 0) ),
-#      LineVertex(Point(0, 0, 1.4) ),
-#      LineVertex(Point(1, 1, 0) ),
-#      LineVertex(Point(1, -1, 0) ),
-#      LineVertex(Point(0, 0, 1.4) ),
-#      LineVertex(Point(-1, -1, 0) ),
-#      LineVertex(Point(-1,1, 0) ),
-#     ],
-#      line_type='LINE_LOOP'
-# ).load_as('pyramid_curve')
-
-# Arrow(
-#     Point(1, 2, 3),
-#     Point(4,5, 7),
-#     .5,2
-# ).load_as('my_arrow')
-
-# Arrow(
-#     Point(0, 0, 0),
-#     Point(4,5, 7),
-#     .5,2
-# ).load_as('my_zero_arrow')
-
-
-# Arrow(
-#     Point(4,5,7),
-#     Point(10,2, 3),
-#     .5,4,2
-# ).load_as('my_spike')
-
-# Define the center and the local axes (unit vectors in the rectangle's plane)
-
-
-# # Create a 3D rounded rectangle with specified parameters
-# rounded_rect = RoundedRectangle(
-#     center=Point(0, 0, 0),
-#     axis1=Point(1, 0, 0),  # Local X-axis,
-#     axis2=Point(0, 1, 0),  # Local Y-axis,
-#     width=5,
-#     height=5,
-#     radius=3,
-#     color='green',
-#     line_width=3,
-#     steps=20  # Increase for smoother rounded corners
-# )
-
-# # Rebuild the object to compute its CGO data
-# rounded_rect.rebuild()
-# rounded_rect.load_as('rounded_rect_rounder')
-
-# # Create an Ellipse3D: major_radius = 5, minor_radius = 3, with blue outline and line width of 2.
-# ellipse = Ellipse(
-#     center=Point(0, 0, 0),
-#     axis1=Point(1, 2, 3), # Local X-axis (major axis direction)
-#     axis2=Point(3, 1, -1),  # Local Y-axis,
-#     major_radius=5,
-#     minor_radius=2,
-#     color='blue',
-#     line_width=2,
-#     steps=50  # More steps for smoother ellipse
-# )
-
-# ellipse.load_as('my_ellipse')
-
-
-# ellipsoid = Ellipsoid(
-#     center=Point(0, 0, 0),
-#     radius_x=1,
-#     radius_y=1,
-#     radius_z=1,
-#     color='green',
-#     steps_theta=20,
-#     steps_phi=30
-# )
-# ellipsoid.load_as('my_ellispsoid')
-
-# vertices = [
-#     Point(0, 0, 0),
-#     Point(1, 0, 0),
-#     Point(1.5, 1, 0),
-#     Point(0.5, 1.5, 0),
-#     Point(-0.5, 1, 0)
-# ]
-# poly = Polygon(vertices=vertices, color='red')
-# poly.rebuild()
-# poly.load_as('my_polygon')
-
-
-# # Define the vertices of a cube.
-# vertices = [
-#     Point(-1, -1, -1),  # 0
-#     Point( 1, -1, -1),  # 1
-#     Point( 1,  1, -1),  # 2
-#     Point(-1,  1, -1),  # 3
-#     Point(-1, -1,  1),  # 4
-#     Point( 1, -1,  1),  # 5
-#     Point( 1,  1,  1),  # 6
-#     Point(-1,  1,  1)   # 7
-# ]
-# Define the faces of the cube (each face as a list of vertex indices).
-# faces = [
-#     [0, 1, 2, 3],  # bottom face
-#     [4, 5, 6, 7],  # top face
-#     [0, 1, 5, 4],  # front face
-#     [1, 2, 6, 5],  # right face
-#     [2, 3, 7, 6],  # back face
-#     [3, 0, 4, 7]   # left face
-# ]
-# # Create the polyhedron with a cyan color.
-# cube = Polyhedron(vertices=vertices, faces=faces, color='cyan')
-# cube.rebuild()
-# cube.load_as('my_polyhedron')
-
-# for (_,n), (_,c) in zip(enumerate([4, 6, 8, 20]), enumerate('rgby')):
-#     center = Point(0, 0, 0)
-#     cube = RegularPolyhedron(n=n, center=center, size=2, color=c)
-
-#     cube.load_as(f'my_{n}_{c}_polyhedron')
-
-
-# def test_text():
-#     import random
-#     # Specify a TTF font file path (update this path to one available on your system)
-# font_path = "/Library/Fonts/Microsoft/Microsoft Yahei.ttf"  # e.g.,
-# "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-
-#     for (idx, c ), (_, color)in zip(enumerate('APTX-4869'), enumerate(random.sample(list(CSS4_COLORS.keys()),100))):
-#         text_char = TextCharPolygon(
-#             char=c,
-#             font_path=font_path,
-#             color=color,
-#             scale=0.1,
-#             offset=Point(0+idx*150, 0, 0),
-#             width=5,
-#             format='SAUSAGE',
-#             sample_num=5
-#         )
-#         text_char.rebuild()
-#         text_char.load_as(f"my_text_char_{idx}")
-
-#     cmd.zoom()
-
-# with timing('writing'):
-#     test_text()
-
-# font_path = "/path/to/simhei.ttf"
-# text='Silver Bullet\n\nCool Kid'
-
-
-# TextBoard(
-#     text=text,
-#     font_path=font_path,
-#     width=1.5, space=10
-# ).load_as('silver_bullet')
-
-
 # also a quick demo to construct complicated cgo object
 def __easter_egg():
     if any(not n.startswith("_") for n in cmd.get_names()):
         # silently do nothing if the session is currently in use
-        return
+        return None
 
     # if the date is December 24-25th, show a Christmas tree
     today = datetime.date.today()
-    # print(f'Today is {today}')
     if today.month == 12 and today.day in (24, 25, 26, 27, 28):
         return _dec25tree()
     return _aptx4869()
@@ -2590,9 +2069,6 @@ def _aptx4869():
         color=Color("black").array,
     )
 
-    # from ..shortcuts.tools.vina_tools import showaxes
-
-    # showaxes()
     poision.load_as("APTX-4869")
 
     cmd.turn("z", 16)
@@ -2611,7 +2087,7 @@ def _dec25tree():
     A Christmas tree to celebrate the holiday season!
     """
 
-    tree = GraphicObjectCollection(
+    christmas_tree = GraphicObjectCollection(
         [
             # tree leaves
             Cone(
@@ -2651,7 +2127,7 @@ def _dec25tree():
             ),
         ]
     )
-    tree.load_as("revodesign_christmas_tree")
+    christmas_tree.load_as("revodesign_christmas_tree")
     cmd.zoom("revodesign_christmas_tree", 2)
     print(_dec25tree.__doc__)
     cmd.mplay()

@@ -194,8 +194,8 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         import torch
         from scipy.ndimage import gaussian_filter
 
-        x_min, y_min, z_min = np.min(self.ligand_coords, axis=0) - margin
-        x_max, y_max, z_max = np.max(self.ligand_coords, axis=0) + margin
+        x_min, y_min, _z_min = np.min(self.ligand_coords, axis=0) - margin
+        x_max, y_max, _z_max = np.max(self.ligand_coords, axis=0) + margin
 
         z_plane = np.median(self.ligand_coords[:, 2])
         xs = np.linspace(x_min, x_max, grid_size)
@@ -283,12 +283,4 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         cbar.set_label("Potential", fontsize=12)
         cbar.set_ticks([-9, -6, -3, 0, 3])
 
-        # plt.show()
         plt.savefig(save_to, dpi=300, bbox_inches="tight")
-
-
-# # Example usage:
-# visualizer = SubstratePotentialVisualizer(
-#     pdb_path="/path/to/1SUO.pdb", lig_key="HEM"
-# )
-# visualizer.plot_potential_field(save_to='HEM.png')

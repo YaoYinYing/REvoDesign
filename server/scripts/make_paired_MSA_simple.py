@@ -50,7 +50,7 @@ def read_a3m(fn):
             a3m[TaxID] = tmp[TaxID][0]
             continue
         # Get the best sequence only
-        score_s = list()
+        score_s = []
         for _seqID, seq in tmp[TaxID]:
             seq_in_num = seq2number(seq)
             score = calc_seqID(query_in_num, seq_in_num)
@@ -81,7 +81,7 @@ def _read_a3m_taxa(fp):
                 continue
             TaxID = line[idx:].split()[0].split("=")[-1]
             if TaxID not in tmp:
-                tmp[TaxID] = list()
+                tmp[TaxID] = []
         else:
             if is_first:
                 query = line.strip()
@@ -98,58 +98,49 @@ if len(sys.argv) == 1:
     print("USAGE: python make_paired_MSA_simple.py [a3m*]")
     sys.exit()
 
-tags = []
-query = {}
-a3m = {}
-for i, fn in enumerate(sys.argv[1:]):
-    tag = Path(fn).stem + "_" + str(i)
-    tags.append(tag)
-    # print ('Read',fn,'into',tag)
-    query[tag], a3m[tag] = read_a3m(fn)
+tags = [f"{Path(input_path).stem}_{index}" for index, input_path in enumerate(sys.argv[1:])]
+queries = {}
+alignments = {}
+for tag, input_path in zip(tags, sys.argv[1:]):
+    queries[tag], alignments[tag] = read_a3m(input_path)
 
-# wrt = '> query\n'
-# wrt += '/'.join([query[i] for i in tags])+'\n'
-paired_data = [(9999, "query", "/".join([query[i] for i in tags]))]
+paired_data = [(9999, "query", "/".join(queries[tag] for tag in tags))]
 
 
 marked = {}
-for i in range(len(tags)):
-    fn1 = tags[i]
+for tag_index, fn1 in enumerate(tags):
 
     preseq = ""
-    for pre in range(i):
+    for pre in range(tag_index):
         if pre > 0:
             preseq += "/"
-        preseq += "-" * len(query[tags[pre]])
+        preseq += "-" * len(queries[tags[pre]])
 
-    for tax in a3m[fn1]:
-        name = a3m[fn1][tax][0]
-        if i > 0:
-            seq = preseq + "/" + a3m[fn1][tax][1]
+    for tax in alignments[fn1]:
+        name = alignments[fn1][tax][0]
+        if tag_index > 0:
+            paired_sequence = preseq + "/" + alignments[fn1][tax][1]
         else:
-            seq = a3m[fn1][tax][1]
+            paired_sequence = alignments[fn1][tax][1]
         ct = 1
 
         if fn1 + "." + tax in marked:
             continue
 
-        for j in range(i + 1, len(tags)):
+        for j in range(tag_index + 1, len(tags)):
             fn2 = tags[j]
-            if tax in a3m[fn2]:
-                name += " " + a3m[fn2][tax][0]
-                seq += "/"
-                seq += a3m[fn2][tax][1]
+            if tax in alignments[fn2]:
+                name += " " + alignments[fn2][tax][0]
+                paired_sequence += "/"
+                paired_sequence += alignments[fn2][tax][1]
                 marked[fn2 + "." + tax] = 1
                 ct += 1
             else:
-                seq += "/"
-                seq += "-" * len(query[fn2])
+                paired_sequence += "/"
+                paired_sequence += "-" * len(queries[fn2])
 
         marked[fn1 + "." + tax] = 1
-        paired_data.append((ct, name, seq))
-
-        # wrt += '>'+name+'\n'
-        # wrt += seq+'\n'
+        paired_data.append((ct, name, paired_sequence))
 
 paired_data = sorted(paired_data, key=lambda x: x[0], reverse=True)
 for p in paired_data:

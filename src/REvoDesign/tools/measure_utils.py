@@ -584,7 +584,9 @@ class Measurement:
         except Exception:
             return 0
 
-    def atoms(self, cmd_module=None, coord_tol: float = 0.9) -> list[AtomDescriptor]:
+    def atoms(  # skipcq: PY-R1000 -- measurement classification shares cached atom state.
+        self, cmd_module=None, coord_tol: float = 0.9
+    ) -> list[AtomDescriptor]:
         """Resolve measurement atoms to ``AtomDescriptor`` objects.
 
         Resolution strategy (in order of preference):
@@ -666,9 +668,8 @@ class Measurement:
         self._atoms_cache_key = cache_key
         return resolved
 
-    def atoms_for_entry(
-        self, mi: MeasureInfo, ds: DistSet, cmd_module=None, coord_tol: float = 0.9
-    ) -> list[AtomDescriptor]:
+    @staticmethod
+    def atoms_for_entry(mi: MeasureInfo, ds: DistSet, cmd_module=None, coord_tol: float = 0.9) -> list[AtomDescriptor]:
         """Resolve atoms for a single ``MeasureInfo`` + ``DistSet`` pair.
 
         Unlike ``atoms()``, this does not de-duplicate across entries and
@@ -862,7 +863,9 @@ def _gmx_group_for_resn(resn: str | None) -> str:
     return "8"
 
 
-def read_measurement(start: str | int = 0, debug: int = 0) -> list[Measurement]:
+def read_measurement(  # skipcq: PY-R1000 -- PyMOL measurement parsing is one ordered state machine.
+    start: str | int = 0, debug: int = 0
+) -> list[Measurement]:
     """Read measurement objects from the PyMOL session and print Gromacs index strings.
 
     For each measurement atom, this prints a Gromacs ``make_ndx``-style

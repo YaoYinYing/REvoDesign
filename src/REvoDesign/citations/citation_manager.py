@@ -34,7 +34,7 @@ class CitationManager(SingletonAbstract):
     ensuring that only one instance of the citation manager exists throughout the application's lifecycle.
     """
 
-    def singleton_init(self):
+    def singleton_init(self):  # skipcq: PYL-W0221 -- singleton hooks intentionally expose class-specific inputs.
         # Dictionary to store citation information
         self.called_citations: dict[str, Any] = {}
         # List to store names of modules for which citations have been silenced

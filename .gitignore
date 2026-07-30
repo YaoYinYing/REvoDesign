@@ -145,3 +145,4 @@ testerror.txt
 /server/pssm_gremlin_server.egg-info
 /.tmp
 /playground/server_auth
+/dumped_sequences

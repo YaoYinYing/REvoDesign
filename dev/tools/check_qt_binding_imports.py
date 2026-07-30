@@ -51,7 +51,7 @@ def _iter_python_files() -> list[Path]:
     return sorted(files)
 
 
-def scan_file(path: Path) -> list[str]:
+def scan_file(path: Path) -> list[str]:  # skipcq: PY-R1000 -- single-pass syntax scanner is clearer kept together.
     """Return lint errors for a single file."""
 
     try:

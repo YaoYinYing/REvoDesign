@@ -548,7 +548,6 @@ def getbox(selection="(sele)", new_box_name: str | None = None, extending=5.0):
     boxName = box.name
     print(f"{boxName=}")
     cmd.zoom(boxName)
-    return
 
 
 # remove ions
@@ -567,7 +566,6 @@ def removeions():
     )
     cmd.remove("Ions")
     cmd.delete("Ions")
-    return
 
 
 def rmhet():
@@ -585,7 +583,6 @@ def rmhet():
 
     # Remove the selected heteroatoms
     cmd.remove("rmhet")
-    return
 
 
 # getbox from cavity residues that reported in papers
@@ -610,7 +607,7 @@ def get_oriented_bounding_box(selection, padding=5.0):
 
     # 3. Perform PCA: compute the covariance matrix and its eigenvectors.
     cov = np.cov(centered, rowvar=False)
-    eigvals, eigvecs = np.linalg.eigh(cov)
+    _eigvals, eigvecs = np.linalg.eigh(cov)
     # The columns of eigvecs are the principal axes.
 
     # 4. Transform coordinates into the PCA (rotated) space.
@@ -641,12 +638,6 @@ def get_oriented_bounding_box(selection, padding=5.0):
 
     # 8. Transform the vertices back to the original coordinate system.
     orig_vertices = vertices.dot(eigvecs.T) + centroid
-
-    # PolyLines(
-    #     2.0, 'white',
-    #     [*LineVertex.from_points(orig_vertices)],
-    #     line_type='TRIANGLE_FAN'
-    # ).load_as('white_square')
 
     return orig_vertices
 

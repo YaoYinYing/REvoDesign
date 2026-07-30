@@ -86,7 +86,7 @@ def test_menu_window_pops(test_window_wrapper, test_window_wrapper_func, test_wo
     # save the recipe
     os.makedirs("shortcut_recipes", exist_ok=True)
     expected_recipe_json = f"shortcut_recipes/{test_window_wrapper}.json"
-    with patch("REvoDesign.driver.file_dialog.FileDialog.browse_filename", return_value=expected_recipe_json):
+    with patch.object(test_worker.plugin.file_dialog, "browse_filename", return_value=expected_recipe_json):
         that_window._on_save_clicked()
         assert os.path.isfile(expected_recipe_json), f"Expected recipe json file not found: {expected_recipe_json}"
 

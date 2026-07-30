@@ -1,3 +1,4 @@
+# skipcq: PYL-R0401 -- plugin registries intentionally import implementations after base classes are defined.
 # Copyright (c) 2026 The REvoDesign Developers.
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
@@ -141,8 +142,6 @@ class CoevolvedPair:
             f"(c. {chain_pair[1]} and i. {self.j_1})",
         )
 
-        # logging.debug(f'{res_pair=}')
-
         return res_pair
 
     def res_pair_selection(
@@ -196,6 +195,10 @@ class GREMLIN_Tools(CitableModuleAbstract):
             self.a2n[a] = n
 
         self.topN = 50
+        self.mrf = None
+        self.mtx = None
+        self.pd_mtx = None
+        self.top = None
 
         # ===============================================================================
         # PREP MSA
@@ -262,7 +265,6 @@ class GREMLIN_Tools(CitableModuleAbstract):
             vmax=vmax,
         )
         plt.grid(False)
-        # plt.show()
 
         plot_gremlin_mtx_fp = f"{self.pwd}/{self.molecule}_GREMLIN_mtx_{key}.png"
 

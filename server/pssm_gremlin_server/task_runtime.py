@@ -48,6 +48,7 @@ ensure_directories(CONFIG.upload_folder, CONFIG.results_folder)
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 _TASK_ID_PATTERN = re.compile(r"[a-fA-F0-9]{32}$")
 _ROOT_MOUNT_DIRECTORY = env_path("RUNNER_HOST_ROOT", os.path.dirname(CONFIG.server_dir))
+ROOT_MOUNT_DIRECTORY = _ROOT_MOUNT_DIRECTORY
 
 _RUNNING_TRACE_STEPS: tuple[tuple[str, str], ...] = (
     ("hhblits", "hhblits: searching for co-evolutionary sequences"),
@@ -147,7 +148,7 @@ def _extract_stage_from_log_line(line: str) -> str | None:
     marker_pos = line.find(_RUNNER_STAGE_PREFIX)
     if marker_pos < 0:
         return None
-    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX) :].strip().lower()
+    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX) :].strip().lower()  # noqa: E203
     if not raw_marker:
         return None
     return _RUNNER_STAGE_ALIASES.get(raw_marker.split()[0])
@@ -237,16 +238,12 @@ def run_pssm_gremlin_in_docker(fasta_path, output_dir, docker_client=None, stage
     command_args.extend(["-o", mounted_output])
 
     uniref30_db = os.path.abspath(CONFIG.uniref30_db)
-    mount_uniref30, mounted_uniref30 = _create_mount(
-        "uniref30_db", os.path.dirname(uniref30_db), read_only=True
-    )
+    mount_uniref30, mounted_uniref30 = _create_mount("uniref30_db", os.path.dirname(uniref30_db), read_only=True)
     mounts.append(mount_uniref30)
     command_args.extend(["-U", os.path.join(mounted_uniref30, os.path.basename(uniref30_db))])
 
     uniref90_db = os.path.abspath(CONFIG.uniref90_db)
-    mount_uniref90, mounted_uniref90 = _create_mount(
-        "uniref90_db", os.path.dirname(uniref90_db), read_only=True
-    )
+    mount_uniref90, mounted_uniref90 = _create_mount("uniref90_db", os.path.dirname(uniref90_db), read_only=True)
     mounts.append(mount_uniref90)
     command_args.extend(["-u", os.path.join(mounted_uniref90, os.path.basename(uniref90_db))])
     command_args.extend(["-j", str(CONFIG.nproc)])
@@ -340,7 +337,7 @@ def format_walltime(seconds: Any) -> str:
 
 
 @celery.task(name="run_gremlin_task")
-def run_gremlin_task(md5sum):
+def run_gremlin_task(md5sum):  # skipcq: PY-R1000 -- pipeline cleanup and status transitions require one owner.
     task = task_store.get_task(md5sum)
     if not task:
         logging.error("Task %s missing from database", md5sum)
@@ -431,3 +428,15 @@ def _record_failure(md5sum: str, task: dict, start_time: float, run_stage: str, 
         error=error_message,
         run_stage=run_stage,
     )
+
+
+# Stable public names for web/compatibility modules. The underscored helpers
+# remain available for existing imports while new cross-module callers avoid
+# depending on private implementation details.
+build_running_trace = _build_running_trace
+extract_stage_from_log_line = _extract_stage_from_log_line
+is_terminal_status = _is_terminal_status
+pack_failed_results_archive = _pack_failed_results_archive
+pack_results_archive = _pack_results_archive
+runner_thread_env = _runner_thread_env
+task_is_terminal = _task_is_terminal

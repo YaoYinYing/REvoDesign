@@ -8,12 +8,24 @@ import os
 import pytest
 
 from REvoDesign import issues
+from REvoDesign.tools import package_manager
 from tests.conftest import TestWorker
 
 # move to the fast
 
 
 class TestREvoDesignPlugin:
+    def test_unexpected_file_dialog_fails_fast(self, test_worker: TestWorker):
+        test_worker.test_id = test_worker.method_name()
+        with pytest.raises(AssertionError, match="Unexpected file dialog"):
+            test_worker.plugin.file_dialog.browse_filename(mode="r")
+
+    def test_unexpected_notification_dialog_fails_fast(self, test_worker: TestWorker):
+        test_worker.test_id = test_worker.method_name()
+        package_manager.notify_box("unexpected")
+        with pytest.raises(AssertionError, match="Unexpected notification dialog"):
+            test_worker.sleep(0)
+
     @pytest.mark.bootstrap
     @pytest.mark.dependency(name="tabs_bootstrap_ui", scope="session")
     def test_plugin_gui_visibility(self, test_worker: TestWorker):

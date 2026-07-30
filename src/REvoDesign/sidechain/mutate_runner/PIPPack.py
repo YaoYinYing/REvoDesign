@@ -56,22 +56,22 @@ class PIPPack_worker(MutateRunnerAbstract):
 
         self.pdb_file = pdb_file
         ppcfg = reload_config_file("sidechain-solver/pippack")["sidechain-solver"]
-        self.pippack_worker = PIPPack(model=self.use_model)
+        self.backend = PIPPack(model=self.use_model)
 
         logging.info("Initializing PIPPack_worker.")
-        self.pippack_worker.n_recycle = ppcfg.inference.n_recycle
-        self.pippack_worker.temperature = ppcfg.inference.temperature
-        self.pippack_worker.force_cpu = ppcfg.inference.force_cpu
-        self.pippack_worker.resample_args = ppcfg.inference.resample_args
-        self.pippack_worker.seed = ppcfg.inference.seed
-        self.pippack_worker.use_resample = ppcfg.inference.use_resample
+        self.backend.n_recycle = ppcfg.inference.n_recycle
+        self.backend.temperature = ppcfg.inference.temperature
+        self.backend.force_cpu = ppcfg.inference.force_cpu
+        self.backend.resample_args = ppcfg.inference.resample_args
+        self.backend.seed = ppcfg.inference.seed
+        self.backend.use_resample = ppcfg.inference.use_resample
 
         cache_dir = set_cache_dir()
-        self.pippack_worker.weights_path = os.path.join(cache_dir, "weights", "pippack", "model_weights")
-        if not self.pippack_worker.use_ensemble:
-            self.pippack_worker._initialize_with_a_model()
+        self.backend.weights_path = os.path.join(cache_dir, "weights", "pippack", "model_weights")
+        if not self.backend.use_ensemble:
+            self.backend._initialize_with_a_model()
         else:
-            self.pippack_worker._initialize_with_ensemble()
+            self.backend._initialize_with_ensemble()
 
         self.temp_dir = self.new_cache_dir
 
@@ -87,7 +87,7 @@ class PIPPack_worker(MutateRunnerAbstract):
 
         temp_pdb_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
 
-        self.pippack_worker._run_repack_single(
+        self.backend._run_repack_single(  # skipcq: PYL-W0212 -- PIPPack exposes no public repack API.
             pdb_file=self.pdb_file,
             output_file=temp_pdb_path,
             mutant_sequence=mutant_sequence,
@@ -102,7 +102,7 @@ class PIPPack_worker(MutateRunnerAbstract):
 
         logging.warning(f"Nproc({nproc}) will not be used by PIPPack.")
 
-        pdbs = self.pippack_worker._run_repack_batch(
+        pdbs = self.backend._run_repack_batch(  # skipcq: PYL-W0212 -- PIPPack exposes no public batch API.
             pdb_path=self.pdb_file,
             output_dir=self.temp_dir,
             mutant_sequence=mutant_sequences,

@@ -28,12 +28,14 @@ def _backup_sqlite_database(source: Path, destination: Path) -> None:
     if not source.is_file():
         raise FileNotFoundError(f"Database to back up does not exist: {source}")
     source_uri = f"{source.resolve().as_uri()}?mode=ro"
-    with sqlite3.connect(source_uri, uri=True, timeout=30) as source_conn:
-        with sqlite3.connect(destination, timeout=30) as destination_conn:
-            source_conn.backup(destination_conn)
-            result = destination_conn.execute("PRAGMA quick_check").fetchone()
-            if not result or result[0] != "ok":
-                raise RuntimeError(f"SQLite backup integrity check failed for {destination}: {result!r}")
+    with (
+        sqlite3.connect(source_uri, uri=True, timeout=30) as source_conn,
+        sqlite3.connect(destination, timeout=30) as destination_conn,
+    ):
+        source_conn.backup(destination_conn)
+        result = destination_conn.execute("PRAGMA quick_check").fetchone()
+        if not result or result[0] != "ok":
+            raise RuntimeError(f"SQLite backup integrity check failed for {destination}: {result!r}")
     destination.chmod(0o600)
 
 

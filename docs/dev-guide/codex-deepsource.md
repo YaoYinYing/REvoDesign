@@ -16,18 +16,308 @@ findings first, while keeping behavior stable and tests green.
 4. Every risky fix must have verification
 5. Keep changelog and docs updated in the same PR
 
-## Accessing DeepSource Issues
+## DeepSource Data Model
 
-Use a regular browser user agent:
+DeepSource exposes two related but non-interchangeable result sets:
 
-```bash
-curl -sS -L -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" \
-  "https://app.deepsource.com/gh/YaoYinYing/REvoDesign/issues" \
-  -o /tmp/deepsource_issues.html
+| Model | Scope | Use |
+|-------|-------|-----|
+| Repository issues and occurrences | Active findings in the repository's default branch | Build and measure the complete cleanup queue |
+| Analysis run and analyzer checks | Findings introduced between a run's `baseOid` and `commitOid` | Detect regressions from one commit or pull request |
+
+An `Issue` is a rule definition such as `PYL-R1705`. An occurrence is one
+location where that rule was raised. Count both:
+
+- **rule count** measures how many distinct issue types remain;
+- **occurrence count** measures how many code locations remain.
+
+Do not compare a repository occurrence count with a run issue count. DeepSource
+ignores issues introduced before an analysis run's `baseOid`, so a passing run
+can coexist with a large default-branch backlog.
+
+## Accessing DeepSource Data
+
+For this public repository, start with the public Issues dashboard:
+
+```text
+https://app.deepsource.com/gh/YaoYinYing/REvoDesign/issues/
 ```
 
-If static HTML is insufficient, use the same UA for authenticated GraphQL/API
-calls (with CSRF/cookies) and save raw payloads for traceability.
+No login or personal access token is required to read its issue categories,
+counts, rule details, and occurrences in a regular browser. Record the visible
+category totals before exporting details, then reconcile the export back to
+those totals.
+
+For repeatable automation, the supported GraphQL endpoint is also available
+with a DeepSource personal access token:
+
+```text
+POST https://api.deepsource.com/graphql/
+Authorization: Bearer <PERSONAL_ACCESS_TOKEN>
+Content-Type: application/json
+```
+
+The token is optional for auditing a public repository; it is an automation
+credential, not a prerequisite for reading public findings.
+
+### Public frontend export without a PAT
+
+Coding agents can use the public dashboard's GraphQL requests without driving
+the browser UI. Start from a fresh anonymous cookie jar created by the public
+Issues page:
+
+```bash
+deepsource_work_dir="$(mktemp -d)"
+trap 'rm -rf "${deepsource_work_dir}"' EXIT
+deepsource_cookie_jar="${deepsource_work_dir}/cookies"
+deepsource_issues_html="${deepsource_work_dir}/issues.html"
+deepsource_payload="${deepsource_work_dir}/inventory-payload.json"
+deepsource_inventory="${deepsource_work_dir}/inventory.json"
+deepsource_issues_url="https://app.deepsource.com/gh/YaoYinYing/REvoDesign/issues/"
+
+curl -sS -L \
+  -A "Mozilla/5.0" \
+  -c "${deepsource_cookie_jar}" \
+  "${deepsource_issues_url}" \
+  -o "${deepsource_issues_html}"
+
+# The public Issues page initializes the frontend session. A read-only GET to
+# the GraphQL endpoint then issues the anonymous CSRF cookie required for POST.
+curl -sS -L \
+  -A "Mozilla/5.0" \
+  -b "${deepsource_cookie_jar}" \
+  -c "${deepsource_cookie_jar}" \
+  "https://app.deepsource.com/graphql/" \
+  -o /dev/null
+
+deepsource_csrf="$(
+  awk 'BEGIN {FS="\t"} !/^#/ && $6 == "csrftoken" {print $7}' \
+    "${deepsource_cookie_jar}"
+)"
+
+# Write the captured GraphQL request body to "${deepsource_payload}" here.
+curl -sS "https://app.deepsource.com/graphql/" \
+  -X POST \
+  -b "${deepsource_cookie_jar}" \
+  -H "x-csrftoken: ${deepsource_csrf}" \
+  -H "Referer: ${deepsource_issues_url}" \
+  -H "Origin: https://app.deepsource.com" \
+  -H "Content-Type: application/json" \
+  --data-binary @"${deepsource_payload}" \
+  -o "${deepsource_inventory}"
+```
+
+Use only the anonymous `csrftoken` issued by the public page. Do not reuse a
+browser profile, authenticated session cookie, or an existing general-purpose
+cookie jar. Fail if the token is empty, the response contains GraphQL errors, or
+the response is HTML instead of JSON.
+
+The frontend GraphQL schema is an implementation detail. Recover its current
+repository-issue query shape from the public page assets, snapshot the exact
+payload, and validate its fields before relying on it. Private operation names
+and response shapes can change independently of the documented PAT API.
+
+Never commit a token, cookie value, CSRF value, or unsanitized request header.
+Save sanitized exports inside the private temporary directory with the queried
+repository, branch, commit SHA, timestamp, filters, and pagination cursor.
+
+### Repository-wide cleanup query
+
+Start with `repository { issues { ... } }` and expand every repository issue's
+`checkIssues` connection. At the time of writing, the public frontend schema
+models the relationship as:
+
+```graphql
+query RepositoryBacklog(
+  $provider: VCSProviderChoices!
+  $owner: String!
+  $name: String!
+  $issueType: String!
+  $issuesAfter: String
+) {
+  repository(provider: $provider, owner: $owner, name: $name) {
+    issues(
+      first: 100
+      after: $issuesAfter
+      issueType: $issueType
+      analyzer: "python"
+    ) {
+      totalCount
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      edges {
+        cursor
+        node {
+          id
+          shortcode
+          title
+          issueType
+          severity
+          occurrenceCount
+          checkIssues(first: 100) {
+            totalCount
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            edges {
+              cursor
+              node {
+                id
+                path
+                beginLine
+                beginColumn
+                endLine
+                endColumn
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+The outer query returns the first occurrence page for every matching issue.
+Paginate a nested connection independently by querying its repository-issue
+node:
+
+```graphql
+query RepositoryIssueOccurrences(
+  $issueId: ID!
+  $occurrencesAfter: String
+) {
+  node(id: $issueId) {
+    ... on RepositoryIssue {
+      shortcode
+      checkIssues(first: 100, after: $occurrencesAfter) {
+        totalCount
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        edges {
+          cursor
+          node {
+            id
+            path
+            beginLine
+            beginColumn
+            endLine
+            endColumn
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+These examples show the current public frontend data relationship, not a
+complete exporter. A production exporter must paginate both connections:
+
+1. paginate `repository.issues` until `hasNextPage` is false;
+2. independently paginate `checkIssues` for every repository issue;
+3. reject incomplete snapshots rather than silently trusting the first page;
+4. verify each issue's collected edge count equals both `occurrenceCount` and
+   `checkIssues.totalCount`;
+5. reject duplicate occurrence IDs, including duplicates across issue pages;
+6. sum unique occurrence IDs by category and compare them with the dashboard.
+
+For the default-branch snapshot at `fac8eec56efd2604b72e394182f8e67675e5650b`,
+the completeness invariant was:
+
+```text
+Bug Risk 49 + Anti-pattern 459 + Security 27 + Performance 60
+= 595 dashboard occurrences
+= 595 exported occurrence IDs
+= 595 unique occurrence IDs
+```
+
+The `PYL-R0401` cyclic-import issue alone had 122 occurrences, so its first 100
+edges were not a complete result. The second occurrence page supplied the
+remaining 22. This nested pagination is mandatory even when the outer
+`repository.issues` connection says `hasNextPage: false`.
+
+### Run-level regression query
+
+Use `run(commitOid: ...)` and its checks only after establishing the repository
+inventory. Record at least:
+
+- `baseOid` and `commitOid`;
+- run and check status;
+- introduced, resolved, and suppressed occurrence counts;
+- every returned issue path, shortcode, category, and severity;
+- failing metrics and quality-gate configuration.
+
+The run result answers, “What did this changeset introduce or resolve?” It does
+not answer, “What remains everywhere in the repository?”
+
+## Audit Workflow
+
+Before editing code:
+
+1. Record the current default branch and commit SHA.
+2. Export the complete repository issue inventory with all occurrence pages.
+3. Filter the inventory to the requested categories: Bug Risk, Anti-pattern,
+   Security, and Performance.
+4. Report rule counts and occurrence counts separately.
+5. Compare every occurrence with the recorded default-branch revision.
+6. If a line reference has drifted, search the entire tracked source tree for
+   the rule's pattern and record the mismatch; do not discard the rest of the
+   category.
+7. Group reproducible occurrences by shortcode and root cause.
+8. Fix and test one reviewable batch.
+9. Push the batch and use its analysis run as a regression gate.
+10. Repeat until the local manifest has no unresolved validated occurrences.
+
+Repository inventory describes the default branch, so a pull-request branch
+cannot prove that the default-branch backlog has cleared. After merge, wait for
+the new default-branch analysis, export the repository inventory again, and
+reconcile every rule and occurrence with the pre-fix snapshot.
+
+For rules supported by local tooling, add an independent full-repository gate.
+For example:
+
+```bash
+git ls-files -z -- '*.py' |
+  xargs -0 pylint --disable=all --enable=PYL-R1705,PYL-R1724
+```
+
+Do not replace the DeepSource inventory with local lint output: analyzer
+versions, configuration, suppressions, and rule implementations can differ.
+
+### Reconciliation invariant
+
+“No discrepancy” means every exported occurrence ID is accounted for exactly
+once. Maintain a manifest whose mutually exclusive outcomes are:
+
+- **fixed**: the current code still reproduced the issue and the patch removes it;
+- **suppressed**: the pattern is intentional, and a narrow inline suppression
+  records why changing it would be less safe;
+- **stale**: the referenced code no longer exists or no longer reproduces the
+  rule at the recorded revision.
+
+The sum of those outcomes must equal the complete repository occurrence count
+for the four requested categories. Do not call an occurrence stale merely
+because its line number moved, and do not use a run-level issue count as the
+denominator.
+
+For graph findings such as `PYL-R0401`, many reported paths may describe one
+import cycle. Fix shared eager-import roots first, rerun the complete graph, and
+only then suppress a remaining intentional plugin-bootstrap cycle at the
+smallest stable module boundary. A suppression is an audited outcome, not a
+silent omission.
+
+DeepSource may report import-cycle graph results as synthetic line-zero
+occurrences and ignore an otherwise valid module-local Pylint directive. When
+all remaining cycles belong to one verified intentional bootstrap graph, record
+the rationale beside a rule-specific `cyclic-import` disable in the shared
+Pylint configuration. Do not use that analyzer-level exception until a fresh
+run proves that no unrelated cycle remains.
 
 ## Classification Model
 
@@ -174,9 +464,9 @@ keyword expression.
 
 Use this table in PR bodies:
 
-| DeepSource ID | Rule | Danger | Complexity | Files | Fix summary | Validation |
-|---------------|------|--------|------------|-------|-------------|------------|
-| ... | PY-XXXX | D1 | C1 | `src/...` | safer error path | `kw-test ...` |
+| Occurrence ID | Rule | Category | Danger | Complexity | File:line | Status | Validation |
+|---------------|------|----------|--------|------------|-----------|--------|------------|
+| ... | PY-XXXX | Bug Risk | D1 | C1 | `src/...:42` | fixed | `kw-test ...` |
 
 ## Anti-Patterns
 
@@ -192,9 +482,15 @@ A batch is done only if **all** are true:
 
 1. Selected findings are fixed or explicitly deferred with reason
 2. No new regressions in targeted tests
-3. `CHANGELOG.md` updated
-4. Rationale documented for non-obvious changes
-5. Diff remains minimal and reviewable
+3. The full-repository local checker for the selected rules is clean, when available
+4. The pushed batch's DeepSource run introduces no blocking regression
+5. `CHANGELOG.md` updated
+6. Rationale documented for non-obvious changes
+7. Diff remains minimal and reviewable
+
+The complete campaign is done only after a post-merge default-branch inventory
+confirms that every targeted occurrence is resolved or explicitly suppressed
+with a documented justification.
 
 ## Operational Notes for Future AI-Assisted Runs
 
@@ -207,6 +503,10 @@ A batch is done only if **all** are true:
 
 ## See Also
 
+- [DeepSource API overview](https://docs.deepsource.com/docs/developers/api)
+- [DeepSource repository API](https://docs.deepsource.com/docs/developers/api/repository)
+- [DeepSource analysis run API](https://docs.deepsource.com/docs/developers/api/analysis-run)
+- [DeepSource issue model](https://docs.deepsource.com/docs/developers/api/issue)
 - [AI-Assisted Codacy Fix Playbook](codex-codacy.md) — companion playbook for Codacy
 - [Testing](testing.md) — test framework and CI workflow
 - [CI/CD](ci-cd.md) — GitHub Actions configuration
