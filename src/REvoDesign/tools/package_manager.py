@@ -1373,7 +1373,8 @@ class REvoDesignPackageManager:
         )
 
         if not confirmed:
-            return notify_box("Upgrade cancelled.")
+            notify_box("Upgrade cancelled.")
+            return
 
         # Download manifest and both assets to a temp dir, verify HMAC, then apply
         manifest = fetch_gist_json(MANIFEST_URL)
@@ -1644,7 +1645,8 @@ class REvoDesignPackageManager:
                 "Please DO NOT share this information with anyone else or post it to public channels.",
             )
             if not confirmed:
-                return notify_box("Diagnostic information collection cancelled.")
+                notify_box("Diagnostic information collection cancelled.")
+                return
 
         # Clear the clipboard to ensure no old data is mixed in
         cb = QtWidgets.QApplication.clipboard()
@@ -1862,7 +1864,7 @@ class REvoDesignPackageManager:
             logging.warning("Failed to fetch GitHub release tags (offline or API error)")
             return
         if tags and isinstance(tags, list):
-            return set_widget_value(self.installer_ui.comboBox_version, tags)
+            set_widget_value(self.installer_ui.comboBox_version, tags)
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
 
@@ -1918,7 +1920,7 @@ class REvoDesignPackageManager:
 
         # Check if the directory exists and update the UI
         if cache_dir and os.path.exists(cache_dir):
-            return set_widget_value(self.installer_ui.lineEdit_customized_cache_dir, cache_dir)
+            set_widget_value(self.installer_ui.lineEdit_customized_cache_dir, cache_dir)
 
     def open_files(self):
         """
@@ -1943,7 +1945,8 @@ class REvoDesignPackageManager:
 
             # If a valid directory is selected, update the UI with the directory path
             if opened_dir and os.path.exists(opened_dir):
-                return set_widget_value(self.installer_ui.lineEdit_local, opened_dir)
+                set_widget_value(self.installer_ui.lineEdit_local, opened_dir)
+                return
 
         if from_local_file:
             # Define supported file extensions and their descriptions
@@ -1958,7 +1961,7 @@ class REvoDesignPackageManager:
 
             # If a valid file is selected, update the UI with the file path
             if file and os.path.exists(file):
-                return set_widget_value(self.installer_ui.lineEdit_local, file)
+                set_widget_value(self.installer_ui.lineEdit_local, file)
 
     def uninstall(self):
         """
@@ -1988,7 +1991,7 @@ class REvoDesignPackageManager:
 
             if ret is None or ret.returncode:
                 # If the uninstallation fails, notify the user of the failure and raise an error
-                return notify_box(message="Failed to remove REvoDesign.", error_type=RuntimeError, details=ret.stdout)
+                notify_box(message="Failed to remove REvoDesign.", error_type=RuntimeError, details=ret.stdout)
 
             remove_deps = decide("Clean up warning", "Do you want to remove all the dependencies?")
             if remove_deps:
@@ -1998,7 +2001,7 @@ class REvoDesignPackageManager:
                 )
 
             # If the uninstallation is successful, notify the user
-            return notify_box(
+            notify_box(
                 message="REvoDesign is removed successfully. Bye-bye.",
             )
 
@@ -3548,7 +3551,7 @@ def solve_installation_config(
     git_tag: str,
     extras: str | None,
     package_name: str = "REvoDesign",
-):
+) -> str | None:
     """
     Solves the installation configuration based on the provided parameters.
 
@@ -3604,6 +3607,7 @@ def solve_installation_config(
         )
 
     notify_box(f"Unknown installation source {source}({package_name})!", ValueError)
+    return None
 
 
 # entrypoint of PyMOL plugin

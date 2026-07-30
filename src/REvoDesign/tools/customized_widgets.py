@@ -66,6 +66,7 @@ def pick_color(
     if color.isValid():
         print(f"Selected Color: {color.name()}")
         return color.name()
+    return None
 
 
 # Class REvoDesignWidget
@@ -1950,6 +1951,7 @@ def real_bool(val: Any):
         )
     ):
         return False
+    return None
 
 
 @dataclass
@@ -2744,6 +2746,7 @@ def ask_for_appendable_values() -> AskedValueCollection | None:
     dialog = AppendableValueDialog()
     if qexec(dialog) == QtCompat.Accepted:
         return dialog.get_values()
+    return None
 
 
 def ask_for_multiple_values_as_json() -> str:

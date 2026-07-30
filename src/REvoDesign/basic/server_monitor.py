@@ -137,5 +137,6 @@ class MenuActionServerMonitor(QtCore.QObject):
         """
         if self.menu_item is not None:
             if self.controller.is_running:
-                return self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/green.png")))
-            return self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/red.png")))
+                self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/green.png")))
+            else:
+                self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/red.png")))

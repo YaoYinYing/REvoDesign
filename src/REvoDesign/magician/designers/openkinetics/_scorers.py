@@ -202,7 +202,7 @@ class OpenKineticsScorerAbstract(ExternalDesignerAbstract, ABC):
 
     @classmethod
     @abstractmethod
-    def built_in_defaults(_cls) -> dict[str, str]:
+    def built_in_defaults(cls) -> dict[str, str]:
         """Return ``{"method": ..., "prediction_type": ...}``."""
 
     def __init__(

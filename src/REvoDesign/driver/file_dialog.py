@@ -150,6 +150,7 @@ class FileDialog(SingletonAbstract):
         if input_fn:
             ConfigBus().set_widget_value(cfg_item, input_fn)
             return input_fn
+        return None
 
     def open_mutant_table(self, cfg_mutant_table: str, mode: IO_MODE = "r"):
         """Open a mutant table file

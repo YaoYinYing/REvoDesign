@@ -219,7 +219,7 @@ def extract_mutant_from_sequences(
 
     if mutant_sequence == wt_sequence:
         logging.warning("WT and mutant sequences are identical.")
-        return
+        return None
 
     if "X" in wt_sequence and not fix_missing:
         warnings.warn(issues.ResidueMissingWarning('WT has missing residue masked as "X"!'), stacklevel=2)

@@ -312,7 +312,7 @@ def get_atom_pair_cst(selection="sele"):
     _s = cmd.get_model(selection=selection).atom
     if len(_s) != 2:
         logging.error(f"Atom pair selection {selection} must contain exactly 2 atoms!")
-        return
+        return None
     cst = f"AtomPair {_s[0].name} {_s[0].resi}{_s[0].chain} {_s[1].name} {_s[1].resi}{_s[1].chain} HARMONIC 3 0.5"
     return cst
 

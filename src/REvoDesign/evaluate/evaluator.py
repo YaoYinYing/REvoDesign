@@ -365,7 +365,7 @@ class Evaluator:
         self.mutant_tree_candidates = existed_mutant_tree(sequences=self.designable_sequences, enabled_only=False)
         if self.mutant_tree_candidates.empty:
             logging.error("This sesion may not contain an mutant tree.")
-            return None
+            return
 
         self.mutant_tree_pssm_selected = MutantTree({})
 

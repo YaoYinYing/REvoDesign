@@ -72,6 +72,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **DeepSource return contracts**: made optional-result helpers return `None`
+  explicitly, kept UI callbacks consistently side-effect-only, and corrected
+  the abstract classmethod receiver name to clear all current `PYL-R1710` and
+  `PYL-C0202` findings across the repository.
 - **GUI test dependency safety**: run the pocket-session producer before the
   PIPPack/ProteinMPNN case, release reusable cluster workers after each run,
   and fail immediately if a `TestWorker` case unexpectedly opens a modal file

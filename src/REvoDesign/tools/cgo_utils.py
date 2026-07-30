@@ -1998,7 +1998,7 @@ class GraphicObjectCollection(GraphicObject):
 def __easter_egg():
     if any(not n.startswith("_") for n in cmd.get_names()):
         # silently do nothing if the session is currently in use
-        return
+        return None
 
     # if the date is December 24-25th, show a Christmas tree
     today = datetime.date.today()
