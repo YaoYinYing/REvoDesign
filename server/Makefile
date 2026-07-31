@@ -1,4 +1,4 @@
-.PHONY: test test-all test-cov test-docker-compat
+.PHONY: test test-all test-cov test-docker-compat test-docker-full-stack
 
 PYTEST ?= python -m pytest
 COV_REPORT ?= term-missing
@@ -16,3 +16,6 @@ test-cov:
 
 test-docker-compat:
 	$(PYTEST) tests/test_runner_docker_compat.py -v
+
+test-docker-full-stack:
+	bash tests/run_full_stack_test.sh
