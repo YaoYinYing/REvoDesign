@@ -15,7 +15,10 @@ def test_validate_position_label_accepts_residue_and_numeric_position(label):
     assert validate_position_label(label, ALPHABET) == label
 
 
-@pytest.mark.parametrize("label", ("X_1", "AA_1", "A", "A_0", "A_-1", "A_first", "A_1_2", "A_1/other"))
+@pytest.mark.parametrize(
+    "label",
+    ("X_1", "AA_1", "A", "A_0", "A_-1", "A_first", "A_1_2", "A_1/other", "A_١"),
+)
 def test_validate_position_label_rejects_invalid_components(label):
     with pytest.raises(ValueError):
         validate_position_label(label, ALPHABET)
