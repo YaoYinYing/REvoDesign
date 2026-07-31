@@ -5,6 +5,7 @@ set -euo pipefail
 SERVER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${SERVER_ROOT}/.." && pwd)"
 DEPLOY_SCRIPT="${SERVER_ROOT}/run/restart_pssm_flask.sh"
+QUERY_FASTA="${REPO_ROOT}/tests/data/msa/2KL8.fasta"
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/revodesign-full-stack.XXXXXX")"
 ENV_FILE="${WORK_DIR}/server-test.env"
 RUN_ID="$(basename "${WORK_DIR}" | tr '[:upper:]' '[:lower:]' | tr '.' '-')"
@@ -33,6 +34,11 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+if [[ ! -f "${QUERY_FASTA}" ]]; then
+  echo "Full-stack query fixture not found: ${QUERY_FASTA}" >&2
+  exit 1
+fi
+
 mkdir -p \
   "${WORK_DIR}/state/server" \
   "${WORK_DIR}/state/auth" \
@@ -46,9 +52,12 @@ cp "${SERVER_ROOT}/.env.example" "${ENV_FILE}"
 PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
 RUNNER_UID="$(id -u)"
 RUNNER_GID="$(id -g)"
-if [[ "${RUNNER_UID}" == "0" || "${RUNNER_GID}" == "0" ]]; then
+if [[ "${RUNNER_UID}" == "0" ]]; then
   RUNNER_UID=1000
   RUNNER_GID=1000
+  chown -R "${RUNNER_UID}:${RUNNER_GID}" "${WORK_DIR}"
+elif [[ "${RUNNER_GID}" == "0" ]]; then
+  RUNNER_GID="${RUNNER_UID}"
 fi
 export RUNNER_UID RUNNER_GID
 cat >>"${ENV_FILE}" <<EOF
@@ -148,5 +157,5 @@ echo "Captured the generated admin password."
 echo "Running API, web-page, and GREMLIN pipeline checks..."
 FULL_STACK_ADMIN_PASSWORD="${ADMIN_PASSWORD}" python "${SERVER_ROOT}/tests/full_stack_smoke.py" \
   --base-url "http://127.0.0.1:${PORT}" \
-  --fasta "${REPO_ROOT}/tests/data/msa/2KL8.fasta"
+  --fasta "${QUERY_FASTA}"
 echo "Full-stack Docker test passed."

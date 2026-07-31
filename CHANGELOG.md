@@ -77,6 +77,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **GREMLIN Docker server tests**: made the Python 3.6 compatibility and
+  full-stack checks bounded, least-privileged, root-safe, and responsive to
+  unexpected HTTP failures while preserving accepted task polling and keeping
+  `tests/data/msa/2KL8.fasta` as the submitted query.
 - **PyMOL first-install encoding**: kept the standalone `REvoDesign_PyMOL.py`
   bootstrapper ASCII-only and added GBK-transcoding and pre-commit regression
   guards so locale-aware Windows downloads cannot become invalid UTF-8 source.

@@ -56,8 +56,10 @@ def _wait_for_task(
             headers=headers,
             timeout=10,
         )
+        if response.status_code not in {200, 202}:
+            raise AssertionError(f"GET running/{task_id} returned HTTP {response.status_code}: {response.text[:300]}")
         last_payload = response.json()
-        if response.status_code == 200 and last_payload.get("status") == "finished":
+        if last_payload.get("status") == "finished":
             return
         if last_payload.get("status") == "failed":
             raise AssertionError(f"GREMLIN task failed: {last_payload}")
