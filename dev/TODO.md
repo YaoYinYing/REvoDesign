@@ -27,7 +27,7 @@ Read-only audit recorded on 2026-08-06. The estimates below are directional; eac
 - [x] **Delete compatibility-only `QButtonBrick` children.** `QButtonMatrix` is tested and driven through its native selection API without invisible per-cell widgets.
 - [x] **Delete `SingletonAbstract.derive()`.** Removed the test-only dynamic subclass machinery; ordinary subclasses remain the supported way to define distinct singleton types.
 - [x] **Give one component ownership of the translator.** `LanguageSwitch` owns the early-installed translator directly; proxy storage, application-child scanning, duck-typed fallback, and bus mirroring are removed.
-- [ ] **Remove inappropriate server runtime dependencies.** Move or delete runner-only `biopython`, `matplotlib`, `numpy`, and `pandas`; test-only `requests`; unused `six` and `click`; and redundant `redis`, which is already supplied by `celery[redis]`.
+- [x] **Remove inappropriate server runtime dependencies.** Runner scientific libraries remain in `env/GREMLIN.yml`, `requests` is test-only, and unused or redundant direct declarations are removed.
 - [ ] **Give `ClusterTabController` sole ownership of the cluster-method selector.** Remove duplicate ordering and filtering in `CallableGroupValues` and both hardcoded registry fallbacks.
 - [ ] **Consolidate server reload handling.** Make reload an operation of the main server control script, delete `hot_fix.sh`, and remove duplicated Compose/environment discovery and the legacy `.env` fallback.
 - [ ] **Replace `ParamChangeRegister` with direct iteration.** Keep the useful registry items, but remove the single-instance wrapper class.

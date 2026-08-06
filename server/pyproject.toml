@@ -11,19 +11,11 @@ license = { text = "GPL-3.0-only" }
 requires-python = ">=3.10"
 dependencies = [
     "APScheduler>=3.11,<4",
-    "biopython>=1.86",
     "celery[redis]>=5.3",
-    "click>=8.3",
     "docker>=7.1",
     "Flask>=3.1",
     "gunicorn>=25.1",
-    "matplotlib>=3.10",
-    "numpy>=2.2",
-    "pandas>=2.3",
     "pydantic>=2.0",
-    "redis>=4.6",
-    "requests>=2.33",
-    "six>=1.17",
     "SQLAlchemy>=2.0",
     "werkzeug",
     "itsdangerous",
@@ -37,6 +29,7 @@ test = [
     "pytest>=8",
     "pytest-mock>=3.14",
     "pytest-cov>=6",
+    "requests>=2.33",
 ]
 
 [tool.setuptools.packages.find]

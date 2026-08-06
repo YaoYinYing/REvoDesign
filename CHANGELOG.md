@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- **Server runtime dependency duplication**: removed runner-only scientific
+  libraries, unused `six` and `click`, and redundant direct `redis` from the
+  web package; `requests` now belongs to the test extra.
 - **Translator compatibility ownership**: removed `RuntimeUiProxy.trans`,
   application-child scanning, and ConfigBus translator mirroring; the early
   translator is passed directly to `LanguageSwitch`.
