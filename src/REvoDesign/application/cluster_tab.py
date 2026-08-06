@@ -62,17 +62,14 @@ class ClusterTabController:
         )
 
     def _available_methods(self) -> list[str]:
-        enable_experimental = self._experimental_enabled()
-        try:
-            from REvoDesign.clusters.cluster_sequence import IMPLEMENTED_CLUSTER_METHOD
+        from REvoDesign.clusters.cluster_sequence import IMPLEMENTED_CLUSTER_METHOD
 
-            available = {
-                name
-                for name, method_class in IMPLEMENTED_CLUSTER_METHOD.items()
-                if enable_experimental or not method_class.get_method_spec().experimental
-            }
-        except Exception:
-            available = {"AgglomerativeCluster", "LegacyCluster"}
+        enable_experimental = self._experimental_enabled()
+        available = {
+            name
+            for name, method_class in IMPLEMENTED_CLUSTER_METHOD.items()
+            if enable_experimental or not method_class.get_method_spec().experimental
+        }
 
         ordered = [name for name in PREFERRED_CLUSTER_METHODS if name in available]
         ordered.extend(sorted(name for name in available if name not in PREFERRED_CLUSTER_METHODS))

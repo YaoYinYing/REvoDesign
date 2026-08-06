@@ -79,30 +79,6 @@ class CallableGroupValues:
 
         return available_run_node_hints
 
-    @staticmethod
-    def list_cluster_methods(enable_experimental: bool = False) -> list[str]:
-        preferred_order = (
-            "AgglomerativeCluster",
-            "EvoCluster",
-            "KMeansCluster",
-            "LegacyCluster",
-        )
-        try:
-            from REvoDesign.clusters.cluster_sequence import IMPLEMENTED_CLUSTER_METHOD
-
-            available = {
-                name
-                for name, method_class in IMPLEMENTED_CLUSTER_METHOD.items()
-                if enable_experimental or not method_class.get_method_spec().experimental
-            }
-        except Exception:
-            available = {"AgglomerativeCluster", "LegacyCluster"}
-
-        ordered = [name for name in preferred_order if name in available]
-        ordered.extend(sorted(name for name in available if name not in preferred_order))
-        return ordered
-
-
 # define all group mappers
 # Header
 GroupCmap = GR(
@@ -115,11 +91,6 @@ GroupScoreMatrix = GR(
     "comboBox_cluster_matrix",
     (CallableGroupValues.list_score_matrix,),
 )
-GroupClusterMethod = GR(
-    "comboBox_cluster_method",
-    (CallableGroupValues.list_cluster_methods,),
-)
-
 # Tab Mutate
 GroupProfileTypeTabMutate = GR(
     "comboBox_profile_type",
@@ -157,7 +128,6 @@ GroupRosettaNodeHint = GR("comboBox_rosetta_node_hint", (CallableGroupValues.lis
 GroupRegistryCollection: tuple[GR, ...] = (
     GroupCmap,
     GroupScoreMatrix,
-    GroupClusterMethod,
     GroupProfileTypeTabMutate,
     GroupProfileTypeTabVisualize,
     GroupScorerTabInteract,

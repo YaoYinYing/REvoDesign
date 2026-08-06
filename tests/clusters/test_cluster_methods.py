@@ -543,18 +543,6 @@ def test_kmeans_cluster_spec_is_experimental():
     assert KMeansCluster.get_method_spec().experimental is True
 
 
-def test_default_widget_cluster_methods_exclude_experimental_methods():
-    from REvoDesign.driver.group_register import CallableGroupValues
-
-    default_methods = CallableGroupValues.list_cluster_methods()
-    experimental_methods = CallableGroupValues.list_cluster_methods(enable_experimental=True)
-
-    assert "EvoCluster" not in default_methods
-    assert "KMeansCluster" not in default_methods
-    assert "EvoCluster" in experimental_methods
-    assert "KMeansCluster" in experimental_methods
-
-
 def test_evo_runner_requires_pssm_path_for_positive_pssm_weight(monkeypatch, tmp_path):
     from REvoDesign.clusters.cluster_runner import ClusterRunner
 
