@@ -636,12 +636,6 @@ Custom Qt widgets and dialogs used throughout the REvoDesign UI.
       show_source: false
       heading_level: 3
 
-::: REvoDesign.tools.customized_widgets.QHoverCross
-    options:
-      show_root_heading: true
-      show_source: false
-      heading_level: 3
-
 ::: REvoDesign.tools.customized_widgets.ButtonCoords
     options:
       show_root_heading: true
