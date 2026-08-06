@@ -18,24 +18,3 @@
     `src/REvoDesign/clients/QtSocketConnector.py:813-863` responds to a `RequireKey` message by sending `self.authentication_key` before the server proves its identity. A malicious host can simply ask for the key and impersonate everyone. Authenticate the server (TLS + pinned cert) and only send a key through an already-authenticated channel.
 26. **Medium – pip installs run on the UI thread**
     `src/REvoDesign/tools/package_manager.py:861-925` calls `pip install/uninstall` directly from menu actions, blocking PyMOL for minutes during heavy installs. Dispatch these calls to `run_worker_thread_in_pool` and stream progress to the dashboard.
-
-## Engineering Principles overdesign audit
-
-Read-only audit recorded on 2026-08-06. The estimates below are directional; each item should be revalidated against the current checkout before implementation.
-
-- [x] **Delete the repository-local Loopkit/Claude framework.** The 1,333 tracked lines under `.claude/` duplicated the root guidance and included migration practices that conflicted with `CLAUDE.md`; the root `CLAUDE.md` is now the sole agent guidance.
-- [x] **Delete compatibility-only `QButtonBrick` children.** `QButtonMatrix` is tested and driven through its native selection API without invisible per-cell widgets.
-- [x] **Delete `SingletonAbstract.derive()`.** Removed the test-only dynamic subclass machinery; ordinary subclasses remain the supported way to define distinct singleton types.
-- [x] **Give one component ownership of the translator.** `LanguageSwitch` owns the early-installed translator directly; proxy storage, application-child scanning, duck-typed fallback, and bus mirroring are removed.
-- [x] **Remove inappropriate server runtime dependencies.** Runner scientific libraries remain in `env/GREMLIN.yml`, `requests` is test-only, and unused or redundant direct declarations are removed.
-- [x] **Give `ClusterTabController` sole ownership of the cluster-method selector.** Duplicate group registration and hardcoded registry fallbacks are removed while `LegacyCluster` remains supported.
-- [x] **Consolidate server reload handling.** The main helper owns reload and env resolution; the standalone script and legacy `.env` fallback are removed.
-- [x] **Replace `ParamChangeRegister` with direct iteration.** Registry items remain, and the driver registers its tuple through one direct loop.
-- [x] **Delete task-runtime compatibility exports.** Routes import task helpers directly from `task_runtime`; both unused alias chains are gone.
-- [x] **Shrink `PluginRegistry`.** Discovery now uses its actual fixed contract, and callers instantiate it directly without unused knobs or a delegate-only factory.
-- [x] **Delete `DialogWrapperRegistry.use_progressbar`.** Threaded shortcuts use the thread dashboard without an inert registration option.
-- [x] **Drop legacy `.xls` support and `xlrd`.** `.xlsx` remains supported through `openpyxl`.
-- [x] **Delete unused or legacy configuration switches.** Removed the unused save settings and the unexposed Cartesian-ddG legacy option.
-- [x] **Delete the unused `install_qt5_aliases()` compatibility name.** `install_qt6_aliases()` is the sole public API.
-
-Estimated maximum reduction: approximately 1,900 lines and 9 direct dependencies.
