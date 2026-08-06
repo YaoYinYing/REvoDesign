@@ -153,39 +153,6 @@ def test_runtime_ui_proxy_records_duplicates_and_retranslates():
     assert calls == [root]
 
 
-def test_runtime_ui_proxy_exposes_trans_attribute():
-    """RuntimeUiProxy must expose a QTranslator as `trans` for legacy i18n code."""
-    from unittest.mock import MagicMock, patch
-
-    class _FakeWindow:
-        def objectName(self):
-            return "fakeWindow"
-
-        def findChildren(self, _type):
-            return []
-
-    window = _FakeWindow()
-
-    with patch.object(qt_wrapper.QtCore, "QTranslator", return_value=MagicMock()) as mock_qtranslator:
-        proxy = RuntimeUiProxy(window)
-
-    assert hasattr(proxy, "trans")
-    mock_qtranslator.assert_called_once_with(window)
-
-    # `trans` must survive refresh_bindings() (regression check).
-    proxy.refresh_bindings()
-    assert hasattr(proxy, "trans")
-
-    # retranslateUi must still work.
-    called = []
-    with patch.object(qt_wrapper.QtCore, "QTranslator", return_value=MagicMock()):
-        proxy2 = RuntimeUiProxy(window, retranslator=lambda w: called.append(w))
-    proxy2.retranslateUi()
-    assert called == [window]
-    # `trans` must survive retranslateUi's internal refresh_bindings call.
-    assert hasattr(proxy2, "trans")
-
-
 def test_generate_ui_typing_renders_protocol_and_check_mode(tmp_path):
     script = _load_module(
         Path(__file__).resolve().parents[2] / "dev/tools/generate_ui_typing.py",
@@ -215,7 +182,6 @@ def test_generate_ui_typing_renders_protocol_and_check_mode(tmp_path):
     types_path.write_text(rendered, encoding="utf-8")
 
     assert "class REvoDesignUiProtocol(Protocol):" in rendered
-    assert "trans: QtCore.QTranslator" in rendered
     assert "actionSource_Code: QtGui.QAction" in rendered
     assert "verticalLayout: QtWidgets.QVBoxLayout" in rendered
     assert "buttonGroup_demo: QtWidgets.QButtonGroup" in rendered

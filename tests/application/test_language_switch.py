@@ -34,8 +34,7 @@ def _make_fake_translator(load_returns: bool = True):
 def _make_fake_bus_ui(has_trans: bool = True):
     """Create a MagicMock that quacks like the runtime UI proxy (bus.ui)."""
     ui = MagicMock()
-    if has_trans:
-        ui.trans = _make_fake_translator()
+    del has_trans
     ui.retranslateUi = MagicMock()
     return ui
 
@@ -59,11 +58,10 @@ def _fake_language_json(tmp_path: Path) -> str:
 class TestLanguageSwitchInit:
     """Tests for LanguageSwitch initialisation and translator ownership."""
 
-    def test_uses_existing_bus_ui_trans(self, tmp_path):
-        """When bus.ui already has `trans`, LanguageSwitch reuses it."""
+    def test_uses_passed_early_translator(self, tmp_path):
         json_fp = _fake_language_json(tmp_path)
-        bus_ui = _make_fake_bus_ui(has_trans=True)
-        existing = bus_ui.trans
+        bus_ui = _make_fake_bus_ui()
+        existing = _make_fake_translator()
         mock_app = MagicMock()
 
         with (
@@ -80,15 +78,13 @@ class TestLanguageSwitchInit:
 
             from REvoDesign.application.i18n.language_settings import LanguageSwitch
 
-            ls = LanguageSwitch(window=MagicMock())
+            ls = LanguageSwitch(window=MagicMock(), translator=existing)
             assert ls.trans is existing
-            assert hasattr(ls, "_translator_installed")
+            mock_app.removeTranslator.assert_called_once_with(existing)
 
-    def test_creates_translator_when_bus_ui_lacks_trans(self, tmp_path):
-        """When bus.ui lacks `trans`, LanguageSwitch creates and attaches one."""
+    def test_creates_translator_when_early_install_is_unavailable(self, tmp_path):
         json_fp = _fake_language_json(tmp_path)
-        bus_ui = _make_fake_bus_ui(has_trans=False)
-        del bus_ui.trans  # ensure attribute is absent
+        bus_ui = _make_fake_bus_ui()
         mock_app = MagicMock()
         fake_translator = MagicMock()
 
@@ -110,8 +106,7 @@ class TestLanguageSwitchInit:
             window = MagicMock()
             ls = LanguageSwitch(window=window)
             assert ls.trans is fake_translator
-            # bus.ui.trans should now be set to the new translator
-            assert bus_ui.trans is fake_translator
+            assert ls._translator_installed is False
 
 
 class TestLanguageSwitchSwitchLanguage:
@@ -137,7 +132,7 @@ class TestLanguageSwitchSwitchLanguage:
 
             from REvoDesign.application.i18n.language_settings import LanguageSwitch
 
-            ls = LanguageSwitch(window=MagicMock())
+            ls = LanguageSwitch(window=MagicMock(), translator=_make_fake_translator())
             english = ls.language_items[0]
 
             # Must not raise
@@ -166,7 +161,7 @@ class TestLanguageSwitchSwitchLanguage:
 
             from REvoDesign.application.i18n.language_settings import LanguageSwitch
 
-            ls = LanguageSwitch(window=MagicMock())
+            ls = LanguageSwitch(window=MagicMock(), translator=_make_fake_translator())
 
             # First switch — installs the translator
             english = ls.language_items[0]
@@ -195,7 +190,7 @@ class TestLanguageSwitchSwitchLanguage:
 
             from REvoDesign.application.i18n.language_settings import LanguageSwitch
 
-            ls = LanguageSwitch(window=MagicMock())
+            ls = LanguageSwitch(window=MagicMock(), translator=_make_fake_translator())
             english = ls.language_items[0]
             ls.switch_language(english)
 
@@ -221,7 +216,7 @@ class TestLanguageSwitchSwitchLanguage:
 
             from REvoDesign.application.i18n.language_settings import LanguageSwitch
 
-            ls = LanguageSwitch(window=MagicMock())
+            ls = LanguageSwitch(window=MagicMock(), translator=_make_fake_translator())
 
             # Call _retranslate_language_actions directly
             ls._retranslate_language_actions()

@@ -86,7 +86,7 @@ Two conda environments exist for cross-Qt testing:
 All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 directly. The `check_qt_binding_imports.py` pre-commit hook enforces this.
 
 - `qt_wrapper.py` — detects the Qt backend from `pymol.Qt.PYQT_NAME` at import time. Exposes `QtCore`, `QtGui`, `QtWidgets`, `QT_BACKEND`, `QT_MAJOR`, plus `install_qt6_aliases()` for backward-compatible enum/class locations.
-- `ui_runtime_loader.py` — loads `.ui` files at runtime via PyQt `uic.loadUiType` or `QtUiTools.QUiLoader`. The `RuntimeUiProxy` exposes named Qt objects as attributes (mimicking the old generated-UI pattern) and provides `retranslateUi()`. A `QTranslator` is stored as `.trans` for backward compatibility with legacy i18n code. `refresh_bindings()` re-scans the widget tree after retranslation, but preserves internal attrs (`_*`) and `trans`.
+- `ui_runtime_loader.py` — loads `.ui` files at runtime via PyQt `uic.loadUiType` or `QtUiTools.QUiLoader`. The `RuntimeUiProxy` exposes named Qt objects as attributes (mimicking the old generated-UI pattern) and provides `retranslateUi()`. `refresh_bindings()` re-scans the widget tree after retranslation while preserving internal attributes (`_*`).
 - `Ui_REvoDesign.py` is **deprecated** — the pre-commit hook `reject_generated_main_ui.py` prevents it from being re-introduced.
 
 ### Singleton and ConfigBus (`src/REvoDesign/driver/ui_driver.py`)
@@ -111,8 +111,7 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 ### Internationalization (`src/REvoDesign/application/i18n/language_settings.py`)
 
 `LanguageSwitch` manages translator lifecycle:
-- Owns its translator reference (`self.trans`) rather than relying on `bus.ui.trans`
-- `_ensure_translator()` checks for an existing translator on `bus.ui.trans` via capability checks (not `isinstance`), creates one if absent
+- Owns the translator reference passed back by `install_translator_early()` and creates one only when early installation is unavailable
 - `switch_language()` removes the previous translator before installing the new one, preventing accumulation
 - Dynamic language menu actions are retranslated via `_retranslate_language_actions()`
 

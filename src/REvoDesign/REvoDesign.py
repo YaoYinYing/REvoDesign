@@ -99,6 +99,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.multi_designer: MultiMutantDesigner = None  # type: ignore
         self.cluster_tab_controller = None
         self._language_change_filter: QtCore.QObject | None = None
+        self._translator: QtCore.QTranslator | None = None
 
         if has_qt_module("QtWebSockets"):
             self.logging.info("QtWebSockets detected via PyMOL Qt backend: %s", QT_BACKEND)
@@ -161,7 +162,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
             # Install saved-language translator before the splash so its
             # .ui strings and status messages show translated from the start.
-            install_translator_early()
+            self._translator = install_translator_early()
 
             launching.init(total_steps=11)  # "Initializing" + 10 _status calls in make_window
 
@@ -299,8 +300,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # language switch for ui
         _status("Setting up language support")
-        self.bus.ui.trans = QtCore.QTranslator(self)
-        LanguageSwitch(window=main_window)
+        LanguageSwitch(window=main_window, translator=self._translator)
 
         # Set up Menu
         # TODO: skip register if headless
