@@ -190,7 +190,6 @@ Sequence clustering reduces large mutant sets to representative variants for exp
 `SingletonAbstract` (in `REvoDesign.basic.abc_singleton`) is the Borg-like singleton base used throughout the codebase.
 
 - **Mechanism**: `__new__` returns the cached `_instance` if one exists. `__init__` calls `singleton_init()` only once, guarded by `self.initialized`. Subclasses must implement `singleton_init()`.
-- **`derive(name)`**: Creates a dynamically-named subclass with its own independent `_instance`, enabling multiple singleton instances of the same lineage (e.g., `StoresWidget.derive("derived_name")`).
 - **`reset_instance()`**: Sets `_instance = None` so the next `__new__` creates a fresh instance. `reset_singletons()` iterates all subclasses and resets them.
 - **Used by**: `ConfigBus`, `Magician`, `SidechainSolver`, `CitationManager`, `StoresWidget`.
 

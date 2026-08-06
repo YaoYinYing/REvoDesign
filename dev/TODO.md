@@ -25,7 +25,7 @@ Read-only audit recorded on 2026-08-06. The estimates below are directional; eac
 
 - [x] **Delete the repository-local Loopkit/Claude framework.** The 1,333 tracked lines under `.claude/` duplicated the root guidance and included migration practices that conflicted with `CLAUDE.md`; the root `CLAUDE.md` is now the sole agent guidance.
 - [x] **Delete compatibility-only `QButtonBrick` children.** `QButtonMatrix` is tested and driven through its native selection API without invisible per-cell widgets.
-- [ ] **Delete `SingletonAbstract.derive()`.** Its dynamic subclass machinery has no production callers and is exercised only by tests. Define ordinary subclasses if a real use case appears.
+- [x] **Delete `SingletonAbstract.derive()`.** Removed the test-only dynamic subclass machinery; ordinary subclasses remain the supported way to define distinct singleton types.
 - [ ] **Give one component ownership of the translator.** Retain the translator returned by early installation and pass it directly to `LanguageSwitch`; remove `RuntimeUiProxy.trans`, application-child scanning, duck-typed fallback, and bus mirroring.
 - [ ] **Remove inappropriate server runtime dependencies.** Move or delete runner-only `biopython`, `matplotlib`, `numpy`, and `pandas`; test-only `requests`; unused `six` and `click`; and redundant `redis`, which is already supplied by `celery[redis]`.
 - [ ] **Give `ClusterTabController` sole ownership of the cluster-method selector.** Remove duplicate ordering and filtering in `CallableGroupValues` and both hardcoded registry fallbacks.

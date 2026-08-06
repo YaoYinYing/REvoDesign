@@ -1,11 +1,10 @@
 # SingletonAbstract: A Versatile Singleton Implementation
 
-The `SingletonAbstract` class provides a robust implementation of the Singleton design pattern in Python. It ensures that only one instance of the class is created, while also supporting dynamic derivation and flexible instance initialization or updates.
+The `SingletonAbstract` class provides a reusable Singleton implementation. It ensures that only one instance of each concrete class is created and supports explicit initialization, updates, and reset.
 
 ## Key Features
 
 - **Singleton Pattern**: Ensures a single instance of the class.
-- **Dynamic Derivation**: Allows developers to create derived singleton classes with independent instances.
 - **Custom Initialization**: Subclasses define their initialization logic using the `singleton_init` method.
 - **Update Variables**: Existing instances can be updated dynamically via the `initialize` method.
 - **Reset Support**: Reset the singleton instance with `reset_instance`.
@@ -60,53 +59,3 @@ new_server_a = ServerControl()
 
 print(new_server_a.name)  # Output: New Server A
 ```
-
-### Dynamic Derivation
-
-The `derive` method in `SingletonAbstract` allows you to dynamically create new classes with independent singleton behavior. Each derived class manages its own singleton instance, enabling clean separation between different singletons while leveraging shared logic.
-
-#### How It Works
-
-```python
-@classmethod
-def derive(cls: Type[T], name: str) -> Type[T]:
-    """
-    Dynamically creates a derived class with independent singleton behavior.
-
-    Args:
-        name: The name of the derived class.
-
-    Returns:
-        A dynamically created subclass with singleton behavior.
-    """
-    class DerivedSingleton(cls):
-        _instance = None  # Independent instance tracking for the derived class
-
-        def __init__(self, *args, **kwargs):
-            if not hasattr(self, 'initialized'):
-                self.singleton_init(*args, **kwargs)
-                self.initialized = True
-
-    DerivedSingleton.__name__ = name
-    return cast(Type[T], DerivedSingleton)
-```
-
-#### Example Usage
-
-```python
-# Dynamically create derived singleton classes
-ServerAController = ServerControl.derive("ServerAController")
-ServerBController = ServerControl.derive("ServerBController")
-
-# Use the derived singletons
-server_a = ServerAController(name="Server A")
-server_b = ServerBController(name="Server B")
-
-print(server_a.name)  # Output: Server A
-print(server_b.name)  # Output: Server B
-
-# Confirm they are independent
-assert server_a is not server_b, "Each derived singleton should manage its own instance."
-```
-
-This functionality makes `SingletonAbstract` flexible and extensible, enabling dynamic creation of distinct singleton types for various use cases.

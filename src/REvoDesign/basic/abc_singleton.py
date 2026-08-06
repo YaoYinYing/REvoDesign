@@ -62,28 +62,6 @@ Life of a Singleton Class
 | Return Singleton Instance |
 +---------------------------+
 
-Dynamic Derivation
-+---------------------------------------------+
-| Client Calls derive(name)                   |
-+---------------------------------------------+
-                     |
-                     v
-+---------------------------+
-| Create New Derived Class  |
-| Dynamically               |
-+---------------------------+
-                     |
-                     v
-+---------------------------+
-| Set Derived Class _instance|
-| to None                    |
-+---------------------------+
-                     |
-                     v
-+---------------------------+
-| Return New Derived Class  |
-+---------------------------+
-
 Initialize or Update Instance
 +---------------------------------------------+
 | Client Calls initialize(*args, **kwargs)    |
@@ -126,16 +104,10 @@ Resetting Instance
 """
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, cast
-
-T = TypeVar("T", bound="SingletonAbstract")
-
-
 class SingletonAbstract(ABC):
     """
     A base class that enforces the Singleton design pattern.
-    Ensures that only one instance of the class is created, with support
-    for dynamic derivation of new singleton classes.
+    Ensures that only one instance of the class is created.
 
     Attributes:
         _instance: The singleton instance of the class.
@@ -207,44 +179,6 @@ class SingletonAbstract(ABC):
             # Update existing instance with new variables
             for key, value in kwargs.items():
                 setattr(cls._instance, key, value)
-
-    @classmethod
-    def derive(cls: type[T], name: str) -> type[T]:
-        """
-        Dynamically creates a derived class with independent singleton behavior.
-
-        This method allows for the creation of new singleton classes that inherit from
-        the current class. Each derived class has its own independent singleton instance.
-
-        Args:
-            name: The name of the derived class.
-
-        Returns:
-            A dynamically created subclass with singleton behavior.
-        """
-
-        class DerivedSingleton(cls):
-            """
-            A dynamically created derived singleton class.
-            """
-
-            _instance = None  # Independent instance tracking for the derived class
-
-            def __init__(self, *args, **kwargs):
-                """
-                Initializes the derived singleton instance.
-
-                Ensures that the instance is only initialized once, using the
-                `singleton_init` method for custom logic.
-
-                Args:
-                    *args: Positional arguments for initialization.
-                    **kwargs: Keyword arguments for initialization.
-                """
-                super().__init__(*args, **kwargs)
-
-        DerivedSingleton.__name__ = name
-        return cast(type[T], DerivedSingleton)
 
     @classmethod
     def reset_instance(cls):

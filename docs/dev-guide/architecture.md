@@ -191,8 +191,6 @@ StoresWidget()                   # Server switch monitors (Editor, OpenMM)
   initialization logic.
 - `initialize()` class method creates the instance on first call, or updates
   existing instance attributes on subsequent calls.
-- `derive(name)` dynamically creates a new subclass with its own independent
-  `_instance` (used for per-class singleton isolation).
 - `reset_instance()` clears `_instance` for testing cleanup.
 
 Key singleton subclasses:
