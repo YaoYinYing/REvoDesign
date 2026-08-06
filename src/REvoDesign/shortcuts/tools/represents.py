@@ -370,7 +370,7 @@ def _read_b_factors(  # skipcq: PY-R1000 -- supported structure formats share on
         # read floats from csv file, in col `label` if provided, else first column
         df = pd.read_csv(file_path)
 
-    elif file_path.endswith((".xlsx", ".xls")):
+    elif file_path.endswith(".xlsx"):
         # read floats from excel file, in col `label` if provided, else first column
         df = pd.read_excel(file_path)
     elif file_path.endswith(".tsv"):

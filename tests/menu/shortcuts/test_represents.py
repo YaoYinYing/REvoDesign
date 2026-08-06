@@ -50,7 +50,6 @@ def test_shortcut_color_by_mutation(test_worker: TestWorker):
         # test formats
         ["CSV", "csv/3fap_hf3_A_short.Backbone.rmsf_res.csv", None, 0, None, None, None, None, None, False],
         ["Excel Modern", "csv/3fap_hf3_A_short.Backbone.rmsf_res.xlsx", None, 0, None, None, None, None, None, False],
-        ["Excel Legacy", "csv/3fap_hf3_A_short.Backbone.rmsf_res.xls", None, 0, None, None, None, None, None, False],
         ["TSV", "tsv/3fap_hf3_A_short.Backbone.rmsf_res.tsv", None, 0, None, None, None, None, None, False],
         ["TXT", "txt/3fap_hf3_A_short.Backbone.rmsf_res.txt", None, 0, None, None, None, None, None, False],
         ["PDB", "pdb/3fap_hf3_A_short_lig.rmsf.pdb", None, 0, None, None, None, None, None, False],

@@ -34,7 +34,7 @@ Read-only audit recorded on 2026-08-06. The estimates below are directional; eac
 - [x] **Delete task-runtime compatibility exports.** Routes import task helpers directly from `task_runtime`; both unused alias chains are gone.
 - [x] **Shrink `PluginRegistry`.** Discovery now uses its actual fixed contract, and callers instantiate it directly without unused knobs or a delegate-only factory.
 - [x] **Delete `DialogWrapperRegistry.use_progressbar`.** Threaded shortcuts use the thread dashboard without an inert registration option.
-- [ ] **Drop legacy `.xls` support and `xlrd`.** Retain `.xlsx` support through the existing `openpyxl` path.
+- [x] **Drop legacy `.xls` support and `xlrd`.** `.xlsx` remains supported through `openpyxl`.
 - [ ] **Delete unused or legacy configuration switches.** Remove `config_settings.auto_save`, `config_settings.save_on_exit`, and the unexposed `rosetta.cart_ddg.use_legacy` option.
 - [x] **Delete the unused `install_qt5_aliases()` compatibility name.** `install_qt6_aliases()` is the sole public API.
 

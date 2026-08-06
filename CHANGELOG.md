@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- **Legacy Excel input**: removed `.xls` handling and the `xlrd` dependency;
+  mutant tables continue to support `.xlsx` through `openpyxl`.
 - **Plugin registry extension knobs**: removed unused discovery predicates,
   custom installed attributes, package exclusion, and the delegate-only
   `build_plugin_registry()` factory.
