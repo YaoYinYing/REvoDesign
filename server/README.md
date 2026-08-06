@@ -21,7 +21,7 @@ The server stack contains:
 - `runner` image: GREMLIN/PSSM execution container launched by `worker`
 
 Scientific Python dependencies used by GREMLIN scripts belong to the runner's
-`env/GREMLIN.yml`; they are not installed into the web and worker package.
+`docker/runners/pssm_gremlin/GREMLIN.yml`; they are not installed into the web and worker package.
 
 Periodic jobs follow this package boundary:
 

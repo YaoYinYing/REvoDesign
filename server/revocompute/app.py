@@ -155,7 +155,7 @@ except FileNotFoundError:
             name="gremlin",
             display_name="PSSM-GREMLIN",
             docker_image=os.environ.get("RUNNER_IMAGE", "revodesign-revocompute-runner"),
-            command=["bash", "/app/revocompute/run_gremlin.sh"],
+            command=["bash", "/app/revocompute/run.sh"],
             input_extension=".fasta",
             input_label="FASTA file",
             stage_markers={

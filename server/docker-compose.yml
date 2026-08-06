@@ -156,7 +156,7 @@ services:
     image: ${RUNNER_IMAGE:-revodesign-revocompute-runner}
     build:
       context: .
-      dockerfile: docker/runner/Dockerfile
+      dockerfile: docker/runners/pssm_gremlin/Dockerfile
       args:
         RUNNER_UID: ${RUNNER_UID}
         RUNNER_GID: ${RUNNER_GID}

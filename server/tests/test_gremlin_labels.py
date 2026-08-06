@@ -4,7 +4,14 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import pytest
+
+_runner_dir = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin"
+if str(_runner_dir) not in sys.path:
+    sys.path.insert(0, str(_runner_dir))
 from scripts.gremlin_labels import validate_position_label
 
 ALPHABET = "ARNDCQEGHILKMFPSTWYV-"

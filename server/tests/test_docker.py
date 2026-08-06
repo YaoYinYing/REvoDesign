@@ -83,7 +83,7 @@ def runner_image_tag(miniuc_databases) -> str:
         pytest.skip("Docker daemon not available")
     _ = miniuc_databases
     tag = f"revodesign-pssm-gremlin-runner-test:{uuid.uuid4().hex[:12]}"
-    _build_image(tag, "server/docker/runner/Dockerfile", "server", build_args=_runner_build_args())
+    _build_image(tag, "server/docker/runners/pssm_gremlin/Dockerfile", "server", build_args=_runner_build_args())
     yield tag
     _run_command(["docker", "rmi", "-f", tag], check=False)
 

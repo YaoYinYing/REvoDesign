@@ -15,7 +15,7 @@ RUN groupadd -o -r ${RUNNER_GROUP} -g ${RUNNER_GID} && groupadd docker  && \
 # Use bash to support string substitution.
 SHELL ["/bin/bash", "-c"]
 
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./env/GREMLIN.yml /tmp/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/pssm_gremlin/GREMLIN.yml /tmp/
 RUN conda env create -f /tmp/GREMLIN.yml \
       && conda clean --all --force-pkgs-dirs --yes \
       && rm -f /tmp/GREMLIN.yml
@@ -23,8 +23,8 @@ RUN conda env create -f /tmp/GREMLIN.yml \
 RUN mkdir -p /app/revocompute
 RUN chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
 
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./scripts/ /app/revocompute/scripts/
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./run_gremlin.sh /app/revocompute/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/pssm_gremlin/scripts/ /app/revocompute/scripts/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/pssm_gremlin/run.sh /app/revocompute/
 
 WORKDIR /app/revocompute/
 
@@ -33,7 +33,7 @@ ENV RUNNER_USERNAME=${RUNNER_USERNAME}
 
 RUN echo $'#!/bin/bash\n\
 ldconfig\n\
-exec runuser -u ${RUNNER_USERNAME} -- bash /app/revocompute/run_gremlin.sh "$@"' > /app/run_runner.sh \
+exec runuser -u ${RUNNER_USERNAME} -- bash /app/revocompute/run.sh "$@"' > /app/run_runner.sh \
   && chmod +x /app/run_runner.sh
 
 ENTRYPOINT ["/app/run_runner.sh"]
