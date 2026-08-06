@@ -33,7 +33,7 @@ Read-only audit recorded on 2026-08-06. The estimates below are directional; eac
 - [ ] **Replace `ParamChangeRegister` with direct iteration.** Keep the useful registry items, but remove the single-instance wrapper class.
 - [ ] **Delete task-runtime compatibility exports.** Current routes already import the helpers directly from `task_runtime`; remove the two alias chains.
 - [ ] **Shrink `PluginRegistry`.** Remove the unused custom installed attribute, package-module exclusion, include predicate, and delegate-only factory.
-- [ ] **Delete `DialogWrapperRegistry.use_progressbar`.** It is logged as a legacy preference but never changes execution.
+- [x] **Delete `DialogWrapperRegistry.use_progressbar`.** Threaded shortcuts use the thread dashboard without an inert registration option.
 - [ ] **Drop legacy `.xls` support and `xlrd`.** Retain `.xlsx` support through the existing `openpyxl` path.
 - [ ] **Delete unused or legacy configuration switches.** Remove `config_settings.auto_save`, `config_settings.save_on_exit`, and the unexposed `rosetta.cart_ddg.use_legacy` option.
 - [x] **Delete the unused `install_qt5_aliases()` compatibility name.** `install_qt6_aliases()` is the sole public API.

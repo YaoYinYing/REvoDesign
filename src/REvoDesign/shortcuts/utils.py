@@ -231,7 +231,6 @@ class DialogWrapperRegistry:
         func: Callable,
         use_thread: bool = False,
         has_dynamic_values: bool = False,
-        use_progressbar: bool = True,
         kwargs: dict | None = None,
     ) -> Callable:
         """
@@ -242,7 +241,6 @@ class DialogWrapperRegistry:
         func (Callable): The function to register.
         use_thread (bool): Whether to run the function in a separate thread.
         has_dynamic_values (bool): Whether the function accepts dynamic values.
-        use_progressbar (bool): Whether to use a progress bar.
         kwargs (Optional[Dict]): Additional keyword arguments to pass to the function.
 
         Returns either:
@@ -250,11 +248,6 @@ class DialogWrapperRegistry:
         - A callable with no arguments (if has_dynamic_values=False)
         """
         logging.debug(f"Registering function {func_id}")
-        logging.debug(
-            "Legacy progress-bar preference for %s: %s; threaded calls use the thread dashboard",
-            func_id,
-            use_progressbar,
-        )
         if use_thread:
             self.funcs[func_id] = partial(run_wrapped_func_in_thread, func, **kwargs or {})
         else:

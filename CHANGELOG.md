@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- **Shortcut progress-bar preference**: removed the inert
+  `DialogWrapperRegistry.use_progressbar` registration option.
 - **Qt alias compatibility name**: removed the unused public
   `install_qt5_aliases()` alias; use `install_qt6_aliases()`.
 - **Dynamic singleton derivation**: removed the production-unused
