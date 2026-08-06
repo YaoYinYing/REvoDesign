@@ -7,7 +7,6 @@ SERVER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${SERVER_ROOT}/docker-compose.yml"
 ENV_EXAMPLE_FILE="${SERVER_ROOT}/.env.example"
 PRIMARY_ENV_FILE="${SERVER_ROOT}/.env.production"
-FALLBACK_ENV_FILE="${SERVER_ROOT}/.env"
 CALLER_DIR="$(pwd)"
 
 resolve_env_file() {
@@ -20,16 +19,6 @@ resolve_env_file() {
     return 0
   fi
 
-  if [[ -f "${PRIMARY_ENV_FILE}" ]]; then
-    printf '%s\n' "${PRIMARY_ENV_FILE}"
-    return 0
-  fi
-  if [[ -f "${FALLBACK_ENV_FILE}" ]]; then
-    printf '%s\n' "${FALLBACK_ENV_FILE}"
-    return 0
-  fi
-
-  # For `setup`, default to creating .env.production when neither file exists.
   printf '%s\n' "${PRIMARY_ENV_FILE}"
 }
 
@@ -37,19 +26,20 @@ ENV_FILE="$(resolve_env_file)"
 
 usage() {
   cat <<'USAGE'
-Usage: bash server/run/restart_pssm_flask.sh [setup|build|up|down|restart]
+Usage: bash server/run/restart_pssm_flask.sh [setup|build|up|down|reload|restart]
        bash server/run/restart_pssm_flask.sh restart [--mode=dev|--mode=prod]
 
 Environment:
   REVODESIGN_SERVER_ENV
           Optional path to env file (absolute or relative to current working directory).
-          Default behavior: use server/.env.production when present, otherwise server/.env.
+          Defaults to server/.env.production.
 
 Subcommands:
   setup    Prepare the selected env file (create from .env.example if missing) and show detected DOCKER_GID.
   build    Build runner image and web/worker images.
   up       Start redis/web/worker with docker compose.
   down     Stop and remove the compose stack.
+  reload   Send HUP to Gunicorn for a zero-downtime application reload.
   restart  Restart in dev mode by default.
            --mode=dev:  down, build local images with host UID/GID, then up.
            --mode=prod: down, pull configured images, then up without building.
@@ -360,6 +350,12 @@ cmd_down() {
   "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" down
 }
 
+cmd_reload() {
+  require_env_file
+  echo "Sending HUP to Gunicorn..."
+  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" exec web pkill -HUP gunicorn
+}
+
 cmd_restart() {
   require_env_file
   validate_required_settings
@@ -444,6 +440,9 @@ case "${SUBCOMMAND}" in
     ;;
   down)
     cmd_down
+    ;;
+  reload)
+    cmd_reload
     ;;
   restart)
     cmd_restart

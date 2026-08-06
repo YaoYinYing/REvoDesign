@@ -95,6 +95,13 @@ def test_restart_modes_choose_build_or_pull(tmp_path):
     assert pull_index < up_index
 
 
+def test_reload_sends_hup_through_compose(tmp_path):
+    result, commands = _run_restart_script(tmp_path, "reload")
+
+    assert result.returncode == 0, result.stderr
+    assert any("exec web pkill -HUP gunicorn" in command for command in commands)
+
+
 def test_restart_generates_distinct_password_for_each_configured_admin(tmp_path):
     result, _commands = _run_restart_script(
         tmp_path,

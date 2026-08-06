@@ -29,7 +29,7 @@ Read-only audit recorded on 2026-08-06. The estimates below are directional; eac
 - [x] **Give one component ownership of the translator.** `LanguageSwitch` owns the early-installed translator directly; proxy storage, application-child scanning, duck-typed fallback, and bus mirroring are removed.
 - [x] **Remove inappropriate server runtime dependencies.** Runner scientific libraries remain in `env/GREMLIN.yml`, `requests` is test-only, and unused or redundant direct declarations are removed.
 - [x] **Give `ClusterTabController` sole ownership of the cluster-method selector.** Duplicate group registration and hardcoded registry fallbacks are removed while `LegacyCluster` remains supported.
-- [ ] **Consolidate server reload handling.** Make reload an operation of the main server control script, delete `hot_fix.sh`, and remove duplicated Compose/environment discovery and the legacy `.env` fallback.
+- [x] **Consolidate server reload handling.** The main helper owns reload and env resolution; the standalone script and legacy `.env` fallback are removed.
 - [x] **Replace `ParamChangeRegister` with direct iteration.** Registry items remain, and the driver registers its tuple through one direct loop.
 - [x] **Delete task-runtime compatibility exports.** Routes import task helpers directly from `task_runtime`; both unused alias chains are gone.
 - [x] **Shrink `PluginRegistry`.** Discovery now uses its actual fixed contract, and callers instantiate it directly without unused knobs or a delegate-only factory.

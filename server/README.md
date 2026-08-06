@@ -147,10 +147,8 @@ REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart_pssm_flask.sh re
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
 ```
 
-Fallback when `REVODESIGN_SERVER_ENV` is unset:
-
-1. `server/.env.production` (if present)
-2. `server/.env`
+When `REVODESIGN_SERVER_ENV` is unset, the helper uses
+`server/.env.production` and fails clearly when that file is absent.
 
 ### Required/important variables
 
@@ -409,6 +407,7 @@ REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh build
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh up
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh reload
 ```
 
 `restart` defaults to `--mode=dev` for backward compatibility. Only the
@@ -459,7 +458,7 @@ docker compose -f server/docker-compose.yml --env-file server/.env.production up
 ### Zero-downtime Gunicorn reload
 
 ```bash
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/hot_fix.sh
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh reload
 ```
 
 ## 6. Usage

@@ -14,32 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
-- **Unused configuration switches**: removed inactive auto-save/save-on-exit
-  settings and the unexposed Cartesian-ddG legacy-mode option.
-- **Legacy Excel input**: removed `.xls` handling and the `xlrd` dependency;
-  mutant tables continue to support `.xlsx` through `openpyxl`.
-- **Plugin registry extension knobs**: removed unused discovery predicates,
-  custom installed attributes, package exclusion, and the delegate-only
-  `build_plugin_registry()` factory.
-- **Parameter-change collection wrapper**: removed the one-instance
-  `ParamChangeRegister` dataclass in favor of direct registry-item iteration.
-- **Duplicate cluster selector registration**: removed `CallableGroupValues`
-  method discovery and hardcoded registry fallbacks; `ClusterTabController`
-  now exclusively owns the selector.
-- **Server runtime dependency duplication**: removed runner-only scientific
-  libraries, unused `six` and `click`, and redundant direct `redis` from the
-  web package; `requests` now belongs to the test extra.
-- **Translator compatibility ownership**: removed `RuntimeUiProxy.trans`,
-  application-child scanning, and ConfigBus translator mirroring; the early
-  translator is passed directly to `LanguageSwitch`.
-- **Server task compatibility exports**: removed unused task-runtime aliases
-  from the web module and redundant public aliases in `task_runtime`.
-- **Shortcut progress-bar preference**: removed the inert
-  `DialogWrapperRegistry.use_progressbar` registration option.
-- **Qt alias compatibility name**: removed the unused public
-  `install_qt5_aliases()` alias; use `install_qt6_aliases()`.
-- **Dynamic singleton derivation**: removed the production-unused
-  `SingletonAbstract.derive()` API and its test-only documentation and cases.
 
 
 ```
@@ -50,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   problems, with private routing for security vulnerabilities.
 
 ### Changed
+- **Server reload operation**: added zero-downtime Gunicorn reload as a
+  subcommand of the main deployment helper.
 - **Experimental cluster visibility**: marked EvoCluster and KMeansCluster as
   experimental metadata and hid them from the cluster-method selector unless
   the new top-level `enable_experimental` main-config flag is enabled. Startup
@@ -146,6 +122,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bootstrap path and still reject duplicate `ADMIN_USERS` entries.
 
 ### Removed
+- **Server deployment fallbacks**: removed the standalone `hot_fix.sh` helper
+  and legacy `server/.env` fallback; deployment defaults explicitly to
+  `.env.production` unless `REVODESIGN_SERVER_ENV` is set.
+- **Unused configuration switches**: removed inactive auto-save/save-on-exit
+  settings and the unexposed Cartesian-ddG legacy-mode option.
+- **Legacy Excel input**: removed `.xls` handling and the `xlrd` dependency;
+  mutant tables continue to support `.xlsx` through `openpyxl`.
+- **Plugin registry extension knobs**: removed unused discovery predicates,
+  custom installed attributes, package exclusion, and the delegate-only
+  `build_plugin_registry()` factory.
+- **Parameter-change collection wrapper**: removed the one-instance
+  `ParamChangeRegister` dataclass in favor of direct registry-item iteration.
+- **Duplicate cluster selector registration**: removed `CallableGroupValues`
+  method discovery and hardcoded registry fallbacks; `ClusterTabController`
+  now exclusively owns the selector.
+- **Server runtime dependency duplication**: removed runner-only scientific
+  libraries, unused `six` and `click`, and redundant direct `redis` from the
+  web package; `requests` now belongs to the test extra.
+- **Translator compatibility ownership**: removed `RuntimeUiProxy.trans`,
+  application-child scanning, and ConfigBus translator mirroring; the early
+  translator is passed directly to `LanguageSwitch`.
+- **Server task compatibility exports**: removed unused task-runtime aliases
+  from the web module and redundant public aliases in `task_runtime`.
+- **Shortcut progress-bar preference**: removed the inert
+  `DialogWrapperRegistry.use_progressbar` registration option.
+- **Qt alias compatibility name**: removed the unused public
+  `install_qt5_aliases()` alias; use `install_qt6_aliases()`.
+- **Dynamic singleton derivation**: removed the production-unused
+  `SingletonAbstract.derive()` API and its test-only documentation and cases.
 - **Agent guidance duplication**: removed the repository-local Loopkit
   framework so root `CLAUDE.md` is the single source of engineering and
   workflow guidance.
