@@ -24,7 +24,7 @@
 Read-only audit recorded on 2026-08-06. The estimates below are directional; each item should be revalidated against the current checkout before implementation.
 
 - [x] **Delete the repository-local Loopkit/Claude framework.** The 1,333 tracked lines under `.claude/` duplicated the root guidance and included migration practices that conflicted with `CLAUDE.md`; the root `CLAUDE.md` is now the sole agent guidance.
-- [ ] **Delete compatibility-only `QButtonBrick` children.** `QButtonMatrix` creates invisible widgets solely for older tests. Test the painted matrix through its signals and hit-testing instead.
+- [x] **Delete compatibility-only `QButtonBrick` children.** `QButtonMatrix` is tested and driven through its native selection API without invisible per-cell widgets.
 - [ ] **Delete `SingletonAbstract.derive()`.** Its dynamic subclass machinery has no production callers and is exercised only by tests. Define ordinary subclasses if a real use case appears.
 - [ ] **Give one component ownership of the translator.** Retain the translator returned by early installation and pass it directly to `LanguageSwitch`; remove `RuntimeUiProxy.trans`, application-child scanning, duck-typed fallback, and bus mirroring.
 - [ ] **Remove inappropriate server runtime dependencies.** Move or delete runner-only `biopython`, `matplotlib`, `numpy`, and `pandas`; test-only `requests`; unused `six` and `click`; and redundant `redis`, which is already supplied by `celery[redis]`.

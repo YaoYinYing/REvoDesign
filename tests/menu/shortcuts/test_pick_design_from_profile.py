@@ -6,7 +6,7 @@
 import pytest
 
 from REvoDesign.Qt import QtCompat, QtWidgets
-from REvoDesign.tools.customized_widgets import QButtonBrick, QButtonMatrix
+from REvoDesign.tools.customized_widgets import QButtonMatrix
 from REvoDesign.tools.mutant_tools import pick_design_from_profile
 from tests.conftest import KeyData, TestWorker
 
@@ -49,7 +49,7 @@ def test_pick_design_from_profile(test_worker: TestWorker, KeyDataDuringTests: K
         focus=False,
     )
     for row, col in [(1, 2), (3, 4)]:
-        test_worker.click(bm.findChild(QButtonBrick, f"matrixButton_{row}_vs_{col}"))
+        bm.signal_process(row, col)
         test_worker.sleep(200)
 
         test_worker.save_pymol_png(

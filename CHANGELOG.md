@@ -24,8 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   problems, with private routing for security vulnerabilities.
 
 ### Changed
-- **Agent guidance**: removed the repository-local Loopkit framework so the
-  root `CLAUDE.md` is the single source of engineering and workflow guidance.
 - **Experimental cluster visibility**: marked EvoCluster and KMeansCluster as
   experimental metadata and hid them from the cluster-method selector unless
   the new top-level `enable_experimental` main-config flag is enabled. Startup
@@ -120,6 +118,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **macOS deployment test compatibility**: guard iteration over the initially
   empty administrator-deduplication array so Bash 3.2 with `set -u` can run the
   bootstrap path and still reject duplicate `ADMIN_USERS` entries.
+
+### Removed
+- **Agent guidance duplication**: removed the repository-local Loopkit
+  framework so root `CLAUDE.md` is the single source of engineering and
+  workflow guidance.
+- **Painted matrix compatibility widgets**: removed hidden per-cell buttons
+  and switched tests and callers to the matrix selection API.
 
 ## [1.9.1] - 2026-07-28
 ### Added
