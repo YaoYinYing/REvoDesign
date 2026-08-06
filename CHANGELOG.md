@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- **Unused configuration switches**: removed inactive auto-save/save-on-exit
+  settings and the unexposed Cartesian-ddG legacy-mode option.
 - **Legacy Excel input**: removed `.xls` handling and the `xlrd` dependency;
   mutant tables continue to support `.xlsx` through `openpyxl`.
 - **Plugin registry extension knobs**: removed unused discovery predicates,

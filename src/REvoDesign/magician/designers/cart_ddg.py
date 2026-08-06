@@ -61,8 +61,6 @@ class ddg(ExternalDesignerAbstract):
         self.relaxed_pdb: str | None = None
 
         self.relax_nstruct: int = bus.get_value("rosetta.cart_ddg.relax.nstruct")  # type: ignore
-        self.use_legacy = bus.get_value("rosetta.cart_ddg.use_legacy", bool, default_value=False, reject_none=True)
-
         self.ddg_iterations = bus.get_value("rosetta.cart_ddg.iterations", int, default_value=3, reject_none=True)
 
         self.node_config: dict[str, Any] | None = rosetta_utils.read_rosetta_node_config()
@@ -118,7 +116,6 @@ class ddg(ExternalDesignerAbstract):
             input_pdb=self.relaxed_pdb,
             mutfiles=mutfile_paths,
             mutants=non_xtal_mutants,
-            use_legacy=self.use_legacy,
             ddg_iteration=self.ddg_iterations,
         )
 

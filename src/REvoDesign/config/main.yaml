@@ -161,11 +161,6 @@ ui:
 # cuda: cuda
 accelerator: auto
 
-# TODO: config setting triggers
-config_settings:
-  auto_save: False
-  save_on_exit: False
-
 rosetta: 
   node_hint: native # Literal["docker", "docker_mpi", "mpi", "wsl", "wsl_mpi", "native"]
 
@@ -174,7 +169,6 @@ rosetta:
     extra_res: # TODO: window pop
 
   cart_ddg:
-    use_legacy: False
     relax:
       nstruct: 4
     iterations: 3

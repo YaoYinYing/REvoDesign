@@ -35,7 +35,7 @@ Read-only audit recorded on 2026-08-06. The estimates below are directional; eac
 - [x] **Shrink `PluginRegistry`.** Discovery now uses its actual fixed contract, and callers instantiate it directly without unused knobs or a delegate-only factory.
 - [x] **Delete `DialogWrapperRegistry.use_progressbar`.** Threaded shortcuts use the thread dashboard without an inert registration option.
 - [x] **Drop legacy `.xls` support and `xlrd`.** `.xlsx` remains supported through `openpyxl`.
-- [ ] **Delete unused or legacy configuration switches.** Remove `config_settings.auto_save`, `config_settings.save_on_exit`, and the unexposed `rosetta.cart_ddg.use_legacy` option.
+- [x] **Delete unused or legacy configuration switches.** Removed the unused save settings and the unexposed Cartesian-ddG legacy option.
 - [x] **Delete the unused `install_qt5_aliases()` compatibility name.** `install_qt6_aliases()` is the sole public API.
 
 Estimated maximum reduction: approximately 1,900 lines and 9 direct dependencies.
