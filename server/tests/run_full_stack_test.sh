@@ -88,7 +88,7 @@ docker build \
   --build-arg "RUNNER_GID=${RUNNER_GID}" \
   --build-arg RUNNER_USERNAME=revodesign \
   --build-arg RUNNER_GROUP=revodesign_appgroup \
-  --file "${SERVER_ROOT}/docker/runner/Dockerfile" \
+  --file "${SERVER_ROOT}/docker/runners/pssm_gremlin/Dockerfile" \
   --tag "${RUNNER_IMAGE}" \
   "${SERVER_ROOT}"
 

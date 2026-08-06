@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "run_gremlin.sh"
+RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin" / "run.sh"
 
 
 def test_runner_script_does_not_eval_user_controlled_commands():
