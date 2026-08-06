@@ -60,6 +60,7 @@ class ClusterMethodSpec:
     description: str
     inputs: tuple[ClusterInputSpec, ...] = ()
     deprecated: bool = False
+    experimental: bool = False
     representative_policy: str = "Nearest centroid among clustered variants."
 
 
@@ -422,6 +423,7 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
             "display_name": spec.display_name,
             "description": spec.description,
             "deprecated": spec.deprecated,
+            "experimental": spec.experimental,
             "representative_selection_policy": spec.representative_policy,
             "compatibility_outputs": {
                 "cluster_centers_stochastic.fasta": (

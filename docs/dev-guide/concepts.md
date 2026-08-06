@@ -173,8 +173,8 @@ Sequence clustering reduces large mutant sets to representative variants for exp
 
 - **Available methods** (in `REvoDesign.clusters.methods`):
   - `AgglomerativeCluster` -- hierarchical agglomerative clustering.
-  - `KMeansCluster` -- k-means clustering.
-  - `EvoCluster` -- evolution-guided clustering that incorporates PSSM, ESM-1v, and spatial proximity weights.
+  - `KMeansCluster` -- **experimental** k-means clustering; gated by `enable_experimental` in the method selector.
+  - `EvoCluster` -- **experimental** evolution-guided clustering that incorporates PSSM, ESM-1v, and spatial proximity weights; shown in the method selector only when the top-level main-config flag `enable_experimental` is `true`.
   - `LegacyCluster` -- **deprecated** original Ward-linkage clustering based on the score matrix; retained for compatibility only. Prefer `AgglomerativeCluster` or `EvoCluster` for new work.
 
 - **`ClusterRunner`**: The top-level orchestrator instantiated by the plugin. Reads all config values from the UI, configures the selected method, runs clustering, scores representatives (via Rosetta `score_clusters`), and writes output variant tables.

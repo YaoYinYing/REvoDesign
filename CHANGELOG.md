@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   problems, with private routing for security vulnerabilities.
 
 ### Changed
+- **Experimental cluster visibility**: marked EvoCluster and KMeansCluster as
+  experimental metadata and hid them from the cluster-method selector unless
+  the new top-level `enable_experimental` main-config flag is enabled. Startup
+  mirrors the flag to `REVODESIGN_ENABLE_EXPERIMENTAL` for subprocesses and
+  integrations.
 - **DeepSource server cleanup**: resolved the current Bug Risk and Anti-pattern
   findings by exposing stable public task-runtime compatibility names, removing
   duplicate/unused imports, and decomposing upload, dashboard, task-deletion,

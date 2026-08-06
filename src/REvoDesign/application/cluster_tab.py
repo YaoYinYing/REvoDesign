@@ -12,12 +12,13 @@ from REvoDesign.tools.customized_widgets import decide
 
 logging = ROOT_LOGGER.getChild(__name__)
 
-FALLBACK_CLUSTER_METHODS: tuple[str, ...] = (
+PREFERRED_CLUSTER_METHODS: tuple[str, ...] = (
     "AgglomerativeCluster",
     "EvoCluster",
     "KMeansCluster",
     "LegacyCluster",
 )
+DEFAULT_CLUSTER_METHOD = "AgglomerativeCluster"
 
 
 class ClusterTabController:
@@ -27,7 +28,6 @@ class ClusterTabController:
         self.ui = ui
         self.bus = bus
         self._installed = False
-        self._methods_cache: list[str] | None = None
 
     def install(self) -> None:
         """Install tooltips, method-specific panel switching, and safe defaults."""
@@ -62,37 +62,53 @@ class ClusterTabController:
         )
 
     def _available_methods(self) -> list[str]:
-        if self._methods_cache is not None:
-            return self._methods_cache
+        enable_experimental = self._experimental_enabled()
         try:
             from REvoDesign.clusters.cluster_sequence import IMPLEMENTED_CLUSTER_METHOD
 
-            available = set(IMPLEMENTED_CLUSTER_METHOD)
+            available = {
+                name
+                for name, method_class in IMPLEMENTED_CLUSTER_METHOD.items()
+                if enable_experimental or not method_class.get_method_spec().experimental
+            }
         except Exception:
-            available = set(FALLBACK_CLUSTER_METHODS)
+            available = {"AgglomerativeCluster", "LegacyCluster"}
 
-        ordered = [name for name in FALLBACK_CLUSTER_METHODS if name in available]
-        ordered.extend(sorted(name for name in available if name not in FALLBACK_CLUSTER_METHODS))
-        self._methods_cache = ordered or list(FALLBACK_CLUSTER_METHODS)
-        return self._methods_cache
+        ordered = [name for name in PREFERRED_CLUSTER_METHODS if name in available]
+        ordered.extend(sorted(name for name in available if name not in PREFERRED_CLUSTER_METHODS))
+        return ordered or [DEFAULT_CLUSTER_METHOD]
+
+    def _experimental_enabled(self) -> bool:
+        if self.bus is None:
+            return False
+        try:
+            return bool(self.bus.get_value("enable_experimental", default_value=False))
+        except Exception as exc:
+            logging.debug("Could not read experimental feature flag; keeping experimental methods hidden: %s", exc)
+            return False
 
     def _configured_method_name(self) -> str:
         if self.bus is not None:
             try:
-                return str(self.bus.get_value("ui.cluster.method.use", default_value="AgglomerativeCluster"))
+                method_name = str(self.bus.get_value("ui.cluster.method.use", default_value=DEFAULT_CLUSTER_METHOD))
+                if method_name in self._available_methods():
+                    return method_name
+                logging.warning("Cluster method %s is disabled; using %s.", method_name, DEFAULT_CLUSTER_METHOD)
+                self.bus.set_value("ui.cluster.method.use", DEFAULT_CLUSTER_METHOD)
+                return DEFAULT_CLUSTER_METHOD
             except Exception as exc:
                 logging.debug("Could not read configured cluster method; using current UI value: %s", exc)
         current = self.ui.comboBox_cluster_method.currentText()
-        return current or "AgglomerativeCluster"
+        return current if current in self._available_methods() else DEFAULT_CLUSTER_METHOD
 
     def _populate_method_selector(self) -> None:
-        methods = self._available_methods()
+        methods = list(self._available_methods())
         combo = self.ui.comboBox_cluster_method
+        current = self._configured_method_name()
         existing = [combo.itemText(index) for index in range(combo.count())]
         if existing == methods:
             return
 
-        current = self._configured_method_name()
         combo.blockSignals(True)
         combo.clear()
         combo.addItems(methods)

@@ -80,7 +80,7 @@ class CallableGroupValues:
         return available_run_node_hints
 
     @staticmethod
-    def list_cluster_methods() -> list[str]:
+    def list_cluster_methods(enable_experimental: bool = False) -> list[str]:
         preferred_order = (
             "AgglomerativeCluster",
             "EvoCluster",
@@ -90,9 +90,13 @@ class CallableGroupValues:
         try:
             from REvoDesign.clusters.cluster_sequence import IMPLEMENTED_CLUSTER_METHOD
 
-            available = set(IMPLEMENTED_CLUSTER_METHOD)
+            available = {
+                name
+                for name, method_class in IMPLEMENTED_CLUSTER_METHOD.items()
+                if enable_experimental or not method_class.get_method_spec().experimental
+            }
         except Exception:
-            available = set(preferred_order)
+            available = {"AgglomerativeCluster", "LegacyCluster"}
 
         ordered = [name for name in preferred_order if name in available]
         ordered.extend(sorted(name for name in available if name not in preferred_order))

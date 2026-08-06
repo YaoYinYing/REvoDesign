@@ -47,8 +47,8 @@ Dispatcher that instantiates the appropriate clustering algorithm by name. Auto-
 The following clustering methods are auto-discovered from `REvoDesign.clusters.methods`:
 
 - **AgglomerativeCluster** — Hierarchical agglomerative clustering
-- **EvoCluster** — Evolutionary-aware clustering using sequence, physico-chemical, spatial, PSSM, and ESM-1v distance components
-- **KMeansCluster** — K-means clustering
+- **EvoCluster** — Experimental evolutionary-aware clustering using sequence, physico-chemical, spatial, PSSM, and ESM-1v distance components; shown in the method selector only when `enable_experimental` is enabled
+- **KMeansCluster** — Experimental k-means clustering; gated by `enable_experimental` in the method selector
 - **LegacyCluster** — Original/legacy clustering implementation
 
 ::: REvoDesign.clusters.cluster_sequence.AgglomerativeCluster

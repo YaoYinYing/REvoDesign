@@ -29,6 +29,7 @@ class EvoCluster(ClusterMethodAbstract):
             "Average-linkage clustering on a renormalized weighted distance model combining sequence, "
             "physicochemical, spatial, PSSM, and ESM components when available."
         ),
+        experimental=True,
         representative_policy="Nearest centroid among clustered variants; not a medoid selection.",
     )
 

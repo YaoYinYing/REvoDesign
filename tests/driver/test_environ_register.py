@@ -18,16 +18,19 @@ class FakeConfig:
 class FakeBus:
     _instance = object()
 
-    def __init__(self, variables, override_existing=False):
+    def __init__(self, variables, override_existing=False, enable_experimental=False):
         self.cfg_group = {"environ": FakeConfig()}
         self.variables = variables
         self.override_existing = override_existing
+        self.enable_experimental = enable_experimental
 
     def get_value(self, cfg_item, converter=None, **_kwargs):
         if cfg_item == "variables":
             return dict(self.variables)
         if cfg_item == "override_existing":
             return self.override_existing
+        if cfg_item == "enable_experimental":
+            return self.enable_experimental
         raise AssertionError(f"unexpected config item: {cfg_item}")
 
 
@@ -73,3 +76,13 @@ def test_register_environment_variables_can_explicitly_override(monkeypatch):
     environ_register.register_environment_variables()
 
     assert environ_register.os.environ["REVODESIGN_TEST_EXISTING"] == "from-yaml"
+
+
+def test_register_environment_variables_exports_experimental_flag(monkeypatch):
+    monkeypatch.delenv("REVODESIGN_ENABLE_EXPERIMENTAL", raising=False)
+    bus = FakeBus({}, enable_experimental=True)
+    _patch_bus(monkeypatch, bus)
+
+    environ_register.register_environment_variables()
+
+    assert environ_register.os.environ["REVODESIGN_ENABLE_EXPERIMENTAL"] == "1"
