@@ -18,3 +18,25 @@
     `src/REvoDesign/clients/QtSocketConnector.py:813-863` responds to a `RequireKey` message by sending `self.authentication_key` before the server proves its identity. A malicious host can simply ask for the key and impersonate everyone. Authenticate the server (TLS + pinned cert) and only send a key through an already-authenticated channel.
 26. **Medium – pip installs run on the UI thread**
     `src/REvoDesign/tools/package_manager.py:861-925` calls `pip install/uninstall` directly from menu actions, blocking PyMOL for minutes during heavy installs. Dispatch these calls to `run_worker_thread_in_pool` and stream progress to the dashboard.
+
+## Engineering Principles overdesign audit
+
+Read-only audit recorded on 2026-08-06. The estimates below are directional; each item should be revalidated against the current checkout before implementation.
+
+- [ ] **Delete the repository-local Loopkit/Claude framework.** The 1,333 tracked lines under `.claude/` duplicate the root guidance and include migration practices that conflict with `CLAUDE.md`. Retain the root `CLAUDE.md` and only essential tool settings.
+- [ ] **Delete `LegacyCluster`.** Remove the deprecated compatibility implementation and its controller branches, UI page, translations, documentation, and tests. `AgglomerativeCluster` is the current replacement.
+- [ ] **Delete compatibility-only `QButtonBrick` children.** `QButtonMatrix` creates invisible widgets solely for older tests. Test the painted matrix through its signals and hit-testing instead.
+- [ ] **Delete `SingletonAbstract.derive()`.** Its dynamic subclass machinery has no production callers and is exercised only by tests. Define ordinary subclasses if a real use case appears.
+- [ ] **Give one component ownership of the translator.** Retain the translator returned by early installation and pass it directly to `LanguageSwitch`; remove `RuntimeUiProxy.trans`, application-child scanning, duck-typed fallback, and bus mirroring.
+- [ ] **Remove inappropriate server runtime dependencies.** Move or delete runner-only `biopython`, `matplotlib`, `numpy`, and `pandas`; test-only `requests`; unused `six` and `click`; and redundant `redis`, which is already supplied by `celery[redis]`.
+- [ ] **Give `ClusterTabController` sole ownership of the cluster-method selector.** Remove duplicate ordering and filtering in `CallableGroupValues` and both hardcoded registry fallbacks.
+- [ ] **Consolidate server reload handling.** Make reload an operation of the main server control script, delete `hot_fix.sh`, and remove duplicated Compose/environment discovery and the legacy `.env` fallback.
+- [ ] **Replace `ParamChangeRegister` with direct iteration.** Keep the useful registry items, but remove the single-instance wrapper class.
+- [ ] **Delete task-runtime compatibility exports.** Current routes already import the helpers directly from `task_runtime`; remove the two alias chains.
+- [ ] **Shrink `PluginRegistry`.** Remove the unused custom installed attribute, package-module exclusion, include predicate, and delegate-only factory.
+- [ ] **Delete `DialogWrapperRegistry.use_progressbar`.** It is logged as a legacy preference but never changes execution.
+- [ ] **Drop legacy `.xls` support and `xlrd`.** Retain `.xlsx` support through the existing `openpyxl` path.
+- [ ] **Delete unused or legacy configuration switches.** Remove `config_settings.auto_save`, `config_settings.save_on_exit`, and the unexposed `rosetta.cart_ddg.use_legacy` option.
+- [ ] **Delete the unused `install_qt5_aliases()` compatibility name.** `install_qt6_aliases()` is the current API.
+
+Estimated maximum reduction: approximately 1,900 lines and 9 direct dependencies.
