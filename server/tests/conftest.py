@@ -157,6 +157,12 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
     sys.modules["pssm_gremlin_server.pssm_gremlin"] = module
     try:
         spec.loader.exec_module(module)  # type: ignore[attr-defined]
+        # ponytail: task_runtime symbols that tests access directly on the module
+        # were moved to task_runtime.py (refactor: remove task compatibility exports).
+        # Attach them here so 20+ tests across 6 files don't need rewiring.
+        module.run_gremlin_task = module.task_runtime.run_gremlin_task
+        module._ROOT_MOUNT_DIRECTORY = module.task_runtime._ROOT_MOUNT_DIRECTORY
+        module.run_pssm_gremlin_in_docker = module.task_runtime.run_pssm_gremlin_in_docker
         return module
     finally:
         sys.modules.pop(module_name, None)
