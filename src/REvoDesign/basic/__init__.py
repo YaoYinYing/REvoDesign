@@ -13,7 +13,7 @@ from .extensions import FileExtension, FileExtensionCollection
 from .group_registries import GroupRegistryItem
 from .menu_item import MenuCollection, MenuItem
 from .param_toggle import ParamChangeRegistryItem
-from .plugin_registry import PluginRegistry, build_plugin_registry
+from .plugin_registry import PluginRegistry
 
 __all__ = [
     "SingletonAbstract",
@@ -26,5 +26,4 @@ __all__ = [
     "MenuItem",
     "MenuCollection",
     "PluginRegistry",
-    "build_plugin_registry",
 ]

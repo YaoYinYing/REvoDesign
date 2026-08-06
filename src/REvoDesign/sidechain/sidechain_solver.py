@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass, field
 from RosettaPy.utils.escape import print_diff
 
 from REvoDesign import ConfigBus, SingletonAbstract, issues
-from REvoDesign.basic import build_plugin_registry
+from REvoDesign.basic import PluginRegistry
 from REvoDesign.basic.mutate_runner import MutateRunnerAbstract
 from REvoDesign.logger import ROOT_LOGGER
 
@@ -24,7 +24,7 @@ from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)
 
-RUNNER_REGISTRY = build_plugin_registry(
+RUNNER_REGISTRY = PluginRegistry(
     base_class=MutateRunnerAbstract,
     package="REvoDesign.sidechain.mutate_runner",
 )

@@ -11,7 +11,7 @@ from __future__ import annotations
 import importlib
 import inspect
 import pkgutil
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Generic, TypeVar
@@ -30,9 +30,6 @@ class PluginRegistry(Generic[PluginT]):
 
     base_class: type[PluginT]
     package: str
-    installed_attr: str = "installed"
-    include_package_module: bool = True
-    include_predicate: Callable[[type[PluginT]], bool] | None = None
 
     def __post_init__(self):
         all_classes = self._discover_classes()
@@ -54,7 +51,7 @@ class PluginRegistry(Generic[PluginT]):
         return [
             cls.name  # type: ignore[attr-defined]
             for cls in self.all_classes
-            if bool(getattr(cls, self.installed_attr, False))
+            if bool(getattr(cls, "installed", False))
         ]
 
     def get(self, name: str, **kwargs) -> PluginT:
@@ -63,10 +60,7 @@ class PluginRegistry(Generic[PluginT]):
 
     def _iter_module_names(self) -> list[str]:
         package_module = importlib.import_module(self.package)
-        module_names = []
-
-        if self.include_package_module:
-            module_names.append(package_module.__name__)
+        module_names = [package_module.__name__]
 
         package_paths = getattr(package_module, "__path__", None)
         if package_paths is None:
@@ -89,9 +83,6 @@ class PluginRegistry(Generic[PluginT]):
                     continue
                 if inspect.isabstract(candidate):
                     continue
-                if self.include_predicate and not self.include_predicate(candidate):
-                    continue
-
                 plugin_name = str(getattr(candidate, "name", "")).strip()
                 if not plugin_name:
                     raise ValueError(
@@ -110,19 +101,3 @@ class PluginRegistry(Generic[PluginT]):
                 by_name[plugin_name] = candidate
 
         return sorted(by_name.values(), key=lambda cls: cls.name)  # type: ignore[attr-defined]
-
-
-def build_plugin_registry(
-    base_class: type[PluginT],
-    package: str,
-    installed_attr: str = "installed",
-    include_package_module: bool = True,
-    include_predicate: Callable[[type[PluginT]], bool] | None = None,
-) -> PluginRegistry[PluginT]:
-    return PluginRegistry(
-        base_class=base_class,
-        package=package,
-        installed_attr=installed_attr,
-        include_package_module=include_package_module,
-        include_predicate=include_predicate,
-    )

@@ -238,19 +238,18 @@ performs **package-scoped auto-discovery** of plugin classes:
 - It collects non-abstract subclasses of `base_class` and indexes them by
   their `name` attribute.
 - Duplicate `name` values raise a `ValueError`.
-- `build_plugin_registry()` is a convenience factory function.
 
 Two registries are used in practice:
 
 ```python
 # src/REvoDesign/magician/__init__.py
-DESIGNER_REGISTRY = build_plugin_registry(
+DESIGNER_REGISTRY = PluginRegistry(
     base_class=ExternalDesignerAbstract,
     package="REvoDesign.magician.designers",
 )
 
 # src/REvoDesign/sidechain/sidechain_solver.py
-RUNNER_REGISTRY = build_plugin_registry(
+RUNNER_REGISTRY = PluginRegistry(
     base_class=MutateRunnerAbstract,
     package="REvoDesign.sidechain.mutate_runner",
 )

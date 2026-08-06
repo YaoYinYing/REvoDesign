@@ -24,7 +24,7 @@ from Bio.Align import PairwiseAligner, substitution_matrices
 from Bio.SeqRecord import SeqRecord
 from matplotlib import pyplot as plt
 
-from REvoDesign.basic import build_plugin_registry
+from REvoDesign.basic import PluginRegistry
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import ROOT_LOGGER
 
@@ -453,7 +453,7 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         self.write_method_report()
 
 
-CLUSTER_METHOD_REGISTRY = build_plugin_registry(
+CLUSTER_METHOD_REGISTRY = PluginRegistry(
     base_class=ClusterMethodAbstract,
     package="REvoDesign.clusters.methods",
 )

@@ -32,7 +32,7 @@ Read-only audit recorded on 2026-08-06. The estimates below are directional; eac
 - [ ] **Consolidate server reload handling.** Make reload an operation of the main server control script, delete `hot_fix.sh`, and remove duplicated Compose/environment discovery and the legacy `.env` fallback.
 - [x] **Replace `ParamChangeRegister` with direct iteration.** Registry items remain, and the driver registers its tuple through one direct loop.
 - [x] **Delete task-runtime compatibility exports.** Routes import task helpers directly from `task_runtime`; both unused alias chains are gone.
-- [ ] **Shrink `PluginRegistry`.** Remove the unused custom installed attribute, package-module exclusion, include predicate, and delegate-only factory.
+- [x] **Shrink `PluginRegistry`.** Discovery now uses its actual fixed contract, and callers instantiate it directly without unused knobs or a delegate-only factory.
 - [x] **Delete `DialogWrapperRegistry.use_progressbar`.** Threaded shortcuts use the thread dashboard without an inert registration option.
 - [ ] **Drop legacy `.xls` support and `xlrd`.** Retain `.xlsx` support through the existing `openpyxl` path.
 - [ ] **Delete unused or legacy configuration switches.** Remove `config_settings.auto_save`, `config_settings.save_on_exit`, and the unexposed `rosetta.cart_ddg.use_legacy` option.

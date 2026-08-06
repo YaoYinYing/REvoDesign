@@ -169,7 +169,7 @@ Sequence clustering reduces large mutant sets to representative variants for exp
 
 - **`ClusterMethodAbstract(CitableModuleAbstract, ABC)`**: Base class for all clustering algorithms. Key attributes: `name`, `installed`, `spec` (a `ClusterMethodSpec` describing inputs and display metadata). The `global_alignment()` method uses Bio.PairwiseAligner with configurable substitution matrices.
 
-- **`ClusterMethodManager`**: The registry/factory for cluster methods. Methods are discovered via `build_plugin_registry` in the `REvoDesign.clusters.methods` package.
+- **`ClusterMethodManager`**: The registry/factory for cluster methods. Methods are discovered by `PluginRegistry` in the `REvoDesign.clusters.methods` package.
 
 - **Available methods** (in `REvoDesign.clusters.methods`):
   - `AgglomerativeCluster` -- hierarchical agglomerative clustering.
@@ -340,7 +340,6 @@ REvoDesign uses package-scoped, auto-discovering registries for extensible plugi
   - `implemented_map` -- mapping of `name` -> class.
   - `installed_names` -- names of classes where `installed = True`.
 
-- **`build_plugin_registry()`**: Convenience factory for creating a `PluginRegistry` with standard defaults.
 
 - **Two registries exist**:
   - `DESIGNER_REGISTRY` -- in `REvoDesign.magician`, discovers `ExternalDesignerAbstract` subclasses under `REvoDesign.magician.designers`.

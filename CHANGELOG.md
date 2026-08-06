@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- **Plugin registry extension knobs**: removed unused discovery predicates,
+  custom installed attributes, package exclusion, and the delegate-only
+  `build_plugin_registry()` factory.
 - **Parameter-change collection wrapper**: removed the one-instance
   `ParamChangeRegister` dataclass in favor of direct registry-item iteration.
 - **Duplicate cluster selector registration**: removed `CallableGroupValues`

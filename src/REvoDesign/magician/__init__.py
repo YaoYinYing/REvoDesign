@@ -12,7 +12,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from REvoDesign import ConfigBus, issues
-from REvoDesign.basic import build_plugin_registry
+from REvoDesign.basic import PluginRegistry
 from REvoDesign.basic.abc_singleton import SingletonAbstract
 from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.logger import ROOT_LOGGER
@@ -23,7 +23,7 @@ from . import designers as _designers  # noqa: F401
 
 logging = ROOT_LOGGER.getChild(__name__)
 
-DESIGNER_REGISTRY = build_plugin_registry(
+DESIGNER_REGISTRY = PluginRegistry(
     base_class=ExternalDesignerAbstract,
     package="REvoDesign.magician.designers",
 )

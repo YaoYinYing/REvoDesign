@@ -13,7 +13,7 @@ The Magician system manages third-party design and scoring tools ("gimmicks") th
 The registry is created in `REvoDesign.magician`:
 
 ```python
-DESIGNER_REGISTRY = build_plugin_registry(
+DESIGNER_REGISTRY = PluginRegistry(
     base_class=ExternalDesignerAbstract,
     package="REvoDesign.magician.designers",
 )
