@@ -1,4 +1,4 @@
-/* REvoDesign GREMLIN Server — Login form handler */
+/* REvoCompute — Login form handler */
 /* SPDX-License-Identifier: GPL-3.0-only */
 
 (function () {

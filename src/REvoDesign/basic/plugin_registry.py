@@ -49,9 +49,7 @@ class PluginRegistry(Generic[PluginT]):
     @property
     def installed_names(self) -> list[str]:
         return [
-            cls.name  # type: ignore[attr-defined]
-            for cls in self.all_classes
-            if bool(getattr(cls, "installed", False))
+            cls.name for cls in self.all_classes if bool(getattr(cls, "installed", False))  # type: ignore[attr-defined]
         ]
 
     def get(self, name: str, **kwargs) -> PluginT:

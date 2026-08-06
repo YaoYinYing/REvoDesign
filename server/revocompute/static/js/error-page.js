@@ -1,4 +1,4 @@
-/* REvoDesign GREMLIN Server — Error page logic */
+/* REvoCompute — Error page logic */
 /* SPDX-License-Identifier: GPL-3.0-only */
 
 (function () {

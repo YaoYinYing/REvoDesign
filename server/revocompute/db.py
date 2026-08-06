@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""SQLite task tracker for GREMLIN jobs."""
+"""SQLite task tracker for compute jobs."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ from sqlalchemy.exc import OperationalError
 
 
 class TaskDatabase:
-    """Minimal SQLite-based task tracker for GREMLIN jobs."""
+    """Minimal SQLite-based task tracker for compute jobs."""
 
     DELETED_STATUSES = {"deleted:finshed", "deleted:cancel"}
     CLEANUP_STATUSES = {"cleaned:finished", "cleaned:cancel"}
@@ -83,6 +83,9 @@ class TaskDatabase:
             Column("run_stage", String),
             Column("error", Text),
             Column("celery_task_id", String),
+            Column("task_type", String, nullable=False, default="gremlin"),
+            Column("input_form", Text),
+            Column("uploaded_files", Text),
         )
         Index("idx_tasks_uploaded_at", self.tasks_table.c.uploaded_at)
         self._initialize()
@@ -130,7 +133,7 @@ class TaskDatabase:
 
     def _ensure_status(self, status: str) -> None:
         if status not in self.VALID_STATUSES:
-            raise ValueError(f"Invalid GREMLIN task status {status}")
+            raise ValueError(f"Invalid task status {status}")
 
     @classmethod
     def _is_deleted_status(cls, status: Any) -> bool:

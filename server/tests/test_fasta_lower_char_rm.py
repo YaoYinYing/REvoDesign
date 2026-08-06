@@ -7,10 +7,11 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from scripts.fasta_lower_char_rm import char_filter
+
 _runner_dir = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin"
 if str(_runner_dir) not in sys.path:
     sys.path.insert(0, str(_runner_dir))
-from scripts.fasta_lower_char_rm import char_filter
 
 
 def test_char_filter_preserves_header_text():

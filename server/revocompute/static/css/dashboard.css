@@ -1,4 +1,4 @@
-/* REvoDesign GREMLIN Server — Dashboard page styles */
+/* REvoCompute — Dashboard page styles */
 /* SPDX-License-Identifier: GPL-3.0-only */
 
 .stats {
@@ -134,6 +134,19 @@
   font-size: 1.01rem;
   font-weight: 700;
   word-break: break-word;
+}
+
+.task-type-badge {
+  display: inline-block;
+  margin: 0.2rem 0 0;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 4px;
 }
 
 .task-id {
