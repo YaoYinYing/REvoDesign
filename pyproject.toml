@@ -53,7 +53,6 @@ dependencies = [
     "webcolors",
     "fonttools",
     "pooch",
-    "xlrd", # for Legacy Excel files (Excel 2007 and earlier) 
 ]
 
 [project.optional-dependencies]

@@ -113,9 +113,8 @@ no API keys, no password/profile changes, no task deletion). Self-registration
 requires full name, affiliation, academic position, PI name, and a
 server-generated math CAPTCHA. Profile details are visible to the user and in
 the admin user-control system.
-`role` is the authorization authority. When opening an older SQLite database,
-the server silently promotes rows flagged by the deprecated `is_admin` column
-and then drops that column.
+`role` is the authorization authority. Fresh deployments create the current
+schema directly; older SQLite layouts are not upgraded during server startup.
 
 ### Services
 
@@ -369,9 +368,9 @@ For example, `AUTH_DIR=/srv/revodesign/auth` and the default
 `USER_DB_PATH`.
 `AUTH_DIR` cannot be nested below `SERVER_DIR`, because the worker receives the
 entire `SERVER_DIR` mount and would then inherit access to the user database.
-Fresh deployments only need to create a writable `AUTH_DIR`; upgrades from the
-old shared layout must run `restart_pssm_flask.sh migrate-auth-db` while the
-stack is stopped.
+Create a writable `AUTH_DIR` for a fresh deployment. The server creates the
+current user and task schemas directly and does not run database migrations at
+setup or startup.
 
 With the recommended `BACKUP_DB_PATH=/var/lib/revodesign-auth/backups`, each
 successful run creates `${AUTH_DIR}/backups/<UTC timestamp>/tasks.sqlite3` and

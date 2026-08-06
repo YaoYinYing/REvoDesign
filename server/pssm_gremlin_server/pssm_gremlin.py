@@ -352,22 +352,6 @@ def _is_deleted_status(status: Any) -> bool:
     }
 
 
-# Compatibility exports for callers that historically imported task symbols
-# from this web module.  New code imports them from task_runtime directly.
-_build_running_trace = task_runtime.build_running_trace
-_extract_stage_from_log_line = task_runtime.extract_stage_from_log_line
-_is_terminal_status = task_runtime.is_terminal_status
-_pack_failed_results_archive = task_runtime.pack_failed_results_archive
-_pack_results_archive = task_runtime.pack_results_archive
-_ROOT_MOUNT_DIRECTORY = task_runtime.ROOT_MOUNT_DIRECTORY
-_runner_thread_env = task_runtime.runner_thread_env
-_task_is_terminal = task_runtime.task_is_terminal
-format_times = task_runtime.format_times
-format_walltime = task_runtime.format_walltime
-run_gremlin_task = task_runtime.run_gremlin_task
-run_pssm_gremlin_in_docker = task_runtime.run_pssm_gremlin_in_docker
-
-
 # ---------------------------------------------------------------------------
 # Register HTTP routes (imported late to avoid circular imports — routes.py
 # needs ``app`` and helpers that are only available after this module loads).

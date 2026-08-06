@@ -6,10 +6,9 @@ This page documents the `REvoDesign.basic` module, which provides reusable infra
 
 ## Plugin Registry
 
-The plugin registry system enables package-scoped, subclass-based plugin discovery. `PluginRegistry` is a frozen dataclass that discovers all non-abstract subclasses of a given base class within a Python package at initialization time. `build_plugin_registry` is a convenience factory function.
+The plugin registry system enables package-scoped, subclass-based plugin discovery. `PluginRegistry` is a frozen dataclass that discovers all non-abstract subclasses of a given base class within a Python package at initialization time.
 
 ::: REvoDesign.basic.plugin_registry.PluginRegistry
-::: REvoDesign.basic.plugin_registry.build_plugin_registry
 
 ---
 
@@ -40,10 +39,9 @@ The plugin registry system enables package-scoped, subclass-based plugin discove
 
 ## Parameter Change Registration
 
-`ParamChangeRegistryItem` maps a signal on one UI widget to a config change on another via a parameter mapping dictionary. `ParamChangeRegister` registers a collection of such items.
+`ParamChangeRegistryItem` maps a signal on one UI widget to a config change on another via a parameter mapping dictionary.
 
 ::: REvoDesign.basic.param_toggle.ParamChangeRegistryItem
-::: REvoDesign.basic.param_toggle.ParamChangeRegister
 
 ---
 

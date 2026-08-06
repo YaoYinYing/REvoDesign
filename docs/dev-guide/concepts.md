@@ -169,12 +169,12 @@ Sequence clustering reduces large mutant sets to representative variants for exp
 
 - **`ClusterMethodAbstract(CitableModuleAbstract, ABC)`**: Base class for all clustering algorithms. Key attributes: `name`, `installed`, `spec` (a `ClusterMethodSpec` describing inputs and display metadata). The `global_alignment()` method uses Bio.PairwiseAligner with configurable substitution matrices.
 
-- **`ClusterMethodManager`**: The registry/factory for cluster methods. Methods are discovered via `build_plugin_registry` in the `REvoDesign.clusters.methods` package.
+- **`ClusterMethodManager`**: The registry/factory for cluster methods. Methods are discovered by `PluginRegistry` in the `REvoDesign.clusters.methods` package.
 
 - **Available methods** (in `REvoDesign.clusters.methods`):
   - `AgglomerativeCluster` -- hierarchical agglomerative clustering.
-  - `KMeansCluster` -- k-means clustering.
-  - `EvoCluster` -- evolution-guided clustering that incorporates PSSM, ESM-1v, and spatial proximity weights.
+  - `KMeansCluster` -- **experimental** k-means clustering; gated by `enable_experimental` in the method selector.
+  - `EvoCluster` -- **experimental** evolution-guided clustering that incorporates PSSM, ESM-1v, and spatial proximity weights; shown in the method selector only when the top-level main-config flag `enable_experimental` is `true`.
   - `LegacyCluster` -- **deprecated** original Ward-linkage clustering based on the score matrix; retained for compatibility only. Prefer `AgglomerativeCluster` or `EvoCluster` for new work.
 
 - **`ClusterRunner`**: The top-level orchestrator instantiated by the plugin. Reads all config values from the UI, configures the selected method, runs clustering, scores representatives (via Rosetta `score_clusters`), and writes output variant tables.
@@ -190,7 +190,6 @@ Sequence clustering reduces large mutant sets to representative variants for exp
 `SingletonAbstract` (in `REvoDesign.basic.abc_singleton`) is the Borg-like singleton base used throughout the codebase.
 
 - **Mechanism**: `__new__` returns the cached `_instance` if one exists. `__init__` calls `singleton_init()` only once, guarded by `self.initialized`. Subclasses must implement `singleton_init()`.
-- **`derive(name)`**: Creates a dynamically-named subclass with its own independent `_instance`, enabling multiple singleton instances of the same lineage (e.g., `StoresWidget.derive("derived_name")`).
 - **`reset_instance()`**: Sets `_instance = None` so the next `__new__` creates a fresh instance. `reset_singletons()` iterates all subclasses and resets them.
 - **Used by**: `ConfigBus`, `Magician`, `SidechainSolver`, `CitationManager`, `StoresWidget`.
 
@@ -341,7 +340,6 @@ REvoDesign uses package-scoped, auto-discovering registries for extensible plugi
   - `implemented_map` -- mapping of `name` -> class.
   - `installed_names` -- names of classes where `installed = True`.
 
-- **`build_plugin_registry()`**: Convenience factory for creating a `PluginRegistry` with standard defaults.
 
 - **Two registries exist**:
   - `DESIGNER_REGISTRY` -- in `REvoDesign.magician`, discovers `ExternalDesignerAbstract` subclasses under `REvoDesign.magician.designers`.

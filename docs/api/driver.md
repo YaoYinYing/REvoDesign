@@ -182,17 +182,8 @@ A frozen dataclass that defines how a change in one widget should propagate to a
             - widget_signal
             - register
 
-### ParamChangeRegister
-
-A dataclass that collects multiple `ParamChangeRegistryItem` instances and registers them all with a shared callback function.
-
-::: REvoDesign.basic.param_toggle.ParamChangeRegister
-    options:
-        members:
-            - register_all
-
 ### ParamChangeCollections
 
-The concrete `ParamChangeRegister` instance used by the driver, connecting sidechain-solver weight changes and profile-type `prefer_lower` toggles.
+The tuple of parameter-change items used by the driver, connecting sidechain-solver weight changes and profile-type `prefer_lower` toggles.
 
 ::: REvoDesign.driver.param_toggle_register.ParamChangeCollections

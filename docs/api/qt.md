@@ -83,12 +83,6 @@ Installs Qt6-style scoped enum aliases on the active backend's Qt namespace, plu
 
 ::: REvoDesign.Qt.qt_wrapper.install_qt6_aliases
 
-### install_qt5_aliases
-
-Backward-compatible alias that delegates to `install_qt6_aliases`.
-
-::: REvoDesign.Qt.qt_wrapper.install_qt5_aliases
-
 ### qexec
 
 Cross-version `exec` call (Qt5 uses `exec_()`, Qt6 uses `exec()`).

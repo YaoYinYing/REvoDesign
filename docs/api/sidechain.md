@@ -7,7 +7,7 @@ Sidechain packing and mutation runner system for generating mutant protein struc
 The sidechain system uses a two-layer design:
 
 1. **SidechainSolver** — A singleton that manages configuration and lifecycle. It reads the desired solver name, repack radius, and model from ConfigBus, then instantiates and caches the appropriate `MutateRunnerAbstract` subclass.
-2. **MutateRunnerAbstract** — An abstract base class defining the interface for mutation runners. Concrete implementations (discovered via `build_plugin_registry` from `REvoDesign.sidechain.mutate_runner`) each wrap a specific sidechain packing tool.
+2. **MutateRunnerAbstract** — An abstract base class defining the interface for mutation runners. Concrete implementations (discovered by `PluginRegistry` from `REvoDesign.sidechain.mutate_runner`) each wrap a specific sidechain packing tool.
 
 ## SidechainSolver
 
@@ -51,7 +51,7 @@ Dataclass that discovers and instantiates mutation runners by name. The `get()` 
 
 ## Runner Registry
 
-Auto-discovered mutation runners indexed by name. Created at import time by `build_plugin_registry` scanning `REvoDesign.sidechain.mutate_runner` for `MutateRunnerAbstract` subclasses.
+Auto-discovered mutation runners indexed by name. Created at import time by `PluginRegistry` scanning `REvoDesign.sidechain.mutate_runner` for `MutateRunnerAbstract` subclasses.
 
 ### Available Runners
 

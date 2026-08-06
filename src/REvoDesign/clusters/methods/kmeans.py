@@ -15,8 +15,9 @@ class KMeansCluster(ClusterMethodAbstract):
     name = "KMeansCluster"
     spec = ClusterMethodSpec(
         name=name,
-        display_name="KMeansCluster",
+        display_name="KMeansCluster (experimental)",
         description="K-means clustering on score-profile feature vectors instead of a precomputed distance matrix.",
+        experimental=True,
         representative_policy="Nearest centroid among clustered variants in score-profile space.",
     )
 

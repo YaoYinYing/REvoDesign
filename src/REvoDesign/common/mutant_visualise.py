@@ -210,7 +210,7 @@ class MutantVisualizer:
         if self.mutfile.lower().endswith(".txt"):
             # Read mutation data from TXT file using pandas and use 'key_col' as the column name
             return pd.read_csv(self.mutfile, sep="\t", names=[self.key_col])
-        if self.mutfile.lower().endswith((".xlsx", ".xls")):
+        if self.mutfile.lower().endswith(".xlsx"):
             # Read mutation data from Excel file using pandas
             return pd.read_excel(self.mutfile)
         if self.mutfile.lower().endswith(".tsv"):

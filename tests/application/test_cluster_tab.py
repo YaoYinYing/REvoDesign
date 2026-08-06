@@ -20,6 +20,9 @@ class _FakeBus:
         del _type, cfg, reject_none
         return self.values.get(key, default_value)
 
+    def set_value(self, key, value):
+        self.values[key] = value
+
 
 @pytest.fixture
 def cluster_ui(app):
@@ -30,20 +33,50 @@ def cluster_ui(app):
 
 def test_cluster_tab_controller_switches_pages(cluster_ui):
     _window, ui = cluster_ui
+    controller = ClusterTabController(ui, _FakeBus())
+
+    controller.install()
+    methods = [ui.comboBox_cluster_method.itemText(index) for index in range(ui.comboBox_cluster_method.count())]
+    assert "EvoCluster" not in methods
+    assert "KMeansCluster" not in methods
+    assert ui.stackedWidget_cluster_method_settings.currentWidget() is ui.page_cluster_agglomerative
+
+    ui.comboBox_cluster_method.setCurrentText("LegacyCluster")
+    assert ui.stackedWidget_cluster_method_settings.currentWidget() is ui.page_cluster_legacy
+    assert "deprecated" in ui.comboBox_cluster_method.toolTip().lower()
+
+
+def test_cluster_tab_controller_enables_configured_experimental_method(cluster_ui):
+    _window, ui = cluster_ui
     controller = ClusterTabController(
         ui,
-        _FakeBus({"ui.cluster.method.use": "EvoCluster"}),
+        _FakeBus({"enable_experimental": True, "ui.cluster.method.use": "EvoCluster"}),
     )
 
     controller.install()
+
+    methods = [ui.comboBox_cluster_method.itemText(index) for index in range(ui.comboBox_cluster_method.count())]
+    assert "EvoCluster" in methods
+    assert ui.comboBox_cluster_method.currentText() == "EvoCluster"
     assert ui.stackedWidget_cluster_method_settings.currentWidget() is ui.page_cluster_evo
 
     ui.comboBox_cluster_method.setCurrentText("KMeansCluster")
     assert ui.stackedWidget_cluster_method_settings.currentWidget() is ui.page_cluster_kmeans
 
-    ui.comboBox_cluster_method.setCurrentText("LegacyCluster")
-    assert ui.stackedWidget_cluster_method_settings.currentWidget() is ui.page_cluster_legacy
-    assert "deprecated" in ui.comboBox_cluster_method.toolTip().lower()
+
+@pytest.mark.parametrize("method_name", ["EvoCluster", "KMeansCluster"])
+def test_cluster_tab_controller_rejects_disabled_experimental_method(cluster_ui, method_name):
+    _window, ui = cluster_ui
+    bus = _FakeBus({"enable_experimental": False, "ui.cluster.method.use": method_name})
+    controller = ClusterTabController(ui, bus)
+
+    controller.install()
+
+    methods = [ui.comboBox_cluster_method.itemText(index) for index in range(ui.comboBox_cluster_method.count())]
+    assert "EvoCluster" not in methods
+    assert "KMeansCluster" not in methods
+    assert ui.comboBox_cluster_method.currentText() == "AgglomerativeCluster"
+    assert bus.values["ui.cluster.method.use"] == "AgglomerativeCluster"
 
 
 def test_cluster_tab_controller_disables_rosetta_override_until_scoring_enabled(cluster_ui):

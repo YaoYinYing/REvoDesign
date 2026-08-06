@@ -24,7 +24,7 @@ from Bio.Align import PairwiseAligner, substitution_matrices
 from Bio.SeqRecord import SeqRecord
 from matplotlib import pyplot as plt
 
-from REvoDesign.basic import build_plugin_registry
+from REvoDesign.basic import PluginRegistry
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import ROOT_LOGGER
 
@@ -60,6 +60,7 @@ class ClusterMethodSpec:
     description: str
     inputs: tuple[ClusterInputSpec, ...] = ()
     deprecated: bool = False
+    experimental: bool = False
     representative_policy: str = "Nearest centroid among clustered variants."
 
 
@@ -422,6 +423,7 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
             "display_name": spec.display_name,
             "description": spec.description,
             "deprecated": spec.deprecated,
+            "experimental": spec.experimental,
             "representative_selection_policy": spec.representative_policy,
             "compatibility_outputs": {
                 "cluster_centers_stochastic.fasta": (
@@ -451,7 +453,7 @@ class ClusterMethodAbstract(CitableModuleAbstract, ABC):
         self.write_method_report()
 
 
-CLUSTER_METHOD_REGISTRY = build_plugin_registry(
+CLUSTER_METHOD_REGISTRY = PluginRegistry(
     base_class=ClusterMethodAbstract,
     package="REvoDesign.clusters.methods",
 )

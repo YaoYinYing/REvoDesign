@@ -123,89 +123,6 @@ class UserDatabase:
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
             _metadata.create_all(conn, checkfirst=True)
-            self._ensure_columns(conn)
-
-    @staticmethod
-    def _add_column_if_missing(conn, existing: set[str], column: str, column_type: str) -> bool:
-        """Add one legacy-migration column without failing a startup race.
-
-        The web and Celery processes can import the application concurrently.
-        Both may observe the same column as missing, but only one can add it.
-        Ignore only SQLite's duplicate-column result; every other database
-        error remains fatal.
-        """
-        if column in existing:
-            return False
-        try:
-            conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {column} {column_type};")
-        except sa.exc.OperationalError as exc:
-            message = str(exc).lower()
-            if "duplicate column name" not in message:
-                raise
-            logging.info("User database column %s was added by another startup process.", column)
-            existing.add(column)
-            return False
-        existing.add(column)
-        return True
-
-    @staticmethod
-    def _ensure_columns(conn) -> None:
-        existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()}
-        has_deprecated_is_admin = "is_admin" in existing
-        admin_notified_missing = "admin_notified" not in existing
-        for col, coltype in [
-            ("api_key_hash", "TEXT"),
-            ("full_name", "TEXT"),
-            ("affiliation", "TEXT"),
-            ("position", "TEXT"),
-            ("pi_name", "TEXT"),
-            ("terms_agreed", "INTEGER"),
-            ("registration_status", "TEXT"),
-            ("user_status", "TEXT"),
-            ("approved_by", "INTEGER"),
-            ("approved_at", "FLOAT"),
-            ("deleted", "INTEGER"),
-            ("verification_resend_count", "INTEGER"),
-            ("verification_resend_at", "FLOAT"),
-            ("role", "TEXT"),
-            ("admin_notified", "INTEGER"),
-            ("registration_ip", "TEXT"),
-            ("registration_country", "TEXT"),
-        ]:
-            UserDatabase._add_column_if_missing(conn, existing, col, coltype)
-        UserDatabase._add_column_if_missing(conn, existing, "token_version", "INTEGER DEFAULT 0")
-        # Backfill any NULL token_version (idempotent, runs every startup)
-        conn.exec_driver_sql("UPDATE users SET token_version = 0 WHERE token_version IS NULL")
-        # Idempotent backfills — run every startup (not gated) so legacy rows
-        # that predate a column get their NULLs patched even when the column
-        # was added by a previous deployment that didn't include a backfill.
-        conn.exec_driver_sql("UPDATE users SET deleted = 0 WHERE deleted IS NULL")
-        conn.exec_driver_sql("UPDATE users SET registration_status = 'approved' " "WHERE registration_status IS NULL")
-        conn.exec_driver_sql("UPDATE users SET user_status = 'active' WHERE user_status IS NULL")
-        if has_deprecated_is_admin:
-            try:
-                # Preserve both genuinely legacy administrators and rows
-                # created by the old is_admin=1, role='user' bootstrap bug.
-                conn.exec_driver_sql("UPDATE users SET role = 'admin' WHERE is_admin = 1")
-                conn.exec_driver_sql("ALTER TABLE users DROP COLUMN is_admin")
-            except sa.exc.OperationalError:
-                # Another startup process may have completed the same silent
-                # migration after our initial PRAGMA read.
-                current = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()}
-                if "is_admin" in current:
-                    raise
-            existing.discard("is_admin")
-        conn.exec_driver_sql(
-            "UPDATE users SET role = 'user' " "WHERE role IS NULL OR role NOT IN ('admin', 'user', 'guest')"
-        )
-        # When adding admin_notified for the first time, mark all existing
-        # non-admin users as notified so they don't appear in the first digest.
-        # This runs after role normalization because role is authoritative.
-        if admin_notified_missing:
-            conn.exec_driver_sql("UPDATE users SET admin_notified = 1 WHERE role != 'admin'")
-        conn.exec_driver_sql(
-            "UPDATE users SET verification_resend_count = 0 " "WHERE verification_resend_count IS NULL"
-        )
 
     # -- write helpers -------------------------------------------------------
 
@@ -453,19 +370,12 @@ def _extract_bearer_token() -> str | None:
 
 
 def _is_account_blocked(user: dict[str, Any]) -> str | None:
-    """Return an error message if *user* is not allowed to authenticate, or ``None``.
-
-    Backward-compatible: ``user_status`` of ``None`` (pre-migration users) is
-    treated as ``"active"``.
-    """
+    """Return an error message if *user* is not allowed to authenticate, or ``None``."""
     if user.get("deleted"):
         return "Account has been deleted"
     if user.get("user_status") == "banned":
         return "Account has been suspended"
-    # ponytail: pending users (self-registered, not yet admin-approved)
-    # cannot authenticate.  NULL = pre-migration → grandfathered as active.
-    status = user.get("user_status")
-    if status is not None and status != "active":
+    if user.get("user_status") != "active":
         return "Account is not yet active"
     # All active users must have a verified email address.  Admin-created
     # and admin-approved users get verify_email() called automatically in

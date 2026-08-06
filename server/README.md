@@ -20,6 +20,9 @@ The server stack contains:
 - `redis`: Celery broker/backend
 - `runner` image: GREMLIN/PSSM execution container launched by `worker`
 
+Scientific Python dependencies used by GREMLIN scripts belong to the runner's
+`env/GREMLIN.yml`; they are not installed into the web and worker package.
+
 Periodic jobs follow this package boundary:
 
 ```text
@@ -144,10 +147,8 @@ REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart_pssm_flask.sh re
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
 ```
 
-Fallback when `REVODESIGN_SERVER_ENV` is unset:
-
-1. `server/.env.production` (if present)
-2. `server/.env`
+When `REVODESIGN_SERVER_ENV` is unset, the helper uses
+`server/.env.production` and fails clearly when that file is absent.
 
 ### Required/important variables
 
@@ -338,8 +339,8 @@ curl -X POST -H "Authorization: Bearer <admin-token>" \
 ```
 
 `role` may be `admin`, `user`, or `guest` and is the sole authorization
-authority. On upgrade, the server silently promotes administrators stored in
-the deprecated `is_admin` column and then drops that column.
+authority. Server setup creates the current user schema directly and does not
+alter older database layouts.
 
 Admins cannot ban or delete their own account.  Direct self-ban/self-delete
 requests return HTTP 400, and batch Disable/Delete skips the acting admin while
@@ -403,10 +404,10 @@ REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart_pssm_flask.sh re
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
 
 # subcommands
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh migrate-auth-db
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh build
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh up
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh reload
 ```
 
 `restart` defaults to `--mode=dev` for backward compatibility. Only the
@@ -426,26 +427,9 @@ Provision production bind-mounted directories as writable by UID/GID
 file ownership; it is not a container-escape boundary. The worker's Docker
 socket access still grants effective Docker-daemon/host-level authority.
 
-### Isolate an existing user database
-
-This step is only for an upgrade where the old database still exists at
-`${SERVER_DIR}/users.sqlite3`. Set `AUTH_DIR` to its new host directory, stop
-the stack, and run the explicit migration once:
-
-```bash
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh migrate-auth-db
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
-```
-
-The migration refuses to overwrite an existing destination, checks SQLite
-integrity and user counts, and moves the legacy copy into `AUTH_DIR` as a
-timestamped rollback backup. To roll back while the stack is stopped, restore
-that backup to the original `${SERVER_DIR}/users.sqlite3` path and deploy the
-previous Compose configuration.
-
-For a fresh installation there is nothing to migrate: create `AUTH_DIR` and
-start normally. The web process creates `${AUTH_DIR}/users.sqlite3`.
+Create a writable `AUTH_DIR` before the first start. The web process creates
+`${AUTH_DIR}/users.sqlite3` with the current schema. Existing databases must
+already match that schema; server setup does not migrate them.
 
 ### Equivalent Docker Compose commands
 
@@ -474,7 +458,7 @@ docker compose -f server/docker-compose.yml --env-file server/.env.production up
 ### Zero-downtime Gunicorn reload
 
 ```bash
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/hot_fix.sh
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh reload
 ```
 
 ## 6. Usage

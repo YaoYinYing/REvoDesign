@@ -23,7 +23,6 @@ Mutable = ExtColl(
         Ext("csv", "CSV file"),
         Ext("tsv", "TSV file"),
         Ext("xlsx", "Microsoft Excel (modern) file"),
-        Ext("xls", "Microsoft Excel (legacy) file"),
     )
 )
 PDB = ExtColl(

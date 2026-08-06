@@ -109,7 +109,7 @@ Predefined `FileExtensionCollection` instances defined in `REvoDesign.common.fil
 | Name | Extensions | Purpose |
 |------|-----------|---------|
 | `Session` | `.pze`, `.pse` | PyMOL sessions |
-| `Mutable` | `.txt`, `.mut.txt`, `.csv`, `.tsv`, `.xlsx`, `.xls` | Mutant tables |
+| `Mutable` | `.txt`, `.mut.txt`, `.csv`, `.tsv`, `.xlsx` | Mutant tables |
 | `PDB` | `.pdb`, `.ent`, `.cif`, `.mmcif` | Protein structures |
 | `PDB_STRICT` | `.pdb` | Strict PDB only |
 | `MOL` | `.mol`, `.sdf` | Small molecule files |

@@ -22,7 +22,7 @@ src/REvoDesign/
 │   ├── plugin_registry.py       # PluginRegistry (package-scoped auto-discovery)
 │   ├── data_structure.py        # IterableLoop, generic data structures
 │   ├── group_registries.py      # GroupRegistryItem for dynamic UI population
-│   ├── param_toggle.py          # ParamChangeRegistryItem, ParamChangeRegister
+│   ├── param_toggle.py          # ParamChangeRegistryItem
 │   ├── server_monitor.py        # ServerControlAbstract for service lifecycle
 │   ├── menu_item.py             # MenuCollection, MenuItem
 │   └── extensions.py            # FileExtension types
@@ -191,8 +191,6 @@ StoresWidget()                   # Server switch monitors (Editor, OpenMM)
   initialization logic.
 - `initialize()` class method creates the instance on first call, or updates
   existing instance attributes on subsequent calls.
-- `derive(name)` dynamically creates a new subclass with its own independent
-  `_instance` (used for per-class singleton isolation).
 - `reset_instance()` clears `_instance` for testing cleanup.
 
 Key singleton subclasses:
@@ -240,19 +238,18 @@ performs **package-scoped auto-discovery** of plugin classes:
 - It collects non-abstract subclasses of `base_class` and indexes them by
   their `name` attribute.
 - Duplicate `name` values raise a `ValueError`.
-- `build_plugin_registry()` is a convenience factory function.
 
 Two registries are used in practice:
 
 ```python
 # src/REvoDesign/magician/__init__.py
-DESIGNER_REGISTRY = build_plugin_registry(
+DESIGNER_REGISTRY = PluginRegistry(
     base_class=ExternalDesignerAbstract,
     package="REvoDesign.magician.designers",
 )
 
 # src/REvoDesign/sidechain/sidechain_solver.py
-RUNNER_REGISTRY = build_plugin_registry(
+RUNNER_REGISTRY = PluginRegistry(
     base_class=MutateRunnerAbstract,
     package="REvoDesign.sidechain.mutate_runner",
 )

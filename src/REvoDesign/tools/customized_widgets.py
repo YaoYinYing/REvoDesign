@@ -223,197 +223,6 @@ class REvoDesignWidget(QtWidgets.QWidget):
 
 
 @dataclass(frozen=True)
-class ButtonCoords:
-    """
-    Immutable data class representing the coordinates and names of a button.
-
-    Attributes:
-        row (int): The row index of the button.
-        row_name (str): The name of the row.
-        col (int): The column index of the button.
-        col_name (str): The name of the column.
-    """
-
-    row: int
-    row_name: str
-    col: int
-    col_name: str
-
-
-class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
-    """
-    Custom QPushButton subclass representing a button in a matrix.
-
-    Attributes:
-        coords (ButtonCoords): Coordinates and names associated with the button.
-        color (QtGui.QColor): The background color of the button.
-        is_wt (bool): Flag indicating if the button represents a wild type (WT) pair.
-
-    Methods:
-        button_name: Constructs the unique object name for the button.
-        style_sheet: Generates the CSS styling for the button.
-    """
-
-    hover_signal = QtCore.pyqtSignal(int, int)
-    leave_signal = QtCore.pyqtSignal()
-
-    def __init__(
-        self,
-        coords: ButtonCoords,
-        color: QtGui.QColor,
-        label: str | None = None,
-        tooltip_text: str | None = None,
-        is_wt: bool | None = False,
-        size_policy: QtWidgets.QSizePolicy | None = None,  # type: ignore
-        parent=None,
-    ):
-        """
-        Initializes the QButtonBrick instance.
-
-        Args:
-            coords (ButtonCoords): Coordinates and metadata for the button.
-            color (QtGui.QColor): Background color of the button.
-            label (Optional[str]): Text to display on the button.
-            tooltip_text (Optional[str]): Tooltip text for the button.
-            is_wt (Optional[bool]): Whether the button is a wild type button.
-            size_policy (Optional[QtWidgets.QSizePolicy]): Size policy for the button.
-            parent: Parent widget for the button.
-        """
-        super().__init__(parent)
-        self.coords = coords
-        self.color = color
-        self.is_wt = is_wt
-
-        self.setStyleSheet(self.style_sheet)
-        self.setObjectName(self.button_name)
-        self.setText(label)
-        self.setToolTip(tooltip_text)
-        if size_policy is not None:
-            self.setSizePolicy(size_policy)
-        self.setMouseTracking(True)  # Enable mouse tracking for hover events.
-
-    def enterEvent(self, event):
-        """Trigger when mouse enters the button."""
-        self.hover_signal.emit(self.coords.row, self.coords.col)
-        super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        """Trigger when mouse leaves the button."""
-        self.leave_signal.emit()
-        super().leaveEvent(event)
-
-    @property
-    def button_name(self) -> str:
-        """
-        Constructs the unique object name for the button based on its coordinates.
-
-        Returns:
-            str: The unique name of the button.
-        """
-        return f"matrixButton_{self.coords.row}_vs_{self.coords.col}"
-
-    @property
-    def style_sheet(self) -> str:
-        """
-        Generates the CSS style for the button, including background color and text color.
-
-        Returns:
-            str: The CSS style for the button.
-        """
-        return f"""
-    QPushButton {{
-        background-color: {self.color.name()};
-        {'color: black;' if self.is_wt else ''};
-    }}
-    QToolTip {{
-        background-color: black;
-        color: white;
-        border: 1px solid white;
-    }}
-"""
-
-
-class QHoverCross(QtWidgets.QWidget):
-    """
-    Floating hover cross widget that visually appears over the buttons as empty rectangular boxes.
-    """
-
-    def __init__(self, button_size: int, parent=None):
-        """
-        Initializes the hover cross.
-
-        Args:
-            button_size (int): Size of the button (width and height).
-            parent: Parent widget.
-        """
-        super().__init__(parent)
-
-        # Allow mouse events to pass through and enable background transparency
-        self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-
-        # Rectangle sizes
-        self.button_size = button_size
-        self.hover_position = None  # Hovered button geometry
-        self.edge_width = 2  # Adjust edge width to a moderate thickness
-
-    def update_position(self, button_rect: QtCore.QRect):
-        """
-        Updates the hover rectangles' position based on the hovered button.
-
-        Args:
-            button_rect (QRect): Geometry of the hovered button.
-        """
-        self.hover_position = button_rect
-        self.raise_()  # Ensure the hover widget renders on top
-        self.update()
-        self.show()
-
-    def hide_hover(self):
-        """Hides the hover rectangles."""
-        self.hover_position = None
-        self.update()
-        self.hide()
-
-    def paintEvent(self, event):
-        """
-        Paints empty rectangular boxes as hover indicators for row and column.
-
-        Rectangles:
-            - Horizontal rectangle: spans horizontally across the widget.
-            - Vertical rectangle: spans vertically across the widget.
-        """
-        if not self.hover_position:
-            return  # Nothing to paint if no position exists
-
-        painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-
-        # Define rectangle pen (moderate edge width, transparent fill)
-        pen = QtGui.QPen(QtGui.QColor("red"), self.edge_width)  # Red border
-        painter.setPen(pen)
-        painter.setBrush(QtCore.Qt.NoBrush)  # Transparent inside
-
-        button_width = self.button_size
-        button_height = self.button_size
-
-        # Get center position
-        center_x = self.hover_position.center().x()
-        center_y = self.hover_position.center().y()
-
-        # Horizontal rectangle: full width, centered at button
-        horizontal_rect = QtCore.QRect(0, center_y - button_height // 2, self.width(), button_height)
-
-        # Vertical rectangle: full height, centered at button
-        vertical_rect = QtCore.QRect(center_x - button_width // 2, 0, button_width, self.height())
-
-        # Draw the empty rectangles
-        painter.drawRect(horizontal_rect)
-        painter.drawRect(vertical_rect)
-
-
-@dataclass(frozen=True)
 class MatrixIndex:
     """Row and column indices into the matrix."""
 
@@ -442,10 +251,10 @@ class QButtonMatrix(QtWidgets.QWidget):
     QPushButton size hints that differ between Qt5 and Qt6 and deform the
     matrix into vertical strips.
 
-    Public API is compatible with the previous button-grid implementation:
+    Public API includes:
     ``init_ui()``, ``active_func``, ``report_axes_signal``, ``shape``,
     ``alphabet_row``, ``alphabet_col``, ``df_matrix``, ``min_value``,
-    ``max_value``, ``on_hover``, ``on_leave``, ``signal_process``,
+    ``max_value``, ``signal_process``,
     ``_map_value_to_color``, and the ``cellSelected`` convenience signal.
     """
 
@@ -476,7 +285,6 @@ class QButtonMatrix(QtWidgets.QWidget):
         flip_cmap: bool = False,
         button_size: int = 12,
         zero_index_offset: int = 0,
-        scroll_x: bool = False,
     ):
         from REvoDesign.tools.utils import cmap_reverser
 
@@ -504,7 +312,6 @@ class QButtonMatrix(QtWidgets.QWidget):
         self._tips: dict[tuple[int, int], str] = {}
         # Per-cell WT flag cache
         self._wt_flags: dict[tuple[int, int], bool] = {}
-        self._placeholder_widget: QtWidgets.QWidget | None = None
 
         # --- Clean interaction-state model ---
         # _hover_index: transient, cleared on leaveEvent / mouse outside matrix
@@ -546,16 +353,8 @@ class QButtonMatrix(QtWidgets.QWidget):
         self._load_crosshair_appearance()
 
     # -----------------------------------------------------------------
-    # Public API (compatible with the old button-grid widget)
+    # Public API
     # -----------------------------------------------------------------
-
-    def on_hover(self, row: int, col: int):
-        """Programmatic hover entry point (kept for backward compat)."""
-        self._set_hover_index(MatrixIndex(row, col))
-
-    def on_leave(self):
-        """Programmatic hover-clear entry point (kept for backward compat)."""
-        self._set_hover_index(None)
 
     def _map_value_to_color(self, value: float) -> QtGui.QColor:
         """Map a matrix value to a QColor through the colormap."""
@@ -619,11 +418,9 @@ class QButtonMatrix(QtWidgets.QWidget):
         idx = MatrixIndex(row, col)
         self._set_selected_index(idx)
         if self.active_func is not None:
-            trigger_button = self.findChild(QButtonBrick, f"matrixButton_{row}_vs_{col}")
             self.begin_busy(idx)
             try:
-                with hold_trigger_button(trigger_button):
-                    self.active_func(row, col)
+                self.active_func(row, col)
             finally:
                 self.end_busy()
         else:
@@ -635,7 +432,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         """Build tooltip cache and initialise geometry.
 
         Callers may override ``alphabet_row`` / ``alphabet_col`` before
-        calling this method (the old behaviour is preserved).
+        calling this method.
         """
         self._n_rows = len(self.alphabet_row)
         self._n_cols = len(self.alphabet_col)
@@ -654,29 +451,6 @@ class QButtonMatrix(QtWidgets.QWidget):
         logging.debug(
             f"Initialized painted matrix with shape {self.shape}: " f"{self._n_rows} rows, {self._n_cols} columns"
         )
-
-        # Create placeholder QButtonBrick children for backward compatibility
-        # with test code that looks up cells via findChild(QButtonBrick, name).
-        # These must be in a QGridLayout so they're discoverable through Qt's
-        # widget tree — findChild on bare QObject children is unreliable across
-        # Qt versions.
-        self._placeholder_widget = QtWidgets.QWidget(self)
-        self._placeholder_widget.setFixedSize(1, 1)
-        self._placeholder_widget.move(-10, -10)
-        placeholder_layout = QtWidgets.QGridLayout(self._placeholder_widget)
-        placeholder_layout.setContentsMargins(0, 0, 0, 0)
-        placeholder_layout.setSpacing(0)
-
-        for row, row_name in enumerate(self.alphabet_row):
-            for col, col_name in enumerate(self.alphabet_col):
-                btn = QButtonBrick(
-                    coords=ButtonCoords(row, str(row_name), col, str(col_name)),
-                    color=QtGui.QColor("transparent"),
-                    size_policy=QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed),
-                )
-                btn.setFixedSize(1, 1)
-                btn.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
-                placeholder_layout.addWidget(btn, row, col)
 
         self.updateGeometry()
         self.update()

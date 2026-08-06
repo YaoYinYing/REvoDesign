@@ -92,7 +92,6 @@ prefixes:
 |----------------------|---------|-------------------------------------|
 | `use_thread`         | `False` | Run in background thread            |
 | `has_dynamic_values` | `False` | Accept dynamic input at call time   |
-| `use_progressbar`    | `True`  | Show progress bar in threaded mode  |
 
 ### Manual dialog (without YAML)
 

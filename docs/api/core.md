@@ -6,7 +6,7 @@ This page documents the three foundational abstractions of REvoDesign: the Borg-
 
 ## SingletonAbstract
 
-`SingletonAbstract` is the Borg-like singleton base class. It enforces that only one instance of a class is created, supports dynamic derivation of independent singleton subclasses, provides instance re-initialization, and allows explicit instance reset. Subclasses must implement the `singleton_init` method for custom initialization logic.
+`SingletonAbstract` is the singleton base class. It enforces one instance per concrete class, provides instance re-initialization, and allows explicit instance reset. Subclasses must implement the `singleton_init` method for custom initialization logic.
 
 ::: REvoDesign.basic.abc_singleton.SingletonAbstract
 

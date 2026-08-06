@@ -33,8 +33,8 @@ language from `main.yaml` directly and installs the translator on the
 appears in the correct language from the first paint.
 
 When `LanguageSwitch` is later created during `make_window()`, its
-`_ensure_translator()` finds and reuses the early-installed translator,
-preventing duplicate translator instances.
+constructor receives and owns that same translator directly, preventing
+duplicate translator instances.
 
 ### Language Files
 
@@ -76,10 +76,9 @@ binary, and some registered languages may lack completed translations.
 `LanguageSwitch` (in `application/i18n/language_settings.py`) manages the
 translator lifecycle:
 
-1. **`_ensure_translator()`** — Checks the `QApplication` for an early-installed
-   translator from `install_translator_early()`, then falls back to
-   `bus.ui.trans` (legacy path), and creates a fresh translator only as a last
-   resort.
+1. **Constructor ownership** — Receives the translator returned by
+   `install_translator_early()` or creates one when the saved language did not
+   require early installation.
 2. **`switch_language(language)`** — Removes the previous translator from the
    application, loads the new `.qm` file, installs it, calls `ui.retranslateUi()`
    to refresh all static widget text, then iterates `open_windows` and calls

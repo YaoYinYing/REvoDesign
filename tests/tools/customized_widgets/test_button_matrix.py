@@ -80,6 +80,17 @@ def test_button_matrix_click_does_not_mutate_base_heatmap(qtbot):
     assert widget._busy_index is None
 
 
+def test_button_matrix_runs_active_function_without_cell_widgets(qtbot):
+    widget, _ = _build_gremlin_widget(qtbot)
+    selected = []
+    widget.active_func = lambda row, col: selected.append((row, col))
+
+    widget.signal_process(2, 1)
+
+    assert selected == [(2, 1)]
+    assert widget.findChildren(QtWidgets.QPushButton) == []
+
+
 def test_button_matrix_paint_smoke(qtbot):
     widget, _ = _build_gremlin_widget(qtbot)
 

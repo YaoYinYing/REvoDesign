@@ -9,7 +9,7 @@ import pytest
 from pymol import cmd
 
 from REvoDesign.magician.designers import ColabDesigner_MPNN
-from REvoDesign.tools.customized_widgets import QButtonBrick, get_widget_value, set_widget_value
+from REvoDesign.tools.customized_widgets import QButtonMatrix, get_widget_value, set_widget_value
 from tests.conftest import TestWorker
 from tests.data.test_data import KeyData
 
@@ -125,11 +125,7 @@ class TestREvoDesignPlugin_TabInteract:
             assert len(operation) == 2
             row, col = operation
 
-            test_worker.click(
-                test_worker.plugin.bus.w2c.get_button_from_id(
-                    f"{row}_vs_{col}", prefix="matrixButton", button_type=QButtonBrick
-                )
-            )
+            test_worker.plugin.window.findChild(QButtonMatrix).signal_process(row, col)
             test_worker.sleep(200)
 
             test_worker.save_screenshot(
@@ -271,11 +267,7 @@ class TestREvoDesignPlugin_TabInteract:
             assert len(operation) == 2
             row, col = operation
 
-            test_worker.click(
-                test_worker.plugin.bus.w2c.get_button_from_id(
-                    f"{row}_vs_{col}", prefix="matrixButton", button_type=QButtonBrick
-                )
-            )
+            test_worker.plugin.window.findChild(QButtonMatrix).signal_process(row, col)
             test_worker.sleep(200)
 
             test_worker.save_screenshot(
@@ -396,11 +388,7 @@ class TestREvoDesignPlugin_TabInteract:
             assert len(operation) == 2
             row, col = operation
 
-            test_worker.click(
-                test_worker.plugin.bus.w2c.get_button_from_id(
-                    f"{row}_vs_{col}", prefix="matrixButton", button_type=QButtonBrick
-                )
-            )
+            test_worker.plugin.window.findChild(QButtonMatrix).signal_process(row, col)
             test_worker.sleep(200)
 
             test_worker.save_screenshot(
@@ -534,11 +522,7 @@ class TestREvoDesignPlugin_TabInteract:
             row, col = operation
 
             i = test_worker.c.i
-            test_worker.click(
-                test_worker.plugin.bus.w2c.get_button_from_id(
-                    f"{row}_vs_{col}", prefix="matrixButton", button_type=QButtonBrick
-                )
-            )
+            test_worker.plugin.window.findChild(QButtonMatrix).signal_process(row, col)
             test_worker.sleep(200)
 
             test_worker.save_screenshot(

@@ -11,6 +11,8 @@ from REvoDesign import issues
 
 from .ui_driver import ConfigBus
 
+EXPERIMENTAL_ENV_VAR = "REVODESIGN_ENABLE_EXPERIMENTAL"
+
 
 def register_environment_variables():
     from REvoDesign import ROOT_LOGGER
@@ -21,6 +23,9 @@ def register_environment_variables():
         raise issues.UnexpectedWorkflowError("ConfigBus must be initialized before creating EnvironBindItemCollection")
 
     bus = ConfigBus()
+
+    experimental_enabled = bool(bus.get_value("enable_experimental", bool, default_value=False))
+    os.environ[EXPERIMENTAL_ENV_VAR] = "1" if experimental_enabled else "0"
 
     # force to reload from the yaml file
     bus.cfg_group["environ"].reload()

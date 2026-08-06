@@ -39,10 +39,13 @@ Average-linkage agglomerative clustering on a precomputed distance matrix.
 
 ---
 
-### EvoCluster
+### EvoCluster (experimental)
 
 Multi-signal fused distance clustering that combines several biological
-signals.
+signals. EvoCluster remains available through the Python API, but is hidden
+from the method selector unless `enable_experimental` is set to `true`. During
+startup, REvoDesign also exports that flag as
+`REVODESIGN_ENABLE_EXPERIMENTAL=1` (or `0` when disabled).
 
 **Advantages**
 
@@ -67,9 +70,12 @@ signals.
 
 ---
 
-### KMeansCluster
+### KMeansCluster (experimental)
 
 Centroid partitioning on score matrix rows.
+
+KMeansCluster is shown in the method selector only when
+`enable_experimental` is set to `true`.
 
 **Advantages**
 
@@ -151,8 +157,8 @@ Ward linkage on the raw score matrix, retained for backward compatibility.
 Set `ui.cluster.method.use` to one of:
 
 - `AgglomerativeCluster` (default)
-- `EvoCluster`
-- `KMeansCluster`
+- `EvoCluster` (experimental; requires `enable_experimental: true` in the main config)
+- `KMeansCluster` (experimental; requires `enable_experimental: true`)
 - `LegacyCluster`
 
 ### EvoCluster-specific inputs

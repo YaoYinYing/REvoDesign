@@ -428,15 +428,3 @@ def _record_failure(md5sum: str, task: dict, start_time: float, run_stage: str, 
         error=error_message,
         run_stage=run_stage,
     )
-
-
-# Stable public names for web/compatibility modules. The underscored helpers
-# remain available for existing imports while new cross-module callers avoid
-# depending on private implementation details.
-build_running_trace = _build_running_trace
-extract_stage_from_log_line = _extract_stage_from_log_line
-is_terminal_status = _is_terminal_status
-pack_failed_results_archive = _pack_failed_results_archive
-pack_results_archive = _pack_results_archive
-runner_thread_env = _runner_thread_env
-task_is_terminal = _task_is_terminal

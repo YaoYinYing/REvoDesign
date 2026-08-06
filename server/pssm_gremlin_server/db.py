@@ -99,7 +99,6 @@ class TaskDatabase:
                 if "already exists" not in str(exc).lower():
                     raise
                 logging.warning("TaskDatabase metadata already present, skipping creation")
-            self._ensure_columns(conn)
 
     @staticmethod
     def _safe_apply_pragmas(conn) -> None:
@@ -121,26 +120,6 @@ class TaskDatabase:
                     )
                     return
                 time.sleep(0.2 * (attempt + 1))
-
-    @staticmethod
-    def _add_column_if_missing(conn, existing: set[str], column: str, column_type: str) -> None:
-        if column in existing:
-            return
-        sql_column = f'"{column}"' if " " in column else column
-        try:
-            conn.exec_driver_sql(f"ALTER TABLE tasks ADD COLUMN {sql_column} {column_type};")
-        except OperationalError as exc:
-            if "duplicate column name" not in str(exc).lower():
-                raise
-            logging.info("Task database column %s was added by another startup process.", column)
-        existing.add(column)
-
-    @staticmethod
-    def _ensure_columns(conn) -> None:
-        existing_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(tasks);").fetchall()}
-        TaskDatabase._add_column_if_missing(conn, existing_columns, "local user", "TEXT")
-        TaskDatabase._add_column_if_missing(conn, existing_columns, "request_headers", "TEXT")
-        TaskDatabase._add_column_if_missing(conn, existing_columns, "run_stage", "TEXT")
 
     @staticmethod
     def _normalize_task_row(row: dict) -> dict:

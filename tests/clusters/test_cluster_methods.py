@@ -508,6 +508,7 @@ def test_main_yaml_contains_cluster_method_defaults():
     config = yaml.safe_load(config_fp.read_text(encoding="utf-8"))
     cluster_cfg = config["ui"]["cluster"]
 
+    assert config["enable_experimental"] is False
     assert cluster_cfg["method"]["use"] == "AgglomerativeCluster"
     assert cluster_cfg["random_seed"] == 0
     assert cluster_cfg["rosetta"]["override_representatives"] is False
@@ -532,6 +533,14 @@ def test_batch_size_adjustment_never_becomes_zero(tmp_path):
 
 def test_legacy_cluster_spec_is_deprecated():
     assert LegacyCluster.get_method_spec().deprecated is True
+
+
+def test_evo_cluster_spec_is_experimental():
+    assert EvoCluster.get_method_spec().experimental is True
+
+
+def test_kmeans_cluster_spec_is_experimental():
+    assert KMeansCluster.get_method_spec().experimental is True
 
 
 def test_evo_runner_requires_pssm_path_for_positive_pssm_weight(monkeypatch, tmp_path):

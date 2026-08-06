@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   problems, with private routing for security vulnerabilities.
 
 ### Changed
+- **Server reload operation**: added zero-downtime Gunicorn reload as a
+  subcommand of the main deployment helper.
+- **Experimental cluster visibility**: marked EvoCluster and KMeansCluster as
+  experimental metadata and hid them from the cluster-method selector unless
+  the new top-level `enable_experimental` main-config flag is enabled. Startup
+  mirrors the flag to `REVODESIGN_ENABLE_EXPERIMENTAL` for subprocesses and
+  integrations.
 - **DeepSource server cleanup**: resolved the current Bug Risk and Anti-pattern
   findings by exposing stable public task-runtime compatibility names, removing
   duplicate/unused imports, and decomposing upload, dashboard, task-deletion,
@@ -44,10 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   test, packaging, or deployment changes. Documentation-only and unrelated
   pull requests avoid those matrices.
 - **GREMLIN server: canonical user roles**: authorization now uses `role` as
-  its sole authority. On startup, databases containing the deprecated
-  `is_admin` column silently promote flagged administrators into `role`, then
-  immediately drop the obsolete column. Bootstrap and user-management APIs now
-  accept only `role`.
+  its sole authority. Fresh databases create the current schema directly, and
+  bootstrap and user-management APIs accept only `role`.
 - **GREMLIN server: explicit deployment configuration**: removed implicit
   server/database path and bootstrap-admin defaults. `SERVER_DIR`,
   `DB_UNIREF30`, `DB_UNIREF90`, and `ADMIN_USERS` are now mandatory; both
@@ -115,6 +120,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **macOS deployment test compatibility**: guard iteration over the initially
   empty administrator-deduplication array so Bash 3.2 with `set -u` can run the
   bootstrap path and still reject duplicate `ADMIN_USERS` entries.
+
+### Removed
+- **Server deployment fallbacks**: removed the standalone `hot_fix.sh` helper
+  and legacy `server/.env` fallback; deployment defaults explicitly to
+  `.env.production` unless `REVODESIGN_SERVER_ENV` is set.
+- **Unused configuration switches**: removed inactive auto-save/save-on-exit
+  settings and the unexposed Cartesian-ddG legacy-mode option.
+- **Legacy Excel input**: removed `.xls` handling and the `xlrd` dependency;
+  mutant tables continue to support `.xlsx` through `openpyxl`.
+- **Plugin registry extension knobs**: removed unused discovery predicates,
+  custom installed attributes, package exclusion, and the delegate-only
+  `build_plugin_registry()` factory.
+- **Parameter-change collection wrapper**: removed the one-instance
+  `ParamChangeRegister` dataclass in favor of direct registry-item iteration.
+- **Duplicate cluster selector registration**: removed `CallableGroupValues`
+  method discovery and hardcoded registry fallbacks; `ClusterTabController`
+  now exclusively owns the selector.
+- **Server runtime dependency duplication**: removed runner-only scientific
+  libraries, unused `six` and `click`, and redundant direct `redis` from the
+  web package; `requests` now belongs to the test extra.
+- **Translator compatibility ownership**: removed `RuntimeUiProxy.trans`,
+  application-child scanning, and ConfigBus translator mirroring; the early
+  translator is passed directly to `LanguageSwitch`.
+- **Server task compatibility exports**: removed unused task-runtime aliases
+  from the web module and redundant public aliases in `task_runtime`.
+- **Shortcut progress-bar preference**: removed the inert
+  `DialogWrapperRegistry.use_progressbar` registration option.
+- **Qt alias compatibility name**: removed the unused public
+  `install_qt5_aliases()` alias; use `install_qt6_aliases()`.
+- **Dynamic singleton derivation**: removed the production-unused
+  `SingletonAbstract.derive()` API and its test-only documentation and cases.
+- **Agent guidance duplication**: removed the repository-local Loopkit
+  framework so root `CLAUDE.md` is the single source of engineering and
+  workflow guidance.
+- **Painted matrix compatibility widgets**: removed hidden per-cell buttons
+  and switched tests and callers to the matrix selection API.
 
 ## [1.9.1] - 2026-07-28
 ### Added
@@ -283,13 +324,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   misleading `REDIS_PASSWORD` Compose guidance because the current stack does
   not configure Redis authentication, and restored the documented
   `RUNNER_HOST_ROOT` override to the worker environment.
-- **GREMLIN server: user DB upgrade compatibility**: older SQLite user
-  databases now gain the new registration-profile columns safely, including
-  concurrent web startup. The explicit `migrate-auth-db` command moves the
-  legacy database from shared `SERVER_DIR` into web/maintenance-only `AUTH_DIR`, verifies
-  integrity and user counts, and keeps a rollback database. It uses SQLite's
-  backup API so committed WAL data is included; no manual database move is
-  required.
 - **Package manager self-bootstrap**: manager UI and extras registry now
   bootstrap into a writable runtime directory instead of writing into `src/` or
   an installed package directory. Bootstrap fetches use bounded timeouts and
@@ -372,16 +406,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     uses the configured `SERVER_BASE_URL` for verification / password-reset
     links, never the request `Host` header (which an attacker can spoof to
     place valid tokens in links pointing to an attacker-controlled domain).
-  - **Role demotion doesn't clear `is_admin`**: updating a user role from
-    `admin` to `user`/`guest` now also sets `is_admin = False`, preventing
-    privilege-leak bugs where `require_admin()` checks `is_admin` instead of
-    `role`.
   - **Cancelled tasks resurrected by late worker writes**: cancelled tasks are
     now treated as terminal — the DB update guard prevents late `running`/
     `finished` status writes from overwriting a `cancelled` task.
-  - **Legacy NULL columns not backfilled**: `_ensure_columns()` now backfills
-    `deleted`, `registration_status`, `user_status`, and `role` for rows that
-    predate those columns.
   - **Admin digest silently drops users on email failure**: `_send_email()`
     returns `False` on failure (doesn't raise), so the try/except never caught
     transient errors. The digest loop now checks return values and unmarks users
@@ -494,6 +521,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed HTTP Basic Auth dependency (`flask_httpauth`) and `users.txt` file.
 
 ### Removed
+- **GREMLIN server database migrations**: removed setup-time task/user column
+  upgrades, legacy auth-database relocation, and the migration-only restart
+  backup. New deployments create only the current schemas; scheduled database
+  backups remain available for normal operations.
 - `flask_httpauth` dependency and `USERS_FILE` / `users.txt` credential storage.
 
 ## [1.9.0] - 2026-07-03

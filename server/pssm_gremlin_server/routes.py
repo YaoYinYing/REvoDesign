@@ -1176,6 +1176,22 @@ def auth_update_me():
 
 
 # ---------------------------------------------------------------------------
+# Token refresh — cookie-authenticated endpoint that returns a fresh Bearer
+# token so pages loaded via cookie navigation can perform state-changing
+# operations that require Bearer auth (CSRF protection).
+# ---------------------------------------------------------------------------
+
+
+@app.route("/PSSM_GREMLIN/api/auth/token", methods=["GET"])
+@login_required
+def auth_get_token():
+    """Return a fresh Bearer token (cookie or Bearer auth accepted)."""
+    user = g.current_user
+    token = generate_token(user["id"], user.get("token_version", 0))
+    return jsonify({"token": token}), 200
+
+
+# ---------------------------------------------------------------------------
 # API key management (long-lived, user-revokable)
 # ---------------------------------------------------------------------------
 
