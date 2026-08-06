@@ -406,12 +406,6 @@ def install_qt6_aliases() -> None:
     _ALIAS_STATE["installed"] = True
 
 
-def install_qt5_aliases() -> None:
-    """Backward-compatible alias for the older helper name."""
-
-    install_qt6_aliases()
-
-
 class _QtCompatNamespace:
     """Namespace of compatibility constants shared by runtime modules."""
 
@@ -489,6 +483,5 @@ __all__ = [
     "QtSource",
     "has_qt_module",
     "install_qt6_aliases",
-    "install_qt5_aliases",
     "qexec",
 ]

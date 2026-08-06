@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- **Qt alias compatibility name**: removed the unused public
+  `install_qt5_aliases()` alias; use `install_qt6_aliases()`.
 - **Dynamic singleton derivation**: removed the production-unused
   `SingletonAbstract.derive()` API and its test-only documentation and cases.
 

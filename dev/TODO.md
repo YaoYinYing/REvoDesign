@@ -36,6 +36,6 @@ Read-only audit recorded on 2026-08-06. The estimates below are directional; eac
 - [ ] **Delete `DialogWrapperRegistry.use_progressbar`.** It is logged as a legacy preference but never changes execution.
 - [ ] **Drop legacy `.xls` support and `xlrd`.** Retain `.xlsx` support through the existing `openpyxl` path.
 - [ ] **Delete unused or legacy configuration switches.** Remove `config_settings.auto_save`, `config_settings.save_on_exit`, and the unexposed `rosetta.cart_ddg.use_legacy` option.
-- [ ] **Delete the unused `install_qt5_aliases()` compatibility name.** `install_qt6_aliases()` is the current API.
+- [x] **Delete the unused `install_qt5_aliases()` compatibility name.** `install_qt6_aliases()` is the sole public API.
 
 Estimated maximum reduction: approximately 1,900 lines and 9 direct dependencies.
