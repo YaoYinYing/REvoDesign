@@ -74,8 +74,8 @@ import compileall
 import sys
 
 assert sys.version_info[:2] == (3, 6), sys.version
-assert compileall.compile_dir('/app/pssm_gremlin/scripts', quiet=1)
-sys.path.insert(0, '/app/pssm_gremlin/scripts')
+assert compileall.compile_dir('/app/revocompute/scripts', quiet=1)
+sys.path.insert(0, '/app/revocompute/scripts')
 from gremlin_labels import validate_position_label
 assert validate_position_label('A_1', 'AC') == 'A_1'
 """

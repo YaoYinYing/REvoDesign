@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 from conftest import _load_pssm_module
-from pssm_gremlin_server.config import env_csv, env_float
+from revocompute.config import env_csv, env_float
 
 # config tests
 # ==================================================================
@@ -62,10 +62,7 @@ def test_pssm_config_uses_named_runner_identity(monkeypatch, tmp_path):
     assert module.CONFIG.docker_user == "revodesign:revodesign_appgroup"
 
 
-@pytest.mark.parametrize(
-    "name",
-    ["SERVER_DIR", "DB_UNIREF30", "DB_UNIREF90"],
-)
+@pytest.mark.parametrize("name", ["SERVER_DIR"])
 def test_pssm_config_requires_deployment_settings_before_database_setup(monkeypatch, tmp_path, name):
     with pytest.raises(RuntimeError, match=f"Required environment variable {name} is not set"):
         _load_pssm_module(

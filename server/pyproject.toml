@@ -3,7 +3,7 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pssm_gremlin_server"
+name = "revocompute"
 version = "0.1.0"
 description = "REvoDesign GREMLIN PSSM web server — Flask + Celery + Docker runner"
 readme = "README.md"
@@ -33,10 +33,10 @@ test = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["pssm_gremlin_server*"]
+include = ["revocompute*"]
 
 [tool.setuptools.package-data]
-pssm_gremlin_server = [
+revocompute = [
     "templates/**",
     "templates/images/*",
     "static/css/*",

@@ -59,8 +59,8 @@ status check for merging.
 ### `docker-image.yml` -- Docker Image for Server
 
 Manually triggerable (`workflow_dispatch`). Builds two Docker images:
-- `revodesign-pssm-gremlin-non-root` -- runner image (PSSM + Gremlin computation)
-- `revodesign-pssm-gremlin-server-non-root` -- server image (Flask REST API)
+- `revodesign-revocompute-runner` -- runner image (PSSM + GREMLIN computation)
+- `revodesign-revocompute-server` -- server image (Flask REST API)
 
 Both images are tagged with the current date and `latest`, then pushed to
 Docker Hub under `yaoyinying/`. The runner's `Dockerfile` and server's

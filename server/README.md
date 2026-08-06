@@ -26,7 +26,7 @@ Scientific Python dependencies used by GREMLIN scripts belong to the runner's
 Periodic jobs follow this package boundary:
 
 ```text
-pssm_gremlin_server/maintenance/
+revocompute/maintenance/
 ├── model.py                 # PeriodicTask interface
 ├── manager.py               # imports task objects and calls register()
 └── tasks/
@@ -143,8 +143,8 @@ cp server/.env.example server/.env.production
 All restart helpers support `REVODESIGN_SERVER_ENV`:
 
 ```bash
-REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart_pssm_flask.sh restart --mode=dev
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
+REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart.sh restart --mode=dev
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh restart --mode=prod
 ```
 
 When `REVODESIGN_SERVER_ENV` is unset, the helper uses
@@ -168,7 +168,7 @@ When `REVODESIGN_SERVER_ENV` is unset, the helper uses
 | `SMTP_*`, `RESEND_*` | Email delivery settings. Resend takes priority when both backends are configured. |
 | `SERVER_BASE_URL` | Public base URL for email links and HTTPS-sensitive auth-cookie settings. |
 | `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID. Dev may match the host; published production images require `1000:1000`. |
-| `DOCKER_GID` | Auto-detected by `restart_pssm_flask.sh` at runtime for Docker Compose interpolation. Override only as a shell variable when detection is wrong. |
+| `DOCKER_GID` | Auto-detected by `restart.sh` at runtime for Docker Compose interpolation. Override only as a shell variable when detection is wrong. |
 | `NPROC` | CPU threads passed to runner. |
 | `MAXMEM` | Memory cap (GB) passed to hhblits (`-maxmem`) inside runner script. |
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
@@ -273,7 +273,7 @@ The server uses Bearer-token authentication (replaces the old HTTP Basic Auth + 
 - **API access**: Clients send `Authorization: Bearer <token>` for full access,
   or `X-API-Key: <key>` for long-lived programmatic access with restricted
   privileges (tasks only — no profile changes or admin actions).
-- **Logout**: `POST /PSSM_GREMLIN/api/auth/logout` clears the server-side
+- **Logout**: `POST /compute/api/auth/logout` clears the server-side
   cookie.  The profile page includes a logout button.
 - **Roles**: Three account types — `admin` (full access), `user` (registered
   user with API access), `guest` (publicly shared account, web-login only).
@@ -299,7 +299,7 @@ If the user database is empty, every username in the required `ADMIN_USERS`
 list is created automatically:
 
 - Passwords: generated separately and printed once by
-  `restart_pssm_flask.sh`. Change each after first login.
+  `restart.sh`. Change each after first login.
 
 Bootstrap passwords must not be stored in the env file. They are transient
 first-boot values supplied by the restart script only.
@@ -317,15 +317,15 @@ create accounts.
 # Login to get a token
 curl -X POST -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"..."}' \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/login"
+  "http://<server-ip>:<port>/compute/api/auth/login"
 
 # Use the token for subsequent requests
 curl -H "Authorization: Bearer <token>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me"
+  "http://<server-ip>:<port>/compute/api/auth/me"
 
 # Logout (clears the auth cookie)
 curl -X POST -H "Authorization: Bearer <token>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/logout"
+  "http://<server-ip>:<port>/compute/api/auth/logout"
 ```
 
 ### Admin user management
@@ -335,7 +335,7 @@ curl -X POST -H "Authorization: Bearer <token>" \
 curl -X POST -H "Authorization: Bearer <admin-token>" \
   -H "Content-Type: application/json" \
   -d '{"username":"newuser","email":"user@example.com","password":"...","role":"user"}' \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/admin/users"
+  "http://<server-ip>:<port>/compute/api/auth/admin/users"
 ```
 
 `role` may be `admin`, `user`, or `guest` and is the sole authorization
@@ -346,7 +346,7 @@ Admins cannot ban or delete their own account.  Direct self-ban/self-delete
 requests return HTTP 400, and batch Disable/Delete skips the acting admin while
 still applying the requested action to other selected users.
 
-The dashboard header also links administrators to `/PSSM_GREMLIN/logs`. That
+The dashboard header also links administrators to `/compute/logs`. That
 standalone page loads only the selected active Gunicorn access, Gunicorn error,
 Celery worker, or maintenance log and streams it incrementally. Its lazy
 file tree lists rotated ZIP archives under those same four logs and permits
@@ -355,27 +355,27 @@ individual downloads; arbitrary filesystem paths are not exposed.
 ### API keys (programmatic access)
 
 Long-lived API keys are available for scripted/programmatic access. Generate and revoke
-them from the Profile page (`/PSSM_GREMLIN/profile`), or via the API:
+them from the Profile page (`/compute/profile`), or via the API:
 
 ```bash
 # Generate (returns plaintext key once — store it securely)
 curl -X POST -H "Authorization: Bearer <token>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me/api-key"
+  "http://<server-ip>:<port>/compute/api/auth/me/api-key"
 
 # Check status
 curl -H "Authorization: Bearer <token>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me/api-key"
+  "http://<server-ip>:<port>/compute/api/auth/me/api-key"
 
 # Revoke
 curl -X DELETE -H "Authorization: Bearer <token>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me/api-key"
+  "http://<server-ip>:<port>/compute/api/auth/me/api-key"
 ```
 
 Use the key via the `X-API-Key` header:
 
 ```bash
 curl -H "X-API-Key: revodesign_<hex>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me"
+  "http://<server-ip>:<port>/compute/api/auth/me"
 ```
 
 API keys never expire but have **restricted privileges**: they can submit tasks and
@@ -395,19 +395,19 @@ No sudo required.
 
 ```bash
 # initialize the env file and print detected Docker socket group
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh setup
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh setup
 
 # development: down + local build using host UID/GID + up
-REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart_pssm_flask.sh restart --mode=dev
+REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart.sh restart --mode=dev
 
 # production: down + pull configured Docker Hub images + up without building
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh restart --mode=prod
 
 # subcommands
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh build
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh up
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh reload
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh build
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh up
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh down
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh reload
 ```
 
 `restart` defaults to `--mode=dev` for backward compatibility. Only the
@@ -458,20 +458,20 @@ docker compose -f server/docker-compose.yml --env-file server/.env.production up
 ### Zero-downtime Gunicorn reload
 
 ```bash
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh reload
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh reload
 ```
 
 ## 6. Usage
 
 ### Create task page
 
-- `http://<server-ip>:<port>/PSSM_GREMLIN/create_task`
+- `http://<server-ip>:<port>/compute/create_task`
 - Upload ``.fasta`` files via the **Choose File** button or by **dragging and dropping** a file anywhere on the card.
 - An optional sequence editor lets you paste raw protein sequences as text instead of uploading a file.
 
 ### Dashboard
 
-- `http://<server-ip>:<port>/PSSM_GREMLIN/dashboard`
+- `http://<server-ip>:<port>/compute/dashboard`
 
 ### Upload via curl (with token auth)
 
@@ -482,7 +482,7 @@ TOKEN="<your-token>"
 curl -H "Authorization: Bearer ${TOKEN}" \
   -X POST \
   -F "file=@/path/to/input.fasta" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/post"
+  "http://<server-ip>:<port>/compute/api/post"
 ```
 
 ### Batch upload via curl
@@ -490,7 +490,7 @@ curl -H "Authorization: Bearer ${TOKEN}" \
 ```bash
 for f in *.fasta; do
   curl -H "Authorization: Bearer ${TOKEN}" -X POST -F "file=@${f}" \
-    "http://<server-ip>:<port>/PSSM_GREMLIN/api/post"
+    "http://<server-ip>:<port>/compute/api/post"
 done
 ```
 
@@ -499,7 +499,7 @@ done
 ```bash
 TASK_MD5="<task-md5>"
 curl -H "Authorization: Bearer ${TOKEN}" -X DELETE \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/delete/${TASK_MD5}"
+  "http://<server-ip>:<port>/compute/api/delete/${TASK_MD5}"
 ```
 
 ### Delete multiple tasks (batch API)
@@ -508,7 +508,7 @@ curl -H "Authorization: Bearer ${TOKEN}" -X DELETE \
 curl -H "Authorization: Bearer ${TOKEN}" -X POST \
   -H "Content-Type: application/json" \
   -d '{"md5sums":["<task-md5-a>","<task-md5-b>"]}' \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/delete"
+  "http://<server-ip>:<port>/compute/api/delete"
 ```
 
 ## 7. Task States
@@ -549,7 +549,7 @@ Use NGINX when you need custom TLS termination, routing, and rate limits.
 
 You can start from:
 
-- `server/nginx_sites/REvoDesign_PSSM_GREMLIN.app`
+- `server/nginx_sites/REvoCompute.app`
 
 ## 9. Security
 
@@ -562,7 +562,7 @@ container-escape boundary:
 - The worker runs as a non-root user for file ownership, but Docker socket
   access remains effectively Docker-daemon/host-level authority regardless of
   its primary UID.
-- `restart_pssm_flask.sh` auto-detects `DOCKER_GID` at runtime and exports it
+- `restart.sh` auto-detects `DOCKER_GID` at runtime and exports it
   for Docker Compose.  Do not persist host-specific socket groups in the env
   file.  If tasks fail with `PermissionError(13, 'Permission denied')`, compare
   the helper output with `docker exec server-worker-1 ls -ln
@@ -630,7 +630,7 @@ make -C server test
 make -C server test-cov
 
 # Run the server directly without Docker
-python -m pssm_gremlin_server.pssm_gremlin
+python -m revocompute.app
 ```
 
 Full test and security validation guidance is maintained in

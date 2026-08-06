@@ -148,7 +148,7 @@ conda run -n REvoDesignTestFlight make kw-test PYTEST_KW='"keywordA or keywordB"
 ```
 
 For server/Docker/auth changes, include integration keywords from
-`tests/server/test_pssm_gremlin.py` where applicable.
+`tests/server/test_app.py` where applicable.
 
 ## High-Value Fix Patterns
 

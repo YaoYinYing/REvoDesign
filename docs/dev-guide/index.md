@@ -17,7 +17,7 @@ solvers, or make changes to the core infrastructure.
   workflow.
 - **[CI/CD](ci-cd.md)** -- GitHub Actions workflows, matrix configuration,
   environment variables, and required secrets.
-- **[PSSM/GREMLIN Server](server.md)** -- Backend compute service for
+- **[REvoCompute Server](server.md)** -- Backend compute service for
   PSSM profile generation and GREMLIN co-evolution analysis.
 - **[Monaco Editor](editor.md)** -- Embedded VS Code editor for YAML
   configuration editing with syntax highlighting and file whitelisting.
