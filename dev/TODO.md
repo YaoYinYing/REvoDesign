@@ -30,7 +30,7 @@ Read-only audit recorded on 2026-08-06. The estimates below are directional; eac
 - [x] **Remove inappropriate server runtime dependencies.** Runner scientific libraries remain in `env/GREMLIN.yml`, `requests` is test-only, and unused or redundant direct declarations are removed.
 - [x] **Give `ClusterTabController` sole ownership of the cluster-method selector.** Duplicate group registration and hardcoded registry fallbacks are removed while `LegacyCluster` remains supported.
 - [ ] **Consolidate server reload handling.** Make reload an operation of the main server control script, delete `hot_fix.sh`, and remove duplicated Compose/environment discovery and the legacy `.env` fallback.
-- [ ] **Replace `ParamChangeRegister` with direct iteration.** Keep the useful registry items, but remove the single-instance wrapper class.
+- [x] **Replace `ParamChangeRegister` with direct iteration.** Registry items remain, and the driver registers its tuple through one direct loop.
 - [x] **Delete task-runtime compatibility exports.** Routes import task helpers directly from `task_runtime`; both unused alias chains are gone.
 - [ ] **Shrink `PluginRegistry`.** Remove the unused custom installed attribute, package-module exclusion, include predicate, and delegate-only factory.
 - [x] **Delete `DialogWrapperRegistry.use_progressbar`.** Threaded shortcuts use the thread dashboard without an inert registration option.

@@ -9,7 +9,6 @@ Module to register all parameter changes that should be reflected in the UI.
 
 from typing import Protocol
 
-from ..basic import ParamChangeRegister as PCR
 from ..basic import ParamChangeRegistryItem as PCRI
 from ..common.profile_parsers import ALL_PARSER_CLASSES
 from ..magician import ALL_DESIGNER_CLASSES
@@ -75,11 +74,13 @@ ParamChangePreferLowerScoreTabVisualize = PCRI(
 
 # collect all of these cases
 
-ParamChangeCollections = PCR(
-    register_func=refresh_widget_while_another_changed,
-    registry=(
-        ParamChangeSidechainSolverWeights,
-        ParamChangePreferLowerScoreTabMutate,
-        ParamChangePreferLowerScoreTabVisualize,
-    ),
+ParamChangeCollections = (
+    ParamChangeSidechainSolverWeights,
+    ParamChangePreferLowerScoreTabMutate,
+    ParamChangePreferLowerScoreTabVisualize,
 )
+
+
+def register_param_changes(ui) -> None:
+    for item in ParamChangeCollections:
+        item.register(refresh_widget_while_another_changed, ui=ui)

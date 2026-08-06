@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- **Parameter-change collection wrapper**: removed the one-instance
+  `ParamChangeRegister` dataclass in favor of direct registry-item iteration.
 - **Duplicate cluster selector registration**: removed `CallableGroupValues`
   method discovery and hardcoded registry fallbacks; `ClusterTabController`
   now exclusively owns the selector.

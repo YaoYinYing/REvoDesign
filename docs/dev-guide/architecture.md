@@ -22,7 +22,7 @@ src/REvoDesign/
 │   ├── plugin_registry.py       # PluginRegistry (package-scoped auto-discovery)
 │   ├── data_structure.py        # IterableLoop, generic data structures
 │   ├── group_registries.py      # GroupRegistryItem for dynamic UI population
-│   ├── param_toggle.py          # ParamChangeRegistryItem, ParamChangeRegister
+│   ├── param_toggle.py          # ParamChangeRegistryItem
 │   ├── server_monitor.py        # ServerControlAbstract for service lifecycle
 │   ├── menu_item.py             # MenuCollection, MenuItem
 │   └── extensions.py            # FileExtension types

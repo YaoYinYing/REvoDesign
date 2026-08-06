@@ -76,30 +76,3 @@ class ParamChangeRegistryItem:
         """
         event = self.widget_signal(ui=ui)
         event.connect(partial(register_func, self.source_cfg_item, self.target_cfg_item, self.param_mapping))
-
-
-@dataclass(frozen=True)
-class ParamChangeRegister:
-    """
-    A data class to register parameter change functions.
-
-    Attributes:
-    - register_func: Callable[[str, str, Dict[str, Tuple]], None]
-        A function that registers a parameter change handler.
-    - registry: tuple[ParamChangeRegistryItem, ...]
-        A tuple of items to be registered.
-    """
-
-    register_func: Callable[[str, str, dict[str, tuple]], None]
-    registry: tuple[ParamChangeRegistryItem, ...]
-
-    def register_all(self, ui):
-        """
-        Registers all items in the registry using the provided register function and UI.
-
-        Parameters:
-        - ui: The user interface object used for registration.
-        """
-
-        for registry_item in self.registry:
-            registry_item.register(self.register_func, ui=ui)

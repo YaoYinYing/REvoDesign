@@ -40,10 +40,9 @@ The plugin registry system enables package-scoped, subclass-based plugin discove
 
 ## Parameter Change Registration
 
-`ParamChangeRegistryItem` maps a signal on one UI widget to a config change on another via a parameter mapping dictionary. `ParamChangeRegister` registers a collection of such items.
+`ParamChangeRegistryItem` maps a signal on one UI widget to a config change on another via a parameter mapping dictionary.
 
 ::: REvoDesign.basic.param_toggle.ParamChangeRegistryItem
-::: REvoDesign.basic.param_toggle.ParamChangeRegister
 
 ---
 

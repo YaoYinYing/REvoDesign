@@ -1399,7 +1399,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             reconfigure = False
 
         if not reconfigure:
-            from REvoDesign.driver.param_toggle_register import ParamChangeCollections
+            from REvoDesign.driver.param_toggle_register import register_param_changes
 
             # while booting
             # create a bus btw cfg<---> ui
@@ -1410,7 +1410,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             register_environment_variables()
 
             # Tab Config
-            ParamChangeCollections.register_all(ui=self.bus.ui)
+            register_param_changes(self.bus.ui)
 
             self.bus.initialize_widget_with_group()
 
