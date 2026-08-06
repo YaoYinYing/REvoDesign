@@ -588,79 +588,6 @@ def test_unverified_email_cannot_authenticate(monkeypatch, tmp_path):
 # ==================================================================
 
 
-def test_user_database_upgrade_adds_research_profile_columns(tmp_path):
-    """An existing users database gains nullable profile fields on startup."""
-    import sqlite3
-
-    from pssm_gremlin_server.auth import UserDatabase
-
-    db_path = tmp_path / "legacy-users.sqlite3"
-    with sqlite3.connect(db_path) as conn:
-        conn.execute(
-            """
-            CREATE TABLE users (
-                id INTEGER PRIMARY KEY,
-                username TEXT NOT NULL UNIQUE,
-                email TEXT NOT NULL UNIQUE,
-                password_hash TEXT NOT NULL,
-                email_verified INTEGER NOT NULL,
-                is_admin INTEGER NOT NULL,
-                created_at FLOAT NOT NULL
-            )
-            """
-        )
-        conn.execute("INSERT INTO users VALUES (1, 'legacy', 'legacy@example.com', 'hash', 1, 1, 1.0)")
-
-    db = UserDatabase(str(db_path))
-    legacy = db.get_user(1)
-    assert legacy is not None
-    assert legacy["full_name"] is None
-    assert legacy["affiliation"] is None
-    assert legacy["position"] is None
-    assert legacy["pi_name"] is None
-    assert legacy["role"] == "admin"
-    assert "is_admin" not in legacy
-
-
-def test_user_database_upgrade_promotes_admin_role_and_drops_deprecated_column(tmp_path):
-    """The deprecated flag is migrated into role and immediately removed."""
-    import sqlite3
-
-    from pssm_gremlin_server.auth import UserDatabase
-
-    db_path = tmp_path / "inconsistent-users.sqlite3"
-    with sqlite3.connect(db_path) as conn:
-        conn.execute(
-            """
-            CREATE TABLE users (
-                id INTEGER PRIMARY KEY,
-                username TEXT NOT NULL UNIQUE,
-                email TEXT NOT NULL UNIQUE,
-                password_hash TEXT NOT NULL,
-                email_verified INTEGER NOT NULL,
-                is_admin INTEGER NOT NULL,
-                created_at FLOAT NOT NULL,
-                role TEXT
-            )
-            """
-        )
-        conn.execute(
-            "INSERT INTO users VALUES " "(1, 'legacy_admin', 'legacy-admin@example.com', 'hash', 1, 1, 1.0, 'user')"
-        )
-
-    db = UserDatabase(str(db_path))
-    upgraded = db.get_user(1)
-    assert upgraded is not None
-    assert upgraded["role"] == "admin"
-    assert "is_admin" not in upgraded
-    with db.engine.connect() as conn:
-        columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()}
-    assert "is_admin" not in columns
-    reopened = UserDatabase(str(db_path)).get_user(1)
-    assert reopened is not None
-    assert reopened["role"] == "admin"
-
-
 def test_user_database_uses_role_without_admin_flag(tmp_path):
     """New databases and writes contain only the canonical role."""
     from pssm_gremlin_server.auth import UserDatabase
@@ -683,39 +610,6 @@ def test_user_database_uses_role_without_admin_flag(tmp_path):
 
     with pytest.raises(ValueError, match="was removed"):
         db.update_user(user["id"], is_admin=True)
-
-
-def test_user_database_upgrade_tolerates_duplicate_column_race():
-    """A second startup process may lose ALTER TABLE without aborting."""
-    import sqlalchemy as sa
-    from pssm_gremlin_server.auth import UserDatabase
-
-    class RacingConnection:
-        def exec_driver_sql(self, statement):
-            raise sa.exc.OperationalError(
-                statement,
-                {},
-                Exception("duplicate column name: full_name"),
-            )
-
-    existing: set[str] = set()
-    added = UserDatabase._add_column_if_missing(RacingConnection(), existing, "full_name", "TEXT")
-
-    assert added is False
-    assert "full_name" in existing
-
-
-def test_user_database_upgrade_does_not_hide_other_operational_errors():
-    """Only the expected duplicate-column race is recoverable."""
-    import sqlalchemy as sa
-    from pssm_gremlin_server.auth import UserDatabase
-
-    class FailingConnection:
-        def exec_driver_sql(self, statement):
-            raise sa.exc.OperationalError(statement, {}, Exception("disk I/O error"))
-
-    with pytest.raises(sa.exc.OperationalError, match="disk I/O error"):
-        UserDatabase._add_column_if_missing(FailingConnection(), set(), "full_name", "TEXT")
 
 
 def test_user_db_get_user_by_email(monkeypatch, tmp_path):

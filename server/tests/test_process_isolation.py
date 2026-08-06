@@ -5,13 +5,11 @@
 from __future__ import annotations
 
 import os
-import sqlite3
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
-import sqlalchemy as sa
 from conftest import REPO_DIR
 
 
@@ -168,42 +166,6 @@ def test_restart_rejects_missing_required_settings_before_shutdown(tmp_path, nam
     )
 
 
-def test_restart_backup_includes_uncheckpointed_user_db_wal(tmp_path):
-    auth_dir = tmp_path / "auth"
-    auth_dir.mkdir(parents=True)
-    user_db = auth_dir / "users.sqlite3"
-    writer = """
-import os
-import sqlite3
-import sys
-
-conn = sqlite3.connect(sys.argv[1])
-conn.execute("PRAGMA journal_mode=WAL")
-conn.execute("PRAGMA wal_autocheckpoint=0")
-conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT)")
-conn.execute("INSERT INTO users (username) VALUES ('wal-user')")
-conn.commit()
-os._exit(0)
-"""
-    result = subprocess.run(
-        [sys.executable, "-c", writer, str(user_db)],
-        capture_output=True,
-        text=True,
-        timeout=10,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
-    assert Path(f"{user_db}-wal").is_file()
-
-    restart, _commands = _run_restart_script(tmp_path, "restart")
-
-    assert restart.returncode == 0, restart.stderr
-    backups = list(auth_dir.glob("users.sqlite3.bak.*"))
-    assert len(backups) == 1
-    with sqlite3.connect(backups[0]) as conn:
-        assert conn.execute("SELECT username FROM users").fetchall() == [("wal-user",)]
-
-
 def test_worker_runtime_import_has_no_auth_or_flask_side_effects(tmp_path):
     server_dir = Path(REPO_DIR) / "server"
     task_dir = tmp_path / "tasks"
@@ -291,104 +253,3 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
     assert "/var/lib/revodesign-auth" not in worker
     assert "pssm_gremlin_server.task_runtime.celery" in worker
     assert "/var/run/docker.sock:/var/run/docker.sock" in worker
-
-
-def test_task_database_upgrade_tolerates_duplicate_column_race():
-    from pssm_gremlin_server.db import TaskDatabase
-
-    class RacingConnection:
-        def exec_driver_sql(self, statement):
-            raise sa.exc.OperationalError(
-                statement,
-                {},
-                Exception("duplicate column name: run_stage"),
-            )
-
-    existing: set[str] = set()
-    TaskDatabase._add_column_if_missing(RacingConnection(), existing, "run_stage", "TEXT")
-    assert "run_stage" in existing
-
-
-def test_task_database_upgrade_keeps_other_errors_fatal():
-    from pssm_gremlin_server.db import TaskDatabase
-
-    class FailingConnection:
-        def exec_driver_sql(self, statement):
-            raise sa.exc.OperationalError(statement, {}, Exception("database disk image is malformed"))
-
-    with pytest.raises(sa.exc.OperationalError, match="database disk image is malformed"):
-        TaskDatabase._add_column_if_missing(FailingConnection(), set(), "run_stage", "TEXT")
-
-
-def test_auth_database_migration_is_verified_and_recoverable(tmp_path):
-    from pssm_gremlin_server.migrate_auth_db import migrate_auth_database
-
-    server_dir = tmp_path / "shared-task-data"
-    auth_dir = tmp_path / "web-only-auth"
-    server_dir.mkdir()
-    legacy = server_dir / "users.sqlite3"
-    with sqlite3.connect(legacy) as conn:
-        conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT)")
-        conn.executemany("INSERT INTO users (username) VALUES (?)", [("one",), ("two",)])
-
-    result = migrate_auth_database(server_dir, auth_dir)
-
-    assert result.user_count == 2
-    assert result.destination == auth_dir / "users.sqlite3"
-    assert result.destination.is_file()
-    assert result.rollback_backup is not None and result.rollback_backup.is_file()
-    assert not legacy.exists()
-    assert migrate_auth_database(server_dir, auth_dir).already_migrated is True
-
-
-def test_auth_database_migration_includes_uncheckpointed_wal(tmp_path):
-    from pssm_gremlin_server.migrate_auth_db import migrate_auth_database
-
-    server_dir = tmp_path / "shared-task-data"
-    auth_dir = tmp_path / "web-only-auth"
-    server_dir.mkdir()
-    legacy = server_dir / "users.sqlite3"
-    writer = """
-import os
-import sqlite3
-import sys
-
-conn = sqlite3.connect(sys.argv[1])
-conn.execute("PRAGMA journal_mode=WAL")
-conn.execute("PRAGMA wal_autocheckpoint=0")
-conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT)")
-conn.execute("INSERT INTO users (username) VALUES ('wal-user')")
-conn.commit()
-os._exit(0)
-"""
-    result = subprocess.run(
-        [sys.executable, "-c", writer, str(legacy)],
-        capture_output=True,
-        text=True,
-        timeout=10,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
-    assert Path(f"{legacy}-wal").is_file()
-
-    migration = migrate_auth_database(server_dir, auth_dir)
-
-    assert migration.user_count == 1
-    with sqlite3.connect(migration.destination) as conn:
-        assert conn.execute("SELECT username FROM users").fetchall() == [("wal-user",)]
-    assert migration.rollback_backup is not None
-    with sqlite3.connect(migration.rollback_backup) as conn:
-        assert conn.execute("SELECT username FROM users").fetchall() == [("wal-user",)]
-    assert not legacy.exists()
-    assert not Path(f"{legacy}-wal").exists()
-    assert not Path(f"{legacy}-shm").exists()
-    assert not list(auth_dir.glob("users.sqlite3.migrating.*"))
-
-
-def test_auth_database_migration_rejects_shared_auth_directory(tmp_path):
-    from pssm_gremlin_server.migrate_auth_db import migrate_auth_database
-
-    server_dir = tmp_path / "shared"
-    server_dir.mkdir()
-    with pytest.raises(ValueError, match="outside SERVER_DIR"):
-        migrate_auth_database(server_dir, server_dir / "auth")

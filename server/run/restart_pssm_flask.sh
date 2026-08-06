@@ -37,7 +37,7 @@ ENV_FILE="$(resolve_env_file)"
 
 usage() {
   cat <<'USAGE'
-Usage: bash server/run/restart_pssm_flask.sh [setup|build|up|down|restart|migrate-auth-db]
+Usage: bash server/run/restart_pssm_flask.sh [setup|build|up|down|restart]
        bash server/run/restart_pssm_flask.sh restart [--mode=dev|--mode=prod]
 
 Environment:
@@ -53,9 +53,6 @@ Subcommands:
   restart  Restart in dev mode by default.
            --mode=dev:  down, build local images with host UID/GID, then up.
            --mode=prod: down, pull configured images, then up without building.
-  migrate-auth-db
-           Move the legacy SERVER_DIR/users.sqlite3 into the web-only AUTH_DIR
-           after verification. The stack must be stopped.
 USAGE
 }
 
@@ -238,7 +235,6 @@ prepare_admin_bootstrap() {
 
   local auth_dir="${AUTH_DIR:-${SCRIPT_DIR}/../auth-data}"
   local user_db="${auth_dir}/users.sqlite3"
-  local legacy_user_db="${SERVER_DIR}/users.sqlite3"
   local needs_admin_bootstrap=""
   local admin_bootstrap_credentials=""
   local admin_username=""
@@ -247,11 +243,6 @@ prepare_admin_bootstrap() {
   local -a configured_admins=()
   local -a seen_admins=()
 
-  if [[ -f "${legacy_user_db}" && ! -f "${user_db}" ]]; then
-    echo "Legacy user DB detected at ${legacy_user_db}." >&2
-    echo "Run the migrate-auth-db subcommand before starting this release." >&2
-    exit 1
-  fi
   if [[ -n "${ADMIN_BOOTSTRAP_CREDENTIALS:-}" ]]; then
     return
   fi
@@ -369,35 +360,6 @@ cmd_down() {
   "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" down
 }
 
-cmd_migrate_auth_db() {
-  require_env_file
-  validate_auth_storage
-  ensure_docker_gid
-  resolve_runner_identity
-  set +u
-  set -a
-  source "${ENV_FILE}"
-  set +a
-  set -u
-
-  local _auth_dir="${AUTH_DIR:-}"
-  local _running=""
-  if [[ -z "${_auth_dir}" ]]; then
-    echo "AUTH_DIR must be set to a host directory outside SERVER_DIR." >&2
-    exit 1
-  fi
-
-  _running="$("${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" ps -q web maintenance worker 2>/dev/null || true)"
-  if [[ -n "${_running}" ]]; then
-    echo "Stop web, maintenance, and worker before migrating: restart_pssm_flask.sh down" >&2
-    exit 1
-  fi
-
-  PYTHONPATH="${SCRIPT_DIR}/.." python3 -m pssm_gremlin_server.migrate_auth_db \
-    --server-dir "${SERVER_DIR}" \
-    --auth-dir "${_auth_dir}"
-}
-
 cmd_restart() {
   require_env_file
   validate_required_settings
@@ -413,26 +375,7 @@ cmd_restart() {
   fi
 
   prepare_admin_bootstrap
-  _auth_dir="${AUTH_DIR:-${SCRIPT_DIR}/../auth-data}"
-  _user_db="${_auth_dir}/users.sqlite3"
   cmd_down
-
-  if [[ -f "${_user_db}" ]]; then
-    # Backup existing DB before schema migrations run on startup.
-    _backup="${_auth_dir}/users.sqlite3.bak.$(date +%Y%m%d-%H%M%S)"
-    if python3 - "${_user_db}" "${_backup}" <<'PY'
-import sqlite3
-import sys
-
-with sqlite3.connect(sys.argv[1]) as source, sqlite3.connect(sys.argv[2]) as destination:
-    source.backup(destination)
-PY
-    then
-      echo "Backed up user DB to ${_backup}"
-    else
-      echo "Warning: cannot back up user DB — skipping" >&2
-    fi
-  fi
 
   case "${MODE}" in
     dev)
@@ -504,9 +447,6 @@ case "${SUBCOMMAND}" in
     ;;
   restart)
     cmd_restart
-    ;;
-  migrate-auth-db)
-    cmd_migrate_auth_db
     ;;
   -h|--help|help)
     usage

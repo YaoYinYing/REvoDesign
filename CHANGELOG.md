@@ -49,10 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   test, packaging, or deployment changes. Documentation-only and unrelated
   pull requests avoid those matrices.
 - **GREMLIN server: canonical user roles**: authorization now uses `role` as
-  its sole authority. On startup, databases containing the deprecated
-  `is_admin` column silently promote flagged administrators into `role`, then
-  immediately drop the obsolete column. Bootstrap and user-management APIs now
-  accept only `role`.
+  its sole authority. Fresh databases create the current schema directly, and
+  bootstrap and user-management APIs accept only `role`.
 - **GREMLIN server: explicit deployment configuration**: removed implicit
   server/database path and bootstrap-admin defaults. `SERVER_DIR`,
   `DB_UNIREF30`, `DB_UNIREF90`, and `ADMIN_USERS` are now mandatory; both
@@ -288,13 +286,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   misleading `REDIS_PASSWORD` Compose guidance because the current stack does
   not configure Redis authentication, and restored the documented
   `RUNNER_HOST_ROOT` override to the worker environment.
-- **GREMLIN server: user DB upgrade compatibility**: older SQLite user
-  databases now gain the new registration-profile columns safely, including
-  concurrent web startup. The explicit `migrate-auth-db` command moves the
-  legacy database from shared `SERVER_DIR` into web/maintenance-only `AUTH_DIR`, verifies
-  integrity and user counts, and keeps a rollback database. It uses SQLite's
-  backup API so committed WAL data is included; no manual database move is
-  required.
 - **Package manager self-bootstrap**: manager UI and extras registry now
   bootstrap into a writable runtime directory instead of writing into `src/` or
   an installed package directory. Bootstrap fetches use bounded timeouts and
@@ -377,16 +368,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     uses the configured `SERVER_BASE_URL` for verification / password-reset
     links, never the request `Host` header (which an attacker can spoof to
     place valid tokens in links pointing to an attacker-controlled domain).
-  - **Role demotion doesn't clear `is_admin`**: updating a user role from
-    `admin` to `user`/`guest` now also sets `is_admin = False`, preventing
-    privilege-leak bugs where `require_admin()` checks `is_admin` instead of
-    `role`.
   - **Cancelled tasks resurrected by late worker writes**: cancelled tasks are
     now treated as terminal — the DB update guard prevents late `running`/
     `finished` status writes from overwriting a `cancelled` task.
-  - **Legacy NULL columns not backfilled**: `_ensure_columns()` now backfills
-    `deleted`, `registration_status`, `user_status`, and `role` for rows that
-    predate those columns.
   - **Admin digest silently drops users on email failure**: `_send_email()`
     returns `False` on failure (doesn't raise), so the try/except never caught
     transient errors. The digest loop now checks return values and unmarks users
@@ -499,6 +483,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed HTTP Basic Auth dependency (`flask_httpauth`) and `users.txt` file.
 
 ### Removed
+- **GREMLIN server database migrations**: removed setup-time task/user column
+  upgrades, legacy auth-database relocation, and the migration-only restart
+  backup. New deployments create only the current schemas; scheduled database
+  backups remain available for normal operations.
 - `flask_httpauth` dependency and `USERS_FILE` / `users.txt` credential storage.
 
 ## [1.9.0] - 2026-07-03
