@@ -23,7 +23,7 @@
 
 Read-only audit recorded on 2026-08-06. The estimates below are directional; each item should be revalidated against the current checkout before implementation.
 
-- [ ] **Delete the repository-local Loopkit/Claude framework.** The 1,333 tracked lines under `.claude/` duplicate the root guidance and include migration practices that conflict with `CLAUDE.md`. Retain the root `CLAUDE.md` and only essential tool settings.
+- [x] **Delete the repository-local Loopkit/Claude framework.** The 1,333 tracked lines under `.claude/` duplicated the root guidance and included migration practices that conflicted with `CLAUDE.md`; the root `CLAUDE.md` is now the sole agent guidance.
 - [ ] **Delete `LegacyCluster`.** Remove the deprecated compatibility implementation and its controller branches, UI page, translations, documentation, and tests. `AgglomerativeCluster` is the current replacement.
 - [ ] **Delete compatibility-only `QButtonBrick` children.** `QButtonMatrix` creates invisible widgets solely for older tests. Test the painted matrix through its signals and hit-testing instead.
 - [ ] **Delete `SingletonAbstract.derive()`.** Its dynamic subclass machinery has no production callers and is exercised only by tests. Define ordinary subclasses if a real use case appears.
