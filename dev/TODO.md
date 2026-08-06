@@ -31,7 +31,7 @@ Read-only audit recorded on 2026-08-06. The estimates below are directional; eac
 - [ ] **Give `ClusterTabController` sole ownership of the cluster-method selector.** Remove duplicate ordering and filtering in `CallableGroupValues` and both hardcoded registry fallbacks.
 - [ ] **Consolidate server reload handling.** Make reload an operation of the main server control script, delete `hot_fix.sh`, and remove duplicated Compose/environment discovery and the legacy `.env` fallback.
 - [ ] **Replace `ParamChangeRegister` with direct iteration.** Keep the useful registry items, but remove the single-instance wrapper class.
-- [ ] **Delete task-runtime compatibility exports.** Current routes already import the helpers directly from `task_runtime`; remove the two alias chains.
+- [x] **Delete task-runtime compatibility exports.** Routes import task helpers directly from `task_runtime`; both unused alias chains are gone.
 - [ ] **Shrink `PluginRegistry`.** Remove the unused custom installed attribute, package-module exclusion, include predicate, and delegate-only factory.
 - [x] **Delete `DialogWrapperRegistry.use_progressbar`.** Threaded shortcuts use the thread dashboard without an inert registration option.
 - [ ] **Drop legacy `.xls` support and `xlrd`.** Retain `.xlsx` support through the existing `openpyxl` path.

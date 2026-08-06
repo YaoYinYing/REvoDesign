@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- **Server task compatibility exports**: removed unused task-runtime aliases
+  from the web module and redundant public aliases in `task_runtime`.
 - **Shortcut progress-bar preference**: removed the inert
   `DialogWrapperRegistry.use_progressbar` registration option.
 - **Qt alias compatibility name**: removed the unused public
