@@ -1,4 +1,4 @@
-/* REvoDesign GREMLIN Server — Profile page */
+/* REvoCompute — Profile page */
 /* SPDX-License-Identifier: GPL-3.0-only */
 
 (function () {

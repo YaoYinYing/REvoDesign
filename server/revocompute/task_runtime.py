@@ -119,7 +119,7 @@ def _task_zip_path(task: Any) -> str:
 
 
 def _virtual_upload_path(filename: str) -> str:
-    safe_name = os.path.basename(filename or "unknown.fasta")
+    safe_name = os.path.basename(filename or "unknown")
     return f"/srv/REvoDesign/compute/upload/{safe_name}"
 
 
@@ -223,9 +223,7 @@ def _run_in_docker(
     for m in runner.mounts:
         host = os.path.expanduser(m.host_path)
         if not os.path.exists(host):
-            raise docker.errors.DockerException(
-                f"Mount source '{host}' for '{m.container_path}' does not exist"
-            )
+            raise docker.errors.DockerException(f"Mount source '{host}' for '{m.container_path}' does not exist")
         volumes[host] = {"bind": m.container_path, "mode": m.mode}
 
     # Standard input/output mounts
@@ -247,9 +245,7 @@ def _run_in_docker(
         detach=True,
         volumes=volumes,
         environment=container_env,
-        device_requests=(
-            [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if tt.gpus else None
-        ),
+        device_requests=([docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if tt.gpus else None),
         user=CONFIG.docker_user,
         stdout=True,
         stderr=True,
@@ -445,9 +441,7 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
             stage_callback=_on_stage_change,
         )
         if _task_is_terminal(md5sum):
-            logging.info(
-                "Task %s was deleted during execution; skipping result packing and finalization.", md5sum
-            )
+            logging.info("Task %s was deleted during execution; skipping result packing and finalization.", md5sum)
             return
         final_stage = stage_state["current"] or (stages[-1][0] if stages else "")
         task_store.update_task(md5sum, status="packing results", run_stage=final_stage)

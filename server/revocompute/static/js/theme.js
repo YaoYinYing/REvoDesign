@@ -1,4 +1,4 @@
-/* REvoDesign GREMLIN Server — Theme detection and cycling */
+/* REvoCompute — Theme detection and cycling */
 /* SPDX-License-Identifier: GPL-3.0-only */
 
 (function () {

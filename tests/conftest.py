@@ -10,6 +10,17 @@ pytest configuration
 # isort: skip_file -- import-time path patches must precede REvoDesign imports.
 
 from __future__ import annotations
+from .data.test_data import KeyData
+from .data import TestData
+from REvoDesign.tools.package_manager import REvoDesignPackageManager, refresh_window
+from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
+from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.driver.ui_driver import ConfigBus
+from REvoDesign.common import MutantTree
+from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
+from REvoDesign.basic.abc_singleton import reset_singletons
+from REvoDesign import REvoDesignPlugin
+import REvoDesign.tools.package_manager as package_manager
 
 import gc
 import hmac
@@ -65,18 +76,7 @@ platformdirs.user_cache_dir = _static_platform_dir(CACHE_DIRNAME)
 # import hydra as unmocked_hydra
 
 # REvoDesign imports below are safe only after the platformdirs patches above.
-import REvoDesign.tools.package_manager as package_manager
-from REvoDesign import REvoDesignPlugin
-from REvoDesign.basic.abc_singleton import reset_singletons
-from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file, set_REvoDesign_config_file
-from REvoDesign.common import MutantTree
-from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.Qt import QtCore, QtWidgets
-from REvoDesign.tools.customized_widgets import get_widget_value, set_widget_value
-from REvoDesign.tools.package_manager import REvoDesignPackageManager, refresh_window
 
-from .data import TestData
-from .data.test_data import KeyData
 
 REPO_DIR = os.path.join(os.path.dirname(__file__), "..")
 TESTS_DIR = Path(__file__).resolve().parent

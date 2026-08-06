@@ -1,4 +1,4 @@
-/* REvoDesign GREMLIN Server — lazy active-log viewer */
+/* REvoCompute — lazy active-log viewer */
 (function () {
   "use strict";
 

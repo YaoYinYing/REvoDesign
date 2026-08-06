@@ -1,4 +1,4 @@
-/* REvoDesign GREMLIN Server — Dashboard page logic */
+/* REvoCompute — Dashboard page logic */
 /* SPDX-License-Identifier: GPL-3.0-only */
 
 (function () {
@@ -31,13 +31,6 @@
     "deleted:cancel": { label: "Deleted (Cancel)", css: "status-deleted", accent: "var(--deleted)" },
   };
 
-  var runningTraceFallback = [
-    "hhblits: searching for co-evolutionary sequences [running]",
-    "hhfilter: filtering co-evolutionary [pending]",
-    "GREMLIN: calculating co-evolution signals [pending]",
-    "PSI-Blast: searching for consensus profile [pending]",
-  ].join("\n");
-
   function escapeHtml(input) {
     return String(input ?? "")
       .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
@@ -50,22 +43,14 @@
 
   function getStatusTrace(task) {
     if (task.status !== "running") return "";
-    return task.running_trace || runningTraceFallback;
-  }
-
-  function normalizeTraceLabel(label) {
-    var raw = String(label || "").trim();
-    if (!raw) return "-";
-    if (/^gremlin\s*:/i.test(raw)) return raw.replace(/^gremlin\s*:/i, "GREMLIN:");
-    if (/^blast\s*:/i.test(raw)) return raw.replace(/^blast\s*:/i, "PSI-Blast:");
-    return raw;
+    return task.running_trace || "";
   }
 
   function parseStatusTrace(traceText) {
     var lines = String(traceText || "").split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean);
     return lines.map(function (line) {
       var match = line.match(/^(.*?)(?:\s*\[(done|running|pending)\])?$/i);
-      var label = normalizeTraceLabel(match ? match[1] : line);
+      var label = (match ? match[1] : line).trim() || "-";
       var marker = (match && match[2]) ? match[2].toLowerCase() : "pending";
       return { label: label, marker: (marker === "done" || marker === "running" || marker === "pending") ? marker : "pending" };
     });
@@ -175,7 +160,8 @@
           '<div class="task-head-left">' +
             (canDelete ? '<label class="task-select-wrap" title="Select task for batch delete"><input class="task-select" type="checkbox" data-action="toggle-select" data-md5="' + escapeHtml(task.md5) + '" ' + (selected ? "checked" : "") + '></label>' : "") +
             '<div>' +
-              '<h2 class="task-title">' + escapeHtml(task.fasta_fn || "Unknown FASTA") + '</h2>' +
+              '<h2 class="task-title">' + escapeHtml(task.fasta_fn || "Unknown file") + '</h2>' +
+              '<span class="task-type-badge">' + escapeHtml(task.task_type || "gremlin") + '</span>' +
               '<p class="task-id">' + escapeHtml(task.md5) + '</p>' +
               (isAdmin ? '<span class="owner-chip">Owner: ' + escapeHtml(task.owner || "-") + '</span>' : "") +
             '</div>' +

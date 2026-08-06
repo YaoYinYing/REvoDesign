@@ -49,7 +49,7 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     assert 'class="btn btn-soft theme-toggle mode-auto"' in html
     assert 'class="theme-icon" aria-hidden="true">◐</span>' in html
     assert 'src="/static/js/theme.js"' in html
-    assert 'type="file" name="file" id="fileInput" accept=".fasta" class="sr-only"' in html
+    assert 'type="file" name="file" id="fileInput" class="sr-only"' in html
     assert 'id="fileButton"' in html
     assert "file-input-offscreen" not in html
 
@@ -85,8 +85,9 @@ def test_run_compute_task_handles_docker_daemon_error(monkeypatch, tmp_path):
     )
     md5sum = _insert_pending_task(module, tmp_path / "result")
 
-    def _raise_docker_error(task_id, tt, runner, params, input_path, output_dir,
-                           docker_client=None, stage_callback=None):
+    def _raise_docker_error(
+        task_id, tt, runner, params, input_path, output_dir, docker_client=None, stage_callback=None
+    ):
         del task_id, tt, runner, params, input_path, output_dir, docker_client, stage_callback
         raise docker.errors.DockerException(
             "Error while fetching server API version: ('Connection aborted.', PermissionError(13, 'Permission denied'))"
@@ -130,8 +131,7 @@ def test_run_compute_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
             observed_statuses.append(fields["status"])
         return original_update_task(md5_value, **fields)
 
-    def _fake_runner(task_id, tt, runner, params, input_path, output_dir,
-                     docker_client=None, stage_callback=None):
+    def _fake_runner(task_id, tt, runner, params, input_path, output_dir, docker_client=None, stage_callback=None):
         del task_id, tt, runner, params, input_path
         if stage_callback:
             stage_callback("hhblits")
@@ -219,8 +219,7 @@ def test_run_compute_task_does_not_resurrect_deleted_task(monkeypatch, tmp_path)
             observed_statuses.append(fields["status"])
         return original_update_task(md5_value, **fields)
 
-    def _fake_runner(task_id, tt, runner, params, input_path, output_dir,
-                     docker_client=None, stage_callback=None):
+    def _fake_runner(task_id, tt, runner, params, input_path, output_dir, docker_client=None, stage_callback=None):
         del task_id, tt, runner, params, input_path
         if stage_callback:
             stage_callback("blast")

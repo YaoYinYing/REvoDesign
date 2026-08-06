@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Pydantic models for GREMLIN server request and response validation.
+"""Pydantic models for REvoCompute server request and response validation.
 
 All inbound request payloads are validated through these models at the API
 boundary.  Response models ensure sensitive fields (``password_hash``,

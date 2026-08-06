@@ -931,8 +931,8 @@ def test_upload_different_users_get_different_ids_for_same_content(monkeypatch, 
 
 def test_schema_login_request_rejects_empty_fields(monkeypatch, tmp_path):
     """LoginRequest requires non-empty username and password."""
-    from revocompute.schemas import LoginRequest
     from pydantic import ValidationError
+    from revocompute.schemas import LoginRequest
 
     with pytest.raises(ValidationError):
         LoginRequest(username="", password="something")
@@ -942,8 +942,8 @@ def test_schema_login_request_rejects_empty_fields(monkeypatch, tmp_path):
 
 def test_schema_register_request_min_password_length(monkeypatch, tmp_path):
     """RegisterRequest enforces min 8-char password."""
-    from revocompute.schemas import RegisterRequest
     from pydantic import ValidationError
+    from revocompute.schemas import RegisterRequest
 
     with pytest.raises(ValidationError):
         RegisterRequest(
@@ -958,8 +958,8 @@ def test_schema_register_request_min_password_length(monkeypatch, tmp_path):
 
 def test_schema_register_request_min_username_length(monkeypatch, tmp_path):
     """RegisterRequest enforces min 3-char username."""
-    from revocompute.schemas import RegisterRequest
     from pydantic import ValidationError
+    from revocompute.schemas import RegisterRequest
 
     with pytest.raises(ValidationError):
         RegisterRequest(
@@ -983,8 +983,8 @@ def test_schema_email_normalization(monkeypatch, tmp_path):
 
 def test_schema_admin_create_user_rejects_invalid_role(monkeypatch, tmp_path):
     """AdminCreateUserRequest rejects roles other than admin/user/guest."""
-    from revocompute.schemas import AdminCreateUserRequest
     from pydantic import ValidationError
+    from revocompute.schemas import AdminCreateUserRequest
 
     with pytest.raises(ValidationError):
         AdminCreateUserRequest(username="test", email="t@t.com", password="pass1234", role="superadmin")
@@ -993,8 +993,8 @@ def test_schema_admin_create_user_rejects_invalid_role(monkeypatch, tmp_path):
 
 def test_schema_batch_user_requires_nonempty_user_ids(monkeypatch, tmp_path):
     """BatchUserRequest requires at least one user_id."""
-    from revocompute.schemas import BatchUserRequest
     from pydantic import ValidationError
+    from revocompute.schemas import BatchUserRequest
 
     with pytest.raises(ValidationError):
         BatchUserRequest(action="enable", user_ids=[])
@@ -1002,8 +1002,8 @@ def test_schema_batch_user_requires_nonempty_user_ids(monkeypatch, tmp_path):
 
 def test_schema_user_response_excludes_password_hash(monkeypatch, tmp_path):
     """UserResponse does not accept password_hash or api_key_hash fields."""
-    from revocompute.schemas import UserResponse
     from pydantic import ValidationError
+    from revocompute.schemas import UserResponse
 
     # Valid minimal data
     user = UserResponse(

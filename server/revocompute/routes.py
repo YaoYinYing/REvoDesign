@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""HTTP route handlers for the GREMLIN server.
+"""HTTP route handlers for the REvoCompute server.
 
 All ``@app.route`` decorators live here.  The module is imported by
 ``revocompute.__init__`` *after* ``revocompute.app`` has
@@ -13,6 +13,7 @@ already-initialised application.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import re
@@ -23,26 +24,7 @@ from typing import Any
 
 from celery.result import AsyncResult
 from flask import Response, current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
-from revocompute.auth import (
-    _DUMMY_PASSWORD_HASH,
-    UserDatabase,
-    _env_str,
-    _is_account_blocked,
-    generate_captcha,
-    generate_token,
-    load_current_user,
-    login_required,
-    optional_user,
-    require_bearer_auth,
-    require_web_login,
-    send_approval_email,
-    send_password_reset_email,
-    send_rejection_email,
-    send_verification_email,
-    validate_captcha,
-    validate_email_token,
-    validate_reset_token,
-)
+from pydantic import ValidationError
 from revocompute.app import (
     ENABLE_REGISTER,
     TEMPLATE_IMAGE_DIR,
@@ -64,6 +46,26 @@ from revocompute.app import (
     _task_zip_download_name,
     app,
 )
+from revocompute.auth import (
+    _DUMMY_PASSWORD_HASH,
+    UserDatabase,
+    _env_str,
+    _is_account_blocked,
+    generate_captcha,
+    generate_token,
+    load_current_user,
+    login_required,
+    optional_user,
+    require_bearer_auth,
+    require_web_login,
+    send_approval_email,
+    send_password_reset_email,
+    send_rejection_email,
+    send_verification_email,
+    validate_captcha,
+    validate_email_token,
+    validate_reset_token,
+)
 from revocompute.ratelimit import rate_limit
 from revocompute.schemas import (
     AdminCreateUserRequest,
@@ -78,6 +80,7 @@ from revocompute.schemas import (
 )
 from revocompute.task_runtime import (
     _build_running_trace,
+    _get_task_type,
     _local_user_identity,
     _normalize_task_id,
     _pack_failed_results_archive,
@@ -90,7 +93,7 @@ from revocompute.task_runtime import (
     run_compute_task,
     task_store,
 )
-from pydantic import ValidationError
+from revocompute.task_types import list_types
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -176,7 +179,26 @@ def legacy_dashboard_redirect():
 # ---------------------------------------------------------------------------
 
 
-def _validate_fasta_upload():
+@app.route("/compute/api/types", methods=["GET"])
+def task_types_list():
+    """Return registered task types (public — needed by the create-task page)."""
+    types_data = [
+        {
+            "name": tt.name,
+            "display_name": tt.display_name,
+            "input_extension": tt.input_extension,
+            "input_label": tt.input_label,
+            "params": [
+                {"name": p.name, "type": p.type, "default": p.default, "description": p.description} for p in tt.params
+            ],
+            "stage_markers": tt.stage_markers,
+        }
+        for tt in list_types()
+    ]
+    return jsonify(types_data)
+
+
+def _validate_input_upload(task_type: str = "gremlin"):
     """Return a validated upload and safe filename, or an HTTP error."""
     if "file" not in request.files:
         return None, None, (jsonify({"error": "No file part"}), 400)
@@ -188,8 +210,15 @@ def _validate_fasta_upload():
     safe_filename = secure_filename(uploaded_file.filename)
     if not safe_filename:
         return None, None, (jsonify({"error": "Invalid filename"}), 400)
-    if not safe_filename.lower().endswith(".fasta"):
-        return None, None, (jsonify({"error": "Uploaded file must have the .fasta extension"}), 400)
+
+    try:
+        tt, _ = _get_task_type(task_type)
+    except KeyError:
+        return None, None, (jsonify({"error": f"Unknown task type: {task_type}"}), 400)
+
+    ext = tt.input_extension
+    if not safe_filename.lower().endswith(ext.lower()):
+        return None, None, (jsonify({"error": f"Uploaded file must have the {ext} extension"}), 400)
     return uploaded_file, safe_filename, None
 
 
@@ -233,6 +262,9 @@ def _prepare_task_record(
     upload_path: str,
     safe_filename: str,
     metadata: dict[str, str],
+    task_type: str = "gremlin",
+    input_form: dict[str, Any] | None = None,
+    uploaded_files: list[str] | None = None,
 ) -> dict[str, Any]:
     result_dir = _safe_join(app.config["RESULTS_FOLDER"], md5sum)
     if os.path.exists(result_dir):
@@ -260,6 +292,9 @@ def _prepare_task_record(
         "local_user": _local_user_identity(),
         "celery_task_id": None,
         "run_stage": None,
+        "task_type": task_type,
+        "input_form": json.dumps(input_form) if input_form else None,
+        "uploaded_files": json.dumps(uploaded_files) if uploaded_files else None,
     }
 
 
@@ -286,7 +321,13 @@ def _reject_invalid_fasta(md5sum: str, base_record: dict[str, Any]):
 def upload_file():  # skipcq: PY-R1000 -- route validation branches form one transactional request boundary.
     if _blocked := require_bearer_auth():
         return _blocked
-    uploaded_file, safe_filename, upload_error = _validate_fasta_upload()
+
+    task_type = request.form.get("task_type", "gremlin").strip().lower()
+    known_types = {tt.name for tt in list_types()}
+    if task_type not in known_types:
+        return jsonify({"error": f"Unknown task type: {task_type}"}), 400
+
+    uploaded_file, safe_filename, upload_error = _validate_input_upload(task_type)
     if upload_error is not None:
         return upload_error
     md5sum, upload_path, metadata = _save_uploaded_fasta(uploaded_file, safe_filename)
@@ -310,7 +351,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
             429,
         )
 
-    base_record = _prepare_task_record(md5sum, upload_path, safe_filename, metadata)
+    base_record = _prepare_task_record(md5sum, upload_path, safe_filename, metadata, task_type=task_type)
     if invalid_response := _reject_invalid_fasta(md5sum, base_record):
         return invalid_response
 
@@ -322,7 +363,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     )
 
     try:
-        async_result = run_compute_task.apply_async(args=[md5sum])
+        async_result = run_compute_task.apply_async(args=[md5sum], kwargs={"task_type": task_type})
     except Exception:
         logging.exception("Failed to submit compute task %s to Celery", md5sum)
         error_message = "Task queue unavailable — please try again later"
@@ -523,6 +564,7 @@ def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, 
         "owner": task.get("username") or "-",
         "can_delete": (is_admin or task.get("username") == current_user)
         and task["status"] not in task_store.CLEANUP_CLAIM_STATUSES,
+        "task_type": task.get("task_type", "gremlin"),
         "running_trace": _build_running_trace(task),
         "error": _sanitize_task_error(task, task.get("error")),
     }

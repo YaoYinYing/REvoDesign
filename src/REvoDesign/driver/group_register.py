@@ -79,6 +79,7 @@ class CallableGroupValues:
 
         return available_run_node_hints
 
+
 # define all group mappers
 # Header
 GroupCmap = GR(

@@ -1,4 +1,4 @@
-/* REvoDesign GREMLIN Server — Auth token helpers */
+/* REvoCompute — Auth token helpers */
 /* SPDX-License-Identifier: GPL-3.0-only */
 
 (function () {

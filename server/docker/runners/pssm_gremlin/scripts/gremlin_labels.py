@@ -2,6 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
+
 def validate_position_label(label: object, alphabet: str) -> str:
     """Validate a ``<residue>_<1-based position>`` GREMLIN label."""
     label_text = str(label)

@@ -25,9 +25,9 @@ from revocompute.config import env_path as _env_path
 from revocompute.config import env_required as _env_required
 from revocompute.config import format_runner_identity as _format_runner_identity
 from revocompute.config import resolve_docker_user as _resolve_docker_user
-from revocompute.task_types import load_registry as _load_task_registry
 from revocompute.maintenance.tasks.result_cleanup import delete_task_artifacts as _delete_result_artifacts
 from revocompute.maintenance.tasks.result_cleanup import deleted_status_from_task as _result_deleted_status
+from revocompute.task_types import load_registry as _load_task_registry
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
@@ -131,7 +131,7 @@ _ensure_directories(CONFIG.upload_folder, CONFIG.results_folder)
 
 # Load the task type registry — gremlin is always enabled; additional runners
 # are gated by the ENABLED_TASKRUNNERS env var.  If the YAML files are missing
-# (e.g. in tests or non-standard deployments), register a hardcoded GREMLIN
+# (e.g. in tests or non-standard deployments), register a hardcoded gremlin
 # fallback so existing functionality still works.
 _enabled_runners = set(_env_csv("ENABLED_TASKRUNNERS", ""))
 try:
@@ -142,13 +142,8 @@ except FileNotFoundError:
         "Create config/task_types.yaml to register additional task types.",
         CONFIG.task_types_config,
     )
-    from revocompute.task_types import (  # noqa: E402
-        RunnerConfig,
-        RunnerMount,
-        TaskParam,
-        TaskType,
-        register as _register_tt,
-    )
+    from revocompute.task_types import RunnerConfig, RunnerMount, TaskParam, TaskType
+    from revocompute.task_types import register as _register_tt  # noqa: E402
 
     _register_tt(
         TaskType(

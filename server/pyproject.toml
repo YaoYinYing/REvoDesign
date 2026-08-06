@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "revocompute"
 version = "0.1.0"
-description = "REvoDesign GREMLIN PSSM web server — Flask + Celery + Docker runner"
+description = "REvoCompute — multi-task compute server with Flask + Celery + Docker runners"
 readme = "README.md"
 license = { text = "GPL-3.0-only" }
 requires-python = ">=3.10"
