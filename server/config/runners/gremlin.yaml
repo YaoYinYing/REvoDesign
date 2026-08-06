@@ -1,0 +1,31 @@
+# GREMLIN runner — deployment-specific settings (machine-local, not checked into git).
+#
+# Edit this file when deploying to a new node.  Host paths, resource limits,
+# and default parameter values live here — never in .env.
+
+mounts:
+  - host_path: "/srv/revodesign/databases/uniref30/UniRef30_2023_02"
+    container_path: "/opt/db/uniref30"
+    mode: "ro"
+  - host_path: "/srv/revodesign/databases/uniref90/uniref90"
+    container_path: "/opt/db/uniref90"
+    mode: "ro"
+
+env:
+  GREMLIN_CALC_CPU_NUM: "16"
+  OMP_NUM_THREADS: "16"
+  OPENBLAS_NUM_THREADS: "16"
+  MKL_NUM_THREADS: "16"
+  VECLIB_MAXIMUM_THREADS: "16"
+  NUMEXPR_NUM_THREADS: "16"
+  TF_NUM_INTRAOP_THREADS: "16"
+  TF_NUM_INTEROP_THREADS: "16"
+  OMP_DYNAMIC: "FALSE"
+  MKL_DYNAMIC: "FALSE"
+
+nproc: 16
+maxmem: 64
+max_runtime_seconds: 7200
+
+defaults:
+  iter: 100

@@ -11,7 +11,7 @@ test-all:
 
 test-cov:
 	$(PYTEST) tests/ --ignore=tests/test_docker.py --ignore=tests/test_runner_docker_compat.py -v \
-		--cov-config=.coveragerc --cov=pssm_gremlin_server \
+		--cov-config=.coveragerc --cov=revocompute \
 		--cov-report=$(COV_REPORT)
 
 test-docker-compat:

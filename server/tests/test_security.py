@@ -31,7 +31,7 @@ def test_security_login_brute_force_rate_limit(monkeypatch, tmp_path):
     payload = {"username": "nonexistent", "password": "wrong"}
     for i in range(5):
         resp = client.post(
-            "/PSSM_GREMLIN/api/auth/login",
+            "/compute/api/auth/login",
             headers={"Content-Type": "application/json"},
             data=json.dumps(payload),
             environ_base={"REMOTE_ADDR": "10.0.0.1"},
@@ -39,7 +39,7 @@ def test_security_login_brute_force_rate_limit(monkeypatch, tmp_path):
         assert resp.status_code == 401
     # 6th request should be rate-limited
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/json"},
         data=json.dumps(payload),
         environ_base={"REMOTE_ADDR": "10.0.0.1"},
@@ -55,13 +55,13 @@ def test_security_login_no_username_enumeration(monkeypatch, tmp_path):
     client = module.app.test_client()
     # Non-existent user
     r1 = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"username": "no_such_user", "password": "anything"}),
     )
     # Existing user, wrong password
     r2 = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"username": "tester", "password": "wrong_password"}),
     )
@@ -80,13 +80,13 @@ def test_security_email_enumeration_forgot_password(monkeypatch, tmp_path):
     _test_client_auth(module)  # ensure tester exists in DB
     # Registered email
     resp1 = client.post(
-        "/PSSM_GREMLIN/api/auth/forgot-password",
+        "/compute/api/auth/forgot-password",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"email": "tester@test.local"}),
     )
     # Unregistered email
     resp2 = client.post(
-        "/PSSM_GREMLIN/api/auth/forgot-password",
+        "/compute/api/auth/forgot-password",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"email": "not_registered@test.local"}),
     )
@@ -99,12 +99,12 @@ def test_security_email_enumeration_resend_verification(monkeypatch, tmp_path):
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     resp1 = client.post(
-        "/PSSM_GREMLIN/api/auth/resend-verification",
+        "/compute/api/auth/resend-verification",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"email": "tester@test.local"}),
     )
     resp2 = client.post(
-        "/PSSM_GREMLIN/api/auth/resend-verification",
+        "/compute/api/auth/resend-verification",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"email": "not_registered@test.local"}),
     )
@@ -119,7 +119,7 @@ def test_security_bearer_vs_cookie_csrf_gate(monkeypatch, tmp_path):
     client = module.app.test_client()
     db = module.app.config["user_db"]
     user = db.get_user_by_username("tester")
-    from pssm_gremlin_server.auth import generate_token
+    from revocompute.auth import generate_token
 
     token = generate_token(user["id"])
     cookie_headers = {}  # no Bearer, just cookie
@@ -127,8 +127,8 @@ def test_security_bearer_vs_cookie_csrf_gate(monkeypatch, tmp_path):
 
     # Attempt state-changing operations with cookie only
     endpoints = [
-        ("POST", "/PSSM_GREMLIN/api/post", {"file": (io.BytesIO(b">t\nACDE\n"), "c.fasta")}),
-        ("POST", "/PSSM_GREMLIN/api/auth/me/api-key", None),
+        ("POST", "/compute/api/post", {"file": (io.BytesIO(b">t\nACDE\n"), "c.fasta")}),
+        ("POST", "/compute/api/auth/me/api-key", None),
     ]
     for method, path, data in endpoints:
         kwargs = {"headers": cookie_headers} if not data else {"headers": cookie_headers, "data": data}
@@ -143,7 +143,7 @@ def test_security_token_tampering_rejected(monkeypatch, tmp_path):
     """Tampered/forged bearer tokens are rejected with 401."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
-    resp = client.get("/PSSM_GREMLIN/api/auth/me", headers={"Authorization": "Bearer forged_token_here"})
+    resp = client.get("/compute/api/auth/me", headers={"Authorization": "Bearer forged_token_here"})
     assert resp.status_code == 401
 
 
@@ -153,7 +153,7 @@ def test_security_expired_token_rejected(monkeypatch, tmp_path):
     _test_client_auth(module)  # ensure tester exists
     db = module.app.config["user_db"]
     user = db.get_user_by_username("tester")
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     # Create token with 0-second max_age
     token = _serializer.dumps({"uid": user["id"]})
@@ -166,7 +166,7 @@ def test_security_expired_token_rejected(monkeypatch, tmp_path):
     client = module.app.test_client()
     # The test token from _serializer uses the default max_age from _TOKEN_MAX_AGE (7 days).
     # We verify that a tampered signature is rejected (functionally same as expired).
-    resp = client.get("/PSSM_GREMLIN/api/auth/me", headers={"Authorization": f"Bearer {token}extra_bytes"})
+    resp = client.get("/compute/api/auth/me", headers={"Authorization": f"Bearer {token}extra_bytes"})
     assert resp.status_code == 401
 
 
@@ -178,11 +178,11 @@ def test_security_password_policy_enforced(monkeypatch, tmp_path):
         extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLE_REGISTER": "true", "SMTP_HOST": "localhost"},
     )
     client = module.app.test_client()
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     captcha_token = _serializer.dumps({"answer": 7, "purpose": "captcha"})
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/register",
+        "/compute/api/auth/register",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
@@ -209,7 +209,7 @@ def test_security_password_policy_enforced(monkeypatch, tmp_path):
 def test_security_reset_token_with_wrong_purpose_rejected(monkeypatch, tmp_path):
     """A verify-email token cannot be used for password reset."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     db = module.app.config["user_db"]
     user = db.create_user(username="wrongpurpose", email="wrongp@test.local", password="pass1234")
@@ -217,7 +217,7 @@ def test_security_reset_token_with_wrong_purpose_rejected(monkeypatch, tmp_path)
     verify_token = _serializer.dumps({"uid": user["id"], "purpose": "verify-email"})
     client = module.app.test_client()
     resp = client.post(
-        "/PSSM_GREMLIN/reset_password",
+        "/compute/reset_password",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"token": verify_token, "password": "newpass456"}),
     )
@@ -233,7 +233,7 @@ def test_security_admin_cannot_change_own_role(monkeypatch, tmp_path):
     db = module.app.config["user_db"]
     admin = db.get_user_by_username("sysadmin")
     resp = client.put(
-        f"/PSSM_GREMLIN/api/auth/admin/users/{admin['id']}",
+        f"/compute/api/auth/admin/users/{admin['id']}",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"role": "user"}),
     )
@@ -258,7 +258,7 @@ def test_security_guest_cannot_use_api_key(monkeypatch, tmp_path):
     key_plain = db.generate_api_key(user["id"])
     client = module.app.test_client()
     # Guest tries to use API key — should fail
-    resp = client.get("/PSSM_GREMLIN/api/auth/me", headers={"X-API-Key": key_plain})
+    resp = client.get("/compute/api/auth/me", headers={"X-API-Key": key_plain})
     assert resp.status_code == 401
 
 
@@ -268,7 +268,7 @@ def test_security_batch_requires_admin(monkeypatch, tmp_path):
     client = module.app.test_client()
     user_header = _test_client_auth(module)
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users/batch",
+        "/compute/api/auth/admin/users/batch",
         headers={**user_header, "Content-Type": "application/json"},
         data=json.dumps({"action": "enable", "user_ids": [1]}),
     )
@@ -281,7 +281,7 @@ def test_security_batch_rejects_invalid_action(monkeypatch, tmp_path):
     client = module.app.test_client()
     admin_header = _admin_client_auth(module)
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users/batch",
+        "/compute/api/auth/admin/users/batch",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"action": "hack", "user_ids": [1]}),
     )
@@ -295,7 +295,7 @@ def test_security_admin_create_user_rejects_duplicate_username(monkeypatch, tmp_
     client = module.app.test_client()
     admin_header = _admin_client_auth(module)
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users",
+        "/compute/api/auth/admin/users",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"username": "tester", "email": "new@test.local", "password": "pass1234"}),
     )
@@ -310,7 +310,7 @@ def test_security_admin_create_user_rejects_duplicate_email(monkeypatch, tmp_pat
     client = module.app.test_client()
     admin_header = _admin_client_auth(module)
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users",
+        "/compute/api/auth/admin/users",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"username": "new_user", "email": "tester@test.local", "password": "pass1234"}),
     )
@@ -322,7 +322,7 @@ def test_security_invalid_bearer_header_format(monkeypatch, tmp_path):
     """Non-Bearer Authorization headers don't authenticate."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
-    resp = client.get("/PSSM_GREMLIN/api/auth/me", headers={"Authorization": "Basic dXNlcjpwYXNz"})
+    resp = client.get("/compute/api/auth/me", headers={"Authorization": "Basic dXNlcjpwYXNz"})
     assert resp.status_code == 401
 
 
@@ -338,12 +338,12 @@ def test_attack_path_traversal_in_filename_rejected(monkeypatch, tmp_path):
     class _DummyAsyncResult:
         id = "celery-test-id"
 
-    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
+    monkeypatch.setattr(module.run_compute_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
 
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
     resp = client.post(
-        "/PSSM_GREMLIN/api/post",
+        "/compute/api/post",
         data={"file": (io.BytesIO(b">test\nACDE\n"), "../../../etc/passwd.fasta")},
         headers=auth_header,
     )
@@ -364,12 +364,12 @@ def test_attack_null_byte_in_filename_rejected(monkeypatch, tmp_path):
     class _DummyAsyncResult:
         id = "celery-test-id"
 
-    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
+    monkeypatch.setattr(module.run_compute_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
 
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
     resp = client.post(
-        "/PSSM_GREMLIN/api/post",
+        "/compute/api/post",
         data={"file": (io.BytesIO(b">test\nACDE\n"), "seqs.fasta\x00.exe")},
         headers=auth_header,
     )
@@ -383,19 +383,19 @@ def test_attack_token_reuse_after_password_change(monkeypatch, tmp_path):
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
     login = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"username": "tester", "password": "password"}),
     )
     old_token = login.json["token"]
     # Change password — this increments token_version, invalidating all old tokens
     client.put(
-        "/PSSM_GREMLIN/api/auth/me",
+        "/compute/api/auth/me",
         headers={**auth_header, "Content-Type": "application/json"},
         data=json.dumps({"current_password": "password", "new_password": "newpassword123"}),
     )
     # Old token must be rejected — version no longer matches
-    resp = client.get("/PSSM_GREMLIN/api/auth/me", headers={"Authorization": f"Bearer {old_token}"})
+    resp = client.get("/compute/api/auth/me", headers={"Authorization": f"Bearer {old_token}"})
     assert resp.status_code == 401
 
 
@@ -406,7 +406,7 @@ def test_attack_rate_limit_bypass_via_spoofed_ip(monkeypatch, tmp_path):
     payload = {"username": "nonexistent", "password": "wrong"}
     for i in range(6):
         resp = client.post(
-            "/PSSM_GREMLIN/api/auth/login",
+            "/compute/api/auth/login",
             headers={
                 "Content-Type": "application/json",
                 "X-Forwarded-For": f"192.0.2.{i}",
@@ -426,7 +426,7 @@ def test_attack_massive_json_payload_handled(monkeypatch, tmp_path):
     client = module.app.test_client()
     massive = "A" * 10_000
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"username": massive, "password": massive}),
     )
@@ -447,7 +447,7 @@ def test_attack_sql_injection_in_login_username(monkeypatch, tmp_path):
     ]
     for inj in injections:
         resp = client.post(
-            "/PSSM_GREMLIN/api/auth/login",
+            "/compute/api/auth/login",
             headers={"Content-Type": "application/json"},
             data=json.dumps({"username": inj, "password": "anything"}),
         )
@@ -463,7 +463,7 @@ def test_attack_sql_injection_in_forgot_password_email(monkeypatch, tmp_path):
     )
     client = module.app.test_client()
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/forgot-password",
+        "/compute/api/auth/forgot-password",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"email": "test' OR 1=1; --"}),
     )
@@ -477,7 +477,7 @@ def test_attack_xss_in_login_not_reflected(monkeypatch, tmp_path):
     client = module.app.test_client()
     xss = "<script>alert(1)</script>"
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"username": xss, "password": "wrong"}),
     )
@@ -493,7 +493,7 @@ def test_attack_register_username_special_chars(monkeypatch, tmp_path):
         extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLE_REGISTER": "true", "SMTP_HOST": "localhost"},
     )
     client = module.app.test_client()
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     captcha_token = _serializer.dumps({"answer": 7, "purpose": "captcha"})
     bad_usernames = [
@@ -504,7 +504,7 @@ def test_attack_register_username_special_chars(monkeypatch, tmp_path):
     ]
     for i, uname in enumerate(bad_usernames):
         resp = client.post(
-            "/PSSM_GREMLIN/api/auth/register",
+            "/compute/api/auth/register",
             headers={"Content-Type": "application/json"},
             data=json.dumps(
                 {
@@ -536,11 +536,11 @@ def test_attack_register_plus_alias_blocked(monkeypatch, tmp_path):
     )
     client = module.app.test_client()
     _test_client_auth(module)  # creates tester@test.local
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     captcha_token = _serializer.dumps({"answer": 7, "purpose": "captcha"})
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/register",
+        "/compute/api/auth/register",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
@@ -571,10 +571,10 @@ def test_attack_batch_delete_cross_user_rejected(monkeypatch, tmp_path):
     class _DummyAsyncResult:
         id = "celery-test-id"
 
-    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
+    monkeypatch.setattr(module.run_compute_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
 
     upload = client.post(
-        "/PSSM_GREMLIN/api/post",
+        "/compute/api/post",
         data={"file": (io.BytesIO(b">alice\nMSEQ\n"), "alice.fasta")},
         headers=alice,
     )
@@ -582,7 +582,7 @@ def test_attack_batch_delete_cross_user_rejected(monkeypatch, tmp_path):
     alice_md5 = _extract_md5(upload.headers["Location"])
 
     upload = client.post(
-        "/PSSM_GREMLIN/api/post",
+        "/compute/api/post",
         data={"file": (io.BytesIO(b">bob\nACDE\n"), "bob.fasta")},
         headers=bob,
     )
@@ -590,7 +590,7 @@ def test_attack_batch_delete_cross_user_rejected(monkeypatch, tmp_path):
     bob_md5 = _extract_md5(upload.headers["Location"])
 
     resp = client.post(
-        "/PSSM_GREMLIN/api/delete",
+        "/compute/api/delete",
         headers={**bob, "Content-Type": "application/json"},
         data=json.dumps({"md5sums": [bob_md5, alice_md5]}),
     )
@@ -615,9 +615,9 @@ def test_attack_task_id_manipulation_invalid_ids(monkeypatch, tmp_path):
     ]
     for bad in malicious:
         for verb, path_fmt in [
-            ("get", "/PSSM_GREMLIN/api/running/{}"),
-            ("post", "/PSSM_GREMLIN/api/cancel/{}"),
-            ("delete", "/PSSM_GREMLIN/api/delete/{}"),
+            ("get", "/compute/api/running/{}"),
+            ("post", "/compute/api/cancel/{}"),
+            ("delete", "/compute/api/delete/{}"),
         ]:
             if verb == "get":
                 resp = client.get(path_fmt.format(bad), headers=auth_header)
@@ -633,7 +633,7 @@ def test_attack_content_type_confusion_form_not_json(monkeypatch, tmp_path):
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         data={"username": "tester", "password": "password"},  # form-encoded
     )
     assert resp.status_code == 400
@@ -644,7 +644,7 @@ def test_attack_upload_no_file_part_rejected(monkeypatch, tmp_path):
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
-    resp = client.post("/PSSM_GREMLIN/api/post", headers=auth_header)
+    resp = client.post("/compute/api/post", headers=auth_header)
     assert resp.status_code == 400
     assert "No file part" in resp.json["error"]
 
@@ -653,8 +653,8 @@ def test_attack_wrong_http_method_rejected(monkeypatch, tmp_path):
     """Wrong HTTP methods return 405 Method Not Allowed."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
-    assert client.get("/PSSM_GREMLIN/api/auth/login").status_code == 405
-    assert client.post("/PSSM_GREMLIN/api/auth/captcha").status_code == 405
+    assert client.get("/compute/api/auth/login").status_code == 405
+    assert client.post("/compute/api/auth/captcha").status_code == 405
 
 
 def test_attack_admin_batch_delete_other_admin_blocked(monkeypatch, tmp_path):
@@ -674,7 +674,7 @@ def test_attack_admin_batch_delete_other_admin_blocked(monkeypatch, tmp_path):
     )
     db.verify_email(other["id"])
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users/batch",
+        "/compute/api/auth/admin/users/batch",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"action": "disable", "user_ids": [other["id"]]}),
     )
@@ -690,7 +690,7 @@ def test_attack_admin_batch_delete_self_protected(monkeypatch, tmp_path):
     db = module.app.config["user_db"]
     admin = db.get_user_by_username("sysadmin")
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users/batch",
+        "/compute/api/auth/admin/users/batch",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"action": "disable", "user_ids": [admin["id"]]}),
     )
@@ -713,7 +713,7 @@ def test_attack_resend_verification_backoff_enforced(monkeypatch, tmp_path):
         user["id"], email_verified=False, verification_resend_count=5, verification_resend_at=time.time()
     )  # cooldown = 50 min
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/resend-verification",
+        "/compute/api/auth/resend-verification",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"email": "backoff@test.local"}),
     )
@@ -729,11 +729,11 @@ def test_attack_admin_promotion_via_self_registration_blocked(monkeypatch, tmp_p
         extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLE_REGISTER": "true", "SMTP_HOST": "localhost"},
     )
     client = module.app.test_client()
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     captcha_token = _serializer.dumps({"answer": 7, "purpose": "captcha"})
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/register",
+        "/compute/api/auth/register",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
@@ -766,7 +766,7 @@ def test_attack_captcha_token_single_use(monkeypatch, tmp_path):
         extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLE_REGISTER": "true", "SMTP_HOST": "localhost"},
     )
     client = module.app.test_client()
-    from pssm_gremlin_server.auth import generate_captcha
+    from revocompute.auth import generate_captcha
 
     _, captcha_token = generate_captcha()
     payload = {
@@ -783,7 +783,7 @@ def test_attack_captcha_token_single_use(monkeypatch, tmp_path):
     }
     # First use of the token must work — but the answer is for a random math
     # problem, so it will be wrong.  Use a token we know the answer to.
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     known_token = _serializer.dumps({"answer": 7, "purpose": "captcha", "jti": "replay-test-nonce"})
     known_payload = {
@@ -800,7 +800,7 @@ def test_attack_captcha_token_single_use(monkeypatch, tmp_path):
     }
     assert (
         client.post(
-            "/PSSM_GREMLIN/api/auth/register",
+            "/compute/api/auth/register",
             headers={"Content-Type": "application/json"},
             data=json.dumps(known_payload),
         ).status_code
@@ -809,7 +809,7 @@ def test_attack_captcha_token_single_use(monkeypatch, tmp_path):
     # Replay the same token — must be rejected
     known_payload.update(username="replay2", email="replay2@test.local")
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/register",
+        "/compute/api/auth/register",
         headers={"Content-Type": "application/json"},
         data=json.dumps(known_payload),
     )
@@ -820,5 +820,5 @@ def test_attack_unprotected_endpoints_reject_auth_headers(monkeypatch, tmp_path)
     """Forgot-password and CAPTCHA ignore auth headers (no auth g required)."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
-    resp = client.get("/PSSM_GREMLIN/api/auth/captcha", headers={"Authorization": "Bearer fake_token"})
+    resp = client.get("/compute/api/auth/captcha", headers={"Authorization": "Bearer fake_token"})
     assert resp.status_code == 200  # CAPTCHA doesn't need auth

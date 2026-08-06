@@ -1,5 +1,5 @@
 [run]
 source =
-    pssm_gremlin_server
+    revocompute
 omit =
     */tests/*

@@ -19,7 +19,7 @@ def _wait_for_server(session: requests.Session, base_url: str, timeout: float = 
     last_error = "server did not respond"
     while time.monotonic() < deadline:
         try:
-            response = session.get(f"{base_url}/PSSM_GREMLIN/login", timeout=5)
+            response = session.get(f"{base_url}/compute/login", timeout=5)
             if response.status_code == 200:
                 return
             last_error = f"login page returned HTTP {response.status_code}"
@@ -52,7 +52,7 @@ def _wait_for_task(
     last_payload: object = None
     while time.monotonic() < deadline:
         response = session.get(
-            f"{base_url}/PSSM_GREMLIN/api/running/{task_id}",
+            f"{base_url}/compute/api/running/{task_id}",
             headers=headers,
             timeout=10,
         )
@@ -70,10 +70,10 @@ def _wait_for_task(
 def run_full_stack_checks(base_url: str, fasta_path: Path, admin_password: str) -> None:
     with requests.Session() as session:
         _wait_for_server(session, base_url)
-        _assert_page(session, base_url, "/PSSM_GREMLIN/login", "Sign in")
+        _assert_page(session, base_url, "/compute/login", "Sign in")
 
         login = session.post(
-            f"{base_url}/PSSM_GREMLIN/api/auth/login",
+            f"{base_url}/compute/api/auth/login",
             json={"username": "admin", "password": admin_password},
             timeout=10,
         )
@@ -81,25 +81,25 @@ def run_full_stack_checks(base_url: str, fasta_path: Path, admin_password: str) 
         token = login.json()["token"]
         headers = {"Authorization": f"Bearer {token}"}
 
-        me = session.get(f"{base_url}/PSSM_GREMLIN/api/auth/me", headers=headers, timeout=10)
+        me = session.get(f"{base_url}/compute/api/auth/me", headers=headers, timeout=10)
         assert me.status_code == 200
         assert me.json()["username"] == "admin"
         assert me.json()["role"] == "admin"
 
-        users = session.get(f"{base_url}/PSSM_GREMLIN/api/auth/admin/users", headers=headers, timeout=10)
+        users = session.get(f"{base_url}/compute/api/auth/admin/users", headers=headers, timeout=10)
         assert users.status_code == 200
 
         for path, marker in (
-            ("/PSSM_GREMLIN/dashboard", "PSSM GREMLIN Task Dashboard"),
-            ("/PSSM_GREMLIN/create_task", "Create PSSM GREMLIN Task"),
-            ("/PSSM_GREMLIN/profile", "Profile"),
-            ("/PSSM_GREMLIN/user_control", "User Control"),
+            ("/compute/dashboard", "PSSM GREMLIN Task Dashboard"),
+            ("/compute/create_task", "Create PSSM GREMLIN Task"),
+            ("/compute/profile", "Profile"),
+            ("/compute/user_control", "User Control"),
         ):
             _assert_page(session, base_url, path, marker, headers)
 
         with fasta_path.open("rb") as handle:
             submitted = session.post(
-                f"{base_url}/PSSM_GREMLIN/api/post",
+                f"{base_url}/compute/api/post",
                 headers=headers,
                 files={"file": (fasta_path.name, handle, "text/plain")},
                 allow_redirects=False,
@@ -110,7 +110,7 @@ def run_full_stack_checks(base_url: str, fasta_path: Path, admin_password: str) 
         _wait_for_task(session, base_url, task_id, headers)
 
         results = session.get(
-            f"{base_url}/PSSM_GREMLIN/api/results/{task_id}",
+            f"{base_url}/compute/api/results/{task_id}",
             headers=headers,
             allow_redirects=False,
             timeout=10,

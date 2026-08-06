@@ -7,13 +7,13 @@ from __future__ import annotations
 import logging
 
 import pytest
-from pssm_gremlin_server.maintenance import manager
-from pssm_gremlin_server.maintenance.model import PeriodicTask
-from pssm_gremlin_server.maintenance.tasks import admin_digest
-from pssm_gremlin_server.maintenance.tasks.admin_digest import admin_digest_task
-from pssm_gremlin_server.maintenance.tasks.database_backup import database_backup_task
-from pssm_gremlin_server.maintenance.tasks.log_rotation import log_rotation_task
-from pssm_gremlin_server.maintenance.tasks.result_cleanup import result_cleanup_task
+from revocompute.maintenance import manager
+from revocompute.maintenance.model import PeriodicTask
+from revocompute.maintenance.tasks import admin_digest
+from revocompute.maintenance.tasks.admin_digest import admin_digest_task
+from revocompute.maintenance.tasks.database_backup import database_backup_task
+from revocompute.maintenance.tasks.log_rotation import log_rotation_task
+from revocompute.maintenance.tasks.result_cleanup import result_cleanup_task
 
 
 class RecordingScheduler:

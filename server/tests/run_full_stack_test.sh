@@ -4,7 +4,7 @@ set -euo pipefail
 
 SERVER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${SERVER_ROOT}/.." && pwd)"
-DEPLOY_SCRIPT="${SERVER_ROOT}/run/restart_pssm_flask.sh"
+DEPLOY_SCRIPT="${SERVER_ROOT}/run/restart.sh"
 QUERY_FASTA="${REPO_ROOT}/tests/data/msa/2KL8.fasta"
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/revodesign-full-stack.XXXXXX")"
 ENV_FILE="${WORK_DIR}/server-test.env"

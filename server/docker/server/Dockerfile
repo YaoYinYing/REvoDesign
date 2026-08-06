@@ -15,12 +15,12 @@ RUN groupadd -o -r ${RUNNER_GROUP} -g ${RUNNER_GID} && groupadd docker  && \
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_ROOT_USER_ACTION=ignore \
-    PSSM_GREMLIN_LOG_DIR=/var/log/pssm_gremlin_server
+    REVOCOMPUTE_LOG_DIR=/var/log/revocompute
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential curl procps \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p "${PSSM_GREMLIN_LOG_DIR}"
+    && mkdir -p "${REVOCOMPUTE_LOG_DIR}"
 
 WORKDIR /app
 
@@ -29,11 +29,11 @@ RUN pip install --no-cache-dir "/app/server[resend]"
 
 
 ENV PYTHONPATH=/app/server
-# ponytail: WORKDIR must be /app/server, not /app/server/pssm_gremlin_server.
+# ponytail: WORKDIR must be /app/server, not /app/server/revocompute.
 # When CWD is inside the package dir, Python's '' sys.path entry finds
-# pssm_gremlin.py as a top-level module, shadowing the pssm_gremlin_server package.
+# app.py as a top-level module, shadowing the revocompute package.
 WORKDIR /app/server
 
 USER ${RUNNER_UID}:${RUNNER_GID}
 
-CMD ["sh", "-c", "exec gunicorn --preload -w 2 -b 0.0.0.0:${PORT:-8080} pssm_gremlin_server.pssm_gremlin:app"]
+CMD ["sh", "-c", "exec gunicorn --preload -w 2 -b 0.0.0.0:${PORT:-8080} revocompute.app:app"]

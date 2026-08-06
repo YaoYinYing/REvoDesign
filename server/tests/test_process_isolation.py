@@ -72,7 +72,7 @@ def _run_restart_script(
             "PATH": f"{fake_bin}{os.pathsep}{env['PATH']}",
         }
     )
-    script = Path(REPO_DIR) / "server" / "run" / "restart_pssm_flask.sh"
+    script = Path(REPO_DIR) / "server" / "run" / "restart.sh"
     result = subprocess.run(
         ["bash", str(script), *arguments],
         cwd=REPO_DIR,
@@ -207,13 +207,13 @@ import os
 import sys
 from pathlib import Path
 
-from pssm_gremlin_server import task_runtime
+from revocompute import task_runtime
 
-assert "pssm_gremlin_server.auth" not in sys.modules
-assert "pssm_gremlin_server.routes" not in sys.modules
-assert "pssm_gremlin_server.pssm_gremlin" not in sys.modules
+assert "revocompute.auth" not in sys.modules
+assert "revocompute.routes" not in sys.modules
+assert "revocompute.app" not in sys.modules
 assert not Path(os.environ["USER_DB_PATH"]).exists()
-assert task_runtime.run_gremlin_task.name == "run_gremlin_task"
+assert task_runtime.run_compute_task.name == "run_compute_task"
 assert task_runtime.task_store.path == os.path.abspath(os.environ["DB_PATH"])
 """
     env = os.environ.copy()
@@ -290,10 +290,10 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
     assert "/var/lib/revodesign-auth" in maintenance
     assert "/var/run/docker.sock" not in maintenance
     assert "ports:" not in maintenance
-    assert "pssm_gremlin_server.maintenance.manager" in maintenance
+    assert "revocompute.maintenance.manager" in maintenance
     assert "web-auth-env" not in worker
     assert "/var/lib/revodesign-auth" not in worker
-    assert "pssm_gremlin_server.task_runtime.celery" in worker
+    assert "revocompute.task_runtime.celery" in worker
     assert "/var/run/docker.sock:/var/run/docker.sock" in worker
 
 

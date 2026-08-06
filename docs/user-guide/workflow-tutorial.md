@@ -17,22 +17,22 @@ explore co-evolution constraints.
 REvoDesign requires PSSM and GREMLIN profiles computed from sequence databases.
 Use the computation service:
 
-1. Go to <https://revodesign.yaoyy.moe/PSSM_GREMLIN/create_task>
+1. Go to <https://revodesign.yaoyy.moe/compute/create_task>
 2. Upload a FASTA-format sequence file (one sequence per file).
    Sequences may contain unknown residues (`X`) but not stop codons (`*`).
-3. Monitor progress at the [Dashboard](https://revodesign.yaoyy.moe/PSSM_GREMLIN/dashboard).
+3. Monitor progress at the [Dashboard](https://revodesign.yaoyy.moe/compute/dashboard).
 4. Hover over a task to reveal a cancel button (if queued/running) or
    a download button (if complete).
 5. When complete, download and unzip the archive for use in the Prepare step.
 
 <figure markdown="span">
-![PSSM/GREMLIN server — task submission page](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2a@4x.png){ width="600" }
-<figcaption>PSSM/GREMLIN server task submission: upload a single FASTA file or paste a sequence</figcaption>
+![REvoCompute server — task submission page](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2a@4x.png){ width="600" }
+<figcaption>REvoCompute server task submission: upload a single FASTA file or paste a sequence</figcaption>
 </figure>
 
 <figure markdown="span">
-![PSSM/GREMLIN server — task dashboard](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2b@4x.png){ width="600" }
-<figcaption>PSSM/GREMLIN server dashboard: monitor task status, cancel queued/running jobs, download completed results</figcaption>
+![REvoCompute server — task dashboard](https://github-image-cache.yaoyy.moe/revodesign-user-guide-images/imags/pssm-gremlin-server-v2b@4x.png){ width="600" }
+<figcaption>REvoCompute server dashboard: monitor task status, cancel queued/running jobs, download completed results</figcaption>
 </figure>
 
 !!! example "Example FASTA"

@@ -8,7 +8,7 @@ import sqlite3
 from datetime import datetime, timezone
 
 import pytest
-from pssm_gremlin_server.maintenance.tasks.database_backup import run_database_backup
+from revocompute.maintenance.tasks.database_backup import run_database_backup
 
 
 def _open_wal_database(path, table, value):

@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""pytest configuration and shared helpers for pssm_gremlin_server tests.
+"""pytest configuration and shared helpers for revocompute tests.
 
 Run through the server-owned Makefile::
 
@@ -92,15 +92,15 @@ def _runner_build_args() -> dict[str, str]:
 
 
 def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
-    """Load a fresh copy of ``pssm_gremlin_server.py`` with test-isolated env vars.
+    """Load a fresh copy of ``revocompute.py`` with test-isolated env vars.
 
-    ``pssm_gremlin_server.py`` creates ``app``, ``celery``, ``CONFIG``, and
+    ``revocompute.py`` creates ``app``, ``celery``, ``CONFIG``, and
     ``task_store`` at import time — each test needs its own copy.  We use
     ``spec_from_file_location`` so the module is loaded under a unique name,
     avoiding Python's import cache.
 
-    The ``sys.modules`` dance below patches ``pssm_gremlin_server.pssm_gremlin`` so
-    ``routes.py``'s ``from pssm_gremlin_server.pssm_gremlin import app`` resolves to
+    The ``sys.modules`` dance below patches ``revocompute.app`` so
+    ``routes.py``'s ``from revocompute.app import app`` resolves to
     THIS test's module rather than loading a second copy from disk (which
     would register routes on a different Flask ``app``).
     """
@@ -137,8 +137,8 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
     server_dir = str(Path(REPO_DIR) / "server")
     if server_dir not in sys.path:
         sys.path.insert(0, server_dir)
-    module_path = Path(REPO_DIR) / "server" / "pssm_gremlin_server" / "pssm_gremlin.py"
-    module_name = f"pssm_gremlin_config_test_{uuid.uuid4().hex}"
+    module_path = Path(REPO_DIR) / "server" / "revocompute" / "app.py"
+    module_name = f"revocompute_config_test_{uuid.uuid4().hex}"
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     assert spec is not None and spec.loader is not None
@@ -146,32 +146,28 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
     # bind to THIS test's app instance.  Popping sys.modules alone is not
     # enough — Python also caches submodules as attributes on the parent pkg.
     # ponytail: three lines, one per cached sub-module that binds app.
-    _pg = sys.modules.get("pssm_gremlin_server")
+    _pg = sys.modules.get("revocompute")
     if _pg is not None:
         _pg.__dict__.pop("routes", None)
-        _pg.__dict__.pop("pssm_gremlin", None)
+        _pg.__dict__.pop("app", None)
         _pg.__dict__.pop("task_runtime", None)
-    sys.modules.pop("pssm_gremlin_server.routes", None)
-    sys.modules.pop("pssm_gremlin_server.task_runtime", None)
+    sys.modules.pop("revocompute.routes", None)
+    sys.modules.pop("revocompute.task_runtime", None)
     sys.modules[module_name] = module
-    sys.modules["pssm_gremlin_server.pssm_gremlin"] = module
+    sys.modules["revocompute.app"] = module
     try:
         spec.loader.exec_module(module)  # type: ignore[attr-defined]
-        # ponytail: task_runtime symbols that tests access directly on the module
-        # were moved to task_runtime.py (refactor: remove task compatibility exports).
-        # Attach them here so 20+ tests across 6 files don't need rewiring.
-        module.run_gremlin_task = module.task_runtime.run_gremlin_task
+        module.run_compute_task = module.task_runtime.run_compute_task
         module._ROOT_MOUNT_DIRECTORY = module.task_runtime._ROOT_MOUNT_DIRECTORY
-        module.run_pssm_gremlin_in_docker = module.task_runtime.run_pssm_gremlin_in_docker
         return module
     finally:
         sys.modules.pop(module_name, None)
-        sys.modules.pop("pssm_gremlin_server.pssm_gremlin", None)
-        sys.modules.pop("pssm_gremlin_server.routes", None)
-        sys.modules.pop("pssm_gremlin_server.task_runtime", None)
+        sys.modules.pop("revocompute.app", None)
+        sys.modules.pop("revocompute.routes", None)
+        sys.modules.pop("revocompute.task_runtime", None)
         if _pg is not None:
             _pg.__dict__.pop("routes", None)
-            _pg.__dict__.pop("pssm_gremlin", None)
+            _pg.__dict__.pop("app", None)
             _pg.__dict__.pop("task_runtime", None)
 
 
@@ -195,7 +191,7 @@ def _test_client_auth(module, username: str = "tester", password: str = "passwor
             registration_status="approved",
         )
         db.verify_email(user["id"])
-    from pssm_gremlin_server.auth import generate_token
+    from revocompute.auth import generate_token
 
     return {"Authorization": f"Bearer {generate_token(user['id'])}"}
 
@@ -214,7 +210,7 @@ def _admin_client_auth(module, username: str = "sysadmin") -> dict[str, str]:
             user_status="active",
         )
         db.verify_email(user["id"])
-    from pssm_gremlin_server.auth import generate_token
+    from revocompute.auth import generate_token
 
     return {"Authorization": f"Bearer {generate_token(user['id'])}"}
 
@@ -274,7 +270,7 @@ def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta"
 def _bearer_headers(base_url: str, username: str, password: str) -> dict[str, str]:
     """Log in via the token endpoint and return a Bearer authorization header."""
     resp = requests.post(
-        f"{base_url}/PSSM_GREMLIN/api/auth/login",
+        f"{base_url}/compute/api/auth/login",
         json={"username": username, "password": password},
         timeout=10,
     )
@@ -400,7 +396,7 @@ def _wait_for_server_ready(
     deadline = time.time() + timeout
     session = requests.Session()
     session.headers.update(headers)
-    url = f"{base_url}/PSSM_GREMLIN/login"
+    url = f"{base_url}/compute/login"
     last_error = ""
     while time.time() < deadline:
         try:
@@ -445,7 +441,7 @@ def _wait_for_task(base_url: str, headers: dict[str, str], md5sum: str, timeout:
     deadline = time.time() + timeout
     session = requests.Session()
     session.headers.update(headers)
-    url = f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}"
+    url = f"{base_url}/compute/api/running/{md5sum}"
     while time.time() < deadline:
         response = session.get(url, timeout=10)
         if response.status_code == 200:
@@ -462,7 +458,7 @@ def _wait_for_failed_task(base_url: str, headers: dict[str, str], md5sum: str, t
     deadline = time.time() + timeout
     with requests.Session() as session:
         session.headers.update(headers)
-        url = f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}"
+        url = f"{base_url}/compute/api/running/{md5sum}"
         while time.time() < deadline:
             response = session.get(url, timeout=10)
             payload = response.json() if response.headers.get("Content-Type", "").startswith("application/json") else {}
@@ -524,7 +520,7 @@ class DockerServerStack:
         password = f"test_password_{secrets.token_hex(32)}"
         self.username = "admin"
         self.password = password
-        self.db_path = self.server_dir / "pssm_gremlin_server.sqlite3"
+        self.db_path = self.server_dir / "revocompute.sqlite3"
         if self._needs_relaxed_permissions:
             self._relax_permissions()
         self.containers: list[str] = []
@@ -644,7 +640,7 @@ class DockerServerStack:
             self.server_image_tag,
             "celery",
             "-A",
-            "pssm_gremlin_server.task_runtime.celery",
+            "revocompute.task_runtime.celery",
             "worker",
             "--loglevel=info",
             "--concurrency=1",
@@ -677,7 +673,7 @@ class DockerServerStack:
             f"{self.log_dir}/gunicorn-access.log",
             "--error-logfile",
             f"{self.log_dir}/gunicorn-error.log",
-            "pssm_gremlin_server.pssm_gremlin:app",
+            "revocompute.app:app",
         ]
         _run_command(cmd, cwd=Path(REPO_DIR) / "server")
         self.containers.append(self.web_name)

@@ -1,0 +1,28 @@
+# REvoDesign task type registry — portable definitions (checked into git).
+#
+# Each entry declares what a task *is*: Docker image, command, I/O contract,
+# progress stages, and the parameters users can submit.  Machine-specific
+# paths and resource limits live in config/runners/<name>.yaml.
+#
+# Adding a task type = one entry here + one runner YAML + Dockerfile + entrypoint.
+# Server code never changes.
+
+task_types:
+
+  gremlin:
+    display_name: "PSSM-GREMLIN"
+    docker_image: "revodesign-revocompute-runner"
+    command: ["bash", "/app/revocompute/run_gremlin.sh"]
+    input_extension: ".fasta"
+    input_label: "FASTA file"
+    stage_markers:
+      hhblits: "HHblits MSA generation"
+      hhfilter: "HHfilter filtering"
+      gremlin: "GREMLIN optimization"
+      blast: "PSI-BLAST PSSM"
+    result_patterns: ["*.pkl", "*_ascii_mtx_file", "*.GREMLIN.mrf.pkl"]
+    params:
+      - name: "iter"
+        type: "int"
+        default: 100
+        description: "GREMLIN optimization iterations"

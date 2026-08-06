@@ -20,20 +20,20 @@ RUN conda env create -f /tmp/GREMLIN.yml \
       && conda clean --all --force-pkgs-dirs --yes \
       && rm -f /tmp/GREMLIN.yml
 
-RUN mkdir -p /app/pssm_gremlin
-RUN chown -R ${RUNNER_UID}:${RUNNER_GID} /app/pssm_gremlin
+RUN mkdir -p /app/revocompute
+RUN chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
 
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./scripts/ /app/pssm_gremlin/scripts/
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./REvoDesign_PSSM_GREMLIN.sh /app/pssm_gremlin/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./scripts/ /app/revocompute/scripts/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./run_gremlin.sh /app/revocompute/
 
-WORKDIR /app/pssm_gremlin/
+WORKDIR /app/revocompute/
 
 # Persist the build arg so the entrypoint can resolve ${RUNNER_USERNAME} at runtime.
 ENV RUNNER_USERNAME=${RUNNER_USERNAME}
 
 RUN echo $'#!/bin/bash\n\
 ldconfig\n\
-exec runuser -u ${RUNNER_USERNAME} -- bash /app/pssm_gremlin/REvoDesign_PSSM_GREMLIN.sh "$@"' > /app/run_pssm.sh \
-  && chmod +x /app/run_pssm.sh
+exec runuser -u ${RUNNER_USERNAME} -- bash /app/revocompute/run_gremlin.sh "$@"' > /app/run_runner.sh \
+  && chmod +x /app/run_runner.sh
 
-ENTRYPOINT ["/app/run_pssm.sh"]
+ENTRYPOINT ["/app/run_runner.sh"]
