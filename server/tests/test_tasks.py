@@ -70,11 +70,25 @@ def test_dashboard_download_uses_native_browser_streaming():
     assert "prefers-reduced-motion: reduce" in styles
 
 
-def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta") -> str:
+def _insert_pending_task(
+    module, result_dir: Path, filename: str = "input.fasta", entities: list[dict] | None = None
+) -> str:
     result_dir.mkdir(parents=True, exist_ok=True)
     fasta_path = result_dir / filename
     fasta_path.write_text(">test\nACDE\n", encoding="utf-8")
     md5sum = uuid.uuid4().hex
+    if entities is None:
+        entities = [
+            {
+                "name": "file",
+                "type": "file",
+                "value": filename,
+                "verified_value": filename,
+                "stored_at": str(fasta_path),
+                "mounted": f"/workspace/inputs/{filename}",
+                "hash": md5sum,
+            }
+        ]
     module.task_store.upsert_task(
         md5sum,
         filename=filename,
@@ -86,6 +100,7 @@ def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta"
         source_ip="127.0.0.1",
         user_agent="pytest",
         username="tester",
+        input_form=json.dumps({"user": "tester", "submitted_at": "2026-01-01T00:00:00Z", "entities": entities}),
     )
     return md5sum
 
@@ -101,10 +116,8 @@ def test_run_compute_task_handles_docker_daemon_error(monkeypatch, tmp_path):
     )
     md5sum = _insert_pending_task(module, tmp_path / "result")
 
-    def _raise_docker_error(
-        task_id, tt, runner, params, input_path, output_dir, docker_client=None, stage_callback=None
-    ):
-        del task_id, tt, runner, params, input_path, output_dir, docker_client, stage_callback
+    def _raise_docker_error(task_id, tt, runner, entities, output_dir, docker_client=None, stage_callback=None):
+        del task_id, tt, runner, entities, output_dir, docker_client, stage_callback
         raise docker.errors.DockerException(
             "Error while fetching server API version: ('Connection aborted.', PermissionError(13, 'Permission denied'))"
         )
@@ -147,8 +160,8 @@ def test_run_compute_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
             observed_statuses.append(fields["status"])
         return original_update_task(md5_value, **fields)
 
-    def _fake_runner(task_id, tt, runner, params, input_path, output_dir, docker_client=None, stage_callback=None):
-        del task_id, tt, runner, params, input_path
+    def _fake_runner(task_id, tt, runner, entities, output_dir, docker_client=None, stage_callback=None):
+        del task_id, tt, runner, entities
         if stage_callback:
             stage_callback("hhblits")
             stage_callback("hhfilter")
@@ -235,8 +248,8 @@ def test_run_compute_task_does_not_resurrect_deleted_task(monkeypatch, tmp_path)
             observed_statuses.append(fields["status"])
         return original_update_task(md5_value, **fields)
 
-    def _fake_runner(task_id, tt, runner, params, input_path, output_dir, docker_client=None, stage_callback=None):
-        del task_id, tt, runner, params, input_path
+    def _fake_runner(task_id, tt, runner, entities, output_dir, docker_client=None, stage_callback=None):
+        del task_id, tt, runner, entities
         if stage_callback:
             stage_callback("blast")
         output_path = Path(output_dir)

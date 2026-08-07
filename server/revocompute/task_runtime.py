@@ -238,9 +238,7 @@ def _run_in_docker(
     task_id: str,
     tt,
     runner,
-    params: dict,
-    input_dir: str,
-    input_filename: str,
+    entities: list[dict],
     output_dir: str,
     docker_client=None,
     stage_callback=None,
@@ -248,11 +246,16 @@ def _run_in_docker(
     """Run a compute task in Docker.
 
     Mounts come from the runner YAML config.  Standard /workspace/inputs and
-    /workspace/outputs mounts are added automatically.  The input directory
-    is mounted (not the file) so the original filename is preserved inside
-    the container.
+    /workspace/outputs mounts are added automatically.
+
+    Entities are read from the task's ``input_form`` column — file entities
+    carry ``stored_at``, ``mounted``, and ``hash``; param entities carry
+    ``name``, ``type``, ``value``, and ``verified_value``.
     """
     client = docker_client or docker.from_env()
+
+    file_entities = [e for e in entities if e["type"] == "file"]
+    param_entities = [e for e in entities if e["type"] != "file"]
 
     # Build volumes from runner config mounts
     volumes: dict[str, dict] = {}
@@ -262,11 +265,16 @@ def _run_in_docker(
             raise docker.errors.DockerException(f"Mount source '{host}' for '{m.container_path}' does not exist")
         volumes[host] = {"bind": m.container_path, "mode": m.mode}
 
-    # Standard input/output mounts — mount the directory so the filename is
-    # visible at /workspace/inputs/<original_name>.
+    # Standard input/output mounts — mount the input directory so filenames
+    # are preserved at /workspace/inputs/<original_name>.
     os.makedirs(output_dir, exist_ok=True)
-    volumes[os.path.abspath(input_dir)] = {"bind": "/workspace/inputs", "mode": "ro"}
+    if file_entities:
+        input_dir = os.path.dirname(file_entities[0]["stored_at"])
+        volumes[os.path.abspath(input_dir)] = {"bind": "/workspace/inputs", "mode": "ro"}
     volumes[os.path.abspath(output_dir)] = {"bind": "/workspace/outputs", "mode": "rw"}
+
+    # Build params dict from non-file entities (for TASK_PARAMS and CLI args)
+    params: dict[str, Any] = {e["name"]: e["verified_value"] for e in param_entities}
 
     # Build container env from runner YAML + task params
     container_env: dict[str, str] = dict(runner.env)
@@ -277,13 +285,11 @@ def _run_in_docker(
 
     # ponytail: entrypoint=tt.command overrides the image ENTRYPOINT so we
     # don't need ldconfig/runuser (which require root) in the image.
-    # Build CLI args from params — the runner script reads -i/-o/-r flags.
-    command_args = [
-        "-i",
-        f"/workspace/inputs/{input_filename}",
-        "-o",
-        "/workspace/outputs",
-    ]
+    # Build CLI args from entities — file entity gives -i, params give typed flags.
+    command_args = []
+    if file_entities:
+        command_args.extend(["-i", file_entities[0]["mounted"]])
+    command_args.extend(["-o", "/workspace/outputs"])
     for key, flag in (("iter", "-r"),):
         if key in params:
             command_args.extend([flag, str(params[key])])
@@ -434,7 +440,12 @@ def _record_failure(md5sum: str, task: dict, start_time: float, run_stage: str, 
 
 
 def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict | None = None):
-    """Core task logic — shared by legacy and generic Celery task wrappers."""
+    """Core task logic — shared by legacy and generic Celery task wrappers.
+
+    Reads entities from the task's ``input_form`` column.  The ``params``
+    argument is retained for the Celery signature but is ignored in favor
+    of the DB record.
+    """
     task = task_store.get_task(md5sum)
     if not task:
         logging.error("Task %s missing from database", md5sum)
@@ -449,14 +460,26 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         return
 
     output_dir = task["result_dir"]
-    input_filename = task["filename"]
-    uploaded_file = os.path.join(output_dir, input_filename)
-    if not os.path.exists(uploaded_file):
-        error_message = "Uploaded input file not found on disk"
-        _pack_failed_results_archive(task, error_message)
-        task_store.update_task(md5sum, status="failed", error=error_message, finished_at=time.time())
-        logging.error("Uploaded file missing for task %s", md5sum)
-        return
+
+    # Parse entities from the input_form JSON blob
+    raw_form = task.get("input_form")
+    entities: list[dict] = []
+    if raw_form:
+        try:
+            parsed = json.loads(raw_form) if isinstance(raw_form, str) else raw_form
+            entities = parsed.get("entities", [])
+        except (json.JSONDecodeError, TypeError):
+            logging.warning("Task %s: could not parse input_form, treating as no entities.", md5sum)
+
+    # Verify file entities reference existing files
+    for fe in [e for e in entities if e["type"] == "file"]:
+        stored = fe.get("stored_at", "")
+        if not os.path.exists(stored):
+            error_message = f"Uploaded input file not found on disk: {stored}"
+            _pack_failed_results_archive(task, error_message)
+            task_store.update_task(md5sum, status="failed", error=error_message, finished_at=time.time())
+            logging.error("Uploaded file missing for task %s: %s", md5sum, stored)
+            return
 
     stages = list(tt.stage_markers.items())
     start_time = task.get("started_at") or time.time()
@@ -487,9 +510,7 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
             task_id=md5sum,
             tt=tt,
             runner=runner,
-            params=params or {},
-            input_dir=output_dir,
-            input_filename=input_filename,
+            entities=entities,
             output_dir=output_dir,
             stage_callback=_on_stage_change,
         )

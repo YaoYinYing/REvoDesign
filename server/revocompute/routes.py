@@ -19,6 +19,7 @@ import os
 import re
 import shutil
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -294,7 +295,6 @@ def _prepare_task_record(
     metadata: dict[str, str],
     task_type: str = "gremlin",
     input_form: dict[str, Any] | None = None,
-    uploaded_files: list[str] | None = None,
 ) -> dict[str, Any]:
     result_dir = _safe_join(app.config["RESULTS_FOLDER"], md5sum)
     if os.path.exists(result_dir):
@@ -324,7 +324,6 @@ def _prepare_task_record(
         "run_stage": None,
         "task_type": task_type,
         "input_form": json.dumps(input_form) if input_form else None,
-        "uploaded_files": json.dumps(uploaded_files) if uploaded_files else None,
     }
 
 
@@ -371,7 +370,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         return jsonify({"error": "Validation failed", "details": errors}), 400
 
     task_type = submission.task_type
-    params = submission.params
+    coerced_params = submission.coerce_params()
 
     uploaded_file, safe_filename, upload_error = _validate_input_upload(task_type)
     if upload_error is not None:
@@ -397,14 +396,50 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
             429,
         )
 
+    # Build entities — one list for files and params together.
+    entities: list[dict[str, Any]] = []
+
+    # File entity
+    result_dir = _safe_join(app.config["RESULTS_FOLDER"], md5sum)
+    entities.append(
+        {
+            "name": "file",
+            "type": "file",
+            "value": uploaded_file.filename,
+            "verified_value": safe_filename,
+            "stored_at": os.path.join(result_dir, safe_filename),
+            "mounted": f"/workspace/inputs/{safe_filename}",
+            "hash": md5sum,
+        }
+    )
+
+    # Param entities — raw form value vs pydantic-coerced verified_value
+    tt, _ = _get_task_type(task_type)
+    known_params = {p.name: p for p in tt.params}
+    for key, raw in submission.params.items():
+        param = known_params[key]
+        entities.append(
+            {
+                "name": key,
+                "type": param.type,
+                "value": raw,
+                "verified_value": coerced_params[key],
+            }
+        )
+
+    input_form = {
+        "user": metadata["username"],
+        "submitted_at": datetime.now(tz=datetime.timezone.utc).isoformat(),
+        "entities": entities,
+    }
+
     base_record = _prepare_task_record(
         md5sum,
         upload_path,
         safe_filename,
         metadata,
         task_type=task_type,
-        input_form=params,
-        uploaded_files=[safe_filename],
+        input_form=input_form,
     )
     if invalid_response := _reject_invalid_fasta(md5sum, base_record):
         return invalid_response
@@ -417,7 +452,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     )
 
     try:
-        async_result = run_compute_task.apply_async(args=[md5sum], kwargs={"task_type": task_type, "params": params})
+        async_result = run_compute_task.apply_async(args=[md5sum], kwargs={"task_type": task_type})
     except Exception:
         logging.exception("Failed to submit compute task %s to Celery", md5sum)
         error_message = "Task queue unavailable — please try again later"
