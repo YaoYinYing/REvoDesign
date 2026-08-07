@@ -29,6 +29,12 @@ usage() {
 Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart]
        bash server/run/restart.sh restart [--mode=dev|--mode=prod]
 
+       SLURM flags (any subcommand that starts services):
+           --use-slurm                         Enable SLURM+Apptainer job runner.
+           --allowed-slurm-queue q1,q2,...     Comma-separated SLURM partitions.
+           --build-sif                         Build .sif images from .def files
+                                               (requires apptainer on PATH).
+
 Environment:
   REVODESIGN_SERVER_ENV
           Optional path to env file (absolute or relative to current working directory).
@@ -214,6 +220,99 @@ if os.path.commonpath([server_dir, auth_dir]) == server_dir:
 ' "${SERVER_DIR}" "${AUTH_DIR}"
 )
 
+# ---------------------------------------------------------------------------
+# SLURM + Apptainer bootstrapping
+# ---------------------------------------------------------------------------
+
+validate_slurm_images() {
+  local runners_dir="${SERVER_ROOT}/server/config/runners"
+  local def_dir="${SERVER_ROOT}/docker/runners"
+  local missing=0
+  local name=""
+  local image=""
+
+  if [[ ! -d "${runners_dir}" ]]; then
+    return 0
+  fi
+
+  for runner_yaml in "${runners_dir}"/*.yaml; do
+    [[ -f "${runner_yaml}" ]] || continue
+    name="$(basename "${runner_yaml}" .yaml)"
+    image="$(python3 -c "
+import yaml
+with open('${runner_yaml}') as f:
+    data = yaml.safe_load(f) or {}
+print(data.get('slurm_image', ''))
+" 2>/dev/null)"
+    if [[ -z "${image}" ]]; then
+      continue  # not a SLURM runner — skip
+    fi
+    if [[ ! -f "${image}" ]]; then
+      echo "[SLURM] Missing SIF image: ${image}" >&2
+      echo "        Build it:  apptainer build --fakeroot ${image} ${def_dir}/${name}/${name}.def" >&2
+      missing=$((missing + 1))
+    else
+      echo "[SLURM] Found SIF image: ${image}"
+    fi
+  done
+
+  if [[ ${missing} -gt 0 ]]; then
+    if [[ "${BUILD_SIF:-0}" == "1" ]]; then
+      echo "[SLURM] ${missing} SIF image(s) missing — attempting auto-build..."
+      return 0
+    fi
+    echo "[SLURM] ${missing} SIF image(s) missing. Rerun with --build-sif to auto-build, or build manually." >&2
+    return 0  # ponytail: warn but don't block — admin may build later
+  fi
+}
+
+build_slurm_images() {
+  local runners_dir="${SERVER_ROOT}/server/config/runners"
+  local def_dir="${SERVER_ROOT}/docker/runners"
+  local name=""
+  local image=""
+  local def_file=""
+  local built=0
+
+  if ! command -v apptainer >/dev/null 2>&1; then
+    echo "[SLURM] apptainer not found on PATH — skipping SIF build." >&2
+    return 0
+  fi
+
+  for runner_yaml in "${runners_dir}"/*.yaml; do
+    [[ -f "${runner_yaml}" ]] || continue
+    name="$(basename "${runner_yaml}" .yaml)"
+    image="$(python3 -c "
+import yaml
+with open('${runner_yaml}') as f:
+    data = yaml.safe_load(f) or {}
+print(data.get('slurm_image', ''))
+" 2>/dev/null)"
+    if [[ -z "${image}" ]]; then
+      continue
+    fi
+    def_file="${def_dir}/${name}/${name}.def"
+    if [[ ! -f "${def_file}" ]]; then
+      echo "[SLURM] No .def file for '${name}' at ${def_file} — skipping." >&2
+      continue
+    fi
+    if [[ -f "${image}" ]]; then
+      echo "[SLURM] SIF image already exists: ${image} — skipping."
+      continue
+    fi
+    echo "[SLURM] Building ${image} from ${def_file}..."
+    apptainer build --fakeroot "${image}" "${def_file}" || {
+      echo "[SLURM] Build failed for ${name}." >&2
+      return 1
+    }
+    built=$((built + 1))
+  done
+
+  if [[ ${built} -gt 0 ]]; then
+    echo "[SLURM] Built ${built} SIF image(s)."
+  fi
+}
+
 ADMIN_LOGIN_LINES=()
 
 prepare_admin_bootstrap() {
@@ -371,6 +470,16 @@ cmd_restart() {
   fi
 
   prepare_admin_bootstrap
+
+  # -- SLURM bootstrapping ------------------------------------------------
+  if [[ "${USE_SLURM}" == "1" ]]; then
+    echo "[SLURM] SLURM+Apptainer runner enabled."
+    if [[ "${BUILD_SIF}" == "1" ]]; then
+      build_slurm_images
+    fi
+    validate_slurm_images
+  fi
+
   cmd_down
 
   case "${MODE}" in
@@ -388,41 +497,62 @@ cmd_restart() {
   PORT="${PORT:-8080}"
   echo "Deployment completed."
   echo "Flask app is now running at http://${DOMAIN}:${PORT}/compute/dashboard"
+  if [[ "${USE_SLURM}" == "1" ]]; then
+    echo "[SLURM] SLURM runner is enabled. Configure per-task SLURM settings at /compute/configuration"
+  fi
 }
 
 SUBCOMMAND="${1:-restart}"
 MODE="dev"
-
-if [[ $# -gt 2 ]]; then
-  echo "Too many arguments." >&2
-  usage
-  exit 1
-fi
-if [[ $# -eq 2 ]]; then
-  case "$2" in
+USE_SLURM=0
+BUILD_SIF=0
+shift  # consume subcommand
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --mode=dev)
       MODE="dev"
+      if [[ "${SUBCOMMAND}" != "restart" ]]; then
+        echo "--mode is only supported by the restart subcommand." >&2
+        usage
+        exit 1
+      fi
       ;;
     --mode=prod)
       MODE="prod"
+      if [[ "${SUBCOMMAND}" != "restart" ]]; then
+        echo "--mode is only supported by the restart subcommand." >&2
+        usage
+        exit 1
+      fi
       ;;
     --mode=*)
-      echo "Invalid mode: ${2#--mode=}. Expected dev or prod." >&2
+      echo "Invalid mode: ${1#--mode=}. Expected dev or prod." >&2
       usage
       exit 1
       ;;
+    --use-slurm)
+      USE_SLURM=1
+      export SLURM_ENABLED=true
+      ;;
+    --allowed-slurm-queue)
+      shift
+      if [[ -z "${1:-}" || "${1:0:2}" == "--" ]]; then
+        echo "--allowed-slurm-queue requires a value." >&2
+        exit 1
+      fi
+      export SLURM_ALLOWED_QUEUES="$1"
+      ;;
+    --build-sif)
+      BUILD_SIF=1
+      ;;
     *)
-      echo "Unexpected argument: $2. Use --mode=dev or --mode=prod." >&2
+      echo "Unexpected argument: $1" >&2
       usage
       exit 1
       ;;
   esac
-  if [[ "${SUBCOMMAND}" != "restart" ]]; then
-    echo "--mode is only supported by the restart subcommand." >&2
-    usage
-    exit 1
-  fi
-fi
+  shift
+done
 
 echo "Using env file: ${ENV_FILE}"
 
