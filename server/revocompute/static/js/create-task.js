@@ -21,62 +21,9 @@
   var editorZone = document.getElementById("editorZone");
   var paramsZone = document.getElementById("paramsZone");
 
-  // -- task type state ---------------------------------------------------------
+  // -- state -----------------------------------------------------------------
 
-  var taskTypes = [];
-  var currentTaskType = null;
-
-  function findTaskType(name) {
-    for (var i = 0; i < taskTypes.length; i++) {
-      if (taskTypes[i].name === name) return taskTypes[i];
-    }
-    return null;
-  }
-
-  function buildParamsForm(tt) {
-    paramsZone.innerHTML = "";
-    if (!tt.params || !tt.params.length) {
-      paramsZone.style.display = "none";
-      return;
-    }
-    paramsZone.style.display = "";
-    var html = '<p class="field-label">Parameters</p>';
-    tt.params.forEach(function (p) {
-      html += '<div style="margin-bottom:0.5rem;">' +
-        '<label style="display:block;font-size:0.85rem;color:var(--muted);">' + p.name + '</label>' +
-        '<input class="text-input" type="' + (p.type === "int" || p.type === "float" ? "number" : "text") + '"' +
-        ' id="param_' + p.name + '" value="' + (p.default != null ? p.default : "") + '"' +
-        ' placeholder="' + (p.description || "") + '" style="width:100%;">' +
-        '</div>';
-    });
-    paramsZone.innerHTML = html;
-  }
-
-  function onTaskTypeChange() {
-    var name = taskTypeSelect.value;
-    var tt = findTaskType(name);
-    currentTaskType = tt;
-    if (!tt) return;
-
-    // Update file input accept and labels
-    var ext = tt.input_extension || "";
-    fileInput.accept = ext;
-    fileButton.textContent = "Choose " + (tt.input_label || "file");
-    fileUploadLabel.textContent = tt.input_label || "File Upload";
-    fileHint.innerHTML = 'Upload a <code>' + ext + '</code> file, or drag &amp; drop one anywhere on this card. Use the optional editor below to paste a sequence instead.';
-
-    // Show/hide sequence editor (ponytail: show for .fasta-like inputs, hide otherwise)
-    if (ext === ".fasta") {
-      editorZone.style.display = "";
-    } else {
-      editorZone.style.display = "none";
-    }
-
-    buildParamsForm(tt);
-    setStatus("Ready for upload.");
-  }
-
-  taskTypeSelect.addEventListener("change", onTaskTypeChange);
+  var currentFormDef = null;
 
   // -- helpers ---------------------------------------------------------------
 
@@ -129,6 +76,94 @@
     fileNameDisplay.textContent = file.name;
   }
 
+  // -- form building from server schema ---------------------------------------
+
+  function buildFormFromSchema(formDef) {
+    currentFormDef = formDef;
+    var fi = formDef.file_input;
+
+    fileInput.accept = fi.accept;
+    fileButton.textContent = "Choose " + fi.label;
+    fileUploadLabel.textContent = fi.label;
+    fileHint.innerHTML = 'Upload a <code>' + fi.accept + '</code> file, or drag &amp; drop one anywhere on this card. Use the optional editor below to paste a sequence instead.';
+
+    editorZone.style.display = formDef.show_sequence_editor ? "" : "none";
+
+    buildParamsForm(formDef.params);
+    setStatus("Ready for upload.");
+  }
+
+  function buildParamsForm(params) {
+    paramsZone.innerHTML = "";
+    if (!params || !params.length) {
+      paramsZone.style.display = "none";
+      return;
+    }
+    paramsZone.style.display = "";
+    var html = '<p class="field-label">Parameters</p>';
+    params.forEach(function (p) {
+      var inputType = "text";
+      if (p.type === "int" || p.type === "float") inputType = "number";
+      html += '<div style="margin-bottom:0.5rem;">' +
+        '<label style="display:block;font-size:0.85rem;color:var(--muted);">' + p.name + '</label>' +
+        '<input class="text-input" type="' + inputType + '"' +
+        ' id="param_' + p.name + '" value="' + (p.default != null ? p.default : "") + '"' +
+        ' placeholder="' + (p.description || "") + '" style="width:100%;">' +
+        '</div>';
+    });
+    paramsZone.innerHTML = html;
+  }
+
+  function isValidInputFile(file) {
+    if (!currentFormDef) return true;
+    var ext = currentFormDef.file_input.accept;
+    return file.name.toLowerCase().endsWith(ext.toLowerCase());
+  }
+
+  // -- task type selection ---------------------------------------------------
+
+  async function loadTaskTypes() {
+    try {
+      var response = await fetch("/compute/api/types");
+      if (!response.ok) throw new Error("Failed to load task types");
+      var taskTypes = await response.json();
+      taskTypeSelect.innerHTML = "";
+      taskTypes.forEach(function (tt) {
+        var opt = document.createElement("option");
+        opt.value = tt.name;
+        opt.textContent = tt.display_name;
+        taskTypeSelect.appendChild(opt);
+      });
+      if (taskTypes.length > 0) await fetchFormDefinition(taskTypes[0].name);
+    } catch (e) {
+      taskTypeSelect.innerHTML = '<option value="gremlin">PSSM-GREMLIN</option>';
+      buildFormFromSchema({
+        name: "gremlin",
+        display_name: "PSSM-GREMLIN",
+        file_input: { accept: ".fasta", label: "FASTA file", required: true },
+        params: [{ name: "iter", type: "int", default: 100, description: "GREMLIN optimization iterations" }],
+        show_sequence_editor: true,
+      });
+    }
+  }
+
+  async function fetchFormDefinition(name) {
+    try {
+      var response = await fetch("/compute/api/types/" + encodeURIComponent(name));
+      if (!response.ok) throw new Error("Failed to load form");
+      var formDef = await response.json();
+      buildFormFromSchema(formDef);
+    } catch (e) {
+      setStatus("Could not load form for task type: " + name, "error");
+    }
+  }
+
+  taskTypeSelect.addEventListener("change", function () {
+    fetchFormDefinition(taskTypeSelect.value);
+  });
+
+  loadTaskTypes();
+
   // -- file selection --------------------------------------------------------
 
   fileButton.addEventListener("click", function () {
@@ -146,11 +181,6 @@
   // -- drag-and-drop ---------------------------------------------------------
 
   var dropZone = form.closest(".input-zone");
-
-  function isValidInputFile(file) {
-    var ext = currentTaskType ? currentTaskType.input_extension : ".fasta";
-    return file.name.toLowerCase().endsWith(ext.toLowerCase());
-  }
 
   function handleDragOver(e) {
     e.preventDefault();
@@ -177,7 +207,7 @@
     var file = e.dataTransfer.files[0];
     if (!file) return;
     if (!isValidInputFile(file)) {
-      var ext = currentTaskType ? currentTaskType.input_extension : ".fasta";
+      var ext = currentFormDef ? currentFormDef.file_input.accept : "";
       setStatus("Only " + ext + " files are accepted.", "error");
       return;
     }
@@ -215,41 +245,12 @@
 
   refreshSequencePreview();
 
-  // -- load task types -------------------------------------------------------
-
-  async function loadTaskTypes() {
-    try {
-      var response = await fetch("/compute/api/types");
-      if (!response.ok) {
-        taskTypeSelect.innerHTML = '<option value="gremlin">PSSM-GREMLIN</option>';
-        currentTaskType = { name: "gremlin", input_extension: ".fasta", input_label: "FASTA file", params: [] };
-        buildParamsForm(currentTaskType);
-        return;
-      }
-      taskTypes = await response.json();
-      taskTypeSelect.innerHTML = "";
-      taskTypes.forEach(function (tt) {
-        var opt = document.createElement("option");
-        opt.value = tt.name;
-        opt.textContent = tt.display_name;
-        taskTypeSelect.appendChild(opt);
-      });
-      if (taskTypes.length > 0) onTaskTypeChange();
-    } catch (e) {
-      taskTypeSelect.innerHTML = '<option value="gremlin">PSSM-GREMLIN</option>';
-      currentTaskType = { name: "gremlin", input_extension: ".fasta", input_label: "FASTA file", params: [] };
-      buildParamsForm(currentTaskType);
-    }
-  }
-
-  loadTaskTypes();
-
   // -- submit ----------------------------------------------------------------
 
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
-    var tt = currentTaskType || { name: "gremlin", input_extension: ".fasta" };
-    var ext = tt.input_extension || ".fasta";
+    var tt = currentFormDef || { name: "gremlin", file_input: { accept: ".fasta" } };
+    var ext = tt.file_input.accept;
     var selectedFile = (fileInput.files && fileInput.files.length > 0) ? fileInput.files[0] : null;
     var normalizedSequence = normalizeSequence(sequenceInput.value);
     var fileToUpload = selectedFile;
@@ -269,11 +270,11 @@
     formData.append("file", fileToUpload);
     formData.append("task_type", tt.name);
 
-    // Collect params
+    // Collect params from dynamically-built form
     if (tt.params) {
       tt.params.forEach(function (p) {
         var el = document.getElementById("param_" + p.name);
-        if (el && el.value !== "") formData.append("param_" + p.name, el.value);
+        if (el && el.value !== "") formData.append("params[" + p.name + "]", el.value);
       });
     }
 
@@ -296,6 +297,9 @@
       var isJson = (response.headers.get("Content-Type") || "").includes("application/json");
       var payload = isJson ? await response.json() : null;
       var message = (payload && (payload.error || payload.message)) || ("Upload failed (HTTP " + response.status + ")");
+      if (payload && payload.details) {
+        message += ": " + payload.details.map(function (d) { return d.field + " " + d.message; }).join("; ");
+      }
       setStatus(message, "error");
     } catch (error) {
       setStatus("Network error: " + error.message, "error");

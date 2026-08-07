@@ -1,7 +1,33 @@
-# PSSM GREMLIN Server
+# REvoCompute Server
 
 The server is a Docker-deployed Flask + Celery + Docker-runner web service for
-GREMLIN co-evolution analysis.
+protein bioinformatics computation — currently GREMLIN co-evolution analysis,
+with a generic multi-task architecture that supports adding AlphaFold, ESM,
+DiffDock, and other compute tasks without changing server code.
+
+## Multi-Task Architecture
+
+The server uses a YAML-based task type registry. Adding a new compute task
+type means writing three files — no server code changes needed:
+
+| File | Owner | Contains |
+|------|-------|----------|
+| `config/task_types.yaml` | Developer (git) | Docker image, command, I/O format, stage markers, user-facing params |
+| `config/runners/<name>.yaml` | Operator (per-machine) | Host paths for DBs/models, resource limits, extra env vars, default param values |
+| `docker/runners/<name>/Dockerfile` | Developer | Runner image with compute dependencies |
+
+The server loads the registry at startup via `CONFIG_DIR`. `gremlin` is always
+enabled; additional runners are gated by `ENABLED_TASKRUNNERS` in `.env`.
+
+Each runner container follows a standard contract:
+- Reads from `/workspace/inputs/`, writes to `/workspace/outputs/`
+- Emits `REVODESIGN_STAGE:<marker>` on stdout for progress tracking
+- Receives params via `TASK_PARAMS` env var (JSON) and CLI args (`-i`, `-o`, `-r`)
+- Runs as non-root `--user` (identity from `RUNNER_UID`/`RUNNER_GID` in `.env`)
+
+The create-task page dynamically builds its form from `GET /compute/api/types/<name>`
+— file input, params form, and sequence editor visibility all come from the
+registry. Task type badges appear on the dashboard.
 
 ## Docker Deployment
 
@@ -158,8 +184,8 @@ When `REVODESIGN_SERVER_ENV` is unset, the helper uses
 | `SERVER_DIR` | Required host root shared by web and worker for uploads, task SQLite, and result folders. Never store the user database here. |
 | `RUNNER_HOST_ROOT` | Host root allowed for Docker runner bind mounts (default: parent of `SERVER_DIR`). |
 | `LOG_DIR` | Host directory for Gunicorn, Celery, and `maintenance.log`. |
-| `DB_UNIREF30` | Required UniRef30 prefix path. |
-| `DB_UNIREF90` | Required UniRef90 BLAST prefix path. |
+| `CONFIG_DIR` | Path to the config directory containing `task_types.yaml` and `runners/`. Defaults to the source checkout; set to `/app/server/config` in Docker deployments so maintainers can ship config changes with the image. |
+| `ENABLED_TASKRUNNERS` | Comma-separated list of additional task types to enable (e.g., `alphafold,esm`). `gremlin` is always enabled regardless of this setting. |
 | `ADMIN_USERS` | Required comma-separated bootstrap-administrator usernames. On an empty user database, the restart script creates each account and prints a distinct generated password; afterward, database roles control authorization. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
 | `AUTH_DIR` | Host-side directory containing `users.sqlite3`; Compose mounts it only into web and maintenance. It must be outside `SERVER_DIR`. |
@@ -169,8 +195,8 @@ When `REVODESIGN_SERVER_ENV` is unset, the helper uses
 | `SERVER_BASE_URL` | Public base URL for email links and HTTPS-sensitive auth-cookie settings. |
 | `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID. Dev may match the host; published production images require `1000:1000`. |
 | `DOCKER_GID` | Auto-detected by `restart.sh` at runtime for Docker Compose interpolation. Override only as a shell variable when detection is wrong. |
-| `NPROC` | CPU threads passed to runner. |
-| `MAXMEM` | Memory cap (GB) passed to hhblits (`-maxmem`) inside runner script. |
+| `NPROC` | CPU threads passed to runner (overridable per task type in `config/runners/<name>.yaml`). |
+| `MAXMEM` | Memory cap (GB) passed to hhblits (`-maxmem`) inside runner script (overridable per task type in runner YAML). |
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `GUNICORN_TIMEOUT` | Gunicorn request timeout in seconds (default: `120`). Result transfers are handled by Nginx and do not require a long timeout. |
@@ -262,7 +288,38 @@ CLIENT_IP_HEADERS="CF-Connecting-IP, X-Forwarded-For, X-Real-IP"
 CLIENT_COUNTRY_HEADER="CF-IPCountry"
 ```
 
-## 4. Authentication
+## 4. Runner Configuration
+
+Database paths and resource limits no longer live in `.env`. Each task type
+has its own runner YAML at `config/runners/<name>.yaml`:
+
+```yaml
+# config/runners/gremlin.yaml — deployment-specific (machine-local)
+mounts:
+  - host_path: "/srv/revodesign/databases/uniref30/UniRef30_2023_02"
+    container_path: "/opt/db/uniref30"
+    mode: "ro"
+  - host_path: "/srv/revodesign/databases/uniref90/uniref90"
+    container_path: "/opt/db/uniref90"
+    mode: "ro"
+env:
+  GREMLIN_CALC_CPU_NUM: "16"
+nproc: 16
+maxmem: 64
+max_runtime_seconds: 7200
+defaults:
+  iter: 100
+```
+
+Edit this file when deploying to a new node — not `.env`. The task type
+definition at `config/task_types.yaml` (checked into git) declares the
+portable interface: Docker image, command, input format, stage markers,
+result patterns, and user-facing params.
+
+`CONFIG_DIR` must point to the directory containing both files. In Docker
+deployments, set it to `/app/server/config` to use the baked-in source copy.
+
+## 5. Authentication
 
 The server uses Bearer-token authentication (replaces the old HTTP Basic Auth + `users.txt` model).
 
@@ -389,7 +446,7 @@ Rate limits: 5 login attempts/minute per IP, 3 registrations/hour per IP.  The
 login endpoint returns HTTP 429 with `retry_after_seconds`; the login page uses
 that value to disable the submit button and count down until retry.
 
-## 5. Build and Run
+## 6. Build and Run
 
 ### Recommended helper script
 
@@ -463,13 +520,16 @@ docker compose -f server/docker-compose.yml --env-file server/.env.production up
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh reload
 ```
 
-## 6. Usage
+## 7. Usage
 
 ### Create task page
 
 - `http://<server-ip>:<port>/compute/create_task`
-- Upload ``.fasta`` files via the **Choose File** button or by **dragging and dropping** a file anywhere on the card.
-- An optional sequence editor lets you paste raw protein sequences as text instead of uploading a file.
+- Select a task type from the dropdown — the form adapts dynamically (file
+  extension, hints, params inputs, sequence editor visibility).
+- Upload input files via the **Choose File** button or by **dragging and dropping** a file anywhere on the card.
+- For ``.fasta`` task types, an optional sequence editor lets you paste raw
+  protein sequences as text instead of uploading a file.
 
 ### Dashboard
 
@@ -513,7 +573,7 @@ curl -H "Authorization: Bearer ${TOKEN}" -X POST \
   "http://<server-ip>:<port>/compute/api/delete"
 ```
 
-## 7. Task States
+## 8. Task States
 
 Current server states:
 
@@ -537,7 +597,7 @@ The final `cleaned:*` states identify automatic retention cleanup; `deleted:*`
 states remain reserved for explicit user deletion.
 The `deleted:finshed` spelling is intentionally preserved for runtime compatibility.
 
-## 8. Public Access
+## 9. Public Access
 
 Docker Compose publishes the Nginx `gateway` service. The Flask/Gunicorn `web`
 service is internal-only. Nginx proxies application requests and serves result
@@ -561,7 +621,7 @@ You can start from:
 
 - `server/nginx_sites/REvoCompute.app`
 
-## 9. Security
+## 10. Security
 
 ### Docker socket
 
@@ -619,7 +679,7 @@ banned users, and login throttling are maintained in
 - Task IDs are validated against `[a-f0-9]{32}` before any filesystem access.
 - File paths are validated with `_safe_join` / `_path_is_within` to prevent directory traversal.
 
-## 10. Operations Notes
+## 11. Operations Notes
 
 - Restrict Docker socket access to trusted operators only.
 - Task visibility and operations are always restricted to the owner or an
@@ -627,7 +687,7 @@ banned users, and login throttling are maintained in
 - Regularly back up sqlite and result archives.
 - If a task is deleted, result artifacts are removed, but the sqlite record remains for audit.
 
-## 11. Local Development
+## 12. Local Development
 
 ```bash
 # Install in editable mode with test dependencies
@@ -646,7 +706,7 @@ python -m revocompute.app
 Full test and security validation guidance is maintained in
 `docs/dev-guide/server.md`.
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 ### Network issues
 

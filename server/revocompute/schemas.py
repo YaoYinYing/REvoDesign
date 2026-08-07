@@ -11,7 +11,7 @@ boundary.  Response models ensure sensitive fields (``password_hash``,
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -176,6 +176,41 @@ class ChangePasswordRequest(BaseModel):
 
     current_password: str = Field(min_length=1)
     new_password: str = Field(min_length=8)
+
+
+class TaskSubmissionRequest(BaseModel):
+    """Task submission form payload — validated at the API boundary.
+
+    The file itself is validated via Flask's request.files (not pydantic).
+    This model validates the accompanying form fields.
+    """
+
+    task_type: str = Field(default="gremlin")
+    params: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("task_type", mode="before")
+    @classmethod
+    def _normalize_type(cls, v: str) -> str:
+        if not isinstance(v, str) or not v.strip():
+            raise ValueError("task_type must not be blank")
+        return v.strip().lower()
+
+    @model_validator(mode="after")
+    def _validate_against_registry(self) -> TaskSubmissionRequest:
+        from revocompute.task_types import get as _get_type
+
+        try:
+            tt, _ = _get_type(self.task_type)
+        except KeyError:
+            raise ValueError(f"Unknown task type: {self.task_type!r}") from None
+
+        # Validate submitted params against the task type's param definitions
+        known_params = {p.name: p for p in tt.params}
+        for key in self.params:
+            if key not in known_params:
+                raise ValueError(f"Unknown parameter {key!r} for task type {self.task_type!r}")
+
+        return self
 
 
 # ---------------------------------------------------------------------------

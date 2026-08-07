@@ -5,6 +5,7 @@ x-task-env: &task-env
   RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-revocompute-runner}
 
   SERVER_DIR: ${SERVER_DIR}
+  CONFIG_DIR: ${CONFIG_DIR:-}
   RUNNER_HOST_ROOT: ${RUNNER_HOST_ROOT:-}
   LOG_DIR: ${LOG_DIR}
   DB_PATH: ${DB_PATH:-}

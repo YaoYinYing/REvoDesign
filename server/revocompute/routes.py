@@ -76,6 +76,7 @@ from revocompute.schemas import (
     LoginRequest,
     RegisterRequest,
     ResetPasswordRequest,
+    TaskSubmissionRequest,
     UserResponse,
 )
 from revocompute.task_runtime import (
@@ -196,6 +197,35 @@ def task_types_list():
         for tt in list_types()
     ]
     return jsonify(types_data)
+
+
+@app.route("/compute/api/types/<name>", methods=["GET"])
+def task_type_form(name: str):
+    """Return a single task type's full form definition (public).
+
+    The client fetches this when the user selects a task type, then
+    dynamically builds the upload form from the response.
+    """
+    try:
+        tt, _ = _get_task_type(name)
+    except KeyError:
+        return jsonify({"error": f"Unknown task type: {name!r}"}), 404
+
+    return jsonify(
+        {
+            "name": tt.name,
+            "display_name": tt.display_name,
+            "file_input": {
+                "accept": tt.input_extension,
+                "label": tt.input_label,
+                "required": True,
+            },
+            "params": [
+                {"name": p.name, "type": p.type, "default": p.default, "description": p.description} for p in tt.params
+            ],
+            "show_sequence_editor": tt.input_extension == ".fasta",
+        }
+    )
 
 
 def _validate_input_upload(task_type: str = "gremlin"):
@@ -322,10 +352,26 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     if _blocked := require_bearer_auth():
         return _blocked
 
-    task_type = request.form.get("task_type", "gremlin").strip().lower()
-    known_types = {tt.name for tt in list_types()}
-    if task_type not in known_types:
-        return jsonify({"error": f"Unknown task type: {task_type}"}), 400
+    # Parse flat form data ("params[key]=value") into nested dict
+    raw_form = request.form.to_dict(flat=True)
+    form_data: dict[str, Any] = {}
+    nested_params: dict[str, Any] = {}
+    for key, value in raw_form.items():
+        if key.startswith("params[") and key.endswith("]"):
+            nested_params[key[len("params[") : -1]] = value
+        else:
+            form_data[key] = value
+    if nested_params:
+        form_data["params"] = nested_params
+
+    try:
+        submission = TaskSubmissionRequest.model_validate(form_data)
+    except ValidationError as exc:
+        errors = [{"field": ".".join(str(p) for p in e["loc"]), "message": e["msg"]} for e in exc.errors()]
+        return jsonify({"error": "Validation failed", "details": errors}), 400
+
+    task_type = submission.task_type
+    params = submission.params
 
     uploaded_file, safe_filename, upload_error = _validate_input_upload(task_type)
     if upload_error is not None:
@@ -351,7 +397,15 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
             429,
         )
 
-    base_record = _prepare_task_record(md5sum, upload_path, safe_filename, metadata, task_type=task_type)
+    base_record = _prepare_task_record(
+        md5sum,
+        upload_path,
+        safe_filename,
+        metadata,
+        task_type=task_type,
+        input_form=params,
+        uploaded_files=[safe_filename],
+    )
     if invalid_response := _reject_invalid_fasta(md5sum, base_record):
         return invalid_response
 
@@ -363,7 +417,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     )
 
     try:
-        async_result = run_compute_task.apply_async(args=[md5sum], kwargs={"task_type": task_type})
+        async_result = run_compute_task.apply_async(args=[md5sum], kwargs={"task_type": task_type, "params": params})
     except Exception:
         logging.exception("Failed to submit compute task %s to Celery", md5sum)
         error_message = "Task queue unavailable — please try again later"

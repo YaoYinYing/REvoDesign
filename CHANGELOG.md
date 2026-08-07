@@ -19,6 +19,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- **Multi-task server architecture**: task-type-agnostic compute server with a
+  YAML-based registry. Adding a new task type (AlphaFold, ESM, DiffDock) means
+  writing a `task_types.yaml` entry + runner YAML + Dockerfile — server code
+  never changes. The registry pairs each portable `TaskType` (Docker image,
+  command, I/O contract, stage markers, user-facing params) with a
+  machine-local `RunnerConfig` (host paths for DBs/models, resource limits,
+  default param values). `gremlin` is the built-in fallback; additional
+  runners are gated by `ENABLED_TASKRUNNERS`.
+- **Server-driven dynamic form workflow**: the create-task page fetches form
+  schema from `GET /compute/api/types/<name>` and dynamically builds the file
+  input (accept extension, label), sequence editor visibility, and params form
+  (number/text inputs from `TaskParam` definitions). Adding a task type with
+  new params requires zero frontend changes.
+- **`TaskSubmissionRequest` pydantic model**: flat form data
+  (`params[key]=value`) is parsed into a nested dict, validated against the
+  task type registry, and forwarded to Celery. Unknown params or task types
+  are rejected at the API boundary.
+- **`GET /compute/api/types` and `GET /compute/api/types/<name>`**: public
+  endpoints listing all enabled task types with full param schemas.
+- **Runner config directory deployment**: `CONFIG_DIR` env var points to the
+  baked-in `/app/server/config`, letting maintainers ship `task_types.yaml`
+  and runner YAMLs alongside the server image without embedding
+  machine-specific paths.
 - **Structured issue reporting**: added GitHub Issue Forms for bugs,
   installation and environment problems, feature requests, and documentation
   problems, with private routing for security vulnerabilities.
@@ -29,6 +52,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Flask-issued internal redirects. Gunicorn no longer carries large download
   bodies or creates missing archives inside HTTP requests; result downloads
   support byte ranges while internal file paths remain unreachable directly.
+- **Server package rename**: `pssm_gremlin_server` → `revocompute`
+  (REvoCompute). All branding across templates, JS, CSS, and email headers
+  updated from "REvoDesign GREMLIN Server" to "REvoCompute".
+- **Runner Docker entrypoint**: simplified to `["bash", "/app/revocompute/run.sh"]`
+  (no `ldconfig` or `runuser`). The Celery worker overrides entrypoint at
+  container start and passes CLI args (`-i`, `-o`, `-r`) directly, so the
+  runner runs as the non-root `--user` without requiring root in the image.
+- **`POST /compute/api/post`**: accepts `task_type` and `params[...]` form
+  fields. Validates against the task type registry and passes params to
+  Celery. Generic `_validate_input_upload` replaces hardcoded `.fasta` check.
+- **Dashboard and create-task UI**: task type selector, dynamic file accept,
+  params form, task type badges on dashboard cards. Hardcoded GREMLIN trace
+  fallback and label regexes removed — stage labels come from the registry.
+- **Runner database/env config**: `DB_UNIREF30`, `DB_UNIREF90`, NPROC, MAXMEM,
+  and runner env vars moved from `.env` to per-runner YAML
+  (`config/runners/<name>.yaml`). Edit the runner YAML when deploying to a new
+  node instead of the global `.env`.
 - **Server reload operation**: added zero-downtime Gunicorn reload as a
   subcommand of the main deployment helper.
 - **Experimental cluster visibility**: marked EvoCluster and KMeansCluster as
@@ -127,6 +167,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bootstrap path and still reject duplicate `ADMIN_USERS` entries.
 
 ### Removed
+- **Hardcoded GREMLIN frontend logic**: removed `runningTraceFallback` and
+  GREMLIN-specific label regexes from dashboard JS. Stage labels, file
+  extensions, param forms, and task type labels are now registry-driven.
+- **`DB_UNIREF30` / `DB_UNIREF90` from required `.env`**: database paths
+  are now in `config/runners/<name>.yaml`; the legacy `.env` variables are
+  no longer read by the multi-task launcher.
 - **Server deployment fallbacks**: removed the standalone `hot_fix.sh` helper
   and legacy `server/.env` fallback; deployment defaults explicitly to
   `.env.production` unless `REVODESIGN_SERVER_ENV` is set.

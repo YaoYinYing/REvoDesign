@@ -23,9 +23,12 @@ from typing import Any
 
 import docker
 from celery import Celery
-from revocompute.config import ComputeConfig, ensure_directories, env_path
+from revocompute.config import ComputeConfig, ensure_directories, env_csv, env_path
 from revocompute.db import TaskDatabase
+from revocompute.task_types import RunnerConfig, RunnerMount, TaskParam, TaskType
 from revocompute.task_types import get as _get_task_type
+from revocompute.task_types import load_registry as _load_task_registry
+from revocompute.task_types import register as _register_tt
 
 CONFIG = ComputeConfig.from_env()
 
@@ -41,6 +44,36 @@ celery.conf.broker_connection_retry_on_startup = True
 
 task_store = TaskDatabase(CONFIG.db_path)
 ensure_directories(CONFIG.upload_folder, CONFIG.results_folder)
+
+# Load the task type registry — shared by web and worker processes.
+# gremlin is always enabled; additional runners are gated by ENABLED_TASKRUNNERS.
+_enabled_runners = set(env_csv("ENABLED_TASKRUNNERS", ""))
+try:
+    _load_task_registry(CONFIG.task_types_config, CONFIG.runners_dir, _enabled_runners)
+except FileNotFoundError:
+    logging.warning(
+        "Task type registry not found at %s — registering built-in gremlin fallback.",
+        CONFIG.task_types_config,
+    )
+    _register_tt(
+        TaskType(
+            name="gremlin",
+            display_name="PSSM-GREMLIN",
+            docker_image=os.environ.get("RUNNER_IMAGE", "revodesign-revocompute-runner"),
+            command=["bash", "/app/revocompute/run.sh"],
+            input_extension=".fasta",
+            input_label="FASTA file",
+            stage_markers={
+                "hhblits": "HHblits MSA generation",
+                "hhfilter": "HHfilter filtering",
+                "gremlin": "GREMLIN optimization",
+                "blast": "PSI-BLAST PSSM",
+            },
+            result_patterns=("*.pkl", "*_ascii_mtx_file", "*.GREMLIN.mrf.pkl"),
+            params=(TaskParam(name="iter", type="int", default=100, description="GREMLIN optimization iterations"),),
+        ),
+        RunnerConfig(),
+    )
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 _TASK_ID_PATTERN = re.compile(r"[a-fA-F0-9]{32}$")
@@ -238,9 +271,23 @@ def _run_in_docker(
     if params:
         container_env["TASK_PARAMS"] = json.dumps(params)
 
+    # ponytail: entrypoint=tt.command overrides the image ENTRYPOINT so we
+    # don't need ldconfig/runuser (which require root) in the image.
+    # Build CLI args from params — the runner script reads -i/-o/-r flags.
+    command_args = [
+        "-i",
+        "/workspace/inputs",
+        "-o",
+        "/workspace/outputs",
+    ]
+    for key, flag in (("iter", "-r"),):
+        if key in params:
+            command_args.extend([flag, str(params[key])])
+
     container = client.containers.run(
         image=tt.docker_image,
-        command=tt.command,
+        entrypoint=tt.command,
+        command=command_args,
         remove=False,
         detach=True,
         volumes=volumes,

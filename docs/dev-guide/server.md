@@ -225,7 +225,7 @@ task_types:
   gremlin:
     display_name: "PSSM-GREMLIN"
     docker_image: "revodesign-revocompute-runner"
-    command: ["bash", "/opt/gremlin/run_gremlin.sh"]
+    command: ["bash", "/app/revocompute/run.sh"]
     input_extension: ".fasta"
     input_label: "FASTA file"
     stage_markers:
@@ -264,9 +264,14 @@ defaults:
 ### `.env` — Runtime Control
 
 ```bash
+# Path to the config directory containing task_types.yaml and runners/.
+# Defaults to the source checkout.  Set to /app/server/config in Docker
+# deployments to use the baked-in source copy.
+CONFIG_DIR=/app/server/config
+
 # Task runners enabled on this deployment.
 # Comma-separated list of task type names. Only these are advertised via
-# GET /api/types and accepted by POST /api/job.
+# GET /api/types and accepted by POST /compute/api/post.
 # gremlin is always enabled (built-in, not gated by this list).
 ENABLED_TASKRUNNERS=alphafold,esm
 ```
@@ -282,7 +287,13 @@ Each Docker runner container follows this contract:
 2. Writes output to `/workspace/outputs/`
 3. Emits `REVODESIGN_STAGE:<marker>` on stdout for progress tracking
 4. Reads `TASK_PARAMS` env var (JSON string) for user-provided parameters
-5. Exits 0 on success
+5. Accepts CLI args: `-i <input_dir> -o <output_dir> [-r <iterations> ...]`
+6. Exits 0 on success
+
+The Celery worker overrides the image ENTRYPOINT with `tt.command` and passes
+CLI args as `command`. This lets the runner run as a non-root `--user` without
+needing `ldconfig` or `runuser` in the image — user identity is managed at
+container start via `.env` (`RUNNER_UID`, `RUNNER_GID`).
 
 Standard mounts every task gets:
 
@@ -365,8 +376,10 @@ cookie-only writes are rejected to avoid CSRF on browser sessions.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/compute/create_task` | Web form to upload a FASTA file |
-| `POST` | `/compute/api/post` | Upload a FASTA file via API (multipart form). Defaults to `task_type=gremlin`. |
+| `GET` | `/compute/create_task` | Web form with dynamic task type selector and params |
+| `POST` | `/compute/api/post` | Submit a compute job (multipart form). Accepts `task_type`, `params[...]`, and file. |
+| `GET` | `/compute/api/types` | List all enabled task types with param schemas (public) |
+| `GET` | `/compute/api/types/<name>` | Full form definition for one task type — file accept, params, editor visibility (public) |
 | `GET` | `/compute/api/running/<md5sum>` | Poll task status |
 | `GET` | `/compute/api/results/<md5sum>` | Redirect to download URL when finished |
 | `GET` | `/compute/api/download/<md5sum>` | Download result ZIP archive |
@@ -374,9 +387,8 @@ cookie-only writes are rejected to avoid CSRF on browser sessions.
 | `DELETE` | `/compute/api/delete/<md5sum>` | Delete a single task (soft-delete) |
 | `POST` | `/compute/api/delete` | Batch delete (JSON body: `{"md5sums": [...]}`) |
 
-Planned generic endpoints (not yet implemented):
-- `POST /compute/api/job` — submit a job for any task type
-- `GET /compute/api/types` — list enabled task types with param schemas
+All generic endpoints above are implemented. `POST /compute/api/post` serves
+as the generic job submission endpoint — it accepts any registered `task_type`.
 
 ### Dashboard & UI
 
