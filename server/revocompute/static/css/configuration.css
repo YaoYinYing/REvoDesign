@@ -1,37 +1,632 @@
-/* REvoCompute — Configuration page */
+/* REvoCompute — Configuration page styles */
 /* SPDX-License-Identifier: GPL-3.0-only */
 
-.config-panel { margin-top: 1rem; }
+/* ---- Sub-tabs (match user-control pattern) ---- */
+
+.sub-tabs {
+  display: flex;
+  gap: 0;
+  margin-top: 1rem;
+  margin-bottom: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+
+.sub-tab {
+  flex: 1;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  background: var(--paper);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+  font-family: inherit;
+}
+
+.sub-tab:hover { color: var(--ink); }
+
+.sub-tab.active {
+  background: var(--accent);
+  color: #f6fbff;
+}
+
+.sub-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+/* ---- Config panel ---- */
+
+.config-panel {
+  border-radius: 0 0 14px 14px;
+  padding: 1.6rem;
+  margin-top: 0;
+  animation: fadeRise 420ms ease-out;
+}
 
 .config-toolbar {
-  display: flex; gap: 0.5rem; align-items: center;
-  margin-bottom: 1rem;
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  margin-bottom: 1.4rem;
+  flex-wrap: wrap;
 }
 
-.config-table-wrap { overflow-x: auto; }
-
-.config-table {
-  width: 100%; border-collapse: collapse;
+.hint-text {
+  margin-top: 1.2rem;
+  font-size: 0.8rem;
 }
 
-.config-table th {
-  text-align: left; font-size: 0.8rem; text-transform: uppercase;
-  letter-spacing: 0.05em; color: var(--muted); padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--border);
+/* ---- Task type cards ---- */
+
+.config-cards {
+  display: grid;
+  gap: 0.9rem;
 }
 
-.config-table td {
-  padding: 0.35rem 0.5rem;
+.type-card {
+  --accent-stripe: var(--accent);
+  position: relative;
+  overflow: hidden;
+  padding: 1.05rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fbfdfb;
+  box-shadow: 0 8px 18px rgba(29, 42, 47, 0.05);
+  animation: fadeRise 320ms ease-out both;
+}
+
+.type-card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--accent-stripe);
+}
+
+.type-card.enabled::before { background: var(--finished); }
+.type-card.disabled::before { background: var(--cancelled); }
+
+.type-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.type-card-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.type-card-ext {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  border-radius: 4px;
   vertical-align: middle;
 }
 
-.config-table .config-key { width: 100%; }
-.config-table .config-value { width: 100%; }
+.type-card-desc {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
 
-.config-table td:first-child { min-width: 18rem; }
-.config-table td:nth-child(2) { min-width: 18rem; }
-.config-table td:last-child { width: 2.5rem; text-align: center; }
+.type-card-meta {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.65rem;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.type-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Card head right group: label + toggle + expand */
+.card-head-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* Expand toggle button (gear icon) */
+.card-expand-toggle {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 200ms ease, color 160ms ease, background 160ms ease;
+  flex-shrink: 0;
+}
+
+.card-expand-toggle:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 10%, var(--paper));
+}
+
+.card-expand-toggle.expanded {
+  transform: rotate(60deg);
+  color: var(--accent);
+}
+
+/* Expandable body */
+.type-card-body {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--line);
+  animation: fadeRise 240ms ease-out;
+}
+
+/* Section label inside card body */
+.card-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.55rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.card-badge-on {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--finished) 15%, transparent);
+  color: var(--finished);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Inline field grid inside card */
+.card-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.card-field-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card-field .config-value {
+  font-size: 0.8rem;
+  padding: 0.38rem 0.5rem;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.card-field .config-value:focus {
+  border-color: color-mix(in srgb, var(--accent) 58%, white 42%);
+  box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
+}
+
+/* Compact toggle switch for card fields */
+.toggle-switch-sm {
+  width: 2.2rem;
+  height: 1.2rem;
+}
+
+.toggle-switch-sm .toggle-track::after {
+  width: calc(1.2rem - 4px);
+  height: calc(1.2rem - 4px);
+}
+
+.toggle-switch-sm input:checked + .toggle-track::after {
+  transform: translateX(1rem);
+}
+
+/* ---- Toggle switch ---- */
+
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.toggle-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  min-width: 3.5rem;
+  text-align: right;
+}
+
+.toggle-label.enabled-text { color: var(--finished); }
+.toggle-label.disabled-text { color: var(--cancelled); }
+
+.toggle-switch {
+  position: relative;
+  width: 2.8rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0; height: 0;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 180ms ease;
+}
+
+.toggle-track::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: calc(1.5rem - 4px);
+  height: calc(1.5rem - 4px);
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 200ms cubic-bezier(0.22, 0.92, 0.32, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+}
+
+.toggle-switch input:checked + .toggle-track {
+  background: var(--finished);
+}
+
+.toggle-switch input:checked + .toggle-track::after {
+  transform: translateX(1.3rem);
+}
+
+.toggle-switch input:focus-visible + .toggle-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- Config table (resource / all-keys tabs) ---- */
+
+.config-table-wrap {
+  overflow-x: auto;
+}
+
+.config-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.config-table th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 2px solid var(--line);
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.config-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.config-table tbody tr:hover {
+  background: rgba(0,0,0,0.02);
+}
+
+.config-table .empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 2.5rem 0.75rem;
+  font-size: 0.88rem;
+}
+
+/* Key / value inputs */
+.config-key,
+.config-value {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0.45rem 0.55rem;
+  font-size: 0.84rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.config-key:focus,
+.config-value:focus {
+  border-color: color-mix(in srgb, var(--accent) 58%, white 42%);
+  box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
+}
+
+.config-desc {
+  color: var(--muted);
+  font-size: 0.78rem;
+  max-width: 16rem;
+}
 
 .delete-row-btn {
-  font-size: 1.1rem; line-height: 1; padding: 0.15rem 0.5rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+}
+
+/* ---- Toast ---- */
+
+.toast-wrap {
+  position: fixed;
+  bottom: 1.2rem;
+  right: 1.2rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.16);
+  animation: fadeRise 260ms ease-out;
+}
+
+.toast.success { background: #e0f4ed; color: #0e584b; border: 1px solid #bef0df; }
+.toast.error   { background: #fef0e8; color: #8f5012; border: 1px solid #f5d6b6; }
+.toast.info    { background: #e3eff8; color: #1a4970; border: 1px solid #c8ddf0; }
+
+/* ---- Dark theme ---- */
+
+html[data-theme="dark"] .sub-tabs {
+  border-color: #30444f;
+  background: #132128;
+}
+
+html[data-theme="dark"] .sub-tab {
+  background: #132128;
+  color: #8ea4b2;
+}
+
+html[data-theme="dark"] .sub-tab:hover { color: #c0d0d7; }
+
+html[data-theme="dark"] .sub-tab.active {
+  background: var(--accent);
+  color: #f0f9ff;
+}
+
+html[data-theme="dark"] .config-panel {
+  border-color: #30444f;
+}
+
+html[data-theme="dark"] .type-card {
+  background: #18262d;
+  border-color: #2d424d;
+  box-shadow: 0 10px 22px rgba(3, 9, 12, 0.3);
+}
+
+html[data-theme="dark"] .type-card-name { color: #e4edf1; }
+
+html[data-theme="dark"] .type-card-ext {
+  background: rgba(255,255,255,0.06);
+  color: #9fb0b8;
+}
+
+html[data-theme="dark"] .type-card-desc { color: #9fb0b8; }
+
+html[data-theme="dark"] .type-card-meta { color: #7f949e; }
+
+html[data-theme="dark"] .type-card-body {
+  border-top-color: #2d424d;
+}
+
+html[data-theme="dark"] .card-expand-toggle {
+  background: #18262d;
+  border-color: #2d424d;
+  color: #7f949e;
+}
+
+html[data-theme="dark"] .card-expand-toggle:hover {
+  background: color-mix(in srgb, var(--accent) 16%, #18262d);
+  color: #d8e4e9;
+}
+
+html[data-theme="dark"] .card-field .config-value {
+  background: #17252c;
+  border-color: #324751;
+  color: #d8e4e9;
+}
+
+html[data-theme="dark"] .card-badge-on {
+  background: rgba(61, 181, 141, 0.12);
+  color: #5dcfa0;
+}
+
+html[data-theme="dark"] .toggle-track::after {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+html[data-theme="dark"] .config-table th {
+  border-bottom-color: #30444f;
+}
+
+html[data-theme="dark"] .config-table td {
+  border-bottom-color: #253a46;
+}
+
+html[data-theme="dark"] .config-table tbody tr:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+html[data-theme="dark"] .config-key,
+html[data-theme="dark"] .config-value {
+  border-color: #324751;
+  background: #17252c;
+  color: #d8e4e9;
+}
+
+html[data-theme="dark"] .toast.success {
+  background: #162e27; color: #96c7b4; border-color: #2c5544;
+}
+
+html[data-theme="dark"] .toast.error {
+  background: #2c1a16; color: #e3b0a8; border-color: #5c322b;
+}
+
+html[data-theme="dark"] .toast.info {
+  background: #1a3040; color: #a8d0e8; border-color: #2b495a;
+}
+
+/* ==================================================================
+   Responsive
+   ================================================================== */
+
+@media (max-width: 980px) {
+  .card-field-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .config-table td:nth-child(3),
+  .config-table th:nth-child(3) {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    width: calc(100% - 1rem);
+    margin-top: 0.8rem;
+  }
+
+  .hero { border-radius: 14px; }
+
+  .sub-tabs {
+    border-radius: 10px 10px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .sub-tab {
+    font-size: 0.78rem;
+    padding: 0.5rem 0.6rem;
+  }
+
+  .config-panel {
+    padding: 0.9rem 0.65rem;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .type-card {
+    padding: 0.85rem 0.9rem;
+  }
+
+  .type-card-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.55rem;
+  }
+
+  .card-head-right {
+    align-self: flex-end;
+  }
+
+  .card-field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .config-table {
+    font-size: 0.78rem;
+  }
+
+  .config-table thead { display: none; }
+
+  .config-table,
+  .config-table tbody,
+  .config-table tr {
+    display: block;
+  }
+
+  .config-table tbody tr {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+    padding: 0.55rem 0.7rem;
+  }
+
+  html[data-theme="dark"] .config-table tbody tr {
+    background: #18262d;
+    border-color: #2d424d;
+  }
+
+  .config-table td {
+    display: block;
+    padding: 0.25rem 0;
+    border-bottom: none;
+    text-align: left;
+  }
+
+  .config-key,
+  .config-value {
+    font-size: 0.82rem;
+  }
+
+  .toast-wrap {
+    bottom: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+  }
 }

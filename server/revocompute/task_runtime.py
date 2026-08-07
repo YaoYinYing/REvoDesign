@@ -29,8 +29,13 @@ from revocompute.task_types import RunnerConfig, RunnerMount, TaskParam, TaskTyp
 from revocompute.task_types import get as _get_task_type
 from revocompute.task_types import load_registry as _load_task_registry
 from revocompute.task_types import register as _register_tt
+from revocompute.job import Job, JobState
+from revocompute.job.runners.docker_runner import DockerJob
+from revocompute.job.runners.slurm_runner import SlurmJob
+from revocompute.manage_db import ManageDatabase  # noqa: E402
 
 CONFIG = ComputeConfig.from_env()
+_manage_db = ManageDatabase(CONFIG.manage_db_path)
 
 _redis_password = os.environ.get("REDIS_PASSWORD", "")
 _redis_auth = f":{_redis_password}@" if _redis_password else ""
@@ -243,125 +248,41 @@ def _run_in_docker(
     docker_client=None,
     stage_callback=None,
 ):
-    """Run a compute task in Docker.
+    """Run a compute task in Docker — thin wrapper, delegates to DockerJob."""
+    job = DockerJob(
+        task_id, tt, runner, entities, output_dir,
+        stage_callback=stage_callback,
+        docker_client=docker_client,
+    )
+    job.submit()
+    return job.poll()
 
-    Mounts come from the runner YAML config.  Standard /workspace/inputs and
-    /workspace/outputs mounts are added automatically.
 
-    Entities are read from the task's ``input_form`` column — file entities
-    carry ``verified_value``, ``mounted``, and ``hash``; param entities carry
-    ``name``, ``type``, ``value``, and ``verified_value``.
-    """
-    client = docker_client or docker.from_env()
-
-    file_entities = [e for e in entities if e["type"] == "file"]
-    param_entities = [e for e in entities if e["type"] != "file"]
-
-    # Build volumes from runner config mounts
-    volumes: dict[str, dict] = {}
-    for m in runner.mounts:
-        host = os.path.expanduser(m.host_path)
-        if not os.path.exists(host):
-            raise docker.errors.DockerException(f"Mount source '{host}' for '{m.container_path}' does not exist")
-        volumes[host] = {"bind": m.container_path, "mode": m.mode}
-
-    # Standard input/output mounts — mount the upload directory so the
-    # Docker daemon can access the input file.  results/<md5sum>/ is
-    # created inside the web container's SERVER_DIR bind mount and may not
-    # be synced to the host filesystem in time for Docker to mount it.
-    os.makedirs(output_dir, exist_ok=True)
-    if file_entities:
-        fe = file_entities[0]
-        upload_dir = CONFIG.upload_folder
-        # ponytail: hardlink <original>.fasta -> <md5sum>.fasta so run.sh
-        # sees the original filename (readlink -f resolves symlinks but
-        # not hardlinks).
-        original_name = fe["verified_value"]
-        hash_name = f"{fe['hash']}.upload"
-        link_path = os.path.join(upload_dir, original_name)
-        if not os.path.lexists(link_path):
-            os.link(os.path.join(upload_dir, hash_name), link_path)
-        volumes[os.path.abspath(upload_dir)] = {"bind": "/workspace/inputs", "mode": "ro"}
-    volumes[os.path.abspath(output_dir)] = {"bind": "/workspace/outputs", "mode": "rw"}
-
-    # Build params dict from non-file entities (for TASK_PARAMS and CLI args)
-    params: dict[str, Any] = {e["name"]: e["verified_value"] for e in param_entities}
-
-    # Build container env from runner YAML + task params
-    container_env: dict[str, str] = dict(runner.env)
-    container_env["TASK_ID"] = task_id
-    container_env["TASK_TYPE"] = tt.name
-    if params:
-        container_env["TASK_PARAMS"] = json.dumps(params)
-
-    # ponytail: entrypoint=tt.command overrides the image ENTRYPOINT so we
-    # don't need ldconfig/runuser (which require root) in the image.
-    # Build CLI args from entities — file entity gives -i, params give typed flags.
-    command_args = []
-    if file_entities:
-        command_args.extend(["-i", file_entities[0]["mounted"]])
-    command_args.extend(["-o", "/workspace/outputs"])
-    for key, flag in (("iter", "-r"),):
-        if key in params:
-            command_args.extend([flag, str(params[key])])
-
-    container = client.containers.run(
-        image=tt.docker_image,
-        entrypoint=tt.command,
-        command=command_args,
-        remove=False,
-        detach=True,
-        volumes=volumes,
-        environment=container_env,
-        device_requests=([docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if tt.gpus else None),
-        user=CONFIG.docker_user,
-        stdout=True,
-        stderr=True,
+def _create_job(
+    task_id: str, tt, runner, entities: list[dict], output_dir: str,
+    stage_callback=None,
+) -> Job:
+    """Factory: return the correct Job subclass for the runner config."""
+    if getattr(runner, "runner", "docker") == "slurm":
+        return SlurmJob(
+            task_id, tt, runner, entities, output_dir,
+            stage_callback=stage_callback,
+            manage_db=_manage_db,
+        )
+    return DockerJob(
+        task_id, tt, runner, entities, output_dir,
+        stage_callback=stage_callback,
     )
 
-    stderr_lines: list[str] = []
-    last_stage: str | None = None
-    try:
-        # ponytail: signal.signal only works in the main thread; in threaded
-        # contexts (e.g. in-process Celery worker), skip the handler and rely
-        # on the finally block for cleanup.
-        try:
-            signal.signal(signal.SIGINT, lambda unused_sig, unused_frame: container.kill())
-        except ValueError:
-            pass
-        for line in container.logs(stream=True):
-            decoded = line.strip().decode("utf-8", errors="replace")
-            if decoded:
-                stage = _extract_stage_from_log_line(decoded, tt.stage_markers)
-                if stage and stage != last_stage:
-                    last_stage = stage
-                    if stage_callback:
-                        stage_callback(stage)
-                stderr_lines.append(decoded)
-                logging.info(decoded)
-        wait_result = container.wait()
-        status_code = wait_result.get("StatusCode", 1)
-        if status_code != 0:
-            raise docker.errors.ContainerError(
-                container=container,
-                exit_status=status_code,
-                command=tt.command,
-                image=tt.docker_image,
-                stderr="\n".join(stderr_lines[-200:]),
-            )
-    finally:
-        try:
-            container.remove(force=True)
-        except docker.errors.DockerException:
-            pass
-        # Remove the hardlink created for filename preservation
-        if file_entities:
-            link_path = os.path.join(CONFIG.upload_folder, file_entities[0]["verified_value"])
-            if os.path.lexists(link_path):
-                try:
-                    os.unlink(link_path)
-                except OSError:
-                    pass
+
+def _run_compute_job(
+    task_id: str, tt, runner, entities: list[dict], output_dir: str,
+    stage_callback=None,
+) -> JobState:
+    """Unified submit + poll — same flow for Docker and SLURM."""
+    job = _create_job(task_id, tt, runner, entities, output_dir, stage_callback)
+    job.submit()
+    return job.poll()
 
 
 # ---------------------------------------------------------------------------
@@ -531,7 +452,7 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         task_store.update_task(md5sum, run_stage=stage)
 
     try:
-        _run_in_docker(
+        _run_compute_job(
             task_id=md5sum,
             tt=tt,
             runner=runner,

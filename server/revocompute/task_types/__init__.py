@@ -86,6 +86,11 @@ class RunnerConfig:
     max_runtime_seconds: int | None = None  # override task_type default if set
     defaults: dict[str, Any] = field(default_factory=dict)  # default param values
 
+    # Runner backend selection — "docker" (default) or "slurm"
+    runner: str = "docker"
+    container_runtime: str = ""  # "apptainer" (empty = docker, valid only when runner=slurm)
+    slurm_image: str = ""  # "/opt/apptainer/images/gremlin_v1.2.sif"
+
 
 # ---------------------------------------------------------------------------
 # Registry
@@ -133,6 +138,9 @@ def _load_runner_config(path: str) -> RunnerConfig:
         maxmem=data.get("maxmem"),
         max_runtime_seconds=data.get("max_runtime_seconds"),
         defaults=data.get("defaults", {}),
+        runner=data.get("runner", "docker"),
+        container_runtime=data.get("container_runtime", ""),
+        slurm_image=data.get("slurm_image", ""),
     )
 
 

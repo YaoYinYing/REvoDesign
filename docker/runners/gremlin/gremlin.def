@@ -1,0 +1,23 @@
+Bootstrap: docker
+From: revodesign-revocompute-runner:latest
+
+%post
+    apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        && rm -rf /var/lib/apt/lists/*
+    # HPC-specific: ensure tmp space, shared libs
+    mkdir -p /tmp /workspace/inputs /workspace/outputs
+
+%environment
+    export PATH=/app/revocompute:$PATH
+    export TASK_ID=""
+    export TASK_TYPE="gremlin"
+    export TASK_PARAMS=""
+
+%runscript
+    exec bash /app/revocompute/run.sh "$@"
+
+%files
+    # Copy the revocompute entrypoint from the build context
+    # Build: apptainer build --fakeroot gremlin_vX.Y.sif config/def/gremlin.def

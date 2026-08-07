@@ -139,6 +139,8 @@ class ComputeConfig:
     result_download_mode: str
     task_types_config: str  # path to config/task_types.yaml
     runners_dir: str  # path to config/runners/
+    slurm_enabled: bool = False
+    slurm_allowed_queues: list[str] = ()
 
     @classmethod
     def from_env(cls) -> ComputeConfig:
@@ -155,4 +157,6 @@ class ComputeConfig:
             result_download_mode=env_choice("RESULT_DOWNLOAD_MODE", "flask", {"flask", "nginx"}),
             task_types_config=os.path.join(config_dir, "task_types.yaml"),
             runners_dir=os.path.join(config_dir, "runners"),
+            slurm_enabled=env_bool("SLURM_ENABLED", False),
+            slurm_allowed_queues=env_csv("SLURM_ALLOWED_QUEUES", ""),
         )
