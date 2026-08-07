@@ -84,11 +84,15 @@ def _insert_pending_task(
                 "type": "file",
                 "value": filename,
                 "verified_value": filename,
-                "stored_at": str(fasta_path),
                 "mounted": f"/workspace/inputs/{filename}",
                 "hash": md5sum,
             }
         ]
+    # _execute_compute_task verifies the upload file exists at
+    # CONFIG.upload_folder/<hash>.upload before launching Docker.
+    upload_file = Path(module.task_runtime.CONFIG.upload_folder) / f"{md5sum}.upload"
+    upload_file.parent.mkdir(parents=True, exist_ok=True)
+    upload_file.write_text(">test\nACDE\n", encoding="utf-8")
     module.task_store.upsert_task(
         md5sum,
         filename=filename,

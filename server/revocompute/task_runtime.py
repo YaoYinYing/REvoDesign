@@ -59,7 +59,7 @@ except FileNotFoundError:
         TaskType(
             name="gremlin",
             display_name="PSSM-GREMLIN",
-            docker_image=os.environ.get("RUNNER_IMAGE", "revodesign-revocompute-runner"),
+            docker_image="revodesign-revocompute-runner",
             command=["bash", "/app/revocompute/run.sh"],
             input_extension=".fasta",
             input_label="FASTA file",
@@ -249,7 +249,7 @@ def _run_in_docker(
     /workspace/outputs mounts are added automatically.
 
     Entities are read from the task's ``input_form`` column — file entities
-    carry ``stored_at``, ``mounted``, and ``hash``; param entities carry
+    carry ``verified_value``, ``mounted``, and ``hash``; param entities carry
     ``name``, ``type``, ``value``, and ``verified_value``.
     """
     client = docker_client or docker.from_env()
@@ -277,7 +277,7 @@ def _run_in_docker(
         # sees the original filename (readlink -f resolves symlinks but
         # not hardlinks).
         original_name = fe["verified_value"]
-        hash_name = f"{fe['hash']}.fasta"
+        hash_name = f"{fe['hash']}.upload"
         link_path = os.path.join(upload_dir, original_name)
         if not os.path.lexists(link_path):
             os.link(os.path.join(upload_dir, hash_name), link_path)
@@ -322,7 +322,13 @@ def _run_in_docker(
     stderr_lines: list[str] = []
     last_stage: str | None = None
     try:
-        signal.signal(signal.SIGINT, lambda unused_sig, unused_frame: container.kill())
+        # ponytail: signal.signal only works in the main thread; in threaded
+        # contexts (e.g. in-process Celery worker), skip the handler and rely
+        # on the finally block for cleanup.
+        try:
+            signal.signal(signal.SIGINT, lambda unused_sig, unused_frame: container.kill())
+        except ValueError:
+            pass
         for line in container.logs(stream=True):
             decoded = line.strip().decode("utf-8", errors="replace")
             if decoded:
@@ -492,12 +498,12 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
 
     # Verify file entities reference existing files
     for fe in [e for e in entities if e["type"] == "file"]:
-        stored = fe.get("stored_at", "")
-        if not os.path.exists(stored):
-            error_message = f"Uploaded input file not found on disk: {stored}"
+        upload_file = os.path.join(CONFIG.upload_folder, f"{fe['hash']}.upload")
+        if not os.path.lexists(upload_file):
+            error_message = f"Uploaded input file not found: {upload_file}"
             _pack_failed_results_archive(task, error_message)
             task_store.update_task(md5sum, status="failed", error=error_message, finished_at=time.time())
-            logging.error("Uploaded file missing for task %s: %s", md5sum, stored)
+            logging.error("Uploaded file missing for task %s: %s", md5sum, upload_file)
             return
 
     stages = list(tt.stage_markers.items())

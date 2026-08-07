@@ -26,3 +26,14 @@ task_types:
         type: "int"
         default: 100
         description: "GREMLIN optimization iterations"
+
+  pythia_ddg:
+    display_name: "Pythia-ddG"
+    docker_image: "revodesign-revocompute-runner-pythia"
+    command: ["bash", "/app/revocompute/run.sh"]
+    input_extension: ".pdb"
+    input_label: "PDB file"
+    stage_markers:
+      pythia_ddg: "Pythia masked ddG scan"
+    result_patterns: ["*_pred_mask.csv", "*_pred_mask.txt"]
+    params: []

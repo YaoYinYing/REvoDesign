@@ -2,16 +2,14 @@
 
 x-task-env: &task-env
   SERVER_IMAGE: ${SERVER_IMAGE:-revodesign-revocompute-server}
-  RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-revocompute-runner}
 
   SERVER_DIR: ${SERVER_DIR}
   CONFIG_DIR: ${CONFIG_DIR:-}
+  MANAGE_DB_PATH: ${MANAGE_DB_PATH:-}
+  ENABLED_TASKRUNNERS: ${ENABLED_TASKRUNNERS:-}
   RUNNER_HOST_ROOT: ${RUNNER_HOST_ROOT:-}
   LOG_DIR: ${LOG_DIR}
   DB_PATH: ${DB_PATH:-}
-
-  DB_UNIREF30: ${DB_UNIREF30}
-  DB_UNIREF90: ${DB_UNIREF90}
 
   REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
   BROKER_URL: ${BROKER_URL:-redis://redis:6379/0}
@@ -172,14 +170,12 @@ services:
     working_dir: /app/server
     volumes:
       - ${SERVER_DIR}:${SERVER_DIR}
-      - ${DB_UNIREF30}:${DB_UNIREF30}:ro
-      - ${DB_UNIREF90}:${DB_UNIREF90}:ro
       - ${LOG_DIR}:${LOG_DIR}
       - /var/run/docker.sock:/var/run/docker.sock
 
   runner:
     profiles: ["runner"]
-    image: ${RUNNER_IMAGE:-revodesign-revocompute-runner}
+    image: revodesign-revocompute-runner
     build:
       context: .
       dockerfile: docker/runners/pssm_gremlin/Dockerfile

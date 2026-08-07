@@ -63,7 +63,7 @@ validate_required_settings() (
   local missing=()
   local name=""
   local value=""
-  for name in SERVER_DIR DB_UNIREF30 DB_UNIREF90 ADMIN_USERS; do
+  for name in SERVER_DIR ADMIN_USERS; do
     value="${!name:-}"
     if [[ -z "${value//[[:space:]]/}" ]]; then
       missing+=("${name}")

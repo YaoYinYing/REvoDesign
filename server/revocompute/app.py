@@ -123,6 +123,11 @@ task_runtime = importlib.import_module("revocompute.task_runtime")
 celery = task_runtime.celery
 task_store = task_runtime.task_store
 
+from revocompute.manage_db import ManageDatabase  # noqa: E402
+
+manage_db = ManageDatabase(CONFIG.manage_db_path)
+app.config["manage_db"] = manage_db
+
 # Define directories for storing files
 app.config["UPLOAD_FOLDER"] = CONFIG.upload_folder
 app.config["RESULTS_FOLDER"] = CONFIG.results_folder
@@ -150,7 +155,7 @@ except FileNotFoundError:
         TaskType(
             name="gremlin",
             display_name="PSSM-GREMLIN",
-            docker_image=os.environ.get("RUNNER_IMAGE", "revodesign-revocompute-runner"),
+            docker_image="revodesign-revocompute-runner",
             command=["bash", "/app/revocompute/run.sh"],
             input_extension=".fasta",
             input_label="FASTA file",

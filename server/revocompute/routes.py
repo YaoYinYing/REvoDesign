@@ -160,6 +160,15 @@ def log_viewer_page():
     return render_template("log_viewer.html")
 
 
+@app.route("/compute/configuration", methods=["GET"])
+@login_required
+def configuration_page():
+    """Admin-only runtime configuration page."""
+    if g.current_user.get("role") != "admin":
+        return render_template("error.html", code=403, message="Admin access required"), 403
+    return render_template("configuration.html")
+
+
 @app.route("/favicon.ico", methods=["GET"])
 def favicon():
     return send_from_directory(TEMPLATE_IMAGE_DIR, "logo.ico", mimetype="image/vnd.microsoft.icon")
@@ -184,19 +193,26 @@ def legacy_dashboard_redirect():
 @app.route("/compute/api/types", methods=["GET"])
 def task_types_list():
     """Return registered task types (public — needed by the create-task page)."""
-    types_data = [
-        {
-            "name": tt.name,
-            "display_name": tt.display_name,
-            "input_extension": tt.input_extension,
-            "input_label": tt.input_label,
-            "params": [
-                {"name": p.name, "type": p.type, "default": p.default, "description": p.description} for p in tt.params
-            ],
-            "stage_markers": tt.stage_markers,
-        }
-        for tt in list_types()
-    ]
+    manage_db = current_app.config.get("manage_db")
+    types_data = []
+    for tt in list_types():
+        if manage_db is not None:
+            enabled = manage_db.get(f"task_type.{tt.name}.enabled")
+            if enabled is not None and enabled.lower() in ("0", "false", "no", "off"):
+                continue
+        types_data.append(
+            {
+                "name": tt.name,
+                "display_name": tt.display_name,
+                "input_extension": tt.input_extension,
+                "input_label": tt.input_label,
+                "params": [
+                    {"name": p.name, "type": p.type, "default": p.default, "description": p.description}
+                    for p in tt.params
+                ],
+                "stage_markers": tt.stage_markers,
+            }
+        )
     return jsonify(types_data)
 
 
@@ -211,6 +227,12 @@ def task_type_form(name: str):
         tt, _ = _get_task_type(name)
     except KeyError:
         return jsonify({"error": f"Unknown task type: {name!r}"}), 404
+
+    manage_db = current_app.config.get("manage_db")
+    if manage_db is not None:
+        enabled = manage_db.get(f"task_type.{tt.name}.enabled")
+        if enabled is not None and enabled.lower() in ("0", "false", "no", "off"):
+            return jsonify({"error": f"Task type {name!r} is disabled"}), 404
 
     return jsonify(
         {
@@ -266,7 +288,7 @@ def _save_uploaded_fasta(uploaded_file, safe_filename: str) -> tuple[str, str, d
 
     metadata = _request_metadata()
     md5sum = _task_id_for_upload(hasher.hexdigest(), metadata["username"])
-    upload_path = _safe_join(app.config["UPLOAD_FOLDER"], f"{md5sum}.fasta")
+    upload_path = _safe_join(app.config["UPLOAD_FOLDER"], f"{md5sum}.upload")
     os.rename(temp_path, upload_path)
     return md5sum, upload_path, metadata
 
@@ -327,12 +349,17 @@ def _prepare_task_record(
     }
 
 
-def _reject_invalid_fasta(md5sum: str, base_record: dict[str, Any]):
+def _reject_invalid_input(md5sum: str, base_record: dict[str, Any], task_type: str = "gremlin"):
+    """Reject uploads whose content doesn't match the expected format.
+
+    Only FASTA task types are validated for FASTA content — PDB and other
+    binary/structured formats are validated by the runner at execution time.
+    """
     upload_path = base_record["file_path"]
     if base_record["is_binary"]:
         error_message = "Binary file uploads are not supported."
         response_message = "Uploaded file contains binary content"
-    elif not _is_fasta_content(upload_path):
+    elif task_type == "gremlin" and not _is_fasta_content(upload_path):
         error_message = "Uploaded file does not appear to be a valid FASTA file."
         response_message = "Uploaded file does not appear to be a valid FASTA file"
     else:
@@ -372,6 +399,12 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     task_type = submission.task_type
     coerced_params = submission.coerce_params()
 
+    managedb = current_app.config.get("manage_db")
+    if managedb is not None:
+        enabled = managedb.get(f"task_type.{task_type}.enabled")
+        if enabled is not None and enabled.lower() in ("0", "false", "no", "off"):
+            return jsonify({"error": f"Task type {task_type!r} is currently disabled"}), 400
+
     uploaded_file, safe_filename, upload_error = _validate_input_upload(task_type)
     if upload_error is not None:
         return upload_error
@@ -399,16 +432,12 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     # Build entities — one list for files and params together.
     entities: list[dict[str, Any]] = []
 
-    # File entity — stored_at points to the upload directory (always accessible
-    # for Docker volume mounts), not results/<md5sum>/ which lives under the
-    # SERVER_DIR bind mount and may not sync to the host in time.
     entities.append(
         {
             "name": "file",
             "type": "file",
             "value": uploaded_file.filename,
             "verified_value": safe_filename,
-            "stored_at": upload_path,
             "mounted": f"/workspace/inputs/{safe_filename}",
             "hash": md5sum,
         }
@@ -442,7 +471,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         task_type=task_type,
         input_form=input_form,
     )
-    if invalid_response := _reject_invalid_fasta(md5sum, base_record):
+    if invalid_response := _reject_invalid_input(md5sum, base_record, task_type):
         return invalid_response
 
     task_store.upsert_task(
@@ -1591,3 +1620,46 @@ def admin_batch_users():
         count += 1
 
     return jsonify({"message": f"{req.action} action applied to {count} user(s)", "count": count}), 200
+
+
+# ---------------------------------------------------------------------------
+# Admin runtime configuration API
+# ---------------------------------------------------------------------------
+
+
+@app.route("/compute/api/auth/admin/config", methods=["GET"])
+@login_required
+def admin_get_config():
+    """Return all runtime configuration key-value pairs (admin only)."""
+    if _blocked := require_admin():
+        return _blocked
+    if _blocked := require_bearer_auth():
+        return _blocked
+    manage_db = current_app.config.get("manage_db")
+    if manage_db is None:
+        return jsonify({"error": "Configuration database not available"}), 500
+    return jsonify(manage_db.all())
+
+
+@app.route("/compute/api/auth/admin/config", methods=["PUT"])
+@login_required
+def admin_set_config():
+    """Upsert runtime configuration key-value pairs (admin only).
+
+    Body: ``{"key": "value", ...}`` — each key is upserted.
+    """
+    if _blocked := require_admin():
+        return _blocked
+    if _blocked := require_bearer_auth():
+        return _blocked
+    manage_db = current_app.config.get("manage_db")
+    if manage_db is None:
+        return jsonify({"error": "Configuration database not available"}), 500
+    body = request.get_json(silent=True) or {}
+    if not isinstance(body, dict):
+        return jsonify({"error": "Expected a JSON object"}), 400
+    for key, value in body.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            return jsonify({"error": "All keys and values must be strings"}), 400
+        manage_db.set(key, value)
+    return jsonify({"message": f"{len(body)} key(s) updated"}), 200

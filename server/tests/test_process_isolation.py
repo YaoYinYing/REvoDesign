@@ -49,15 +49,12 @@ def _run_restart_script(
         "SERVER_DIR": str(task_dir),
         "AUTH_DIR": str(auth_dir),
         "LOG_DIR": str(log_dir),
-        "DB_UNIREF30": str(tmp_path / "uniref30"),
-        "DB_UNIREF90": str(tmp_path / "uniref90"),
         "ADMIN_USERS": admins,
         "RUNNER_UID": uid,
         "RUNNER_GID": gid,
         "RUNNER_USERNAME": "revodesign",
         "RUNNER_GROUP": "revodesign",
         "SERVER_IMAGE": "example/revodesign-server:latest",
-        "RUNNER_IMAGE": "example/revodesign-runner:latest",
     }
     env_file.write_text(
         "\n".join(f"{name}={value}" for name, value in settings.items() if name not in omit_settings),
@@ -181,7 +178,7 @@ def test_restart_mode_validation(tmp_path):
 
 @pytest.mark.parametrize(
     "name",
-    ["SERVER_DIR", "DB_UNIREF30", "DB_UNIREF90", "ADMIN_USERS"],
+    ["SERVER_DIR", "ADMIN_USERS"],
 )
 def test_restart_rejects_missing_required_settings_before_shutdown(tmp_path, name):
     result, commands = _run_restart_script(
@@ -222,8 +219,6 @@ assert task_runtime.task_store.path == os.path.abspath(os.environ["DB_PATH"])
             "PYTHONPATH": str(server_dir),
             "SERVER_DIR": str(task_dir),
             "DB_PATH": str(task_dir / "tasks.sqlite3"),
-            "DB_UNIREF30": str(tmp_path / "uniref30"),
-            "DB_UNIREF90": str(tmp_path / "uniref90"),
             "USER_DB_PATH": str(user_db),
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",

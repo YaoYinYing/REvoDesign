@@ -165,3 +165,68 @@ class ComputeConfig:
 
 `uniref30_db`, `uniref90_db`, `nproc`, `maxmem`, `docker_image` are gone —
 they live in `config/runners/gremlin.yaml` now.
+
+## Entities and InputForm
+
+When a user submits a task, the HTTP handler builds an `input_form` JSON blob
+that captures *what* was submitted and *how* it was validated.  This blob is
+stored in the `input_form` column of the tasks table and read by the worker at
+runtime to set up Docker mounts and params.
+
+### Structure
+
+```json
+{
+  "user": "alice",
+  "submitted_at": "2026-08-06T12:34:56+00:00",
+  "entities": [
+    {
+      "name": "file",
+      "type": "file",
+      "value": "2KL8.fasta",
+      "verified_value": "2KL8.fasta",
+      "mounted": "/workspace/inputs/2KL8.fasta",
+      "hash": "3855bf8ca11fda660cd9406adab909df"
+    },
+    {
+      "name": "iter",
+      "type": "int",
+      "value": "100",
+      "verified_value": 100
+    }
+  ]
+}
+```
+
+### Entity kinds
+
+| Kind | Fields | Purpose |
+|------|--------|---------|
+| **file** | `name`, `type`, `value` (original filename), `verified_value` (sanitised filename), `mounted` (container path), `hash` (task MD5) | The uploaded input file. The on-disk file is `CONFIG.upload_folder/<hash>.fasta`; the runner sees it at `mounted`. |
+| **param** | `name`, `type`, `value` (raw form string), `verified_value` (Pydantic-coerced) | A user-facing parameter. `value` is the string from the HTML form; `verified_value` is the typed coercion (e.g. `"100"` → `100`). |
+
+### Why the upload directory is mounted directly
+
+The runner gets `/workspace/inputs` → `CONFIG.upload_folder` (e.g.
+`/srv/revodesign/compute/upload/`), not the per-task `results/<md5sum>/`
+directory.  The upload directory lives outside the web container's
+`SERVER_DIR` bind mount, so the Docker daemon always sees it.  By contrast,
+`results/<md5sum>/` is created inside the bind mount and may not sync to
+the host filesystem in time for Docker to mount it.
+
+### Filename preservation via hardlink
+
+The uploaded file is stored on disk as `<md5sum>.fasta` (hash-based, no
+collisions).  The runner script uses `readlink -f` to resolve the input
+filename before constructing output filenames — if the input is
+`2KL8.fasta`, the outputs are `2KL8.GREMLIN.mrf.pkl`, `2KL8_ascii_mtx_file`,
+etc.
+
+`readlink -f` resolves symlinks to their canonical targets, so a symlink
+`2KL8.fasta` → `3855bf8c.fasta` would cause every output file to be prefixed
+`3855bf8c.*` instead of `2KL8.*`.  Hardlinks (`os.link()`) don't have this
+problem — `readlink -f` returns the accessed name as-is.
+
+Before each run, the worker creates a hardlink `<original>.fasta` →
+`<md5sum>.fasta` in the upload directory.  The hardlink is removed in the
+`finally` block after the container exits, regardless of success or failure.
