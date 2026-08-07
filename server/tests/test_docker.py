@@ -16,7 +16,6 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-import docker
 import pytest
 import requests
 from conftest import (
@@ -41,6 +40,8 @@ from conftest import (
     _wait_for_task,
     has_docker_daemon,
 )
+
+import docker
 
 # Docker-specific helpers (most are imported from conftest)
 # ==================================================================

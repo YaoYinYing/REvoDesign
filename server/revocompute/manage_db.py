@@ -56,7 +56,10 @@ _SLURM_FIELDS = (
 )
 
 _ALL_TASK_TYPE_FIELDS = (
-    "enabled", "nproc", "maxmem", "max_runtime_seconds",
+    "enabled",
+    "nproc",
+    "maxmem",
+    "max_runtime_seconds",
 ) + _SLURM_FIELDS
 
 
@@ -104,20 +107,22 @@ class ManageDatabase:
 
     def _migrate_columns(self) -> None:
         """Add SLURM columns if they don't exist yet (idempotent)."""
-        existing = {
-            row[1]
-            for row in self._conn.execute("PRAGMA table_info(task_type_config)")
-        }
+        existing = {row[1] for row in self._conn.execute("PRAGMA table_info(task_type_config)")}
         for field in _SLURM_FIELDS:
             if field not in existing:
-                col_type = "INTEGER" if field in (
-                    "slurm_cpus_per_task", "slurm_nodes", "slurm_ntasks",
-                    "slurm_exclusive",
-                ) else "TEXT"
-                with self._lock:
-                    self._conn.execute(
-                        f"ALTER TABLE task_type_config ADD COLUMN {field} {col_type}"
+                col_type = (
+                    "INTEGER"
+                    if field
+                    in (
+                        "slurm_cpus_per_task",
+                        "slurm_nodes",
+                        "slurm_ntasks",
+                        "slurm_exclusive",
                     )
+                    else "TEXT"
+                )
+                with self._lock:
+                    self._conn.execute(f"ALTER TABLE task_type_config ADD COLUMN {field} {col_type}")
                     self._conn.commit()
 
     # -- task_type_config --------------------------------------------------
@@ -126,9 +131,7 @@ class ManageDatabase:
         """Return all task type config rows."""
         cols = ("tool",) + _ALL_TASK_TYPE_FIELDS
         with self._lock:
-            rows = self._conn.execute(
-                f"SELECT {', '.join(cols)} FROM task_type_config ORDER BY tool"
-            ).fetchall()
+            rows = self._conn.execute(f"SELECT {', '.join(cols)} FROM task_type_config ORDER BY tool").fetchall()
             result: list[dict] = []
             for r in rows:
                 row = {"tool": r[0]}
@@ -179,8 +182,7 @@ class ManageDatabase:
             self._conn.execute(
                 f"INSERT INTO task_type_config (tool, {columns}) "
                 f"VALUES (?, {placeholders}) "
-                f"ON CONFLICT(tool) DO UPDATE SET "
-                + ", ".join(f"{c}=excluded.{c}" for c in updates),
+                f"ON CONFLICT(tool) DO UPDATE SET " + ", ".join(f"{c}=excluded.{c}" for c in updates),
                 [tool] + values,
             )
             self._conn.commit()
@@ -212,32 +214,25 @@ class ManageDatabase:
 
     def resource_all(self) -> dict[str, str]:
         with self._lock:
-            rows = self._conn.execute(
-                "SELECT key, value FROM resource_config ORDER BY key"
-            ).fetchall()
+            rows = self._conn.execute("SELECT key, value FROM resource_config ORDER BY key").fetchall()
             return {r[0]: r[1] for r in rows}
 
     def resource_get(self, key: str, default: str | None = None) -> str | None:
         with self._lock:
-            row = self._conn.execute(
-                "SELECT value FROM resource_config WHERE key = ?", (key,)
-            ).fetchone()
+            row = self._conn.execute("SELECT value FROM resource_config WHERE key = ?", (key,)).fetchone()
             return row[0] if row else default
 
     def resource_set(self, key: str, value: str) -> None:
         with self._lock:
             self._conn.execute(
-                "INSERT OR REPLACE INTO resource_config (key, value, updated_at) "
-                "VALUES (?, ?, ?)",
+                "INSERT OR REPLACE INTO resource_config (key, value, updated_at) " "VALUES (?, ?, ?)",
                 (key, value, time.time()),
             )
             self._conn.commit()
 
     def resource_delete(self, key: str) -> bool:
         with self._lock:
-            cur = self._conn.execute(
-                "DELETE FROM resource_config WHERE key = ?", (key,)
-            )
+            cur = self._conn.execute("DELETE FROM resource_config WHERE key = ?", (key,))
             self._conn.commit()
             return cur.rowcount > 0
 
@@ -247,7 +242,7 @@ class ManageDatabase:
         """Legacy get — resolves resource_config keys and task_type.<name>.<field>."""
         # task_type.<name>.enabled → task_type_config
         if key.startswith("task_type.") and key.endswith(".enabled"):
-            tool = key[len("task_type."):-len(".enabled")]
+            tool = key[len("task_type.") : -len(".enabled")]
             val = self.task_type_is_enabled(tool)
             return "true" if val is True else ("false" if val is False else default)
         # task_type.<name>.<field> → task_type_config
@@ -266,7 +261,7 @@ class ManageDatabase:
         """Legacy set — routes to task_type_config or resource_config."""
         # task_type.<name>.enabled
         if key.startswith("task_type.") and key.endswith(".enabled"):
-            tool = key[len("task_type."):-len(".enabled")]
+            tool = key[len("task_type.") : -len(".enabled")]
             self.task_type_upsert(tool, enabled=value.lower() in ("true", "1", "yes", "on"))
             return
         # task_type.<name>.<field>
@@ -292,7 +287,9 @@ class ManageDatabase:
             prefix = f"task_type.{row['tool']}"
             for field in _ALL_TASK_TYPE_FIELDS:
                 if row[field] is not None:
-                    result[f"{prefix}.{field}"] = str(row[field]).lower() if isinstance(row[field], bool) else str(row[field])
+                    result[f"{prefix}.{field}"] = (
+                        str(row[field]).lower() if isinstance(row[field], bool) else str(row[field])
+                    )
         result.update(self.resource_all())
         return result
 
@@ -304,9 +301,7 @@ class ManageDatabase:
 
     def slurm_enabled(self) -> bool:
         """Whether the SLURM runner feature is globally enabled."""
-        return self.resource_get("slurm_enabled", "false").lower() in (
-            "true", "1", "yes", "on"
-        )
+        return self.resource_get("slurm_enabled", "false").lower() in ("true", "1", "yes", "on")
 
     def slurm_allowed_queues(self) -> list[str]:
         """Return the whitelist of allowed SLURM queues/partitions."""

@@ -25,16 +25,23 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-import docker
 import pytest
 import requests
 from werkzeug.utils import secure_filename
+
+import docker
 
 # ── path setup ────────────────────────────────────────────────────────────────
 
 SERVER_DIR = Path(__file__).resolve().parent.parent
 if str(SERVER_DIR) not in sys.path:
     sys.path.insert(0, str(SERVER_DIR))
+
+# ponytail: some modules (docker_runner, slurm_runner) call ComputeConfig.from_env()
+# at import time — set minimal defaults so unit tests can import without a full env.
+os.environ.setdefault("SERVER_DIR", str(SERVER_DIR))
+os.environ.setdefault("RUNNER_UID", "1000")
+os.environ.setdefault("RUNNER_GID", "1000")
 
 REPO_DIR = str(Path(__file__).resolve().parent.parent.parent)
 TEST_ROOT = str(Path(__file__).resolve().parent.parent)

@@ -16,7 +16,6 @@ import warnings
 from collections.abc import Sequence
 from typing import Any
 
-import docker
 import docker.errors
 from hydra import errors as hydra_errors
 from omegaconf import DictConfig
@@ -25,6 +24,7 @@ from RosettaPy.node import NodeHintT
 from RosettaPy.node.wsl import which_wsl
 from RosettaPy.utils.repository import partial_clone
 
+import docker
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
 from REvoDesign.driver.ui_driver import ConfigBus

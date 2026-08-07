@@ -1651,14 +1651,16 @@ def admin_get_config():
     manage_db = current_app.config.get("manage_db")
     if manage_db is None:
         return jsonify({"error": "Configuration database not available"}), 500
-    return jsonify({
-        "task_types": manage_db.task_type_all(),
-        "resources": manage_db.resource_all(),
-        "slurm": {
-            "enabled": manage_db.slurm_enabled(),
-            "allowed_queues": manage_db.slurm_allowed_queues(),
-        },
-    })
+    return jsonify(
+        {
+            "task_types": manage_db.task_type_all(),
+            "resources": manage_db.resource_all(),
+            "slurm": {
+                "enabled": manage_db.slurm_enabled(),
+                "allowed_queues": manage_db.slurm_allowed_queues(),
+            },
+        }
+    )
 
 
 @app.route("/compute/api/auth/admin/config", methods=["PUT"])
@@ -1691,10 +1693,21 @@ def admin_set_config():
 
     count = 0
     _tt_fields = (
-        "enabled", "nproc", "maxmem", "max_runtime_seconds",
-        "slurm_partition", "slurm_cpus_per_task", "slurm_gres",
-        "slurm_mem", "slurm_time", "slurm_nodes", "slurm_ntasks",
-        "slurm_qos", "slurm_account", "slurm_constraint", "slurm_exclusive",
+        "enabled",
+        "nproc",
+        "maxmem",
+        "max_runtime_seconds",
+        "slurm_partition",
+        "slurm_cpus_per_task",
+        "slurm_gres",
+        "slurm_mem",
+        "slurm_time",
+        "slurm_nodes",
+        "slurm_ntasks",
+        "slurm_qos",
+        "slurm_account",
+        "slurm_constraint",
+        "slurm_exclusive",
     )
 
     # Task type updates
