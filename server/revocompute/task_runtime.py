@@ -265,12 +265,23 @@ def _run_in_docker(
             raise docker.errors.DockerException(f"Mount source '{host}' for '{m.container_path}' does not exist")
         volumes[host] = {"bind": m.container_path, "mode": m.mode}
 
-    # Standard input/output mounts — mount the input directory so filenames
-    # are preserved at /workspace/inputs/<original_name>.
+    # Standard input/output mounts — mount the upload directory so the
+    # Docker daemon can access the input file.  results/<md5sum>/ is
+    # created inside the web container's SERVER_DIR bind mount and may not
+    # be synced to the host filesystem in time for Docker to mount it.
     os.makedirs(output_dir, exist_ok=True)
     if file_entities:
-        input_dir = os.path.dirname(file_entities[0]["stored_at"])
-        volumes[os.path.abspath(input_dir)] = {"bind": "/workspace/inputs", "mode": "ro"}
+        fe = file_entities[0]
+        upload_dir = CONFIG.upload_folder
+        # ponytail: hardlink <original>.fasta -> <md5sum>.fasta so run.sh
+        # sees the original filename (readlink -f resolves symlinks but
+        # not hardlinks).
+        original_name = fe["verified_value"]
+        hash_name = f"{fe['hash']}.fasta"
+        link_path = os.path.join(upload_dir, original_name)
+        if not os.path.lexists(link_path):
+            os.link(os.path.join(upload_dir, hash_name), link_path)
+        volumes[os.path.abspath(upload_dir)] = {"bind": "/workspace/inputs", "mode": "ro"}
     volumes[os.path.abspath(output_dir)] = {"bind": "/workspace/outputs", "mode": "rw"}
 
     # Build params dict from non-file entities (for TASK_PARAMS and CLI args)
@@ -337,6 +348,14 @@ def _run_in_docker(
             container.remove(force=True)
         except docker.errors.DockerException:
             pass
+        # Remove the hardlink created for filename preservation
+        if file_entities:
+            link_path = os.path.join(CONFIG.upload_folder, file_entities[0]["verified_value"])
+            if os.path.lexists(link_path):
+                try:
+                    os.unlink(link_path)
+                except OSError:
+                    pass
 
 
 # ---------------------------------------------------------------------------
