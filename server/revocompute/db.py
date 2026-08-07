@@ -85,7 +85,6 @@ class TaskDatabase:
             Column("celery_task_id", String),
             Column("task_type", String, nullable=False, default="gremlin"),
             Column("input_form", Text),
-            Column("uploaded_files", Text),
         )
         Index("idx_tasks_uploaded_at", self.tasks_table.c.uploaded_at)
         self._initialize()

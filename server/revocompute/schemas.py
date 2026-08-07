@@ -178,6 +178,32 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(min_length=8)
 
 
+class InputEntity(BaseModel):
+    """A single input item — param or file — as stored in the task's input_form.
+
+    For params: name="iter", type="int", value="10", verified_value=10.
+    For files: name="file", type="file", value="2KL8.fasta",
+    verified_value="2KL8.fasta", stored_at="/path/on/server",
+    mounted="/workspace/inputs/2KL8.fasta", hash="<md5>".
+    """
+
+    name: str
+    type: str  # "file", "string", "int", "float", "bool"
+    value: Any
+    verified_value: Any
+    stored_at: str | None = None
+    mounted: str | None = None
+    hash: str | None = None
+
+
+class InputForm(BaseModel):
+    """Self-contained record of a task submission — stored in the input_form column."""
+
+    user: str
+    submitted_at: str  # ISO 8601 timestamp
+    entities: list[InputEntity]
+
+
 class TaskSubmissionRequest(BaseModel):
     """Task submission form payload — validated at the API boundary.
 
@@ -211,6 +237,25 @@ class TaskSubmissionRequest(BaseModel):
                 raise ValueError(f"Unknown parameter {key!r} for task type {self.task_type!r}")
 
         return self
+
+    def coerce_params(self) -> dict[str, Any]:
+        """Return params with values coerced to their declared types."""
+        from revocompute.task_types import get as _get_type
+
+        tt, _ = _get_type(self.task_type)
+        known_params = {p.name: p for p in tt.params}
+        coerced: dict[str, Any] = {}
+        for key, raw in self.params.items():
+            param = known_params[key]
+            if param.type == "int":
+                coerced[key] = int(raw)
+            elif param.type == "float":
+                coerced[key] = float(raw)
+            elif param.type == "bool":
+                coerced[key] = str(raw).lower() in ("true", "1", "yes")
+            else:
+                coerced[key] = str(raw)
+        return coerced
 
 
 # ---------------------------------------------------------------------------
