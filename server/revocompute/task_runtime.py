@@ -239,7 +239,8 @@ def _run_in_docker(
     tt,
     runner,
     params: dict,
-    input_path: str,
+    input_dir: str,
+    input_filename: str,
     output_dir: str,
     docker_client=None,
     stage_callback=None,
@@ -247,7 +248,9 @@ def _run_in_docker(
     """Run a compute task in Docker.
 
     Mounts come from the runner YAML config.  Standard /workspace/inputs and
-    /workspace/outputs mounts are added automatically.
+    /workspace/outputs mounts are added automatically.  The input directory
+    is mounted (not the file) so the original filename is preserved inside
+    the container.
     """
     client = docker_client or docker.from_env()
 
@@ -259,9 +262,10 @@ def _run_in_docker(
             raise docker.errors.DockerException(f"Mount source '{host}' for '{m.container_path}' does not exist")
         volumes[host] = {"bind": m.container_path, "mode": m.mode}
 
-    # Standard input/output mounts
-    volumes[os.path.abspath(input_path)] = {"bind": "/workspace/inputs", "mode": "ro"}
+    # Standard input/output mounts — mount the directory so the filename is
+    # visible at /workspace/inputs/<original_name>.
     os.makedirs(output_dir, exist_ok=True)
+    volumes[os.path.abspath(input_dir)] = {"bind": "/workspace/inputs", "mode": "ro"}
     volumes[os.path.abspath(output_dir)] = {"bind": "/workspace/outputs", "mode": "rw"}
 
     # Build container env from runner YAML + task params
@@ -276,7 +280,7 @@ def _run_in_docker(
     # Build CLI args from params — the runner script reads -i/-o/-r flags.
     command_args = [
         "-i",
-        "/workspace/inputs",
+        f"/workspace/inputs/{input_filename}",
         "-o",
         "/workspace/outputs",
     ]
@@ -445,7 +449,8 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         return
 
     output_dir = task["result_dir"]
-    uploaded_file = os.path.join(output_dir, task["filename"])
+    input_filename = task["filename"]
+    uploaded_file = os.path.join(output_dir, input_filename)
     if not os.path.exists(uploaded_file):
         error_message = "Uploaded input file not found on disk"
         _pack_failed_results_archive(task, error_message)
@@ -483,7 +488,8 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
             tt=tt,
             runner=runner,
             params=params or {},
-            input_path=uploaded_file,
+            input_dir=output_dir,
+            input_filename=input_filename,
             output_dir=output_dir,
             stage_callback=_on_stage_change,
         )
