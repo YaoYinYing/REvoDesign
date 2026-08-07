@@ -18,7 +18,7 @@
     <div class="hero-top">
       <div>
         <h1 class="headline">Configuration</h1>
-        <p class="subline">Runtime admin settings — task type toggles, resource limits, and server parameters.</p>
+        <p class="subline">Runtime settings for task types, resource limits, and server behaviour.</p>
       </div>
       <div class="hero-actions">
         <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme"><span class="theme-icon" aria-hidden="true">&#9680;</span></button>
@@ -28,26 +28,62 @@
     </div>
   </section>
 
-  <section class="panel config-panel">
+  <nav class="sub-tabs" id="configTabs">
+    <button class="sub-tab active" data-tab="task-types">Task Types</button>
+    <button class="sub-tab" data-tab="resources">Resources</button>
+    <button class="sub-tab" data-tab="advanced">All Keys</button>
+  </nav>
+
+  <!-- Tab: Task Types -->
+  <section class="panel config-panel" id="tab-task-types">
     <div class="config-toolbar">
-      <button class="btn btn-primary" id="addRowBtn">Add Row</button>
-      <button class="btn btn-primary" id="saveBtn">Save Changes</button>
-      <span class="muted" id="saveStatus"></span>
+      <span class="muted" id="taskTypeStatus">Loading&hellip;</span>
+    </div>
+    <div class="config-cards" id="taskTypeCards"></div>
+    <p class="muted hint-text">
+      Disabling a task type hides it from the submission page immediately.
+      Running and queued tasks are not affected.
+    </p>
+  </section>
+
+  <!-- Tab: Resources -->
+  <section class="panel config-panel" id="tab-resources" style="display:none">
+    <div class="config-toolbar">
+      <button class="btn btn-primary" id="saveResourcesBtn">Save Changes</button>
+      <span class="muted" id="resourceSaveStatus"></span>
+    </div>
+    <div class="config-table-wrap">
+      <table class="config-table">
+        <thead>
+          <tr><th>Parameter</th><th>Current Value</th><th>Description</th></tr>
+        </thead>
+        <tbody id="resourceBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Tab: All Keys (advanced) -->
+  <section class="panel config-panel" id="tab-advanced" style="display:none">
+    <div class="config-toolbar">
+      <button class="btn btn-soft" id="addRowBtn">Add Row</button>
+      <button class="btn btn-primary" id="saveAllBtn">Save Changes</button>
+      <span class="muted" id="allSaveStatus"></span>
     </div>
     <div class="config-table-wrap">
       <table class="config-table">
         <thead>
           <tr><th>Key</th><th>Value</th><th></th></tr>
         </thead>
-        <tbody id="configBody"></tbody>
+        <tbody id="allKeysBody"></tbody>
       </table>
     </div>
-    <p class="muted" style="margin-top:1rem;">
-      Task-type toggles use keys like <code>task_type.pythia_ddg.enabled</code> → <code>true</code> / <code>false</code>.
-      Changes take effect immediately for new submissions.
+    <p class="muted hint-text">
+      Raw key-value editor. Task-type toggles use <code>task_type.&lt;name&gt;.enabled</code> &rarr; <code>true</code> / <code>false</code>.
     </p>
   </section>
 </main>
+
+<aside class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></aside>
 
 <script src="/static/js/auth-api.js"></script>
 <script src="/static/js/configuration.js"></script>

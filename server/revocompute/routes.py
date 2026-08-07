@@ -1628,23 +1628,19 @@ def admin_batch_users():
 @app.route("/compute/api/auth/admin/config", methods=["GET"])
 @login_required
 def admin_get_config():
-    """Return all runtime configuration key-value pairs (admin only)."""
-    if _blocked := require_admin():
-        return _blocked
-    if _blocked := require_bearer_auth():
-        return _blocked
-    manage_db = current_app.config.get("manage_db")
-    if manage_db is None:
-        return jsonify({"error": "Configuration database not available"}), 500
-    return jsonify(manage_db.all())
+    """Return structured runtime configuration (admin only).
 
+    Response::
 
-@app.route("/compute/api/auth/admin/config", methods=["PUT"])
-@login_required
-def admin_set_config():
-    """Upsert runtime configuration key-value pairs (admin only).
-
-    Body: ``{"key": "value", ...}`` — each key is upserted.
+        {
+          "task_types": [{"tool": "gremlin", "enabled": true, "nproc": null,
+            "slurm_partition": null, "slurm_cpus_per_task": null, ...}, ...],
+          "resources": {"nproc": "4", "maxmem": "8", ...},
+          "slurm": {
+            "enabled": false,
+            "allowed_queues": []
+          }
+        }
     """
     if _blocked := require_admin():
         return _blocked
@@ -1653,11 +1649,85 @@ def admin_set_config():
     manage_db = current_app.config.get("manage_db")
     if manage_db is None:
         return jsonify({"error": "Configuration database not available"}), 500
+    return jsonify({
+        "task_types": manage_db.task_type_all(),
+        "resources": manage_db.resource_all(),
+        "slurm": {
+            "enabled": manage_db.slurm_enabled(),
+            "allowed_queues": manage_db.slurm_allowed_queues(),
+        },
+    })
+
+
+@app.route("/compute/api/auth/admin/config", methods=["PUT"])
+@login_required
+def admin_set_config():
+    """Update runtime configuration (admin only).
+
+    Accepts the same shape as GET::
+
+        {
+          "task_types": [{"tool": "pythia_ddg", "enabled": false,
+            "slurm_partition": "gpu", "slurm_cpus_per_task": 4}],
+          "resources": {"nproc": "8", "slurm_enabled": "true"},
+          "slurm": {"enabled": true, "allowed_queues": ["gpu", "cpu"]}
+        }
+
+    Each key is optional — only provided fields are updated.
+    """
+    if _blocked := require_admin():
+        return _blocked
+    if _blocked := require_bearer_auth():
+        return _blocked
+    manage_db = current_app.config.get("manage_db")
+    if manage_db is None:
+        return jsonify({"error": "Configuration database not available"}), 500
+
     body = request.get_json(silent=True) or {}
     if not isinstance(body, dict):
         return jsonify({"error": "Expected a JSON object"}), 400
-    for key, value in body.items():
-        if not isinstance(key, str) or not isinstance(value, str):
-            return jsonify({"error": "All keys and values must be strings"}), 400
-        manage_db.set(key, value)
-    return jsonify({"message": f"{len(body)} key(s) updated"}), 200
+
+    count = 0
+    _tt_fields = (
+        "enabled", "nproc", "maxmem", "max_runtime_seconds",
+        "slurm_partition", "slurm_cpus_per_task", "slurm_gres",
+        "slurm_mem", "slurm_time", "slurm_nodes", "slurm_ntasks",
+        "slurm_qos", "slurm_account", "slurm_constraint", "slurm_exclusive",
+    )
+
+    # Task type updates
+    for entry in body.get("task_types") or []:
+        tool = entry.get("tool")
+        if not tool or not isinstance(tool, str):
+            continue
+        fields = {f: entry[f] for f in _tt_fields if f in entry}
+        if fields:
+            manage_db.task_type_upsert(tool, **fields)
+            count += 1
+
+    # Resource updates
+    resources = body.get("resources")
+    if isinstance(resources, dict):
+        for key, value in resources.items():
+            if not isinstance(key, str) or not isinstance(value, str):
+                continue
+            manage_db.resource_set(key, value)
+            count += 1
+
+    # SLURM feature flags
+    slurm = body.get("slurm")
+    if isinstance(slurm, dict):
+        if "enabled" in slurm:
+            manage_db.resource_set(
+                "slurm_enabled",
+                "true" if slurm["enabled"] else "false",
+            )
+            count += 1
+        if "allowed_queues" in slurm and isinstance(slurm["allowed_queues"], list):
+            manage_db.resource_set(
+                "slurm_allowed_queues",
+                ",".join(q for q in slurm["allowed_queues"] if isinstance(q, str)),
+            )
+            count += 1
+
+    return jsonify({"message": f"{count} setting(s) updated"}), 200

@@ -1,0 +1,22 @@
+Bootstrap: docker
+From: revodesign-revocompute-runner-pythia:latest
+
+%post
+    apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        && rm -rf /var/lib/apt/lists/*
+    mkdir -p /tmp /workspace/inputs /workspace/outputs
+
+%environment
+    export PATH=/app/revocompute:$PATH
+    export TASK_ID=""
+    export TASK_TYPE="pythia_ddg"
+    export TASK_PARAMS=""
+
+%runscript
+    exec bash /app/revocompute/run.sh "$@"
+
+%files
+    # Copy the revocompute entrypoint from the build context
+    # Build: apptainer build --fakeroot pythia_ddg_vX.Y.sif config/def/pythia_ddg.def
