@@ -142,7 +142,8 @@ src/REvoDesign/UI/Ui_REvoDesign.py
 users.sqlite3
 testerror.txt
 /server/server_state
-/server/pssm_gremlin_server.egg-info
+/server/revocompute.egg-info
 /.tmp
 /playground/server_auth
 /dumped_sequences
+playground/config
