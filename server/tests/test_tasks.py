@@ -12,10 +12,11 @@ import uuid
 import zipfile
 from pathlib import Path
 
-import docker
 import requests
 from conftest import _extract_md5, _load_pssm_module
 from werkzeug.utils import secure_filename
+
+import docker
 
 # Flask test-client tests
 # ==================================================================
@@ -104,13 +105,13 @@ def test_run_compute_task_handles_docker_daemon_error(monkeypatch, tmp_path):
     )
     md5sum = _insert_pending_task(module, tmp_path / "result")
 
-    def _raise_docker_error(task_id, tt, runner, entities, output_dir, docker_client=None, stage_callback=None):
-        del task_id, tt, runner, entities, output_dir, docker_client, stage_callback
+    def _raise_docker_error(task_id, tt, runner, entities, output_dir, stage_callback=None):
+        del task_id, tt, runner, entities, output_dir, stage_callback
         raise docker.errors.DockerException(
             "Error while fetching server API version: ('Connection aborted.', PermissionError(13, 'Permission denied'))"
         )
 
-    monkeypatch.setattr(module.task_runtime, "_run_in_docker", _raise_docker_error)
+    monkeypatch.setattr(module.task_runtime, "_run_compute_job", _raise_docker_error)
 
     module.run_compute_task(md5sum)
     task = module.task_store.get_task(md5sum)
@@ -148,7 +149,7 @@ def test_run_compute_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
             observed_statuses.append(fields["status"])
         return original_update_task(md5_value, **fields)
 
-    def _fake_runner(task_id, tt, runner, entities, output_dir, docker_client=None, stage_callback=None):
+    def _fake_runner(task_id, tt, runner, entities, output_dir, stage_callback=None):
         del task_id, tt, runner, entities
         if stage_callback:
             stage_callback("hhblits")
@@ -162,7 +163,7 @@ def test_run_compute_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
         (output_path / "pssm_msa" / "input_ascii_mtx_file").write_text("pssm\n", encoding="utf-8")
 
     monkeypatch.setattr(module.task_store, "update_task", _track_update)
-    monkeypatch.setattr(module.task_runtime, "_run_in_docker", _fake_runner)
+    monkeypatch.setattr(module.task_runtime, "_run_compute_job", _fake_runner)
     monkeypatch.setattr(module.task_runtime, "_local_user_identity", lambda: "pytest:staff-1000:20")
 
     module.run_compute_task(md5sum)
@@ -236,7 +237,7 @@ def test_run_compute_task_does_not_resurrect_deleted_task(monkeypatch, tmp_path)
             observed_statuses.append(fields["status"])
         return original_update_task(md5_value, **fields)
 
-    def _fake_runner(task_id, tt, runner, entities, output_dir, docker_client=None, stage_callback=None):
+    def _fake_runner(task_id, tt, runner, entities, output_dir, stage_callback=None):
         del task_id, tt, runner, entities
         if stage_callback:
             stage_callback("blast")
@@ -256,7 +257,7 @@ def test_run_compute_task_does_not_resurrect_deleted_task(monkeypatch, tmp_path)
         module._delete_task_artifacts(task)
 
     monkeypatch.setattr(module.task_store, "update_task", _track_update)
-    monkeypatch.setattr(module.task_runtime, "_run_in_docker", _fake_runner)
+    monkeypatch.setattr(module.task_runtime, "_run_compute_job", _fake_runner)
     monkeypatch.setattr(module.task_runtime, "_local_user_identity", lambda: "pytest:staff-1000:20")
 
     module.run_compute_task(md5sum)

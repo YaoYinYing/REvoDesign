@@ -16,23 +16,23 @@ import logging
 import os
 import re
 import shutil
-import signal
 import time
 from datetime import datetime
 from typing import Any
 
-import docker
 from celery import Celery
 from revocompute.config import ComputeConfig, ensure_directories, env_csv, env_path
 from revocompute.db import TaskDatabase
-from revocompute.task_types import RunnerConfig, RunnerMount, TaskParam, TaskType
-from revocompute.task_types import get as _get_task_type
-from revocompute.task_types import load_registry as _load_task_registry
-from revocompute.task_types import register as _register_tt
 from revocompute.job import Job, JobState
 from revocompute.job.runners.docker_runner import DockerJob
 from revocompute.job.runners.slurm_runner import SlurmJob
 from revocompute.manage_db import ManageDatabase  # noqa: E402
+from revocompute.task_types import RunnerConfig, RunnerMount, TaskParam, TaskType
+from revocompute.task_types import get as _get_task_type
+from revocompute.task_types import load_registry as _load_task_registry
+from revocompute.task_types import register as _register_tt
+
+import docker
 
 CONFIG = ComputeConfig.from_env()
 _manage_db = ManageDatabase(CONFIG.manage_db_path)
@@ -84,9 +84,6 @@ _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 _TASK_ID_PATTERN = re.compile(r"[a-fA-F0-9]{32}$")
 _ROOT_MOUNT_DIRECTORY = env_path("RUNNER_HOST_ROOT", os.path.dirname(CONFIG.server_dir))
 ROOT_MOUNT_DIRECTORY = _ROOT_MOUNT_DIRECTORY
-
-_RUNNER_STAGE_PREFIX = "REVODESIGN_STAGE:"
-
 
 # ---------------------------------------------------------------------------
 # Path utilities
@@ -166,23 +163,6 @@ def _virtual_upload_path(filename: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _extract_stage_from_log_line(line: str, stage_markers: dict[str, str]) -> str | None:
-    """Extract a stage marker from a runner log line.
-
-    Returns the stage key if found, or None.
-    """
-    marker_pos = line.find(_RUNNER_STAGE_PREFIX)
-    if marker_pos < 0:
-        return None
-    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX) :].strip().lower()  # noqa: E203
-    if not raw_marker:
-        return None
-    token = raw_marker.split()[0]
-    if token in stage_markers:
-        return token
-    return None
-
-
 def _build_running_trace(task: dict[str, Any]) -> str:
     """Build a human-readable running trace from task stage markers."""
     if task.get("status") != "running":
@@ -235,48 +215,45 @@ def _sanitize_task_error(task: dict[str, Any], error: Any) -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# Docker runner (generic — TaskType + RunnerConfig)
+# Job dispatch (Docker / SLURM)
 # ---------------------------------------------------------------------------
 
 
-def _run_in_docker(
+def _create_job(
     task_id: str,
     tt,
     runner,
     entities: list[dict],
     output_dir: str,
-    docker_client=None,
-    stage_callback=None,
-):
-    """Run a compute task in Docker — thin wrapper, delegates to DockerJob."""
-    job = DockerJob(
-        task_id, tt, runner, entities, output_dir,
-        stage_callback=stage_callback,
-        docker_client=docker_client,
-    )
-    job.submit()
-    return job.poll()
-
-
-def _create_job(
-    task_id: str, tt, runner, entities: list[dict], output_dir: str,
     stage_callback=None,
 ) -> Job:
     """Factory: return the correct Job subclass for the runner config."""
     if getattr(runner, "runner", "docker") == "slurm":
         return SlurmJob(
-            task_id, tt, runner, entities, output_dir,
+            task_id,
+            tt,
+            runner,
+            entities,
+            output_dir,
             stage_callback=stage_callback,
             manage_db=_manage_db,
         )
     return DockerJob(
-        task_id, tt, runner, entities, output_dir,
+        task_id,
+        tt,
+        runner,
+        entities,
+        output_dir,
         stage_callback=stage_callback,
     )
 
 
 def _run_compute_job(
-    task_id: str, tt, runner, entities: list[dict], output_dir: str,
+    task_id: str,
+    tt,
+    runner,
+    entities: list[dict],
+    output_dir: str,
     stage_callback=None,
 ) -> JobState:
     """Unified submit + poll — same flow for Docker and SLURM."""

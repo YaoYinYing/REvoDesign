@@ -87,9 +87,7 @@ class SlurmJob(Job):
 
     def submit(self) -> str:
         if self._db is not None and not self._db.slurm_enabled():
-            raise RuntimeError(
-                "SLURM is disabled — set slurm_enabled=true in admin config"
-            )
+            raise RuntimeError("SLURM is disabled — set slurm_enabled=true in admin config")
         script_path = self._build_sbatch_script()
         try:
             result = subprocess.run(
@@ -103,9 +101,7 @@ class SlurmJob(Job):
 
             match = _SBATCH_JOB_ID_RE.search(result.stdout)
             if not match:
-                raise RuntimeError(
-                    f"Could not parse job ID from sbatch output: {result.stdout!r}"
-                )
+                raise RuntimeError(f"Could not parse job ID from sbatch output: {result.stdout!r}")
             self._job_id = match.group(1)
         finally:
             script_path.unlink(missing_ok=True)
@@ -155,9 +151,7 @@ class SlurmJob(Job):
             sbatch_args = self._db.slurm_sbatch_args(self.tt.name)
 
         script = self._render_script(sbatch_args)
-        fd, path = tempfile.mkstemp(
-            suffix=".sbatch", prefix=f"revo_{self.task_id[:8]}_"
-        )
+        fd, path = tempfile.mkstemp(suffix=".sbatch", prefix=f"revo_{self.task_id[:8]}_")
         with os.fdopen(fd, "w") as f:
             f.write(script)
         os.chmod(path, 0o700)
@@ -173,9 +167,7 @@ class SlurmJob(Job):
         self._render_apptainer_invocation(lines)
         return "\n".join(lines) + "\n"
 
-    def _render_sbatch_directives(
-        self, lines: list[str], sbatch_args: dict[str, Any]
-    ) -> None:
+    def _render_sbatch_directives(self, lines: list[str], sbatch_args: dict[str, Any]) -> None:
         _FIELD_TO_OPTION: dict[str, str] = {
             "slurm_partition": "partition",
             "slurm_cpus_per_task": "cpus-per-task",
@@ -201,12 +193,8 @@ class SlurmJob(Job):
 
         # Standard directives (always last so they take precedence)
         lines.append(f"#SBATCH --job-name=revo_{self.task_id[:8]}")
-        lines.append(
-            f"#SBATCH --output={_sh_quote(os.path.join(self.output_dir, f'slurm_{self.task_id[:8]}_%j.out'))}"
-        )
-        lines.append(
-            f"#SBATCH --error={_sh_quote(os.path.join(self.output_dir, f'slurm_{self.task_id[:8]}_%j.err'))}"
-        )
+        lines.append(f"#SBATCH --output={_sh_quote(os.path.join(self.output_dir, f'slurm_{self.task_id[:8]}_%j.out'))}")
+        lines.append(f"#SBATCH --error={_sh_quote(os.path.join(self.output_dir, f'slurm_{self.task_id[:8]}_%j.err'))}")
 
     def _render_input_staging(self, lines: list[str]) -> None:
         """Create hardlinks from ``<hash>.upload`` to the original filename.
@@ -228,9 +216,7 @@ class SlurmJob(Job):
         """Build the ``apptainer run`` command line."""
         sif_image = getattr(self.runner, "slurm_image", "") or ""
         if not sif_image:
-            raise RuntimeError(
-                f"Runner {self.tt.name!r} has slurm_image unset — cannot launch Apptainer"
-            )
+            raise RuntimeError(f"Runner {self.tt.name!r} has slurm_image unset — cannot launch Apptainer")
 
         bind_parts: list[str] = []
         upload_dir = CONFIG.upload_folder
@@ -239,21 +225,15 @@ class SlurmJob(Job):
         for fe in self.file_entities:
             original = fe["verified_value"]
             src = os.path.join(self.output_dir, original)
-            bind_parts.append(
-                f"--bind {_sh_quote(src)}:/workspace/inputs/{_sh_quote(original)}:ro"
-            )
+            bind_parts.append(f"--bind {_sh_quote(src)}:/workspace/inputs/{_sh_quote(original)}:ro")
         # Upload dir (shared databases, etc.)
         bind_parts.append(f"--bind {_sh_quote(upload_dir)}:/workspace/inputs:ro")
         # Output dir
-        bind_parts.append(
-            f"--bind {_sh_quote(self.output_dir)}:/workspace/outputs"
-        )
+        bind_parts.append(f"--bind {_sh_quote(self.output_dir)}:/workspace/outputs")
 
         # Extra mounts from runner config
         for m in self.runner.mounts:
-            bind_parts.append(
-                f"--bind {_sh_quote(m.host_path)}:{_sh_quote(m.container_path)}:{m.mode}"
-            )
+            bind_parts.append(f"--bind {_sh_quote(m.host_path)}:{_sh_quote(m.container_path)}:{m.mode}")
 
         # Environment from runner config
         env_parts: list[str] = []
@@ -291,9 +271,7 @@ class SlurmJob(Job):
                 timeout=10,
             )
         except (subprocess.TimeoutExpired, OSError) as exc:
-            logging.warning(
-                "squeue query for job %s failed: %s", self._job_id, exc
-            )
+            logging.warning("squeue query for job %s failed: %s", self._job_id, exc)
             return JobState.RUNNING  # assume still running, next poll will retry
 
         state_raw = result.stdout.strip()
@@ -314,9 +292,7 @@ class SlurmJob(Job):
         except (subprocess.TimeoutExpired, OSError):
             return JobState.FAILED
 
-        lines = [
-            l.strip() for l in result.stdout.strip().splitlines() if l.strip()
-        ]
+        lines = [l.strip() for l in result.stdout.strip().splitlines() if l.strip()]
         if not lines:
             return JobState.FAILED
         # Take the first non-batch state line
@@ -324,9 +300,7 @@ class SlurmJob(Job):
             state = line.upper().split()[0] if line else ""
             if state and "BATCH" not in state:
                 return _SQUEUE_STATE_MAP.get(state, JobState.FAILED)
-        return _SQUEUE_STATE_MAP.get(
-            lines[0].upper().split()[0], JobState.FAILED
-        )
+        return _SQUEUE_STATE_MAP.get(lines[0].upper().split()[0], JobState.FAILED)
 
     def _maybe_stage_callback(self, state: JobState) -> None:
         """Emit the final stage marker if the job completed successfully."""

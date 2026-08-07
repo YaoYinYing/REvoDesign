@@ -4,8 +4,8 @@
 
 """Docker container job runner.
 
-Extracted from ``task_runtime._run_in_docker()`` — same lifecycle,
-same stage parsing, same tmpfs mounts.  No behaviour change.
+Implements the Job ABC for Docker containers — submit, poll logs with
+stage parsing, cancel, and teardown.
 """
 
 from __future__ import annotations
@@ -16,27 +16,13 @@ import os
 import signal
 from typing import Any
 
-import docker
 from revocompute.config import ComputeConfig
 from revocompute.job import Job, JobState
+from revocompute.job._stages import extract_stage_from_log_line
 
-# -- self-contained (no imports from task_runtime — avoids circular deps) -----
+import docker
+
 CONFIG = ComputeConfig.from_env()
-_RUNNER_STAGE_PREFIX = "REVODESIGN_STAGE:"
-
-
-def _extract_stage_from_log_line(line: str, stage_markers: dict[str, str]) -> str | None:
-    """Extract a stage marker from a runner log line."""
-    marker_pos = line.find(_RUNNER_STAGE_PREFIX)
-    if marker_pos < 0:
-        return None
-    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX):].strip().lower()  # noqa: E203
-    if not raw_marker:
-        return None
-    token = raw_marker.split()[0]
-    if token in stage_markers:
-        return token
-    return None
 
 
 class DockerJob(Job):
@@ -79,11 +65,7 @@ class DockerJob(Job):
             detach=True,
             volumes=volumes,
             environment=container_env,
-            device_requests=(
-                [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])]
-                if self.tt.gpus
-                else None
-            ),
+            device_requests=([docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if self.tt.gpus else None),
             user=CONFIG.docker_user,
             stdout=True,
             stderr=True,
@@ -106,7 +88,7 @@ class DockerJob(Job):
             for line in self._container.logs(stream=True):
                 decoded = line.strip().decode("utf-8", errors="replace")
                 if decoded:
-                    stage = _extract_stage_from_log_line(decoded, self.tt.stage_markers)
+                    stage = extract_stage_from_log_line(decoded, self.tt.stage_markers)
                     if stage and stage != last_stage:
                         last_stage = stage
                         if self.stage_callback:
@@ -143,9 +125,7 @@ class DockerJob(Job):
         for m in self.runner.mounts:
             host = os.path.expanduser(m.host_path)
             if not os.path.exists(host):
-                raise docker.errors.DockerException(
-                    f"Mount source '{host}' for '{m.container_path}' does not exist"
-                )
+                raise docker.errors.DockerException(f"Mount source '{host}' for '{m.container_path}' does not exist")
             volumes[host] = {"bind": m.container_path, "mode": m.mode}
 
         os.makedirs(self.output_dir, exist_ok=True)
