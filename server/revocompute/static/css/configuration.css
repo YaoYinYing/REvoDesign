@@ -1,0 +1,37 @@
+/* REvoCompute — Configuration page */
+/* SPDX-License-Identifier: GPL-3.0-only */
+
+.config-panel { margin-top: 1rem; }
+
+.config-toolbar {
+  display: flex; gap: 0.5rem; align-items: center;
+  margin-bottom: 1rem;
+}
+
+.config-table-wrap { overflow-x: auto; }
+
+.config-table {
+  width: 100%; border-collapse: collapse;
+}
+
+.config-table th {
+  text-align: left; font-size: 0.8rem; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--muted); padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.config-table td {
+  padding: 0.35rem 0.5rem;
+  vertical-align: middle;
+}
+
+.config-table .config-key { width: 100%; }
+.config-table .config-value { width: 100%; }
+
+.config-table td:first-child { min-width: 18rem; }
+.config-table td:nth-child(2) { min-width: 18rem; }
+.config-table td:last-child { width: 2.5rem; text-align: center; }
+
+.delete-row-btn {
+  font-size: 1.1rem; line-height: 1; padding: 0.15rem 0.5rem;
+}

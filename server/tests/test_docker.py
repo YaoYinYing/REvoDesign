@@ -227,13 +227,10 @@ class DockerServerStack:
         self.task_env = {
             "SERVER_DIR": str(self.server_dir),
             "DB_PATH": str(self.db_path),
-            "DB_UNIREF30": self.miniuc["uniref30_prefix"],
-            "DB_UNIREF90": self.miniuc["uniref90_prefix"],
             "LOG_DIR": str(self.log_dir),
             "NPROC": "4",
             "GUNICORN_WORKERS": "2",
             "WORKER_CONCURRENCY": "2",
-            "RUNNER_IMAGE": self.runner_image_tag,
             "RUNNER_UID": self.runner_uid,
             "RUNNER_GID": self.runner_gid,
             "PORT": str(self.port),

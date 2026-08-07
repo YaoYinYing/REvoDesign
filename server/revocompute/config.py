@@ -125,6 +125,7 @@ class ComputeConfig:
     upload_folder: str
     results_folder: str
     db_path: str
+    manage_db_path: str
     docker_user: str
     port: int
     task_types_config: str  # path to config/task_types.yaml
@@ -139,6 +140,7 @@ class ComputeConfig:
             upload_folder=os.path.join(server_dir, "upload"),
             results_folder=os.path.join(server_dir, "results"),
             db_path=env_path("DB_PATH", os.path.join(server_dir, "revocompute.sqlite3")),
+            manage_db_path=env_path("MANAGE_DB_PATH", os.path.join(server_dir, "manage.sqlite")),
             docker_user=resolve_docker_user(),
             port=env_int("PORT", 8080),
             task_types_config=os.path.join(config_dir, "task_types.yaml"),
