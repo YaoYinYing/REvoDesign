@@ -19,7 +19,7 @@ import os
 import re
 import shutil
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -399,15 +399,16 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     # Build entities — one list for files and params together.
     entities: list[dict[str, Any]] = []
 
-    # File entity
-    result_dir = _safe_join(app.config["RESULTS_FOLDER"], md5sum)
+    # File entity — stored_at points to the upload directory (always accessible
+    # for Docker volume mounts), not results/<md5sum>/ which lives under the
+    # SERVER_DIR bind mount and may not sync to the host in time.
     entities.append(
         {
             "name": "file",
             "type": "file",
             "value": uploaded_file.filename,
             "verified_value": safe_filename,
-            "stored_at": os.path.join(result_dir, safe_filename),
+            "stored_at": upload_path,
             "mounted": f"/workspace/inputs/{safe_filename}",
             "hash": md5sum,
         }
@@ -429,7 +430,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
 
     input_form = {
         "user": metadata["username"],
-        "submitted_at": datetime.now(tz=datetime.timezone.utc).isoformat(),
+        "submitted_at": datetime.now(tz=timezone.utc).isoformat(),
         "entities": entities,
     }
 
