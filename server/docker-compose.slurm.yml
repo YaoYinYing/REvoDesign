@@ -1,0 +1,38 @@
+# SLURM override — merged with docker-compose.yml when --use-slurm is passed.
+# This file is version-controlled but only activated by restart.sh --use-slurm.
+#
+# It bind-mounts:
+#   - Host SLURM client tools + libraries → worker (sbatch, squeue, etc.)
+#   - MUNGE socket → worker (SLURM authentication)
+#   - CONFIG_DIR → web, worker, maintenance (task type + runner YAMLs)
+
+services:
+  web:
+    network_mode: host
+    volumes:
+      - ${CONFIG_DIR}:${CONFIG_DIR}:ro
+      - /usr/bin/scancel:/usr/bin/scancel:ro
+      - /usr/lib/x86_64-linux-gnu/slurm-wlm:/usr/lib/x86_64-linux-gnu/slurm-wlm:ro
+      - /etc/slurm-llnl:/etc/slurm-llnl:ro
+      - /run/munge:/run/munge:ro
+      - /lib/x86_64-linux-gnu/libmunge.so.2:/lib/x86_64-linux-gnu/libmunge.so.2:ro
+
+  maintenance:
+    volumes:
+      - ${CONFIG_DIR}:${CONFIG_DIR}:ro
+
+  worker:
+    network_mode: host
+    extra_hosts:
+      - "inspur-NF5280M5:172.17.0.1"
+    volumes:
+      - ${CONFIG_DIR}:${CONFIG_DIR}:ro
+      - /usr/bin/sbatch:/usr/bin/sbatch:ro
+      - /usr/bin/squeue:/usr/bin/squeue:ro
+      - /usr/bin/scancel:/usr/bin/scancel:ro
+      - /usr/bin/sacct:/usr/bin/sacct:ro
+      - /usr/bin/sinfo:/usr/bin/sinfo:ro
+      - /usr/lib/x86_64-linux-gnu/slurm-wlm:/usr/lib/x86_64-linux-gnu/slurm-wlm:ro
+      - /etc/slurm-llnl:/etc/slurm-llnl:ro
+      - /run/munge:/run/munge:ro
+      - /lib/x86_64-linux-gnu/libmunge.so.2:/lib/x86_64-linux-gnu/libmunge.so.2:ro

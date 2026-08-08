@@ -18,6 +18,7 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -632,6 +633,14 @@ def cancel_task(md5sum):
             jsonify({"error": "Task cannot be cancelled as it is not pending or running"}),
             400,
         )
+
+    slurm_job_id = task.get("slurm_job_id")
+    if slurm_job_id:
+        try:
+            subprocess.run(["scancel", str(slurm_job_id)], timeout=10, check=True)
+            logging.info("Cancelled SLURM job %s for task %s", slurm_job_id, md5sum)
+        except Exception as exc:  # pylint: disable=broad-except
+            logging.warning("Failed to scancel SLURM job %s: %s", slurm_job_id, exc)
 
     celery_id = task.get("celery_task_id")
     if celery_id:
