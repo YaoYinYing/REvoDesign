@@ -1,0 +1,24 @@
+# ESM runner — local development settings.
+#
+# Checkpoints are at /mnt/db/weights/esm/checkpoints/.  Mount the parent
+# directory so torch.hub.set_dir() resolves checkpoints/ automatically.
+# Edit this file when deploying to a new node.
+
+mounts:
+  - host_path: "/mnt/db/weights/esm"
+    container_path: "/mnt/db/weights/esm"
+    mode: "ro"
+
+env: {}
+
+gpus: true
+
+nproc: 1
+max_runtime_seconds: 14400
+
+defaults: {}
+
+# -- SLURM + Apptainer (set in deployed config, not here) --
+# runner: slurm
+# container_runtime: apptainer
+# slurm_image: /mnt/data/srv/revodesign/server-slurm/images/esm_v1.sif
