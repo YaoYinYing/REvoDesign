@@ -5,9 +5,20 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${SERVER_ROOT}/docker-compose.yml"
+COMPOSE_SLURM_FILE="${SERVER_ROOT}/docker-compose.slurm.yml"
 ENV_EXAMPLE_FILE="${SERVER_ROOT}/.env.example"
 PRIMARY_ENV_FILE="${SERVER_ROOT}/.env.production"
 CALLER_DIR="$(pwd)"
+
+# Return compose -f arguments.  When USE_SLURM is set, the slurm override
+# file is appended so the worker container gets SLURM client bind-mounts.
+compose_files() {
+  if [[ "${USE_SLURM:-0}" == "1" ]] && [[ -f "${COMPOSE_SLURM_FILE}" ]]; then
+    printf '%s\n' "-f" "${COMPOSE_FILE}" "-f" "${COMPOSE_SLURM_FILE}"
+  else
+    printf '%s\n' "-f" "${COMPOSE_FILE}"
+  fi
+}
 
 resolve_env_file() {
   if [[ -n "${REVODESIGN_SERVER_ENV:-}" ]]; then
@@ -225,7 +236,8 @@ if os.path.commonpath([server_dir, auth_dir]) == server_dir:
 # ---------------------------------------------------------------------------
 
 validate_slurm_images() {
-  local runners_dir="${SERVER_ROOT}/server/config/runners"
+  # Read from deployed CONFIG_DIR when set, otherwise repo source.
+  local runners_dir="${CONFIG_DIR:-${SERVER_ROOT}/server/config}/runners"
   local def_dir="${SERVER_ROOT}/docker/runners"
   local missing=0
   local name=""
@@ -249,7 +261,11 @@ print(data.get('slurm_image', ''))
     fi
     if [[ ! -f "${image}" ]]; then
       echo "[SLURM] Missing SIF image: ${image}" >&2
-      echo "        Build it:  apptainer build --fakeroot ${image} ${def_dir}/${name}/${name}.def" >&2
+      local _hint="${def_dir}/${name}/${name}.def"
+      if [[ ! -f "${_hint}" ]]; then
+        _hint="${def_dir}/pssm_${name}/${name}.def"
+      fi
+      echo "        Build it:  apptainer build --fakeroot ${image} ${_hint}" >&2
       missing=$((missing + 1))
     else
       echo "[SLURM] Found SIF image: ${image}"
@@ -267,7 +283,8 @@ print(data.get('slurm_image', ''))
 }
 
 build_slurm_images() {
-  local runners_dir="${SERVER_ROOT}/server/config/runners"
+  # Read from deployed CONFIG_DIR when set, otherwise repo source.
+  local runners_dir="${CONFIG_DIR:-${SERVER_ROOT}/server/config}/runners"
   local def_dir="${SERVER_ROOT}/docker/runners"
   local name=""
   local image=""
@@ -292,6 +309,10 @@ print(data.get('slurm_image', ''))
       continue
     fi
     def_file="${def_dir}/${name}/${name}.def"
+    if [[ ! -f "${def_file}" ]]; then
+      # Fallback: some Dockerfile dirs use a "pssm_" prefix (e.g. pssm_gremlin)
+      def_file="${def_dir}/pssm_${name}/${name}.def"
+    fi
     if [[ ! -f "${def_file}" ]]; then
       echo "[SLURM] No .def file for '${name}' at ${def_file} — skipping." >&2
       continue
@@ -423,10 +444,10 @@ cmd_build() {
   resolve_runner_identity
 
   echo "Building GREMLIN runner image..."
-  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" --profile runner build runner
+  "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" --profile runner build runner
 
   echo "Building web/worker images..."
-  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" build web worker
+  "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" build web worker
 }
 
 cmd_up() {
@@ -437,7 +458,7 @@ cmd_up() {
   ensure_docker_gid
   resolve_runner_identity
   echo "Starting services via docker compose..."
-  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up "$@" -d redis web maintenance worker
+  "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" up "$@" -d redis web maintenance worker
   print_admin_logins
 }
 
@@ -446,13 +467,13 @@ cmd_down() {
   ensure_docker_gid
   resolve_runner_identity
   echo "Stopping services via docker compose..."
-  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" down
+  "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" down
 }
 
 cmd_reload() {
   require_env_file
   echo "Sending HUP to Gunicorn..."
-  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" exec web pkill -HUP gunicorn
+  "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec web pkill -HUP gunicorn
 }
 
 cmd_restart() {
@@ -471,15 +492,6 @@ cmd_restart() {
 
   prepare_admin_bootstrap
 
-  # -- SLURM bootstrapping ------------------------------------------------
-  if [[ "${USE_SLURM}" == "1" ]]; then
-    echo "[SLURM] SLURM+Apptainer runner enabled."
-    if [[ "${BUILD_SIF}" == "1" ]]; then
-      build_slurm_images
-    fi
-    validate_slurm_images
-  fi
-
   cmd_down
 
   case "${MODE}" in
@@ -488,9 +500,19 @@ cmd_restart() {
       ;;
     prod)
       echo "Pulling configured production images..."
-      "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" --profile runner pull web runner
+      "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" --profile runner pull web runner
       ;;
   esac
+
+  # -- SLURM bootstrapping (after Docker images are built/pulled so
+  #    build_slurm_images can convert the cached Docker image to SIF)
+  if [[ "${USE_SLURM}" == "1" ]]; then
+    echo "[SLURM] SLURM+Apptainer runner enabled."
+    if [[ "${BUILD_SIF}" == "1" ]]; then
+      build_slurm_images
+    fi
+    validate_slurm_images
+  fi
   cmd_up --no-build
 
   DOMAIN="0.0.0.0"

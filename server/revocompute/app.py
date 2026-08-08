@@ -27,6 +27,7 @@ from revocompute.config import format_runner_identity as _format_runner_identity
 from revocompute.config import resolve_docker_user as _resolve_docker_user
 from revocompute.maintenance.tasks.result_cleanup import delete_task_artifacts as _delete_result_artifacts
 from revocompute.maintenance.tasks.result_cleanup import deleted_status_from_task as _result_deleted_status
+from revocompute.task_types import list_types as _list_task_types
 from revocompute.task_types import load_registry as _load_task_registry
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
@@ -175,6 +176,14 @@ except FileNotFoundError:
         ),
         RunnerConfig(),
     )
+
+# Seed manage_db.task_type_config for every registered task type.
+# Only inserts rows that don't exist yet — admin toggles are preserved.
+_log = logging.getLogger(__name__)
+for _tt in _list_task_types():
+    if manage_db.task_type_get(_tt.name) is None:
+        manage_db.task_type_upsert(_tt.name, enabled=True)
+        _log.info("Seeded task_type_config for %r (enabled=true)", _tt.name)
 
 
 def _is_binary_file(path: str) -> bool:
