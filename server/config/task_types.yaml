@@ -117,3 +117,39 @@ task_types:
         type: "int"
         default: 1
         description: "Number of sequences to sample"
+
+  opendde:
+    display_name: "OpenDDE"
+    docker_image: "revodesign-revocompute-runner-opendde"
+    command: ["bash", "/app/revocompute/run.sh"]
+    gpus: true
+    input_extension: ".json"
+    input_label: "JSON file (OpenDDE job spec)"
+    stage_markers:
+      opendde: "OpenDDE co-folding inference"
+    result_patterns: ["*"]
+    params:
+      - name: "model_name"
+        type: "str"
+        default: "opendde_v1"
+        description: "Model name (opendde_v1 or opendde_abag)"
+      - name: "num_samples"
+        type: "int"
+        default: 1
+        description: "Number of samples per seed"
+      - name: "num_steps"
+        type: "int"
+        default: 200
+        description: "Inference steps"
+      - name: "num_cycles"
+        type: "int"
+        default: 10
+        description: "Recycling cycles"
+      - name: "use_msa"
+        type: "bool"
+        default: true
+        description: "Enable MSA searching (needs network + search DBs)"
+      - name: "use_template"
+        type: "bool"
+        default: true
+        description: "Enable template searching"

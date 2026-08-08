@@ -1,0 +1,6 @@
+Bootstrap: docker-daemon
+From: revodesign-revocompute-runner-opendde:latest
+%post
+    echo "OpenDDE runner containerised"
+%runscript
+    exec bash /app/revocompute/run.sh "$@"

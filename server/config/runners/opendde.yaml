@@ -1,0 +1,24 @@
+# OpenDDE runner — local development settings.
+#
+# OpenDDE_ROOT_DIR is /mnt/db/opendde (set in Dockerfile ENV).  Mount the
+# host directory there so the checkpoint and search databases are available.
+# Edit this file when deploying to a new node.
+
+mounts:
+  - host_path: "/mnt/db/opendde"
+    container_path: "/mnt/db/opendde"
+    mode: "rw"
+
+env: {}
+
+gpus: true
+
+nproc: 1
+max_runtime_seconds: 86400
+
+defaults: {}
+
+# -- SLURM + Apptainer (set in deployed config, not here) --
+# runner: slurm
+# container_runtime: apptainer
+# slurm_image: /mnt/data/srv/revodesign/server-slurm/images/opendde_v1.sif
