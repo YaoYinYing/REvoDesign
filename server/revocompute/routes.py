@@ -524,8 +524,8 @@ def run_gremlin(md5sum):
             jsonify({"status": "failed", "md5sum": md5sum, "error": _sanitize_task_error(task, task.get("error"))}),
             404,
         )
-    if status == "running":
-        return jsonify({"status": "running", "md5sum": md5sum}), 202
+    if status in ("running", "queued"):
+        return jsonify({"status": status, "md5sum": md5sum}), 202
     if status == "pending":
         return jsonify({"status": "pending", "md5sum": md5sum}), 202
     if status == "packing results":
@@ -630,7 +630,7 @@ def cancel_task(md5sum):
     if not _task_access_allowed(task):
         return _task_access_denied(md5sum)
 
-    if task["status"] not in {"pending", "running"}:
+    if task["status"] not in {"pending", "queued", "running"}:
         return (
             jsonify({"error": "Task cannot be cancelled as it is not pending or running"}),
             400,
@@ -724,7 +724,7 @@ def task_dashboard():  # skipcq: PY-R1000 -- dashboard filtering and response as
 
 
 def _soft_delete_task(md5sum: str, task: dict[str, Any]) -> None:
-    if task["status"] in {"pending", "running", "packing results"}:
+    if task["status"] in {"pending", "queued", "running", "packing results"}:
         _revoke_celery_task(task)
 
     _delete_task_artifacts(task)

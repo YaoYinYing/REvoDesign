@@ -376,7 +376,7 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
     if not task:
         logging.error("Task %s missing from database", md5sum)
         return
-    if task["status"] not in {"pending", "running", "packing results"}:
+    if task["status"] not in {"pending", "queued", "running", "packing results"}:
         return
 
     try:
@@ -411,8 +411,10 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
     start_time = task.get("started_at") or time.time()
     current_stage = str(task.get("run_stage") or (stages[0][0] if stages else "")).strip().lower()
 
+    is_slurm = getattr(runner, "runner", "docker") == "slurm"
+    initial_status = "queued" if is_slurm else "running"
     update_fields: dict[str, Any] = {
-        "status": "running",
+        "status": initial_status,
         "error": None,
         "local_user": _local_user_identity(),
         "run_stage": current_stage,
@@ -423,13 +425,17 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
     if task.get("request_headers"):
         logging.info("Request headers for task %s: %s", md5sum, _sanitize_for_log(task["request_headers"]))
 
-    stage_state = {"current": current_stage}
+    stage_state = {"current": current_stage, "first": True}
 
     def _on_stage_change(stage: str) -> None:
         if stage == stage_state["current"] or _task_is_terminal(md5sum):
             return
         stage_state["current"] = stage
-        task_store.update_task(md5sum, run_stage=stage)
+        if stage_state.get("first"):
+            stage_state["first"] = False
+            task_store.update_task(md5sum, status="running", run_stage=stage)
+        else:
+            task_store.update_task(md5sum, run_stage=stage)
 
     try:
         final_state = _run_compute_job(

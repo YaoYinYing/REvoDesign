@@ -40,6 +40,7 @@ class TaskDatabase:
 
     VALID_STATUSES = {
         "pending",
+        "queued",
         "running",
         "packing results",
         "finished",
@@ -228,7 +229,7 @@ class TaskDatabase:
             .select_from(self.tasks_table)
             .where(
                 self.tasks_table.c.username == username,
-                self.tasks_table.c.status.in_(["pending", "running", "packing results"]),
+                self.tasks_table.c.status.in_(["pending", "queued", "running", "packing results"]),
             )
         )
         with self.engine.connect() as conn:
