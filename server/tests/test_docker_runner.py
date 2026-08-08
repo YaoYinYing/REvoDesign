@@ -53,12 +53,13 @@ def _make_entities(hash_value="abc123"):
 
 
 def _setup_submit_env(tmp_path, hash_value="abc123"):
-    """Create .upload file where CONFIG expects it. Returns output_dir."""
-    from revocompute.job.runners.docker_runner import CONFIG
+    """Create .upload file inside tmp_path and redirect CONFIG. Returns output_dir."""
+    from revocompute.job.runners import docker_runner
 
-    upload_dir = CONFIG.upload_folder
+    upload_dir = str(tmp_path / "upload")
     os.makedirs(upload_dir, exist_ok=True)
     (Path(upload_dir) / f"{hash_value}.upload").write_text(">test\nACDE\n")
+    docker_runner.CONFIG.upload_folder = upload_dir
     output_dir = str(tmp_path / "output")
     return output_dir
 
@@ -291,7 +292,7 @@ def test_build_command_args_passes_iter_flag(tmp_path):
     args = job._build_command_args()
 
     assert "-i" in args
-    assert "/in/x.fasta" in args  # ponytail: first file entity's mounted path
+    assert "/workspace/inputs/abc_task-1_x.fasta" in args  # unique-per-job link name
     assert "-o" in args
     assert "/workspace/outputs" in args
     assert "-r" in args

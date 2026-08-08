@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Side-effect-free configuration for the GREMLIN web and worker processes."""
+"""Side-effect-free configuration for the REvoCompute web and worker processes."""
 
 from __future__ import annotations
 

@@ -262,8 +262,8 @@ def _run_compute_job(
     """Unified submit + poll — same flow for Docker and SLURM."""
     job = _create_job(task_id, tt, runner, entities, output_dir, stage_callback, username=username)
     jid = job.submit()
-    # Persist SLURM job ID so scancel can find it (no-op for Docker which returns task_id)
-    if jid:
+    # Persist SLURM job ID so scancel can find it (Docker's id is a container id)
+    if jid and isinstance(job, SlurmJob):
         task_store.update_task(task_id, slurm_job_id=jid)
     return job.poll()
 

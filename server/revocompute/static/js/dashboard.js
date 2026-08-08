@@ -7,7 +7,6 @@
 
   var allTasks = window.__DASHBOARD_TASKS__;
   var isAdmin = window.__DASHBOARD_IS_ADMIN__;
-  var currentUser = window.__DASHBOARD_USER__;
 
   var state = {
     query: "",
@@ -30,12 +29,6 @@
     "deleted:finshed": { label: "Deleted (Finished)", css: "status-deleted", accent: "var(--deleted)" },
     "deleted:cancel": { label: "Deleted (Cancel)", css: "status-deleted", accent: "var(--deleted)" },
   };
-
-  function escapeHtml(input) {
-    return String(input ?? "")
-      .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
-  }
 
   function getStatusMeta(status) {
     return statusMap[status] || { label: status || "Unknown", css: "status-cancelled", accent: "var(--cancelled)" };

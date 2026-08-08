@@ -28,7 +28,6 @@ from revocompute.config import resolve_docker_user as _resolve_docker_user
 from revocompute.maintenance.tasks.result_cleanup import delete_task_artifacts as _delete_result_artifacts
 from revocompute.maintenance.tasks.result_cleanup import deleted_status_from_task as _result_deleted_status
 from revocompute.task_types import list_types as _list_task_types
-from revocompute.task_types import load_registry as _load_task_registry
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
@@ -141,41 +140,8 @@ app.config["RESULTS_FOLDER"] = CONFIG.results_folder
 
 _ensure_directories(CONFIG.upload_folder, CONFIG.results_folder)
 
-# Load the task type registry — gremlin is always enabled; additional runners
-# are gated by the ENABLED_TASKRUNNERS env var.  If the YAML files are missing
-# (e.g. in tests or non-standard deployments), register a hardcoded gremlin
-# fallback so existing functionality still works.
-_enabled_runners = set(_env_csv("ENABLED_TASKRUNNERS", ""))
-try:
-    _load_task_registry(CONFIG.task_types_config, CONFIG.runners_dir, _enabled_runners)
-except FileNotFoundError:
-    logging.warning(
-        "Task type registry not found at %s — registering built-in gremlin fallback. "
-        "Create config/task_types.yaml to register additional task types.",
-        CONFIG.task_types_config,
-    )
-    from revocompute.task_types import RunnerConfig, RunnerMount, TaskParam, TaskType
-    from revocompute.task_types import register as _register_tt  # noqa: E402
-
-    _register_tt(
-        TaskType(
-            name="gremlin",
-            display_name="PSSM-GREMLIN",
-            docker_image="revodesign-revocompute-runner",
-            command=["bash", "/app/revocompute/run.sh"],
-            input_extension=".fasta",
-            input_label="FASTA file",
-            stage_markers={
-                "hhblits": "HHblits MSA generation",
-                "hhfilter": "HHfilter filtering",
-                "gremlin": "GREMLIN optimization",
-                "blast": "PSI-BLAST PSSM",
-            },
-            result_patterns=("*.pkl", "*_ascii_mtx_file", "*.GREMLIN.mrf.pkl"),
-            params=(TaskParam(name="iter", type="int", default=100, description="GREMLIN optimization iterations"),),
-        ),
-        RunnerConfig(),
-    )
+# The task type registry is loaded by task_runtime's module-level code (its
+# import at the top of this file), including the built-in gremlin fallback.
 
 # Seed manage_db.task_type_config for every registered task type.
 # Only inserts rows that don't exist yet — admin toggles are preserved.
@@ -370,13 +336,6 @@ def _task_id_for_upload(content_md5: str, username: str | None) -> str:
     owner = username or "anonymous"
     scoped_key = f"{owner}:{content_md5}"
     return hashlib.md5(scoped_key.encode("utf-8"), usedforsecurity=False).hexdigest()
-
-
-def _task_delete_allowed(task: dict[str, Any]) -> bool:
-    current_user = _current_username() or ""
-    if _is_admin_user():
-        return True
-    return bool(current_user) and task.get("username") == current_user
 
 
 def _delete_task_artifacts(task: dict[str, Any]) -> None:

@@ -81,6 +81,14 @@ class RegisterRequest(BaseModel):
     captcha_token: str
     captcha_answer: str
 
+    @field_validator("username")
+    @classmethod
+    def _sanitize_username(cls, v: str) -> str:
+        v = v.strip()
+        if not v or any(ord(c) < 32 for c in v):
+            raise ValueError("username contains invalid characters")
+        return v
+
     @field_validator("full_name", "affiliation", "pi_name", mode="before")
     @classmethod
     def _strip_required_profile_field(cls, v: str) -> str:
@@ -179,32 +187,6 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(min_length=8)
 
 
-class InputEntity(BaseModel):
-    """A single input item — param or file — as stored in the task's input_form.
-
-    For params: name="iter", type="int", value="10", verified_value=10.
-    For files: name="file", type="file", value="2KL8.fasta",
-    verified_value="2KL8.fasta", stored_at="/path/on/server",
-    mounted="/workspace/inputs/2KL8.fasta", hash="<md5>".
-    """
-
-    name: str
-    type: str  # "file", "string", "int", "float", "bool"
-    value: Any
-    verified_value: Any
-    stored_at: str | None = None
-    mounted: str | None = None
-    hash: str | None = None
-
-
-class InputForm(BaseModel):
-    """Self-contained record of a task submission — stored in the input_form column."""
-
-    user: str
-    submitted_at: str  # ISO 8601 timestamp
-    entities: list[InputEntity]
-
-
 class TaskSubmissionRequest(BaseModel):
     """Task submission form payload — validated at the API boundary.
 
@@ -248,10 +230,11 @@ class TaskSubmissionRequest(BaseModel):
         coerced: dict[str, Any] = {}
         for key, raw in self.params.items():
             param = known_params[key]
-            if param.type == "int":
-                coerced[key] = int(raw)
-            elif param.type == "float":
-                coerced[key] = float(raw)
+            if param.type in ("int", "float"):
+                try:
+                    coerced[key] = int(raw) if param.type == "int" else float(raw)
+                except (TypeError, ValueError):
+                    raise ValueError(f"Parameter {key!r} must be a valid {param.type}") from None
             elif param.type == "bool":
                 coerced[key] = str(raw).lower() in ("true", "1", "yes")
             else:

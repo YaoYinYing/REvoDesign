@@ -230,12 +230,6 @@ class ManageDatabase:
             )
             self._conn.commit()
 
-    def resource_delete(self, key: str) -> bool:
-        with self._lock:
-            cur = self._conn.execute("DELETE FROM resource_config WHERE key = ?", (key,))
-            self._conn.commit()
-            return cur.rowcount > 0
-
     # -- legacy compat: the old key-value API mapped to structured tables --
 
     def get(self, key: str, default: str | None = None) -> str | None:
@@ -256,46 +250,6 @@ class ManageDatabase:
                     return str(val) if val is not None else default
             return default
         return self.resource_get(key, default)
-
-    def set(self, key: str, value: str) -> None:
-        """Legacy set — routes to task_type_config or resource_config."""
-        # task_type.<name>.enabled
-        if key.startswith("task_type.") and key.endswith(".enabled"):
-            tool = key[len("task_type.") : -len(".enabled")]
-            self.task_type_upsert(tool, enabled=value.lower() in ("true", "1", "yes", "on"))
-            return
-        # task_type.<name>.<field>
-        if key.startswith("task_type."):
-            parts = key.split(".", 2)
-            if len(parts) == 3:
-                _, tool, field = parts
-                allowed = set(_ALL_TASK_TYPE_FIELDS)
-                if field in allowed:
-                    if field in ("slurm_cpus_per_task", "slurm_nodes", "slurm_ntasks"):
-                        self.task_type_upsert(tool, **{field: int(value)})
-                    elif field == "slurm_exclusive":
-                        self.task_type_upsert(tool, **{field: value.lower() in ("true", "1", "yes", "on")})
-                    else:
-                        self.task_type_upsert(tool, **{field: value})
-                    return
-        self.resource_set(key, value)
-
-    def all(self) -> dict[str, str]:
-        """Legacy all — flattens both tables into a key-value dict."""
-        result: dict[str, str] = {}
-        for row in self.task_type_all():
-            prefix = f"task_type.{row['tool']}"
-            for field in _ALL_TASK_TYPE_FIELDS:
-                if row[field] is not None:
-                    result[f"{prefix}.{field}"] = (
-                        str(row[field]).lower() if isinstance(row[field], bool) else str(row[field])
-                    )
-        result.update(self.resource_all())
-        return result
-
-    def delete(self, key: str) -> bool:
-        """Legacy delete — routes to resource_config only (task types are never deleted)."""
-        return self.resource_delete(key)
 
     # -- SLURM helpers -----------------------------------------------------
 

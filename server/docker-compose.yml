@@ -17,7 +17,6 @@ x-task-env: &task-env
   BROKER_URL: ${BROKER_URL:-redis://redis:6379/0}
   RESULT_BACKEND: ${RESULT_BACKEND:-redis://redis:6379/0}
 
-  NPROC: ${NPROC:-8}
   MAXMEM: ${MAXMEM:-64}
   WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
 

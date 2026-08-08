@@ -289,7 +289,7 @@
     pwRow.innerHTML =
       '<td></td>' +
       '<td colspan="2"><input type="password" class="text-input edit-input" id="editPassword" placeholder="New password (leave empty to keep)" minlength="8" autocomplete="new-password"></td>' +
-      '<td colspan="8" class="muted" style="font-size:0.76rem">Leave blank to keep current password</td>';
+      '<td colspan="9" class="muted" style="font-size:0.76rem">Leave blank to keep current password</td>';
     tr.parentNode.insertBefore(pwRow, tr.nextSibling);
 
     tr._origHTML = origHTML;
@@ -397,15 +397,6 @@
   });
 
   // ---- Helpers ----
-
-  function escapeHtml(input) {
-    if (!input) return "";
-    return String(input)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
 
   function escapeAttr(input) {
     if (!input) return "";
