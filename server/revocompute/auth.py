@@ -86,6 +86,7 @@ _users_table = sa.Table(
     sa.Column("registration_ip", sa.String(45), nullable=True),
     sa.Column("registration_country", sa.String(8), nullable=True),
     sa.Column("token_version", sa.Integer, nullable=False, default=0),
+    sa.Column("allow_gpu_use", sa.Boolean, nullable=False, default=False),
 )
 
 

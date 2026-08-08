@@ -113,7 +113,7 @@
   // ---- Load user list (Tab A) ----
 
   var userTableBody = document.getElementById("userTableBody");
-  var COLSPAN = 11;
+  var COLSPAN = 12;
 
   function loadCurrentUser() {
     return A.authFetch("/compute/api/auth/me")
@@ -161,6 +161,8 @@
     var selectAttrs = ' class="user-select" data-uid="' + u.id + '"';
     if (self) selectAttrs += ' disabled title="You cannot batch-disable or delete your own account"';
 
+    var gpuLabel = u.allow_gpu_use ? '<span class="gpu-badge on">GPU</span>' : '<span class="gpu-badge off">—</span>';
+
     tr.innerHTML =
       '<td class="col-select"><input type="checkbox"' + selectAttrs + '></td>' +
       '<td class="col-email">' + escapeHtml(u.email || "—") + '</td>' +
@@ -170,6 +172,7 @@
       '<td class="col-position">' + escapeHtml(POSITION_LABELS[u.position] || u.position || "—") + '</td>' +
       '<td class="col-pi">' + escapeHtml(u.pi_name || "—") + '</td>' +
       '<td class="col-role"><span class="status-badge ' + escapeAttr(u.role || "user") + '">' + escapeHtml(ROLE_LABELS[u.role] || u.role || "User") + '</span></td>' +
+      '<td class="col-gpu">' + gpuLabel + '</td>' +
       '<td class="col-reg"><span class="status-badge ' + escapeAttr(u.registration_status) + '">' + escapeHtml(regLabel) + '</span></td>' +
       '<td class="col-user"><span class="status-badge ' + escapeAttr(u.user_status) + '">' + escapeHtml(userLabel) + '</span></td>' +
       '<td class="col-actions">' + actionsHtml + '</td>';
@@ -252,6 +255,8 @@
   function showEditRow(tr, u) {
     var origHTML = tr.innerHTML;
     var self = isCurrentUser(u);
+    var gpuChecked = u.allow_gpu_use ? " checked" : "";
+
     tr.innerHTML =
       '<td class="col-select">—</td>' +
       '<td><input type="email" class="text-input edit-input" id="editEmail" value="' + escapeHtml(u.email || "") + '"></td>' +
@@ -265,6 +270,7 @@
         '<option value="user"' + ((u.role || "user") === "user" ? " selected" : "") + '>User</option>' +
         '<option value="guest"' + ((u.role || "user") === "guest" ? " selected" : "") + '>Guest</option>' +
       '</select></td>' +
+      '<td><label class="gpu-toggle"><input type="checkbox" class="edit-input" id="editGpu"' + gpuChecked + '> GPU</label></td>' +
       '<td><select class="text-input edit-input" id="editRegStatus">' +
         '<option value="approved"' + (u.registration_status === "approved" ? " selected" : "") + '>Approved</option>' +
         '<option value="rejected"' + (u.registration_status === "rejected" ? " selected" : "") + '>Rejected</option>' +
@@ -298,6 +304,7 @@
         position: document.getElementById("editPosition").value || null,
         pi_name: document.getElementById("editPiName").value.trim(),
         role: document.getElementById("editRole").value,
+        allow_gpu_use: document.getElementById("editGpu").checked,
         registration_status: document.getElementById("editRegStatus").value,
         user_status: document.getElementById("editUserStatus").value,
       };
