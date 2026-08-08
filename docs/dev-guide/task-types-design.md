@@ -68,6 +68,10 @@ class RunnerConfig:
     maxmem: int | None = None     # override server default if set
     max_runtime_seconds: int | None = None  # override task_type default if set
     defaults: dict[str, Any] = field(default_factory=dict)  # default param values
+    # SLURM + Apptainer (set in deployed runner YAML)
+    runner: str = "docker"         # "docker" | "slurm"
+    container_runtime: str = ""    # "apptainer" | ""
+    slurm_image: str = ""          # path to .sif image
 ```
 
 ## Registry
@@ -101,8 +105,8 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
 task_types:
   gremlin:
     display_name: "PSSM-GREMLIN"
-    docker_image: "revodesign/runner-gremlin:latest"
-    command: ["bash", "/opt/gremlin/run_gremlin.sh"]
+    docker_image: "revodesign-revocompute-runner"
+    command: ["bash", "/app/revocompute/run.sh"]
     input_extension: ".fasta"
     input_label: "FASTA file"
     stage_markers:
@@ -116,7 +120,26 @@ task_types:
         type: "int"
         default: 100
         description: "GREMLIN optimization iterations"
+
+  esm_fold:
+    display_name: "ESMFold"
+    docker_image: "revodesign-revocompute-runner-esm"
+    command: ["bash", "/app/revocompute/run.sh"]
+    gpus: true
+    input_extension: ".fasta"
+    input_label: "FASTA file"
+    stage_markers:
+      esm_fold: "ESMFold structure prediction"
+    result_patterns: ["*.pdb"]
+    params:
+      - name: "num_recycles"
+        type: "int"
+        default: 4
 ```
+
+Multiple task types can share the same `docker_image` (e.g. `esm_fold`,
+`esm_extract`, `esm_1v`, `esm_if1` all use `revodesign-revocompute-runner-esm`).
+They dispatch on `$TASK_TYPE` set by the launcher.
 
 ### `config/runners/gremlin.yaml` — deployment-specific (machine-local)
 
@@ -157,14 +180,40 @@ class ComputeConfig:
     upload_folder: str
     results_folder: str
     db_path: str
-    docker_user: str
     port: int
+    slurm_enabled: bool
+    slurm_allowed_queues: list[str]
     task_types_config: str   # path to task_types.yaml
     runners_dir: str         # path to config/runners/
 ```
 
 `uniref30_db`, `uniref90_db`, `nproc`, `maxmem`, `docker_image` are gone —
 they live in `config/runners/gremlin.yaml` now.
+
+## Auto-Discovery
+
+`restart.sh` scans `docker/runners/*/Dockerfile` at build time.  Each
+directory becomes a build target:
+
+```
+docker/runners/
+  pssm_gremlin/Dockerfile  → revodesign-revocompute-runner       (base, no suffix)
+  pythia_ddg/Dockerfile    → revodesign-revocompute-runner-pythia_ddg
+  esm/Dockerfile           → revodesign-revocompute-runner-esm
+  opendde/Dockerfile       → revodesign-revocompute-runner-opendde
+```
+
+The naming convention: `revodesign-revocompute-runner{-<dirname>}`, where
+`pssm_gremlin` is the special base case (no suffix).  `task_types.yaml`
+references images by these tags.
+
+`generate_runner_compose()` writes a `docker-compose.runners.generated.yml`
+override with one service per discovered directory.  `compose_files()`
+auto-includes it.  Adding a new runner is creating a directory under
+`docker/runners/` — no compose or restart.sh edits needed.
+
+All runner images are built **in parallel** (`&` / `wait`) — wall-clock
+time is the slowest image, not the sum.
 
 ## Entities and InputForm
 
