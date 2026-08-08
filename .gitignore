@@ -9,6 +9,7 @@ REvoDesign/UI/REvoDesign-CommentMutant_ui.py
 REvoDesign/library/*
 draws/server_dashboard.tldr
 server/docker-compose.runners.generated.yml
+server/.env.production.*
 prompt/revised.txt
 REvoDesign/clients/UniBroadcaster.py
 REvoDesign/external_designer/ExternalBuilders.py
