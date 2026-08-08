@@ -340,22 +340,33 @@ The ``SlurmJob`` class (``job/runners/slurm_runner.py``):
 4. Blocks on ``Popen.wait()`` with the runner's ``max_runtime_seconds`` as
    a timeout.  The `srun` exit code directly determines COMPLETED (0) or
    FAILED (non-zero) — no `squeue`/`sacct` polling loop.
-5. On cancel, terminates the `srun` process and falls back to `scancel`.
+5. On cancel, terminates the `srun` process (``proc.terminate()`` with
+   ``proc.kill()`` fallback).
 
 The worker container needs host networking (``network_mode: host`` in
 ``docker-compose.slurm.yml``) so `srun` can reach the SLURM controller.
 SLURM client tools (`srun`, `scancel`, etc.) and the MUNGE socket are
 bind-mounted from the host.
 
+Jobs start in ``queued`` status while `srun` waits for a SLURM allocation.
+The status transitions to ``running`` when the first ``REVODESIGN_STAGE:``
+marker arrives on stdout.  This gives users visibility into SLURM queue
+wait time.
+
 ### How to Add a Task Type
 
 1. Add an entry to `config/task_types.yaml` with display name, Docker image,
    command, input format, stage markers, result patterns, and user-facing params
-2. Create `config/runners/<name>.yaml` with host paths for model weights / DBs,
-   resource limits, and default param values
-3. Write a `server/docker/runner-<name>/` Dockerfile + entrypoint that obeys
+2. Create `docker/runners/<name>/Dockerfile` + entrypoint that obeys
    the runner contract
-4. Add the task name to `ENABLED_TASKRUNNERS` in `.env`
+3. Create `config/runners/<name>.yaml` with host paths for model weights / DBs,
+   resource limits, and default param values
+4. For SLURM: create `docker/runners/<name>/<name>.def` (Apptainer definition,
+   ``Bootstrap: docker-daemon``).  The build script locates it with
+   ``find -maxdepth 2 -name <name>.def`` — any directory layout works.
+5. Add the task name to `ENABLED_TASKRUNNERS` in `.env`
+6. Add a ``runner-<name>`` service to ``docker-compose.yml`` (profiles: runner)
+   so ``restart.sh cmd_build`` builds the Docker image
 
 No server code changes needed.
 
@@ -638,9 +649,9 @@ successful run creates `${AUTH_DIR}/backups/<UTC timestamp>/tasks.sqlite3` and
 4. **Build and run** using the helper script:
    ```bash
    REVODESIGN_SERVER_ENV=server/.env.production \
-     bash server/run/restart_pssm_flask.sh setup
+     bash server/run/restart.sh setup
    REVODESIGN_SERVER_ENV=server/.env.production \
-     bash server/run/restart_pssm_flask.sh restart --mode=prod
+     bash server/run/restart.sh restart --mode=prod
    ```
    Use the helper script for the first start; direct Docker Compose startup is
    rejected while the user database is empty because bootstrap passwords are
@@ -673,31 +684,32 @@ alternate port.
 cp server/.env.production server/.env.production.v7-slurm
 # Edit: COMPOSE_PROJECT_NAME=server-slurm, unique SERVER_IMAGE,
 #       SERVER_DIR=/mnt/.../server-slurm/server, PORT=8081,
-#       SLURM_ENABLED=true, CONFIG_DIR=/mnt/.../server-slurm/config
+#       SLURM_ENABLED=true, CONFIG_DIR=/mnt/.../server-slurm/config,
+#       ENABLED_TASKRUNNERS=gremlin,pythia_ddg
 
-# 2. Copy and edit runner config
+# 2. Copy and edit runner configs
 cp -r server/config /mnt/.../server-slurm/
-# Edit config/runners/gremlin.yaml: add runner: slurm,
-#       container_runtime: apptainer, slurm_image: /path/to/image.sif,
+# Edit each config/runners/<name>.yaml: add runner: slurm,
+#       container_runtime: apptainer, slurm_image: /path/to/<name>_v1.sif,
 #       fix mounts to host DB paths
 
-# 3. Build the SIF image
-docker build -t revodesign-revocompute-runner:latest \
-  -f server/docker/runners/pssm_gremlin/Dockerfile server/
-apptainer build --fakeroot /path/to/gremlin_v1.sif \
-  server/docker/runners/pssm_gremlin/gremlin.def
-
-# 4. Launch (isolated from production)
+# 3. Launch — builds Docker images, builds SIF from .def, validates, starts
 REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
-  bash server/run/restart.sh restart --mode=dev --use-slurm
+  bash server/run/restart.sh restart --mode=dev --use-slurm --build-sif
 
-# 5. Seed SLURM config via admin UI at /compute/configuration,
+# 4. Seed SLURM config via admin UI at /compute/configuration,
 #    or directly:
 sqlite3 /mnt/.../server-slurm/server/manage.sqlite "
 UPDATE task_type_config SET slurm_partition='normal',
   slurm_cpus_per_task=4, slurm_mem='32G', slurm_time='02:00:00'
   WHERE tool='gremlin';"
 ```
+
+The `--build-sif` flag automates step 3 from the old workflow: after `cmd_build`
+builds all Docker images (gremlin + pythia_ddg + any others in docker-compose),
+it runs `apptainer build --fakeroot` for each runner that has `slurm_image` set
+in its deployed YAML.  The `.def` file is located with `find -maxdepth 2 -name
+<name>.def` — any directory under `server/docker/runners/` works.
 
 **The `.def` file** (Apptainer definition) uses `Bootstrap: docker-daemon`
 to convert the locally-built Docker image to SIF:
