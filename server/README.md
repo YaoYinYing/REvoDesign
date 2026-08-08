@@ -13,8 +13,9 @@ type means writing three files — no server code changes needed:
 | File | Owner | Contains |
 |------|-------|----------|
 | `config/task_types.yaml` | Developer (git) | Docker image, command, I/O format, stage markers, user-facing params |
-| `config/runners/<name>.yaml` | Operator (per-machine) | Host paths for DBs/models, resource limits, extra env vars, default param values |
+| `config/runners/<name>.yaml` | Operator (per-machine) | Host paths for DBs/models, resource limits, extra env vars, default param values.  Set `runner: slurm` + `slurm_image` to use the SLURM backend |
 | `docker/runners/<name>/Dockerfile` | Developer | Runner image with compute dependencies |
+| `docker/runners/<name>/<name>.def` | Developer | Apptainer definition for SIF image (SLURM backend only) |
 
 The server loads the registry at startup via `CONFIG_DIR`. `gremlin` is always
 enabled; additional runners are gated by `ENABLED_TASKRUNNERS` in `.env`.
@@ -45,6 +46,11 @@ The server stack contains:
 - `worker`: Celery worker for background jobs
 - `redis`: Celery broker/backend
 - `runner` image: GREMLIN/PSSM execution container launched by `worker`
+
+**Alternative runner backend (SLURM + Apptainer):** When `SLURM_ENABLED=true`,
+the worker dispatches jobs via `srun` + Apptainer instead of Docker.  Enable
+with `restart.sh restart --use-slurm`.  See [SLURM + Apptainer](#slurm--apptainer-deployment)
+below.
 
 Scientific Python dependencies used by GREMLIN scripts belong to the runner's
 `docker/runners/pssm_gremlin/GREMLIN.yml`; they are not installed into the web and worker package.
@@ -317,6 +323,21 @@ result patterns, and user-facing params.
 `CONFIG_DIR` must point to the directory containing both files. In Docker
 deployments, set it to `/app/server/config` to use the baked-in source copy.
 
+**SLURM runner fields** — add these to the runner YAML to use the SLURM backend:
+
+```yaml
+# config/runners/gremlin.yaml — with SLURM backend
+runner: slurm
+container_runtime: apptainer
+slurm_image: /mnt/data/srv/revodesign/server-slurm/images/gremlin_v1.sif
+# mounts, env, nproc, maxmem, defaults ... same as Docker runner
+```
+
+Per-task-type SLURM resource directives (partition, cpus-per-task, mem, time,
+gres, etc.) are configured via the admin UI at `/compute/configuration` and
+stored in `manage.sqlite` — not in the YAML.  The web process can seed them
+on first launch via `sqlite3`.
+
 ## 5. Authentication
 
 The server uses Bearer-token authentication (replaces the old HTTP Basic Auth + `users.txt` model).
@@ -478,6 +499,12 @@ environment file:
 - `--mode=prod` pulls the configured `SERVER_IMAGE` and `RUNNER_IMAGE`, then
   starts with `--no-build`. Published images use the fixed `1000:1000` identity,
   so production mode rejects any other `RUNNER_UID` or `RUNNER_GID`.
+- `--use-slurm` enables the SLURM+Apptainer runner backend.  Merges
+  `docker-compose.slurm.yml` into the compose invocation, bind-mounts SLURM
+  client tools + MUNGE, validates SIF images, and sets `SLURM_ENABLED=true`.
+- `--build-sif` auto-builds missing `.sif` images from `.def` files before
+  starting services (requires Apptainer on PATH).  Only meaningful with
+  `--use-slurm`.
 
 Provision production bind-mounted directories as writable by UID/GID
 `1000:1000`. This identity contract provides non-root execution and compatible
@@ -696,7 +723,72 @@ python -m revocompute.app
 Full test and security validation guidance is maintained in
 `docs/dev-guide/server.md`.
 
-## 13. Troubleshooting
+## 13. SLURM + Apptainer Deployment
+
+The server supports a SLURM + Apptainer runner backend as an alternative to
+Docker-out-of-Docker.  When enabled, the worker submits `srun` jobs that run
+Apptainer containers on SLURM compute nodes instead of launching Docker
+containers locally.
+
+### Enabling SLURM
+
+```bash
+REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
+  bash server/run/restart.sh restart --mode=dev --use-slurm
+```
+
+| Flag | Purpose |
+|------|---------|
+| `--use-slurm` | Enables SLURM, merges `docker-compose.slurm.yml` override |
+| `--build-sif` | Auto-builds `.sif` images from `.def` files (requires Apptainer on PATH) |
+
+### docker-compose.slurm.yml
+
+The override file adds:
+
+- **worker** → `network_mode: host` (needed to reach the SLURM controller)
+- **worker** → bind-mounted SLURM tools (`srun`, `sbatch`, `squeue`, `scancel`, `sacct`, `sinfo`)
+- **worker** → bind-mounted MUNGE socket + library (SLURM authentication)
+- **redis** → published on `6380:6379` (host `:6379` is occupied; worker uses `REDIS_URL=redis://127.0.0.1:6380/0`)
+- **web, worker, maintenance** → `CONFIG_DIR` mounted read-only
+
+### SIF Image
+
+Build the Apptainer image from the locally-built Docker runner:
+
+```bash
+# Build the Docker image first
+docker build -t revodesign-revocompute-runner:latest \
+  -f server/docker/runners/pssm_gremlin/Dockerfile server/
+
+# Convert to SIF
+apptainer build --fakeroot /path/to/gremlin_v1.sif \
+  server/docker/runners/pssm_gremlin/gremlin.def
+```
+
+The `.def` file uses `Bootstrap: docker-daemon` to reference the local image.
+
+### GPU Privilege Gating
+
+Users must have `allow_gpu_use=true` (toggled by admins via the User Control
+page) to submit task types marked `gpus: true` in `task_types.yaml`.  This
+is enforced at submission time — unprivileged users receive 403 before the
+job is enqueued.
+
+### slurm_job_id Persistence
+
+The SLURM job ID is stored in the `slurm_job_id` column of the tasks table.
+When a user cancels a running SLURM task, the web process calls `scancel`
+with this ID before revoking the Celery task.
+
+### Live Output
+
+The `SlurmJob` class captures `srun` stdout/stderr via `subprocess.Popen`
+pipes in background threads.  `REVODESIGN_STAGE:` markers are parsed from
+stdout in real time and forwarded to the stage callback — matching the
+Docker runner's live progress behaviour.
+
+## 14. Troubleshooting
 
 ### Network issues
 
