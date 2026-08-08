@@ -740,19 +740,146 @@ Docker-out-of-Docker.  When enabled, the worker submits `srun` jobs that run
 Apptainer containers on SLURM compute nodes instead of launching Docker
 containers locally.
 
-### Enabling SLURM
+### 13.1 Maintainer Workflow — Step by Step
+
+This is the checklist for enabling a task type on a SLURM deployment.
+
+#### Step 1: Prerequisites on the deployment host
+
+The host running the server containers must have:
+
+- **SLURM client** — `srun`, `squeue`, `scancel`, `sacct`, `sinfo` (bind-mounted into the worker)
+- **MUNGE** — `/run/munge` socket + `libmunge.so.2` (SLURM authentication)
+- **Apptainer** — on PATH if using `--build-sif`, or at least on the SLURM compute nodes
+- **SLURM config** — `/etc/slurm-llnl/` accessible to the worker (host networking)
+
+Verify connectivity from the worker container after startup:
+```bash
+docker exec server-slurm-worker-1 srun --version
+docker exec server-slurm-worker-1 sinfo
+```
+
+#### Step 2: Create the `.env` file
+
+Copy an existing SLURM env and customise:
+
+```bash
+cp server/.env.production.v7-slurm server/.env.production.v8-custom
+```
+
+Key SLURM-specific variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `COMPOSE_PROJECT_NAME` | **Must differ from production** (e.g. `server-slurm`). Compose isolation prevents one deployment from interfering with another. |
+| `SERVER_IMAGE` | **Must differ from production** (e.g. `revodesign-revocompute-server-slurm`). Image tag collision would overwrite the wrong image. |
+| `PORT` | Choose a free host port (e.g. `8081`). |
+| `SLURM_ENABLED` | `true` |
+| `SLURM_ALLOWED_QUEUES` | Comma-separated partition names visible in `/compute/configuration` (e.g. `normal,gpu`). |
+| `ENABLED_TASKRUNNERS` | Comma-separated list of additional task types beyond `gremlin` (e.g. `pythia_ddg`). |
+| `CONFIG_DIR` | Path to deployed config directory containing `task_types.yaml` and `runners/`. |
+| `REDIS_URL` | `redis://redis:6379/0` for bridge containers; `redis://127.0.0.1:6380/0` for host-networked worker (set in `docker-compose.slurm.yml`). |
+
+#### Step 3: Configure the runner YAML
+
+For each task type that should use SLURM, create a runner config at
+`<CONFIG_DIR>/runners/<name>.yaml` with SLURM fields:
+
+```yaml
+# <CONFIG_DIR>/runners/pythia_ddg.yaml
+mounts: []                          # DB/model mounts (none needed if baked into image)
+env: {}                             # extra env vars
+nproc: 4
+max_runtime_seconds: 3600
+defaults: {}
+
+runner: slurm                       # "docker" (default) or "slurm"
+container_runtime: apptainer        # "apptainer" (required for SLURM)
+slurm_image: /mnt/data/srv/revodesign/server-slurm/images/pythia_ddg_v1.sif
+```
+
+Fields `mounts`, `env`, `nproc`, `max_runtime_seconds`, and `defaults` work
+identically for both Docker and SLURM backends — only `runner`,
+`container_runtime`, and `slurm_image` are SLURM-specific.
+
+Per-task SLURM resource directives (partition, cpus-per-task, mem, time,
+gres, etc.) are configured via the admin UI at `/compute/configuration` and
+stored in `manage.sqlite` — not in the YAML.
+
+#### Step 4: Create the `.def` file
+
+Each SLURM runner needs an Apptainer definition file at
+`server/docker/runners/<directory>/<name>.def`.  The script locates it
+automatically via `find` — any directory layout works as long as the `.def`
+file is under `server/docker/runners/`.
+
+```def
+Bootstrap: docker-daemon
+From: revodesign-revocompute-runner-pythia:latest
+
+%post
+    echo "Pythia-ddG runner containerised"
+
+%runscript
+    exec bash /app/revocompute/run.sh "$@"
+```
+
+The `.def` uses `Bootstrap: docker-daemon` to convert a locally-built Docker
+image into SIF.  The Docker image must already exist in the local Docker
+daemon (built by `cmd_build` in `restart.sh`).
+
+**Convention:** place the `.def` alongside the Dockerfile (e.g.
+`server/docker/runners/pythia_ddg/pythia_ddg.def`).  The build script uses
+`find -maxdepth 2 -name <name>.def` to locate it — no directory naming
+convention to follow.
+
+#### Step 5: Build and deploy
 
 ```bash
 REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
-  bash server/run/restart.sh restart --mode=dev --use-slurm
+  bash server/run/restart.sh restart --mode=dev --use-slurm --build-sif
 ```
+
+This runs in order:
+
+1. **`cmd_down`** — stops the existing stack
+2. **`cmd_build`** — builds Docker images for web, worker, and ALL runner profiles
+   (gremlin + pythia_ddg + any others defined in docker-compose)
+3. **`build_slurm_images`** — converts each Docker image to `.sif` via Apptainer
+   (skips images that already exist at the target path)
+4. **`validate_slurm_images`** — confirms all SIF files exist at their expected paths
+5. **`cmd_up`** — starts the compose stack
 
 | Flag | Purpose |
 |------|---------|
-| `--use-slurm` | Enables SLURM, merges `docker-compose.slurm.yml` override |
+| `--use-slurm` | Enables SLURM, merges `docker-compose.slurm.yml` override, exports `SLURM_ENABLED=true` |
 | `--build-sif` | Auto-builds `.sif` images from `.def` files (requires Apptainer on PATH) |
 
-### docker-compose.slurm.yml
+The SIF build runs **after** Docker builds because `.def` files use
+`Bootstrap: docker-daemon` which reads from the local Docker image cache.
+Order matters — building SIF before Docker images exist would fail.
+
+#### Step 6: Configure per-task SLURM resources
+
+After startup, go to `/compute/configuration` and set per-task-type SLURM
+parameters: partition, cpus-per-task, memory, time limit, GRES, etc.  These
+are stored in `manage.sqlite` in the server directory and become `--option=value`
+flags on the `srun` command line.
+
+#### Step 7: Verify
+
+Submit a test task and monitor:
+
+```bash
+# Watch SLURM queue
+squeue --name=revocomput_
+
+# Check task status via API
+curl -H "Authorization: Bearer <token>" \
+  "http://<server>:<port>/compute/api/status/<task_md5>"
+```
+
+### 13.2 docker-compose.slurm.yml
 
 The override file adds:
 
@@ -762,41 +889,70 @@ The override file adds:
 - **redis** → published on `6380:6379` (host `:6379` is occupied; worker uses `REDIS_URL=redis://127.0.0.1:6380/0`)
 - **web, worker, maintenance** → `CONFIG_DIR` mounted read-only
 
-### SIF Image
+### 13.3 Architecture
 
-Build the Apptainer image from the locally-built Docker runner:
-
-```bash
-# Build the Docker image first
-docker build -t revodesign-revocompute-runner:latest \
-  -f server/docker/runners/pssm_gremlin/Dockerfile server/
-
-# Convert to SIF
-apptainer build --fakeroot /path/to/gremlin_v1.sif \
-  server/docker/runners/pssm_gremlin/gremlin.def
+```
+Worker (host network)                   SLURM controller
+  │                                         │
+  ├─ srun bash _slurm_wrapper.sh ──────────►│
+  │                                         │
+  │     SLURM compute node                  │
+  │       ├─ apptainer run --nv *.sif       │
+  │       │   ├─ /workspace/inputs  (ro)    │
+  │       │   ├─ /workspace/outputs (rw)    │
+  │       │   └─ DB mounts (ro, from YAML)  │
+  │       │                                 │
+  │       └─ stdout/stderr → srun pipes → worker threads
+  │                                         │
+  └─ Popen.wait() → exit code               │
 ```
 
-The `.def` file uses `Bootstrap: docker-daemon` to reference the local image.
+### 13.4 SIF Image Build (Manual)
 
-### GPU Privilege Gating
+When the auto-build isn't suitable, build manually:
+
+```bash
+# 1. Build the Docker image
+docker build -t revodesign-revocompute-runner-pythia:latest \
+  -f server/docker/runners/pythia_ddg/Dockerfile server/
+
+# 2. Convert to SIF (any .def file under docker/runners/ works)
+apptainer build --fakeroot /path/to/pythia_ddg_v1.sif \
+  server/docker/runners/pythia_ddg/pythia_ddg.def
+```
+
+The `restart.sh --build-sif` flag automates both steps for all runners that
+have `slurm_image` set in their deployed runner YAML.
+
+### 13.5 GPU Privilege Gating
 
 Users must have `allow_gpu_use=true` (toggled by admins via the User Control
 page) to submit task types marked `gpus: true` in `task_types.yaml`.  This
 is enforced at submission time — unprivileged users receive 403 before the
 job is enqueued.
 
-### slurm_job_id Persistence
+### 13.6 slurm_job_id Persistence
 
-The SLURM job ID is stored in the `slurm_job_id` column of the tasks table.
-When a user cancels a running SLURM task, the web process calls `scancel`
-with this ID before revoking the Celery task.
+The SLURM job ID (`srun-<pid>`) is stored in the `slurm_job_id` column of
+the tasks table.  When a user cancels a running SLURM task, the web process
+calls `scancel` with this ID before terminating the `srun` process.
 
-### Live Output
+### 13.7 Live Output
 
 The `SlurmJob` class captures `srun` stdout/stderr via `subprocess.Popen`
 pipes in background threads.  `REVODESIGN_STAGE:` markers are parsed from
 stdout in real time and forwarded to the stage callback — matching the
 Docker runner's live progress behaviour.
+
+### 13.8 Task States
+
+SLURM tasks use an additional `queued` status:
+- **`queued`** — `srun` is waiting for a SLURM allocation (resource contention)
+- **`running`** — first `REVODESIGN_STAGE:` marker received, job is executing
+
+This transition happens via the stage callback: when the first
+`REVODESIGN_STAGE:` line appears on stdout, the status moves from `queued`
+to `running`.
 
 ## 14. Troubleshooting
 
