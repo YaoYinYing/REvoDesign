@@ -221,13 +221,11 @@ class SlurmJob(Job):
         bind_parts: list[str] = []
         upload_dir = CONFIG.upload_folder
 
-        # Input files: bind restored files read-only
+        # Input files: bind restored files read-only.
         for fe in self.file_entities:
             original = fe["verified_value"]
             src = os.path.join(self.output_dir, original)
             bind_parts.append(f"--bind {_sh_quote(src)}:/workspace/inputs/{_sh_quote(original)}:ro")
-        # Upload dir (shared databases, etc.)
-        bind_parts.append(f"--bind {_sh_quote(upload_dir)}:/workspace/inputs:ro")
         # Output dir
         bind_parts.append(f"--bind {_sh_quote(self.output_dir)}:/workspace/outputs")
 

@@ -7,15 +7,16 @@
 #   - CONFIG_DIR → web, worker, maintenance (task type + runner YAMLs)
 
 services:
+  redis:
+    # Publish on a non-default port so host-networked containers can reach
+    # Redis via the Docker gateway (172.17.0.1).  Port 6379 is taken by the
+    # host's own redis-server.
+    ports:
+      - "6380:6379"
+
   web:
-    network_mode: host
     volumes:
       - ${CONFIG_DIR}:${CONFIG_DIR}:ro
-      - /usr/bin/scancel:/usr/bin/scancel:ro
-      - /usr/lib/x86_64-linux-gnu/slurm-wlm:/usr/lib/x86_64-linux-gnu/slurm-wlm:ro
-      - /etc/slurm-llnl:/etc/slurm-llnl:ro
-      - /run/munge:/run/munge:ro
-      - /lib/x86_64-linux-gnu/libmunge.so.2:/lib/x86_64-linux-gnu/libmunge.so.2:ro
 
   maintenance:
     volumes:
@@ -23,8 +24,12 @@ services:
 
   worker:
     network_mode: host
-    extra_hosts:
-      - "inspur-NF5280M5:172.17.0.1"
+    # Host-networked → can't resolve Docker DNS "redis".  Use the published
+    # port (6380 → container:6379) via localhost.
+    environment:
+      REDIS_URL: redis://127.0.0.1:6380/0
+      BROKER_URL: redis://127.0.0.1:6380/0
+      RESULT_BACKEND: redis://127.0.0.1:6380/0
     volumes:
       - ${CONFIG_DIR}:${CONFIG_DIR}:ro
       - /usr/bin/sbatch:/usr/bin/sbatch:ro
