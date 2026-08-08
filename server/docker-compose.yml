@@ -190,21 +190,5 @@ services:
     command: ["sleep", "infinity"]
     restart: "no"
 
-  runner-pythia:
-    profiles: ["runner"]
-    image: revodesign-revocompute-runner-pythia
-    build:
-      context: .
-      dockerfile: docker/runners/pythia_ddg/Dockerfile
-      args:
-        RUNNER_UID: ${RUNNER_UID}
-        RUNNER_GID: ${RUNNER_GID}
-        RUNNER_USERNAME: ${RUNNER_USERNAME}
-        RUNNER_GROUP: ${RUNNER_GROUP}
-    environment:
-      <<: *task-env
-    command: ["sleep", "infinity"]
-    restart: "no"
-
 volumes:
   redis-data:

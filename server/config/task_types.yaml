@@ -29,7 +29,7 @@ task_types:
 
   pythia_ddg:
     display_name: "Pythia-ddG"
-    docker_image: "revodesign-revocompute-runner-pythia"
+    docker_image: "revodesign-revocompute-runner-pythia_ddg"
     command: ["bash", "/app/revocompute/run.sh"]
     input_extension: ".pdb"
     input_label: "PDB file"

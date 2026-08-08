@@ -8,6 +8,7 @@ iprscan5-*
 REvoDesign/UI/REvoDesign-CommentMutant_ui.py
 REvoDesign/library/*
 draws/server_dashboard.tldr
+server/docker-compose.runners.generated.yml
 prompt/revised.txt
 REvoDesign/clients/UniBroadcaster.py
 REvoDesign/external_designer/ExternalBuilders.py
