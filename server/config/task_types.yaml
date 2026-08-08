@@ -37,3 +37,83 @@ task_types:
       pythia_ddg: "Pythia masked ddG scan"
     result_patterns: ["*_pred_mask.csv", "*_pred_mask.txt"]
     params: []
+
+  esm_fold:
+    display_name: "ESMFold"
+    docker_image: "revodesign-revocompute-runner-esm"
+    command: ["bash", "/app/revocompute/run.sh"]
+    gpus: true
+    input_extension: ".fasta"
+    input_label: "FASTA file"
+    stage_markers:
+      esm_fold: "ESMFold structure prediction"
+    result_patterns: ["*.pdb"]
+    params:
+      - name: "num_recycles"
+        type: "int"
+        default: 4
+        description: "ESMFold recycling iterations"
+      - name: "max_tokens_per_batch"
+        type: "int"
+        default: 1024
+        description: "Max tokens per GPU batch"
+      - name: "chunk_size"
+        type: "int"
+        default: 128
+        description: "Axial attention chunk size"
+
+  esm_extract:
+    display_name: "ESM-2 Embedding"
+    docker_image: "revodesign-revocompute-runner-esm"
+    command: ["bash", "/app/revocompute/run.sh"]
+    gpus: true
+    input_extension: ".fasta"
+    input_label: "FASTA file"
+    stage_markers:
+      esm_extract: "ESM-2 embedding extraction"
+    result_patterns: ["*.pt"]
+    params:
+      - name: "model"
+        type: "str"
+        default: "esm2_t33_650M_UR50D"
+        description: "ESM-2 model name"
+      - name: "repr_layers"
+        type: "str"
+        default: "33"
+        description: "Representation layers (space-separated)"
+
+  esm_1v:
+    display_name: "ESM-1v Scoring"
+    docker_image: "revodesign-revocompute-runner-esm"
+    command: ["bash", "/app/revocompute/run.sh"]
+    gpus: true
+    input_extension: ".fasta"
+    input_label: "FASTA file"
+    stage_markers:
+      esm_1v: "ESM-1v variant effect prediction"
+    result_patterns: ["*.csv"]
+    params:
+      - name: "scoring_strategy"
+        type: "str"
+        default: "wt-marginals"
+        description: "Scoring strategy (wt-marginals, masked-marginals, pseudo-ppl)"
+
+  esm_if1:
+    display_name: "ESM-IF1 Design"
+    docker_image: "revodesign-revocompute-runner-esm"
+    command: ["bash", "/app/revocompute/run.sh"]
+    gpus: true
+    input_extension: ".pdb"
+    input_label: "PDB file"
+    stage_markers:
+      esm_if1: "ESM-IF1 inverse folding"
+    result_patterns: ["*.fasta"]
+    params:
+      - name: "temperature"
+        type: "float"
+        default: 1.0
+        description: "Sampling temperature"
+      - name: "num_samples"
+        type: "int"
+        default: 1
+        description: "Number of sequences to sample"
