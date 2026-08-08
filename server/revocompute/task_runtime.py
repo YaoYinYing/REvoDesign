@@ -432,7 +432,7 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         task_store.update_task(md5sum, run_stage=stage)
 
     try:
-        _run_compute_job(
+        final_state = _run_compute_job(
             task_id=md5sum,
             tt=tt,
             runner=runner,
@@ -443,6 +443,18 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         if _task_is_terminal(md5sum):
             logging.info("Task %s was deleted during execution; skipping result packing and finalization.", md5sum)
             return
+
+        if final_state == JobState.FAILED:
+            _record_failure(
+                md5sum, task, start_time,
+                stage_state["current"],
+                "SLURM job failed — check job logs for details",
+            )
+            return
+        if final_state == JobState.CANCELLED:
+            task_store.update_task(md5sum, status="cancelled", finished_at=time.time())
+            return
+
         final_stage = stage_state["current"] or (stages[-1][0] if stages else "")
         task_store.update_task(md5sum, status="packing results", run_stage=final_stage)
         refreshed_task = task_store.get_task(md5sum) or task
