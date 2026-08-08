@@ -11,7 +11,7 @@ ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
 # System deps: python3.9, git (openfold dep), build-essential (nvcc).
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
     python3.9 \
     python3.9-distutils \
     python3-pip \

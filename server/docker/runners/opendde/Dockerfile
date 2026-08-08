@@ -12,7 +12,7 @@ ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
 # System deps: python3.11, hmmer, kalign (MSA preprocessing), git.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
     python3.11 \
     python3.11-distutils \
     python3-pip \
