@@ -23,6 +23,7 @@ from typing import Any
 
 from revocompute.config import ComputeConfig
 from revocompute.job import Job, JobState
+from revocompute.job._stages import extract_stage_from_log_line
 
 # -- self-contained (no imports from task_runtime — avoids circular deps) -----
 CONFIG = ComputeConfig.from_env()
@@ -78,14 +79,15 @@ class SlurmJob(Job):
         )
 
         # Read stdout / stderr line-by-line in background threads so we
-        # capture output live while the process runs.
+        # capture output live while the process runs.  The stdout thread
+        # also parses REVODESIGN_STAGE: markers for live progress updates.
         self._stdout_lines = []
         self._stderr_lines = []
         self._stdout_thread = threading.Thread(
-            target=self._read_lines, args=(self._process.stdout, self._stdout_lines), daemon=True
+            target=self._read_stdout, daemon=True
         )
         self._stderr_thread = threading.Thread(
-            target=self._read_lines, args=(self._process.stderr, self._stderr_lines), daemon=True
+            target=self._read_stderr, daemon=True
         )
         self._stdout_thread.start()
         self._stderr_thread.start()
@@ -280,11 +282,28 @@ class SlurmJob(Job):
 
     # -- output capture ------------------------------------------------------
 
-    @staticmethod
-    def _read_lines(stream, sink: list[str]) -> None:
-        """Read lines from *stream* into *sink* (runs in a background thread)."""
+    def _read_stdout(self) -> None:
+        """Read stdout line-by-line, parsing REVODESIGN_STAGE: markers."""
+        stream = self._process.stdout
+        last_stage: str | None = None
+        markers = self.tt.stage_markers
         for line in iter(stream.readline, ""):
-            sink.append(line)
+            self._stdout_lines.append(line)
+            if markers and self.stage_callback:
+                stage = extract_stage_from_log_line(line, markers)
+                if stage and stage != last_stage:
+                    last_stage = stage
+                    try:
+                        self.stage_callback(stage)
+                    except Exception:
+                        pass
+        stream.close()
+
+    def _read_stderr(self) -> None:
+        """Read stderr line-by-line."""
+        stream = self._process.stderr
+        for line in iter(stream.readline, ""):
+            self._stderr_lines.append(line)
         stream.close()
 
     def _parse_job_id_from_stderr(self, timeout: float) -> str | None:
