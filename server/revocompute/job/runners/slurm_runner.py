@@ -158,9 +158,15 @@ class SlurmJob(Job):
         return Path(path)
 
     def _render_script(self, sbatch_args: dict[str, Any]) -> str:
-        """Render the complete sbatch script as a string."""
-        lines = ["#!/bin/bash", "set -euo pipefail"]
+        """Render the complete sbatch script as a string.
+
+        ``#SBATCH`` directives must precede any non-comment executable
+        line — SLURM stops parsing them at the first shell command.
+        """
+        lines = ["#!/bin/bash"]
         self._render_sbatch_directives(lines, sbatch_args)
+        lines.append("")
+        lines.append("set -euo pipefail")
         lines.append("")
         self._render_input_staging(lines)
         lines.append("")
