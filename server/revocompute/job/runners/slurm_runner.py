@@ -16,7 +16,6 @@ import logging
 import os
 import re
 import subprocess
-import tempfile
 import threading
 import time
 from pathlib import Path
@@ -102,7 +101,6 @@ class SlurmJob(Job):
             logging.warning("Could not parse SLURM job id from srun stderr; using %s", self._job_id)
 
         logging.info("SLURM job %s (srun pid %s) started for task %s", self._job_id, self._process.pid, self.task_id)
-        script_path.unlink(missing_ok=True)
         return self._job_id
 
     def poll(self) -> JobState:
@@ -192,10 +190,15 @@ class SlurmJob(Job):
     # -- wrapper script ------------------------------------------------------
 
     def _build_wrapper_script(self) -> Path:
-        """Write the temporary wrapper script, return its Path."""
+        """Write the temporary wrapper script, return its Path.
+
+        The script is written into *output_dir* so the host-side ``srun``
+        process can read it — container ``/tmp`` is invisible from the host.
+        """
         script = self._render_wrapper()
-        fd, path = tempfile.mkstemp(suffix=".sh", prefix=f"revo_{self.task_id[:8]}_")
-        with os.fdopen(fd, "w") as f:
+        os.makedirs(self.output_dir, exist_ok=True)
+        path = os.path.join(self.output_dir, f"_slurm_wrapper_{self.task_id[:8]}.sh")
+        with open(path, "w") as f:
             f.write(script)
         os.chmod(path, 0o700)
         return Path(path)
