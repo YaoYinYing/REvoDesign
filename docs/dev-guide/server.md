@@ -206,7 +206,7 @@ Three layers, each with a distinct owner:
 
 | Layer | File | Owner | Contains |
 |-------|------|-------|----------|
-| Server | `.env` | Operator | `SERVER_DIR`, `PORT`, auth, Redis, `ENABLED_TASKRUNNERS`, `DOCKER_USER` |
+| Server | `.env` | Operator | `SERVER_DIR`, `PORT`, auth, Redis, `ENABLED_TASKRUNNERS`, `COMPOSE_PROJECT_NAME` |
 | Runner | `config/runners/<name>.yaml` | Operator (per-machine) | Host paths for DBs/models, resource limits, default param values, extra env vars |
 | Task type | `config/task_types.yaml` | Developer | Docker image, command, input format, stage markers, result patterns, user-facing param schema |
 
@@ -340,20 +340,95 @@ wait time.
 
 ### How to Add a Task Type
 
-1. Add an entry to `config/task_types.yaml` with display name, Docker image,
-   command, input format, stage markers, result patterns, and user-facing params
-2. Create `docker/runners/<name>/Dockerfile` + entrypoint that obeys
-   the runner contract
-3. Create `config/runners/<name>.yaml` with host paths for model weights / DBs,
-   resource limits, and default param values
-4. For SLURM: create `docker/runners/<name>/<name>.def` (Apptainer definition,
-   ``Bootstrap: docker-daemon``).  The build script locates it with
-   ``find -maxdepth 2 -name <name>.def`` — any directory layout works.
-5. Add the task name to `ENABLED_TASKRUNNERS` in `.env`
-6. Add a ``runner-<name>`` service to ``docker-compose.yml`` (profiles: runner)
-   so ``restart.sh cmd_build`` builds the Docker image
+**No server code changes needed.**  The registry, launcher, stage parsing,
+CLI dispatch, and SLURM runner are all data-driven from YAML.
 
-No server code changes needed.
+#### 1. Create the runner
+
+```bash
+mkdir -p docker/runners/<name>
+```
+
+Files in `docker/runners/<name>/`:
+
+| File | Purpose |
+|------|---------|
+| `Dockerfile` | Build the container (see examples: `pythia_ddg`, `esm`, `opendde`) |
+| `run.sh` | Entrypoint: parse `-i`/`-o`, read `$TASK_TYPE` + `$TASK_PARAMS`, emit `REVODESIGN_STAGE:<marker>`, exit 0 on success |
+| `<name>.def` | Apptainer definition (for SLURM): `Bootstrap: docker-daemon`, `From: revodesign-revocompute-runner-<name>:latest` |
+
+The `run.sh` contract:
+
+1. Reads input from the first positional arg (mounted at `/workspace/inputs/`)
+2. Writes output to the second positional arg (`/workspace/outputs/`)
+3. Emits `REVODESIGN_STAGE:<marker>` on stdout for progress tracking
+4. Reads `TASK_TYPE` and `TASK_PARAMS` (JSON) from the environment
+5. `touch ${output_dir}/task_finished` on success
+
+#### 2. Register the task type
+
+Add an entry to `config/task_types.yaml`:
+
+```yaml
+<name>:
+  display_name: "Human-Readable Name"
+  docker_image: "revodesign-revocompute-runner-<name>"
+  command: ["bash", "/app/revocompute/run.sh"]
+  gpus: false                    # set true for GPU runners
+  input_extension: ".fasta"      # or ".pdb", ".json"
+  input_label: "FASTA file"
+  stage_markers:
+    <marker>: "Human-readable stage label"
+  result_patterns: ["*.pdb", "*.csv"]
+  params:
+    - name: "<param_name>"
+      type: "int"                # "str" | "int" | "float" | "bool"
+      default: 100
+      description: "What this param does"
+```
+
+The image tag `revodesign-revocompute-runner-<name>` matches the directory
+name by convention.  `restart.sh` auto-discovers `docker/runners/<name>/`
+and derives the tag — add a directory, run `restart.sh --build`, and the
+image is built automatically.  Multiple task types can share one image
+(e.g. `esm_fold`, `esm_extract`, `esm_1v`, `esm_if1` all use
+`revodesign-revocompute-runner-esm`).
+
+#### 3. Create a runner config (machine-specific)
+
+`config/runners/<name>.yaml` — not checked into git, per-machine:
+
+```yaml
+mounts:
+  - host_path: "/mnt/db/weights/<model>"
+    container_path: "/mnt/db/weights/<model>"
+    mode: "ro"
+env: {}
+gpus: true         # inherits from task type; set here for SLURM
+nproc: 1
+max_runtime_seconds: 14400
+defaults: {}
+
+# -- SLURM + Apptainer --
+# runner: slurm
+# container_runtime: apptainer
+# slurm_image: /mnt/data/srv/revodesign/server-slurm/images/<name>_v1.sif
+```
+
+#### 4. Enable the task type
+
+Add `<name>` to `ENABLED_TASKRUNNERS` in `.env` (comma-separated).
+`gremlin` is always enabled; all others are gated.
+
+#### 5. Build and deploy
+
+```bash
+restart.sh --build    # auto-discovers + builds all runners in parallel
+restart.sh --use-slurm --build-sif   # SLURM: builds SIF images from Docker
+```
+
+No `docker-compose.yml` edits needed — `restart.sh` generates runner service
+definitions via `generate_runner_compose()`.
 
 ### Dataclasses
 
