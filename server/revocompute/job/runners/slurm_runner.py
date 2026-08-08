@@ -294,17 +294,28 @@ class SlurmJob(Job):
                 timeout=10,
             )
         except (subprocess.TimeoutExpired, OSError):
-            return JobState.FAILED
+            return self._check_output_for_completion()
 
         lines = [l.strip() for l in result.stdout.strip().splitlines() if l.strip()]
         if not lines:
-            return JobState.FAILED
+            # sacct unavailable (e.g. accounting disabled) — check for results
+            return self._check_output_for_completion()
         # Take the first non-batch state line
         for line in lines:
             state = line.upper().split()[0] if line else ""
             if state and "BATCH" not in state:
                 return _SQUEUE_STATE_MAP.get(state, JobState.FAILED)
         return _SQUEUE_STATE_MAP.get(lines[0].upper().split()[0], JobState.FAILED)
+
+    def _check_output_for_completion(self) -> JobState:
+        """Heuristic: when sacct is unavailable, check for the task_finished
+        marker that run.sh writes on successful completion."""
+        marker = os.path.join(self.output_dir, "log", "task_finished")
+        if os.path.isfile(marker):
+            logging.info("SLURM job %s: sacct unavailable, but %s exists → COMPLETED", self._job_id, marker)
+            return JobState.COMPLETED
+        logging.warning("SLURM job %s: sacct unavailable and no %s → FAILED", self._job_id, marker)
+        return JobState.FAILED
 
     def _maybe_stage_callback(self, state: JobState) -> None:
         """Emit the final stage marker if the job completed successfully."""
