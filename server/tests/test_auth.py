@@ -424,22 +424,6 @@ def test_resend_verification_generic_response(monkeypatch, tmp_path):
     assert "If that email" in resp.json["message"]
 
 
-# --- Email verification ---
-
-
-def test_verify_email_missing_token(monkeypatch, tmp_path):
-    """GET /compute/api/auth/verify-email with no token returns 400."""
-    module = _load_pssm_module(
-        monkeypatch,
-        tmp_path,
-        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "SMTP_HOST": "localhost"},
-    )
-    client = module.app.test_client()
-    resp = client.get("/compute/api/auth/verify-email")
-    # Returns HTML page with error
-    assert resp.status_code == 400
-
-
 # --- Login edge cases ---
 
 

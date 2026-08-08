@@ -8,15 +8,7 @@ import io
 import json
 import time
 
-import pytest
-from conftest import (
-    _admin_client_auth,
-    _extract_md5,
-    _insert_pending_task,
-    _load_pssm_module,
-    _test_client_auth,
-    _upsert_task_for_user,
-)
+from conftest import _admin_client_auth, _extract_md5, _load_pssm_module, _test_client_auth
 
 # Auth endpoint tests — /api/auth/me, API keys, password reset, etc.
 # ==================================================================
@@ -147,25 +139,17 @@ def test_security_token_tampering_rejected(monkeypatch, tmp_path):
     assert resp.status_code == 401
 
 
-def test_security_expired_token_rejected(monkeypatch, tmp_path):
-    """Expired tokens are rejected."""
+def test_security_tampered_token_rejected(monkeypatch, tmp_path):
+    """Tampered tokens (appended bytes) are rejected."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     _test_client_auth(module)  # ensure tester exists
     db = module.app.config["user_db"]
     user = db.get_user_by_username("tester")
     from revocompute.auth import _serializer
 
-    # Create token with 0-second max_age
     token = _serializer.dumps({"uid": user["id"]})
-    from itsdangerous import URLSafeTimedSerializer
-
-    # Use a serializer with 0 max_age to force expiry
-    expired_serializer = URLSafeTimedSerializer(
-        _serializer.secret_key, salt="revodesign-auth", signer_kwargs={"key_derivation": "hmac"}
-    )
     client = module.app.test_client()
-    # The test token from _serializer uses the default max_age from _TOKEN_MAX_AGE (7 days).
-    # We verify that a tampered signature is rejected (functionally same as expired).
+    # Verify that a tampered signature is rejected (functionally similar to expired).
     resp = client.get("/compute/api/auth/me", headers={"Authorization": f"Bearer {token}extra_bytes"})
     assert resp.status_code == 401
 

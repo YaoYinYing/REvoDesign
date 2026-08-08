@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import signal
 from typing import Any
 
 from revocompute.config import ComputeConfig
@@ -42,7 +41,7 @@ class DockerJob(Job):
         self._docker_client_arg = docker_client  # lazy — connect in submit()
         self._client: Any = None
         self._container: Any = None
-        self._link_path: str | None = None
+        self._link_paths: list[str] = []
 
     # -- Job ABC -------------------------------------------------------------
 
@@ -80,11 +79,6 @@ class DockerJob(Job):
         last_stage: str | None = None
         stderr_lines: list[str] = []
         try:
-            try:
-                signal.signal(signal.SIGINT, lambda _sig, _frame: self._container.kill())
-            except ValueError:
-                pass  # not in main thread — graceful degrade
-
             for line in self._container.logs(stream=True):
                 decoded = line.strip().decode("utf-8", errors="replace")
                 if decoded:
@@ -92,8 +86,13 @@ class DockerJob(Job):
                     if stage and stage != last_stage:
                         last_stage = stage
                         if self.stage_callback:
-                            self.stage_callback(stage)
+                            try:
+                                self.stage_callback(stage)
+                            except Exception:
+                                pass  # stage callback must not crash the job
                     stderr_lines.append(decoded)
+                    if len(stderr_lines) > 200:
+                        stderr_lines.pop(0)
                     logging.info(decoded)
 
             wait_result = self._container.wait()
@@ -132,17 +131,23 @@ class DockerJob(Job):
         if self.file_entities:
             fe = self.file_entities[0]
             upload_dir = CONFIG.upload_folder
-            # ponytail: hardlink <original>.fasta -> <md5sum>.fasta so run.sh
-            # sees the original filename.
-            original_name = fe["verified_value"]
+            # ponytail: unique-per-job hardlink <md5>_<task>_<original>.fasta
+            # -> <md5>.upload so run.sh sees the original filename without
+            # racing other jobs on the same name.
             hash_name = f"{fe['hash']}.upload"
-            link_path = os.path.join(upload_dir, original_name)
-            if not os.path.lexists(link_path):
+            link_path = os.path.join(upload_dir, self._input_link_name())
+            try:
                 os.link(os.path.join(upload_dir, hash_name), link_path)
-            self._link_path = link_path
+            except FileExistsError:
+                pass
+            self._link_paths.append(link_path)
             volumes[os.path.abspath(upload_dir)] = {"bind": "/workspace/inputs", "mode": "ro"}
         volumes[os.path.abspath(self.output_dir)] = {"bind": "/workspace/outputs", "mode": "rw"}
         return volumes
+
+    def _input_link_name(self) -> str:
+        fe = self.file_entities[0]
+        return f"{fe['hash']}_{self.task_id[:8]}_{fe['verified_value']}"
 
     def _build_env(self) -> dict[str, str]:
         params = {e["name"]: e["verified_value"] for e in self.param_entities}
@@ -157,7 +162,7 @@ class DockerJob(Job):
         params = {e["name"]: e["verified_value"] for e in self.param_entities}
         command_args: list[str] = []
         if self.file_entities:
-            command_args.extend(["-i", self.file_entities[0]["mounted"]])
+            command_args.extend(["-i", f"/workspace/inputs/{self._input_link_name()}"])
         command_args.extend(["-o", "/workspace/outputs"])
         for key, flag in (("iter", "-r"),):
             if key in params:
@@ -171,8 +176,9 @@ class DockerJob(Job):
             except docker.errors.DockerException:
                 pass
             self._container = None
-        if self._link_path and os.path.lexists(self._link_path):
-            try:
-                os.unlink(self._link_path)
-            except OSError:
-                pass
+        for link_path in self._link_paths:
+            if os.path.lexists(link_path):
+                try:
+                    os.unlink(link_path)
+                except OSError:
+                    pass

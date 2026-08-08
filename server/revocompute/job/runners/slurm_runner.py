@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import subprocess
 import threading
 from typing import Any
@@ -23,14 +24,17 @@ from revocompute.job import Job, JobState
 from revocompute.job._stages import extract_stage_from_log_line
 
 CONFIG = ComputeConfig.from_env()
+_SLURM_JOB_ID_RE = re.compile(r"srun:\s+[Jj]ob\s+(\d+)")
 
 
 class SlurmJob(Job):
     """A compute job submitted via SLURM + Apptainer.
 
     ``submit()`` launches ``srun`` via ``subprocess.Popen`` and returns
-    a synthetic job id.  ``poll()`` waits for the process to exit and
-    returns ``COMPLETED`` or ``FAILED`` based on the exit code.
+    the real SLURM job id (captured from srun's stderr banner), falling
+    back to a pid-based id if the banner never arrives.  ``poll()`` waits
+    for the process to exit and returns ``COMPLETED`` or ``FAILED`` based
+    on the exit code.
     """
 
     def __init__(
@@ -52,6 +56,9 @@ class SlurmJob(Job):
         self._stderr_lines: list[str] = []
         self._stdout_thread: threading.Thread | None = None
         self._stderr_thread: threading.Thread | None = None
+        self._wrapper_script_path: str | None = None
+        self._slurm_job_id: str | None = None
+        self._job_id_event = threading.Event()
 
     # -- Job ABC -------------------------------------------------------------
 
@@ -76,6 +83,13 @@ class SlurmJob(Job):
         self._stdout_thread.start()
         self._stderr_thread.start()
 
+        # srun prints "srun: job NNNN queued and waiting for resources" on
+        # stderr right after submitting — grab the real job id so scancel
+        # works.  Fall back to the pid-based id if the banner never arrives.
+        self._job_id_event.wait(timeout=5.0)
+        if self._slurm_job_id:
+            self._job_id = self._slurm_job_id
+
         logging.info("SLURM job %s (pid %s) started for task %s", self._job_id, self._process.pid, self.task_id)
         return self._job_id
 
@@ -85,27 +99,30 @@ class SlurmJob(Job):
 
         max_runtime = self.runner.max_runtime_seconds or 86400
         try:
-            self._process.wait(timeout=max_runtime)
-        except subprocess.TimeoutExpired:
-            logging.error("SLURM job %s timed out after %d s", self._job_id, max_runtime)
-            self._process.kill()
-            self._process.wait()
+            try:
+                self._process.wait(timeout=max_runtime)
+            except subprocess.TimeoutExpired:
+                logging.error("SLURM job %s timed out after %d s", self._job_id, max_runtime)
+                self._process.kill()
+                self._process.wait()
+                return JobState.FAILED
+
+            if self._stdout_thread:
+                self._stdout_thread.join(timeout=10)
+            if self._stderr_thread:
+                self._stderr_thread.join(timeout=10)
+
+            self._save_output()
+
+            exit_code = self._process.returncode
+            if exit_code == 0:
+                self._maybe_stage_callback(JobState.COMPLETED)
+                return JobState.COMPLETED
+
+            logging.error("SLURM job %s failed with exit code %s", self._job_id, exit_code)
             return JobState.FAILED
-
-        if self._stdout_thread:
-            self._stdout_thread.join(timeout=10)
-        if self._stderr_thread:
-            self._stderr_thread.join(timeout=10)
-
-        self._save_output()
-
-        exit_code = self._process.returncode
-        if exit_code == 0:
-            self._maybe_stage_callback(JobState.COMPLETED)
-            return JobState.COMPLETED
-
-        logging.error("SLURM job %s failed with exit code %s", self._job_id, exit_code)
-        return JobState.FAILED
+        finally:
+            self._remove_wrapper_script()
 
     def cancel(self) -> None:
         proc = self._process
@@ -159,6 +176,7 @@ class SlurmJob(Job):
         with open(path, "w") as f:
             f.write(script)
         os.chmod(path, 0o700)
+        self._wrapper_script_path = path
         return path
 
     def _render_wrapper(self) -> str:
@@ -229,9 +247,17 @@ class SlurmJob(Job):
 
     def _read_stderr(self) -> None:
         stream = self._process.stderr
-        for line in iter(stream.readline, ""):
-            self._stderr_lines.append(line)
-        stream.close()
+        try:
+            for line in iter(stream.readline, ""):
+                self._stderr_lines.append(line)
+                match = _SLURM_JOB_ID_RE.search(line)
+                if match and self._slurm_job_id is None:
+                    self._slurm_job_id = match.group(1)
+                    self._job_id_event.set()
+        finally:
+            if self._slurm_job_id is None:
+                self._job_id_event.set()  # no banner seen — stop the wait
+            stream.close()
 
     def _save_output(self) -> None:
         out_path = os.path.join(self.output_dir, f"slurm_{self._job_id}.out")
@@ -249,6 +275,16 @@ class SlurmJob(Job):
             stages = list(self.tt.stage_markers.items())
             if stages:
                 self.stage_callback(stages[-1][0])
+
+    def _remove_wrapper_script(self) -> None:
+        """Delete the internal wrapper script so internal paths never leak
+        into the user download archive."""
+        path = self._wrapper_script_path
+        if path and os.path.exists(path):
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
 
 
 def _sanitize_name(s: str) -> str:

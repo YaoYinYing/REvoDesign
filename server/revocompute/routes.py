@@ -43,7 +43,6 @@ from revocompute.app import (
     _revoke_celery_task,
     _task_access_allowed,
     _task_access_denied,
-    _task_delete_allowed,
     _task_id_for_upload,
     _task_zip_download_name,
     app,
@@ -97,6 +96,7 @@ from revocompute.task_runtime import (
     task_store,
 )
 from revocompute.task_types import list_types
+from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -762,7 +762,7 @@ def delete_task(md5sum):
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
-    if not _task_delete_allowed(task):
+    if not _task_access_allowed(task):
         return _task_access_denied(md5sum)
     if task["status"] in task_store.CLEANUP_CLAIM_STATUSES:
         return jsonify({"error": "Task cleanup is already in progress", "md5sum": md5sum}), 409
@@ -804,7 +804,7 @@ def delete_tasks_batch():  # skipcq: PY-R1000 -- per-task authorization and outc
         if not task:
             not_found.append(md5sum)
             continue
-        if not _task_delete_allowed(task):
+        if not _task_access_allowed(task):
             forbidden.append(md5sum)
             continue
         if task["status"] in task_store.CLEANUP_CLAIM_STATUSES:
@@ -1091,6 +1091,7 @@ def auth_reset_password():
 
     db = _get_user_db()
     db.update_user(user_id, password_hash=generate_password_hash(req.password))
+    db.increment_token_version(user_id)
     logging.info("User %d reset their password", user_id)
     return jsonify({"message": "Password updated — you can now log in."}), 200
 
@@ -1154,18 +1155,21 @@ def auth_register():
     if db.get_user_by_email(req.email):
         return jsonify({"error": "Email address already registered"}), 409
 
-    user = db.create_user(
-        username=req.username,
-        email=req.email,
-        password=req.password,
-        full_name=req.full_name,
-        affiliation=req.affiliation,
-        position=req.position,
-        pi_name=req.pi_name,
-        terms_agreed=req.terms_agreed,
-        registration_ip=_client_ip(),
-        registration_country=_client_country(),
-    )
+    try:
+        user = db.create_user(
+            username=req.username,
+            email=req.email,
+            password=req.password,
+            full_name=req.full_name,
+            affiliation=req.affiliation,
+            position=req.position,
+            pi_name=req.pi_name,
+            terms_agreed=req.terms_agreed,
+            registration_ip=_client_ip(),
+            registration_country=_client_country(),
+        )
+    except IntegrityError:
+        return jsonify({"error": "Username or email already registered"}), 409
 
     sent = send_verification_email(user)
     if not sent:
@@ -1233,45 +1237,6 @@ def auth_resend_verification():
 
     db.update_user(user["id"], verification_resend_count=count + 1, verification_resend_at=time.time())
     return jsonify({"message": "Verification email sent. Check your inbox."}), 200
-
-
-@app.route("/compute/api/auth/verify-email", methods=["GET"])
-def auth_verify_email():
-    """Verify an email address via a one-time token (renders an HTML page)."""
-    if not _email_configured():
-        return (
-            render_template(
-                "verify-email.html",
-                success=False,
-                error="Email verification is not available — email service is not configured.",
-            ),
-            403,
-        )
-
-    token = request.args.get("token", "").strip()
-    if not token:
-        return render_template("verify-email.html", success=False, error="Missing verification token."), 400
-
-    user_id = validate_email_token(token)
-    if user_id is None:
-        return render_template("verify-email.html", success=False, error="Invalid or expired verification token."), 400
-
-    db = _get_user_db()
-    user = db.get_user(user_id)
-    if user is None:
-        return render_template("verify-email.html", success=False, error="User not found."), 404
-
-    db.verify_email(user_id)
-    db.update_user(user_id, registration_status="verified")
-    return (
-        render_template(
-            "verify-email.html",
-            success=True,
-            email=user["email"],
-            registration_pending=user.get("user_status") != "active",
-        ),
-        200,
-    )
 
 
 @app.route("/compute/user_verify", methods=["GET"])

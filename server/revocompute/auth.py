@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Token-based authentication and user management for the GREMLIN server.
+"""Token-based authentication and user management for the REvoCompute server.
 
 Replaces the static ``users.txt`` HTTP Basic Auth model with a SQLite-backed
 user store, Bearer-token authentication, and an optional registration workflow
@@ -11,6 +11,7 @@ gated by ``ENABLE_REGISTER``.
 
 from __future__ import annotations
 
+import html
 import logging
 import os
 import secrets
@@ -520,7 +521,7 @@ def _smtp_config() -> dict[str, Any]:
         "password": _env_str("SMTP_PASSWORD", ""),
         "use_tls": _env_bool("SMTP_USE_TLS", True),
         "from_addr": _env_str("SMTP_FROM_ADDR", "hello@revodesign.local"),
-        "from_name": _env_str("SMTP_FROM_NAME", "REvoDesign GREMLIN Server"),
+        "from_name": _env_str("SMTP_FROM_NAME", "REvoCompute Server"),
     }
 
 
@@ -530,7 +531,7 @@ def _use_resend() -> bool:
 
 
 def _resend_from() -> str:
-    name = _env_str("RESEND_FROM_NAME", "REvoDesign GREMLIN Server")
+    name = _env_str("RESEND_FROM_NAME", "REvoCompute Server")
     addr = _env_str("RESEND_FROM_ADDR", "onboarding@resend.dev")
     return f"{name} <{addr}>"
 
@@ -676,7 +677,7 @@ def send_verification_email(user: dict[str, Any]) -> bool:
     text = (
         f"Hello {user['username']},\n"
         f"\n"
-        f"Welcome to REvoDesign GREMLIN. Please confirm your email address to\n"
+        f"Welcome to REvoCompute. Please confirm your email address to\n"
         f"activate your account.\n"
         f"\n"
         f"  {verify_url}\n"
@@ -685,11 +686,11 @@ def send_verification_email(user: dict[str, Any]) -> bool:
         f"\n"
         f"If you did not create this account, you can ignore this message.\n"
         f"\n"
-        f"— REvoDesign GREMLIN Server\n"
+        f"— REvoCompute Server\n"
     )
     html_body = (
-        f'<p>Hello {user["username"]},</p>'
-        f"<p>Welcome to REvoDesign GREMLIN. Please confirm your email address "
+        f'<p>Hello {html.escape(user["username"])},</p>'
+        f"<p>Welcome to REvoCompute. Please confirm your email address "
         f"to activate your account.</p>"
         f'<p style="margin:24px 0;">'
         f'<a href="{verify_url}" style="display:inline-block;padding:12px 24px;'
@@ -704,7 +705,7 @@ def send_verification_email(user: dict[str, Any]) -> bool:
     )
     return _send_email(
         to=user["email"],
-        subject="Verify your email — REvoDesign GREMLIN",
+        subject="Verify your email — REvoCompute",
         text=text,
         html=_email_html(html_body),
     )
@@ -754,10 +755,10 @@ def send_password_reset_email(email: str, db: UserDatabase) -> bool:
         f"If you did not request this, you can ignore this message — your\n"
         f"password will not change.\n"
         f"\n"
-        f"— REvoDesign GREMLIN Server\n"
+        f"— REvoCompute Server\n"
     )
     html_body = (
-        f'<p>Hello {user["username"]},</p>'
+        f'<p>Hello {html.escape(user["username"])},</p>'
         f"<p>A password reset was requested for your account. "
         f"Click the button below to set a new password.</p>"
         f'<p style="margin:24px 0;">'
@@ -774,7 +775,7 @@ def send_password_reset_email(email: str, db: UserDatabase) -> bool:
     )
     return _send_email(
         to=email,
-        subject="Reset your password — REvoDesign GREMLIN",
+        subject="Reset your password — REvoCompute",
         text=text,
         html=_email_html(html_body),
     )
@@ -787,15 +788,15 @@ def send_approval_email(user: dict[str, Any]) -> bool:
     text = (
         f"Hello {user['username']},\n"
         f"\n"
-        f"Your REvoDesign GREMLIN registration has been approved.\n"
+        f"Your REvoCompute registration has been approved.\n"
         f"\n"
         f"  {base_url}/compute/login\n"
         f"\n"
-        f"— REvoDesign GREMLIN Server\n"
+        f"— REvoCompute Server\n"
     )
     html_body = (
-        f'<p>Hello {user["username"]},</p>'
-        f"<p>Your REvoDesign GREMLIN registration has been approved.</p>"
+        f'<p>Hello {html.escape(user["username"])},</p>'
+        f"<p>Your REvoCompute registration has been approved.</p>"
         f'<p style="margin:24px 0;">'
         f'<a href="{base_url}/compute/login" style="display:inline-block;'
         f"padding:12px 24px;background-color:#1a1a2e;color:#ffffff;"
@@ -804,7 +805,7 @@ def send_approval_email(user: dict[str, Any]) -> bool:
     )
     return _send_email(
         to=user["email"],
-        subject="Registration approved — REvoDesign GREMLIN",
+        subject="Registration approved — REvoCompute",
         text=text,
         html=_email_html(html_body),
     )
@@ -815,21 +816,21 @@ def send_rejection_email(user: dict[str, Any]) -> bool:
     text = (
         f"Hello {user['username']},\n"
         f"\n"
-        f"Your REvoDesign GREMLIN registration has been declined.\n"
+        f"Your REvoCompute registration has been declined.\n"
         f"If you believe this is an error, please contact the\n"
         f"administrator who manages this server.\n"
         f"\n"
-        f"— REvoDesign GREMLIN Server\n"
+        f"— REvoCompute Server\n"
     )
     html_body = (
-        f'<p>Hello {user["username"]},</p>'
-        f"<p>Your REvoDesign GREMLIN registration has been declined.</p>"
+        f'<p>Hello {html.escape(user["username"])},</p>'
+        f"<p>Your REvoCompute registration has been declined.</p>"
         f"<p>If you believe this is an error, please contact the "
         f"administrator who manages this server.</p>"
     )
     return _send_email(
         to=user["email"],
-        subject="Registration update — REvoDesign GREMLIN",
+        subject="Registration update — REvoCompute",
         text=text,
         html=_email_html(html_body),
     )
@@ -875,7 +876,7 @@ def send_admin_digest() -> bool:
         f"  {'-' * 20:<20} {'-' * 32:<32} {'-' * 24:<24} {'-' * 16}\n"
         + "\n".join(rows)
         + f"\n\n  Review: {base_url}/compute/user_control\n\n"
-        f"— REvoDesign GREMLIN Server\n"
+        f"— REvoCompute Server\n"
     )
     # Build HTML table rows
     html_rows = []
@@ -884,9 +885,9 @@ def send_admin_digest() -> bool:
         affil = u.get("affiliation") or "-"
         html_rows.append(
             f"<tr>"
-            f'<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">{u["username"]}</td>'
-            f'<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">{u["email"]}</td>'
-            f'<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">{affil}</td>'
+            f'<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">{html.escape(u["username"])}</td>'
+            f'<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">{html.escape(u["email"])}</td>'
+            f'<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">{html.escape(affil)}</td>'
             f'<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">{created}</td>'
             f"</tr>"
         )
@@ -907,7 +908,7 @@ def send_admin_digest() -> bool:
         f"Review Registrations</a></p>"
     )
     any_sent = False
-    subject = f"{len(new_users)} new registration(s) — REvoDesign GREMLIN"
+    subject = f"{len(new_users)} new registration(s) — REvoCompute"
     html_content = _email_html(html_body)
     for email in recipients:
         try:

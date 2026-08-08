@@ -17,6 +17,7 @@ from functools import wraps
 from typing import Any
 
 from flask import jsonify, request
+from revocompute.app import _client_ip
 
 
 def rate_limit(max_requests: int, window_seconds: int):
@@ -43,7 +44,7 @@ def rate_limit(max_requests: int, window_seconds: int):
         @wraps(f)
         def decorated(*args: Any, **kwargs: Any) -> Any:
             nonlocal _last_cleanup
-            ip = request.remote_addr or "unknown"
+            ip = _client_ip() or "unknown"
             now = time.monotonic()
             cutoff = now - window_seconds
 

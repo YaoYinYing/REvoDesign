@@ -1,44 +1,6 @@
 /* REvoCompute — Configuration page styles */
 /* SPDX-License-Identifier: GPL-3.0-only */
 
-/* ---- Sub-tabs (match user-control pattern) ---- */
-
-.sub-tabs {
-  display: flex;
-  gap: 0;
-  margin-top: 1rem;
-  margin-bottom: 0;
-  border: 1px solid var(--line);
-  border-radius: 12px 12px 0 0;
-  overflow: hidden;
-}
-
-.sub-tab {
-  flex: 1;
-  padding: 0.7rem 1.2rem;
-  border: none;
-  background: var(--paper);
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: background 160ms ease, color 160ms ease;
-  font-family: inherit;
-}
-
-.sub-tab:hover { color: var(--ink); }
-
-.sub-tab.active {
-  background: var(--accent);
-  color: #f6fbff;
-}
-
-.sub-tab:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-  z-index: 1;
-}
-
 /* ---- Config panel ---- */
 
 .config-panel {
@@ -368,7 +330,6 @@
 }
 
 /* Key / value inputs */
-.config-key,
 .config-value {
   width: 100%;
   border: 1px solid var(--line);
@@ -382,7 +343,6 @@
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
-.config-key:focus,
 .config-value:focus {
   border-color: color-mix(in srgb, var(--accent) 58%, white 42%);
   box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
@@ -392,13 +352,6 @@
   color: var(--muted);
   font-size: 0.78rem;
   max-width: 16rem;
-}
-
-.delete-row-btn {
-  font-size: 1.1rem;
-  line-height: 1;
-  padding: 0.2rem 0.55rem;
-  border-radius: 6px;
 }
 
 /* ---- Toast ---- */
@@ -429,23 +382,6 @@
 .toast.info    { background: #e3eff8; color: #1a4970; border: 1px solid #c8ddf0; }
 
 /* ---- Dark theme ---- */
-
-html[data-theme="dark"] .sub-tabs {
-  border-color: #30444f;
-  background: #132128;
-}
-
-html[data-theme="dark"] .sub-tab {
-  background: #132128;
-  color: #8ea4b2;
-}
-
-html[data-theme="dark"] .sub-tab:hover { color: #c0d0d7; }
-
-html[data-theme="dark"] .sub-tab.active {
-  background: var(--accent);
-  color: #f0f9ff;
-}
 
 html[data-theme="dark"] .config-panel {
   border-color: #30444f;
@@ -510,7 +446,6 @@ html[data-theme="dark"] .config-table tbody tr:hover {
   background: rgba(255,255,255,0.03);
 }
 
-html[data-theme="dark"] .config-key,
 html[data-theme="dark"] .config-value {
   border-color: #324751;
   background: #17252c;
@@ -551,18 +486,6 @@ html[data-theme="dark"] .toast.info {
   }
 
   .hero { border-radius: 14px; }
-
-  .sub-tabs {
-    border-radius: 10px 10px 0 0;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .sub-tab {
-    font-size: 0.78rem;
-    padding: 0.5rem 0.6rem;
-  }
 
   .config-panel {
     padding: 0.9rem 0.65rem;
@@ -619,7 +542,6 @@ html[data-theme="dark"] .toast.info {
     text-align: left;
   }
 
-  .config-key,
   .config-value {
     font-size: 0.82rem;
   }

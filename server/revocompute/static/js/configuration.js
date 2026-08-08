@@ -11,10 +11,6 @@
   var resourceBody = document.getElementById("resourceBody");
   var resourceSaveStatus = document.getElementById("resourceSaveStatus");
   var saveResourcesBtn = document.getElementById("saveResourcesBtn");
-  var allKeysBody = document.getElementById("allKeysBody");
-  var allSaveStatus = document.getElementById("allSaveStatus");
-  var saveAllBtn = document.getElementById("saveAllBtn");
-  var addRowBtn = document.getElementById("addRowBtn");
   var logoutBtn = document.getElementById("logoutBtn");
   var toastWrap = document.getElementById("toastWrap");
 
@@ -32,7 +28,6 @@
   var taskTypes = [];           // from /api/types (metadata: display_name, params, etc.)
   var slurmEnabled = false;     // global SLURM feature flag
   var slurmAllowedQueues = [];  // whitelisted partitions
-  var allKeysOriginal = {};
 
   var SLURM_FIELDS = [
     { key: "slurm_partition",     label: "Partition",     type: "text",    placeholder: "e.g. gpu" },
@@ -77,10 +72,6 @@
     toastWrap.appendChild(node);
     setTimeout(function () { node.remove(); }, 3000);
   }
-
-  // -- Helpers -----------------------------------------------------------
-
-  function esc(s) { return String(s).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;"); }
 
   // -- API ---------------------------------------------------------------
 
@@ -146,7 +137,7 @@
     }
 
     var enabledCount = taskTypeConfigs.filter(function (c) { return c.enabled !== false; }).length;
-    taskTypeStatus.textContent = taskTypeConfigs.length + " type(s) &middot; " + enabledCount + " enabled";
+    taskTypeStatus.textContent = taskTypeConfigs.length + " type(s) · " + enabledCount + " enabled";
 
     taskTypeCards.innerHTML = taskTypeConfigs.map(function (config) {
       var meta = findTypeMeta(config.tool);
@@ -167,7 +158,7 @@
         var enabled = cb.checked;
         var ok = await saveStructured({ task_types: [{ tool: tool, enabled: enabled }] });
         if (ok) {
-          toast(esc(tool) + (enabled ? " enabled" : " disabled"), "success");
+          toast(escapeHtml(tool) + (enabled ? " enabled" : " disabled"), "success");
           renderTaskTypeCards();
         } else {
           cb.checked = !enabled;
@@ -197,7 +188,7 @@
 
   function buildCard(tool, displayName, ext, inputLabel, stageCount, paramCount, enabled, config) {
     var descParts = [];
-    if (inputLabel) descParts.push(esc(inputLabel) + " input");
+    if (inputLabel) descParts.push(escapeHtml(inputLabel) + " input");
     if (stageCount) descParts.push(stageCount + " stage(s)");
     if (paramCount) descParts.push(paramCount + " param(s)");
 
@@ -224,8 +215,8 @@
       '<div class="type-card ' + (enabled ? "enabled" : "disabled") + '">' +
         '<div class="type-card-head">' +
           '<div>' +
-            '<span class="type-card-name">' + esc(displayName) +
-              (ext ? '<span class="type-card-ext">' + esc(ext) + '</span>' : '') +
+            '<span class="type-card-name">' + escapeHtml(displayName) +
+              (ext ? '<span class="type-card-ext">' + escapeHtml(ext) + '</span>' : '') +
             '</span>' +
           '</div>' +
           '<div class="card-head-right">' +
@@ -233,7 +224,7 @@
               (enabled ? "Enabled" : "Disabled") +
             '</span>' +
             '<label class="toggle-switch">' +
-              '<input type="checkbox" data-type="' + esc(tool) + '"' + (enabled ? " checked" : "") + '>' +
+              '<input type="checkbox" data-type="' + escapeHtml(tool) + '"' + (enabled ? " checked" : "") + '>' +
               '<span class="toggle-track"></span>' +
             '</label>' +
             '<button class="card-expand-toggle" type="button" title="Configure resources" aria-label="Configure resources">' +
@@ -258,10 +249,10 @@
     if (type === "toggle") {
       return (
         '<label class="card-field">' +
-          '<span class="card-field-label">' + esc(label) + '</span>' +
+          '<span class="card-field-label">' + escapeHtml(label) + '</span>' +
           '<label class="toggle-switch toggle-switch-sm">' +
-            '<input type="checkbox" class="card-field-input" data-tool="' + esc(tool) +
-              '" data-key="' + esc(key) + '"' + (val === true ? " checked" : "") + '>' +
+            '<input type="checkbox" class="card-field-input" data-tool="' + escapeHtml(tool) +
+              '" data-key="' + escapeHtml(key) + '"' + (val === true ? " checked" : "") + '>' +
             '<span class="toggle-track"></span>' +
           '</label>' +
         '</label>'
@@ -270,11 +261,11 @@
 
     return (
       '<label class="card-field">' +
-        '<span class="card-field-label">' + esc(label) + '</span>' +
+        '<span class="card-field-label">' + escapeHtml(label) + '</span>' +
         '<input class="card-field-input config-value" type="' + type +
-          '" data-tool="' + esc(tool) + '" data-key="' + esc(key) +
-          '" value="' + esc(String(val != null ? val : "")) +
-          '" placeholder="' + esc(placeholder) + '">' +
+          '" data-tool="' + escapeHtml(tool) + '" data-key="' + escapeHtml(key) +
+          '" value="' + escapeHtml(String(val != null ? val : "")) +
+          '" placeholder="' + escapeHtml(placeholder) + '">' +
       '</label>'
     );
   }
@@ -303,22 +294,22 @@
     var label = cl ? cl.querySelector(".card-field-label").textContent : key;
     var ok = await saveStructured({ task_types: [entry] });
     if (ok) {
-      toast(esc(tool) + ": " + esc(label) + " saved", "success");
+      toast(escapeHtml(tool) + ": " + escapeHtml(label) + " saved", "success");
       renderTaskTypeCards();
     }
   }
 
   function renderConfigMeta(config) {
     var parts = [];
-    if (config.nproc != null) parts.push("nproc=" + esc(String(config.nproc)));
-    if (config.maxmem != null) parts.push("maxmem=" + esc(String(config.maxmem)) + "G");
+    if (config.nproc != null) parts.push("nproc=" + escapeHtml(String(config.nproc)));
+    if (config.maxmem != null) parts.push("maxmem=" + escapeHtml(String(config.maxmem)) + "G");
     if (config.max_runtime_seconds != null) {
       parts.push("runtime=" + Math.round(config.max_runtime_seconds / 60) + "min");
     }
     if (slurmEnabled) {
-      if (config.slurm_partition) parts.push("partition=" + esc(config.slurm_partition));
-      if (config.slurm_cpus_per_task) parts.push("cpus=" + esc(String(config.slurm_cpus_per_task)));
-      if (config.slurm_gres) parts.push("gres=" + esc(config.slurm_gres));
+      if (config.slurm_partition) parts.push("partition=" + escapeHtml(config.slurm_partition));
+      if (config.slurm_cpus_per_task) parts.push("cpus=" + escapeHtml(String(config.slurm_cpus_per_task)));
+      if (config.slurm_gres) parts.push("gres=" + escapeHtml(config.slurm_gres));
     }
     return parts.length
       ? parts.map(function (p) { return "<span>" + p + "</span>"; }).join(" &middot; ")
@@ -351,9 +342,9 @@
     var keys = getResourceKeys();
     resourceBody.innerHTML = keys.map(function (rk) {
       return '<tr>' +
-        '<td><strong>' + esc(rk.label) + '</strong></td>' +
-        '<td><input class="config-value" type="text" data-key="' + esc(rk.key) + '" value="' + esc(resources[rk.key] || "") + '" placeholder="(default)"></td>' +
-        '<td class="config-desc">' + esc(rk.desc) + '</td>' +
+        '<td><strong>' + escapeHtml(rk.label) + '</strong></td>' +
+        '<td><input class="config-value" type="text" data-key="' + escapeHtml(rk.key) + '" value="' + escapeHtml(resources[rk.key] || "") + '" placeholder="(default)"></td>' +
+        '<td class="config-desc">' + escapeHtml(rk.desc) + '</td>' +
       '</tr>';
     }).join("");
     resourceSaveStatus.textContent = "";
@@ -379,154 +370,15 @@
     if (ok) { toast("Resource settings saved.", "success"); renderResourceTable(); renderTaskTypeCards(); }
   });
 
-  // -- All Keys (advanced) -----------------------------------------------
-
-  function flattenAll() {
-    var result = {};
-    taskTypeConfigs.forEach(function (c) {
-      var prefix = "task_type." + c.tool;
-      result[prefix + ".enabled"] = c.enabled ? "true" : "false";
-      RESOURCE_FIELDS.forEach(function (f) {
-        if (c[f.key] != null) result[prefix + "." + f.key] = String(c[f.key]);
-      });
-      if (slurmEnabled) {
-        SLURM_FIELDS.forEach(function (f) {
-          if (c[f.key] != null) {
-            result[prefix + "." + f.key] = typeof c[f.key] === "boolean"
-              ? (c[f.key] ? "true" : "false")
-              : String(c[f.key]);
-          }
-        });
-      }
-    });
-    Object.keys(resources).forEach(function (k) { result[k] = resources[k]; });
-    return result;
-  }
-
-  function renderAllKeys() {
-    var flat = flattenAll();
-    allKeysOriginal = Object.assign({}, flat);
-    var keys = Object.keys(flat).sort();
-    allKeysBody.innerHTML = "";
-    if (!keys.length) {
-      allKeysBody.innerHTML = '<tr><td colspan="3" class="empty">No configuration entries yet.</td></tr>';
-      return;
-    }
-    keys.forEach(function (k) {
-      var tr = document.createElement("tr");
-      tr.innerHTML =
-        '<td><input class="config-key" type="text" value="' + esc(k) + '"></td>' +
-        '<td><input class="config-value" type="text" value="' + esc(flat[k]) + '"></td>' +
-        '<td><button class="btn btn-soft delete-row-btn" type="button">&times;</button></td>';
-      tr.querySelector(".delete-row-btn").addEventListener("click", function () { tr.remove(); });
-      allKeysBody.appendChild(tr);
-    });
-    allSaveStatus.textContent = "";
-  }
-
-  function readAllKeysTable() {
-    var rows = allKeysBody.querySelectorAll("tr");
-    var data = {};
-    rows.forEach(function (tr) {
-      var keyInput = tr.querySelector(".config-key");
-      var valInput = tr.querySelector(".config-value");
-      if (keyInput && valInput) {
-        var key = keyInput.value.trim();
-        if (key) data[key] = valInput.value;
-      }
-    });
-    return data;
-  }
-
-  function allKeysDiff(current) {
-    var all = {};
-    Object.keys(allKeysOriginal).forEach(function (k) { all[k] = true; });
-    Object.keys(current).forEach(function (k) { all[k] = true; });
-    var changed = {};
-    Object.keys(all).forEach(function (k) {
-      if (allKeysOriginal[k] !== current[k]) changed[k] = current[k] !== undefined ? current[k] : null;
-    });
-    return changed;
-  }
-
-  function flatToStructured(flat) {
-    var taskTypeUpdates = {};
-    var resourceUpdates = {};
-    Object.keys(flat).forEach(function (k) {
-      if (k.startsWith("task_type.")) {
-        var parts = k.split(".");
-        if (parts.length >= 3) {
-          var tool = parts[1];
-          var field = parts.slice(2).join(".");
-          if (!taskTypeUpdates[tool]) taskTypeUpdates[tool] = {};
-          var val = flat[k];
-          if (field === "enabled" || field === "slurm_exclusive") {
-            taskTypeUpdates[tool][field] = val.toLowerCase() === "true";
-          } else if (field === "nproc" || field === "maxmem" || field === "max_runtime_seconds" ||
-                     field === "slurm_cpus_per_task" || field === "slurm_nodes" || field === "slurm_ntasks") {
-            var num = parseInt(val, 10);
-            if (!isNaN(num)) taskTypeUpdates[tool][field] = num;
-            else taskTypeUpdates[tool][field] = val;
-          } else {
-            taskTypeUpdates[tool][field] = val;
-          }
-        }
-      } else {
-        resourceUpdates[k] = flat[k];
-      }
-    });
-    return {
-      task_types: Object.keys(taskTypeUpdates).map(function (tool) {
-        return Object.assign({ tool: tool }, taskTypeUpdates[tool]);
-      }),
-      resources: resourceUpdates,
-    };
-  }
-
-  saveAllBtn.addEventListener("click", async function () {
-    var current = readAllKeysTable();
-    var changed = allKeysDiff(current);
-    if (!Object.keys(changed).length) {
-      allSaveStatus.textContent = "No changes.";
-      return;
-    }
-    saveAllBtn.disabled = true;
-    allSaveStatus.textContent = "Saving…";
-    var structured = flatToStructured(current);
-    var ok = await saveStructured(structured);
-    saveAllBtn.disabled = false;
-    if (ok) {
-      allSaveStatus.textContent = "Saved " + Object.keys(changed).length + " key(s).";
-      toast("Configuration saved.", "success");
-      renderAllKeys();
-      renderTaskTypeCards();
-      renderResourceTable();
-    } else {
-      allSaveStatus.textContent = "";
-    }
-  });
-
-  addRowBtn.addEventListener("click", function () {
-    var placeholder = allKeysBody.querySelector("tr td.empty");
-    if (placeholder) allKeysBody.innerHTML = "";
-    var tr = document.createElement("tr");
-    tr.innerHTML =
-      '<td><input class="config-key" type="text" value="" placeholder="key"></td>' +
-      '<td><input class="config-value" type="text" value="" placeholder="value"></td>' +
-      '<td><button class="btn btn-soft delete-row-btn" type="button">&times;</button></td>';
-    tr.querySelector(".delete-row-btn").addEventListener("click", function () { tr.remove(); });
-    allKeysBody.appendChild(tr);
-    tr.querySelector(".config-key").focus();
-  });
-
   // -- Init --------------------------------------------------------------
 
   async function init() {
     await Promise.all([loadConfig(), loadTaskTypes()]);
     renderTaskTypeCards();
     renderResourceTable();
-    renderAllKeys();
   }
+
+  T.initToggle(document.getElementById("themeToggle"));
 
   init();
 })();

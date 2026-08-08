@@ -9,14 +9,7 @@ import json
 import os
 
 import pytest
-from conftest import (
-    _admin_client_auth,
-    _extract_md5,
-    _insert_pending_task,
-    _load_pssm_module,
-    _test_client_auth,
-    _upsert_task_for_user,
-)
+from conftest import _admin_client_auth, _load_pssm_module, _test_client_auth
 
 # Auth endpoint tests — /api/auth/me, API keys, password reset, etc.
 # ==================================================================
