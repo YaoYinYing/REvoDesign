@@ -140,6 +140,7 @@ schema directly; older SQLite layouts are not upgraded during server startup.
 | **worker** | Same as `web` | Celery worker that receives `run_compute_task` jobs from Redis. |
 | **redis** | `redis:7.2-alpine` | Celery message broker and result backend. |
 | **runner** (on demand) | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `worker`. |
+| **runner (SLURM)** | Apptainer SIF image | Alternative backend: `worker` submits jobs via `srun` to a SLURM cluster. The SLURM allocation runs an Apptainer container built from the same runner Docker image. |
 
 ### Code Structure
 
@@ -160,6 +161,10 @@ The server is a pip-installable package at ``server/revocompute/``
 | ``auth.py`` | Token serialisation, ``UserDatabase`` (SQLite/SQLAlchemy), ``login_required`` decorator, email verification, password reset |
 | ``schemas.py`` | Pydantic request/response models — ``LoginRequest``, ``RegisterRequest``, ``AdminCreateUserRequest``, ``AdminUpdateUserRequest``, ``BatchUserRequest``, ``UserResponse``, and more |
 | ``db.py`` | ``TaskDatabase`` — SQLite-backed task tracker for compute jobs |
+| ``job/__init__.py`` | ``Job`` ABC and ``JobState`` enum — submit / poll / cancel contract |
+| ``job/_stages.py`` | ``extract_stage_from_log_line`` — parse ``REVODESIGN_STAGE:`` markers from runner stdout |
+| ``job/runners/docker_runner.py`` | ``DockerJob`` — launches a Docker container, streams logs, parses stages |
+| ``job/runners/slurm_runner.py`` | ``SlurmJob`` — submits an `srun` + Apptainer job, captures stdout/stderr via pipes, parses stages live |
 | ``ratelimit.py`` | In-memory per-IP sliding-window rate limiter for login and registration endpoints |
 
 Static assets (CSS, JS) are served from ``server/revocompute/static/``.
@@ -193,6 +198,16 @@ its ``args`` to ``scheduler.add_job`` only when ``is_enabled`` is true.
 - **SQLite persistence**: A lightweight SQLite database (via SQLAlchemy)
   tracks task state, metadata, and results locations.  Two databases:
   `users.sqlite3` (auth) and `revocompute.sqlite3` (tasks).
+- **SLURM + Apptainer runner backend**: When `SLURM_ENABLED=true`, the worker
+  can submit jobs via `srun` + Apptainer instead of launching Docker containers.
+  This is selected per-task-type by setting `runner: slurm` in the runner YAML.
+  The `SlurmJob` class uses `subprocess.Popen` with background-thread
+  stdout/stderr capture to match the Docker runner's live-output pattern.
+  SLURM resource directives (partition, cpus-per-task, mem, time, gres) are
+  configured per-task-type in the admin UI and stored in `manage.sqlite`.
+  Because `sacct` may be unavailable, completion is determined directly from
+  the `srun` exit code — no squeue/sacct polling loop.  A per-user
+  `allow_gpu_use` flag gates access to task types marked `gpus: true`.
 
 ## Multi-Task Architecture
 
@@ -281,6 +296,8 @@ routes return 503 and it is hidden from `GET /api/types`.
 
 ### Runner Contract
 
+#### Docker Runner
+
 Each Docker runner container follows this contract:
 
 1. Reads input from `/workspace/inputs/`
@@ -300,6 +317,35 @@ Standard mounts every task gets:
 - `/workspace/inputs` → task upload directory (read-only)
 - `/workspace/outputs` → task results directory (read-write)
 - Task-type-specific mounts from runner YAML (model weights, databases, etc.)
+
+#### SLURM + Apptainer Runner
+
+When a runner YAML sets `runner: slurm`, the worker dispatches via `srun`
+instead of Docker.  The same stage markers, env vars, and CLI contract apply —
+the runner `run.sh` is unchanged.
+
+The ``SlurmJob`` class (``job/runners/slurm_runner.py``):
+
+1. Writes a temporary wrapper script to the task output directory
+   (host-mounted so `srun` can read it).  The script does input staging
+   (hardlinks), exports `APPTAINERENV_*` environment variables, and invokes
+   ``apptainer run`` with bind mounts from the runner config.
+2. Launches ``srun <slurm flags> bash <script>`` via ``subprocess.Popen``.
+   SLURM flags (``--partition``, ``--cpus-per-task``, ``--mem``, ``--time``,
+   ``--gres``, etc.) come from the per-task-type ``slurm_config`` in
+   ``manage.sqlite``, configured via the admin UI.
+3. Captures stdout/stderr in background threads.  The stdout thread parses
+   ``REVODESIGN_STAGE:`` markers and calls the stage callback for live
+   progress updates — matching the Docker runner's behaviour.
+4. Blocks on ``Popen.wait()`` with the runner's ``max_runtime_seconds`` as
+   a timeout.  The `srun` exit code directly determines COMPLETED (0) or
+   FAILED (non-zero) — no `squeue`/`sacct` polling loop.
+5. On cancel, terminates the `srun` process and falls back to `scancel`.
+
+The worker container needs host networking (``network_mode: host`` in
+``docker-compose.slurm.yml``) so `srun` can reach the SLURM controller.
+SLURM client tools (`srun`, `scancel`, etc.) and the MUNGE socket are
+bind-mounted from the host.
 
 ### How to Add a Task Type
 
@@ -541,6 +587,11 @@ Important environment variables (see the organized sections in
 | `ADMIN_NEW_USER_INFORM` | Digest interval in minutes (`0` disables it) |
 | `CLIENT_IP_HEADERS` / `CLIENT_COUNTRY_HEADER` | Trusted proxy headers for registration and request metadata |
 | `TZ` | Timezone for logs |
+| `SLURM_ENABLED` | Set to `true` to enable the SLURM+Apptainer runner backend |
+| `SLURM_ALLOWED_QUEUES` | Comma-separated SLURM partition whitelist (e.g. `normal,gpu`) |
+| `ENABLED_TASKRUNNERS` | Comma-separated task type names; `gremlin` is always enabled |
+| `CONFIG_DIR` | Path to the config directory containing `task_types.yaml` and `runners/`.  Defaults to `<SERVER_DIR>/../config`.  Must be mounted into containers if outside `SERVER_DIR` |
+| `COMPOSE_PROJECT_NAME` | Set to `server-slurm` (or similar) when running a SLURM test instance alongside production to isolate containers and networks |
 
 `AUTH_DIR` is a Docker-host path, whereas `USER_DB_PATH` is a path inside the
 web and maintenance containers. They refer to the same file through the
@@ -596,6 +647,73 @@ successful run creates `${AUTH_DIR}/backups/<UTC timestamp>/tasks.sqlite3` and
    generated and supplied transiently by the script.
 
 5. **Access** the web UI at `http://<host>:<port>/compute/dashboard`
+
+### SLURM + Apptainer Deployment
+
+When deploying with the SLURM runner backend alongside an existing Docker
+production instance, isolation is critical to avoid killing production
+containers.  The following must be unique per instance:
+
+| Resource | Production | SLURM test |
+|---|---|---|
+| Compose project name | `server` (default) | `server-slurm` (`COMPOSE_PROJECT_NAME`) |
+| Image tags | `revodesign-...-non-root` | `revodesign-...-server-slurm` (`SERVER_IMAGE`) |
+| Port | 8080 | 8081 (`PORT`) |
+| Data dirs | `.../revodesign/server/` | `.../revodesign/server-slurm/server/` (`SERVER_DIR`) |
+
+The restart script's `--use-slurm` flag activates the SLURM compose override
+file (`docker-compose.slurm.yml`) which adds host networking for the worker,
+bind-mounts SLURM client tools + MUNGE socket, and publishes Redis on an
+alternate port.
+
+**Quick start for a test instance alongside production:**
+
+```bash
+# 1. Create the test env file from production
+cp server/.env.production server/.env.production.v7-slurm
+# Edit: COMPOSE_PROJECT_NAME=server-slurm, unique SERVER_IMAGE,
+#       SERVER_DIR=/mnt/.../server-slurm/server, PORT=8081,
+#       SLURM_ENABLED=true, CONFIG_DIR=/mnt/.../server-slurm/config
+
+# 2. Copy and edit runner config
+cp -r server/config /mnt/.../server-slurm/
+# Edit config/runners/gremlin.yaml: add runner: slurm,
+#       container_runtime: apptainer, slurm_image: /path/to/image.sif,
+#       fix mounts to host DB paths
+
+# 3. Build the SIF image
+docker build -t revodesign-revocompute-runner:latest \
+  -f server/docker/runners/pssm_gremlin/Dockerfile server/
+apptainer build --fakeroot /path/to/gremlin_v1.sif \
+  server/docker/runners/pssm_gremlin/gremlin.def
+
+# 4. Launch (isolated from production)
+REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
+  bash server/run/restart.sh restart --mode=dev --use-slurm
+
+# 5. Seed SLURM config via admin UI at /compute/configuration,
+#    or directly:
+sqlite3 /mnt/.../server-slurm/server/manage.sqlite "
+UPDATE task_type_config SET slurm_partition='normal',
+  slurm_cpus_per_task=4, slurm_mem='32G', slurm_time='02:00:00'
+  WHERE tool='gremlin';"
+```
+
+**The `.def` file** (Apptainer definition) uses `Bootstrap: docker-daemon`
+to convert the locally-built Docker image to SIF:
+
+``` singularity
+Bootstrap: docker-daemon
+From: revodesign-revocompute-runner:latest
+%post
+    echo "GREMLIN runner containerised"
+%runscript
+    exec bash /app/revocompute/run.sh "$@"
+```
+
+**GPU privilege gating**: Users must have `allow_gpu_use=true` (set by an
+admin via the User Control page) to submit task types marked `gpus: true`.
+Without it, submission returns 403 before the job is enqueued.
 
 ### Alternative Access
 
