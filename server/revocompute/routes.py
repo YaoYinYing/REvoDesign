@@ -446,6 +446,10 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
 
     # Param entities — raw form value vs pydantic-coerced verified_value
     tt, _ = _get_task_type(task_type)
+    # GPU privilege gate: if the task type requires GPU, the user must have
+    # allow_gpu_use enabled by an admin.
+    if tt.gpus and not g.current_user.get("allow_gpu_use"):
+        return jsonify({"error": "GPU access required for this task type. Contact an administrator."}), 403
     known_params = {p.name: p for p in tt.params}
     for key, raw in submission.params.items():
         param = known_params[key]
@@ -1528,6 +1532,8 @@ def _admin_user_update_fields(
         if is_self:
             return None, (jsonify({"error": "Administrators cannot change their own role"}), 400)
         update_fields["role"] = req.role
+    if req.allow_gpu_use is not None:
+        update_fields["allow_gpu_use"] = req.allow_gpu_use
     return update_fields, None
 
 

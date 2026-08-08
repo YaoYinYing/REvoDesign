@@ -138,6 +138,7 @@ class AdminUpdateUserRequest(BaseModel):
     registration_status: Literal["approved", "rejected"] | None = None
     user_status: Literal["active", "banned"] | None = None
     role: Literal["admin", "user", "guest"] | None = None
+    allow_gpu_use: bool | None = None
 
     @field_validator("email", mode="before")
     @classmethod
