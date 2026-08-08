@@ -10,10 +10,11 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import docker
 import pytest
 from revocompute.job import JobState
 from revocompute.job.runners.docker_runner import DockerJob
+
+import docker
 
 
 def _make_task_type(**kwargs):
@@ -149,7 +150,9 @@ def test_poll_parses_stage_markers_from_logs(tmp_path):
 
     stages_seen: list[str] = []
 
-    job = DockerJob("task-1", tt, runner, entities, output_dir, docker_client=mock_client, stage_callback=stages_seen.append)
+    job = DockerJob(
+        "task-1", tt, runner, entities, output_dir, docker_client=mock_client, stage_callback=stages_seen.append
+    )
     job.submit()
     state = job.poll()
 
@@ -200,7 +203,9 @@ def test_poll_deduplicates_stage_callbacks(tmp_path):
 
     stages_seen: list[str] = []
 
-    job = DockerJob("task-1", tt, runner, entities, output_dir, docker_client=mock_client, stage_callback=stages_seen.append)
+    job = DockerJob(
+        "task-1", tt, runner, entities, output_dir, docker_client=mock_client, stage_callback=stages_seen.append
+    )
     job.submit()
     job.poll()
 
@@ -244,7 +249,14 @@ def test_build_env_includes_task_params(tmp_path):
     tt = _make_task_type()
     runner = _make_runner()
     entities = [
-        {"name": "file", "type": "file", "value": "x.fasta", "verified_value": "x.fasta", "hash": "abc", "mounted": "/in/x.fasta"},
+        {
+            "name": "file",
+            "type": "file",
+            "value": "x.fasta",
+            "verified_value": "x.fasta",
+            "hash": "abc",
+            "mounted": "/in/x.fasta",
+        },
         {"name": "iter", "type": "param", "name": "iter", "value": "50", "verified_value": "50"},
     ]
 
@@ -264,7 +276,14 @@ def test_build_command_args_passes_iter_flag(tmp_path):
     tt = _make_task_type()
     runner = _make_runner()
     entities = [
-        {"name": "file", "type": "file", "value": "x.fasta", "verified_value": "x.fasta", "hash": "abc", "mounted": "/in/x.fasta"},
+        {
+            "name": "file",
+            "type": "file",
+            "value": "x.fasta",
+            "verified_value": "x.fasta",
+            "hash": "abc",
+            "mounted": "/in/x.fasta",
+        },
         {"name": "iter", "type": "param", "name": "iter", "value": "200", "verified_value": "200"},
     ]
 

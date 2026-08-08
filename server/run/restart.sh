@@ -269,8 +269,7 @@ if os.path.commonpath([server_dir, auth_dir]) == server_dir:
 # ---------------------------------------------------------------------------
 
 validate_slurm_images() {
-  # Read from deployed CONFIG_DIR when set, otherwise repo source.
-  local runners_dir="${CONFIG_DIR:-${SERVER_ROOT}/server/config}/runners"
+  local runners_dir="${CONFIG_DIR:-${SERVER_ROOT}/config}/runners"
   local def_dir="${SERVER_ROOT}/docker/runners"
   local missing=0
   local name=""
@@ -294,11 +293,9 @@ print(data.get('slurm_image', ''))
     fi
     if [[ ! -f "${image}" ]]; then
       echo "[SLURM] Missing SIF image: ${image}" >&2
-      local _hint="${def_dir}/${name}/${name}.def"
-      if [[ ! -f "${_hint}" ]]; then
-        _hint="${def_dir}/pssm_${name}/${name}.def"
-      fi
-      echo "        Build it:  apptainer build --fakeroot ${image} ${_hint}" >&2
+      local _def
+      _def=$(find "${def_dir}" -maxdepth 2 -name "${name}.def" -print -quit 2>/dev/null || true)
+      echo "        Build it:  apptainer build --fakeroot ${image} ${_def:-${def_dir}/${name}/${name}.def}" >&2
       missing=$((missing + 1))
     else
       echo "[SLURM] Found SIF image: ${image}"
@@ -306,18 +303,13 @@ print(data.get('slurm_image', ''))
   done
 
   if [[ ${missing} -gt 0 ]]; then
-    if [[ "${BUILD_SIF:-0}" == "1" ]]; then
-      echo "[SLURM] ${missing} SIF image(s) missing — attempting auto-build..."
-      return 0
-    fi
     echo "[SLURM] ${missing} SIF image(s) missing. Rerun with --build-sif to auto-build, or build manually." >&2
     return 0  # ponytail: warn but don't block — admin may build later
   fi
 }
 
 build_slurm_images() {
-  # Read from deployed CONFIG_DIR when set, otherwise repo source.
-  local runners_dir="${CONFIG_DIR:-${SERVER_ROOT}/server/config}/runners"
+  local runners_dir="${CONFIG_DIR:-${SERVER_ROOT}/config}/runners"
   local def_dir="${SERVER_ROOT}/docker/runners"
   local name=""
   local image=""
@@ -341,13 +333,9 @@ print(data.get('slurm_image', ''))
     if [[ -z "${image}" ]]; then
       continue
     fi
-    def_file="${def_dir}/${name}/${name}.def"
-    if [[ ! -f "${def_file}" ]]; then
-      # Fallback: some Dockerfile dirs use a "pssm_" prefix (e.g. pssm_gremlin)
-      def_file="${def_dir}/pssm_${name}/${name}.def"
-    fi
-    if [[ ! -f "${def_file}" ]]; then
-      echo "[SLURM] No .def file for '${name}' at ${def_file} — skipping." >&2
+    def_file=$(find "${def_dir}" -maxdepth 2 -name "${name}.def" -print -quit 2>/dev/null || true)
+    if [[ -z "${def_file}" || ! -f "${def_file}" ]]; then
+      echo "[SLURM] No .def file for '${name}' — skipping." >&2
       continue
     fi
     if [[ -f "${image}" ]]; then
@@ -478,6 +466,9 @@ cmd_build() {
 
   echo "Building GREMLIN runner image..."
   "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" --profile runner build runner
+
+  echo "Building Pythia-ddG runner image..."
+  "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" --profile runner build runner-pythia
 
   echo "Building web/worker images..."
   "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" build web worker

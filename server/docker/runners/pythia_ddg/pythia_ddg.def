@@ -1,0 +1,8 @@
+Bootstrap: docker-daemon
+From: revodesign-revocompute-runner-pythia:latest
+
+%post
+    echo "Pythia-ddG runner containerised"
+
+%runscript
+    exec bash /app/revocompute/run.sh "$@"

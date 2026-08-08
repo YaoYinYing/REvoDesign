@@ -6,8 +6,6 @@
 
 from __future__ import annotations
 
-from abc import abstractmethod
-
 import pytest
 from revocompute.job import Job, JobState
 from revocompute.job.runners.docker_runner import DockerJob
@@ -39,7 +37,14 @@ def _make_runner_config():
 
 def _make_entities():
     return [
-        {"name": "file", "type": "file", "value": "input.fasta", "verified_value": "input.fasta", "hash": "abc123", "mounted": "/workspace/inputs/input.fasta"},
+        {
+            "name": "file",
+            "type": "file",
+            "value": "input.fasta",
+            "verified_value": "input.fasta",
+            "hash": "abc123",
+            "mounted": "/workspace/inputs/input.fasta",
+        },
         {"name": "iter", "type": "param", "name": "iter", "value": "100", "verified_value": "100"},
     ]
 
@@ -75,7 +80,8 @@ def test_slurm_job_is_concrete():
 def test_all_abstract_methods_listed():
     """Every abstract method in Job is implemented by both subclasses."""
     abstract_methods = {
-        name for name, method in Job.__dict__.items()
+        name
+        for name, method in Job.__dict__.items()
         if hasattr(method, "__isabstractmethod__") and method.__isabstractmethod__
     }
     assert abstract_methods == {"submit", "poll", "cancel"}
@@ -84,9 +90,9 @@ def test_all_abstract_methods_listed():
         for name in abstract_methods:
             impl = getattr(cls, name, None)
             assert impl is not None, f"{cls.__name__}.{name} is missing"
-            assert not hasattr(impl, "__isabstractmethod__") or not impl.__isabstractmethod__, (
-                f"{cls.__name__}.{name} is still abstract"
-            )
+            assert (
+                not hasattr(impl, "__isabstractmethod__") or not impl.__isabstractmethod__
+            ), f"{cls.__name__}.{name} is still abstract"
 
 
 # -- Job properties -----------------------------------------------------------
@@ -96,9 +102,23 @@ def test_file_entities_filter():
     tt = _make_task_type()
     runner = _make_runner_config()
     entities = [
-        {"name": "file1", "type": "file", "value": "a.fasta", "verified_value": "a.fasta", "hash": "aaa", "mounted": "/in/a.fasta"},
+        {
+            "name": "file1",
+            "type": "file",
+            "value": "a.fasta",
+            "verified_value": "a.fasta",
+            "hash": "aaa",
+            "mounted": "/in/a.fasta",
+        },
         {"name": "param1", "type": "param", "name": "x", "value": "1", "verified_value": "1"},
-        {"name": "file2", "type": "file", "value": "b.fasta", "verified_value": "b.fasta", "hash": "bbb", "mounted": "/in/b.fasta"},
+        {
+            "name": "file2",
+            "type": "file",
+            "value": "b.fasta",
+            "verified_value": "b.fasta",
+            "hash": "bbb",
+            "mounted": "/in/b.fasta",
+        },
     ]
     job = DockerJob("test-id", tt, runner, entities, "/tmp/output")
     assert len(job.file_entities) == 2
@@ -110,7 +130,14 @@ def test_param_entities_filter():
     tt = _make_task_type()
     runner = _make_runner_config()
     entities = [
-        {"name": "file1", "type": "file", "value": "a.fasta", "verified_value": "a.fasta", "hash": "aaa", "mounted": "/in/a.fasta"},
+        {
+            "name": "file1",
+            "type": "file",
+            "value": "a.fasta",
+            "verified_value": "a.fasta",
+            "hash": "aaa",
+            "mounted": "/in/a.fasta",
+        },
         {"name": "p1", "type": "param", "name": "x", "value": "1", "verified_value": "1"},
         {"name": "p2", "type": "param", "name": "y", "value": "2", "verified_value": "2"},
     ]

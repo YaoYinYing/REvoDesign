@@ -226,6 +226,7 @@ def _create_job(
     entities: list[dict],
     output_dir: str,
     stage_callback=None,
+    username: str = "",
 ) -> Job:
     """Factory: return the correct Job subclass for the runner config."""
     if getattr(runner, "runner", "docker") == "slurm":
@@ -237,6 +238,7 @@ def _create_job(
             output_dir,
             stage_callback=stage_callback,
             manage_db=_manage_db,
+            username=username,
         )
     return DockerJob(
         task_id,
@@ -255,9 +257,10 @@ def _run_compute_job(
     entities: list[dict],
     output_dir: str,
     stage_callback=None,
+    username: str = "",
 ) -> JobState:
     """Unified submit + poll — same flow for Docker and SLURM."""
-    job = _create_job(task_id, tt, runner, entities, output_dir, stage_callback)
+    job = _create_job(task_id, tt, runner, entities, output_dir, stage_callback, username=username)
     jid = job.submit()
     # Persist SLURM job ID so scancel can find it (no-op for Docker which returns task_id)
     if jid:
@@ -445,6 +448,7 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
             entities=entities,
             output_dir=output_dir,
             stage_callback=_on_stage_change,
+            username=task.get("username", ""),
         )
         if _task_is_terminal(md5sum):
             logging.info("Task %s was deleted during execution; skipping result packing and finalization.", md5sum)
@@ -452,7 +456,9 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
 
         if final_state == JobState.FAILED:
             _record_failure(
-                md5sum, task, start_time,
+                md5sum,
+                task,
+                start_time,
                 stage_state["current"],
                 "SLURM job failed — check job logs for details",
             )

@@ -32,3 +32,8 @@ max_runtime_seconds: 7200
 
 defaults:
   iter: 100
+
+# -- SLURM + Apptainer (set in deployed config, not here) --
+# runner: slurm
+# container_runtime: apptainer
+# slurm_image: /mnt/data/srv/revodesign/server-slurm/images/gremlin_v1.sif
