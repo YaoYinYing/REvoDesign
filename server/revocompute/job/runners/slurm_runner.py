@@ -294,7 +294,7 @@ class SlurmJob(Job):
                     return m.group(1)
             if self._process is not None and self._process.poll() is not None:
                 break
-            _time.sleep(0.5)
+            time.sleep(0.5)
         return None
 
     def _save_output(self) -> None:
