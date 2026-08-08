@@ -13,11 +13,7 @@ from unittest.mock import patch
 
 import pytest
 from revocompute.job import JobState
-from revocompute.job.runners.slurm_runner import (
-    SlurmJob,
-    _SQUEUE_STATE_MAP,
-    _sh_quote,
-)
+from revocompute.job.runners.slurm_runner import _SQUEUE_STATE_MAP, SlurmJob, _sh_quote
 
 
 def _make_task_type(**kwargs):
@@ -164,11 +160,7 @@ def test_render_apptainer_raises_without_sif_image(tmp_path):
 def test_render_apptainer_includes_runner_mounts(tmp_path):
     from revocompute.task_types import RunnerMount
 
-    runner = _make_runner(
-        mounts=(
-            RunnerMount(host_path="/data/db", container_path="/opt/db", mode="ro"),
-        )
-    )
+    runner = _make_runner(mounts=(RunnerMount(host_path="/data/db", container_path="/opt/db", mode="ro"),))
     job = SlurmJob("task-1", _make_task_type(), runner, _make_entities(), str(tmp_path / "out"))
     script = job._render_script({})
     assert "--bind" in script
@@ -201,13 +193,33 @@ def test_render_apptainer_params_in_env(tmp_path):
 
 
 def test_squeue_state_map_terminal():
-    terminal_raw = {"COMPLETED", "CD", "FAILED", "F", "TIMEOUT", "TO",
-                    "CANCELLED", "CA", "NODE_FAIL", "NF", "PREEMPTED", "PR",
-                    "BOOT_FAIL", "BF", "DEADLINE", "DL", "OUT_OF_MEMORY", "OOM"}
+    terminal_raw = {
+        "COMPLETED",
+        "CD",
+        "FAILED",
+        "F",
+        "TIMEOUT",
+        "TO",
+        "CANCELLED",
+        "CA",
+        "NODE_FAIL",
+        "NF",
+        "PREEMPTED",
+        "PR",
+        "BOOT_FAIL",
+        "BF",
+        "DEADLINE",
+        "DL",
+        "OUT_OF_MEMORY",
+        "OOM",
+    }
     for raw in terminal_raw:
         state = _SQUEUE_STATE_MAP[raw]
-        assert state in {JobState.COMPLETED, JobState.FAILED, JobState.CANCELLED}, \
-            f"{raw} -> {state} should be terminal"
+        assert state in {
+            JobState.COMPLETED,
+            JobState.FAILED,
+            JobState.CANCELLED,
+        }, f"{raw} -> {state} should be terminal"
 
 
 def test_squeue_state_map_running():
@@ -285,7 +297,8 @@ def test_cancel_calls_scancel(tmp_path):
     with patch("revocompute.job.runners.slurm_runner.subprocess.run", side_effect=_fake_run) as mock_run:
         job.cancel()
         scancel_found = any(
-            call.kwargs.get("args", [""])[0] == "scancel" or (call.args and call.args[0] and call.args[0][0] == "scancel")
+            call.kwargs.get("args", [""])[0] == "scancel"
+            or (call.args and call.args[0] and call.args[0][0] == "scancel")
             for call in mock_run.call_args_list
         )
         assert scancel_found, f"scancel not found in calls: {mock_run.call_args_list}"

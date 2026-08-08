@@ -12,7 +12,6 @@ Apptainer.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import subprocess
@@ -43,9 +42,11 @@ class SlurmJob(Job):
         output_dir: str,
         stage_callback: Any = None,
         manage_db: Any = None,
+        username: str = "",
     ):
         super().__init__(task_id, tt, runner, entities, output_dir, stage_callback)
         self._db = manage_db
+        self._username = username
         self._process: subprocess.Popen | None = None
         self._stdout_lines: list[str] = []
         self._stderr_lines: list[str] = []
@@ -142,13 +143,9 @@ class SlurmJob(Job):
             value = sbatch_args.get(field)
             if value is None:
                 continue
-            if field == "slurm_exclusive":
-                if str(value).lower() in ("true", "1", "yes"):
-                    opts.append(f"--{option}")
-            else:
-                opts.append(f"--{option}={value}")
+            opts.append(f"--{option}={value}")
 
-        opts.append(f"--job-name=revo_{self.task_id[:8]}")
+        opts.append(f"--job-name=revocomput_{_sanitize_name(self._username)}_{self.tt.name}_{self.task_id[:8]}")
         return opts
 
     # -- wrapper script ------------------------------------------------------
@@ -252,6 +249,11 @@ class SlurmJob(Job):
             stages = list(self.tt.stage_markers.items())
             if stages:
                 self.stage_callback(stages[-1][0])
+
+
+def _sanitize_name(s: str) -> str:
+    """SLURM job names: alphanumeric, underscore, hyphen only."""
+    return "".join(c if c.isalnum() or c in "_-" else "_" for c in (s or "unknown")) or "unknown"
 
 
 def _sh_quote(s: str) -> str:

@@ -17,7 +17,7 @@ def extract_stage_from_log_line(line: str, stage_markers: dict[str, str]) -> str
     marker_pos = line.find(_RUNNER_STAGE_PREFIX)
     if marker_pos < 0:
         return None
-    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX):].strip().lower()  # noqa: E203
+    raw_marker = line[marker_pos + len(_RUNNER_STAGE_PREFIX) :].strip().lower()  # noqa: E203
     if not raw_marker:
         return None
     token = raw_marker.split()[0]
