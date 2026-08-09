@@ -225,8 +225,8 @@ task_types:
 
   rfdiffusion:
     display_name: "RFdiffusion"
-    docker_image: "revodesign-revocompute-runner-rfdiffusion"
-    command: ["bash", "/app/revocompute/run.sh"]
+    docker_image: "revodesign-revocompute-runner-placer-rfdiffusion"
+    command: ["bash", "/app/revocompute/run.sh", "rfdiffusion"]
     gpus: true
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -245,8 +245,8 @@ task_types:
 
   placer:
     display_name: "PLACER"
-    docker_image: "revodesign-revocompute-runner-placer"
-    command: ["bash", "/app/revocompute/run.sh"]
+    docker_image: "revodesign-revocompute-runner-placer-rfdiffusion"
+    command: ["bash", "/app/revocompute/run.sh", "placer"]
     gpus: true
     input_extension: ".pdb"
     input_label: "PDB / mmCIF file"

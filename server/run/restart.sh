@@ -102,6 +102,7 @@ generate_runner_compose() {
   for dockerfile in "${SERVER_ROOT}"/docker/runners/*/Dockerfile; do
     local dir; dir=$(basename "$(dirname "$dockerfile")")
     [[ "$dir" == "pssm_gremlin" ]] && continue  # base runner already in docker-compose.yml
+    [[ "$dir" == "placer" || "$dir" == "rfdiffusion" ]] && continue  # merged into placer-rfdiffusion
     cat >> "${out}" <<EOF
   runner-${dir}:
     profiles: ["runner"]
