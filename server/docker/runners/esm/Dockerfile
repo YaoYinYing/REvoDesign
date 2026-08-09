@@ -33,7 +33,7 @@ RUN python3 -m pip install --no-cache-dir \
 # esm2 fork with ESMFold extras (openfold, dllogger, biopython, etc.).
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=main
-RUN git clone --depth 1 --branch ${ESM_REF} ${ESM_REPO} /opt/esm2 && \
+RUN for i in 1 2 3; do git clone --depth 1 --branch ${ESM_REF} ${ESM_REPO} /opt/esm2 && break; sleep 10; done && \
     python3 -m pip install --no-cache-dir -e "/opt/esm2[esmfold]"
 
 # Re-create the non-root user (UID/GID from host may differ from the base image's).

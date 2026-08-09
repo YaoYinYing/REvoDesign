@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
 
 ARG EASIFA_REPO=https://github.com/YaoYinYing/EasIFA.git
 ARG EASIFA_REF=master
-RUN git clone --depth 1 --branch ${EASIFA_REF} ${EASIFA_REPO} /opt/EasIFA && \
+RUN for i in 1 2 3; do git clone --depth 1 --branch ${EASIFA_REF} ${EASIFA_REPO} /opt/EasIFA && break; sleep 10; done && \
     cd /opt/EasIFA && pip install --no-cache-dir torchdrug==0.2.1
 
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
