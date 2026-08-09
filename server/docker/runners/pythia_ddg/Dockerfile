@@ -7,12 +7,11 @@ ARG RUNNER_GID
 ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
-# Pre-seed timezone so tzdata doesn't prompt interactively.
+# System deps: git.  Pre-seed timezone to keep tzdata from prompting.
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
-    echo "Etc/UTC" > /etc/timezone
-
-# System deps: git for cloning.
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
+    echo "Etc/UTC" > /etc/timezone && \
+    DEBIAN_FRONTEND=noninteractive apt-get update && \
+    apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
