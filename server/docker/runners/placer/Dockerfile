@@ -15,13 +15,12 @@ ARG PLACER_REPO=https://github.com/YaoYinYing/PLACER.git
 ARG PLACER_REF=main
 RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER || git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER || git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER)
 
-# All pip installs in one RUN so pip resolves torch + PLACER deps together.
-# PLACER depends on torch; installing it after cu121 torch in a separate RUN
-# could trigger pip to replace the CUDA build with a PyPI CPU build.
+# All pip installs in one RUN so pip resolves torch + deps together.
+# PLACER has no setup.py/pyproject.toml — it is a standalone script, not a
+# pip package.  pip install -e is neither needed nor possible.
 RUN python3 -m pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121 && \
     python3 -m pip install --no-cache-dir dgl==2.4.0 -f https://data.dgl.ai/wheels/torch-2.3/cu121/repo.html && \
-    python3 -m pip install --no-cache-dir e3nn openbabel networkx pandas opt_einsum && \
-    pip install --no-cache-dir -e /opt/PLACER
+    python3 -m pip install --no-cache-dir e3nn openbabel networkx pandas opt_einsum
 
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     (id -u ${RUNNER_USERNAME} >/dev/null 2>&1 && usermod -u ${RUNNER_UID} -g ${RUNNER_GID} ${RUNNER_USERNAME}) || \
