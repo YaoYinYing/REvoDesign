@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
     pip install --no-cache-dir rdkit fair-esm==2.0.0
 
 ARG EASIFA_REPO=https://github.com/YaoYinYing/EasIFA.git
-ARG EASIFA_REF=main
+ARG EASIFA_REF=master
 RUN git clone --depth 1 --branch ${EASIFA_REF} ${EASIFA_REPO} /opt/EasIFA && \
     cd /opt/EasIFA && pip install --no-cache-dir torchdrug==0.2.1
 
