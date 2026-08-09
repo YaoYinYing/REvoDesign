@@ -1,0 +1,10 @@
+# Pro-Prime runner — local development settings.
+mounts:
+  - host_path: "/mnt/db/weights/prime"
+    container_path: "/mnt/db/weights/prime"
+    mode: "ro"
+env: {}
+gpus: true
+nproc: 1
+max_runtime_seconds: 3600
+defaults: {}

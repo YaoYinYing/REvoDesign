@@ -153,3 +153,92 @@ task_types:
         type: "bool"
         default: true
         description: "Enable template searching"
+
+  hypermpnn:
+    display_name: "HyperMPNN"
+    docker_image: "revodesign-revocompute-runner-mpnn"
+    command: ["bash", "/app/revocompute/run.sh"]
+    input_extension: ".pdb"
+    input_label: "PDB file"
+    stage_markers:
+      hypermpnn: "HyperMPNN thermostable design"
+    result_patterns: ["*.fasta"]
+    params:
+      - name: "num_seq"
+        type: "int"
+        default: 100
+        description: "Number of sequences to design"
+      - name: "sampling_temp"
+        type: "float"
+        default: 0.1
+        description: "Sampling temperature"
+
+  ligandmpnn:
+    display_name: "LigandMPNN"
+    docker_image: "revodesign-revocompute-runner-mpnn"
+    command: ["bash", "/app/revocompute/run.sh"]
+    input_extension: ".pdb"
+    input_label: "PDB file"
+    stage_markers:
+      ligandmpnn: "LigandMPNN sequence design"
+    result_patterns: ["*.fasta"]
+    params:
+      - name: "num_seq"
+        type: "int"
+        default: 100
+        description: "Number of sequences per target"
+      - name: "sampling_temp"
+        type: "float"
+        default: 0.1
+        description: "Sampling temperature"
+
+  thermompnn:
+    display_name: "ThermoMPNN-D"
+    docker_image: "revodesign-revocompute-runner-mpnn"
+    command: ["bash", "/app/revocompute/run.sh"]
+    input_extension: ".pdb"
+    input_label: "PDB file"
+    stage_markers:
+      thermompnn: "ThermoMPNN-D stability prediction"
+    result_patterns: ["*.csv"]
+    params:
+      - name: "chains"
+        type: "str"
+        default: "A"
+        description: "Chain IDs to analyze"
+      - name: "mode"
+        type: "str"
+        default: "single"
+        description: "single, additive, or epistatic"
+
+  prime:
+    display_name: "Pro-Prime"
+    docker_image: "revodesign-revocompute-runner-prime"
+    command: ["bash", "/app/revocompute/run.sh"]
+    gpus: true
+    input_extension: ".fasta"
+    input_label: "FASTA file"
+    stage_markers:
+      prime: "Pro-Prime OGT prediction"
+    result_patterns: ["*.csv"]
+    params: []
+
+  rfdiffusion:
+    display_name: "RFdiffusion"
+    docker_image: "revodesign-revocompute-runner-rfdiffusion"
+    command: ["bash", "/app/revocompute/run.sh"]
+    gpus: true
+    input_extension: ".pdb"
+    input_label: "PDB file"
+    stage_markers:
+      rfdiffusion: "RFdiffusion backbone generation"
+    result_patterns: ["*.pdb", "*.trb"]
+    params:
+      - name: "contig"
+        type: "str"
+        default: "100-100"
+        description: "Contig string (e.g. 100-100 for monomer, 5-15/A10-25 for motif)"
+      - name: "num_designs"
+        type: "int"
+        default: 10
+        description: "Number of designs to generate"

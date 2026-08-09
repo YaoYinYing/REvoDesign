@@ -1,0 +1,7 @@
+# RFdiffusion runner — local development settings.
+mounts: []
+env: {}
+gpus: true
+nproc: 1
+max_runtime_seconds: 14400
+defaults: {}

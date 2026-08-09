@@ -1,0 +1,6 @@
+mounts: []
+env: {}
+gpus: false
+nproc: 1
+max_runtime_seconds: 7200
+defaults: {}
