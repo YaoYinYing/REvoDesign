@@ -17,7 +17,7 @@ RUN python3 -m pip install --no-cache-dir torch --index-url https://download.pyt
 
 ARG PLACER_REPO=https://github.com/YaoYinYing/PLACER.git
 ARG PLACER_REF=main
-RUN for i in 1 2 3; do git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER && break; sleep 10; done && \
+RUN (git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER || git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER || git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER) && \
     pip install --no-cache-dir -e /opt/PLACER
 
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \

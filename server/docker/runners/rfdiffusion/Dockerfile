@@ -18,7 +18,7 @@ RUN python3 -m pip install --no-cache-dir \
 
 ARG RFDIFFUSION_REPO=https://github.com/RosettaCommons/RFdiffusion.git
 ARG RFDIFFUSION_REF=main
-RUN for i in 1 2 3; do git clone --depth 1 --branch ${RFDIFFUSION_REF} ${RFDIFFUSION_REPO} /opt/RFdiffusion && break; sleep 10; done && \
+RUN (git clone --depth 1 --branch ${RFDIFFUSION_REF} ${RFDIFFUSION_REPO} /opt/RFdiffusion || git clone --depth 1 --branch ${RFDIFFUSION_REF} ${RFDIFFUSION_REPO} /opt/RFdiffusion || git clone --depth 1 --branch ${RFDIFFUSION_REF} ${RFDIFFUSION_REPO} /opt/RFdiffusion) && \
     cd /opt/RFdiffusion && pip install --no-cache-dir e3nn==0.3.3 hydra-core && \
     pip install --no-cache-dir -e /opt/RFdiffusion
 

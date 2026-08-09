@@ -21,19 +21,19 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
 # Clone ProteinMPNN (used by HyperMPNN and as base for LigandMPNN scripts).
 ARG MPNN_REPO=https://github.com/YaoYinYing/ProteinMPNN.git
 ARG MPNN_REF=main
-RUN for i in 1 2 3; do git clone --depth 1 --branch ${MPNN_REF} ${MPNN_REPO} /opt/ProteinMPNN && break; sleep 10; done && \
+RUN (git clone --depth 1 --branch ${MPNN_REF} ${MPNN_REPO} /opt/ProteinMPNN || git clone --depth 1 --branch ${MPNN_REF} ${MPNN_REPO} /opt/ProteinMPNN || git clone --depth 1 --branch ${MPNN_REF} ${MPNN_REPO} /opt/ProteinMPNN) && \
     mkdir -p /app/revocompute/hypermpnn_weights
 
 # Clone HyperMPNN for its retrained weights.
 ARG HYPERMPNN_REPO=https://github.com/YaoYinYing/HyperMPNN.git
 ARG HYPERMPNN_REF=main
-RUN for i in 1 2 3; do git clone --depth 1 --branch ${HYPERMPNN_REF} ${HYPERMPNN_REPO} /opt/HyperMPNN && break; sleep 10; done && \
+RUN (git clone --depth 1 --branch ${HYPERMPNN_REF} ${HYPERMPNN_REPO} /opt/HyperMPNN || git clone --depth 1 --branch ${HYPERMPNN_REF} ${HYPERMPNN_REPO} /opt/HyperMPNN || git clone --depth 1 --branch ${HYPERMPNN_REF} ${HYPERMPNN_REPO} /opt/HyperMPNN) && \
     cp /opt/HyperMPNN/retrained_models/*.pt /app/revocompute/hypermpnn_weights/
 
 # Clone LigandMPNN.
 ARG LIGANDMPNN_REPO=https://github.com/dauparas/LigandMPNN.git
 ARG LIGANDMPNN_REF=main
-RUN for i in 1 2 3; do git clone --depth 1 --branch ${LIGANDMPNN_REF} ${LIGANDMPNN_REPO} /opt/LigandMPNN && break; sleep 10; done && \
+RUN (git clone --depth 1 --branch ${LIGANDMPNN_REF} ${LIGANDMPNN_REPO} /opt/LigandMPNN || git clone --depth 1 --branch ${LIGANDMPNN_REF} ${LIGANDMPNN_REPO} /opt/LigandMPNN || git clone --depth 1 --branch ${LIGANDMPNN_REF} ${LIGANDMPNN_REPO} /opt/LigandMPNN) && \
     pip install --no-cache-dir -r /opt/LigandMPNN/requirements.txt
 
 # Download LigandMPNN model weights.
