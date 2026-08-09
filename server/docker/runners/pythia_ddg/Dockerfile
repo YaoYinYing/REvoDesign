@@ -35,7 +35,7 @@ RUN pip install --no-cache-dir \
 # Clone Pythia-ddG.
 ARG PYTHIA_REPO=https://github.com/YaoYinYing/Pythia.git
 ARG PYTHIA_REF=main
-RUN (git clone --depth 1 --branch ${PYTHIA_REF} ${PYTHIA_REPO} /opt/pythia || git clone --depth 1 --branch ${PYTHIA_REF} ${PYTHIA_REPO} /opt/pythia || git clone --depth 1 --branch ${PYTHIA_REF} ${PYTHIA_REPO} /opt/pythia) && \
+RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --branch ${PYTHIA_REF} ${PYTHIA_REPO} /opt/pythia || git clone --depth 1 --branch ${PYTHIA_REF} ${PYTHIA_REPO} /opt/pythia || git clone --depth 1 --branch ${PYTHIA_REF} ${PYTHIA_REPO} /opt/pythia) && \
     chown -R ${RUNNER_UID}:${RUNNER_GID} /opt/pythia
 
 # Runner workspace.
