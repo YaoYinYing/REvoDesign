@@ -1,4 +1,7 @@
-mounts: []
+mounts:
+  - host_path: "/mnt/db/weights/ligandmpnn"
+    container_path: "/opt/LigandMPNN/model_params"
+    mode: "ro"
 env: {}
 gpus: false
 nproc: 1

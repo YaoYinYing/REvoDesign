@@ -22,7 +22,8 @@ RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --bran
     cd /opt/RFdiffusion && pip install --no-cache-dir e3nn==0.3.3 hydra-core && \
     pip install --no-cache-dir -e /opt/RFdiffusion
 
-RUN cd /opt/RFdiffusion && bash scripts/download_models.sh
+# Models mounted at runtime from /mnt/db/weights/RFdiffusion/models/
+RUN mkdir -p /opt/RFdiffusion/models
 
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     (id -u ${RUNNER_USERNAME} >/dev/null 2>&1 && usermod -u ${RUNNER_UID} -g ${RUNNER_GID} ${RUNNER_USERNAME}) || \

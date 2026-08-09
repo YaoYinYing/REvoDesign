@@ -36,9 +36,6 @@ ARG LIGANDMPNN_REF=main
 RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --branch ${LIGANDMPNN_REF} ${LIGANDMPNN_REPO} /opt/LigandMPNN || git clone --depth 1 --branch ${LIGANDMPNN_REF} ${LIGANDMPNN_REPO} /opt/LigandMPNN || git clone --depth 1 --branch ${LIGANDMPNN_REF} ${LIGANDMPNN_REPO} /opt/LigandMPNN) && \
     pip install --no-cache-dir -r /opt/LigandMPNN/requirements.txt
 
-# Download LigandMPNN model weights.
-RUN cd /opt/LigandMPNN && bash get_model_params.sh "./model_params" || true
-
 # Install ThermoMPNN-D as a package.
 ARG THERMOREPO=https://github.com/YaoYinYing/ThermoMPNN-D.git
 ARG THERMOREF=main

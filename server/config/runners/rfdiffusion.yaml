@@ -1,5 +1,8 @@
 # RFdiffusion runner — local development settings.
-mounts: []
+mounts:
+  - host_path: "/mnt/db/weights/RFdiffusion/models"
+    container_path: "/opt/RFdiffusion/models"
+    mode: "ro"
 env: {}
 gpus: true
 nproc: 1
