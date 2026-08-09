@@ -43,8 +43,6 @@ generate_runner_compose() {
         RUNNER_GID: \${RUNNER_GID}
         RUNNER_USERNAME: \${RUNNER_USERNAME}
         RUNNER_GROUP: \${RUNNER_GROUP}
-    environment:
-      <<: *task-env
     command: ["sleep", "infinity"]
     restart: "no"
 EOF
