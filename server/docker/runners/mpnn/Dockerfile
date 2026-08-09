@@ -2,11 +2,11 @@ FROM --platform=linux/amd64 python:3.11-slim
 
 ARG RUNNER_UID ARG RUNNER_GID ARG RUNNER_USERNAME ARG RUNNER_GROUP
 
-# Pre-seed timezone + system deps (git for clones, gcc for ProDy wheel build).
+# Pre-seed timezone + system deps (git for clones, build-essential for ProDy wheel).
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
-    apt-get install -y --no-install-recommends git gcc && \
+    apt-get install -y --no-install-recommends git build-essential && \
     rm -rf /var/lib/apt/lists/*
 
 # Non-root user.
