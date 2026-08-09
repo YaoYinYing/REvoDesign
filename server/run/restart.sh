@@ -11,6 +11,77 @@ ENV_EXAMPLE_FILE="${SERVER_ROOT}/.env.example"
 PRIMARY_ENV_FILE="${SERVER_ROOT}/.env.production"
 CALLER_DIR="$(pwd)"
 
+# ---- proxy support (--use-proxy=<url>) ----
+# Generate a temporary Dockerfile with:
+#   1. Proxy ENV injected after FROM (so apt/pip/git see it)
+#   2. Cleanup ENV injected before ENTRYPOINT/CMD/USER (strips proxy from final image)
+# The original Dockerfile is never modified.  Caller must remove the temp file.
+_temp_dockerfile_with_proxy() {
+  local original="$1"
+  local tmp="${original}.proxy.$$"
+  local cleanup="ENV HTTP_PROXY= HTTPS_PROXY= NO_PROXY= http_proxy= https_proxy= no_proxy="
+
+  mapfile -t _tdf_lines < "$original"
+
+  # Find the terminal instruction (ENTRYPOINT / CMD / USER) — scan backwards.
+  local terminal_idx=-1
+  local i
+  for ((i = ${#_tdf_lines[@]} - 1; i >= 0; i--)); do
+    if [[ "${_tdf_lines[i]}" =~ ^(ENTRYPOINT[[:space:]]|CMD[[:space:]]|USER[[:space:]]) ]]; then
+      terminal_idx=$i
+      break
+    fi
+  done
+
+  {
+    for ((i = 0; i < ${#_tdf_lines[@]}; i++)); do
+      printf '%s\n' "${_tdf_lines[i]}"
+
+      # (1) Inject proxy ENV right after each FROM line.
+      if [[ "${_tdf_lines[i]}" =~ ^FROM[[:space:]] ]]; then
+        printf '# --- injected by restart.sh --use-proxy ---\n'
+        printf 'ENV HTTP_PROXY=%s \\\n' "$HTTP_PROXY"
+        printf '    HTTPS_PROXY=%s \\\n' "$HTTPS_PROXY"
+        printf '    NO_PROXY=%s \\\n' "$NO_PROXY"
+        printf '    http_proxy=%s \\\n' "$HTTP_PROXY"
+        printf '    https_proxy=%s \\\n' "$HTTPS_PROXY"
+        printf '    no_proxy=%s\n' "$NO_PROXY"
+        printf '# --- end proxy injection ---\n'
+      fi
+
+      # (2) Inject cleanup ENV right before the terminal instruction.
+      if (( terminal_idx >= 0 && i == terminal_idx - 1 )); then
+        printf '%s\n' "$cleanup"
+      fi
+    done
+  } > "$tmp"
+  printf '%s\n' "$tmp"
+}
+
+# Track temp files so we can clean them up.
+_TEMP_PROXY_DOCKERFILES=()
+
+_cleanup_temp_dockerfiles() {
+  local f
+  for f in "${_TEMP_PROXY_DOCKERFILES[@]}"; do
+    rm -f "$f"
+  done
+  _TEMP_PROXY_DOCKERFILES=()
+}
+
+# Get the Dockerfile to use for a build — proxy-temp if --use-proxy, else original.
+# Sets global _BUILD_DOCKERFILE to the path and tracks temp files for cleanup.
+_resolve_dockerfile() {
+  local original="$1"
+  if [[ -n "${USE_PROXY:-}" ]]; then
+    _BUILD_DOCKERFILE="$(_temp_dockerfile_with_proxy "$original")"
+    _TEMP_PROXY_DOCKERFILES+=("$_BUILD_DOCKERFILE")
+  else
+    _BUILD_DOCKERFILE="$original"
+  fi
+}
+# ----------------------------------------------------------------
+
 # Return compose -f arguments.  When USE_SLURM is set, the slurm override
 # file is appended so the worker container gets SLURM client bind-mounts.
 compose_files() {
@@ -75,6 +146,11 @@ Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart]
            --build-sif                         Build .sif images from .def files
                                                (requires apptainer on PATH).
 
+       Build flags (build / restart --mode=dev):
+           --use-proxy=<url>                   Use proxy for apt/pip/git during
+                                               docker build.  Creates temp
+                                               Dockerfiles (auto-cleaned).
+
 Environment:
   REVODESIGN_SERVER_ENV
           Optional path to env file (absolute or relative to current working directory).
@@ -89,6 +165,7 @@ Subcommands:
   restart  Restart in dev mode by default.
            --mode=dev:  down, build local images with host UID/GID, then up.
            --mode=prod: down, pull configured images, then up without building.
+           --use-proxy=<url>  Inject proxy ENV into temp Dockerfiles during build.
 USAGE
 }
 
@@ -494,6 +571,10 @@ cmd_build() {
   resolve_runner_identity
   generate_runner_compose
 
+  if [[ -n "${USE_PROXY:-}" ]]; then
+    echo "Using proxy ${USE_PROXY} for Docker builds (temp Dockerfiles)."
+  fi
+
   echo "Building runner images..."
   for dockerfile in "${SERVER_ROOT}"/docker/runners/*/Dockerfile; do
     dir=$(basename "$(dirname "$dockerfile")")
@@ -502,17 +583,33 @@ cmd_build() {
     else
       tag="revodesign-revocompute-runner-${dir}"
     fi
+    _resolve_dockerfile "${dockerfile}"
     echo "  → ${tag}"
     docker build \
       --build-arg RUNNER_UID="${RUNNER_UID}" \
       --build-arg RUNNER_GID="${RUNNER_GID}" \
       --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
       --build-arg RUNNER_GROUP="${RUNNER_GROUP}" \
-      -t "${tag}" -f "${dockerfile}" "${SERVER_ROOT}"
+      -t "${tag}" -f "${_BUILD_DOCKERFILE}" "${SERVER_ROOT}"
   done
 
   echo "Building web/worker images..."
-  "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" build web worker
+  if [[ -n "${USE_PROXY:-}" ]]; then
+    local _server_df="${SERVER_ROOT}/docker/server/Dockerfile"
+    _resolve_dockerfile "${_server_df}"
+    docker build \
+      --build-arg RUNNER_UID="${RUNNER_UID}" \
+      --build-arg RUNNER_GID="${RUNNER_GID}" \
+      --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
+      --build-arg RUNNER_GROUP="${RUNNER_GROUP}" \
+      --build-arg PORT="${PORT:-8080}" \
+      -t "${SERVER_IMAGE:-revodesign-revocompute-server}" \
+      -f "${_BUILD_DOCKERFILE}" "${SERVER_ROOT}"
+  else
+    "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" build web worker
+  fi
+
+  _cleanup_temp_dockerfiles
 }
 
 cmd_up() {
@@ -595,6 +692,7 @@ SUBCOMMAND="${1:-restart}"
 MODE="dev"
 USE_SLURM=0
 BUILD_SIF=0
+USE_PROXY=""
 shift  # consume subcommand
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -633,6 +731,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     --build-sif)
       BUILD_SIF=1
+      ;;
+    --use-proxy=*)
+      USE_PROXY="${1#--use-proxy=}"
+      export HTTP_PROXY="${USE_PROXY}"
+      export HTTPS_PROXY="${USE_PROXY}"
+      export NO_PROXY="${NO_PROXY:-localhost,127.0.0.1,.local}"
       ;;
     *)
       echo "Unexpected argument: $1" >&2
