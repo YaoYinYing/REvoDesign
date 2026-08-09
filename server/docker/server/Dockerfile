@@ -17,8 +17,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_ROOT_USER_ACTION=ignore \
     REVOCOMPUTE_LOG_DIR=/var/log/revocompute
 
-# tzdata hangs without TZ pre-set.
-ENV TZ=Etc/UTC
+# Pre-seed timezone so tzdata doesn't prompt interactively.
+RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
+    echo "Etc/UTC" > /etc/timezone
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && apt-get install -y --no-install-recommends build-essential curl procps \

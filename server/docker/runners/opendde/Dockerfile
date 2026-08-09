@@ -11,8 +11,9 @@ ARG RUNNER_GID
 ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
-# tzdata hangs without TZ pre-set.
-ENV TZ=Etc/UTC
+# Pre-seed timezone so tzdata doesn't prompt interactively.
+RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
+    echo "Etc/UTC" > /etc/timezone
 
 # System deps: python3.11, hmmer, kalign (MSA preprocessing), git.
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
