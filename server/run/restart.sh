@@ -494,7 +494,7 @@ cmd_build() {
   resolve_runner_identity
   generate_runner_compose
 
-  echo "Building runner images in parallel..."
+  echo "Building runner images..."
   for dockerfile in "${SERVER_ROOT}"/docker/runners/*/Dockerfile; do
     dir=$(basename "$(dirname "$dockerfile")")
     if [[ "$dir" == "pssm_gremlin" ]]; then
@@ -502,14 +502,14 @@ cmd_build() {
     else
       tag="revodesign-revocompute-runner-${dir}"
     fi
+    echo "  → ${tag}"
     docker build \
       --build-arg RUNNER_UID="${RUNNER_UID}" \
       --build-arg RUNNER_GID="${RUNNER_GID}" \
       --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
       --build-arg RUNNER_GROUP="${RUNNER_GROUP}" \
-      -t "${tag}" -f "${dockerfile}" "${SERVER_ROOT}" &
+      -t "${tag}" -f "${dockerfile}" "${SERVER_ROOT}"
   done
-  wait
 
   echo "Building web/worker images..."
   "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" build web worker
