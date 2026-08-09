@@ -14,7 +14,7 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121 && \
-    pip install --no-cache-dir rdkit fair-esm==2.0.1
+    pip install --no-cache-dir rdkit fair-esm==2.0.0
 
 ARG EASIFA_REPO=https://github.com/YaoYinYing/EasIFA.git
 ARG EASIFA_REF=main
