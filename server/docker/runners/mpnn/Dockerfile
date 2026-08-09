@@ -31,14 +31,15 @@ ARG LIGANDMPNN_REPO=https://github.com/dauparas/LigandMPNN.git
 ARG LIGANDMPNN_REF=main
 RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --branch ${LIGANDMPNN_REF} ${LIGANDMPNN_REPO} /opt/LigandMPNN || git clone --depth 1 --branch ${LIGANDMPNN_REF} ${LIGANDMPNN_REPO} /opt/LigandMPNN || git clone --depth 1 --branch ${LIGANDMPNN_REF} ${LIGANDMPNN_REPO} /opt/LigandMPNN)
 
-# All pip installs in one RUN.  LigandMPNN's requirements.txt is the version
-# authority — it already pins torch, numpy, biopython, etc.  The PyTorch CPU
-# index is listed first so torch resolves there; everything else falls back
-# to PyPI.  (requirements.txt includes nvidia-* CUDA stubs that install but
-# are harmless with CPU torch — upstream version-mess, not ours to fix.)
+# Copy united requirements (all model deps in one place).
+COPY docker/runners/mpnn/requirements.txt /tmp/requirements.txt
+
+# All pip installs in one RUN.  requirements.txt is the version authority —
+# it covers LigandMPNN's pinned deps + ThermoMPNN-D's extras.
+# PyTorch CPU index listed first so torch/torchvision/torchaudio resolve there.
 ARG THERMOREPO=https://github.com/YaoYinYing/ThermoMPNN-D.git
 ARG THERMOREF=main
-RUN pip install --no-cache-dir -r /opt/LigandMPNN/requirements.txt \
+RUN pip install --no-cache-dir -r /tmp/requirements.txt \
     --index-url https://download.pytorch.org/whl/cpu \
     --extra-index-url https://pypi.org/simple && \
     pip install --no-cache-dir "git+${THERMOREPO}@${THERMOREF}"
