@@ -11,13 +11,16 @@ RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 && \
     python3 -m pip install --no-cache-dir --upgrade pip
 
-RUN python3 -m pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121 && \
-    python3 -m pip install --no-cache-dir dgl==2.4.0 -f https://data.dgl.ai/wheels/torch-2.3/cu121/repo.html && \
-    python3 -m pip install --no-cache-dir e3nn openbabel networkx pandas opt_einsum
-
 ARG PLACER_REPO=https://github.com/YaoYinYing/PLACER.git
 ARG PLACER_REF=main
-RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER || git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER || git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER) && \
+RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER || git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER || git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER)
+
+# All pip installs in one RUN so pip resolves torch + PLACER deps together.
+# PLACER depends on torch; installing it after cu121 torch in a separate RUN
+# could trigger pip to replace the CUDA build with a PyPI CPU build.
+RUN python3 -m pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121 && \
+    python3 -m pip install --no-cache-dir dgl==2.4.0 -f https://data.dgl.ai/wheels/torch-2.3/cu121/repo.html && \
+    python3 -m pip install --no-cache-dir e3nn openbabel networkx pandas opt_einsum && \
     pip install --no-cache-dir -e /opt/PLACER
 
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
