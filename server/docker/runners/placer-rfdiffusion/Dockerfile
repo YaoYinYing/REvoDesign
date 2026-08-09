@@ -33,10 +33,12 @@ RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --bran
     mkdir -p /opt/RFdiffusion/models
 
 # All pip deps in one RUN.  CUDA 12.1 torch + DGL 2.4 cover both projects.
-# decorator is used by the vendored SE3-Transformer code at runtime.
+# The vendored SE3-Transformer requirements.txt lists wandb, pynvml, dllogger,
+# decorator — all training-only, never imported at inference.  e3nn is the
+# only runtime dependency from the SE3 stack.
 RUN python3 -m pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121 && \
     python3 -m pip install --no-cache-dir dgl==2.4.0 -f https://data.dgl.ai/wheels/torch-2.3/cu121/repo.html && \
-    python3 -m pip install --no-cache-dir e3nn openbabel networkx pandas opt_einsum hydra-core decorator pyrsistent
+    python3 -m pip install --no-cache-dir e3nn openbabel networkx pandas opt_einsum hydra-core pyrsistent
 
 # Non-root user.
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
