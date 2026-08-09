@@ -7,7 +7,7 @@
 mounts:
   - host_path: "/mnt/db/opendde"
     container_path: "/mnt/db/opendde"
-    mode: "rw"
+    mode: "ro"
 
 env: {}
 

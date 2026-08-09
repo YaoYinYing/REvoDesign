@@ -1,0 +1,9 @@
+mounts:
+  - host_path: "/mnt/db/weights/easifa"
+    container_path: "/mnt/db/weights/easifa"
+    mode: "ro"
+env: {}
+gpus: true
+nproc: 1
+max_runtime_seconds: 3600
+defaults: {}

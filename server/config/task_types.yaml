@@ -242,3 +242,55 @@ task_types:
         type: "int"
         default: 10
         description: "Number of designs to generate"
+
+  placer:
+    display_name: "PLACER"
+    docker_image: "revodesign-revocompute-runner-placer"
+    command: ["bash", "/app/revocompute/run.sh"]
+    gpus: true
+    input_extension: ".pdb"
+    input_label: "PDB / mmCIF file"
+    stage_markers:
+      placer: "PLACER structure generation"
+    result_patterns: ["*.pdb", "*.csv"]
+    params:
+      - name: "num_samples"
+        type: "int"
+        default: 50
+        description: "Number of samples"
+      - name: "predict_ligand"
+        type: "bool"
+        default: true
+        description: "Predict ligand coordinates"
+
+  bioemu:
+    display_name: "BioEmu"
+    docker_image: "revodesign-revocompute-runner-bioemu"
+    command: ["bash", "/app/revocompute/run.sh"]
+    gpus: true
+    input_extension: ".fasta"
+    input_label: "FASTA file"
+    stage_markers:
+      bioemu: "BioEmu structure sampling"
+    result_patterns: ["*.pdb", "*.xtc"]
+    params:
+      - name: "num_samples"
+        type: "int"
+        default: 10
+        description: "Number of structure samples"
+
+  easifa:
+    display_name: "EasIFA"
+    docker_image: "revodesign-revocompute-runner-easifa"
+    command: ["bash", "/app/revocompute/run.sh"]
+    gpus: true
+    input_extension: ".pdb"
+    input_label: "PDB file / dataset dir"
+    stage_markers:
+      easifa: "EasIFA active-site annotation"
+    result_patterns: ["*"]
+    params:
+      - name: "task_subtype"
+        type: "str"
+        default: "active-site-position-prediction"
+        description: "active-site-position-prediction or active-site-categorie-prediction"

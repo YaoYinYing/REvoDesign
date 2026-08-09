@@ -1,0 +1,9 @@
+mounts:
+  - host_path: "/mnt/db/weights/alphafold"
+    container_path: "/root/.cache/colabfold"
+    mode: "ro"
+env: {}
+gpus: true
+nproc: 1
+max_runtime_seconds: 7200
+defaults: {}
