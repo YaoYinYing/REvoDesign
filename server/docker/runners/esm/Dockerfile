@@ -10,6 +10,9 @@ ARG RUNNER_GID
 ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
+# tzdata hangs without TZ pre-set.
+ENV TZ=Etc/UTC
+
 # System deps: python3.9, git (openfold dep), build-essential (nvcc).
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
     python3.9 \

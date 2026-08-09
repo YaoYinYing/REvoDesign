@@ -17,6 +17,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_ROOT_USER_ACTION=ignore \
     REVOCOMPUTE_LOG_DIR=/var/log/revocompute
 
+# tzdata hangs without TZ pre-set.
+ENV TZ=Etc/UTC
+
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && apt-get install -y --no-install-recommends build-essential curl procps \
     && rm -rf /var/lib/apt/lists/* \

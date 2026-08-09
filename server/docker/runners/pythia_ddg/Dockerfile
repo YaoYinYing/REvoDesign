@@ -7,6 +7,8 @@ ARG RUNNER_GID
 ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
+ENV TZ=Etc/UTC
+
 # System deps: git for cloning.
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
     git \
