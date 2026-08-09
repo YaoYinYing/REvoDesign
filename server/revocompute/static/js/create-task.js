@@ -308,4 +308,84 @@
       clearButton.disabled = false;
     }
   });
+
+  // -- structure snapshot (Molstar 3D viewer for PDB inputs) -----------------
+
+  var molstarLoaded = false;
+  var molstarViewer = null;
+
+  function loadMolstar(callback) {
+    if (molstarLoaded) { callback(); return; }
+    var script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/molstar@4.12.0/build/viewer/molstar.js";
+    script.onload = function () { molstarLoaded = true; callback(); };
+    document.head.appendChild(script);
+  }
+
+  function showStructureSnapshot(file) {
+    var snap = document.getElementById("structureSnapshot");
+    var viewport = document.getElementById("molstarViewport");
+    var checklist = document.getElementById("submissionChecklist");
+    if (!snap || !viewport) return;
+    snap.style.display = "";
+    if (checklist) checklist.style.display = "none";
+
+    loadMolstar(function () {
+      var url = URL.createObjectURL(file);
+      if (molstarViewer) {
+        molstarViewer.loadStructureFromData(url, "pdb");
+        return;
+      }
+      molstarViewer = new PDBeMolstar.Molstar({
+        target: viewport,
+        bgColor: { r: 246, g: 251, b: 255 },
+        sequencePanel: false,
+        ligandView: true,
+        hideCanvasControls: ["selection", "controlInfo", "expand", "selectionMode"],
+        allowFocus: false,
+      });
+      molstarViewer.loadStructureFromData(url, "pdb");
+    });
+  }
+
+  function hideStructureSnapshot() {
+    var snap = document.getElementById("structureSnapshot");
+    var checklist = document.getElementById("submissionChecklist");
+    if (snap) snap.style.display = "none";
+    if (checklist) checklist.style.display = "";
+  }
+
+  // Wire into existing file selection
+  var _origFileChange = fileInput.onchange;
+  fileInput.addEventListener("change", function () {
+    if (fileInput.files && fileInput.files.length > 0) {
+      var f = fileInput.files[0];
+      if (f.name.toLowerCase().endsWith(".pdb")) showStructureSnapshot(f);
+      else hideStructureSnapshot();
+    }
+  });
+
+  // Wire into drag-and-drop
+  var _origDropHandler = dropZone.onDrop;
+  dropZone.addEventListener("drop", function (e) {
+    setTimeout(function () {
+      if (fileInput.files && fileInput.files.length > 0) {
+        var f = fileInput.files[0];
+        if (f.name.toLowerCase().endsWith(".pdb")) showStructureSnapshot(f);
+        else hideStructureSnapshot();
+      }
+    }, 50);
+  });
+
+  // Wire into task type switch
+  taskTypeSelect.addEventListener("change", function () {
+    var ext = currentFormDef ? currentFormDef.file_input.accept : "";
+    if (ext === ".pdb" && fileInput.files && fileInput.files.length > 0) {
+      showStructureSnapshot(fileInput.files[0]);
+    } else if (ext !== ".pdb") {
+      hideStructureSnapshot();
+    }
+  });
+
+  clearButton.addEventListener("click", function () { hideStructureSnapshot(); });
 })();
