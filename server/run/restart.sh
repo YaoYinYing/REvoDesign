@@ -381,6 +381,58 @@ resolve_runner_identity() {
   echo "Using runner identity ${RUNNER_UID}:${RUNNER_GID} (user ${_user}, group ${_group})."
 }
 
+prepare_auth_storage() {
+  local auth_dir="${AUTH_DIR:?AUTH_DIR must be set}"
+  local user_db="${auth_dir}/users.sqlite3"
+  local path=""
+  local owner=""
+  local group=""
+  local -a sqlite_files=()
+
+  mkdir -p "${auth_dir}"
+  if ! python3 - "${auth_dir}" "${RUNNER_UID}" "${RUNNER_GID}" <<'PY'
+import os
+import stat
+import sys
+
+path, uid, gid = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
+info = os.stat(path)
+shift = 6 if info.st_uid == uid else 3 if info.st_gid == gid else 0
+raise SystemExit(0 if ((stat.S_IMODE(info.st_mode) >> shift) & 0o7) == 0o7 else 1)
+PY
+  then
+    if ! command -v setfacl >/dev/null 2>&1 || ! setfacl -m "u:${RUNNER_UID}:rwx" "${auth_dir}"; then
+      echo "AUTH_DIR is not accessible to runner uid ${RUNNER_UID}: ${auth_dir}" >&2
+      echo "Grant that uid rwx access or install setfacl before activation." >&2
+      return 1
+    fi
+  fi
+
+  if [[ ! -e "${user_db}" ]]; then
+    return 0
+  fi
+  sqlite_files=("${user_db}")
+  shopt -s nullglob
+  sqlite_files+=("${user_db}"-*)
+  shopt -u nullglob
+  for path in "${sqlite_files[@]}"; do
+    owner="$(stat -c '%u' "${path}" 2>/dev/null || stat -f '%u' "${path}")"
+    group="$(stat -c '%g' "${path}" 2>/dev/null || stat -f '%g' "${path}")"
+    if [[ "${owner}" == "${RUNNER_UID}" ]]; then
+      chmod u+rw,go-rwx "${path}"
+    elif [[ "${group}" == "${RUNNER_GID}" ]] && chmod g+rw,o-rwx "${path}" 2>/dev/null; then
+      :
+    elif command -v setfacl >/dev/null 2>&1 && chmod o-rwx "${path}" 2>/dev/null \
+      && setfacl -m "u:${RUNNER_UID}:rw" "${path}"; then
+      :
+    else
+      echo "SQLite auth file is not writable by runner uid ${RUNNER_UID}: ${path}" >&2
+      echo "Correct its ownership/ACL before activation; refusing an insecure world-write fallback." >&2
+      return 1
+    fi
+  done
+}
+
 prepare_result_storage() {
   set +u
   set -a
@@ -411,6 +463,14 @@ validate_result_storage() {
     sh -c 'test -r /srv/results && test -x /srv/results'; then
     echo "Results directory is not readable by the Nginx gateway: ${SERVER_DIR}/results" >&2
     exit 1
+  fi
+}
+
+validate_auth_database_storage() {
+  if ! "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec -T web \
+    python -c 'import os, sqlite3; path=os.environ["USER_DB_PATH"]; conn=sqlite3.connect(path); conn.execute("BEGIN IMMEDIATE"); conn.rollback()'; then
+    echo "Auth database is not writable by the web service; refusing to report readiness." >&2
+    return 1
   fi
 }
 
@@ -678,6 +738,8 @@ PY
     return 1
   fi
   chmod 600 "${backup_db}"
+  resolve_runner_identity
+  prepare_auth_storage
   unset new_password
   echo "Password reset completed for user: ${username}"
   echo "Auth database backup written to: ${backup_db} (mode 0600)"
@@ -818,10 +880,12 @@ cmd_up() {
   prepare_admin_bootstrap
   ensure_docker_gid
   resolve_runner_identity
+  prepare_auth_storage
   prepare_result_storage
   echo "Starting services via docker compose..."
   "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" up "$@" -d redis web gateway maintenance worker
   validate_result_storage
+  validate_auth_database_storage
   print_admin_logins
 }
 
@@ -878,6 +942,7 @@ cmd_restart() {
     # them during preflight so a missing DOCKER_GID fails before cmd_down.
     ensure_docker_gid
     resolve_runner_identity
+    prepare_auth_storage
     validate_compose_model
   fi
 

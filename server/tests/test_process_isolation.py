@@ -53,6 +53,9 @@ def _run_restart_script(
     log_dir = tmp_path / "logs"
     for path in (task_dir, auth_dir, log_dir):
         path.mkdir(exist_ok=True)
+    # Model a host-mounted directory that the configured container uid can
+    # traverse. Production may instead grant the same access with a POSIX ACL.
+    auth_dir.chmod(0o777)
     if seed_user_db:
         import sqlite3
 
@@ -258,6 +261,7 @@ def test_up_generates_bootstrap_password_for_empty_user_database(tmp_path):
     assert any(
         "exec -T gateway sh -c test -r /srv/results && test -x /srv/results" in command for command in commands
     )
+    assert any("exec -T web python -c" in command and "BEGIN IMMEDIATE" in command for command in commands)
     assert (root / "tasks" / "results").is_dir()
 
 
@@ -266,6 +270,8 @@ def test_reset_passwd_rotates_hash_invalidates_tokens_and_writes_protected_crede
         tmp_path / "reset-passwd",
         "reset-passwd",
         "admin",
+        uid=str(os.getuid()),
+        gid=str(os.getgid()),
         seed_user_db=True,
     )
 
