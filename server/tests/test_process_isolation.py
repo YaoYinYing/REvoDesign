@@ -128,6 +128,20 @@ def test_restart_modes_choose_build_or_pull(tmp_path):
     assert any(command == "pull revodesign-revocompute-runner" for command in prod_commands)
 
 
+def test_proxy_build_redacts_url_and_uses_non_persisted_build_args(tmp_path):
+    proxy_url = "http://test-user:test-password@proxy.invalid:8080"
+    result, commands = _run_restart_script(tmp_path, "build", f"--use-proxy={proxy_url}")
+
+    assert result.returncode == 0, result.stderr
+    assert proxy_url not in result.stdout
+    assert proxy_url not in result.stderr
+    assert "credential redacted" in result.stdout
+    build_commands = [command for command in commands if command.startswith("build ")]
+    assert build_commands
+    assert all("--build-arg HTTP_PROXY=" in command for command in build_commands)
+    assert all("Dockerfile.proxy" not in command for command in build_commands)
+
+
 def test_prepared_restart_validates_before_down_without_build_or_pull(tmp_path):
     config_dir = _make_deployed_config(tmp_path, executor="slurm")
     result, commands = _run_restart_script(
