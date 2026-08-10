@@ -1330,6 +1330,77 @@ def test_download_uses_safe_fasta_prefix_filename(monkeypatch, tmp_path):
     assert "\n" not in disposition
 
 
+def test_nginx_download_offload_returns_internal_redirect(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "RESULT_DOWNLOAD_MODE": "nginx",
+        },
+    )
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "nginx_download"
+    result_dir.mkdir(parents=True)
+    upload_file = result_dir / "input.fasta"
+    upload_file.write_text(">x\nACDE\n", encoding="utf-8")
+    archive = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
+    archive.write_bytes(b"zip")
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="input.fasta",
+        file_path=upload_file,
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+
+    response = client.get(f"/PSSM_GREMLIN/api/download/{md5sum}", headers=auth_header)
+
+    assert response.status_code == 200
+    assert response.data == b""
+    assert response.headers["X-Accel-Redirect"] == f"/_protected_results/{archive.name}"
+    assert response.headers["Content-Type"] == "application/zip"
+    assert response.headers["Cache-Control"] == "private, no-store"
+    assert response.headers["Content-Disposition"].startswith("attachment;")
+
+
+def test_download_does_not_pack_missing_archive_in_request(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "missing_archive"
+    result_dir.mkdir(parents=True)
+    upload_file = result_dir / "input.fasta"
+    upload_file.write_text(">x\nACDE\n", encoding="utf-8")
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="input.fasta",
+        file_path=upload_file,
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+
+    response = client.get(f"/PSSM_GREMLIN/api/download/{md5sum}", headers=auth_header)
+
+    assert response.status_code == 404
+    assert response.json["message"] == "result file not found"
+    assert not list(Path(module.app.config["RESULTS_FOLDER"]).glob("*.zip"))
+
+
 def test_failed_task_archive_is_downloadable(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,

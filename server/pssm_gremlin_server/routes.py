@@ -420,22 +420,24 @@ def download_results(md5sum):
 
     zip_filename = _task_zip_path(task)
     if not os.path.exists(zip_filename):
-        # Pack on-the-fly for failed tasks where the result dir survives.
-        result_dir = task.get("result_dir")
-        if result_dir and os.path.isdir(result_dir):
-            zip_base = os.path.splitext(zip_filename)[0]
-            shutil.make_archive(zip_base, "zip", result_dir)
-        else:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "md5sum": md5sum,
-                        "message": "result file not found",
-                    }
-                ),
-                404,
-            )
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "md5sum": md5sum,
+                    "message": "result file not found",
+                }
+            ),
+            404,
+        )
+
+    if app.config["RESULT_DOWNLOAD_MODE"] == "nginx":
+        archive_name = os.path.basename(zip_filename)
+        response = Response(status=200, mimetype="application/zip")
+        response.headers["X-Accel-Redirect"] = f"/_protected_results/{archive_name}"
+        response.headers.set("Content-Disposition", "attachment", filename=_task_zip_download_name(task))
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
 
     return send_from_directory(
         app.config["RESULTS_FOLDER"],

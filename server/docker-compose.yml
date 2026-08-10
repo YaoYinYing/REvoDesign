@@ -30,6 +30,8 @@ x-task-env: &task-env
 x-web-auth-env: &web-auth-env
   PORT: ${PORT:-8080}
   GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+  GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
+  RESULT_DOWNLOAD_MODE: ${RESULT_DOWNLOAD_MODE:-nginx}
   ADMIN_USERS: ${ADMIN_USERS}
   AUTH_TOKEN_MAX_AGE: ${AUTH_TOKEN_MAX_AGE:-604800}
   USER_DB_PATH: ${USER_DB_PATH:-/var/lib/revodesign-auth/users.sqlite3}
@@ -81,6 +83,28 @@ services:
     volumes:
       - redis-data:/data
 
+  gateway:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    user: ${RUNNER_UID}:${RUNNER_GID}
+    read_only: true
+    depends_on:
+      - web
+    environment:
+      UPSTREAM_PORT: ${PORT:-8080}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        envsubst '$$UPSTREAM_PORT' < /etc/nginx/nginx.conf.template > /tmp/nginx.conf
+        && exec nginx -c /tmp/nginx.conf -g 'daemon off;'
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - ./docker/nginx/default.conf.template:/etc/nginx/nginx.conf.template:ro
+      - ${SERVER_DIR}/results:/srv/results:ro
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+
   web:
     image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root:latest}
     build:
@@ -101,7 +125,7 @@ services:
       - redis
     command: >-
       gunicorn -w ${GUNICORN_WORKERS:-2}
-      --timeout 3600
+      --timeout ${GUNICORN_TIMEOUT:-120}
       --preload
       -b 0.0.0.0:${PORT:-8080}
       --access-logfile ${LOG_DIR}/gunicorn-access.log
@@ -109,8 +133,8 @@ services:
       --access-logformat '%({CF-Connecting-IP}i)s (%({Cf-Ipcountry}i)s) - %(u)s %(t)s "%(r)s" %(s)s %(B)s "%(a)s"'
       pssm_gremlin_server.pssm_gremlin:app
     working_dir: /app/server
-    ports:
-      - "${PORT:-8080}:${PORT:-8080}"
+    expose:
+      - "${PORT:-8080}"
     volumes:
       - ${SERVER_DIR}:${SERVER_DIR}
       - ${AUTH_DIR:-./auth-data}:/var/lib/revodesign-auth

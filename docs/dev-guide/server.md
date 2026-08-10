@@ -45,7 +45,7 @@ from the dashboard. Users can also cancel queued or running tasks.
 
 ## Architecture
 
-The server has four long-lived services plus on-demand runner containers,
+The server has five long-lived services plus on-demand runner containers,
 orchestrated by Docker Compose:
 
 ```
@@ -53,8 +53,16 @@ orchestrated by Docker Compose:
                 │     Browser /    │
                 │    curl client   │
                 └────────┬─────────┘
-                         │ HTTP (port 8080)
+                         │ HTTP (public port)
                          ▼
+┌─────────────────────────────────────────┐
+│              gateway (Nginx)            │
+│  - Proxies application requests         │
+│  - Serves authorized result ZIP bytes   │
+│  - Read-only mount of results/ only     │
+└────────────────────┬────────────────────┘
+                     │ internal HTTP
+                     ▼
 ┌─────────────────────────────────────────┐
 │              web (Flask + Gunicorn)     │
 │  - REST API (/PSSM_GREMLIN/api/...)    │
@@ -62,6 +70,8 @@ orchestrated by Docker Compose:
 │  - Bearer-token auth + API keys        │
 │  - Owns isolated users.sqlite3         │
 │  - No Docker socket                    │
+│  - Authorizes downloads, then returns  │
+│    an internal X-Accel-Redirect         │
 └────┬────────────────────────────────┬───┘
      │ Celery tasks
      ▼
@@ -90,8 +100,12 @@ orchestrated by Docker Compose:
 └─────────────────────────────────────────┘
 ```
 
-The separate `maintenance` service runs APScheduler without an HTTP port or
-Docker socket. It shares the web service's access to the task and user
+The Nginx gateway owns the published port. Gunicorn is reachable only through
+the Compose network. For result downloads, Flask authenticates the request and
+checks task ownership before returning an internal redirect; Nginx then streams
+the ZIP from its read-only results mount, leaving Gunicorn available for other
+requests. The separate `maintenance` service runs APScheduler without an HTTP
+port or Docker socket. It shares the web service's access to the task and user
 databases so it can send registration digests and, when explicitly enabled,
 remove expired result artifacts and create consistent database snapshots.
 
@@ -337,6 +351,8 @@ Important environment variables (see the organized sections in
 | `MAXMEM` | Memory cap (GB) for HHblits (`-maxmem`) |
 | `WORKER_CONCURRENCY` | Concurrent Celery jobs |
 | `GUNICORN_WORKERS` | Gunicorn web worker count |
+| `GUNICORN_TIMEOUT` | Gunicorn request timeout in seconds; result file transfers are offloaded to Nginx |
+| `RESULT_DOWNLOAD_MODE` | `nginx` for the Compose gateway, `flask` for direct local development |
 | `PORT` | Public HTTP port (default: 8080) |
 | `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives; fractions are allowed (`0.1` = 2.4 hours), and unset disables cleanup |
 | `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots; unset disables the task. Recommended daily value: `0 0 * * *` |

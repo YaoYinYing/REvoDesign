@@ -125,6 +125,7 @@ task_store = task_runtime.task_store
 # Define directories for storing files
 app.config["UPLOAD_FOLDER"] = CONFIG.upload_folder
 app.config["RESULTS_FOLDER"] = CONFIG.results_folder
+app.config["RESULT_DOWNLOAD_MODE"] = CONFIG.result_download_mode
 
 _ensure_directories(CONFIG.upload_folder, CONFIG.results_folder)
 

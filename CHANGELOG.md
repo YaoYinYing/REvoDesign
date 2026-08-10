@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   problems, with private routing for security vulnerabilities.
 
 ### Changed
+- **GREMLIN server: Nginx result offload**: made the Compose gateway own the
+  public port and stream authorized result ZIPs from a read-only mount via
+  Flask-issued internal redirects. Gunicorn no longer carries large download
+  bodies or creates missing archives inside HTTP requests; result downloads
+  support byte ranges while internal file paths remain unreachable directly.
 - **Server reload operation**: added zero-downtime Gunicorn reload as a
   subcommand of the main deployment helper.
 - **Experimental cluster visibility**: marked EvoCluster and KMeansCluster as

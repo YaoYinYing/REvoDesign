@@ -188,6 +188,25 @@ resolve_runner_identity() {
   echo "Using runner identity ${RUNNER_UID}:${RUNNER_GID} (user ${_user}, group ${_group})."
 }
 
+prepare_result_storage() {
+  set +u
+  set -a
+  source "${ENV_FILE}"
+  set +a
+  set -u
+
+  local results_dir="${SERVER_DIR}/results"
+  mkdir -p "${results_dir}"
+  if [[ "$(id -u)" == "0" ]]; then
+    chown "${RUNNER_UID}:${RUNNER_GID}" "${results_dir}"
+  fi
+  chmod u+rwx,go+rx "${results_dir}"
+  if [[ ! -w "${results_dir}" ]]; then
+    echo "Results directory is not writable: ${results_dir}" >&2
+    exit 1
+  fi
+}
+
 require_production_identity() {
   resolve_runner_identity
   if [[ "${RUNNER_UID}" != "1000" || "${RUNNER_GID}" != "1000" ]]; then
@@ -337,8 +356,9 @@ cmd_up() {
   prepare_admin_bootstrap
   ensure_docker_gid
   resolve_runner_identity
+  prepare_result_storage
   echo "Starting services via docker compose..."
-  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up "$@" -d redis web maintenance worker
+  "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up "$@" -d redis web gateway maintenance worker
   print_admin_logins
 }
 
@@ -379,7 +399,7 @@ cmd_restart() {
       ;;
     prod)
       echo "Pulling configured production images..."
-      "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" --profile runner pull web runner
+      "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" --profile runner pull web gateway runner
       ;;
   esac
   cmd_up --no-build
@@ -387,7 +407,7 @@ cmd_restart() {
   DOMAIN="0.0.0.0"
   PORT="${PORT:-8080}"
   echo "Deployment completed."
-  echo "Flask app is now running at http://${DOMAIN}:${PORT}/PSSM_GREMLIN/dashboard"
+  echo "Nginx gateway is now running at http://${DOMAIN}:${PORT}/PSSM_GREMLIN/dashboard"
 }
 
 SUBCOMMAND="${1:-restart}"
