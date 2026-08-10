@@ -186,6 +186,7 @@ def test_easifa_runtime_includes_rdkit_shared_libraries():
     dockerfile = (SERVER_ROOT / "docker" / "runners" / "easifa" / "Dockerfile").read_text(
         encoding="utf-8"
     )
+    assert "libexpat1" in dockerfile
     assert "libxext6" in dockerfile
     assert "libxrender1" in dockerfile
 
