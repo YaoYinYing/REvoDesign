@@ -113,6 +113,19 @@ def test_mpnn_cpu_runtime_omits_inference_unused_gpu_and_media_wheels():
     assert '--no-deps "git+${THERMOREPO}@${THERMOREF}"' in dockerfile
 
 
+def test_prime_runtime_uses_pinned_ogt_model_contract():
+    runtime_dir = SERVER_ROOT / "docker" / "runners" / "prime"
+    dockerfile = (runtime_dir / "Dockerfile").read_text(encoding="utf-8")
+    script = (runtime_dir / "run.sh").read_text(encoding="utf-8")
+
+    assert "ProPrime_650M_OGT_Prediction-91490f95c707" in dockerfile
+    assert "transformers==4.36.2" in dockerfile
+    assert "outputs.predicted_values" in script
+    assert "local_files_only=True" in script
+    assert "AI4Protein/Prime_690M" not in script
+    assert ".predict_ogt(" not in script
+
+
 def test_shared_placer_rfdiffusion_runtime_uses_audited_compatible_versions():
     dockerfile = (
         SERVER_ROOT / "docker" / "runners" / "placer-rfdiffusion" / "Dockerfile"

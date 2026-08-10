@@ -11,13 +11,19 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     (id -u ${RUNNER_USERNAME} >/dev/null 2>&1 && usermod -u ${RUNNER_UID} -g ${RUNNER_GID} ${RUNNER_USERNAME}) || \
     useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121 && \
-    pip install --no-cache-dir transformers pandas biopython tqdm scipy
+RUN pip install --no-cache-dir torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121 && \
+    pip install --no-cache-dir \
+      transformers==4.36.2 \
+      pandas==2.2.3 \
+      biopython==1.83 \
+      tqdm==4.66.5 \
+      scipy==1.12.0
 
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
 
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/prime/run.sh /app/revocompute/
 
 WORKDIR /app/revocompute/
-ENV RUNNER_USERNAME=${RUNNER_USERNAME}
+ENV RUNNER_USERNAME=${RUNNER_USERNAME} \
+    PRIME_MODEL_DIR=/mnt/db/weights/prime/ProPrime_650M_OGT_Prediction-91490f95c707
 ENTRYPOINT ["bash", "/app/revocompute/run.sh"]
