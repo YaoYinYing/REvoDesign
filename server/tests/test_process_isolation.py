@@ -24,6 +24,7 @@ def _run_restart_script(
     omit_settings=(),
     fail_chmod=False,
     config_dir=None,
+    build_proxy=None,
 ):
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir(parents=True)
@@ -65,6 +66,8 @@ def _run_restart_script(
     }
     if config_dir is not None:
         settings["CONFIG_DIR"] = str(config_dir)
+    if build_proxy is not None:
+        settings["REVODESIGN_BUILD_PROXY"] = build_proxy
     env_file.write_text(
         "\n".join(f"{name}={value}" for name, value in settings.items() if name not in omit_settings),
         encoding="utf-8",
@@ -140,6 +143,30 @@ def test_proxy_build_redacts_url_and_uses_non_persisted_build_args(tmp_path):
     assert build_commands
     assert all("--build-arg HTTP_PROXY=" in command for command in build_commands)
     assert all("Dockerfile.proxy" not in command for command in build_commands)
+
+
+def test_proxy_build_can_read_url_from_selected_env_file(tmp_path):
+    proxy_url = "http://test-user:test-password@proxy.invalid:8080"
+    result, commands = _run_restart_script(
+        tmp_path,
+        "build",
+        "--use-proxy",
+        build_proxy=proxy_url,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert proxy_url not in result.stdout
+    assert proxy_url not in result.stderr
+    assert "credential redacted" in result.stdout
+    assert any("--build-arg HTTP_PROXY=" in command for command in commands)
+
+
+def test_proxy_build_requires_env_value_for_bare_flag(tmp_path):
+    result, commands = _run_restart_script(tmp_path, "build", "--use-proxy")
+
+    assert result.returncode != 0
+    assert "requires REVODESIGN_BUILD_PROXY" in result.stderr
+    assert not any(command.startswith("build ") for command in commands)
 
 
 def test_prepared_restart_validates_before_down_without_build_or_pull(tmp_path):

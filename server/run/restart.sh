@@ -254,9 +254,12 @@ Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart]
                                                (requires apptainer on PATH).
 
        Build flags (build / restart --mode=dev):
-           --use-proxy=<url>                   Use proxy for apt/pip/git during
+           --use-proxy[=<url>]                 Use proxy for apt/pip/git during
                                                Docker builds via predefined
                                                non-persisted build arguments.
+                                               Without a URL, read
+                                               REVODESIGN_BUILD_PROXY from the
+                                               selected environment file.
 
 Environment:
   REVODESIGN_SERVER_ENV
@@ -274,7 +277,7 @@ Subcommands:
            --mode=prod: down, pull configured images, then up without building.
            --mode=prepared: validate local images, SIFs, configuration, and
                             Compose before down, then up without build or pull.
-           --use-proxy=<url>  Pass redacted, non-persisted proxy build arguments.
+           --use-proxy[=<url>]  Pass redacted, non-persisted proxy build arguments.
 USAGE
 }
 
@@ -655,6 +658,16 @@ cmd_build() {
   set -a
   source "${ENV_FILE}"
   set +a
+  if [[ "${USE_PROXY_FROM_ENV}" == "1" ]]; then
+    USE_PROXY="${REVODESIGN_BUILD_PROXY:-}"
+    if [[ -z "${USE_PROXY}" ]]; then
+      echo "--use-proxy requires REVODESIGN_BUILD_PROXY in ${ENV_FILE}." >&2
+      exit 1
+    fi
+    export HTTP_PROXY="${USE_PROXY}"
+    export HTTPS_PROXY="${USE_PROXY}"
+    export NO_PROXY="${NO_PROXY:-localhost,127.0.0.1,.local}"
+  fi
   validate_runtime_files
   ensure_docker_gid
   resolve_runner_identity
@@ -874,6 +887,7 @@ MODE="dev"
 USE_SLURM=0
 BUILD_SIF=0
 USE_PROXY=""
+USE_PROXY_FROM_ENV=0
 shift  # consume subcommand
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -927,6 +941,9 @@ while [[ $# -gt 0 ]]; do
       export HTTP_PROXY="${USE_PROXY}"
       export HTTPS_PROXY="${USE_PROXY}"
       export NO_PROXY="${NO_PROXY:-localhost,127.0.0.1,.local}"
+      ;;
+    --use-proxy)
+      USE_PROXY_FROM_ENV=1
       ;;
     *)
       echo "Unexpected argument: $1" >&2
