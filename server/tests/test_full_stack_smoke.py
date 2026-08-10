@@ -7,7 +7,11 @@ from __future__ import annotations
 from unittest.mock import Mock
 
 import pytest
-from full_stack_smoke import _wait_for_task
+from full_stack_smoke import _wait_for_task, run_full_stack_checks
+
+
+def test_production_smoke_allows_long_running_gremlin_jobs() -> None:
+    assert run_full_stack_checks.__defaults__ == (7200.0,)
 
 
 def test_wait_for_task_rejects_http_error_before_parsing_json() -> None:

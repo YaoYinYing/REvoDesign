@@ -85,7 +85,13 @@ def _wait_for_archive(
     raise AssertionError(f"Optional archive for {task_id} was not ready after {timeout:g} seconds")
 
 
-def run_full_stack_checks(base_url: str, fasta_path: Path, admin_username: str, admin_password: str) -> None:
+def run_full_stack_checks(
+    base_url: str,
+    fasta_path: Path,
+    admin_username: str,
+    admin_password: str,
+    task_timeout: float = 7200.0,
+) -> None:
     with requests.Session() as session:
         _wait_for_server(session, base_url)
         _assert_page(session, base_url, "/compute/login", "Sign in")
@@ -125,7 +131,7 @@ def run_full_stack_checks(base_url: str, fasta_path: Path, admin_username: str, 
             )
         assert submitted.status_code == 302, f"Task submission failed: {submitted.status_code} {submitted.text[:300]}"
         task_id = submitted.headers["Location"].rstrip("/").rsplit("/", 1)[-1]
-        _wait_for_task(session, base_url, task_id, headers)
+        _wait_for_task(session, base_url, task_id, headers, timeout=task_timeout)
 
         results = session.get(
             f"{base_url}/compute/api/results/{task_id}",
@@ -137,11 +143,18 @@ def run_full_stack_checks(base_url: str, fasta_path: Path, admin_username: str, 
         manifest = results.json()
         artifacts = manifest["artifacts"]
         paths = {artifact["path"] for artifact in artifacts}
+        artifact_prefix = fasta_path.stem
         assert any(path.endswith("log/task_finished") for path in paths)
-        assert any(path.endswith("gremlin_res/2KL8.i90c75_aln.GREMLIN.mrf.pkl") for path in paths)
-        assert any(path.endswith("pssm_msa/2KL8_ascii_mtx_file") for path in paths)
+        assert any(
+            path.endswith(f"gremlin_res/{artifact_prefix}.i90c75_aln.GREMLIN.mrf.pkl") for path in paths
+        )
+        assert any(path.endswith(f"pssm_msa/{artifact_prefix}_ascii_mtx_file") for path in paths)
 
-        artifact = next(item for item in artifacts if item["path"].endswith("pssm_msa/2KL8_ascii_mtx_file"))
+        artifact = next(
+            item
+            for item in artifacts
+            if item["path"].endswith(f"pssm_msa/{artifact_prefix}_ascii_mtx_file")
+        )
         artifact_url = artifact["url"]
         if artifact_url.startswith("/"):
             artifact_url = f"{base_url}{artifact_url}"
@@ -176,12 +189,24 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--fasta", required=True, type=Path)
+    parser.add_argument(
+        "--task-timeout",
+        type=float,
+        default=7200.0,
+        help="maximum seconds to wait for the production GREMLIN task (default: 7200)",
+    )
     args = parser.parse_args()
     admin_username = os.environ.get("FULL_STACK_ADMIN_USERNAME", "admin")
     admin_password = os.environ.get("FULL_STACK_ADMIN_PASSWORD", "")
     if not admin_password:
         raise SystemExit("FULL_STACK_ADMIN_PASSWORD is required")
-    run_full_stack_checks(args.base_url.rstrip("/"), args.fasta, admin_username, admin_password)
+    run_full_stack_checks(
+        args.base_url.rstrip("/"),
+        args.fasta,
+        admin_username,
+        admin_password,
+        task_timeout=args.task_timeout,
+    )
 
 
 if __name__ == "__main__":

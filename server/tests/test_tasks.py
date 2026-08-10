@@ -82,6 +82,8 @@ def test_full_stack_smoke_uses_manifest_first_result_contract():
     assert 'manifest = results.json()' in script
     assert 'artifact["url"]' in script
     assert 'f"{base_url}/compute/api/results/{task_id}/archive"' in script
+    assert "artifact_prefix = fasta_path.stem" in script
+    assert "2KL8_ascii_mtx_file" not in script
     assert 'os.environ.get("FULL_STACK_ADMIN_USERNAME", "admin")' in script
     assert '"REvoCompute Task Dashboard"' in script
     assert '"Create Compute Task"' in script
