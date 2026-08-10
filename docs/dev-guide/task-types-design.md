@@ -42,7 +42,6 @@ class TaskType:
 
     # Optional fields with defaults
     gpus: bool = False
-    result_patterns: tuple[str, ...] = ("*",)
     stage_markers: dict[str, str] = field(default_factory=dict)
     params: tuple[TaskParam, ...] = ()
 
@@ -114,7 +113,6 @@ task_types:
       hhfilter: "HHfilter filtering"
       gremlin: "GREMLIN optimization"
       blast: "PSI-BLAST PSSM"
-    result_patterns: ["*.pkl", "*_ascii_mtx_file", "*.GREMLIN.mrf.pkl"]
     params:
       - name: "iter"
         type: "int"
@@ -130,7 +128,6 @@ task_types:
     input_label: "FASTA file"
     stage_markers:
       esm_fold: "ESMFold structure prediction"
-    result_patterns: ["*.pdb"]
     params:
       - name: "num_recycles"
         type: "int"
@@ -154,8 +151,6 @@ mounts:
 env:
   GREMLIN_CALC_CPU_NUM: "16"
   OMP_NUM_THREADS: "16"
-nproc: 16
-maxmem: 64
 max_runtime_seconds: 7200
 defaults:
   iter: 100
@@ -207,13 +202,10 @@ The naming convention: `revodesign-revocompute-runner{-<dirname>}`, where
 `pssm_gremlin` is the special base case (no suffix).  `task_types.yaml`
 references images by these tags.
 
-`generate_runner_compose()` writes a `docker-compose.runners.generated.yml`
-override with one service per discovered directory.  `compose_files()`
-auto-includes it.  Adding a new runner is creating a directory under
-`docker/runners/` — no compose or restart.sh edits needed.
-
-All runner images are built **in parallel** (`&` / `wait`) — wall-clock
-time is the slowest image, not the sum.
+`restart.sh` reads the runtime-family manifest and builds or pulls every image
+directly. Compose only manages the long-lived server services from the static
+base file and optional SLURM override; runtime images are launched by workers,
+not represented as profile-disabled Compose services.
 
 ## Entities and InputForm
 

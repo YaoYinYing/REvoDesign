@@ -58,10 +58,19 @@ def _add_security_headers(response):
     response.headers.setdefault(
         "Content-Security-Policy",
         "default-src 'self'; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com; "
-        "script-src 'self' 'unsafe-inline'",
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "img-src 'self' data: blob:; "
+        "worker-src 'self' blob:",
     )
+    # Authenticated HTML and API responses can contain user task data.  In
+    # addition to preventing ordinary HTTP caching, this discourages browsers
+    # from restoring a logged-out dashboard from their back/forward cache.
+    if g.get("current_user") is not None:
+        response.headers.setdefault("Cache-Control", "private, no-store")
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
     # HSTS only when the connection is already HTTPS — browsers ignore the
     # header over plain HTTP (RFC 6797 §7.2), and setting max-age on an
     # HTTP response could lock users out if HTTPS breaks later.
@@ -142,8 +151,8 @@ app.config["RESULT_DOWNLOAD_MODE"] = CONFIG.result_download_mode
 
 _ensure_directories(CONFIG.upload_folder, CONFIG.workspace_folder, CONFIG.results_folder)
 
-# The task type registry is loaded by task_runtime's module-level code (its
-# import at the top of this file), including the built-in gremlin fallback.
+# The authoritative task type registry is loaded by task_runtime's module-level
+# code.  Startup fails if the configured registry is absent or invalid.
 
 # Seed manage_db.task_type_config for every registered task type.
 # Only inserts rows that don't exist yet — admin toggles are preserved.
@@ -186,31 +195,6 @@ def _is_fasta_content(path: str) -> bool:
 
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
-_TASK_ID_PATTERN = re.compile(r"[a-fA-F0-9]{32}$")
-
-
-def _path_is_within(base_dir: str, candidate: str) -> bool:
-    base_abs = os.path.abspath(base_dir)
-    target_abs = os.path.abspath(candidate)
-    try:
-        common = os.path.commonpath([base_abs, target_abs])
-    except ValueError:
-        return False
-    return common == base_abs
-
-
-def _safe_join(base_dir: str, *parts: str) -> str:
-    candidate = os.path.abspath(os.path.join(base_dir, *parts))
-    if not _path_is_within(base_dir, candidate):
-        raise ValueError(f"Path escapes configured base directory: {candidate}")
-    return candidate
-
-
-def _normalize_task_id(raw_task_id: Any) -> str | None:
-    task_id = str(raw_task_id or "").strip().lower()
-    if not _TASK_ID_PATTERN.fullmatch(task_id):
-        return None
-    return task_id
 
 
 def _sanitize_for_log(value: str, max_len: int = 4096) -> str:
@@ -285,14 +269,6 @@ def _request_metadata() -> dict[str, str | None]:
         "username": _current_username() or "anonymous",
         "headers_json": _sanitize_headers_for_log(headers),
     }
-
-
-def _task_zip_path(task: Any) -> str:
-    raw_task_id = task if isinstance(task, str) else task["md5sum"]
-    task_id = _normalize_task_id(raw_task_id)
-    if task_id is None:
-        raise ValueError(f"Invalid task id for result archive: {raw_task_id!r}")
-    return _safe_join(app.config["RESULTS_FOLDER"], f"{task_id}_results.zip")
 
 
 def _safe_fasta_prefix(filename: str) -> str:

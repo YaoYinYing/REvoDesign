@@ -419,6 +419,7 @@ assert task_runtime.task_store.path == os.path.abspath(os.environ["DB_PATH"])
             "PYTHONPATH": str(server_dir),
             "SERVER_DIR": str(task_dir),
             "DB_PATH": str(task_dir / "tasks.sqlite3"),
+            "CONFIG_DIR": str(server_dir / "config"),
             "USER_DB_PATH": str(user_db),
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",

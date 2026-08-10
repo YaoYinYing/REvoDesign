@@ -319,8 +319,6 @@ mounts:
     mode: "ro"
 env:
   GREMLIN_CALC_CPU_NUM: "16"
-nproc: 16
-maxmem: 64
 max_runtime_seconds: 7200
 defaults:
   iter: 100
@@ -665,6 +663,14 @@ downloaded through authenticated endpoints and can be streamed by Nginx. A
 full ZIP is an optional asynchronous cache created only after an explicit
 archive request. It contains only files published by the manifest and is not
 part of task completion.
+
+The dashboard groups previewable artifacts into a scientific gallery. Images,
+bounded CSV/TSV tables, and text use local preview plugins. PDB/mmCIF files use
+the pinned Mol* Viewer 5.10.0 bundle with subresource-integrity verification;
+if that asset or WebGL is unavailable, the dashboard falls back to a local
+alpha-carbon trace. Inline image and structure previews have size limits so a
+large artifact is downloaded instead of being loaded wholesale into browser
+memory.
 
 ## 9. Public Access
 

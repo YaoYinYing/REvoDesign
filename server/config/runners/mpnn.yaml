@@ -3,7 +3,5 @@ mounts:
     container_path: "/opt/LigandMPNN/model_params"
     mode: "ro"
 env: {}
-gpus: false
-nproc: 1
 max_runtime_seconds: 7200
 defaults: {}

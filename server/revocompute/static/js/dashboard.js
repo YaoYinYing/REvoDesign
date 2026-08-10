@@ -15,6 +15,13 @@
   };
   var downloads = new Map();
   var activeErrorButton = null;
+  var molstarAssetsPromise = null;
+
+  var MOLSTAR_VERSION = "5.10.0";
+  var MOLSTAR_BASE = "https://cdn.jsdelivr.net/npm/molstar@" + MOLSTAR_VERSION + "/build/viewer/";
+  var MOLSTAR_SCRIPT_INTEGRITY = "sha384-wBsrlRYNnkOyq4/N6JHjLcT71I5Ig8DhryHsQpwXE91zRmy3XK6KhkxqixmT1S0n";
+  var MOLSTAR_STYLE_INTEGRITY = "sha384-RIonTCdJN53gEl2fmiHN+4bscIBvaUaOiCeeGktXqmFqdEBF+COnSdt9O4IKFSvq";
+  var INLINE_PREVIEW_LIMITS = { image: 32 * 1024 * 1024, structure: 64 * 1024 * 1024 };
 
   var statusMap = {
     "pending": { label: "Pending", css: "status-pending", accent: "var(--pending)" },
@@ -404,7 +411,7 @@
     return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GiB";
   }
 
-  function renderStructurePreview(text, artifact, previewNode) {
+  function renderStructureTraceFallback(text, artifact, previewNode) {
     var points = String(text).split(/\r?\n/).filter(function (line) {
       return line.startsWith("ATOM  ") && line.slice(12, 16).trim() === "CA";
     }).map(function (line) {
@@ -453,6 +460,84 @@
     caption.className = "artifact-structure-caption";
     caption.textContent = points.length + " alpha carbons · chains " + Array.from(chainColors.keys()).join(", ") + " · XY projection";
     previewNode.appendChild(caption);
+  }
+
+  function ensureMolstarAssets() {
+    if (window.molstar && window.molstar.Viewer) return Promise.resolve(window.molstar);
+    if (molstarAssetsPromise) return molstarAssetsPromise;
+    molstarAssetsPromise = new Promise(function (resolve, reject) {
+      if (!document.querySelector("link[data-molstar-style]")) {
+        var style = document.createElement("link");
+        style.rel = "stylesheet";
+        style.href = MOLSTAR_BASE + "molstar.css";
+        style.integrity = MOLSTAR_STYLE_INTEGRITY;
+        style.crossOrigin = "anonymous";
+        style.dataset.molstarStyle = MOLSTAR_VERSION;
+        document.head.appendChild(style);
+      }
+      var existing = document.querySelector("script[data-molstar-script]");
+      if (existing) {
+        existing.addEventListener("load", function () { resolve(window.molstar); }, { once: true });
+        existing.addEventListener("error", reject, { once: true });
+        return;
+      }
+      var script = document.createElement("script");
+      script.src = MOLSTAR_BASE + "molstar.js";
+      script.integrity = MOLSTAR_SCRIPT_INTEGRITY;
+      script.crossOrigin = "anonymous";
+      script.dataset.molstarScript = MOLSTAR_VERSION;
+      script.addEventListener("load", function () {
+        if (window.molstar && window.molstar.Viewer) resolve(window.molstar);
+        else reject(new Error("Mol* viewer did not initialize"));
+      }, { once: true });
+      script.addEventListener("error", function () { reject(new Error("Mol* viewer could not be loaded")); }, { once: true });
+      document.head.appendChild(script);
+    }).catch(function (error) {
+      molstarAssetsPromise = null;
+      throw error;
+    });
+    return molstarAssetsPromise;
+  }
+
+  function structureFormat(path) {
+    var lower = String(path).toLowerCase();
+    return lower.endsWith(".cif") || lower.endsWith(".mmcif") ? "mmcif" : "pdb";
+  }
+
+  async function renderStructurePreview(artifact, previewNode) {
+    try {
+      var molstar = await ensureMolstarAssets();
+      var target = document.createElement("div");
+      target.className = "artifact-molstar-preview";
+      target.id = "molstar-" + Math.random().toString(36).slice(2);
+      previewNode.appendChild(target);
+      var viewer = await molstar.Viewer.create(target.id, {
+        layoutIsExpanded: false,
+        layoutShowControls: true,
+        layoutShowRemoteState: false,
+        layoutShowSequence: true,
+        layoutShowLog: false,
+        layoutShowLeftPanel: false,
+        viewportShowExpand: true,
+        viewportShowSelectionMode: true,
+        viewportShowAnimation: true
+      });
+      previewNode._molstarViewer = viewer;
+      await viewer.loadStructureFromUrl(artifact.url, structureFormat(artifact.path), false, { label: artifact.path });
+      var caption = document.createElement("p");
+      caption.className = "artifact-structure-caption";
+      caption.textContent = "Interactive Mol* structure preview · rotate, zoom, select residues, and change representations.";
+      previewNode.appendChild(caption);
+    } catch (molstarError) {
+      previewNode.replaceChildren();
+      var response = await A.authFetch(artifact.url, { headers: { "Range": "bytes=0-262143" } });
+      if (!response.ok && response.status !== 206) throw molstarError;
+      var note = document.createElement("p");
+      note.className = "artifact-preview-warning";
+      note.textContent = "Interactive viewer unavailable; showing a lightweight alpha-carbon trace.";
+      previewNode.appendChild(note);
+      renderStructureTraceFallback(await response.text(), artifact, previewNode);
+    }
   }
 
   function parseDelimitedRows(text, delimiter, maxRows, maxColumns) {
@@ -506,37 +591,107 @@
     }
   }
 
-  async function previewArtifact(button, artifact, previewNode) {
+  function clearArtifactPreview(previewNode) {
+    if (previewNode._molstarViewer && previewNode._molstarViewer.plugin) {
+      previewNode._molstarViewer.plugin.dispose();
+    }
+    previewNode._molstarViewer = null;
     previewNode.replaceChildren();
+  }
+
+  var artifactPreviewPlugins = {
+    image: async function (artifact, previewNode) {
+      var response = await A.authFetch(artifact.url);
+      if (!response.ok) throw new Error("Preview unavailable");
+      var blob = await response.blob();
+      var image = document.createElement("img");
+      image.className = "artifact-image-preview";
+      image.alt = artifact.path;
+      image.src = URL.createObjectURL(blob);
+      image.addEventListener("load", function () { URL.revokeObjectURL(image.src); }, { once: true });
+      previewNode.appendChild(image);
+    },
+    structure: renderStructurePreview,
+    table: async function (artifact, previewNode) {
+      var response = await A.authFetch(artifact.url, { headers: { "Range": "bytes=0-262143" } });
+      if (!response.ok && response.status !== 206) throw new Error("Preview unavailable");
+      renderTablePreview(await response.text(), artifact, previewNode);
+    },
+    text: async function (artifact, previewNode) {
+      var response = await A.authFetch(artifact.url, { headers: { "Range": "bytes=0-262143" } });
+      if (!response.ok && response.status !== 206) throw new Error("Preview unavailable");
+      var pre = document.createElement("pre");
+      pre.textContent = await response.text() + (artifact.size > 262144 ? "\n\n[Preview truncated at 256 KiB]" : "");
+      previewNode.appendChild(pre);
+    }
+  };
+
+  async function previewArtifact(button, artifact, previewNode) {
+    clearArtifactPreview(previewNode);
     if (!artifact.preview) {
       previewNode.textContent = "No inline preview is available for this file type.";
       return;
     }
+    var plugin = artifactPreviewPlugins[artifact.preview];
+    if (!plugin) {
+      previewNode.textContent = "No preview plugin is registered for this file type.";
+      return;
+    }
+    var sizeLimit = INLINE_PREVIEW_LIMITS[artifact.preview];
+    if (sizeLimit && artifact.size > sizeLimit) {
+      previewNode.textContent = "This artifact is too large for a safe inline preview (limit " + formatBytes(sizeLimit) + "). Download it instead.";
+      return;
+    }
     try {
-      var response = await A.authFetch(artifact.url, { headers: { "Range": "bytes=0-262143" } });
-      if (!response.ok && response.status !== 206) throw new Error("Preview unavailable");
-      if (artifact.preview === "image") {
-        var blob = await response.blob();
-        var image = document.createElement("img");
-        image.className = "artifact-image-preview";
-        image.alt = artifact.path;
-        image.src = URL.createObjectURL(blob);
-        image.addEventListener("load", function () { URL.revokeObjectURL(image.src); }, { once: true });
-        previewNode.appendChild(image);
-      } else {
-        var text = await response.text();
-        if (artifact.preview === "structure") renderStructurePreview(text, artifact, previewNode);
-        else if (artifact.preview === "table") renderTablePreview(text, artifact, previewNode);
-        else {
-          var pre = document.createElement("pre");
-          pre.textContent = text + (artifact.size > 262144 ? "\n\n[Preview truncated at 256 KiB]" : "");
-          previewNode.appendChild(pre);
-        }
-      }
+      button.disabled = true;
+      button.textContent = "Loading preview…";
+      await plugin(artifact, previewNode);
       button.setAttribute("aria-expanded", "true");
     } catch (error) {
       previewNode.textContent = error.message || "Preview unavailable";
+    } finally {
+      button.disabled = false;
+      button.textContent = button.dataset.label || "Preview";
     }
+  }
+
+  function createArtifactDownload(artifact) {
+    var download = document.createElement("a");
+    download.className = "artifact-download";
+    download.href = artifact.url + "?download=1";
+    download.textContent = "Download";
+    return download;
+  }
+
+  function createPreviewCard(artifact) {
+    var card = document.createElement("article");
+    card.className = "artifact-card artifact-card-" + artifact.preview;
+    var heading = document.createElement("div");
+    heading.className = "artifact-card-heading";
+    var kind = document.createElement("span");
+    kind.className = "artifact-kind";
+    kind.textContent = artifact.preview === "structure" ? "3D structure" : artifact.preview;
+    var path = document.createElement("h4");
+    path.className = "artifact-card-path";
+    path.textContent = artifact.path;
+    var size = document.createElement("span");
+    size.className = "artifact-card-size";
+    size.textContent = formatBytes(artifact.size);
+    heading.append(kind, path, size);
+    var actions = document.createElement("div");
+    actions.className = "artifact-card-actions";
+    var previewButton = document.createElement("button");
+    previewButton.type = "button";
+    previewButton.className = "artifact-open-preview";
+    previewButton.dataset.label = artifact.preview === "structure" ? "Open in Mol*" : "Preview";
+    previewButton.textContent = previewButton.dataset.label;
+    previewButton.setAttribute("aria-expanded", "false");
+    var preview = document.createElement("div");
+    preview.className = "artifact-preview";
+    previewButton.addEventListener("click", function () { previewArtifact(previewButton, artifact, preview); });
+    actions.append(previewButton, createArtifactDownload(artifact));
+    card.append(heading, actions, preview);
+    return card;
   }
 
   async function openResults(md5sum) {
@@ -554,27 +709,33 @@
       summary.className = "result-summary";
       summary.textContent = manifest.artifacts.length + " files · " + formatBytes(manifest.total_size);
       panel.appendChild(summary);
-      var tree = document.createElement("ul");
-      tree.className = "artifact-tree";
-      manifest.artifacts.forEach(function (artifact) {
+      var previewable = manifest.artifacts.filter(function (artifact) { return Boolean(artifact.preview); });
+      if (previewable.length) {
+        var galleryHeading = document.createElement("h3");
+        galleryHeading.className = "artifact-section-heading";
+        galleryHeading.textContent = "Scientific previews";
+        var gallery = document.createElement("div");
+        gallery.className = "artifact-gallery";
+        previewable.forEach(function (artifact) { gallery.appendChild(createPreviewCard(artifact)); });
+        panel.append(galleryHeading, gallery);
+      }
+      var otherArtifacts = manifest.artifacts.filter(function (artifact) { return !artifact.preview; });
+      if (otherArtifacts.length) {
+        var filesHeading = document.createElement("h3");
+        filesHeading.className = "artifact-section-heading";
+        filesHeading.textContent = "Other artifacts";
+        var tree = document.createElement("ul");
+        tree.className = "artifact-tree";
+        otherArtifacts.forEach(function (artifact) {
         var row = document.createElement("li");
-        var previewButton = document.createElement("button");
-        previewButton.type = "button";
-        previewButton.className = "artifact-preview-button";
-        previewButton.textContent = artifact.path + " · " + formatBytes(artifact.size);
-        previewButton.disabled = !artifact.preview;
-        previewButton.setAttribute("aria-expanded", "false");
-        var download = document.createElement("a");
-        download.className = "artifact-download";
-        download.href = artifact.url + "?download=1";
-        download.textContent = "Download";
-        var preview = document.createElement("div");
-        preview.className = "artifact-preview";
-        previewButton.addEventListener("click", function () { previewArtifact(previewButton, artifact, preview); });
-        row.append(previewButton, download, preview);
+        var label = document.createElement("span");
+        label.className = "artifact-file-label";
+        label.textContent = artifact.path + " · " + formatBytes(artifact.size);
+        row.append(label, createArtifactDownload(artifact));
         tree.appendChild(row);
       });
-      panel.appendChild(tree);
+        panel.append(filesHeading, tree);
+      }
     } catch (error) {
       panel.textContent = error.message || "Could not load results";
     }
@@ -624,11 +785,7 @@
   }
 
   function triggerLogout() {
-    A.authFetch("/compute/api/auth/logout", { method: "POST" })
-      .finally(function () {
-        A.clearToken();
-        window.location.href = "/compute/login";
-      });
+    A.logout();
   }
 
   async function deleteSelectedTasks() {

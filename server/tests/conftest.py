@@ -138,6 +138,7 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
     db_path = env_root / "pssm.sqlite3"
     log_dir = env_root / "logs"
     log_dir.mkdir(exist_ok=True)
+    shutil.copytree(Path(REPO_DIR) / "server" / "config", env_root / "config")
     for folder in ("uniref30", "uniref90"):
         (env_root / folder).mkdir(exist_ok=True)
 
@@ -145,6 +146,7 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
         "SERVER_DIR": str(env_root),
         "DB_PATH": str(db_path),
         "LOG_DIR": str(log_dir),
+        "CONFIG_DIR": str(env_root / "config"),
         "ADMIN_USERS": "admin",
         "ADMIN_BOOTSTRAP_CREDENTIALS": "admin\ttest-admin-password",
     }

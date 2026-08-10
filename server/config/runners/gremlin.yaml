@@ -26,8 +26,6 @@ env:
   uniref30_db: "/opt/db/uniref30/miniuc30"
   uniref90_db: "/opt/db/uniref90/uniref90"
 
-nproc: 4
-maxmem: 8
 max_runtime_seconds: 7200
 
 defaults:

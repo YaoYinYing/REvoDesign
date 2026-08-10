@@ -29,8 +29,8 @@ from revocompute.job import Job, JobState
 from revocompute.job.runners.docker_runner import DockerJob
 from revocompute.job.runners.slurm_runner import SlurmJob
 from revocompute.manage_db import ManageDatabase  # noqa: E402
-from revocompute.task_types import RuntimeFamily, RunnerConfig, RunnerMount, TaskParam, TaskType
 from revocompute.task_types import get as _get_task_type
+from revocompute.task_types import get_job_executor as _get_job_executor
 from revocompute.task_types import load_registry as _load_task_registry
 from revocompute.task_types import register as _register_tt
 
@@ -55,37 +55,7 @@ ensure_directories(CONFIG.upload_folder, CONFIG.workspace_folder, CONFIG.results
 # Load the task type registry — shared by web and worker processes.
 # gremlin is always enabled; additional runners are gated by ENABLED_TASKRUNNERS.
 _enabled_runners = set(env_csv("ENABLED_TASKRUNNERS", ""))
-try:
-    _load_task_registry(CONFIG.task_types_config, CONFIG.runners_dir, _enabled_runners)
-except FileNotFoundError:
-    logging.warning(
-        "Task type registry not found at %s — registering built-in gremlin fallback.",
-        CONFIG.task_types_config,
-    )
-    _register_tt(
-        TaskType(
-            name="gremlin",
-            display_name="PSSM-GREMLIN",
-            runtime=RuntimeFamily(
-                name="gremlin",
-                docker_image="revodesign-revocompute-runner",
-                entrypoint=("bash", "/app/revocompute/run.sh"),
-                dockerfile="docker/runners/pssm_gremlin/Dockerfile",
-                definition="docker/runners/pssm_gremlin/gremlin.def",
-            ),
-            input_extension=".fasta",
-            input_label="FASTA file",
-            stage_markers={
-                "hhblits": "HHblits MSA generation",
-                "hhfilter": "HHfilter filtering",
-                "gremlin": "GREMLIN optimization",
-                "blast": "PSI-BLAST PSSM",
-            },
-            result_patterns=("*.pkl", "*_ascii_mtx_file", "*.GREMLIN.mrf.pkl"),
-            params=(TaskParam(name="iter", type="int", default=100, description="GREMLIN optimization iterations"),),
-        ),
-        RunnerConfig(),
-    )
+_load_task_registry(CONFIG.task_types_config, CONFIG.runners_dir, _enabled_runners)
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 _TASK_ID_PATTERN = re.compile(r"[a-fA-F0-9]{32}$")
@@ -236,7 +206,7 @@ def _create_job(
     username: str = "",
 ) -> Job:
     """Factory: return the correct Job subclass for the runner config."""
-    if tt.runtime.job_executor == "slurm":
+    if _get_job_executor() == "slurm":
         return SlurmJob(
             task_id,
             tt,
@@ -534,7 +504,7 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
     start_time = task.get("started_at") or time.time()
     current_stage = str(task.get("run_stage") or (stages[0][0] if stages else "")).strip().lower()
 
-    is_slurm = tt.runtime.job_executor == "slurm"
+    is_slurm = _get_job_executor() == "slurm"
     initial_status = "queued" if is_slurm else "running"
     update_fields: dict[str, Any] = {
         "status": initial_status,

@@ -8,6 +8,7 @@ import inspect
 import json
 import os
 import zipfile
+from pathlib import Path
 
 import pytest
 from conftest import _extract_md5, _insert_pending_task, _load_pssm_module, _test_client_auth, _upsert_task_for_user
@@ -708,3 +709,21 @@ def test_bootstrap_admin_has_correct_statuses(monkeypatch, tmp_path):
 
 
 # ==================================================================
+def test_configuration_page_script_initializes_theme_and_admin_data(monkeypatch, tmp_path):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+
+    page = client.get("/compute/configuration", headers=admin_header)
+    assert page.status_code == 200
+    response = client.get("/compute/api/auth/admin/config", headers=admin_header)
+    assert response.status_code == 200
+    assert response.json["task_types"]
+    assert "resources" in response.json
+
+    script = (Path(__file__).resolve().parents[1] / "revocompute" / "static" / "js" / "configuration.js").read_text(
+        encoding="utf-8"
+    )
+    assert "var T = window.REvoDesignTheme;" in script
+    assert "T.initToggle" in script
+    assert "init();" in script

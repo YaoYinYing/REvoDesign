@@ -50,8 +50,6 @@ class RuntimeFamily:
     entrypoint: tuple[str, ...]
     dockerfile: str
     definition: str
-    job_executor: str = "docker"
-    container_runtime: str = "docker"
     slurm_image: str = ""
 
 
@@ -78,7 +76,6 @@ class TaskType:
     max_input_files: int = 1
     runner_args: tuple[str, ...] = ()
     gpus: bool = False
-    result_patterns: tuple[str, ...] = ("*",)
     stage_markers: dict[str, str] = field(default_factory=dict)
     params: tuple[TaskParam, ...] = ()
 
@@ -103,8 +100,6 @@ class RunnerConfig:
 
     mounts: tuple[RunnerMount, ...] = ()
     env: dict[str, str] = field(default_factory=dict)  # extra env vars → container
-    nproc: int | None = None  # override server default if set
-    maxmem: int | None = None  # override server default if set
     max_runtime_seconds: int | None = None  # override task_type default if set
     defaults: dict[str, Any] = field(default_factory=dict)  # default param values
 
@@ -114,6 +109,8 @@ class RunnerConfig:
 
 _registry: dict[str, tuple[TaskType, RunnerConfig]] = {}
 _runtime_registry: dict[str, RuntimeFamily] = {}
+_job_executor = "docker"
+_container_runtime = "docker"
 
 
 def register(task_type: TaskType, runner: RunnerConfig) -> None:
@@ -138,6 +135,16 @@ def list_runtimes() -> list[RuntimeFamily]:
     return list(_runtime_registry.values())
 
 
+def get_job_executor() -> str:
+    """Return the executor selected once for the active registry."""
+    return _job_executor
+
+
+def get_container_runtime() -> str:
+    """Return the container runtime selected once for the active registry."""
+    return _container_runtime
+
+
 # ---------------------------------------------------------------------------
 # YAML loader
 # ---------------------------------------------------------------------------
@@ -156,8 +163,6 @@ def _load_runner_config(path: str) -> RunnerConfig:
             for m in data.get("mounts", [])
         ),
         env=data.get("env", {}),
-        nproc=data.get("nproc"),
-        maxmem=data.get("maxmem"),
         max_runtime_seconds=data.get("max_runtime_seconds"),
         defaults=data.get("defaults", {}),
     )
@@ -174,7 +179,7 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
         types_data = yaml.safe_load(f)
 
     if not types_data:
-        return
+        raise ValueError(f"Task registry is empty: {task_types_yaml}")
 
     _registry.clear()
     _runtime_registry.clear()
@@ -203,8 +208,6 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             entrypoint=tuple(entry["entrypoint"]),
             dockerfile=entry["dockerfile"],
             definition=entry["definition"],
-            job_executor=job_executor,
-            container_runtime=container_runtime,
             slurm_image=slurm_image,
         )
     _runtime_registry.update(runtimes)
@@ -257,7 +260,6 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             primary_input_extensions=primary_input_extensions,
             allow_multiple_inputs=allow_multiple_inputs,
             max_input_files=max_input_files,
-            result_patterns=tuple(entry.get("result_patterns", ["*"])),
             stage_markers=entry.get("stage_markers", {}),
             params=tuple(
                 TaskParam(**{**p, "choices": tuple(p.get("choices", []))}) for p in entry.get("params", [])
@@ -265,3 +267,7 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
         )
 
         register(tt, runner_configs[runtime_name])
+
+    global _job_executor, _container_runtime
+    _job_executor = job_executor
+    _container_runtime = container_runtime

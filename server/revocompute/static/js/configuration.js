@@ -3,6 +3,7 @@
 
 (function () {
   var A = window.REvoDesignAuth;
+  var T = window.REvoDesignTheme;
 
   // -- DOM refs ----------------------------------------------------------
 
@@ -15,10 +16,7 @@
   var toastWrap = document.getElementById("toastWrap");
 
   if (logoutBtn) {
-    logoutBtn.addEventListener("click", function () {
-      A.authFetch("/compute/api/auth/logout", { method: "POST" })
-        .finally(function () { A.clearToken(); window.location.href = "/compute/login"; });
-    });
+    logoutBtn.addEventListener("click", A.logout);
   }
 
   // -- State -------------------------------------------------------------

@@ -70,10 +70,17 @@ def test_dashboard_download_uses_native_browser_streaming():
     assert "response.body.getReader()" not in script
     assert "new Blob(" not in script
     assert 'button.setAttribute("aria-busy"' in script
-    assert 'artifact.preview === "table"' in script
+    assert "table: async function" in script
     assert "parseDelimitedRows" in script
+    assert "artifactPreviewPlugins" in script
+    assert 'MOLSTAR_VERSION = "5.10.0"' in script
+    assert "MOLSTAR_SCRIPT_INTEGRITY" in script
+    assert "loadStructureFromUrl" in script
+    assert "artifact-gallery" in script
     assert ".task-btn.download-progress" in styles
     assert ".artifact-table-preview" in styles
+    assert ".artifact-gallery" in styles
+    assert ".artifact-molstar-preview" in styles
     assert "prefers-reduced-motion: reduce" in styles
 
 
@@ -244,8 +251,9 @@ def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, 
             base_type,
             name="multi_structure",
             display_name="Multi Structure",
-            input_extension=".pdb",
-            input_extensions=(".pdb", ".json"),
+                input_extension=".pdb",
+                input_extensions=(".pdb", ".json"),
+                primary_input_extensions=(".pdb",),
             input_label="Structure bundle",
             allow_multiple_inputs=True,
             max_input_files=4,
@@ -273,7 +281,7 @@ def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, 
         headers=auth_header,
     )
 
-    assert response.status_code == 302
+    assert response.status_code == 302, response.get_json()
     md5sum = response.headers["Location"].rsplit("/", 1)[-1]
     task = module.task_store.get_task(md5sum)
     form = json.loads(task["input_form"])

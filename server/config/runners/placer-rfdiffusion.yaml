@@ -4,7 +4,5 @@ mounts:
     container_path: "/opt/RFdiffusion/models"
     mode: "ro"
 env: {}
-gpus: true
-nproc: 1
 max_runtime_seconds: 14400
 defaults: {}

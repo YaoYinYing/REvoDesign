@@ -27,8 +27,6 @@ def _make_task_type(**kwargs):
             entrypoint=("bash", "/app/run.sh"),
             dockerfile="docker/gremlin/Dockerfile",
             definition="docker/gremlin/gremlin.def",
-            job_executor="slurm",
-            container_runtime="apptainer",
             slurm_image="/opt/images/gremlin_v1.sif",
         ),
         input_extension=".fasta",

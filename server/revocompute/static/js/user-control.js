@@ -390,11 +390,7 @@
 
   // ---- Logout ----
 
-  document.getElementById("logoutBtn").addEventListener("click", function () {
-    A.authFetch("/compute/api/auth/logout", { method: "POST" })
-      .then(function () { A.clearToken(); window.location.href = "/compute/login"; })
-      .catch(function () { A.clearToken(); window.location.href = "/compute/login"; });
-  });
+  document.getElementById("logoutBtn").addEventListener("click", A.logout);
 
   // ---- Helpers ----
 

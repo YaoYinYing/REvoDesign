@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import io
 import json
+from pathlib import Path
 
 import pytest
 from conftest import (
@@ -300,6 +301,37 @@ def test_auth_logout_clears_cookie(monkeypatch, tmp_path):
     resp = client.post("/compute/api/auth/logout")
     assert resp.status_code == 200
     assert resp.json["status"] == "logged_out"
+
+
+def test_logout_invalidates_cookie_dashboard_and_authenticated_pages_are_not_cached(monkeypatch, tmp_path):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    _test_client_auth(module)
+    client = module.app.test_client()
+    login = client.post(
+        "/compute/api/auth/login",
+        json={"username": "tester", "password": "password"},
+    )
+    assert login.status_code == 200
+
+    dashboard = client.get("/compute/dashboard", headers={"Accept": "text/html"})
+    assert dashboard.status_code == 200
+    assert dashboard.headers["Cache-Control"] == "private, no-store"
+
+    logout = client.post("/compute/api/auth/logout")
+    assert logout.status_code == 200
+    after_logout = client.get("/compute/dashboard", headers={"Accept": "text/html"})
+    assert after_logout.status_code == 302
+    assert after_logout.headers["Location"] == "/compute/login"
+
+
+def test_browser_auth_helper_revalidates_back_forward_cache_and_uses_replace():
+    script = (Path(__file__).resolve().parents[1] / "revocompute" / "static" / "js" / "auth-api.js").read_text(
+        encoding="utf-8"
+    )
+    assert 'window.addEventListener("pageshow"' in script
+    assert "if (!event.persisted) return" in script
+    assert 'window.location.replace("/compute/login")' in script
+    assert "logout: logout" in script
 
 
 # --- Forgot / reset password ---

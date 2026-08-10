@@ -22,6 +22,8 @@ SERVER_ROOT = Path(__file__).resolve().parents[1]
 def _preserve_registry():
     task_snapshot = dict(task_types._registry)
     runtime_snapshot = dict(task_types._runtime_registry)
+    executor_snapshot = task_types._job_executor
+    container_snapshot = task_types._container_runtime
     try:
         yield
     finally:
@@ -29,6 +31,8 @@ def _preserve_registry():
         task_types._registry.update(task_snapshot)
         task_types._runtime_registry.clear()
         task_types._runtime_registry.update(runtime_snapshot)
+        task_types._job_executor = executor_snapshot
+        task_types._container_runtime = container_snapshot
 
 
 def test_shared_tasks_resolve_one_runtime_and_runner_config():
@@ -49,9 +53,13 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
             str(SERVER_ROOT / "config" / "runners"),
             enabled,
         )
+        assert task_types.get_job_executor() == "docker"
+        assert task_types.get_container_runtime() == "docker"
 
         esm_tasks = [task_types.get(name) for name in ("esm_fold", "esm_extract", "esm_1v", "esm_if1")]
         assert {tt.runtime.name for tt, _ in esm_tasks} == {"esm"}
+        assert not hasattr(esm_tasks[0][0].runtime, "job_executor")
+        assert not hasattr(esm_tasks[0][0].runtime, "container_runtime")
         assert len({id(runner) for _, runner in esm_tasks}) == 1
         assert esm_tasks[0][1].mounts[0].container_path == "/mnt/db/weights/esm"
 
@@ -208,6 +216,13 @@ def test_enabled_runtime_requires_family_runner_config(tmp_path):
             str(tmp_path),
             {"esm_fold"},
         )
+
+
+def test_empty_registry_is_rejected(tmp_path):
+    registry = tmp_path / "task_types.yaml"
+    registry.write_text("{}\n", encoding="utf-8")
+    with _preserve_registry(), pytest.raises(ValueError, match="Task registry is empty"):
+        task_types.load_registry(str(registry), str(tmp_path), set())
 
 
 @pytest.mark.parametrize(

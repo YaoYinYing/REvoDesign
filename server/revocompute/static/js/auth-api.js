@@ -73,11 +73,39 @@
     return response;
   }
 
+  function logout() {
+    return authFetch("/compute/api/auth/logout", { method: "POST" })
+      .catch(function () { /* local logout still applies during network failure */ })
+      .finally(function () {
+        clearToken();
+        window.location.replace("/compute/login");
+      });
+  }
+
+  // A page restored from the browser's back/forward cache does not make a new
+  // request to Flask.  Revalidate it before exposing the cached dashboard.
+  window.addEventListener("pageshow", function (event) {
+    if (!event.persisted) return;
+    fetch("/compute/api/auth/token", {
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "Accept": "application/json" }
+    }).then(function (response) {
+      if (response.ok) return;
+      clearToken();
+      window.location.replace("/compute/login");
+    }).catch(function () {
+      clearToken();
+      window.location.replace("/compute/login");
+    });
+  });
+
   window.REvoDesignAuth = {
     getToken: getToken,
     setToken: setToken,
     clearToken: clearToken,
     authFetch: authFetch,
+    logout: logout,
     TOKEN_KEY: TOKEN_KEY
   };
 })();

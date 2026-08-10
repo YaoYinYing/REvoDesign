@@ -230,27 +230,6 @@ class ManageDatabase:
             )
             self._conn.commit()
 
-    # -- legacy compat: the old key-value API mapped to structured tables --
-
-    def get(self, key: str, default: str | None = None) -> str | None:
-        """Legacy get — resolves resource_config keys and task_type.<name>.<field>."""
-        # task_type.<name>.enabled → task_type_config
-        if key.startswith("task_type.") and key.endswith(".enabled"):
-            tool = key[len("task_type.") : -len(".enabled")]
-            val = self.task_type_is_enabled(tool)
-            return "true" if val is True else ("false" if val is False else default)
-        # task_type.<name>.<field> → task_type_config
-        if key.startswith("task_type."):
-            parts = key.split(".", 2)
-            if len(parts) == 3:
-                _, tool, field = parts
-                row = self.task_type_get(tool)
-                if row and field in row:
-                    val = row[field]
-                    return str(val) if val is not None else default
-            return default
-        return self.resource_get(key, default)
-
     # -- SLURM helpers -----------------------------------------------------
 
     def slurm_enabled(self) -> bool:

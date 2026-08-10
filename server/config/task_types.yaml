@@ -82,7 +82,6 @@ task_types:
       hhfilter: "HHfilter filtering"
       gremlin: "GREMLIN optimization"
       blast: "PSI-BLAST PSSM"
-    result_patterns: ["*.pkl", "*_ascii_mtx_file", "*.GREMLIN.mrf.pkl"]
     params:
       - name: "iter"
         type: "int"
@@ -99,7 +98,6 @@ task_types:
     input_label: "PDB file"
     stage_markers:
       pythia_ddg: "Pythia masked ddG scan"
-    result_patterns: ["*_pred_mask.csv", "*_pred_mask.txt"]
     params: []
 
   esm_fold:
@@ -110,7 +108,6 @@ task_types:
     input_label: "FASTA file"
     stage_markers:
       esm_fold: "ESMFold structure prediction"
-    result_patterns: ["*.pdb"]
     params:
       - name: "num_recycles"
         type: "int"
@@ -140,7 +137,6 @@ task_types:
     input_label: "FASTA file"
     stage_markers:
       esm_extract: "ESM-2 embedding extraction"
-    result_patterns: ["*.pt"]
     params:
       - name: "model"
         type: "str"
@@ -159,7 +155,6 @@ task_types:
     input_label: "FASTA file"
     stage_markers:
       esm_1v: "ESM-1v variant effect prediction"
-    result_patterns: ["*.csv"]
     params:
       - name: "scoring_strategy"
         type: "str"
@@ -175,7 +170,6 @@ task_types:
     input_label: "PDB file"
     stage_markers:
       esm_if1: "ESM-IF1 inverse folding"
-    result_patterns: ["*.fasta"]
     params:
       - name: "temperature"
         type: "float"
@@ -198,7 +192,6 @@ task_types:
     input_label: "JSON file (OpenDDE job spec)"
     stage_markers:
       opendde: "OpenDDE co-folding inference"
-    result_patterns: ["*"]
     params:
       - name: "model_name"
         type: "str"
@@ -233,7 +226,6 @@ task_types:
     input_label: "PDB file"
     stage_markers:
       hypermpnn: "HyperMPNN thermostable design"
-    result_patterns: ["*.fasta"]
     params:
       - name: "num_seq"
         type: "int"
@@ -251,7 +243,6 @@ task_types:
     input_label: "PDB file"
     stage_markers:
       ligandmpnn: "LigandMPNN sequence design"
-    result_patterns: ["*.fasta"]
     params:
       - name: "num_seq"
         type: "int"
@@ -269,7 +260,6 @@ task_types:
     input_label: "PDB file"
     stage_markers:
       thermompnn: "ThermoMPNN-D stability prediction"
-    result_patterns: ["*.csv"]
     params:
       - name: "chains"
         type: "str"
@@ -290,7 +280,6 @@ task_types:
     input_label: "FASTA file"
     stage_markers:
       prime: "Pro-Prime OGT prediction"
-    result_patterns: ["*.csv"]
     params: []
 
   prime_dms:
@@ -306,7 +295,6 @@ task_types:
     max_input_files: 64
     stage_markers:
       prime_dms: "PRIME zero-shot mutation scoring"
-    result_patterns: ["*_prime_dms.csv", "*_prime_combinatorial.csv"]
     params: []
 
   rfdiffusion:
@@ -322,7 +310,6 @@ task_types:
     max_input_files: 64
     stage_markers:
       rfdiffusion: "RFdiffusion backbone generation"
-    result_patterns: ["*.pdb", "*.trb"]
     params:
       - name: "contig"
         type: "str"
@@ -349,7 +336,6 @@ task_types:
     max_input_files: 64
     stage_markers:
       placer: "PLACER structure generation"
-    result_patterns: ["*.pdb", "*.csv"]
     params:
       - name: "num_samples"
         type: "int"
@@ -371,7 +357,6 @@ task_types:
     input_label: "FASTA file"
     stage_markers:
       bioemu: "BioEmu structure sampling"
-    result_patterns: ["*.pdb", "*.xtc"]
     params:
       - name: "num_samples"
         type: "int"
@@ -386,7 +371,6 @@ task_types:
     input_label: "PDB file / dataset dir"
     stage_markers:
       easifa: "EasIFA active-site annotation"
-    result_patterns: ["*"]
     params:
       - name: "task_subtype"
         type: "str"

@@ -153,14 +153,6 @@
     if (archivePanel.open && !archivesLoaded) loadArchives();
   });
   document.getElementById("refreshArchives").addEventListener("click", loadArchives);
-  document.getElementById("logoutBtn").addEventListener("click", function () {
-    function finishLogout() {
-      A.clearToken();
-      window.location.replace("/compute/login");
-    }
-    A.authFetch("/compute/api/auth/logout", { method: "POST" })
-      .then(finishLogout)
-      .catch(finishLogout);
-  });
+  document.getElementById("logoutBtn").addEventListener("click", A.logout);
   loadSelectedLog();
 }());

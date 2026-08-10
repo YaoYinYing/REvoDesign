@@ -223,7 +223,7 @@ Three layers, each with a distinct owner:
 |-------|------|-------|----------|
 | Server | `.env` | Operator | `SERVER_DIR`, `PORT`, auth, Redis, `ENABLED_TASKRUNNERS`, `COMPOSE_PROJECT_NAME` |
 | Runner | `config/runners/<name>.yaml` | Operator (per-machine) | Host paths for DBs/models, resource limits, default param values, extra env vars |
-| Task type | `config/task_types.yaml` | Developer | Docker image, command, input format, stage markers, result patterns, user-facing param schema |
+| Task type | `config/task_types.yaml` | Developer | Runtime family, input format, stage markers, GPU need, and user-facing param schema |
 
 `.env` never carries runner-specific paths (`DB_UNIREF30`, `AF_DATA_DIR`, etc.).
 Those live in per-runner YAML files — edit the runner YAML when deploying to a
@@ -248,7 +248,6 @@ task_types:
       hhfilter: "HHfilter filtering"
       gremlin: "GREMLIN optimization"
       blast: "PSI-BLAST PSSM"
-    result_patterns: ["*.pkl", "*_ascii_mtx_file", "*.GREMLIN.mrf.pkl"]
     params:
       - name: "iter"
         type: "int"
@@ -269,8 +268,6 @@ mounts:
 env:
   GREMLIN_CALC_CPU_NUM: "16"
   OMP_NUM_THREADS: "16"
-nproc: 16
-maxmem: 64
 max_runtime_seconds: 7200
 defaults:
   iter: 100
@@ -394,7 +391,6 @@ Add an entry to `config/task_types.yaml`:
   input_label: "FASTA file"
   stage_markers:
     <marker>: "Human-readable stage label"
-  result_patterns: ["*.pdb", "*.csv"]
   params:
     - name: "<param_name>"
       type: "int"                # "str" | "int" | "float" | "bool"
@@ -419,15 +415,8 @@ mounts:
     container_path: "/mnt/db/weights/<model>"
     mode: "ro"
 env: {}
-gpus: true         # inherits from task type; set here for SLURM
-nproc: 1
 max_runtime_seconds: 14400
 defaults: {}
-
-# -- SLURM + Apptainer --
-# runner: slurm
-# container_runtime: apptainer
-# slurm_image: /mnt/data/srv/revodesign/server-slurm/images/<name>_v1.sif
 ```
 
 #### 4. Enable the task type
@@ -438,12 +427,12 @@ Add `<name>` to `ENABLED_TASKRUNNERS` in `.env` (comma-separated).
 #### 5. Build and deploy
 
 ```bash
-restart.sh --build    # auto-discovers + builds all runners in parallel
+restart.sh build      # builds every runtime-family image from the registry
 restart.sh --use-slurm --build-sif   # SLURM: builds SIF images from Docker
 ```
 
-No `docker-compose.yml` edits needed — `restart.sh` generates runner service
-definitions via `generate_runner_compose()`.
+No `docker-compose.yml` edits are needed for task runtimes. `restart.sh` reads
+the registry and builds their images directly; workers launch them on demand.
 
 ### Dataclasses
 
@@ -466,7 +455,6 @@ class TaskType:
     input_label: str
     # Optional fields with defaults
     gpus: bool = False
-    result_patterns: tuple[str, ...] = ("*",)
     stage_markers: dict[str, str] = field(default_factory=dict)
     params: tuple[TaskParam, ...] = ()
 

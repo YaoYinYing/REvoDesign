@@ -194,19 +194,7 @@
 
   /* ---- Logout ---- */
   var logoutBtn = document.getElementById("logoutBtn");
-  logoutBtn.addEventListener("click", function () {
-    /* The cookie is HttpOnly — JS can't touch it.  Ask the server to clear it. */
-    A.authFetch("/compute/api/auth/logout", { method: "POST" })
-      .then(function () {
-        A.clearToken();
-        window.location.href = "/compute/login";
-      })
-      .catch(function () {
-        /* Even if the request fails (network), clear local state and move on. */
-        A.clearToken();
-        window.location.href = "/compute/login";
-      });
-  });
+  logoutBtn.addEventListener("click", A.logout);
 
   /* ---- Copy API key ---- */
   var copyBtn = document.getElementById("copyKeyBtn");

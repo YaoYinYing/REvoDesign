@@ -200,8 +200,8 @@ def task_types_list():
     types_data = []
     for tt in list_types():
         if manage_db is not None:
-            enabled = manage_db.get(f"task_type.{tt.name}.enabled")
-            if enabled is not None and enabled.lower() in ("0", "false", "no", "off"):
+            enabled = manage_db.task_type_is_enabled(tt.name)
+            if enabled is False:
                 continue
         types_data.append(
             {
@@ -247,8 +247,8 @@ def task_type_form(name: str):
 
     manage_db = current_app.config.get("manage_db")
     if manage_db is not None:
-        enabled = manage_db.get(f"task_type.{tt.name}.enabled")
-        if enabled is not None and enabled.lower() in ("0", "false", "no", "off"):
+        enabled = manage_db.task_type_is_enabled(tt.name)
+        if enabled is False:
             return jsonify({"error": f"Task type {name!r} is disabled"}), 404
 
     return jsonify(
@@ -503,8 +503,8 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
 
     managedb = current_app.config.get("manage_db")
     if managedb is not None:
-        enabled = managedb.get(f"task_type.{task_type}.enabled")
-        if enabled is not None and enabled.lower() in ("0", "false", "no", "off"):
+        enabled = managedb.task_type_is_enabled(task_type)
+        if enabled is False:
             return jsonify({"error": f"Task type {task_type!r} is currently disabled"}), 400
 
     uploaded_inputs, upload_error = _validate_input_uploads(task_type)

@@ -76,6 +76,7 @@
     fileNameDisplay.textContent = Array.from(files).map(function (file) {
       return file.webkitRelativePath || file.name;
     }).join(", ");
+    refreshStructureSnapshot();
   }
 
   // -- form building from server schema ---------------------------------------
@@ -94,6 +95,7 @@
     editorZone.style.display = formDef.show_sequence_editor ? "" : "none";
 
     buildParamsForm(formDef.params);
+    refreshStructureSnapshot();
     setStatus("Ready for upload.");
   }
 
@@ -195,6 +197,7 @@
     } else {
       fileNameDisplay.textContent = "No file selected";
     }
+    refreshStructureSnapshot();
   });
 
   // -- drag-and-drop ---------------------------------------------------------
@@ -248,6 +251,7 @@
     taskNameInput.value = "";
     sequenceInput.value = "";
     refreshSequencePreview();
+    refreshStructureSnapshot();
     setStatus("Ready for upload.");
   });
 
@@ -384,37 +388,10 @@
     if (checklist) checklist.style.display = "";
   }
 
-  // Wire into existing file selection
-  var _origFileChange = fileInput.onchange;
-  fileInput.addEventListener("change", function () {
-    if (fileInput.files && fileInput.files.length > 0) {
-      var f = fileInput.files[0];
-      if (f.name.toLowerCase().endsWith(".pdb")) showStructureSnapshot(f);
-      else hideStructureSnapshot();
-    }
-  });
-
-  // Wire into drag-and-drop
-  var _origDropHandler = dropZone.onDrop;
-  dropZone.addEventListener("drop", function (e) {
-    setTimeout(function () {
-      if (fileInput.files && fileInput.files.length > 0) {
-        var f = fileInput.files[0];
-        if (f.name.toLowerCase().endsWith(".pdb")) showStructureSnapshot(f);
-        else hideStructureSnapshot();
-      }
-    }, 50);
-  });
-
-  // Wire into task type switch
-  taskTypeSelect.addEventListener("change", function () {
+  function refreshStructureSnapshot() {
     var extensions = currentFormDef ? currentFormDef.file_input.extensions || [] : [];
-    if (extensions.includes(".pdb") && fileInput.files && fileInput.files.length > 0) {
-      showStructureSnapshot(fileInput.files[0]);
-    } else if (!extensions.includes(".pdb")) {
-      hideStructureSnapshot();
-    }
-  });
-
-  clearButton.addEventListener("click", function () { hideStructureSnapshot(); });
+    var file = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
+    if (extensions.includes(".pdb") && file && file.name.toLowerCase().endsWith(".pdb")) showStructureSnapshot(file);
+    else hideStructureSnapshot();
+  }
 })();

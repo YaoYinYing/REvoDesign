@@ -193,8 +193,6 @@ class SlurmJob(Job):
             lines.append(f"printf '%s\\n' {_sh_quote(checksum_record)} | sha256sum --check --status")
 
     def _render_apptainer_invocation(self, lines: list[str]) -> None:
-        if self.tt.runtime.container_runtime != "apptainer":
-            raise RuntimeError("SLURM execution requires the global container_runtime to be apptainer")
         sif_image = self.tt.runtime.slurm_image
         if not sif_image:
             raise RuntimeError(f"Runner {self.tt.name!r} has slurm_image unset")
