@@ -132,8 +132,10 @@ def test_up_generates_bootstrap_password_for_empty_user_database(tmp_path):
     assert result.returncode == 0, result.stderr
     assert "Admin login — username: admin  password:" in result.stdout
     assert any("up -d redis web gateway maintenance worker" in command for command in commands)
-    assert any("exec -T web test -w" in command for command in commands)
-    assert any("exec -T gateway test -r /srv/results" in command for command in commands)
+    assert any('exec -T web sh -c test -w "$1" && test -x "$1"' in command for command in commands)
+    assert any(
+        "exec -T gateway sh -c test -r /srv/results && test -x /srv/results" in command for command in commands
+    )
     assert (root / "tasks" / "results").is_dir()
 
 

@@ -210,12 +210,12 @@ prepare_result_storage() {
 
 validate_result_storage() {
   if ! "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" exec -T web \
-    test -w "${SERVER_DIR}/results"; then
+    sh -c 'test -w "$1" && test -x "$1"' sh "${SERVER_DIR}/results"; then
     echo "Results directory is not writable by the web container: ${SERVER_DIR}/results" >&2
     exit 1
   fi
   if ! "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" exec -T gateway \
-    test -r /srv/results; then
+    sh -c 'test -r /srv/results && test -x /srv/results'; then
     echo "Results directory is not readable by the Nginx gateway: ${SERVER_DIR}/results" >&2
     exit 1
   fi

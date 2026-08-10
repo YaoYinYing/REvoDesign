@@ -484,6 +484,7 @@ details.sequence summary::-webkit-details-marker { display: none; }
 }
 .task-btn.download-progress {
   --download-progress: 0%;
+
   position: relative;
   isolation: isolate;
   min-width: 11.5rem;
@@ -506,7 +507,7 @@ details.sequence summary::-webkit-details-marker { display: none; }
 .task-btn.download-progress.is-indeterminate::before {
   width: 42%;
   background: linear-gradient(90deg, transparent, #8fc9d3, transparent);
-  animation: downloadSweep 1.2s ease-in-out infinite;
+  animation: download-sweep 1.2s ease-in-out infinite;
 }
 .task-btn.download-progress:disabled { opacity: 1; }
 .download-label,
@@ -518,7 +519,7 @@ details.sequence summary::-webkit-details-marker { display: none; }
   font-variant-numeric: tabular-nums;
 }
 
-@keyframes downloadSweep {
+@keyframes download-sweep {
   from { transform: translateX(-110%); }
   to { transform: translateX(340%); }
 }

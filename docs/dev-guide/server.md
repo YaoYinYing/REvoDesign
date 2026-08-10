@@ -48,7 +48,7 @@ from the dashboard. Users can also cancel queued or running tasks.
 The server has five long-lived services plus on-demand runner containers,
 orchestrated by Docker Compose:
 
-```
+```text
                 ┌──────────────────┐
                 │     Browser /    │
                 │    curl client   │
@@ -134,11 +134,12 @@ schema directly; older SQLite layouts are not upgraded during server startup.
 
 | Service | Base Image | Role |
 |---------|-----------|------|
+| **gateway** | `nginx:1.28-alpine` | Nginx reverse proxy and authorized result ZIP delivery. |
 | **web** | `python:3.12-slim` | Flask + Gunicorn HTTP server. Serves the web UI and REST API. |
 | **maintenance** | Same as `web` | Single APScheduler process for registration digests, optional result retention, database backups, and log rotation. No HTTP port or Docker socket. |
 | **worker** | Same as `web` | Celery worker that receives `run_gremlin_task` jobs from Redis. |
 | **redis** | `redis:7.2-alpine` | Celery message broker and result backend. |
-| **runner** | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `worker`. |
+| **runner** (on demand) | `condaforge/mambaforge` | On-demand container that runs the PSSM/GREMLIN computation. Launched dynamically by `worker`. |
 
 ### Code Structure
 
