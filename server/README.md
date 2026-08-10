@@ -173,6 +173,8 @@ When `REVODESIGN_SERVER_ENV` is unset, the helper uses
 | `MAXMEM` | Memory cap (GB) passed to hhblits (`-maxmem`) inside runner script. |
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
+| `GUNICORN_TIMEOUT` | Gunicorn request timeout in seconds (default: `120`). Result transfers are handled by Nginx and do not require a long timeout. |
+| `RESULT_DOWNLOAD_MODE` | Result delivery backend: `nginx` in Compose production, or `flask` for direct local Flask development. |
 | `PORT` | Public HTTP port. |
 | `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives. Fractions are allowed (`0.1` = 2.4 hours). Leave unset to disable cleanup; task audit rows remain. |
 | `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots. Leave unset to disable; recommended daily schedule: `0 0 * * *`. |
@@ -444,15 +446,15 @@ Development mode:
 docker compose -f server/docker-compose.yml --env-file server/.env.local down
 docker compose -f server/docker-compose.yml --env-file server/.env.local --profile runner build runner
 docker compose -f server/docker-compose.yml --env-file server/.env.local build web worker
-docker compose -f server/docker-compose.yml --env-file server/.env.local up --no-build -d redis web maintenance worker
+docker compose -f server/docker-compose.yml --env-file server/.env.local up --no-build -d redis web gateway maintenance worker
 ```
 
 Production mode:
 
 ```bash
 docker compose -f server/docker-compose.yml --env-file server/.env.production down
-docker compose -f server/docker-compose.yml --env-file server/.env.production --profile runner pull web runner
-docker compose -f server/docker-compose.yml --env-file server/.env.production up --no-build -d redis web maintenance worker
+docker compose -f server/docker-compose.yml --env-file server/.env.production --profile runner pull web gateway runner
+docker compose -f server/docker-compose.yml --env-file server/.env.production up --no-build -d redis web gateway maintenance worker
 ```
 
 ### Zero-downtime Gunicorn reload
@@ -535,17 +537,25 @@ The final `cleaned:*` states identify automatic retention cleanup; `deleted:*`
 states remain reserved for explicit user deletion.
 The `deleted:finshed` spelling is intentionally preserved for runtime compatibility.
 
-## 8. Optional Public Access
+## 8. Public Access
 
-### Option A (simple): Cloudflare Tunnel
+Docker Compose publishes the Nginx `gateway` service. The Flask/Gunicorn `web`
+service is internal-only. Nginx proxies application requests and serves result
+ZIP bytes after Flask authorizes the request with an internal
+`X-Accel-Redirect`. The gateway mounts only `${SERVER_DIR}/results` and mounts
+it read-only.
 
-Use Cloudflare Tunnel to expose the internal service without opening inbound ports.
+### Option A: Cloudflare Tunnel
+
+Point Cloudflare Tunnel at the gateway's published `${PORT}`. Do not target the
+internal Gunicorn service directly.
 
 Reference: [Cloudflare Tunnel Documentation](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
 
-### Option B (advanced): NGINX reverse proxy
+### Option B: Additional host reverse proxy or TLS termination
 
-Use NGINX when you need custom TLS termination, routing, and rate limits.
+An additional host-level proxy may sit in front of the container gateway when
+custom TLS termination, routing, or rate limits are required.
 
 You can start from:
 

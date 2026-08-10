@@ -74,6 +74,14 @@ def env_csv(var: str, default: str) -> list[str]:
     return [value for raw in source.split(",") if (value := raw.strip())]
 
 
+def env_choice(var: str, default: str, choices: set[str]) -> str:
+    value = env_str(var, default).strip().lower()
+    if value not in choices:
+        allowed = ", ".join(sorted(choices))
+        raise ValueError(f"Environment variable {var} must be one of: {allowed}")
+    return value
+
+
 def format_runner_identity(user_value: str, group_value: str) -> str:
     user = user_value.strip()
     group = group_value.strip()
@@ -132,6 +140,7 @@ class GremlinConfig:
     nproc: int
     maxmem: int
     port: int
+    result_download_mode: str
 
     @classmethod
     def from_env(cls) -> GremlinConfig:
@@ -148,4 +157,5 @@ class GremlinConfig:
             nproc=env_int("NPROC", 16),
             maxmem=env_int("MAXMEM", 64),
             port=env_int("PORT", 8080),
+            result_download_mode=env_choice("RESULT_DOWNLOAD_MODE", "flask", {"flask", "nginx"}),
         )

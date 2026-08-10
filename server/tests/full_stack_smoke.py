@@ -119,6 +119,16 @@ def run_full_stack_checks(base_url: str, fasta_path: Path, admin_password: str) 
         download_url = results.headers["Location"]
         if download_url.startswith("/"):
             download_url = f"{base_url}{download_url}"
+        head_response = session.head(download_url, timeout=30)
+        assert head_response.status_code == 200
+        assert int(head_response.headers.get("Content-Length", "0")) > 0
+        assert head_response.headers.get("Content-Disposition", "").startswith("attachment;")
+        range_headers = dict(headers)
+        range_headers["Range"] = "bytes=0-0"
+        range_response = session.get(download_url, headers=range_headers, timeout=30)
+        assert range_response.status_code == 206
+        assert range_response.content and len(range_response.content) == 1
+        assert range_response.headers.get("Content-Range", "").startswith("bytes 0-0/")
         archive_response = session.get(download_url, headers=headers, timeout=30)
         assert archive_response.status_code == 200
         with zipfile.ZipFile(io.BytesIO(archive_response.content)) as archive:

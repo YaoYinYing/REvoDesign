@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 from conftest import _load_pssm_module
-from pssm_gremlin_server.config import env_csv, env_float
+from pssm_gremlin_server.config import env_choice, env_csv, env_float
 
 # config tests
 # ==================================================================
@@ -38,6 +38,19 @@ def test_env_csv_uses_default_when_explicitly_empty(monkeypatch):
     assert env_csv("ADMIN_USERS", "admin") == ["admin"]
 
 
+def test_env_choice_normalizes_allowed_value(monkeypatch):
+    monkeypatch.setenv("RESULT_DOWNLOAD_MODE", " NGINX ")
+
+    assert env_choice("RESULT_DOWNLOAD_MODE", "flask", {"flask", "nginx"}) == "nginx"
+
+
+def test_env_choice_rejects_unknown_value(monkeypatch):
+    monkeypatch.setenv("RESULT_DOWNLOAD_MODE", "object-storage")
+
+    with pytest.raises(ValueError, match="must be one of: flask, nginx"):
+        env_choice("RESULT_DOWNLOAD_MODE", "flask", {"flask", "nginx"})
+
+
 def test_pssm_config_uses_numeric_runner_identity(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -48,6 +61,7 @@ def test_pssm_config_uses_numeric_runner_identity(monkeypatch, tmp_path):
         },
     )
     assert module.CONFIG.docker_user == "1234:5678"
+    assert module.CONFIG.result_download_mode == "flask"
 
 
 def test_pssm_config_uses_named_runner_identity(monkeypatch, tmp_path):

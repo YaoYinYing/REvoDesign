@@ -14,6 +14,7 @@
     filter: "all",
     selected: new Set(),
   };
+  var downloads = new Map();
   var activeErrorButton = null;
 
   var statusMap = {
@@ -137,6 +138,55 @@
     });
   }
 
+  function downloadButtonContent(phase) {
+    if (phase === "started") {
+      return { label: "Download started", detail: "See browser downloads" };
+    }
+    return { label: "Preparing download…", detail: "Checking access…" };
+  }
+
+  function downloadButtonHtml(task, downloadClass) {
+    var phase = downloads.get(task.md5);
+    if (!phase) {
+      return '<button class="task-btn ' + downloadClass + '" data-action="download" data-md5="' +
+        escapeHtml(task.md5) + '">Download</button>';
+    }
+    var content = downloadButtonContent(phase);
+    return '<button class="task-btn ' + downloadClass + ' download-progress' +
+      '" data-action="download" data-md5="' + escapeHtml(task.md5) + '" disabled aria-busy="true" aria-label="' +
+      escapeHtml(content.label + " " + content.detail) + '">' +
+      '<span class="download-label">' + escapeHtml(content.label) + '</span>' +
+      '<span class="download-detail">' + escapeHtml(content.detail) + '</span></button>';
+  }
+
+  function updateDownloadButton(md5sum) {
+    var phase = downloads.get(md5sum);
+    document.querySelectorAll("button[data-action='download']").forEach(function (button) {
+      if (button.dataset.md5 !== md5sum) return;
+      if (!phase) {
+        button.disabled = false;
+        button.removeAttribute("aria-busy");
+        button.removeAttribute("aria-label");
+        button.classList.remove("download-progress");
+        button.textContent = "Download";
+        return;
+      }
+      var content = downloadButtonContent(phase);
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+      button.setAttribute("aria-label", content.label + " " + content.detail);
+      button.classList.add("download-progress");
+      button.replaceChildren();
+      var label = document.createElement("span");
+      label.className = "download-label";
+      label.textContent = content.label;
+      var detail = document.createElement("span");
+      detail.className = "download-detail";
+      detail.textContent = content.detail;
+      button.append(label, detail);
+    });
+  }
+
   function renderTasks() {
     var list = document.getElementById("taskList");
     var tasks = getFilteredTasks();
@@ -192,7 +242,7 @@
         '</div>' +
         '<details class="sequence"><summary>Sequence Snapshot</summary><pre>' + escapeHtml(task.sequence || "-") + '</pre></details>' +
         '<div class="actions">' +
-          (canDownload ? '<button class="task-btn ' + downloadClass + '" data-action="download" data-md5="' + escapeHtml(task.md5) + '">Download</button>' : "") +
+          (canDownload ? downloadButtonHtml(task, downloadClass) : "") +
           (canCancel ? '<button class="task-btn cancel" data-action="cancel" data-md5="' + escapeHtml(task.md5) + '">Cancel</button>' : "") +
           (canDelete ? '<button class="task-btn delete" data-action="delete" data-md5="' + escapeHtml(task.md5) + '">Delete</button>' : "") +
         '</div>';
@@ -329,23 +379,31 @@
   }
 
   async function downloadFile(md5sum) {
+    if (!md5sum || downloads.has(md5sum)) return;
+    downloads.set(md5sum, "preparing");
+    updateDownloadButton(md5sum);
     try {
-      var response = await A.authFetch("/PSSM_GREMLIN/api/download/" + encodeURIComponent(md5sum));
+      var url = "/PSSM_GREMLIN/api/download/" + encodeURIComponent(md5sum);
+      var response = await A.authFetch(url, { method: "HEAD" });
       if (!response.ok) {
-        var data = await response.json().catch(function () { return {}; });
-        throw new Error(data.message || data.error || "Download failed (HTTP " + response.status + ")");
+        throw new Error("Download failed (HTTP " + response.status + ")");
       }
-      var blob = await response.blob();
-      var url = URL.createObjectURL(blob);
+      downloads.set(md5sum, "started");
+      updateDownloadButton(md5sum);
       var a = document.createElement("a");
       a.href = url;
-      // ponytail: let the server's Content-Disposition header name the file
       a.download = "";
+      a.hidden = true;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(function () { URL.revokeObjectURL(url); }, 100);
+      setTimeout(function () {
+        downloads.delete(md5sum);
+        updateDownloadButton(md5sum);
+      }, 1800);
     } catch (error) {
+      downloads.delete(md5sum);
+      updateDownloadButton(md5sum);
       showToast(error.message || "Download failed", "error");
     }
   }

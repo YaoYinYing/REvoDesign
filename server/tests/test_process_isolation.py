@@ -20,6 +20,7 @@ def _run_restart_script(
     gid="1000",
     admins="admin",
     omit_settings=(),
+    fail_chmod=False,
 ):
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir(parents=True)
@@ -30,6 +31,13 @@ def _run_restart_script(
         encoding="utf-8",
     )
     docker.chmod(0o755)
+    if fail_chmod:
+        chmod = fake_bin / "chmod"
+        chmod.write_text(
+            '#!/usr/bin/env bash\necho "chmod: Operation not permitted" >&2\nexit 1\n',
+            encoding="utf-8",
+        )
+        chmod.chmod(0o755)
 
     task_dir = tmp_path / "tasks"
     auth_dir = tmp_path / "auth"
@@ -85,12 +93,12 @@ def test_restart_modes_choose_build_or_pull(tmp_path):
     assert any("--profile runner build runner" in command for command in dev_commands)
     assert any("build web worker" in command for command in dev_commands)
     assert not any(" pull " in command for command in dev_commands)
-    assert any("up --no-build -d redis web maintenance worker" in command for command in dev_commands)
+    assert any("up --no-build -d redis web gateway maintenance worker" in command for command in dev_commands)
 
     prod_result, prod_commands = _run_restart_script(tmp_path / "prod", "restart", "--mode=prod")
     assert prod_result.returncode == 0, prod_result.stderr
     assert not any(" build " in command for command in prod_commands)
-    pull_index = next(i for i, command in enumerate(prod_commands) if " pull web runner" in command)
+    pull_index = next(i for i, command in enumerate(prod_commands) if " pull web gateway runner" in command)
     up_index = next(i for i, command in enumerate(prod_commands) if "up --no-build" in command)
     assert pull_index < up_index
 
@@ -118,11 +126,28 @@ def test_restart_generates_distinct_password_for_each_configured_admin(tmp_path)
 
 
 def test_up_generates_bootstrap_password_for_empty_user_database(tmp_path):
-    result, commands = _run_restart_script(tmp_path, "up")
+    root = tmp_path / "up"
+    result, commands = _run_restart_script(root, "up")
 
     assert result.returncode == 0, result.stderr
     assert "Admin login — username: admin  password:" in result.stdout
-    assert any("up -d redis web maintenance worker" in command for command in commands)
+    assert any("up -d redis web gateway maintenance worker" in command for command in commands)
+    assert any('exec -T web sh -c test -w "$1" && test -x "$1"' in command for command in commands)
+    assert any(
+        "exec -T gateway sh -c test -r /srv/results && test -x /srv/results" in command for command in commands
+    )
+    assert (root / "tasks" / "results").is_dir()
+
+
+def test_up_continues_after_chmod_failure_and_prints_manual_command(tmp_path):
+    root = tmp_path / "chmod-failure"
+    result, commands = _run_restart_script(root, "up", fail_chmod=True)
+
+    assert result.returncode == 0, result.stderr
+    assert "continuing with container access checks" in result.stderr
+    assert "sudo chmod u+rwx,go+rx" in result.stderr
+    assert f"{root}/tasks/results" in result.stderr
+    assert any("up -d redis web gateway maintenance worker" in command for command in commands)
 
 
 def test_up_rejects_duplicate_admin_usernames_before_start(tmp_path):
@@ -135,7 +160,7 @@ def test_up_rejects_duplicate_admin_usernames_before_start(tmp_path):
     assert result.returncode != 0
     assert "ADMIN_USERS must not contain duplicate usernames: admin" in result.stderr
     assert "Admin login" not in result.stdout
-    assert not any("up -d redis web maintenance worker" in command for command in commands)
+    assert not any("up -d redis web gateway maintenance worker" in command for command in commands)
 
 
 def test_restart_mode_validation(tmp_path):
@@ -227,6 +252,7 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
     task_env = compose.split("x-task-env:", 1)[1].split("x-web-auth-env:", 1)[0]
     web_auth_env = compose.split("x-web-auth-env:", 1)[1].split("x-maintenance-env:", 1)[0]
     maintenance_env = compose.split("x-maintenance-env:", 1)[1].split("x-docker-socket-access:", 1)[0]
+    gateway = compose.split("  gateway:", 1)[1].split("  web:", 1)[0]
     web = compose.split("  web:", 1)[1].split("  maintenance:", 1)[0]
     maintenance = compose.split("  maintenance:", 1)[1].split("  worker:", 1)[0]
     worker = compose.split("  worker:", 1)[1].split("  runner:", 1)[0]
@@ -245,12 +271,21 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
         assert rotation_setting not in web_auth_env
         assert rotation_setting in maintenance_env
     assert "PUBLIC_DASHBOARD" not in web_auth_env
+    assert "RESULT_DOWNLOAD_MODE" in web_auth_env
     assert "RESULT_RETENTION_DAYS" in maintenance_env
     for backup_setting in ("BACKUP_DB_CRON", "BACKUP_DB_PATH", "MAX_DB_BACKUP"):
         assert backup_setting in maintenance_env
     assert "web-auth-env" in web
     assert "/var/lib/revodesign-auth" in web
     assert "/var/run/docker.sock" not in web
+    assert "ports:" not in web
+    assert "expose:" in web
+    assert "ports:" in gateway
+    assert "${SERVER_DIR}/results:/srv/results:ro" in gateway
+    assert "/var/lib/revodesign-auth" not in gateway
+    assert "user: ${RUNNER_UID}:${RUNNER_GID}" in gateway
+    assert "read_only: true" in gateway
+    assert "/tmp:size=16m,mode=1777" in gateway
     assert "maintenance-env" in maintenance
     assert "/var/lib/revodesign-auth" in maintenance
     assert "/var/run/docker.sock" not in maintenance
@@ -260,3 +295,14 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
     assert "/var/lib/revodesign-auth" not in worker
     assert "pssm_gremlin_server.task_runtime.celery" in worker
     assert "/var/run/docker.sock:/var/run/docker.sock" in worker
+
+
+def test_nginx_result_location_is_internal_and_read_only():
+    config = (Path(REPO_DIR) / "server" / "docker" / "nginx" / "default.conf.template").read_text(encoding="utf-8")
+
+    protected = config.split("location /_protected_results/", 1)[1]
+    assert "internal;" in protected
+    assert "alias /srv/results/;" in protected
+    assert "disable_symlinks on;" in protected
+    assert "sendfile on;" in protected
+    assert "proxy_pass" not in protected
