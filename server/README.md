@@ -405,6 +405,11 @@ list is created automatically:
 Bootstrap passwords must not be stored in the env file. They are transient
 first-boot values supplied by the restart script only.
 
+`reset-passwd` rotates an existing account from the deployment host. It creates
+a timestamped auth-database backup under `${SERVER_DIR}/backups`, invalidates
+that user's existing bearer tokens, and writes the new username/password pair
+to a mode-0600 file under `AUTH_DIR`. The password itself is never printed.
+
 Set `ENABLE_REGISTER=true` and configure either SMTP or Resend to allow
 self-registration. Registration requires full name, affiliation, academic
 position, and PI name. These fields appear on the user's profile page and in
@@ -512,6 +517,7 @@ REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh build
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh up
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh down
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh reload
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh reset-passwd <username>
 ```
 
 `restart` defaults to `--mode=dev` for backward compatibility. Only the

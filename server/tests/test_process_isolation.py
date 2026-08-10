@@ -25,6 +25,7 @@ def _run_restart_script(
     fail_chmod=False,
     config_dir=None,
     build_proxy=None,
+    seed_user_db=False,
 ):
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir(parents=True)
@@ -52,6 +53,19 @@ def _run_restart_script(
     log_dir = tmp_path / "logs"
     for path in (task_dir, auth_dir, log_dir):
         path.mkdir(exist_ok=True)
+    if seed_user_db:
+        import sqlite3
+
+        from werkzeug.security import generate_password_hash
+
+        with sqlite3.connect(auth_dir / "users.sqlite3") as conn:
+            conn.execute(
+                "CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT NOT NULL, token_version INTEGER DEFAULT 0)"
+            )
+            conn.execute(
+                "INSERT INTO users (username, password_hash, token_version) VALUES (?, ?, ?)",
+                (admins.split(",", 1)[0], generate_password_hash("old-password"), 0),
+            )
     env_file = tmp_path / "server.env"
     settings = {
         "SERVER_DIR": str(task_dir),
@@ -246,6 +260,39 @@ def test_up_generates_bootstrap_password_for_empty_user_database(tmp_path):
         "exec -T gateway sh -c test -r /srv/results && test -x /srv/results" in command for command in commands
     )
     assert (root / "tasks" / "results").is_dir()
+
+
+def test_reset_passwd_rotates_hash_invalidates_tokens_and_writes_protected_credential(tmp_path):
+    result, _commands = _run_restart_script(
+        tmp_path / "reset-passwd",
+        "reset-passwd",
+        "admin",
+        seed_user_db=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "password:" not in result.stdout
+    credential_line = next(line for line in result.stdout.splitlines() if line.startswith("New credential written to:"))
+    credential_file = Path(credential_line.removeprefix("New credential written to: ").split(" ", 1)[0])
+    assert credential_file.stat().st_mode & 0o777 == 0o600
+    username, password = credential_file.read_text(encoding="utf-8").strip().split("\t", 1)
+    assert username == "admin"
+    assert len(password) == 32
+
+    import sqlite3
+
+    from werkzeug.security import check_password_hash
+
+    with sqlite3.connect(tmp_path / "reset-passwd" / "auth" / "users.sqlite3") as conn:
+        password_hash, token_version = conn.execute(
+            "SELECT password_hash, token_version FROM users WHERE username = ?", ("admin",)
+        ).fetchone()
+    assert check_password_hash(password_hash, password)
+    assert token_version == 1
+    backup_line = next(line for line in result.stdout.splitlines() if line.startswith("Auth database backup written to:"))
+    backup_db = Path(backup_line.removeprefix("Auth database backup written to: ").split(" ", 1)[0])
+    assert backup_db.is_file()
+    assert backup_db.stat().st_mode & 0o777 == 0o600
 
 
 def test_up_continues_after_chmod_failure_and_prints_manual_command(tmp_path):

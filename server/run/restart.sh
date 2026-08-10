@@ -245,8 +245,9 @@ ENV_FILE="$(resolve_env_file)"
 
 usage() {
   cat <<'USAGE'
-Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart]
+Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart|reset-passwd]
        bash server/run/restart.sh restart [--mode=dev|--mode=prod|--mode=prepared]
+       bash server/run/restart.sh reset-passwd <username>
 
        SLURM flags (when task_types.yaml selects job_executor: slurm):
            --allowed-slurm-queue q1,q2,...     Comma-separated SLURM partitions.
@@ -635,6 +636,98 @@ print_admin_logins() {
   fi
 }
 
+cmd_reset_passwd() {
+  require_env_file
+  validate_required_settings
+  set +u
+  set -a
+  source "${ENV_FILE}"
+  set +a
+  set -u
+
+  local username="${RESET_USERNAME:-}"
+  local auth_dir="${AUTH_DIR:-}"
+  local user_db="${auth_dir}/users.sqlite3"
+  local backup_root="${SERVER_DIR}/backups"
+  local stamp="$(date +%Y%m%dT%H%M%S%z)"
+  local backup_dir="${backup_root}/auth-pre-reset-passwd-${stamp}"
+  local backup_db="${backup_dir}/users.sqlite3"
+  local credential_file=""
+  local new_password=""
+
+  if [[ -z "${auth_dir}" || -z "${SERVER_DIR:-}" ]]; then
+    echo "AUTH_DIR and SERVER_DIR must be set in ${ENV_FILE}." >&2
+    return 1
+  fi
+  if [[ ! "${username}" =~ ^[[:print:]]+$ || ${#username} -gt 128 ]]; then
+    echo "Username must contain printable characters and be at most 128 characters." >&2
+    return 1
+  fi
+  if [[ ! -f "${user_db}" ]]; then
+    echo "User database is missing: ${user_db}" >&2
+    return 1
+  fi
+
+  mkdir -p "${backup_dir}"
+  chmod 700 "${backup_dir}"
+  credential_file="$(umask 077 && mktemp "${auth_dir}/reset-admin-credentials.XXXXXX")"
+  chmod 600 "${credential_file}"
+  new_password="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
+  printf '%s\t%s\n' "${username}" "${new_password}" > "${credential_file}"
+
+  if ! python3 - "${user_db}" "${backup_db}" "${username}" 3<<<"${new_password}" <<'PY'
+import sqlite3
+import sys
+import os
+from pathlib import Path
+
+from werkzeug.security import generate_password_hash
+
+user_db = Path(sys.argv[1])
+backup_db = Path(sys.argv[2])
+username = sys.argv[3]
+password = os.fdopen(3).readline().rstrip("\n")
+if not password:
+    raise SystemExit("password generation failed")
+
+with sqlite3.connect(user_db) as source:
+    columns = {row[1] for row in source.execute("PRAGMA table_info(users)")}
+    required = {"username", "password_hash"}
+    if not required <= columns:
+        raise SystemExit("users table has an incompatible schema")
+    row = source.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone()
+    if row is None:
+        raise SystemExit("username does not exist")
+    backup_db.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(backup_db) as destination:
+        source.backup(destination)
+    values = {"password_hash": generate_password_hash(password)}
+    if "token_version" in columns:
+        values["token_version"] = "token_version + 1"
+    assignments = ", ".join(
+        f"{key} = {value}" if key == "token_version" else f"{key} = ?"
+        for key, value in values.items()
+    )
+    params = [value for key, value in values.items() if key != "token_version"] + [username]
+    updated = source.execute(
+        f"UPDATE users SET {assignments} WHERE username = ?", params
+    ).rowcount
+    if updated != 1:
+        raise SystemExit("password reset did not update exactly one user")
+PY
+  then
+    rm -f "${credential_file}"
+    rmdir "${backup_dir}" 2>/dev/null || true
+    echo "Password reset failed; no credential file was retained." >&2
+    return 1
+  fi
+  chmod 600 "${backup_db}"
+  unset new_password
+  echo "Password reset completed for user: ${username}"
+  echo "Auth database backup written to: ${backup_db} (mode 0600)"
+  echo "New credential written to: ${credential_file} (mode 0600)"
+}
+
 cmd_setup() {
   local _detected_docker_gid=""
 
@@ -899,6 +992,16 @@ BUILD_SIF=0
 USE_PROXY=""
 USE_PROXY_FROM_ENV=0
 shift  # consume subcommand
+RESET_USERNAME=""
+if [[ "${SUBCOMMAND}" == "reset-passwd" ]]; then
+  if [[ $# -ne 1 ]]; then
+    echo "reset-passwd requires exactly one username." >&2
+    usage
+    exit 1
+  fi
+  RESET_USERNAME="$1"
+  shift
+fi
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --mode=dev)
@@ -1022,6 +1125,9 @@ case "${SUBCOMMAND}" in
     ;;
   restart)
     cmd_restart
+    ;;
+  reset-passwd)
+    cmd_reset_passwd
     ;;
   -h|--help|help)
     usage
