@@ -67,6 +67,24 @@ def _wait_for_task(
     raise AssertionError(f"GREMLIN task timed out; last status: {last_payload}")
 
 
+def _wait_for_archive(
+    session: requests.Session,
+    base_url: str,
+    task_id: str,
+    headers: dict[str, str],
+    timeout: float = 120.0,
+) -> str:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        response = session.get(f"{base_url}/compute/api/results/{task_id}", headers=headers, timeout=10)
+        assert response.status_code == 200, response.text[:300]
+        archive = response.json()["archive"]
+        if archive["ready"]:
+            return archive["download_url"]
+        time.sleep(2)
+    raise AssertionError(f"Optional archive for {task_id} was not ready after {timeout:g} seconds")
+
+
 def run_full_stack_checks(base_url: str, fasta_path: Path, admin_password: str) -> None:
     with requests.Session() as session:
         _wait_for_server(session, base_url)
@@ -115,27 +133,43 @@ def run_full_stack_checks(base_url: str, fasta_path: Path, admin_password: str) 
             allow_redirects=False,
             timeout=10,
         )
-        assert results.status_code == 302
-        download_url = results.headers["Location"]
-        if download_url.startswith("/"):
-            download_url = f"{base_url}{download_url}"
-        head_response = session.head(download_url, timeout=30)
+        assert results.status_code == 200, results.text[:300]
+        manifest = results.json()
+        artifacts = manifest["artifacts"]
+        paths = {artifact["path"] for artifact in artifacts}
+        assert any(path.endswith("log/task_finished") for path in paths)
+        assert any(path.endswith("gremlin_res/2KL8.i90c75_aln.GREMLIN.mrf.pkl") for path in paths)
+        assert any(path.endswith("pssm_msa/2KL8_ascii_mtx_file") for path in paths)
+
+        artifact = next(item for item in artifacts if item["path"].endswith("pssm_msa/2KL8_ascii_mtx_file"))
+        artifact_url = artifact["url"]
+        if artifact_url.startswith("/"):
+            artifact_url = f"{base_url}{artifact_url}"
+        head_response = session.head(artifact_url, headers=headers, timeout=30)
         assert head_response.status_code == 200
         assert int(head_response.headers.get("Content-Length", "0")) > 0
-        assert head_response.headers.get("Content-Disposition", "").startswith("attachment;")
         range_headers = dict(headers)
         range_headers["Range"] = "bytes=0-0"
-        range_response = session.get(download_url, headers=range_headers, timeout=30)
+        range_response = session.get(artifact_url, headers=range_headers, timeout=30)
         assert range_response.status_code == 206
         assert range_response.content and len(range_response.content) == 1
         assert range_response.headers.get("Content-Range", "").startswith("bytes 0-0/")
+
+        archive_request = session.post(
+            f"{base_url}/compute/api/results/{task_id}/archive",
+            headers=headers,
+            timeout=10,
+        )
+        assert archive_request.status_code in {200, 202}, archive_request.text[:300]
+        download_url = _wait_for_archive(session, base_url, task_id, headers)
+        if download_url.startswith("/"):
+            download_url = f"{base_url}{download_url}"
         archive_response = session.get(download_url, headers=headers, timeout=30)
         assert archive_response.status_code == 200
         with zipfile.ZipFile(io.BytesIO(archive_response.content)) as archive:
             names = set(archive.namelist())
-        assert any(name.endswith("log/task_finished") for name in names)
-        assert any(name.endswith("gremlin_res/2KL8.i90c75_aln.GREMLIN.mrf.pkl") for name in names)
-        assert any(name.endswith("pssm_msa/2KL8_ascii_mtx_file") for name in names)
+        assert paths <= names
+        assert "manifest.json" in names
 
 
 def main() -> None:

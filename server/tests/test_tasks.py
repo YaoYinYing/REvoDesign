@@ -77,6 +77,14 @@ def test_dashboard_download_uses_native_browser_streaming():
     assert "prefers-reduced-motion: reduce" in styles
 
 
+def test_full_stack_smoke_uses_manifest_first_result_contract():
+    script = (Path(__file__).parent / "full_stack_smoke.py").read_text(encoding="utf-8")
+    assert 'manifest = results.json()' in script
+    assert 'artifact["url"]' in script
+    assert 'f"{base_url}/compute/api/results/{task_id}/archive"' in script
+    assert "results.status_code == 302" not in script
+
+
 def _insert_pending_task(
     module, result_dir: Path, filename: str = "input.fasta", entities: list[dict] | None = None
 ) -> str:
