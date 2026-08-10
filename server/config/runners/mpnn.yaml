@@ -7,3 +7,4 @@ gpus: false
 nproc: 1
 max_runtime_seconds: 7200
 defaults: {}
+# slurm_image: /mnt/data/srv/revodesign/server-slurm/images/mpnn_v1.sif

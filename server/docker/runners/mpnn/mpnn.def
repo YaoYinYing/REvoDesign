@@ -1,0 +1,8 @@
+Bootstrap: docker-daemon
+From: revodesign-revocompute-runner-mpnn:latest
+
+%post
+    echo "MPNN runner containerised"
+
+%runscript
+    exec bash /app/revocompute/run.sh "$@"

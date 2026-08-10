@@ -7,3 +7,4 @@ gpus: true
 nproc: 1
 max_runtime_seconds: 3600
 defaults: {}
+# slurm_image: /mnt/data/srv/revodesign/server-slurm/images/easifa_v1.sif
