@@ -3,34 +3,25 @@
 # Uses `opendde pred` with MSA + template features enabled.  Needs network
 # access for ColabFold MSA searching.  Checkpoints and search databases live
 # at $OPENDDE_ROOT_DIR (/mnt/db/opendde), mounted at runtime.
-# Python 3.11+ required; CUDA 12.6 for GPU inference.
-FROM nvidia/cuda:12.6.3-runtime-ubuntu22.04
+# Python 3.11+ required. The CUDA-enabled PyTorch wheel supplies the runtime
+# libraries, so a second CUDA base stack would only duplicate them.
+FROM python:3.11-slim
 
 ARG RUNNER_UID
 ARG RUNNER_GID
 ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
-# System deps: python3.11, hmmer, kalign, git.  Pre-seed timezone to
-# keep tzdata from prompting interactively (ln + DEBIAN_FRONTEND).
-RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
-    echo "Etc/UTC" > /etc/timezone && \
-    DEBIAN_FRONTEND=noninteractive apt-get update && \
+# Runtime search tools only; source-control/download/build tools are absent.
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends \
-    python3.11 \
-    python3.11-distutils \
-    python3-pip \
     hmmer \
     kalign \
-    git \
-    wget \
-    && rm -rf /var/lib/apt/lists/* \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
-    && python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
+    && rm -rf /var/lib/apt/lists/*
 
 # PyTorch with CUDA 12.6.
 RUN python3 -m pip install --no-cache-dir \
-    torch --index-url https://download.pytorch.org/whl/cu126
+    torch==2.6.0 --index-url https://download.pytorch.org/whl/cu126
 
 # OpenDDE with GPU extras (cuEquivariance kernels, Triton).
 RUN python3 -m pip install --no-cache-dir "opendde[gpu]"
