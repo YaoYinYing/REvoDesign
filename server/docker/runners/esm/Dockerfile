@@ -14,7 +14,11 @@ RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
 
 ENV PATH=/opt/venv/bin:${PATH}
 RUN pip install --no-cache-dir torch==1.12.1+cu113 \
-    --extra-index-url https://download.pytorch.org/whl/cu113
+    --extra-index-url https://download.pytorch.org/whl/cu113 && \
+    pip install --no-cache-dir \
+      "numpy<2" \
+      "pytorch-lightning==1.9.5" \
+      "torchmetrics==0.11.4"
 
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
