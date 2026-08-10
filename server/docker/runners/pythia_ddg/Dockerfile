@@ -1,5 +1,15 @@
 # Pythia-ddG runner — masked ΔΔG prediction from PDB structure.
-# CPU-only, Python 3.12.
+# CPU-only, Python 3.12. Fetch the pinned source in a throwaway stage so Git
+# and its system dependencies never enter the runtime image.
+FROM alpine/git:2.47.2 AS pythia-source
+
+ARG PYTHIA_REPO=https://github.com/YaoYinYing/Pythia.git
+ARG PYTHIA_REF=9c3d4b29d0c9d73cfd33fc33da43ae316ef6224f
+RUN git init /opt/pythia && git -C /opt/pythia remote add origin ${PYTHIA_REPO} && \
+    git -C /opt/pythia fetch --depth 1 origin ${PYTHIA_REF} && \
+    git -C /opt/pythia checkout --detach FETCH_HEAD && \
+    rm -rf /opt/pythia/.git
+
 FROM --platform=linux/amd64 python:3.12-slim
 
 ARG RUNNER_UID
@@ -7,21 +17,14 @@ ARG RUNNER_GID
 ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
-# System deps: git.  Pre-seed timezone to keep tzdata from prompting.
-RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
-    echo "Etc/UTC" > /etc/timezone && \
-    DEBIAN_FRONTEND=noninteractive apt-get update && \
-    apt-get install -y --no-install-recommends \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
 # Non-root user.
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     (id -u ${RUNNER_USERNAME} >/dev/null 2>&1 && usermod -u ${RUNNER_UID} -g ${RUNNER_GID} ${RUNNER_USERNAME}) || \
     useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
 # PyTorch CPU + Pythia deps.
-RUN pip install --no-cache-dir \
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir \
     biopython \
     joblib \
     numpy \
@@ -29,16 +32,10 @@ RUN pip install --no-cache-dir \
     pytorch_lightning \
     scipy \
     torchmetrics \
-    tqdm && \
-    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+    tqdm
 
-# Clone Pythia-ddG.
-ARG PYTHIA_REPO=https://github.com/YaoYinYing/Pythia.git
-ARG PYTHIA_REF=9c3d4b29d0c9d73cfd33fc33da43ae316ef6224f
-RUN git init /opt/pythia && git -C /opt/pythia remote add origin ${PYTHIA_REPO} && \
-    git -C /opt/pythia fetch --depth 1 origin ${PYTHIA_REF} && git -C /opt/pythia checkout --detach FETCH_HEAD && \
-    rm -rf /opt/pythia/.git && \
-    chown -R ${RUNNER_UID}:${RUNNER_GID} /opt/pythia
+# Pythia checkpoints are intentionally retained with the pinned source.
+COPY --from=pythia-source --chown=${RUNNER_UID}:${RUNNER_GID} /opt/pythia /opt/pythia
 
 # Runner workspace.
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute && \
