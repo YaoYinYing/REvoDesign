@@ -56,6 +56,9 @@ def _run_restart_script(
     # Model a host-mounted directory that the configured container uid can
     # traverse. Production may instead grant the same access with a POSIX ACL.
     auth_dir.chmod(0o777)
+    results_dir = task_dir / "results"
+    results_dir.mkdir()
+    results_dir.chmod(0o777)
     if seed_user_db:
         import sqlite3
 
@@ -301,14 +304,34 @@ def test_reset_passwd_rotates_hash_invalidates_tokens_and_writes_protected_crede
     assert backup_db.stat().st_mode & 0o777 == 0o600
 
 
-def test_up_continues_after_chmod_failure_and_prints_manual_command(tmp_path):
-    root = tmp_path / "chmod-failure"
+def test_up_does_not_mutate_startup_storage_permissions(tmp_path):
+    root = tmp_path / "no-permission-mutation"
     result, commands = _run_restart_script(root, "up", fail_chmod=True)
 
     assert result.returncode == 0, result.stderr
-    assert "continuing with container access checks" in result.stderr
-    assert "sudo chmod u+rwx,go+rx" in result.stderr
-    assert f"{root}/tasks/results" in result.stderr
+    assert "chmod" not in result.stderr
+    assert "sudo" not in result.stderr
+    assert any("up -d redis web gateway maintenance worker" in command for command in commands)
+
+    script = (Path(REPO_DIR) / "server" / "run" / "restart.sh").read_text(encoding="utf-8")
+    startup_storage = script.split("prepare_auth_storage()", 1)[1].split("validate_result_storage()", 1)[0]
+    assert "chmod " not in startup_storage
+    assert "chown " not in startup_storage
+    assert "sudo " not in startup_storage
+
+
+def test_up_accepts_runner_owned_writable_auth_db_when_host_chmod_fails(tmp_path):
+    """Runner-owned SQLite files need access validation, not host chmod."""
+    result, commands = _run_restart_script(
+        tmp_path / "runner-owned-auth",
+        "up",
+        uid=str(os.getuid()),
+        gid=str(os.getgid()),
+        seed_user_db=True,
+        fail_chmod=True,
+    )
+
+    assert result.returncode == 0, result.stderr
     assert any("up -d redis web gateway maintenance worker" in command for command in commands)
 
 

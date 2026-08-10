@@ -226,6 +226,10 @@ Environment:
           Optional path to env file (absolute or relative to current working directory).
           Defaults to server/.env.production.
 
+Safety:
+  Run as the deployment account, never through sudo or as root. Startup
+  validates host permissions and does not change ownership or modes.
+
 Subcommands:
   setup    Prepare the selected env file (create from .env.example if missing) and show detected DOCKER_GID.
   build    Build runner image and web/worker images.
@@ -384,31 +388,55 @@ resolve_runner_identity() {
   echo "Using runner identity ${RUNNER_UID}:${RUNNER_GID} (user ${_user}, group ${_group})."
 }
 
+path_mode_allows_runner() {
+  python3 - "$1" "${RUNNER_UID}" "${RUNNER_GID}" "$2" <<'PY'
+import os
+import stat
+import subprocess
+import sys
+
+path, uid, gid, required = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4], 8)
+info = os.stat(path)
+shift = 6 if info.st_uid == uid else 3 if info.st_gid == gid else 0
+if ((stat.S_IMODE(info.st_mode) >> shift) & required) == required:
+    raise SystemExit(0)
+
+# Numeric mode bits do not identify a named-user ACL. Inspect it read-only and
+# apply the ACL mask when the runner has an explicit entry.
+try:
+    output = subprocess.run(
+        ["getfacl", "-cpn", path], check=True, capture_output=True, text=True
+    ).stdout
+except (FileNotFoundError, subprocess.CalledProcessError):
+    raise SystemExit(1)
+
+def permission_bits(value: str) -> int:
+    return sum(bit for flag, bit in zip(value, (4, 2, 1)) if flag != "-")
+
+named = None
+mask = 7
+for line in output.splitlines():
+    fields = line.split(":")
+    if len(fields) == 3 and fields[0] == "user" and fields[1] == str(uid):
+        named = permission_bits(fields[2])
+    elif len(fields) == 3 and fields[0] == "mask" and not fields[1]:
+        mask = permission_bits(fields[2])
+effective = (named & mask) if named is not None else 0
+raise SystemExit(0 if effective & required == required else 1)
+PY
+}
+
 prepare_auth_storage() {
   local auth_dir="${AUTH_DIR:?AUTH_DIR must be set}"
   local user_db="${auth_dir}/users.sqlite3"
   local path=""
-  local owner=""
-  local group=""
   local -a sqlite_files=()
 
   mkdir -p "${auth_dir}"
-  if ! python3 - "${auth_dir}" "${RUNNER_UID}" "${RUNNER_GID}" <<'PY'
-import os
-import stat
-import sys
-
-path, uid, gid = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
-info = os.stat(path)
-shift = 6 if info.st_uid == uid else 3 if info.st_gid == gid else 0
-raise SystemExit(0 if ((stat.S_IMODE(info.st_mode) >> shift) & 0o7) == 0o7 else 1)
-PY
-  then
-    if ! command -v setfacl >/dev/null 2>&1 || ! setfacl -m "u:${RUNNER_UID}:rwx" "${auth_dir}"; then
-      echo "AUTH_DIR is not accessible to runner uid ${RUNNER_UID}: ${auth_dir}" >&2
-      echo "Grant that uid rwx access or install setfacl before activation." >&2
-      return 1
-    fi
+  if ! path_mode_allows_runner "${auth_dir}" 7; then
+    echo "AUTH_DIR is not accessible to runner uid ${RUNNER_UID}: ${auth_dir}" >&2
+    echo "Provision runner rwx access before activation; restart.sh does not change host permissions." >&2
+    return 1
   fi
 
   if [[ ! -e "${user_db}" ]]; then
@@ -419,18 +447,9 @@ PY
   sqlite_files+=("${user_db}"-*)
   shopt -u nullglob
   for path in "${sqlite_files[@]}"; do
-    owner="$(stat -c '%u' "${path}" 2>/dev/null || stat -f '%u' "${path}")"
-    group="$(stat -c '%g' "${path}" 2>/dev/null || stat -f '%g' "${path}")"
-    if [[ "${owner}" == "${RUNNER_UID}" ]]; then
-      chmod u+rw,go-rwx "${path}"
-    elif [[ "${group}" == "${RUNNER_GID}" ]] && chmod g+rw,o-rwx "${path}" 2>/dev/null; then
-      :
-    elif command -v setfacl >/dev/null 2>&1 && chmod o-rwx "${path}" 2>/dev/null \
-      && setfacl -m "u:${RUNNER_UID}:rw" "${path}"; then
-      :
-    else
+    if ! path_mode_allows_runner "${path}" 6; then
       echo "SQLite auth file is not writable by runner uid ${RUNNER_UID}: ${path}" >&2
-      echo "Correct its ownership/ACL before activation; refusing an insecure world-write fallback." >&2
+      echo "Provision runner read/write access before activation; restart.sh does not change host permissions." >&2
       return 1
     fi
   done
@@ -445,14 +464,10 @@ prepare_result_storage() {
 
   local results_dir="${SERVER_DIR}/results"
   mkdir -p "${results_dir}"
-  if [[ "$(id -u)" == "0" ]]; then
-    if ! chown "${RUNNER_UID}:${RUNNER_GID}" "${results_dir}"; then
-      echo "Warning: could not change ownership of ${results_dir}; the backing filesystem may not support chown." >&2
-    fi
-  fi
-  if ! chmod u+rwx,go+rx "${results_dir}"; then
-    echo "Warning: could not change permissions of ${results_dir}; continuing with container access checks." >&2
-    printf 'To apply the permissions manually, run: sudo chmod u+rwx,go+rx %q\n' "${results_dir}" >&2
+  if ! path_mode_allows_runner "${results_dir}" 7; then
+    echo "Results directory is not accessible to runner uid ${RUNNER_UID}: ${results_dir}" >&2
+    echo "Provision runner rwx access before activation; restart.sh does not change host permissions." >&2
+    return 1
   fi
 }
 
@@ -956,6 +971,7 @@ cmd_restart() {
     ensure_docker_gid
     resolve_runner_identity
     prepare_auth_storage
+    prepare_result_storage
     validate_compose_model
   fi
 
@@ -1120,6 +1136,12 @@ case "${_JOB_EXECUTOR}" in
     exit 1
     ;;
 esac
+
+if [[ "${SUBCOMMAND}" != "-h" && "${SUBCOMMAND}" != "--help" && "${SUBCOMMAND}" != "help" \
+  && "$(id -u)" == "0" ]]; then
+  echo "Do not run restart.sh through sudo or as root; use the deployment account." >&2
+  exit 1
+fi
 
 echo "Using env file: ${ENV_FILE}"
 
