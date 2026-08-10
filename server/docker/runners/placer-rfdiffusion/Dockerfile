@@ -49,7 +49,9 @@ COPY --from=rfdiffusion-source /opt/RFdiffusion /opt/RFdiffusion
 # PLACER's e3nn 0.5.4.
 RUN python3 -m pip install --no-cache-dir torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121 && \
     python3 -m pip install --no-cache-dir dgl==2.4.0 -f https://data.dgl.ai/wheels/torch-2.3/cu121/repo.html && \
-    python3 -m pip install --no-cache-dir e3nn==0.5.4 networkx==3.4.2 pandas==2.2.3 \
+    python3 -m pip install --no-cache-dir \
+      "e3nn @ https://github.com/e3nn/e3nn/archive/ef93f876c9985b3816aefb2982b3cf4325df6ba4.tar.gz" \
+      networkx==3.4.2 pandas==2.2.3 \
       opt_einsum==3.4.0 hydra-core==1.3.2 pyrsistent==0.20.0
 
 # Non-root user.

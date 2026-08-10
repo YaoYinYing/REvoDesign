@@ -133,7 +133,7 @@ def test_shared_placer_rfdiffusion_runtime_uses_audited_compatible_versions():
     for requirement in (
         "torch==2.3.1",
         "dgl==2.4.0",
-        "e3nn==0.5.4",
+        "e3nn/e3nn/archive/ef93f876c9985b3816aefb2982b3cf4325df6ba4.tar.gz",
         "networkx==3.4.2",
         "pandas==2.2.3",
         "opt_einsum==3.4.0",
