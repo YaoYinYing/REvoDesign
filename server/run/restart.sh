@@ -625,7 +625,13 @@ PY
 
 print_admin_logins() {
   if [[ ${#ADMIN_LOGIN_LINES[@]} -gt 0 ]]; then
-    printf '%s\n' "${ADMIN_LOGIN_LINES[@]}"
+    local auth_dir="${AUTH_DIR:-${SERVER_DIR}/users}"
+    local credential_file=""
+    credential_file="$(umask 077 && mktemp "${auth_dir}/bootstrap-admin-credentials.XXXXXX")"
+    printf '%s' "${ADMIN_BOOTSTRAP_CREDENTIALS}" > "${credential_file}"
+    echo "Bootstrap admin credentials written to: ${credential_file} (mode 0600)"
+    ADMIN_LOGIN_LINES=()
+    unset ADMIN_BOOTSTRAP_CREDENTIALS
   fi
 }
 

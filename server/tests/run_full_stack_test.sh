@@ -146,13 +146,17 @@ if ! UP_OUTPUT="$(REVODESIGN_SERVER_ENV="${ENV_FILE}" bash "${DEPLOY_SCRIPT}" up
   exit 1
 fi
 STACK_STARTED=1
-ADMIN_PASSWORD="$(printf '%s\n' "${UP_OUTPUT}" | sed -n 's/^Admin login — username: admin  password: //p' | tail -n 1)"
-if [[ -z "${ADMIN_PASSWORD}" ]]; then
-  printf '%s\n' "${UP_OUTPUT}" | sed 's/password: .*/password: [REDACTED]/'
-  echo "The launch output did not contain the generated admin password." >&2
+ADMIN_CREDENTIAL_FILE="$(printf '%s\n' "${UP_OUTPUT}" | sed -n 's/^Bootstrap admin credentials written to: \([^ ]*\) (mode 0600)$/\1/p' | tail -n 1)"
+if [[ -z "${ADMIN_CREDENTIAL_FILE}" || ! -f "${ADMIN_CREDENTIAL_FILE}" ]]; then
+  echo "The launch output did not identify the protected admin credential file." >&2
   exit 1
 fi
-echo "Captured the generated admin password."
+ADMIN_PASSWORD="$(awk -F '\t' '$1 == "admin" { print $2; exit }' "${ADMIN_CREDENTIAL_FILE}")"
+if [[ -z "${ADMIN_PASSWORD}" ]]; then
+  echo "The protected credential file did not contain the test admin account." >&2
+  exit 1
+fi
+echo "Loaded the generated admin password from the protected credential file."
 
 echo "Running API, web-page, and GREMLIN pipeline checks..."
 FULL_STACK_ADMIN_PASSWORD="${ADMIN_PASSWORD}" python "${SERVER_ROOT}/tests/full_stack_smoke.py" \

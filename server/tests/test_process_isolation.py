@@ -116,7 +116,8 @@ def _make_deployed_config(tmp_path, executor="docker", missing_sif=None):
 def test_restart_modes_choose_build_or_pull(tmp_path):
     dev_result, dev_commands = _run_restart_script(tmp_path / "dev", "restart")
     assert dev_result.returncode == 0, dev_result.stderr
-    assert "Admin login — username: admin  password:" in dev_result.stdout
+    assert "Bootstrap admin credentials written to:" in dev_result.stdout
+    assert "password:" not in dev_result.stdout
     assert any("build --build-arg" in command and "revodesign-revocompute-runner" in command for command in dev_commands)
     assert any("build web worker" in command for command in dev_commands)
     assert not any(" pull " in command for command in dev_commands)
@@ -220,9 +221,14 @@ def test_restart_generates_distinct_password_for_each_configured_admin(tmp_path)
     )
 
     assert result.returncode == 0, result.stderr
-    login_lines = [line for line in result.stdout.splitlines() if line.startswith("Admin login — ")]
-    assert [line.split()[4] for line in login_lines] == ["admin", "group_admin"]
-    passwords = [line.rsplit("password: ", 1)[1] for line in login_lines]
+    credential_line = next(
+        line for line in result.stdout.splitlines() if line.startswith("Bootstrap admin credentials written to:")
+    )
+    credential_file = Path(credential_line.removeprefix("Bootstrap admin credentials written to: ").split(" ", 1)[0])
+    assert credential_file.stat().st_mode & 0o777 == 0o600
+    credentials = [line.split("\t", 1) for line in credential_file.read_text(encoding="utf-8").splitlines()]
+    assert [username for username, _password in credentials] == ["admin", "group_admin"]
+    passwords = [password for _username, password in credentials]
     assert len(set(passwords)) == 2
     assert all(len(password) == 32 for password in passwords)
 
@@ -232,7 +238,8 @@ def test_up_generates_bootstrap_password_for_empty_user_database(tmp_path):
     result, commands = _run_restart_script(root, "up")
 
     assert result.returncode == 0, result.stderr
-    assert "Admin login — username: admin  password:" in result.stdout
+    assert "Bootstrap admin credentials written to:" in result.stdout
+    assert "password:" not in result.stdout
     assert any("up -d redis web gateway maintenance worker" in command for command in commands)
     assert any('exec -T web sh -c test -w "$1" && test -x "$1"' in command for command in commands)
     assert any(
