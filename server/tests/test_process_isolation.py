@@ -146,18 +146,14 @@ def test_restart_modes_choose_build_or_pull(tmp_path):
     assert any(command == "pull revodesign-revocompute-runner" for command in prod_commands)
 
 
-def test_proxy_build_redacts_url_and_uses_non_persisted_build_args(tmp_path):
+def test_proxy_url_is_rejected_on_command_line(tmp_path):
     proxy_url = "http://test-user:test-password@proxy.invalid:8080"
     result, commands = _run_restart_script(tmp_path, "build", f"--use-proxy={proxy_url}")
 
-    assert result.returncode == 0, result.stderr
+    assert result.returncode != 0
     assert proxy_url not in result.stdout
     assert proxy_url not in result.stderr
-    assert "credential redacted" in result.stdout
-    build_commands = [command for command in commands if command.startswith("build ")]
-    assert build_commands
-    assert all("--build-arg HTTP_PROXY=" in command for command in build_commands)
-    assert all("Dockerfile.proxy" not in command for command in build_commands)
+    assert not any(command.startswith("build ") for command in commands)
 
 
 def test_proxy_build_can_read_url_from_selected_env_file(tmp_path):
@@ -173,7 +169,10 @@ def test_proxy_build_can_read_url_from_selected_env_file(tmp_path):
     assert proxy_url not in result.stdout
     assert proxy_url not in result.stderr
     assert "credential redacted" in result.stdout
-    assert any("--build-arg HTTP_PROXY=" in command for command in commands)
+    build_commands = [command for command in commands if command.startswith("build ")]
+    assert build_commands
+    assert all("--secret id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY" in command for command in build_commands)
+    assert all(proxy_url not in command for command in build_commands)
 
 
 def test_proxy_build_requires_env_value_for_bare_flag(tmp_path):

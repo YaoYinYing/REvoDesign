@@ -107,6 +107,26 @@ def test_git_runner_sources_are_commit_pinned_and_clone_metadata_is_removed_in_l
             assert "rm -rf /opt/" in text, dockerfile
 
 
+def test_networked_dockerfile_steps_use_ephemeral_proxy_secret():
+    dockerfiles = [SERVER_ROOT / "docker" / "server" / "Dockerfile"]
+    dockerfiles.extend(sorted((SERVER_ROOT / "docker" / "runners").glob("*/Dockerfile")))
+    network_markers = ("apt-get update", "pip install", "git fetch", "conda env create")
+
+    for dockerfile in dockerfiles:
+        text = dockerfile.read_text(encoding="utf-8")
+        assert text.startswith("# syntax=docker/dockerfile:1.10\n"), dockerfile
+        instructions = text.replace("\\\n", " ").splitlines()
+        networked_runs = [
+            line for line in instructions if line.startswith("RUN ") and any(marker in line for marker in network_markers)
+        ]
+        assert networked_runs, dockerfile
+        for instruction in networked_runs:
+            assert "--mount=type=secret,id=revodesign_build_proxy" in instruction, dockerfile
+            assert "env=REVODESIGN_BUILD_PROXY" in instruction, dockerfile
+            assert 'HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}"' in instruction, dockerfile
+            assert 'http_proxy="${REVODESIGN_BUILD_PROXY:-}"' in instruction, dockerfile
+
+
 def test_mpnn_cpu_runtime_omits_inference_unused_gpu_and_media_wheels():
     requirements = {
         line.split("==", 1)[0].lower()

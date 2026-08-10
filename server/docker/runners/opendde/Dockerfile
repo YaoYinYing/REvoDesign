@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.10
 # OpenDDE runner — all-atom biomolecular foundation model (co-folding, design).
 #
 # Uses `opendde pred` with MSA + template features enabled.  Needs network
@@ -13,7 +14,10 @@ ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
 # Runtime search tools only; source-control/download/build tools are absent.
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends \
     hmmer \
     kalign \
@@ -22,7 +26,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
 # Pin OpenDDE and let its GPU extra select the matching Torch/CUDA stack in the
 # same retained layer. Installing Torch separately would retain the superseded
 # wheel and CUDA packages when OpenDDE upgrades them.
-RUN python3 -m pip install --no-cache-dir "opendde[gpu]==1.0.3"
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    python3 -m pip install --no-cache-dir "opendde[gpu]==1.0.3"
 
 # Non-root user.
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \

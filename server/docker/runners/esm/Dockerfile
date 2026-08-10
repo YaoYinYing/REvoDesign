@@ -1,9 +1,13 @@
+# syntax=docker/dockerfile:1.10
 # ESM runner — CUDA-enabled image for ESMFold / ESM-2 / ESM-1v / ESM-IF1.
 # Build tools and Git stay in the builder; the runtime keeps only Python,
 # CUDA libraries, the pinned source, and its installed environment.
 FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04 AS builder
 
-RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -13,7 +17,10 @@ RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
 
 ENV PATH=/opt/venv/bin:${PATH}
-RUN pip install --no-cache-dir torch==1.12.1+cu113 \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    pip install --no-cache-dir torch==1.12.1+cu113 \
     --extra-index-url https://download.pytorch.org/whl/cu113 && \
     pip install --no-cache-dir \
       "numpy<2" \
@@ -22,7 +29,10 @@ RUN pip install --no-cache-dir torch==1.12.1+cu113 \
 
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
-RUN git init /opt/esm2 && git -C /opt/esm2 remote add origin ${ESM_REPO} && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    git init /opt/esm2 && git -C /opt/esm2 remote add origin ${ESM_REPO} && \
     git -C /opt/esm2 fetch --depth 1 origin ${ESM_REF} && \
     git -C /opt/esm2 checkout --detach FETCH_HEAD && \
     pip install --no-cache-dir -e "/opt/esm2[esmfold]" && rm -rf /opt/esm2/.git
@@ -34,7 +44,10 @@ ARG RUNNER_GID
 ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
-RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends python3.9 && \

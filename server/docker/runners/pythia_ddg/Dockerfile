@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.10
 # Pythia-ddG runner — masked ΔΔG prediction from PDB structure.
 # CPU-only, Python 3.12. Fetch the pinned source in a throwaway stage so Git
 # and its system dependencies never enter the runtime image.
@@ -5,7 +6,10 @@ FROM alpine/git:2.47.2 AS pythia-source
 
 ARG PYTHIA_REPO=https://github.com/YaoYinYing/Pythia.git
 ARG PYTHIA_REF=9c3d4b29d0c9d73cfd33fc33da43ae316ef6224f
-RUN git init /opt/pythia && git -C /opt/pythia remote add origin ${PYTHIA_REPO} && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    git init /opt/pythia && git -C /opt/pythia remote add origin ${PYTHIA_REPO} && \
     git -C /opt/pythia fetch --depth 1 origin ${PYTHIA_REF} && \
     git -C /opt/pythia checkout --detach FETCH_HEAD && \
     rm -rf /opt/pythia/.git
@@ -23,7 +27,10 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
 # PyTorch CPU + Pythia deps.
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir \
     biopython \
     joblib \

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.10
 # PLACER + RFdiffusion shared runner — CUDA 12.1 + DGL 2.4 + e3nn.
 # Both projects use the same toolchain (torch, DGL, SE(3) ops).
 #
@@ -12,14 +13,20 @@
 FROM alpine/git:2.47.2 AS placer-source
 ARG PLACER_REPO=https://github.com/YaoYinYing/PLACER.git
 ARG PLACER_REF=7dc5563300e7143582d85636bdd413d4c7688e9a
-RUN git init /opt/PLACER && git -C /opt/PLACER remote add origin ${PLACER_REPO} && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    git init /opt/PLACER && git -C /opt/PLACER remote add origin ${PLACER_REPO} && \
     git -C /opt/PLACER fetch --depth 1 origin ${PLACER_REF} && git -C /opt/PLACER checkout --detach FETCH_HEAD && \
     rm -rf /opt/PLACER/.git
 
 FROM alpine/git:2.47.2 AS rfdiffusion-source
 ARG RFDIFFUSION_REPO=https://github.com/RosettaCommons/RFdiffusion.git
 ARG RFDIFFUSION_REF=86507b6538f51fce57b5a72477165f03999ed7ae
-RUN git init /opt/RFdiffusion && git -C /opt/RFdiffusion remote add origin ${RFDIFFUSION_REPO} && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    git init /opt/RFdiffusion && git -C /opt/RFdiffusion remote add origin ${RFDIFFUSION_REPO} && \
     git -C /opt/RFdiffusion fetch --depth 1 origin ${RFDIFFUSION_REF} && git -C /opt/RFdiffusion checkout --detach FETCH_HEAD && \
     rm -rf /opt/RFdiffusion/.git && mkdir -p /opt/RFdiffusion/models
 
@@ -28,7 +35,10 @@ FROM --platform=linux/amd64 nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 ARG RUNNER_UID ARG RUNNER_GID ARG RUNNER_USERNAME ARG RUNNER_GROUP
 
 # System deps.
-RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends python3.10 python3.10-distutils python3-pip python3-openbabel && \
@@ -47,7 +57,10 @@ COPY --from=rfdiffusion-source /opt/RFdiffusion /opt/RFdiffusion
 # pins older e3nn 0.3.3, but its vendored inference code only uses
 # o3.wigner_3j and o3.spherical_harmonics, whose call contract is retained by
 # PLACER's e3nn 0.5.4.
-RUN python3 -m pip install --no-cache-dir torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121 && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    python3 -m pip install --no-cache-dir torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121 && \
     python3 -m pip install --no-cache-dir dgl==2.4.0 -f https://data.dgl.ai/wheels/torch-2.3/cu121/repo.html && \
     python3 -m pip install --no-cache-dir \
       "e3nn @ https://github.com/e3nn/e3nn/archive/ef93f876c9985b3816aefb2982b3cf4325df6ba4.tar.gz" \

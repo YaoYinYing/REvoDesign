@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.10
 # Pro-Prime: 690M protein LM for zero-shot mutant effect + OGT prediction.
 # GPU recommended for inference (transformers + torch).
 FROM --platform=linux/amd64 python:3.10-slim
@@ -11,7 +12,10 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     (id -u ${RUNNER_USERNAME} >/dev/null 2>&1 && usermod -u ${RUNNER_UID} -g ${RUNNER_GID} ${RUNNER_USERNAME}) || \
     useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
-RUN pip install --no-cache-dir torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121 && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    pip install --no-cache-dir torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121 && \
     pip install --no-cache-dir \
       transformers==4.36.2 \
       pandas==2.2.3 \

@@ -1,9 +1,13 @@
+# syntax=docker/dockerfile:1.10
 # BioEmu: generative protein structure sampling from sequence.
 FROM --platform=linux/amd64 python:3.11-slim
 
 ARG RUNNER_UID ARG RUNNER_GID ARG RUNNER_USERNAME ARG RUNNER_GROUP
 
-RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends kalign && \
@@ -16,7 +20,10 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
 # BioEmu 1.4.1 is the package published from upstream's v1.4.0 release tag.
 # Let its CUDA extra select one compatible Torch stack; preinstalling Torch
 # causes pip to retain/download two heavyweight generations as constraints move.
-RUN pip install --no-cache-dir "bioemu[cuda]==1.4.1"
+RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
+    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
+      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
+    pip install --no-cache-dir "bioemu[cuda]==1.4.1"
 
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/bioemu/run.sh /app/revocompute/
