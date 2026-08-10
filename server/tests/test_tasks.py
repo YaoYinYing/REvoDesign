@@ -56,13 +56,15 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     assert "file-input-offscreen" not in html
 
 
-def test_dashboard_download_reports_stream_progress():
+def test_dashboard_download_uses_native_browser_streaming():
     script = (SERVER_PACKAGE / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
     styles = (SERVER_PACKAGE / "static" / "css" / "dashboard.css").read_text(encoding="utf-8")
 
-    assert 'response.headers.get("Content-Length")' in script
-    assert "response.body.getReader()" in script
-    assert "download.received += result.value.byteLength" in script
+    assert 'A.authFetch(url, { method: "HEAD" })' in script
+    assert "a.href = url" in script
+    assert 'a.download = ""' in script
+    assert "response.body.getReader()" not in script
+    assert "new Blob(" not in script
     assert 'button.setAttribute("aria-busy"' in script
     assert ".task-btn.download-progress" in styles
     assert "prefers-reduced-motion: reduce" in styles
@@ -1361,6 +1363,7 @@ def test_nginx_download_offload_returns_internal_redirect(monkeypatch, tmp_path)
     )
 
     response = client.get(f"/PSSM_GREMLIN/api/download/{md5sum}", headers=auth_header)
+    head_response = client.head(f"/PSSM_GREMLIN/api/download/{md5sum}", headers=auth_header)
 
     assert response.status_code == 200
     assert response.data == b""
@@ -1368,6 +1371,9 @@ def test_nginx_download_offload_returns_internal_redirect(monkeypatch, tmp_path)
     assert response.headers["Content-Type"] == "application/zip"
     assert response.headers["Cache-Control"] == "private, no-store"
     assert response.headers["Content-Disposition"].startswith("attachment;")
+    assert head_response.status_code == 200
+    assert head_response.data == b""
+    assert head_response.headers["X-Accel-Redirect"] == f"/_protected_results/{archive.name}"
 
 
 def test_download_does_not_pack_missing_archive_in_request(monkeypatch, tmp_path):
