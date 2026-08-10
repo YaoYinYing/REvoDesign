@@ -250,6 +250,11 @@ def test_admin_can_enable_own_gpu_access_with_unchanged_role(monkeypatch, tmp_pa
     assert updated["role"] == "admin"
     assert updated["allow_gpu_use"] is True
 
+    listing = client.get("/compute/api/auth/admin/users", headers=admin_header)
+    assert listing.status_code == 200
+    serialized = next(user for user in listing.json["users"] if user["id"] == admin["id"])
+    assert serialized["allow_gpu_use"] is True
+
     script = (Path(__file__).resolve().parents[1] / "revocompute" / "static" / "js" / "user-control.js").read_text(
         encoding="utf-8"
     )

@@ -303,6 +303,7 @@ class UserResponse(BaseModel):
     email: str
     email_verified: bool
     role: str
+    allow_gpu_use: bool = False
     full_name: str | None = None
     affiliation: str | None
     position: str | None = None
