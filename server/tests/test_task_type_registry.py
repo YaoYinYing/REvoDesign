@@ -182,6 +182,14 @@ def test_bioemu_runtime_pins_current_release_without_duplicate_torch_layer():
     assert "pip install --no-cache-dir torch" not in dockerfile
 
 
+def test_easifa_runtime_includes_rdkit_shared_libraries():
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "easifa" / "Dockerfile").read_text(
+        encoding="utf-8"
+    )
+    assert "libxext6" in dockerfile
+    assert "libxrender1" in dockerfile
+
+
 def test_multi_file_task_contract_is_bounded():
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
     for name in ("rfdiffusion", "placer"):
