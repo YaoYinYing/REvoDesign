@@ -101,6 +101,7 @@ services:
       - redis
     command: >-
       gunicorn -w ${GUNICORN_WORKERS:-2}
+      --timeout 3600
       --preload
       -b 0.0.0.0:${PORT:-8080}
       --access-logfile ${LOG_DIR}/gunicorn-access.log

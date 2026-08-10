@@ -17,6 +17,8 @@ import requests
 from conftest import _extract_md5, _load_pssm_module
 from werkzeug.utils import secure_filename
 
+SERVER_PACKAGE = Path(__file__).resolve().parents[1] / "pssm_gremlin_server"
+
 # Flask test-client tests
 # ==================================================================
 
@@ -52,6 +54,18 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     assert 'type="file" name="file" id="fileInput" accept=".fasta" class="sr-only"' in html
     assert 'id="fileButton"' in html
     assert "file-input-offscreen" not in html
+
+
+def test_dashboard_download_reports_stream_progress():
+    script = (SERVER_PACKAGE / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
+    styles = (SERVER_PACKAGE / "static" / "css" / "dashboard.css").read_text(encoding="utf-8")
+
+    assert 'response.headers.get("Content-Length")' in script
+    assert "response.body.getReader()" in script
+    assert "download.received += result.value.byteLength" in script
+    assert 'button.setAttribute("aria-busy"' in script
+    assert ".task-btn.download-progress" in styles
+    assert "prefers-reduced-motion: reduce" in styles
 
 
 def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta") -> str:
@@ -1307,6 +1321,7 @@ def test_download_uses_safe_fasta_prefix_filename(monkeypatch, tmp_path):
 
     response = client.get(f"/PSSM_GREMLIN/api/download/{md5sum}", headers=auth_header)
     assert response.status_code == 200
+    assert response.headers["Content-Length"] == str(len(b"zip"))
     disposition = response.headers.get("Content-Disposition", "")
     expected_prefix = secure_filename(os.path.splitext(os.path.basename(original_filename))[0]) or "result"
     assert "attachment" in disposition

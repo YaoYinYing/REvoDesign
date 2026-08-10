@@ -482,6 +482,46 @@ details.sequence summary::-webkit-details-marker { display: none; }
   border-color: #d53a2f;
   color: #b9251b;
 }
+.task-btn.download-progress {
+  --download-progress: 0%;
+  position: relative;
+  isolation: isolate;
+  min-width: 11.5rem;
+  overflow: hidden;
+  border-color: #7eabb7;
+  background: #dcebee;
+  color: #123f49;
+  cursor: wait;
+  opacity: 1;
+}
+.task-btn.download-progress::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 auto 0 0;
+  width: var(--download-progress);
+  background: #8fc9d3;
+  content: "";
+  transition: width 160ms ease-out;
+}
+.task-btn.download-progress.is-indeterminate::before {
+  width: 42%;
+  background: linear-gradient(90deg, transparent, #8fc9d3, transparent);
+  animation: downloadSweep 1.2s ease-in-out infinite;
+}
+.task-btn.download-progress:disabled { opacity: 1; }
+.download-label,
+.download-detail { display: block; line-height: 1.15; }
+.download-detail {
+  margin-top: 0.12rem;
+  font-size: 0.66rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes downloadSweep {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(340%); }
+}
 .task-btn.cancel { background: #ffffff; border-color: #d8e1dc; color: #6b2f24; }
 .task-btn.delete { background: #ffffff; border-color: #e9c1bc; color: #8b2519; }
 .task-btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -600,6 +640,19 @@ html[data-theme="dark"] .toast.error { background: #41241f; border-color: #75423
 html[data-theme="dark"] .task-btn.cancel { background: #17252c; border-color: #324751; color: #d7e3e8; }
 html[data-theme="dark"] .task-btn.delete { background: #17252c; border-color: #324751; color: #d7e3e8; }
 html[data-theme="dark"] .task-btn.download-failed { background: #351e1b; border-color: #a94b41; color: #ffb7ad; }
+html[data-theme="dark"] .task-btn.download-progress {
+  border-color: #39778a;
+  background: #183844;
+  color: #e0f4f7;
+}
+html[data-theme="dark"] .task-btn.download-progress::before { background: #266b7d; }
+html[data-theme="dark"] .task-btn.download-progress.is-indeterminate::before {
+  background: linear-gradient(90deg, transparent, #347f91, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-btn.download-progress.is-indeterminate::before { animation: none; }
+}
 
 @media (max-width: 980px) {
   .stats { grid-template-columns: repeat(3, minmax(120px, 1fr)); }

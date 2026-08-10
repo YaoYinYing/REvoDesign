@@ -14,6 +14,7 @@
     filter: "all",
     selected: new Set(),
   };
+  var downloads = new Map();
   var activeErrorButton = null;
 
   var statusMap = {
@@ -137,6 +138,82 @@
     });
   }
 
+  function formatBytes(bytes) {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+    var units = ["B", "KB", "MB", "GB"];
+    var unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    var value = bytes / Math.pow(1024, unitIndex);
+    return value.toFixed(unitIndex === 0 || value >= 10 ? 0 : 1) + " " + units[unitIndex];
+  }
+
+  function downloadButtonContent(download) {
+    if (download.phase === "complete") {
+      return { label: "Downloaded", detail: formatBytes(download.received), percent: 100 };
+    }
+    if (download.total > 0) {
+      var percent = Math.min(100, Math.round((download.received / download.total) * 100));
+      return {
+        label: "Downloading " + percent + "%",
+        detail: formatBytes(download.received) + " / " + formatBytes(download.total),
+        percent: percent,
+      };
+    }
+    return {
+      label: "Downloading…",
+      detail: download.received > 0 ? formatBytes(download.received) : "Starting…",
+      percent: null,
+    };
+  }
+
+  function downloadButtonHtml(task, downloadClass) {
+    var download = downloads.get(task.md5);
+    if (!download) {
+      return '<button class="task-btn ' + downloadClass + '" data-action="download" data-md5="' +
+        escapeHtml(task.md5) + '">Download</button>';
+    }
+    var content = downloadButtonContent(download);
+    var progressClass = content.percent === null ? " is-indeterminate" : "";
+    var progressStyle = content.percent === null ? "" : ' style="--download-progress:' + content.percent + '%"';
+    var ariaBusy = download.phase === "complete" ? "false" : "true";
+    return '<button class="task-btn ' + downloadClass + ' download-progress' + progressClass +
+      '" data-action="download" data-md5="' + escapeHtml(task.md5) + '" disabled aria-busy="' + ariaBusy + '" aria-label="' +
+      escapeHtml(content.label + " " + content.detail) + '"' + progressStyle + '>' +
+      '<span class="download-label">' + escapeHtml(content.label) + '</span>' +
+      '<span class="download-detail">' + escapeHtml(content.detail) + '</span></button>';
+  }
+
+  function updateDownloadButton(md5sum) {
+    var download = downloads.get(md5sum);
+    document.querySelectorAll("button[data-action='download']").forEach(function (button) {
+      if (button.dataset.md5 !== md5sum) return;
+      if (!download) {
+        button.disabled = false;
+        button.removeAttribute("aria-busy");
+        button.removeAttribute("aria-label");
+        button.classList.remove("download-progress", "is-indeterminate");
+        button.style.removeProperty("--download-progress");
+        button.textContent = "Download";
+        return;
+      }
+      var content = downloadButtonContent(download);
+      button.disabled = true;
+      button.setAttribute("aria-busy", download.phase === "complete" ? "false" : "true");
+      button.setAttribute("aria-label", content.label + " " + content.detail);
+      button.classList.add("download-progress");
+      button.classList.toggle("is-indeterminate", content.percent === null);
+      if (content.percent === null) button.style.removeProperty("--download-progress");
+      else button.style.setProperty("--download-progress", content.percent + "%");
+      button.replaceChildren();
+      var label = document.createElement("span");
+      label.className = "download-label";
+      label.textContent = content.label;
+      var detail = document.createElement("span");
+      detail.className = "download-detail";
+      detail.textContent = content.detail;
+      button.append(label, detail);
+    });
+  }
+
   function renderTasks() {
     var list = document.getElementById("taskList");
     var tasks = getFilteredTasks();
@@ -192,7 +269,7 @@
         '</div>' +
         '<details class="sequence"><summary>Sequence Snapshot</summary><pre>' + escapeHtml(task.sequence || "-") + '</pre></details>' +
         '<div class="actions">' +
-          (canDownload ? '<button class="task-btn ' + downloadClass + '" data-action="download" data-md5="' + escapeHtml(task.md5) + '">Download</button>' : "") +
+          (canDownload ? downloadButtonHtml(task, downloadClass) : "") +
           (canCancel ? '<button class="task-btn cancel" data-action="cancel" data-md5="' + escapeHtml(task.md5) + '">Cancel</button>' : "") +
           (canDelete ? '<button class="task-btn delete" data-action="delete" data-md5="' + escapeHtml(task.md5) + '">Delete</button>' : "") +
         '</div>';
@@ -328,24 +405,67 @@
     }
   }
 
+  function downloadNameFromDisposition(header) {
+    if (!header) return "PSSM_GREMLIN_results.zip";
+    var encoded = header.match(/filename\*=UTF-8''([^;]+)/i);
+    if (encoded) {
+      try { return decodeURIComponent(encoded[1]); } catch (_) { /* use basic filename */ }
+    }
+    var basic = header.match(/filename="?([^";]+)"?/i);
+    return basic ? basic[1] : "PSSM_GREMLIN_results.zip";
+  }
+
   async function downloadFile(md5sum) {
+    if (!md5sum || downloads.has(md5sum)) return;
+    var download = { phase: "active", received: 0, total: 0 };
+    downloads.set(md5sum, download);
+    updateDownloadButton(md5sum);
     try {
       var response = await A.authFetch("/PSSM_GREMLIN/api/download/" + encodeURIComponent(md5sum));
       if (!response.ok) {
         var data = await response.json().catch(function () { return {}; });
         throw new Error(data.message || data.error || "Download failed (HTTP " + response.status + ")");
       }
-      var blob = await response.blob();
+      var contentLength = Number.parseInt(response.headers.get("Content-Length") || "0", 10);
+      download.total = Number.isFinite(contentLength) && contentLength > 0 ? contentLength : 0;
+      var blob;
+      if (response.body && response.body.getReader) {
+        var reader = response.body.getReader();
+        var chunks = [];
+        var lastPaint = 0;
+        while (true) {
+          var result = await reader.read();
+          if (result.done) break;
+          chunks.push(result.value);
+          download.received += result.value.byteLength;
+          if (Date.now() - lastPaint >= 100) {
+            updateDownloadButton(md5sum);
+            lastPaint = Date.now();
+          }
+        }
+        blob = new Blob(chunks, { type: response.headers.get("Content-Type") || "application/zip" });
+      } else {
+        blob = await response.blob();
+        download.received = blob.size;
+      }
+      if (!download.total) download.total = download.received;
+      download.phase = "complete";
+      updateDownloadButton(md5sum);
       var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url;
-      // ponytail: let the server's Content-Disposition header name the file
-      a.download = "";
+      a.download = downloadNameFromDisposition(response.headers.get("Content-Disposition"));
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       setTimeout(function () { URL.revokeObjectURL(url); }, 100);
+      setTimeout(function () {
+        downloads.delete(md5sum);
+        updateDownloadButton(md5sum);
+      }, 1400);
     } catch (error) {
+      downloads.delete(md5sum);
+      updateDownloadButton(md5sum);
       showToast(error.message || "Download failed", "error");
     }
   }
