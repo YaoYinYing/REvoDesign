@@ -228,6 +228,34 @@ def test_admin_cannot_lock_out_self(monkeypatch, tmp_path):
     assert db.get_user(admin["id"])["deleted"] is False
 
 
+def test_admin_can_enable_own_gpu_access_with_unchanged_role(monkeypatch, tmp_path):
+    """An unchanged self-role must not block an otherwise valid GPU update."""
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+    db = module.app.config["user_db"]
+    admin = db.get_user_by_username("sysadmin")
+    assert admin is not None
+    assert admin["role"] == "admin"
+    assert admin["allow_gpu_use"] is False
+
+    response = client.put(
+        f"/compute/api/auth/admin/users/{admin['id']}",
+        headers={**admin_header, "Content-Type": "application/json"},
+        data=json.dumps({"role": "admin", "allow_gpu_use": True}),
+    )
+
+    assert response.status_code == 200
+    updated = db.get_user(admin["id"])
+    assert updated["role"] == "admin"
+    assert updated["allow_gpu_use"] is True
+
+    script = (Path(__file__).resolve().parents[1] / "revocompute" / "static" / "js" / "user-control.js").read_text(
+        encoding="utf-8"
+    )
+    assert "if (self) delete payload.role;" in script
+
+
 def test_admin_update_rejects_invalid_status(monkeypatch, tmp_path):
     """PUT with invalid status values returns 400."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})

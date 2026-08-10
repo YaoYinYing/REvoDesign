@@ -1705,9 +1705,10 @@ def _admin_user_update_fields(
     update_fields.update(_admin_profile_update_fields(req))
     update_fields.update(_admin_registration_update_fields(db, user_id, user, req.registration_status))
     if req.role is not None:
-        if is_self:
+        if is_self and req.role != user.get("role"):
             return None, (jsonify({"error": "Administrators cannot change their own role"}), 400)
-        update_fields["role"] = req.role
+        if not is_self:
+            update_fields["role"] = req.role
     if req.allow_gpu_use is not None:
         update_fields["allow_gpu_use"] = req.allow_gpu_use
     return update_fields, None

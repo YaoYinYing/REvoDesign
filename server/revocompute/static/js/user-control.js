@@ -308,6 +308,9 @@
         registration_status: document.getElementById("editRegStatus").value,
         user_status: document.getElementById("editUserStatus").value,
       };
+      // The role selector is display-only for the signed-in administrator.
+      // Do not send an immutable field with otherwise valid profile/GPU edits.
+      if (self) delete payload.role;
       var pw = document.getElementById("editPassword").value;
       if (pw) payload.password = pw;
       if (self && payload.user_status === "banned") {

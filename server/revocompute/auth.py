@@ -183,7 +183,8 @@ class UserDatabase:
         ``email_verified``, ``api_key_hash``,
         ``full_name``, ``affiliation``, ``position``, ``pi_name``,
         ``terms_agreed``, ``registration_status``,
-        ``user_status``, ``approved_by``, ``approved_at``.
+        ``user_status``, ``approved_by``, ``approved_at``,
+        ``allow_gpu_use``.
         Password and API key values must be pre-hashed by the caller.
         """
         _allowed = {
@@ -205,6 +206,7 @@ class UserDatabase:
             "verification_resend_count",
             "verification_resend_at",
             "role",
+            "allow_gpu_use",
         }
         values = {k: v for k, v in fields.items() if k in _allowed}
         if "is_admin" in fields:
