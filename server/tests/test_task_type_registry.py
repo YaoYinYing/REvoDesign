@@ -173,6 +173,15 @@ def test_shared_placer_rfdiffusion_runtime_uses_audited_compatible_versions():
     assert "python3-openbabel" in dockerfile
 
 
+def test_bioemu_runtime_pins_current_release_without_duplicate_torch_layer():
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "bioemu" / "Dockerfile").read_text(
+        encoding="utf-8"
+    )
+    assert "python:3.11-slim" in dockerfile
+    assert '"bioemu[cuda]==1.4.1"' in dockerfile
+    assert "pip install --no-cache-dir torch" not in dockerfile
+
+
 def test_multi_file_task_contract_is_bounded():
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
     for name in ("rfdiffusion", "placer"):
