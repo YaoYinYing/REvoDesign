@@ -835,6 +835,10 @@ cmd_restart() {
       validate_slurm_images
     fi
     validate_auth_storage
+    # Compose interpolation requires the socket GID and runner identity. Resolve
+    # them during preflight so a missing DOCKER_GID fails before cmd_down.
+    ensure_docker_gid
+    resolve_runner_identity
     validate_compose_model
   fi
 

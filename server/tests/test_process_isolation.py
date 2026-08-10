@@ -186,6 +186,10 @@ def test_prepared_restart_validates_before_down_without_build_or_pull(tmp_path):
     assert any("up --no-build -d redis web gateway maintenance worker" in command for command in commands)
     assert "All prepared deployment services are running." in result.stdout
 
+    script = (Path(REPO_DIR) / "server" / "run" / "restart.sh").read_text(encoding="utf-8")
+    prepared = script.split('if [[ "${MODE}" == "prepared" ]]; then', 1)[1].split("  cmd_down", 1)[0]
+    assert prepared.index("ensure_docker_gid") < prepared.index("validate_compose_model")
+
 
 def test_prepared_restart_rejects_missing_sif_before_down(tmp_path):
     config_dir = _make_deployed_config(tmp_path, executor="slurm", missing_sif="esm")
