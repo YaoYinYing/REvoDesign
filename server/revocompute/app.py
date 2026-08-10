@@ -136,10 +136,11 @@ if CONFIG.slurm_allowed_queues:
 
 # Define directories for storing files
 app.config["UPLOAD_FOLDER"] = CONFIG.upload_folder
+app.config["WORKSPACE_FOLDER"] = CONFIG.workspace_folder
 app.config["RESULTS_FOLDER"] = CONFIG.results_folder
 app.config["RESULT_DOWNLOAD_MODE"] = CONFIG.result_download_mode
 
-_ensure_directories(CONFIG.upload_folder, CONFIG.results_folder)
+_ensure_directories(CONFIG.upload_folder, CONFIG.workspace_folder, CONFIG.results_folder)
 
 # The task type registry is loaded by task_runtime's module-level code (its
 # import at the top of this file), including the built-in gremlin fallback.
@@ -340,7 +341,7 @@ def _task_id_for_upload(content_md5: str, username: str | None) -> str:
 
 
 def _delete_task_artifacts(task: dict[str, Any]) -> None:
-    _delete_result_artifacts(task, app.config["RESULTS_FOLDER"])
+    _delete_result_artifacts(task, app.config["RESULTS_FOLDER"], app.config["WORKSPACE_FOLDER"])
 
 
 def _revoke_celery_task(task: dict[str, Any]) -> None:

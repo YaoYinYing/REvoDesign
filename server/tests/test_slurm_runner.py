@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import subprocess
+from dataclasses import replace
 from unittest.mock import patch
 
 import pytest
@@ -15,13 +16,21 @@ from revocompute.job.runners.slurm_runner import SlurmJob, _sanitize_name, _sh_q
 
 
 def _make_task_type(**kwargs):
-    from revocompute.task_types import TaskType
+    from revocompute.task_types import RuntimeFamily, TaskType
 
     defaults = dict(
         name="gremlin",
         display_name="GREMLIN",
-        docker_image="revodesign-runner:latest",
-        command=["bash", "/app/run.sh"],
+        runtime=RuntimeFamily(
+            name="gremlin",
+            docker_image="revodesign-runner:latest",
+            entrypoint=("bash", "/app/run.sh"),
+            dockerfile="docker/gremlin/Dockerfile",
+            definition="docker/gremlin/gremlin.def",
+            job_executor="slurm",
+            container_runtime="apptainer",
+            slurm_image="/opt/images/gremlin_v1.sif",
+        ),
         input_extension=".fasta",
         input_label="FASTA file",
         stage_markers={
@@ -36,9 +45,7 @@ def _make_task_type(**kwargs):
 def _make_runner(**kwargs):
     from revocompute.task_types import RunnerConfig
 
-    defaults = dict(runner="slurm", slurm_image="/opt/images/gremlin_v1.sif")
-    defaults.update(kwargs)
-    return RunnerConfig(**defaults)
+    return RunnerConfig(**kwargs)
 
 
 def _make_entities():
@@ -48,8 +55,12 @@ def _make_entities():
             "type": "file",
             "value": "input.fasta",
             "verified_value": "input.fasta",
+            "relative_path": "input.fasta",
             "hash": "abc123",
-            "mounted": "/workspace/inputs/input.fasta",
+            "mounted": "/mnt/revocompute/tester/inputs/input.fasta",
+            "snapshot_path": "/srv/workspaces/tester/task-1/inputs/input.fasta",
+            "snapshot_root": "/srv/workspaces/tester/task-1/inputs",
+            "workspace_key": "tester",
         },
         {
             "name": "iter",
@@ -71,12 +82,13 @@ def test_render_wrapper_has_shebang_and_set_e(tmp_path):
     assert "set -euo pipefail" in script
 
 
-def test_render_input_staging_creates_hardlink(tmp_path):
+def test_render_input_snapshot_is_verified_without_staging(tmp_path):
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
     script = job._render_wrapper()
-    assert "ln -f" in script
-    assert "abc123.upload" in script
-    assert "input.fasta" in script
+    assert "test -f '/srv/workspaces/tester/task-1/inputs/input.fasta'" in script
+    assert "abc123  /srv/workspaces/tester/task-1/inputs/input.fasta" in script
+    assert "sha256sum --check --status" in script
+    assert "ln -f" not in script
 
 
 # -- srun arguments -----------------------------------------------------------
@@ -108,15 +120,31 @@ def test_build_srun_args_no_db_defaults(tmp_path):
 
 
 def test_render_apptainer_binds_and_env(tmp_path):
-    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
+    job = SlurmJob(
+        "task-1",
+        _make_task_type(gpus=True),
+        _make_runner(),
+        _make_entities(),
+        str(tmp_path / "out"),
+    )
     script = job._render_wrapper()
     assert "apptainer run --nv" in script
     assert "--bind" in script
-    assert "/workspace/inputs" in script
-    assert "/workspace/outputs" in script
+    assert "/mnt/revocompute/tester/inputs" in script
+    assert "/mnt/revocompute/tester/outputs" in script
     assert "export APPTAINERENV_TASK_ID=" in script
     assert "export APPTAINERENV_TASK_TYPE=" in script
+    assert 'export APPTAINERENV_TASK_PARAMS=' in script
+    assert 'export APPTAINERENV_TASK_INPUTS=' in script
+    assert '{"iter":"100"}' in script
     assert "/opt/images/gremlin_v1.sif" in script
+
+
+def test_render_apptainer_omits_nvidia_flag_for_cpu_task(tmp_path):
+    job = SlurmJob("task-1", _make_task_type(gpus=False), _make_runner(), _make_entities(), str(tmp_path / "out"))
+    script = job._render_wrapper()
+    assert "apptainer run --nv" not in script
+    assert "apptainer run --bind" in script
 
 
 def test_render_apptainer_passes_iter_flag(tmp_path):
@@ -125,9 +153,17 @@ def test_render_apptainer_passes_iter_flag(tmp_path):
     assert "-r 100" in script
 
 
+def test_render_apptainer_passes_runtime_subcommand(tmp_path):
+    task_type = _make_task_type(runner_args=("rfdiffusion",))
+    job = SlurmJob("task-1", task_type, _make_runner(), _make_entities(), str(tmp_path / "out"))
+    script = job._render_wrapper()
+    assert "'/opt/images/gremlin_v1.sif' 'rfdiffusion' -i" in script
+
+
 def test_render_apptainer_raises_without_sif_image(tmp_path):
-    runner = _make_runner(slurm_image="")
-    job = SlurmJob("task-1", _make_task_type(), runner, _make_entities(), str(tmp_path / "out"))
+    task_type = _make_task_type()
+    task_type = replace(task_type, runtime=replace(task_type.runtime, slurm_image=""))
+    job = SlurmJob("task-1", task_type, _make_runner(), _make_entities(), str(tmp_path / "out"))
     with pytest.raises(RuntimeError, match="slurm_image"):
         job._render_wrapper()
 

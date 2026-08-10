@@ -1,4 +1,4 @@
-# RFdiffusion runner — local development settings.
+# Shared PLACER/RFdiffusion runtime settings.
 mounts:
   - host_path: "/mnt/db/weights/RFdiffusion/models"
     container_path: "/opt/RFdiffusion/models"
@@ -8,4 +8,3 @@ gpus: true
 nproc: 1
 max_runtime_seconds: 14400
 defaults: {}
-# slurm_image: /mnt/data/srv/revodesign/server-slurm/images/placer-rfdiffusion_v1.sif

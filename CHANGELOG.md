@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```text
 ## TEMPLATE
 ### Added
+- **Immutable multi-file task workspaces**: submissions now preserve safe
+  relative paths in a per-task snapshot and expose the isolated virtual tree
+  as `/mnt/revocompute/<username>/inputs` (read-only) and `outputs`
+  (task-owned writable) for both Docker and SLURM/Apptainer. `TASK_INPUTS`
+  carries the complete input manifest and checksums are verified before launch.
+- **Manifest-first result browsing**: successful and failed tasks atomically
+  publish checksummed `manifest.json` files while keeping result trees
+  uncompressed. The dashboard lists and previews individual text, table,
+  structure-text, and image artifacts through authenticated Nginx-offloadable
+  routes. Full-task ZIPs are optional asynchronous derived caches.
+- **Runtime artifact size audit**: added an inspect-only builder tool that
+  reports expanded Docker and SIF bytes per shared runtime family.
 
 ### Changed
 
@@ -47,11 +59,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   problems, with private routing for security vulnerabilities.
 
 ### Changed
+- **Runtime-family deployment model**: task types now select shared runtime
+  families which own one image, entrypoint, runner YAML, and SIF definition.
+  PLACER and RFdiffusion share one family; Docker and SLURM receive identical
+  resolved parameter/input manifests and missing family artifacts fail closed.
+- **Global execution configuration**: `task_types.yaml` now selects one
+  `job_executor` and `container_runtime` for the deployment, while each runtime
+  family declares its own `slurm_image`. Runner YAMLs contain only mounts,
+  environment, limits, and parameter defaults.
+- **Runner image reproducibility and size**: pinned all Git-sourced runner
+  repositories to audited commits and removed their `.git` data in the clone
+  layer. The CPU MPNN inference family no longer installs CUDA stub packages,
+  Triton, torchvision, or torchaudio; Pythia's small repository checkpoints
+  remain bundled intentionally.
+- **Server form schema**: task parameters now expose labels, choices, numeric
+  bounds, steps, units, and boolean controls; RFdiffusion and PLACER accept
+  bounded multi-file submissions.
 - **GREMLIN server: Nginx result offload**: made the Compose gateway own the
-  public port and stream authorized result ZIPs from a read-only mount via
-  Flask-issued internal redirects. Gunicorn no longer carries large download
-  bodies or creates missing archives inside HTTP requests; result downloads
-  support byte ranges while internal file paths remain unreachable directly.
+  public port and stream authorized result artifacts or optional ZIPs from a
+  read-only mount via Flask-issued internal redirects. Gunicorn no longer
+  carries large download bodies or creates missing archives inside HTTP
+  requests; result downloads support byte ranges while internal file paths
+  remain unreachable directly.
 - **Server package rename**: `pssm_gremlin_server` → `revocompute`
   (REvoCompute). All branding across templates, JS, CSS, and email headers
   updated from "REvoDesign GREMLIN Server" to "REvoCompute".

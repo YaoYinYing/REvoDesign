@@ -5,13 +5,14 @@
 """SLURM + Apptainer job runner.
 
 Uses ``srun`` for direct stdout/stderr capture — the same living-output
-pattern as the Docker runner.  A temporary wrapper script performs input
-staging, exports ``APPTAINERENV_*`` environment variables, and invokes
+pattern as the Docker runner. A temporary wrapper script verifies the input
+snapshot, exports ``APPTAINERENV_*`` environment variables, and invokes
 Apptainer.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -19,11 +20,9 @@ import subprocess
 import threading
 from typing import Any
 
-from revocompute.config import ComputeConfig
 from revocompute.job import Job, JobState
 from revocompute.job._stages import extract_stage_from_log_line
 
-CONFIG = ComputeConfig.from_env()
 _SLURM_JOB_ID_RE = re.compile(r"srun:\s+[Jj]ob\s+(\d+)")
 
 
@@ -187,25 +186,24 @@ class SlurmJob(Job):
         return "\n".join(lines) + "\n"
 
     def _render_input_staging(self, lines: list[str]) -> None:
-        upload_dir = CONFIG.upload_folder
-        lines.append("# -- input staging --")
+        lines.append("# -- immutable input snapshot verification --")
         for fe in self.file_entities:
-            original = fe["verified_value"]
-            src = os.path.join(upload_dir, f"{fe['hash']}.upload")
-            dst = os.path.join(self.output_dir, original)
-            lines.append(f"ln -f {_sh_quote(src)} {_sh_quote(dst)}")
+            lines.append(f"test -f {_sh_quote(fe['snapshot_path'])}")
+            checksum_record = f"{fe['hash']}  {fe['snapshot_path']}"
+            lines.append(f"printf '%s\\n' {_sh_quote(checksum_record)} | sha256sum --check --status")
 
     def _render_apptainer_invocation(self, lines: list[str]) -> None:
-        sif_image = getattr(self.runner, "slurm_image", "") or ""
+        if self.tt.runtime.container_runtime != "apptainer":
+            raise RuntimeError("SLURM execution requires the global container_runtime to be apptainer")
+        sif_image = self.tt.runtime.slurm_image
         if not sif_image:
             raise RuntimeError(f"Runner {self.tt.name!r} has slurm_image unset")
 
         bind_parts: list[str] = []
-        for fe in self.file_entities:
-            original = fe["verified_value"]
-            src = os.path.join(self.output_dir, original)
-            bind_parts.append(f"--bind {_sh_quote(src)}:/workspace/inputs/{_sh_quote(original)}:ro")
-        bind_parts.append(f"--bind {_sh_quote(self.output_dir)}:/workspace/outputs")
+        bind_parts.append(
+            f"--bind {_sh_quote(self.input_snapshot_root)}:{_sh_quote(self.virtual_workspace_root + '/inputs')}:ro"
+        )
+        bind_parts.append(f"--bind {_sh_quote(self.output_dir)}:{_sh_quote(self.virtual_workspace_root + '/outputs')}")
         for m in self.runner.mounts:
             bind_parts.append(f"--bind {_sh_quote(m.host_path)}:{_sh_quote(m.container_path)}:{m.mode}")
 
@@ -217,11 +215,28 @@ class SlurmJob(Job):
             lines.append(f"export APPTAINERENV_{key}={_sh_quote(val)}")
 
         params = {e["name"]: e["verified_value"] for e in self.param_entities}
-        cmd = f"apptainer run --nv {' '.join(bind_parts)} {_sh_quote(sif_image)}"
+        params_json = json.dumps(params, separators=(",", ":"), sort_keys=True)
+        lines.append(f"export APPTAINERENV_TASK_PARAMS={_sh_quote(params_json)}")
+        inputs_json = json.dumps(
+            [
+                {
+                    "name": entity["name"],
+                    "path": entity["mounted"],
+                    "relative_path": entity["relative_path"],
+                }
+                for entity in self.file_entities
+            ],
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        lines.append(f"export APPTAINERENV_TASK_INPUTS={_sh_quote(inputs_json)}")
+        gpu_flag = " --nv" if self.tt.gpus else ""
+        cmd = f"apptainer run{gpu_flag} {' '.join(bind_parts)} {_sh_quote(sif_image)}"
+        for arg in self.tt.runner_args:
+            cmd += f" {_sh_quote(arg)}"
         if self.file_entities:
-            original = self.file_entities[0]["verified_value"]
-            cmd += f" -i /workspace/inputs/{_sh_quote(original)}"
-        cmd += " -o /workspace/outputs"
+            cmd += f" -i {_sh_quote(self.file_entities[0]['mounted'])}"
+        cmd += f" -o {_sh_quote(self.virtual_workspace_root + '/outputs')}"
         for key, flag in (("iter", "-r"),):
             if key in params:
                 cmd += f" {flag} {params[key]}"

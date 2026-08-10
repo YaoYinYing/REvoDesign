@@ -42,7 +42,6 @@ class TaskDatabase:
         "pending",
         "queued",
         "running",
-        "packing results",
         "finished",
         "failed",
         "cancelled",
@@ -162,7 +161,7 @@ class TaskDatabase:
             self._ensure_status(status)
         stmt = update(self.tasks_table).where(self.tasks_table.c.md5sum == md5sum).values(**fields)
         # Terminal tasks (deleted / cancelled) must stay terminal.
-        # Ignore late worker writes (running/packing/finished/run_stage, etc.)
+        # Ignore late worker writes (running/finished/run_stage, etc.)
         # that would otherwise resurrect tasks after user deletion or
         # cancellation.
         if status is None or (not self._is_deleted_status(status)):
@@ -223,13 +222,13 @@ class TaskDatabase:
         return [self._normalize_task_row(row) for row in rows]
 
     def count_user_active_tasks(self, username: str) -> int:
-        """Count pending, running, and packing tasks for a user."""
+        """Count pending, queued, and running tasks for a user."""
         stmt = (
             select(func.count())
             .select_from(self.tasks_table)
             .where(
                 self.tasks_table.c.username == username,
-                self.tasks_table.c.status.in_(["pending", "queued", "running", "packing results"]),
+                self.tasks_table.c.status.in_(["pending", "queued", "running"]),
             )
         )
         with self.engine.connect() as conn:

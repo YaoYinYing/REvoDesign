@@ -177,7 +177,7 @@ def test_race_status_polling_during_task_transition(monkeypatch, tmp_path):
     fasta_path.write_text(">x\nACDE\n", encoding="utf-8")
 
     # Simulate rapid polling across status transitions
-    transitions = ["pending", "running", "packing results", "finished"]
+    transitions = ["pending", "queued", "running", "finished"]
     for status in transitions:
         db.upsert_task(
             md5sum,

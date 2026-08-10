@@ -4,12 +4,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
 import time
 import uuid
 import zipfile
+from dataclasses import replace
 from pathlib import Path
 
 import requests
@@ -61,13 +63,17 @@ def test_dashboard_download_uses_native_browser_streaming():
     script = (SERVER_PACKAGE / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
     styles = (SERVER_PACKAGE / "static" / "css" / "dashboard.css").read_text(encoding="utf-8")
 
-    assert 'A.authFetch(url, { method: "HEAD" })' in script
+    assert 'A.authFetch(requestUrl, { method: "POST" })' in script
+    assert 'A.authFetch("/compute/api/results/"' in script
     assert "a.href = url" in script
     assert 'a.download = ""' in script
     assert "response.body.getReader()" not in script
     assert "new Blob(" not in script
     assert 'button.setAttribute("aria-busy"' in script
+    assert 'artifact.preview === "table"' in script
+    assert "parseDelimitedRows" in script
     assert ".task-btn.download-progress" in styles
+    assert ".artifact-table-preview" in styles
     assert "prefers-reduced-motion: reduce" in styles
 
 
@@ -76,8 +82,14 @@ def _insert_pending_task(
 ) -> str:
     result_dir.mkdir(parents=True, exist_ok=True)
     fasta_path = result_dir / filename
-    fasta_path.write_text(">test\nACDE\n", encoding="utf-8")
+    content = b">test\nACDE\n"
+    fasta_path.write_bytes(content)
     md5sum = uuid.uuid4().hex
+    blob_hash = hashlib.sha256(content).hexdigest()
+    snapshot_root = Path(module.task_runtime.CONFIG.workspace_folder) / "tester" / md5sum / "inputs"
+    snapshot_path = snapshot_root / filename
+    snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+    snapshot_path.write_bytes(content)
     if entities is None:
         entities = [
             {
@@ -85,15 +97,19 @@ def _insert_pending_task(
                 "type": "file",
                 "value": filename,
                 "verified_value": filename,
-                "mounted": f"/workspace/inputs/{filename}",
-                "hash": md5sum,
+                "relative_path": filename,
+                "mounted": f"/mnt/revocompute/tester/inputs/{filename}",
+                "hash": blob_hash,
+                "snapshot_path": str(snapshot_path),
+                "snapshot_root": str(snapshot_root),
+                "workspace_key": "tester",
             }
         ]
     # _execute_compute_task verifies the upload file exists at
     # CONFIG.upload_folder/<hash>.upload before launching Docker.
-    upload_file = Path(module.task_runtime.CONFIG.upload_folder) / f"{md5sum}.upload"
+    upload_file = Path(module.task_runtime.CONFIG.upload_folder) / f"{blob_hash}.upload"
     upload_file.parent.mkdir(parents=True, exist_ok=True)
-    upload_file.write_text(">test\nACDE\n", encoding="utf-8")
+    upload_file.write_bytes(content)
     module.task_store.upsert_task(
         md5sum,
         filename=filename,
@@ -121,8 +137,8 @@ def test_run_compute_task_handles_docker_daemon_error(monkeypatch, tmp_path):
     )
     md5sum = _insert_pending_task(module, tmp_path / "result")
 
-    def _raise_docker_error(task_id, tt, runner, entities, output_dir, stage_callback=None):
-        del task_id, tt, runner, entities, output_dir, stage_callback
+    def _raise_docker_error(task_id, tt, runner, entities, output_dir, stage_callback=None, username=""):
+        del task_id, tt, runner, entities, output_dir, stage_callback, username
         raise docker.errors.DockerException(
             "Error while fetching server API version: ('Connection aborted.', PermissionError(13, 'Permission denied'))"
         )
@@ -137,17 +153,15 @@ def test_run_compute_task_handles_docker_daemon_error(monkeypatch, tmp_path):
     assert task["error"].startswith("docker:")
     assert "Permission denied" in task["error"]
 
-    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_results.zip"
-    assert zip_path.is_file()
-    assert not Path(task["result_dir"]).exists()
-    with zipfile.ZipFile(zip_path) as archive:
-        names = set(archive.namelist())
-        failure_report = archive.read("task_failed.txt").decode("utf-8")
-    assert any(name.endswith("input.fasta") for name in names)
-    assert "Permission denied" in failure_report
+    result_dir = Path(task["result_dir"])
+    assert result_dir.is_dir()
+    manifest = json.loads((result_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert {item["path"] for item in manifest["artifacts"]} >= {"input.fasta", "task_failed.txt"}
+    assert "Permission denied" in (result_dir / "task_failed.txt").read_text(encoding="utf-8")
+    assert not (Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_results.zip").exists()
 
 
-def test_run_compute_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_path):
+def test_run_compute_task_finalizes_uncompressed_result_manifest(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
         tmp_path,
@@ -165,8 +179,8 @@ def test_run_compute_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
             observed_statuses.append(fields["status"])
         return original_update_task(md5_value, **fields)
 
-    def _fake_runner(task_id, tt, runner, entities, output_dir, stage_callback=None):
-        del task_id, tt, runner, entities
+    def _fake_runner(task_id, tt, runner, entities, output_dir, stage_callback=None, username=""):
+        del task_id, tt, runner, entities, username
         if stage_callback:
             stage_callback("hhblits")
             stage_callback("hhfilter")
@@ -189,20 +203,193 @@ def test_run_compute_task_packs_results_and_cleans_result_dir(monkeypatch, tmp_p
     assert task["status"] == "finished"
     assert task["local_user"] == "pytest:staff-1000:20"
     assert task["run_stage"] == "blast"
-    assert not Path(task["result_dir"]).exists()
-
-    zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_results.zip"
-    assert zip_path.is_file()
-    with zipfile.ZipFile(zip_path) as archive:
-        names = set(archive.namelist())
-    assert any(name.endswith("log/task_finished") for name in names)
-    assert any(name.endswith("pssm_msa/input_ascii_mtx_file") for name in names)
+    result_dir = Path(task["result_dir"])
+    assert result_dir.is_dir()
+    manifest = json.loads((result_dir / "manifest.json").read_text(encoding="utf-8"))
+    names = {item["path"] for item in manifest["artifacts"]}
+    assert "log/task_finished" in names
+    assert "pssm_msa/input_ascii_mtx_file" in names
+    assert all(len(item["sha256"]) == 64 for item in manifest["artifacts"])
+    assert not (Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_results.zip").exists()
 
     assert "running" in observed_statuses
-    assert "packing results" in observed_statuses
     assert "finished" in observed_statuses
-    assert observed_statuses.index("running") < observed_statuses.index("packing results")
-    assert observed_statuses.index("packing results") < observed_statuses.index("finished")
+    assert observed_statuses.index("running") < observed_statuses.index("finished")
+
+
+def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    base_type, runner = module.task_runtime._get_task_type("gremlin")
+    module.task_runtime._register_tt(
+        replace(
+            base_type,
+            name="multi_structure",
+            display_name="Multi Structure",
+            input_extension=".pdb",
+            input_extensions=(".pdb", ".json"),
+            input_label="Structure bundle",
+            allow_multiple_inputs=True,
+            max_input_files=4,
+            params=(),
+        ),
+        runner,
+    )
+    class _Queued:
+        id = "queued-multi"
+
+    monkeypatch.setattr(module.run_compute_task, "apply_async", lambda *args, **kwargs: _Queued())
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+
+    response = client.post(
+        "/compute/api/post",
+        data={
+            "task_type": "multi_structure",
+            "files": [
+                (io.BytesIO(b"ATOM      1  CA  ALA A   1\n"), "model.pdb"),
+                (io.BytesIO(b'{"contigs": ["A1-10"]}\n'), "settings.json"),
+            ],
+            "input_paths": ["structures/model.pdb", "config/settings.json"],
+        },
+        headers=auth_header,
+    )
+
+    assert response.status_code == 302
+    md5sum = response.headers["Location"].rsplit("/", 1)[-1]
+    task = module.task_store.get_task(md5sum)
+    form = json.loads(task["input_form"])
+    files = [entity for entity in form["entities"] if entity["type"] == "file"]
+    assert [entity["relative_path"] for entity in files] == ["structures/model.pdb", "config/settings.json"]
+    assert files[0]["mounted"] == "/mnt/revocompute/tester/inputs/structures/model.pdb"
+    assert form["virtual_root"] == "/mnt/revocompute/tester"
+    for entity in files:
+        snapshot = Path(entity["snapshot_path"])
+        assert snapshot.is_file()
+        assert snapshot.resolve().is_relative_to(Path(module.app.config["WORKSPACE_FOLDER"]).resolve())
+    assert not any(Path(task["result_dir"]).iterdir())
+
+
+def test_optional_archive_keeps_result_tree(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "optional_archive"
+    result_dir.mkdir()
+    (result_dir / "result.csv").write_text("score\n1.0\n", encoding="utf-8")
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="input.pdb",
+        file_path=result_dir / "input.pdb",
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+    task = module.task_store.get_task(md5sum)
+    module.task_runtime._finalize_results_manifest(task)
+    (result_dir / "late-unpublished.txt").write_text("not in manifest\n", encoding="utf-8")
+
+    archive_path = Path(module.task_runtime._build_results_archive(task))
+
+    assert archive_path.is_file()
+    assert (result_dir / "result.csv").is_file()
+    assert (result_dir / "manifest.json").is_file()
+    with zipfile.ZipFile(archive_path) as archive:
+        assert {"result.csv", "manifest.json"} <= set(archive.namelist())
+        assert "late-unpublished.txt" not in archive.namelist()
+
+
+def test_result_manifest_allows_only_published_artifacts(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "manifest_artifacts"
+    (result_dir / "scores").mkdir(parents=True)
+    (result_dir / "scores" / "result.csv").write_text("score\n1.0\n", encoding="utf-8")
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="input.pdb",
+        file_path=result_dir / "input.pdb",
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+    module.task_runtime._finalize_results_manifest(module.task_store.get_task(md5sum))
+    (result_dir / "not-published.txt").write_text("late mutation", encoding="utf-8")
+
+    manifest_response = client.get(f"/compute/api/results/{md5sum}", headers=auth_header)
+    artifact = manifest_response.json["artifacts"][0]
+    inline = client.get(artifact["url"], headers=auth_header)
+    download = client.get(f"{artifact['url']}?download=1", headers=auth_header)
+    unpublished = client.get(
+        f"/compute/api/results/{md5sum}/artifacts/not-published.txt",
+        headers=auth_header,
+    )
+
+    assert manifest_response.status_code == 200
+    assert artifact["path"] == "scores/result.csv"
+    assert artifact["preview"] == "table"
+    assert inline.status_code == 200
+    assert inline.get_data(as_text=True) == "score\n1.0\n"
+    assert download.headers["Content-Disposition"].startswith("attachment;")
+    assert unpublished.status_code == 404
+
+
+def test_archive_endpoint_queues_only_on_explicit_request(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "archive_request"
+    result_dir.mkdir()
+    (result_dir / "result.txt").write_text("done\n", encoding="utf-8")
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="input.fasta",
+        file_path=result_dir / "input.fasta",
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+    module.task_runtime._finalize_results_manifest(module.task_store.get_task(md5sum))
+
+    queued: list[list[str]] = []
+
+    class _Queued:
+        id = "archive-job"
+
+    monkeypatch.setattr(
+        module.task_runtime.build_results_archive,
+        "apply_async",
+        lambda args: queued.append(args) or _Queued(),
+    )
+
+    status = client.get(f"/compute/api/results/{md5sum}", headers=auth_header)
+    request_archive = client.post(f"/compute/api/results/{md5sum}/archive", headers=auth_header)
+
+    assert status.status_code == 200
+    assert status.json["archive"]["ready"] is False
+    assert queued == [[md5sum]]
+    assert request_archive.status_code == 202
+    assert request_archive.json["status"] == "building"
 
 
 def test_task_store_update_ignores_late_non_deleted_updates(monkeypatch, tmp_path):
@@ -224,7 +411,7 @@ def test_task_store_update_ignores_late_non_deleted_updates(monkeypatch, tmp_pat
     )
 
     # Simulate stale worker writes arriving after a delete request.
-    module.task_store.update_task(md5sum, status="packing results", run_stage="blast")
+    module.task_store.update_task(md5sum, status="running", run_stage="blast")
     module.task_store.update_task(md5sum, status="finished", walltime=12.3, error=None)
     module.task_store.update_task(md5sum, run_stage="hhblits")
 
@@ -253,8 +440,8 @@ def test_run_compute_task_does_not_resurrect_deleted_task(monkeypatch, tmp_path)
             observed_statuses.append(fields["status"])
         return original_update_task(md5_value, **fields)
 
-    def _fake_runner(task_id, tt, runner, entities, output_dir, stage_callback=None):
-        del task_id, tt, runner, entities
+    def _fake_runner(task_id, tt, runner, entities, output_dir, stage_callback=None, username=""):
+        del task_id, tt, runner, entities, username
         if stage_callback:
             stage_callback("blast")
         output_path = Path(output_dir)
@@ -591,7 +778,6 @@ def test_dashboard_masks_host_file_paths_on_read_errors(monkeypatch, tmp_path):
         username="tester",
         status="finished",
     )
-
     response = client.get("/compute/dashboard", headers=auth_header)
     assert response.status_code == 200
     body = response.get_data(as_text=True)
@@ -824,13 +1010,15 @@ def test_admin_can_manage_other_users_tasks_in_private_mode(monkeypatch, tmp_pat
         username="tester",
         status="finished",
     )
+    module.task_runtime._finalize_results_manifest(module.task_store.get_task(md5sum))
 
     running = client.get(f"/compute/api/running/{md5sum}", headers=admin_header)
     assert running.status_code == 200
     assert running.json["status"] == "finished"
 
     results = client.get(f"/compute/api/results/{md5sum}", headers=admin_header, follow_redirects=False)
-    assert results.status_code == 302
+    assert results.status_code == 200
+    assert results.json["task_id"] == md5sum
 
     dashboard = client.get("/compute/dashboard", headers=admin_header)
     assert dashboard.status_code == 200
@@ -1317,7 +1505,7 @@ def test_nginx_download_offload_returns_internal_redirect(monkeypatch, tmp_path)
     result_dir.mkdir(parents=True)
     upload_file = result_dir / "input.fasta"
     upload_file.write_text(">x\nACDE\n", encoding="utf-8")
-    archive = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_PSSM_GREMLIN_results.zip"
+    archive = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_results.zip"
     archive.write_bytes(b"zip")
     _upsert_task_for_user(
         module,
@@ -1329,8 +1517,8 @@ def test_nginx_download_offload_returns_internal_redirect(monkeypatch, tmp_path)
         status="finished",
     )
 
-    response = client.get(f"/PSSM_GREMLIN/api/download/{md5sum}", headers=auth_header)
-    head_response = client.head(f"/PSSM_GREMLIN/api/download/{md5sum}", headers=auth_header)
+    response = client.get(f"/compute/api/download/{md5sum}", headers=auth_header)
+    head_response = client.head(f"/compute/api/download/{md5sum}", headers=auth_header)
 
     assert response.status_code == 200
     assert response.data == b""
@@ -1367,10 +1555,10 @@ def test_download_does_not_pack_missing_archive_in_request(monkeypatch, tmp_path
         status="finished",
     )
 
-    response = client.get(f"/PSSM_GREMLIN/api/download/{md5sum}", headers=auth_header)
+    response = client.get(f"/compute/api/download/{md5sum}", headers=auth_header)
 
-    assert response.status_code == 404
-    assert response.json["message"] == "result file not found"
+    assert response.status_code == 409
+    assert response.json["message"] == "Request the optional archive first"
     assert not list(Path(module.app.config["RESULTS_FOLDER"]).glob("*.zip"))
 
 

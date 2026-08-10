@@ -17,28 +17,36 @@ ARG RUNNER_UID ARG RUNNER_GID ARG RUNNER_USERNAME ARG RUNNER_GROUP
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
-    apt-get install -y --no-install-recommends python3.10 python3.10-distutils python3-pip git wget && \
+    apt-get install -y --no-install-recommends python3.10 python3.10-distutils python3-pip python3-openbabel git wget && \
     rm -rf /var/lib/apt/lists/* && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 && \
     python3 -m pip install --no-cache-dir --upgrade pip
 
 # Clone both repos (no pip).
 ARG PLACER_REPO=https://github.com/YaoYinYing/PLACER.git
-ARG PLACER_REF=main
-RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER || git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER || git clone --depth 1 --branch ${PLACER_REF} ${PLACER_REPO} /opt/PLACER)
+ARG PLACER_REF=7dc5563300e7143582d85636bdd413d4c7688e9a
+RUN git init /opt/PLACER && git -C /opt/PLACER remote add origin ${PLACER_REPO} && \
+    git -C /opt/PLACER fetch --depth 1 origin ${PLACER_REF} && git -C /opt/PLACER checkout --detach FETCH_HEAD && \
+    rm -rf /opt/PLACER/.git
 
 ARG RFDIFFUSION_REPO=https://github.com/RosettaCommons/RFdiffusion.git
-ARG RFDIFFUSION_REF=main
-RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --branch ${RFDIFFUSION_REF} ${RFDIFFUSION_REPO} /opt/RFdiffusion || git clone --depth 1 --branch ${RFDIFFUSION_REF} ${RFDIFFUSION_REPO} /opt/RFdiffusion || git clone --depth 1 --branch ${RFDIFFUSION_REF} ${RFDIFFUSION_REPO} /opt/RFdiffusion) && \
+ARG RFDIFFUSION_REF=86507b6538f51fce57b5a72477165f03999ed7ae
+RUN git init /opt/RFdiffusion && git -C /opt/RFdiffusion remote add origin ${RFDIFFUSION_REPO} && \
+    git -C /opt/RFdiffusion fetch --depth 1 origin ${RFDIFFUSION_REF} && git -C /opt/RFdiffusion checkout --detach FETCH_HEAD && \
+    rm -rf /opt/RFdiffusion/.git && \
     mkdir -p /opt/RFdiffusion/models
 
-# All pip deps in one RUN.  CUDA 12.1 torch + DGL 2.4 cover both projects.
+# All pip deps in one RUN. PLACER's pinned environment is the version
+# authority: Torch 2.3.1, DGL 2.4.0, and e3nn 0.5.4 on CUDA 12.1.
 # The vendored SE3-Transformer requirements.txt lists wandb, pynvml, dllogger,
-# decorator — all training-only, never imported at inference.  e3nn is the
-# only runtime dependency from the SE3 stack.
-RUN python3 -m pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121 && \
+# decorator — all training-only, never imported at inference. RFdiffusion
+# pins older e3nn 0.3.3, but its vendored inference code only uses
+# o3.wigner_3j and o3.spherical_harmonics, whose call contract is retained by
+# PLACER's e3nn 0.5.4.
+RUN python3 -m pip install --no-cache-dir torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121 && \
     python3 -m pip install --no-cache-dir dgl==2.4.0 -f https://data.dgl.ai/wheels/torch-2.3/cu121/repo.html && \
-    python3 -m pip install --no-cache-dir e3nn openbabel networkx pandas opt_einsum hydra-core pyrsistent
+    python3 -m pip install --no-cache-dir e3nn==0.5.4 networkx==3.4.2 pandas==2.2.3 \
+      opt_einsum==3.4.0 hydra-core==1.3.2 pyrsistent==0.20.0
 
 # Non-root user.
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \

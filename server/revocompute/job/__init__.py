@@ -79,3 +79,19 @@ class Job(ABC):
     @property
     def param_entities(self) -> list[dict]:
         return [e for e in self.entities if e["type"] != "file"]
+
+    @property
+    def workspace_key(self) -> str:
+        if not self.file_entities:
+            raise RuntimeError("A compute job requires at least one input file")
+        return str(self.file_entities[0]["workspace_key"])
+
+    @property
+    def virtual_workspace_root(self) -> str:
+        return f"/mnt/revocompute/{self.workspace_key}"
+
+    @property
+    def input_snapshot_root(self) -> str:
+        if not self.file_entities:
+            raise RuntimeError("A compute job requires at least one input file")
+        return str(self.file_entities[0]["snapshot_root"])

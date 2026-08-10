@@ -2,7 +2,7 @@ Bootstrap: docker-daemon
 From: revodesign-revocompute-runner-placer-rfdiffusion:latest
 
 %post
-    echo "RFdiffusion runner containerised"
+    echo "PLACER/RFdiffusion runtime containerised"
 
 %runscript
-    exec bash /app/revocompute/run.sh rfdiffusion "$@"
+    exec bash /app/revocompute/run.sh "$@"

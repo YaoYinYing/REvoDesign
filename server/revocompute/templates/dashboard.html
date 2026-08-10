@@ -18,7 +18,7 @@
     <div class="hero-top">
       <div>
         <h1 class="headline">REvoCompute Task Dashboard</h1>
-        <p class="subline">Track computational progress with explicit runtime states, packaging lifecycle, and downloadable result archives.</p>
+        <p class="subline">Inspect finalized result trees immediately, preview individual artifacts, or request a ZIP only when needed.</p>
       </div>
       <div class="hero-actions">
         <a class="btn btn-primary" href="/compute/create_task">New Task</a>
@@ -39,7 +39,6 @@
       <article class="stat"><p class="stat-label">Total</p><p class="stat-value" id="totalTasks">0</p></article>
       <article class="stat"><p class="stat-label">Pending</p><p class="stat-value" id="inQueue">0</p></article>
       <article class="stat"><p class="stat-label">Running</p><p class="stat-value" id="inRunning">0</p></article>
-      <article class="stat"><p class="stat-label">Packing</p><p class="stat-value" id="packingResults">0</p></article>
       <article class="stat"><p class="stat-label">Finished</p><p class="stat-value" id="finished">0</p></article>
       <article class="stat"><p class="stat-label">Failed / Cancelled / Deleted</p><p class="stat-value" id="issues">0</p></article>
     </div>
@@ -53,7 +52,6 @@
       <button class="chip active" data-filter="all" type="button">All</button>
       <button class="chip" data-filter="pending" type="button">Pending</button>
       <button class="chip" data-filter="running" type="button">Running</button>
-      <button class="chip" data-filter="packing results" type="button">Packing</button>
       <button class="chip" data-filter="finished" type="button">Finished</button>
       <button class="chip" data-filter="failed" type="button">Failed</button>
       <button class="chip" data-filter="cancelled" type="button">Cancelled</button>

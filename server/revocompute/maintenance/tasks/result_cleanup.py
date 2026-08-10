@@ -49,8 +49,8 @@ def deleted_status_from_task(task: dict[str, Any]) -> str:
     return "deleted:cancel"
 
 
-def delete_task_artifacts(task: dict[str, Any], results_folder: str) -> None:
-    """Safely remove one task's result directory and archive."""
+def delete_task_artifacts(task: dict[str, Any], results_folder: str, workspace_folder: str | None = None) -> None:
+    """Safely remove one task's result tree, archive cache, and input snapshot."""
     result_dir = task.get("result_dir")
     if result_dir:
         safe_result_dir = os.path.abspath(str(result_dir))
@@ -69,6 +69,12 @@ def delete_task_artifacts(task: dict[str, Any], results_folder: str) -> None:
     zip_path = os.path.abspath(os.path.join(results_folder, f"{task_id}_results.zip"))
     if _path_is_within(results_folder, zip_path) and os.path.exists(zip_path):
         os.remove(zip_path)
+
+    if workspace_folder:
+        username = str(task.get("username") or "")
+        workspace_dir = os.path.abspath(os.path.join(workspace_folder, username, task_id))
+        if _path_is_within(workspace_folder, workspace_dir) and os.path.isdir(workspace_dir):
+            shutil.rmtree(workspace_dir, ignore_errors=True)
 
 
 def cleanup_expired_task_artifacts(
@@ -100,7 +106,8 @@ def cleanup_expired_task_artifacts(
                 claim_status=claim_status,
             ):
                 continue
-        delete_task_artifacts(task, results_folder)
+        workspace_folder = os.path.join(os.path.dirname(results_folder), "workspaces")
+        delete_task_artifacts(task, results_folder, workspace_folder)
         if not task_store.complete_task_cleanup(
             task["md5sum"],
             claim_status=claim_status,

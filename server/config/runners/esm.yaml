@@ -17,8 +17,3 @@ nproc: 1
 max_runtime_seconds: 14400
 
 defaults: {}
-
-# -- SLURM + Apptainer (set in deployed config, not here) --
-# runner: slurm
-# container_runtime: apptainer
-# slurm_image: /mnt/data/srv/revodesign/server-slurm/images/esm_v1.sif

@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -18,13 +19,18 @@ import docker
 
 
 def _make_task_type(**kwargs):
-    from revocompute.task_types import TaskType
+    from revocompute.task_types import RuntimeFamily, TaskType
 
     defaults = dict(
         name="test",
         display_name="Test Task",
-        docker_image="test:latest",
-        command=["bash", "run.sh"],
+        runtime=RuntimeFamily(
+            name="test",
+            docker_image="test:latest",
+            entrypoint=("bash", "run.sh"),
+            dockerfile="docker/test/Dockerfile",
+            definition="docker/test/test.def",
+        ),
         input_extension=".fasta",
         input_label="FASTA file",
         stage_markers={"stage1": "Stage One", "stage2": "Stage Two"},
@@ -46,8 +52,12 @@ def _make_entities(hash_value="abc123"):
             "type": "file",
             "value": "input.fasta",
             "verified_value": "input.fasta",
+            "relative_path": "input.fasta",
             "hash": hash_value,
-            "mounted": "/workspace/inputs/input.fasta",
+            "mounted": "/mnt/revocompute/tester/inputs/input.fasta",
+            "snapshot_path": "/tmp/snapshot/input.fasta",
+            "snapshot_root": "/tmp/snapshot",
+            "workspace_key": "tester",
         },
     ]
 
@@ -59,7 +69,7 @@ def _setup_submit_env(tmp_path, hash_value="abc123"):
     upload_dir = str(tmp_path / "upload")
     os.makedirs(upload_dir, exist_ok=True)
     (Path(upload_dir) / f"{hash_value}.upload").write_text(">test\nACDE\n")
-    docker_runner.CONFIG.upload_folder = upload_dir
+    docker_runner.CONFIG = replace(docker_runner.CONFIG, upload_folder=upload_dir)
     output_dir = str(tmp_path / "output")
     return output_dir
 
@@ -86,6 +96,7 @@ def test_submit_creates_container_and_returns_id(tmp_path):
     mock_client.containers.run.assert_called_once()
     call_kwargs = mock_client.containers.run.call_args.kwargs
     assert call_kwargs["image"] == "test:latest"
+    assert call_kwargs["entrypoint"] == ["bash", "run.sh"]
     assert call_kwargs["detach"] is True
     assert call_kwargs["remove"] is False
 
@@ -255,8 +266,12 @@ def test_build_env_includes_task_params(tmp_path):
             "type": "file",
             "value": "x.fasta",
             "verified_value": "x.fasta",
+            "relative_path": "x.fasta",
             "hash": "abc",
-            "mounted": "/in/x.fasta",
+            "mounted": "/mnt/revocompute/tester/inputs/x.fasta",
+            "snapshot_path": "/tmp/snapshot/x.fasta",
+            "snapshot_root": "/tmp/snapshot",
+            "workspace_key": "tester",
         },
         {"name": "iter", "type": "param", "name": "iter", "value": "50", "verified_value": "50"},
     ]
@@ -274,7 +289,7 @@ def test_build_env_includes_task_params(tmp_path):
 
 
 def test_build_command_args_passes_iter_flag(tmp_path):
-    tt = _make_task_type()
+    tt = _make_task_type(runner_args=("subcommand",))
     runner = _make_runner()
     entities = [
         {
@@ -282,8 +297,12 @@ def test_build_command_args_passes_iter_flag(tmp_path):
             "type": "file",
             "value": "x.fasta",
             "verified_value": "x.fasta",
+            "relative_path": "x.fasta",
             "hash": "abc",
-            "mounted": "/in/x.fasta",
+            "mounted": "/mnt/revocompute/tester/inputs/x.fasta",
+            "snapshot_path": "/tmp/snapshot/x.fasta",
+            "snapshot_root": "/tmp/snapshot",
+            "workspace_key": "tester",
         },
         {"name": "iter", "type": "param", "name": "iter", "value": "200", "verified_value": "200"},
     ]
@@ -291,9 +310,10 @@ def test_build_command_args_passes_iter_flag(tmp_path):
     job = DockerJob("task-1", tt, runner, entities, str(tmp_path / "output"))
     args = job._build_command_args()
 
+    assert args[0] == "subcommand"
     assert "-i" in args
-    assert "/workspace/inputs/abc_task-1_x.fasta" in args  # unique-per-job link name
+    assert "/mnt/revocompute/tester/inputs/x.fasta" in args
     assert "-o" in args
-    assert "/workspace/outputs" in args
+    assert "/mnt/revocompute/tester/outputs" in args
     assert "-r" in args
     assert "200" in args

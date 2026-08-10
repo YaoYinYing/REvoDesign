@@ -14,8 +14,10 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
 ARG EASIFA_REPO=https://github.com/YaoYinYing/EasIFA.git
-ARG EASIFA_REF=master
-RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --branch ${EASIFA_REF} ${EASIFA_REPO} /opt/EasIFA || git clone --depth 1 --branch ${EASIFA_REF} ${EASIFA_REPO} /opt/EasIFA || git clone --depth 1 --branch ${EASIFA_REF} ${EASIFA_REPO} /opt/EasIFA)
+ARG EASIFA_REF=fb65cfe083c8a247ceae0174a59c8e4811fc8c1b
+RUN git init /opt/EasIFA && git -C /opt/EasIFA remote add origin ${EASIFA_REPO} && \
+    git -C /opt/EasIFA fetch --depth 1 origin ${EASIFA_REF} && git -C /opt/EasIFA checkout --detach FETCH_HEAD && \
+    rm -rf /opt/EasIFA/.git
 
 # All pip installs in one RUN so pip resolves torch + downstream deps together.
 # torchdrug pulls torch; installing it in the same layer as the cu121 torch

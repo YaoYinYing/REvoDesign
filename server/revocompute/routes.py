@@ -23,6 +23,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from celery.result import AsyncResult
 from flask import Response, current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
@@ -85,13 +86,14 @@ from revocompute.task_runtime import (
     _get_task_type,
     _local_user_identity,
     _normalize_task_id,
-    _pack_failed_results_archive,
+    _finalize_failed_results,
     _safe_join,
     _sanitize_task_error,
     _task_zip_path,
     _virtual_upload_path,
     format_times,
     format_walltime,
+    build_results_archive,
     run_compute_task,
     task_store,
 )
@@ -206,9 +208,23 @@ def task_types_list():
                 "name": tt.name,
                 "display_name": tt.display_name,
                 "input_extension": tt.input_extension,
+                "input_extensions": list(tt.input_extensions or (tt.input_extension,)),
                 "input_label": tt.input_label,
                 "params": [
-                    {"name": p.name, "type": p.type, "default": p.default, "description": p.description}
+                    {
+                        "name": p.name,
+                        "type": p.type,
+                        "default": p.default,
+                        "required": p.required,
+                        "description": p.description,
+                        "label": p.label or p.name.replace("_", " ").title(),
+                        "choices": list(p.choices),
+                        "minimum": p.minimum,
+                        "maximum": p.maximum,
+                        "step": p.step,
+                        "unit": p.unit,
+                        "advanced": p.advanced,
+                    }
                     for p in tt.params
                 ],
                 "stage_markers": tt.stage_markers,
@@ -240,58 +256,131 @@ def task_type_form(name: str):
             "name": tt.name,
             "display_name": tt.display_name,
             "file_input": {
-                "accept": tt.input_extension,
+                "accept": ",".join(tt.input_extensions or (tt.input_extension,)),
+                "extensions": list(tt.input_extensions or (tt.input_extension,)),
+                "primary_extensions": list(tt.primary_input_extensions or (tt.input_extension,)),
                 "label": tt.input_label,
                 "required": True,
+                "multiple": tt.allow_multiple_inputs,
+                "max_files": tt.max_input_files,
             },
             "params": [
-                {"name": p.name, "type": p.type, "default": p.default, "description": p.description} for p in tt.params
+                {
+                    "name": p.name,
+                    "type": p.type,
+                    "default": p.default,
+                    "required": p.required,
+                    "description": p.description,
+                    "label": p.label or p.name.replace("_", " ").title(),
+                    "choices": list(p.choices),
+                    "minimum": p.minimum,
+                    "maximum": p.maximum,
+                    "step": p.step,
+                    "unit": p.unit,
+                    "advanced": p.advanced,
+                }
+                for p in tt.params
             ],
             "show_sequence_editor": tt.input_extension == ".fasta",
         }
     )
 
 
-def _validate_input_upload(task_type: str = "gremlin"):
-    """Return a validated upload and safe filename, or an HTTP error."""
-    if "file" not in request.files:
-        return None, None, (jsonify({"error": "No file part"}), 400)
+_WORKSPACE_KEY_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 
-    uploaded_file = request.files["file"]
-    if uploaded_file.filename == "":
-        return None, None, (jsonify({"error": "No selected file"}), 400)
 
-    safe_filename = secure_filename(uploaded_file.filename)
-    if not safe_filename:
-        return None, None, (jsonify({"error": "Invalid filename"}), 400)
+def _safe_input_relative_path(raw_path: str) -> str | None:
+    normalized = str(raw_path or "").replace("\\", "/").strip()
+    if normalized.startswith("/"):
+        return None
+    raw_parts = normalized.split("/")
+    if not raw_parts or any(part in {"", ".", ".."} for part in raw_parts):
+        return None
+    safe_parts = [secure_filename(part) for part in raw_parts]
+    if any(not part for part in safe_parts):
+        return None
+    return "/".join(safe_parts)
 
+
+def _validate_input_uploads(task_type: str = "gremlin"):
+    """Return validated uploads with safe relative paths, or an HTTP error."""
     try:
         tt, _ = _get_task_type(task_type)
     except KeyError:
-        return None, None, (jsonify({"error": f"Unknown task type: {task_type}"}), 400)
+        return None, (jsonify({"error": f"Unknown task type: {task_type}"}), 400)
+    if "files" not in request.files and "file" not in request.files:
+        return None, (jsonify({"error": "No file part"}), 400)
+    uploads = request.files.getlist("files") or request.files.getlist("file")
+    uploads = [uploaded for uploaded in uploads if uploaded.filename]
+    if not uploads:
+        return None, (jsonify({"error": "No selected file"}), 400)
+    if not tt.allow_multiple_inputs and len(uploads) != 1:
+        return None, (jsonify({"error": f"{tt.display_name} accepts exactly one input file"}), 400)
+    if len(uploads) > tt.max_input_files:
+        return None, (jsonify({"error": f"At most {tt.max_input_files} input files are allowed"}), 400)
+    submitted_paths = request.form.getlist("input_paths")
+    accepted = tuple(extension.lower() for extension in (tt.input_extensions or (tt.input_extension,)))
+    primary_accepted = tuple(
+        extension.lower() for extension in (tt.primary_input_extensions or (tt.input_extension,))
+    )
+    validated: list[tuple[Any, str]] = []
+    seen_paths: set[str] = set()
+    for index, uploaded in enumerate(uploads):
+        raw_path = submitted_paths[index] if index < len(submitted_paths) else uploaded.filename
+        safe_path = _safe_input_relative_path(raw_path)
+        if safe_path is None or safe_path in seen_paths:
+            return None, (jsonify({"error": "Invalid or duplicate input path"}), 400)
+        if not safe_path.lower().endswith(accepted):
+            return None, (jsonify({"error": f"Input file extensions must be one of: {', '.join(accepted)}"}), 400)
+        if index == 0 and not safe_path.lower().endswith(primary_accepted):
+            return None, (
+                jsonify({"error": f"The primary input extension must be one of: {', '.join(primary_accepted)}"}),
+                400,
+            )
+        seen_paths.add(safe_path)
+        validated.append((uploaded, safe_path))
+    return validated, None
 
-    ext = tt.input_extension
-    if not safe_filename.lower().endswith(ext.lower()):
-        return None, None, (jsonify({"error": f"Uploaded file must have the {ext} extension"}), 400)
-    return uploaded_file, safe_filename, None
 
-
-def _save_uploaded_fasta(uploaded_file, safe_filename: str) -> tuple[str, str, dict[str, str]]:
-    """Persist one upload and return its task ID, path, and request metadata."""
-    temp_name = f".tmp_{os.urandom(8).hex()}_{safe_filename}"
-    temp_path = _safe_join(app.config["UPLOAD_FOLDER"], temp_name)
-    uploaded_file.save(temp_path)
-
-    hasher = hashlib.md5(usedforsecurity=False)
-    with open(temp_path, "rb") as handle:
-        for chunk in iter(lambda: handle.read(65536), b""):
-            hasher.update(chunk)
-
+def _save_uploaded_inputs(
+    uploads: list[tuple[Any, str]], task_type: str, params: dict[str, Any]
+) -> tuple[str, list[dict[str, Any]], dict[str, str]]:
+    """Persist content-addressed blobs and derive an owner-scoped task ID."""
     metadata = _request_metadata()
-    md5sum = _task_id_for_upload(hasher.hexdigest(), metadata["username"])
-    upload_path = _safe_join(app.config["UPLOAD_FOLDER"], f"{md5sum}.upload")
-    os.rename(temp_path, upload_path)
-    return md5sum, upload_path, metadata
+    saved: list[dict[str, Any]] = []
+    for uploaded, relative_path in uploads:
+        temp_name = f".tmp_{os.urandom(8).hex()}_{os.path.basename(relative_path)}"
+        temp_path = _safe_join(app.config["UPLOAD_FOLDER"], temp_name)
+        uploaded.save(temp_path)
+        hasher = hashlib.sha256()
+        with open(temp_path, "rb") as handle:
+            for chunk in iter(lambda: handle.read(65536), b""):
+                hasher.update(chunk)
+        blob_hash = hasher.hexdigest()
+        blob_path = _safe_join(app.config["UPLOAD_FOLDER"], f"{blob_hash}.upload")
+        if os.path.exists(blob_path):
+            os.remove(temp_path)
+        else:
+            os.replace(temp_path, blob_path)
+        saved.append(
+            {
+                "original_name": uploaded.filename,
+                "relative_path": relative_path,
+                "hash": blob_hash,
+                "blob_path": blob_path,
+            }
+        )
+    identity = json.dumps(
+        {
+            "task_type": task_type,
+            "params": params,
+            "inputs": [{"path": item["relative_path"], "sha256": item["hash"]} for item in saved],
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    content_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    return _task_id_for_upload(content_id, metadata["username"]), saved, metadata
 
 
 def _existing_upload_response(existing_task: dict[str, Any] | None, md5sum: str):
@@ -303,8 +392,8 @@ def _existing_upload_response(existing_task: dict[str, Any] | None, md5sum: str)
         return redirect(f"/compute/api/running/{md5sum}", code=302)
     if existing_task["status"] in {
         "pending",
+        "queued",
         "running",
-        "packing results",
         *task_store.CLEANUP_CLAIM_STATUSES,
     }:
         return jsonify({"status": "Task already queued or running", "md5sum": md5sum}), 202
@@ -313,31 +402,43 @@ def _existing_upload_response(existing_task: dict[str, Any] | None, md5sum: str)
 
 def _prepare_task_record(
     md5sum: str,
-    upload_path: str,
-    safe_filename: str,
+    saved_inputs: list[dict[str, Any]],
     metadata: dict[str, str],
     task_type: str = "gremlin",
     input_form: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    workspace_key = str(metadata["username"])
+    if not _WORKSPACE_KEY_PATTERN.fullmatch(workspace_key):
+        raise ValueError("Username cannot be represented safely in the workspace path")
+    workspace_dir = _safe_join(app.config["WORKSPACE_FOLDER"], workspace_key, md5sum)
+    if os.path.exists(workspace_dir):
+        shutil.rmtree(workspace_dir)
+    snapshot_root = _safe_join(workspace_dir, "inputs")
+    os.makedirs(snapshot_root, exist_ok=True)
+    for item in saved_inputs:
+        destination = _safe_join(snapshot_root, *item["relative_path"].split("/"))
+        os.makedirs(os.path.dirname(destination), exist_ok=True)
+        shutil.copyfile(item["blob_path"], destination)
+        os.chmod(destination, 0o440)
+
     result_dir = _safe_join(app.config["RESULTS_FOLDER"], md5sum)
     if os.path.exists(result_dir):
         shutil.rmtree(result_dir)
     os.makedirs(result_dir, exist_ok=True)
-    shutil.copy(upload_path, _safe_join(result_dir, safe_filename))
-
     zip_path = _task_zip_path(md5sum)
     if os.path.exists(zip_path):
         os.remove(zip_path)
 
+    primary = saved_inputs[0]
     return {
-        "filename": safe_filename,
-        "file_path": upload_path,
+        "filename": primary["relative_path"],
+        "file_path": primary["blob_path"],
         "result_dir": result_dir,
         "uploaded_at": time.time(),
         "started_at": None,
         "finished_at": None,
         "walltime": None,
-        "is_binary": int(_is_binary_file(upload_path)),
+        "is_binary": int(_is_binary_file(primary["blob_path"])),
         "source_ip": metadata["ip"],
         "user_agent": metadata["user_agent"],
         "username": metadata["username"],
@@ -368,7 +469,7 @@ def _reject_invalid_input(md5sum: str, base_record: dict[str, Any], task_type: s
 
     failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
     task_store.upsert_task(md5sum, **base_record, status="failed", error=error_message)
-    _pack_failed_results_archive(failed_task, error_message)
+    _finalize_failed_results(failed_task, error_message)
     return jsonify({"error": response_message}), 400
 
 
@@ -406,10 +507,13 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         if enabled is not None and enabled.lower() in ("0", "false", "no", "off"):
             return jsonify({"error": f"Task type {task_type!r} is currently disabled"}), 400
 
-    uploaded_file, safe_filename, upload_error = _validate_input_upload(task_type)
+    uploaded_inputs, upload_error = _validate_input_uploads(task_type)
     if upload_error is not None:
         return upload_error
-    md5sum, upload_path, metadata = _save_uploaded_fasta(uploaded_file, safe_filename)
+    md5sum, saved_inputs, metadata = _save_uploaded_inputs(uploaded_inputs, task_type, coerced_params)
+    workspace_key = str(metadata["username"])
+    if not _WORKSPACE_KEY_PATTERN.fullmatch(workspace_key):
+        return jsonify({"error": "Username cannot be represented safely in a workspace path"}), 400
 
     existing_task = task_store.get_task(md5sum)
     if existing_response := _existing_upload_response(existing_task, md5sum):
@@ -433,16 +537,23 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     # Build entities — one list for files and params together.
     entities: list[dict[str, Any]] = []
 
-    entities.append(
-        {
-            "name": "file",
-            "type": "file",
-            "value": uploaded_file.filename,
-            "verified_value": safe_filename,
-            "mounted": f"/workspace/inputs/{safe_filename}",
-            "hash": md5sum,
-        }
-    )
+    snapshot_root = _safe_join(app.config["WORKSPACE_FOLDER"], workspace_key, md5sum, "inputs")
+    virtual_root = f"/mnt/revocompute/{workspace_key}"
+    for index, item in enumerate(saved_inputs):
+        entities.append(
+            {
+                "name": "primary_input" if index == 0 else f"input_{index + 1}",
+                "type": "file",
+                "value": item["original_name"],
+                "verified_value": item["relative_path"],
+                "relative_path": item["relative_path"],
+                "mounted": f"{virtual_root}/inputs/{item['relative_path']}",
+                "hash": item["hash"],
+                "snapshot_path": _safe_join(snapshot_root, *item["relative_path"].split("/")),
+                "snapshot_root": snapshot_root,
+                "workspace_key": workspace_key,
+            }
+        )
 
     # Param entities — raw form value vs pydantic-coerced verified_value
     tt, _ = _get_task_type(task_type)
@@ -451,27 +562,30 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     if tt.gpus and not g.current_user.get("allow_gpu_use"):
         return jsonify({"error": "GPU access required for this task type. Contact an administrator."}), 403
     known_params = {p.name: p for p in tt.params}
-    for key, raw in submission.params.items():
+    for key, verified in coerced_params.items():
         param = known_params[key]
+        raw = submission.params.get(key, verified)
         entities.append(
             {
                 "name": key,
                 "type": param.type,
                 "value": raw,
-                "verified_value": coerced_params[key],
+                "verified_value": verified,
             }
         )
 
     input_form = {
         "user": metadata["username"],
+        "workspace_key": workspace_key,
+        "virtual_root": virtual_root,
+        "snapshot_root": snapshot_root,
         "submitted_at": datetime.now(tz=timezone.utc).isoformat(),
         "entities": entities,
     }
 
     base_record = _prepare_task_record(
         md5sum,
-        upload_path,
-        safe_filename,
+        saved_inputs,
         metadata,
         task_type=task_type,
         input_form=input_form,
@@ -492,7 +606,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         logging.exception("Failed to submit compute task %s to Celery", md5sum)
         error_message = "Task queue unavailable — please try again later"
         failed_task = task_store.get_task(md5sum) or dict(md5sum=md5sum, **base_record)
-        _pack_failed_results_archive(failed_task, error_message)
+        _finalize_failed_results(failed_task, error_message)
         task_store.update_task(
             md5sum,
             status="failed",
@@ -528,8 +642,6 @@ def run_gremlin(md5sum):
         return jsonify({"status": status, "md5sum": md5sum}), 202
     if status == "pending":
         return jsonify({"status": "pending", "md5sum": md5sum}), 202
-    if status == "packing results":
-        return jsonify({"status": "packing results", "md5sum": md5sum}), 202
     if status == "cancelled":
         return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
     if status in task_store.CLEANUP_CLAIM_STATUSES:
@@ -562,7 +674,105 @@ def get_results(md5sum):
     if task["status"] not in {"finished", "failed"}:
         return redirect(f"/compute/api/running/{md5sum}", code=302)
 
-    return redirect(f"/compute/api/download/{md5sum}", code=302)
+    manifest_path = _safe_join(task["result_dir"], "manifest.json")
+    try:
+        with open(manifest_path, encoding="utf-8") as handle:
+            manifest = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return jsonify({"status": "error", "md5sum": md5sum, "message": "result manifest not found"}), 404
+
+    archive_ready = os.path.isfile(_task_zip_path(task))
+    payload = dict(manifest)
+    payload.update(
+        {
+            "status": task["status"],
+            "archive": {
+                "ready": archive_ready,
+                "request_url": f"/compute/api/results/{md5sum}/archive",
+                "download_url": f"/compute/api/download/{md5sum}" if archive_ready else None,
+            },
+        }
+    )
+    for artifact in payload.get("artifacts", []):
+        encoded_path = quote(artifact["path"], safe="/")
+        artifact["url"] = f"/compute/api/results/{md5sum}/artifacts/{encoded_path}"
+    return jsonify(payload)
+
+
+def _result_artifact(task: dict[str, Any], relative_path: str) -> tuple[str, dict[str, Any]] | None:
+    """Resolve only regular files published by the task's finalized manifest."""
+    normalized = relative_path.replace("\\", "/").strip("/")
+    if not normalized or any(part in {"", ".", ".."} for part in normalized.split("/")):
+        return None
+    try:
+        with open(_safe_join(task["result_dir"], "manifest.json"), encoding="utf-8") as handle:
+            manifest = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return None
+    artifact = next((item for item in manifest.get("artifacts", []) if item.get("path") == normalized), None)
+    if artifact is None:
+        return None
+    path = _safe_join(task["result_dir"], *normalized.split("/"))
+    if os.path.islink(path) or not os.path.isfile(path):
+        return None
+    return path, artifact
+
+
+@app.route("/compute/api/results/<md5sum>/artifacts/<path:relative_path>", methods=["GET"])
+@login_required
+def get_result_artifact(md5sum: str, relative_path: str):
+    md5sum = _normalize_task_id(md5sum)
+    if md5sum is None:
+        return jsonify({"error": "Invalid task id"}), 400
+    task = task_store.get_task(md5sum)
+    if task is None:
+        return jsonify({"error": "Task not found"}), 404
+    if not _task_access_allowed(task):
+        return _task_access_denied(md5sum)
+    resolved = _result_artifact(task, relative_path)
+    if resolved is None:
+        return jsonify({"error": "Artifact not found"}), 404
+    path, artifact = resolved
+    as_attachment = request.args.get("download", "0") in {"1", "true", "yes"}
+    if app.config["RESULT_DOWNLOAD_MODE"] == "nginx":
+        internal_path = quote(f"{md5sum}/{artifact['path']}", safe="/")
+        response = Response(status=200, mimetype=artifact.get("media_type") or "application/octet-stream")
+        response.headers["X-Accel-Redirect"] = f"/_protected_results/{internal_path}"
+        response.headers.set(
+            "Content-Disposition",
+            "attachment" if as_attachment else "inline",
+            filename=os.path.basename(path),
+        )
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+    return send_from_directory(
+        task["result_dir"],
+        artifact["path"],
+        as_attachment=as_attachment,
+        download_name=os.path.basename(path),
+        mimetype=artifact.get("media_type") or None,
+    )
+
+
+@app.route("/compute/api/results/<md5sum>/archive", methods=["POST"])
+@login_required
+def request_results_archive(md5sum: str):
+    if _blocked := require_bearer_auth():
+        return _blocked
+    md5sum = _normalize_task_id(md5sum)
+    if md5sum is None:
+        return jsonify({"error": "Invalid task id"}), 400
+    task = task_store.get_task(md5sum)
+    if task is None:
+        return jsonify({"error": "Task not found"}), 404
+    if not _task_access_allowed(task):
+        return _task_access_denied(md5sum)
+    if task["status"] not in {"finished", "failed"}:
+        return jsonify({"error": "Results are not ready"}), 409
+    if os.path.isfile(_task_zip_path(task)):
+        return jsonify({"status": "ready", "download_url": f"/compute/api/download/{md5sum}"}), 200
+    async_result = build_results_archive.apply_async(args=[md5sum])
+    return jsonify({"status": "building", "job_id": async_result.id, "md5sum": md5sum}), 202
 
 
 @app.route("/compute/api/download/<md5sum>", methods=["GET"])
@@ -594,12 +804,13 @@ def download_results(md5sum):
         return (
             jsonify(
                 {
-                    "status": "error",
+                    "status": "not_requested",
                     "md5sum": md5sum,
-                    "message": "result file not found",
+                    "message": "Request the optional archive first",
+                    "request_url": f"/compute/api/results/{md5sum}/archive",
                 }
             ),
-            404,
+            409,
         )
 
     if app.config["RESULT_DOWNLOAD_MODE"] == "nginx":
@@ -726,7 +937,7 @@ def task_dashboard():  # skipcq: PY-R1000 -- dashboard filtering and response as
 
 
 def _soft_delete_task(md5sum: str, task: dict[str, Any]) -> None:
-    if task["status"] in {"pending", "queued", "running", "packing results"}:
+    if task["status"] in {"pending", "queued", "running"}:
         _revoke_celery_task(task)
 
     _delete_task_artifacts(task)

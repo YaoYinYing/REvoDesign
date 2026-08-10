@@ -1,18 +1,80 @@
 # REvoDesign task type registry — portable definitions (checked into git).
 #
-# Each entry declares what a task *is*: Docker image, command, I/O contract,
-# progress stages, and the parameters users can submit.  Machine-specific
-# paths and resource limits live in config/runners/<name>.yaml.
+# Runtime families own images and entrypoints. Task types own the user-facing
+# I/O and parameter contract. Machine-specific paths and resource limits live
+# in config/runners/<runtime-family>.yaml.
 #
-# Adding a task type = one entry here + one runner YAML + Dockerfile + entrypoint.
-# Server code never changes.
+# Adding a task to an existing family only requires a task_types entry. Adding
+# a runtime family also requires one runner YAML, Dockerfile, and .def file.
+
+# Global execution backend. Production SLURM deployments set these to
+# "slurm" and "apptainer" in their deployed CONFIG_DIR copy. Every family
+# declares a SIF destination, but Docker execution does not read or validate
+# the file at that path.
+job_executor: "docker"
+container_runtime: "docker"
+
+runtime_families:
+  gremlin:
+    docker_image: "revodesign-revocompute-runner"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/pssm_gremlin/Dockerfile"
+    definition: "docker/runners/pssm_gremlin/gremlin.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/gremlin_v1.sif"
+  pythia_ddg:
+    docker_image: "revodesign-revocompute-runner-pythia_ddg"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/pythia_ddg/Dockerfile"
+    definition: "docker/runners/pythia_ddg/pythia_ddg.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/pythia_ddg_v1.sif"
+  esm:
+    docker_image: "revodesign-revocompute-runner-esm"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/esm/Dockerfile"
+    definition: "docker/runners/esm/esm.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/esm_v1.sif"
+  opendde:
+    docker_image: "revodesign-revocompute-runner-opendde"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/opendde/Dockerfile"
+    definition: "docker/runners/opendde/opendde.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/opendde_v1.sif"
+  mpnn:
+    docker_image: "revodesign-revocompute-runner-mpnn"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/mpnn/Dockerfile"
+    definition: "docker/runners/mpnn/mpnn.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/mpnn_v1.sif"
+  prime:
+    docker_image: "revodesign-revocompute-runner-prime"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/prime/Dockerfile"
+    definition: "docker/runners/prime/prime.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/prime_v1.sif"
+  placer-rfdiffusion:
+    docker_image: "revodesign-revocompute-runner-placer-rfdiffusion"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/placer-rfdiffusion/Dockerfile"
+    definition: "docker/runners/placer-rfdiffusion/placer-rfdiffusion.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/placer-rfdiffusion_v1.sif"
+  bioemu:
+    docker_image: "revodesign-revocompute-runner-bioemu"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/bioemu/Dockerfile"
+    definition: "docker/runners/bioemu/bioemu.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/bioemu_v1.sif"
+  easifa:
+    docker_image: "revodesign-revocompute-runner-easifa"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/easifa/Dockerfile"
+    definition: "docker/runners/easifa/easifa.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/easifa_v1.sif"
 
 task_types:
 
   gremlin:
     display_name: "PSSM-GREMLIN"
-    docker_image: "revodesign-revocompute-runner"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "gremlin"
     input_extension: ".fasta"
     input_label: "FASTA file"
     stage_markers:
@@ -26,11 +88,13 @@ task_types:
         type: "int"
         default: 100
         description: "GREMLIN optimization iterations"
+        minimum: 1
+        maximum: 10000
+        step: 1
 
   pythia_ddg:
     display_name: "Pythia-ddG"
-    docker_image: "revodesign-revocompute-runner-pythia_ddg"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "pythia_ddg"
     input_extension: ".pdb"
     input_label: "PDB file"
     stage_markers:
@@ -40,8 +104,7 @@ task_types:
 
   esm_fold:
     display_name: "ESMFold"
-    docker_image: "revodesign-revocompute-runner-esm"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "esm"
     gpus: true
     input_extension: ".fasta"
     input_label: "FASTA file"
@@ -53,19 +116,25 @@ task_types:
         type: "int"
         default: 4
         description: "ESMFold recycling iterations"
+        minimum: 0
+        maximum: 48
+        step: 1
       - name: "max_tokens_per_batch"
         type: "int"
         default: 1024
         description: "Max tokens per GPU batch"
+        minimum: 1
+        step: 1
       - name: "chunk_size"
         type: "int"
         default: 128
         description: "Axial attention chunk size"
+        minimum: 1
+        step: 1
 
   esm_extract:
     display_name: "ESM-2 Embedding"
-    docker_image: "revodesign-revocompute-runner-esm"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "esm"
     gpus: true
     input_extension: ".fasta"
     input_label: "FASTA file"
@@ -84,8 +153,7 @@ task_types:
 
   esm_1v:
     display_name: "ESM-1v Scoring"
-    docker_image: "revodesign-revocompute-runner-esm"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "esm"
     gpus: true
     input_extension: ".fasta"
     input_label: "FASTA file"
@@ -97,11 +165,11 @@ task_types:
         type: "str"
         default: "wt-marginals"
         description: "Scoring strategy (wt-marginals, masked-marginals, pseudo-ppl)"
+        choices: ["wt-marginals", "masked-marginals", "pseudo-ppl"]
 
   esm_if1:
     display_name: "ESM-IF1 Design"
-    docker_image: "revodesign-revocompute-runner-esm"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "esm"
     gpus: true
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -113,15 +181,18 @@ task_types:
         type: "float"
         default: 1.0
         description: "Sampling temperature"
+        minimum: 0.0001
+        step: 0.05
       - name: "num_samples"
         type: "int"
         default: 1
         description: "Number of sequences to sample"
+        minimum: 1
+        step: 1
 
   opendde:
     display_name: "OpenDDE"
-    docker_image: "revodesign-revocompute-runner-opendde"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "opendde"
     gpus: true
     input_extension: ".json"
     input_label: "JSON file (OpenDDE job spec)"
@@ -133,6 +204,7 @@ task_types:
         type: "str"
         default: "opendde_v1"
         description: "Model name (opendde_v1 or opendde_abag)"
+        choices: ["opendde_v1", "opendde_abag"]
       - name: "num_samples"
         type: "int"
         default: 1
@@ -156,8 +228,7 @@ task_types:
 
   hypermpnn:
     display_name: "HyperMPNN"
-    docker_image: "revodesign-revocompute-runner-mpnn"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "PDB file"
     stage_markers:
@@ -175,8 +246,7 @@ task_types:
 
   ligandmpnn:
     display_name: "LigandMPNN"
-    docker_image: "revodesign-revocompute-runner-mpnn"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "PDB file"
     stage_markers:
@@ -194,8 +264,7 @@ task_types:
 
   thermompnn:
     display_name: "ThermoMPNN-D"
-    docker_image: "revodesign-revocompute-runner-mpnn"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "PDB file"
     stage_markers:
@@ -210,11 +279,11 @@ task_types:
         type: "str"
         default: "single"
         description: "single, additive, or epistatic"
+        choices: ["single", "additive", "epistatic"]
 
   prime:
     display_name: "Pro-Prime"
-    docker_image: "revodesign-revocompute-runner-prime"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "prime"
     gpus: true
     input_extension: ".fasta"
     input_label: "FASTA file"
@@ -225,11 +294,15 @@ task_types:
 
   rfdiffusion:
     display_name: "RFdiffusion"
-    docker_image: "revodesign-revocompute-runner-placer-rfdiffusion"
-    command: ["bash", "/app/revocompute/run.sh", "rfdiffusion"]
+    runtime_family: "placer-rfdiffusion"
+    runner_args: ["rfdiffusion"]
     gpus: true
     input_extension: ".pdb"
     input_label: "PDB file"
+    input_extensions: [".pdb", ".cif", ".json"]
+    primary_input_extensions: [".pdb"]
+    allow_multiple_inputs: true
+    max_input_files: 64
     stage_markers:
       rfdiffusion: "RFdiffusion backbone generation"
     result_patterns: ["*.pdb", "*.trb"]
@@ -242,14 +315,21 @@ task_types:
         type: "int"
         default: 10
         description: "Number of designs to generate"
+        minimum: 1
+        maximum: 1000
+        step: 1
 
   placer:
     display_name: "PLACER"
-    docker_image: "revodesign-revocompute-runner-placer-rfdiffusion"
-    command: ["bash", "/app/revocompute/run.sh", "placer"]
+    runtime_family: "placer-rfdiffusion"
+    runner_args: ["placer"]
     gpus: true
     input_extension: ".pdb"
     input_label: "PDB / mmCIF file"
+    input_extensions: [".pdb", ".cif", ".mmcif"]
+    primary_input_extensions: [".pdb", ".cif", ".mmcif"]
+    allow_multiple_inputs: true
+    max_input_files: 64
     stage_markers:
       placer: "PLACER structure generation"
     result_patterns: ["*.pdb", "*.csv"]
@@ -258,6 +338,9 @@ task_types:
         type: "int"
         default: 50
         description: "Number of samples"
+        minimum: 1
+        maximum: 10000
+        step: 1
       - name: "predict_ligand"
         type: "bool"
         default: true
@@ -265,8 +348,7 @@ task_types:
 
   bioemu:
     display_name: "BioEmu"
-    docker_image: "revodesign-revocompute-runner-bioemu"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "bioemu"
     gpus: true
     input_extension: ".fasta"
     input_label: "FASTA file"
@@ -281,8 +363,7 @@ task_types:
 
   easifa:
     display_name: "EasIFA"
-    docker_image: "revodesign-revocompute-runner-easifa"
-    command: ["bash", "/app/revocompute/run.sh"]
+    runtime_family: "easifa"
     gpus: true
     input_extension: ".pdb"
     input_label: "PDB file / dataset dir"
@@ -294,3 +375,4 @@ task_types:
         type: "str"
         default: "active-site-position-prediction"
         description: "active-site-position-prediction or active-site-categorie-prediction"
+        choices: ["active-site-position-prediction", "active-site-categorie-prediction"]

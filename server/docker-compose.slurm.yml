@@ -1,5 +1,5 @@
-# SLURM override — merged with docker-compose.yml when --use-slurm is passed.
-# This file is version-controlled but only activated by restart.sh --use-slurm.
+# SLURM override — merged automatically when the selected task registry sets
+# job_executor: slurm. This file is version-controlled but otherwise inactive.
 #
 # It bind-mounts:
 #   - Host SLURM client tools + libraries → worker (sbatch, squeue, etc.)

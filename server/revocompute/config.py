@@ -131,6 +131,7 @@ class ComputeConfig:
 
     server_dir: str
     upload_folder: str
+    workspace_folder: str
     results_folder: str
     db_path: str
     manage_db_path: str
@@ -149,6 +150,7 @@ class ComputeConfig:
         return cls(
             server_dir=server_dir,
             upload_folder=os.path.join(server_dir, "upload"),
+            workspace_folder=os.path.join(server_dir, "workspaces"),
             results_folder=os.path.join(server_dir, "results"),
             db_path=env_path("DB_PATH", os.path.join(server_dir, "revocompute.sqlite3")),
             manage_db_path=env_path("MANAGE_DB_PATH", os.path.join(server_dir, "manage.sqlite")),

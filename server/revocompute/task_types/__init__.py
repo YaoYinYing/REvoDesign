@@ -2,12 +2,12 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Task type registry: dataclasses, YAML loader, and registration.
+"""Task and runtime-family registry.
 
 Server code never needs to know about individual task types — a new task
-type is a YAML entry + a runner YAML + a Docker image.  The registry pairs
-each TaskType (portable, same on every deployment) with a RunnerConfig
-(machine-specific paths, limits, and defaults).
+type selects a shared runtime family, while the family owns the image,
+entrypoint, Dockerfile, Apptainer definition, and machine-specific runner
+configuration.
 """
 
 from __future__ import annotations
@@ -32,29 +32,51 @@ class TaskParam:
     default: Any = None
     required: bool = False
     description: str = ""
+    label: str = ""
+    choices: tuple[Any, ...] = ()
+    minimum: float | None = None
+    maximum: float | None = None
+    step: float | None = None
+    unit: str = ""
+    advanced: bool = False
+
+
+@dataclass(frozen=True)
+class RuntimeFamily:
+    """Portable execution environment shared by one or more task types."""
+
+    name: str
+    docker_image: str
+    entrypoint: tuple[str, ...]
+    dockerfile: str
+    definition: str
+    job_executor: str = "docker"
+    container_runtime: str = "docker"
+    slurm_image: str = ""
 
 
 @dataclass(frozen=True)
 class TaskType:
-    """Portable task definition — same on every deployment.
+    """Portable user-facing task definition.
 
-    Declares what the task *is*: its Docker image, command, I/O contract,
-    progress stages, and the parameters users can submit.  Machine-specific
+    Runtime implementation details live in RuntimeFamily. Machine-specific
     paths and resource limits live in RunnerConfig.
     """
 
     name: str  # "gremlin", "alphafold", "diffdock", "esm"
     display_name: str  # "PSSM-GREMLIN", "AlphaFold2"
 
-    # Docker runner
-    docker_image: str
-    command: list[str]
+    runtime: RuntimeFamily
 
-    # I/O
     input_extension: str  # ".fasta", ".pdb"
     input_label: str  # "FASTA file", "PDB file"
 
     # Optional fields with defaults
+    input_extensions: tuple[str, ...] = ()
+    primary_input_extensions: tuple[str, ...] = ()
+    allow_multiple_inputs: bool = False
+    max_input_files: int = 1
+    runner_args: tuple[str, ...] = ()
     gpus: bool = False
     result_patterns: tuple[str, ...] = ("*",)
     stage_markers: dict[str, str] = field(default_factory=dict)
@@ -74,7 +96,7 @@ class RunnerMount:
 class RunnerConfig:
     """Deployment-specific settings for a task type.
 
-    Loaded from ``config/runners/<name>.yaml`` at startup.  Host paths are
+    Loaded from ``config/runners/<runtime-family>.yaml`` at startup. Host paths are
     machine-specific — edit the YAML when deploying to a new node, never
     the global ``.env``.
     """
@@ -86,17 +108,12 @@ class RunnerConfig:
     max_runtime_seconds: int | None = None  # override task_type default if set
     defaults: dict[str, Any] = field(default_factory=dict)  # default param values
 
-    # Runner backend selection — "docker" (default) or "slurm"
-    runner: str = "docker"
-    container_runtime: str = ""  # "apptainer" (empty = docker, valid only when runner=slurm)
-    slurm_image: str = ""  # "/opt/apptainer/images/gremlin_v1.2.sif"
-
-
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
 
 _registry: dict[str, tuple[TaskType, RunnerConfig]] = {}
+_runtime_registry: dict[str, RuntimeFamily] = {}
 
 
 def register(task_type: TaskType, runner: RunnerConfig) -> None:
@@ -114,6 +131,11 @@ def get(name: str) -> tuple[TaskType, RunnerConfig]:
 def list_types() -> list[TaskType]:
     """Return all registered task types (for ``GET /api/types``)."""
     return [tt for tt, _ in _registry.values()]
+
+
+def list_runtimes() -> list[RuntimeFamily]:
+    """Return all runtime families loaded from the portable registry."""
+    return list(_runtime_registry.values())
 
 
 # ---------------------------------------------------------------------------
@@ -138,18 +160,15 @@ def _load_runner_config(path: str) -> RunnerConfig:
         maxmem=data.get("maxmem"),
         max_runtime_seconds=data.get("max_runtime_seconds"),
         defaults=data.get("defaults", {}),
-        runner=data.get("runner", "docker"),
-        container_runtime=data.get("container_runtime", ""),
-        slurm_image=data.get("slurm_image", ""),
     )
 
 
 def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> None:
     """Load task type definitions and per-runner configs.
 
-    Reads ``task_types.yaml``, then for each enabled task type loads the
-    corresponding ``config/runners/<name>.yaml`` if it exists.  Filtered by
-    ``ENABLED_TASKRUNNERS``; ``gremlin`` is always enabled.
+    Reads runtime families and task types, then loads one machine-specific
+    runner YAML per runtime family. Filtered by ``ENABLED_TASKRUNNERS``;
+    ``gremlin`` is always enabled.
     """
     with open(task_types_yaml, encoding="utf-8") as f:
         types_data = yaml.safe_load(f)
@@ -157,24 +176,92 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
     if not types_data:
         return
 
+    _registry.clear()
+    _runtime_registry.clear()
+
+    if "job_executor" not in types_data or "container_runtime" not in types_data:
+        raise ValueError("Task registry must declare global job_executor and container_runtime")
+    job_executor = types_data["job_executor"]
+    container_runtime = types_data["container_runtime"]
+    if job_executor not in {"docker", "slurm"}:
+        raise ValueError(f"Unsupported global job_executor: {job_executor!r}")
+    if job_executor == "docker" and container_runtime != "docker":
+        raise ValueError("Docker job_executor requires container_runtime: docker")
+    if job_executor == "slurm" and container_runtime != "apptainer":
+        raise ValueError("SLURM job_executor requires container_runtime: apptainer")
+
+    runtimes: dict[str, RuntimeFamily] = {}
+    for name, entry in types_data.get("runtime_families", {}).items():
+        if "slurm_image" not in entry or not entry["slurm_image"]:
+            raise ValueError(f"Runtime family {name!r} must declare slurm_image")
+        slurm_image = str(entry.get("slurm_image") or "")
+        if job_executor == "slurm" and not slurm_image:
+            raise ValueError(f"SLURM runtime family {name!r} must set slurm_image")
+        runtimes[name] = RuntimeFamily(
+            name=name,
+            docker_image=entry["docker_image"],
+            entrypoint=tuple(entry["entrypoint"]),
+            dockerfile=entry["dockerfile"],
+            definition=entry["definition"],
+            job_executor=job_executor,
+            container_runtime=container_runtime,
+            slurm_image=slurm_image,
+        )
+    _runtime_registry.update(runtimes)
+
+    runner_configs: dict[str, RunnerConfig] = {}
     for name, entry in types_data.get("task_types", {}).items():
         if name != "gremlin" and name not in enabled:
             continue
 
+        runtime_name = entry["runtime_family"]
+        if runtime_name not in runtimes:
+            raise ValueError(f"Task type {name!r} references unknown runtime family {runtime_name!r}")
+        runtime = runtimes[runtime_name]
+        if runtime_name not in runner_configs:
+            runner_yaml = os.path.join(runners_dir, f"{runtime_name}.yaml")
+            if not os.path.exists(runner_yaml):
+                raise FileNotFoundError(
+                    f"Runtime family {runtime_name!r} requires runner configuration {runner_yaml!r}"
+                )
+            runner_configs[runtime_name] = _load_runner_config(runner_yaml)
+
+        input_extensions = tuple(entry.get("input_extensions", [entry["input_extension"]]))
+        primary_input_extensions = tuple(
+            entry.get("primary_input_extensions", [entry["input_extension"]])
+        )
+        allow_multiple_inputs = entry.get("allow_multiple_inputs", False)
+        max_input_files = entry.get("max_input_files", 1)
+        if not input_extensions:
+            raise ValueError(f"Task type {name!r} must accept at least one input extension")
+        if not set(primary_input_extensions).issubset(input_extensions):
+            raise ValueError(
+                f"Task type {name!r} primary input extensions must be accepted input extensions"
+            )
+        if not isinstance(max_input_files, int) or isinstance(max_input_files, bool) or max_input_files < 1:
+            raise ValueError(f"Task type {name!r} max_input_files must be a positive integer")
+        if not allow_multiple_inputs and max_input_files != 1:
+            raise ValueError(
+                f"Task type {name!r} must set max_input_files to 1 when multiple inputs are disabled"
+            )
+
         tt = TaskType(
             name=name,
             display_name=entry["display_name"],
-            docker_image=entry["docker_image"],
-            command=entry["command"],
+            runtime=runtime,
+            runner_args=tuple(entry.get("runner_args", [])),
             gpus=entry.get("gpus", False),
             input_extension=entry["input_extension"],
             input_label=entry["input_label"],
+            input_extensions=input_extensions,
+            primary_input_extensions=primary_input_extensions,
+            allow_multiple_inputs=allow_multiple_inputs,
+            max_input_files=max_input_files,
             result_patterns=tuple(entry.get("result_patterns", ["*"])),
             stage_markers=entry.get("stage_markers", {}),
-            params=tuple(TaskParam(**p) for p in entry.get("params", [])),
+            params=tuple(
+                TaskParam(**{**p, "choices": tuple(p.get("choices", []))}) for p in entry.get("params", [])
+            ),
         )
 
-        runner_yaml = os.path.join(runners_dir, f"{name}.yaml")
-        runner = _load_runner_config(runner_yaml) if os.path.exists(runner_yaml) else RunnerConfig()
-
-        register(tt, runner)
+        register(tt, runner_configs[runtime_name])

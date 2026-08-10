@@ -63,7 +63,7 @@ _TEMP_PROXY_DOCKERFILES=()
 
 _cleanup_temp_dockerfiles() {
   local f
-  for f in "${_TEMP_PROXY_DOCKERFILES[@]}"; do
+  for f in ${_TEMP_PROXY_DOCKERFILES[@]+"${_TEMP_PROXY_DOCKERFILES[@]}"}; do
     rm -f "$f"
   done
   _TEMP_PROXY_DOCKERFILES=()
@@ -93,22 +93,201 @@ compose_files() {
   printf '%s\n' "${files[@]}"
 }
 
+runtime_manifest() {
+  local registry_file="${CONFIG_DIR:-${SERVER_ROOT}/config}/task_types.yaml"
+  if [[ ! -f "${registry_file}" ]]; then
+    echo "Runtime registry is missing: ${registry_file}" >&2
+    return 1
+  fi
+  awk '
+    function unquote(value) {
+      sub(/^[[:space:]]+/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      if (value ~ /^".*"$/ || value ~ /^\047.*\047$/) {
+        value = substr(value, 2, length(value) - 2)
+      }
+      return value
+    }
+    function emit() {
+      if (name == "") return
+      if (image == "" || dockerfile == "" || definition == "" || slurm_image == "") {
+        print "Incomplete runtime family: " name > "/dev/stderr"
+        failed = 1
+        return
+      }
+      print name "\t" image "\t" dockerfile "\t" definition "\t" slurm_image
+      emitted++
+    }
+    /^runtime_families:[[:space:]]*$/ { in_runtimes = 1; next }
+    in_runtimes && /^[^[:space:]#]/ { emit(); in_runtimes = 0; next }
+    in_runtimes && /^  [^[:space:]#][^:]*:[[:space:]]*$/ {
+      emit()
+      name = $0
+      sub(/^  /, "", name)
+      sub(/:[[:space:]]*$/, "", name)
+      image = dockerfile = definition = slurm_image = ""
+      next
+    }
+    in_runtimes && /^    docker_image:/ {
+      image = $0; sub(/^    docker_image:[[:space:]]*/, "", image); image = unquote(image); next
+    }
+    in_runtimes && /^    dockerfile:/ {
+      dockerfile = $0; sub(/^    dockerfile:[[:space:]]*/, "", dockerfile); dockerfile = unquote(dockerfile); next
+    }
+    in_runtimes && /^    definition:/ {
+      definition = $0; sub(/^    definition:[[:space:]]*/, "", definition); definition = unquote(definition); next
+    }
+    in_runtimes && /^    slurm_image:/ {
+      slurm_image = $0; sub(/^    slurm_image:[[:space:]]*/, "", slurm_image); slurm_image = unquote(slurm_image); next
+    }
+    END {
+      if (in_runtimes) emit()
+      if (emitted == 0) {
+        print "No runtime families declared in registry" > "/dev/stderr"
+        failed = 1
+      }
+      if (failed) exit 1
+    }
+  ' "${registry_file}"
+}
+
+runtime_definition() {
+  local definition=""
+  definition="$(runtime_manifest | awk -F '\t' -v family="$1" '$1 == family { print $4; found = 1 } END { if (!found) exit 1 }')" || {
+    echo "Unknown runtime family: $1" >&2
+    return 1
+  }
+  printf '%s\n' "${definition}"
+}
+
+yaml_scalar() {
+  local file="$1"
+  local key="$2"
+  awk -v wanted="${key}" '
+    function unquote(value) {
+      sub(/^[[:space:]]+/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      if (value ~ /^".*"$/ || value ~ /^\047.*\047$/) value = substr(value, 2, length(value) - 2)
+      return value
+    }
+    $0 ~ "^" wanted ":[[:space:]]*" {
+      value = $0
+      sub("^" wanted ":[[:space:]]*", "", value)
+      print unquote(value)
+      found = 1
+      exit
+    }
+    END { if (!found) exit 1 }
+  ' "${file}"
+}
+
+validate_runtime_files() {
+  local config_root="${CONFIG_DIR:-${SERVER_ROOT}/config}"
+  local registry_file="${config_root}/task_types.yaml"
+  local runners_dir="${config_root}/runners"
+  local manifest=""
+  local name=""
+  local image=""
+  local dockerfile=""
+  local definition=""
+  local runner_yaml=""
+  local bootstrap=""
+  local definition_image=""
+  local expected_image=""
+  local image_leaf=""
+  local slurm_image=""
+  local job_executor=""
+  local container_runtime=""
+  local known_families=" "
+
+  manifest="$(runtime_manifest)" || return 1
+  job_executor="$(yaml_scalar "${registry_file}" job_executor 2>/dev/null || true)"
+  container_runtime="$(yaml_scalar "${registry_file}" container_runtime 2>/dev/null || true)"
+  if [[ "${job_executor}" != "docker" && "${job_executor}" != "slurm" ]]; then
+    echo "job_executor must be docker or slurm in ${registry_file}" >&2
+    return 1
+  fi
+  if [[ ("${job_executor}" == "docker" && "${container_runtime}" != "docker") || \
+        ("${job_executor}" == "slurm" && "${container_runtime}" != "apptainer") ]]; then
+    echo "container_runtime is inconsistent with job_executor in ${registry_file}" >&2
+    return 1
+  fi
+  [[ -d "${runners_dir}" ]] || {
+    echo "Runtime runner directory is missing: ${runners_dir}" >&2
+    return 1
+  }
+
+  while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+    if [[ ! "${name}" =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
+      echo "Runtime family name is not safe for Compose: ${name}" >&2
+      return 1
+    fi
+    for relative_path in "${dockerfile}" "${definition}"; do
+      case "${relative_path}" in
+        /*|..|../*|*/..|*/../*|*\\*)
+          echo "Runtime family ${name} has unsafe build path: ${relative_path}" >&2
+          return 1
+          ;;
+      esac
+      if [[ ! -f "${SERVER_ROOT}/${relative_path}" ]]; then
+        echo "Runtime family ${name} is missing build artifact: ${SERVER_ROOT}/${relative_path}" >&2
+        return 1
+      fi
+    done
+
+    runner_yaml="${runners_dir}/${name}.yaml"
+    if [[ ! -f "${runner_yaml}" ]]; then
+      echo "Runtime family ${name} is missing runner configuration: ${runner_yaml}" >&2
+      return 1
+    fi
+    if [[ "${job_executor}" == "slurm" && "${slurm_image}" != /* ]]; then
+      echo "SLURM runtime family ${name} must declare an absolute slurm_image" >&2
+      return 1
+    fi
+
+    bootstrap="$(awk '$1 == "Bootstrap:" { sub(/^[^:]*:[[:space:]]*/, ""); print; exit }' "${SERVER_ROOT}/${definition}")"
+    definition_image="$(awk '$1 == "From:" { sub(/^[^:]*:[[:space:]]*/, ""); print; exit }' "${SERVER_ROOT}/${definition}")"
+    expected_image="${image}"
+    image_leaf="${image##*/}"
+    if [[ "${image_leaf}" != *:* && "${image}" != *@* ]]; then
+      expected_image="${image}:latest"
+    fi
+    if [[ "${bootstrap}" != "docker-daemon" || "${definition_image}" != "${expected_image}" ]]; then
+      echo "Runtime family ${name} definition must use docker-daemon image ${expected_image}" >&2
+      return 1
+    fi
+    known_families+="${name} "
+  done <<< "${manifest}"
+
+  for runner_yaml in "${runners_dir}"/*.yaml; do
+    [[ -f "${runner_yaml}" ]] || continue
+    name="$(basename "${runner_yaml}" .yaml)"
+    if [[ "${known_families}" != *" ${name} "* ]]; then
+      echo "Stale runner configuration has no runtime family: ${runner_yaml}" >&2
+      return 1
+    fi
+  done
+}
+
 generate_runner_compose() {
-  # Auto-discover runner services from docker/runners/*/Dockerfile.
-  # Each directory contributes one service named runner-<dirname>.
+  # Generate one optional build service per declared runtime family.
   local out="${COMPOSE_RUNNERS_FILE}"
+  local name=""
+  local image=""
+  local dockerfile=""
+  local definition=""
+  local slurm_image=""
   echo "# Auto-generated by restart.sh — do not edit." > "${out}"
   echo "services:" >> "${out}"
-  for dockerfile in "${SERVER_ROOT}"/docker/runners/*/Dockerfile; do
-    local dir; dir=$(basename "$(dirname "$dockerfile")")
-    [[ "$dir" == "pssm_gremlin" ]] && continue  # base runner already in docker-compose.yml
+  while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+    [[ "${name}" == "gremlin" ]] && continue  # base runner already in docker-compose.yml
     cat >> "${out}" <<EOF
-  runner-${dir}:
+  runner-${name}:
     profiles: ["runner"]
-    image: revodesign-revocompute-runner-${dir}
+    image: ${image}
     build:
       context: .
-      dockerfile: docker/runners/${dir}/Dockerfile
+      dockerfile: ${dockerfile}
       args:
         RUNNER_UID: \${RUNNER_UID}
         RUNNER_GID: \${RUNNER_GID}
@@ -117,7 +296,7 @@ generate_runner_compose() {
     command: ["sleep", "infinity"]
     restart: "no"
 EOF
-  done
+  done < <(runtime_manifest)
 }
 
 resolve_env_file() {
@@ -140,8 +319,7 @@ usage() {
 Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart]
        bash server/run/restart.sh restart [--mode=dev|--mode=prod]
 
-       SLURM flags (any subcommand that starts services):
-           --use-slurm                         Enable SLURM+Apptainer job runner.
+       SLURM flags (when task_types.yaml selects job_executor: slurm):
            --allowed-slurm-queue q1,q2,...     Comma-separated SLURM partitions.
            --build-sif                         Build .sif images from .def files
                                                (requires apptainer on PATH).
@@ -178,6 +356,7 @@ require_env_file() {
 
 validate_required_settings() (
   set +u
+  unset SERVER_DIR ADMIN_USERS
   set -a
   source "${ENV_FILE}"
   set +a
@@ -375,86 +554,60 @@ if os.path.commonpath([server_dir, auth_dir]) == server_dir:
 # ---------------------------------------------------------------------------
 
 validate_slurm_images() {
-  local runners_dir="${CONFIG_DIR:-${SERVER_ROOT}/config}/runners"
-  local def_dir="${SERVER_ROOT}/docker/runners"
   local missing=0
   local name=""
   local image=""
+  local dockerfile=""
+  local definition=""
+  local slurm_image=""
 
-  if [[ ! -d "${runners_dir}" ]]; then
-    return 0
-  fi
-
-  for runner_yaml in "${runners_dir}"/*.yaml; do
-    [[ -f "${runner_yaml}" ]] || continue
-    name="$(basename "${runner_yaml}" .yaml)"
-    image="$(python3 -c "
-import yaml
-with open('${runner_yaml}') as f:
-    data = yaml.safe_load(f) or {}
-print(data.get('slurm_image', ''))
-" 2>/dev/null)"
-    if [[ -z "${image}" ]]; then
-      continue  # not a SLURM runner — skip
-    fi
-    if [[ ! -f "${image}" ]]; then
-      echo "[SLURM] Missing SIF image: ${image}" >&2
-      local _def
-      _def=$(find "${def_dir}" -maxdepth 2 -name "${name}.def" -print -quit 2>/dev/null || true)
-      echo "        Build it:  apptainer build --fakeroot ${image} ${_def:-${def_dir}/${name}/${name}.def}" >&2
+  while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+    if [[ ! -f "${slurm_image}" ]]; then
+      echo "[SLURM] Missing SIF image: ${slurm_image}" >&2
+      echo "        Build it:  apptainer build --fakeroot ${slurm_image} ${SERVER_ROOT}/${definition}" >&2
       missing=$((missing + 1))
     else
-      echo "[SLURM] Found SIF image: ${image}"
+      echo "[SLURM] Found SIF image: ${slurm_image}"
     fi
-  done
+  done < <(runtime_manifest)
 
   if [[ ${missing} -gt 0 ]]; then
     echo "[SLURM] ${missing} SIF image(s) missing. Rerun with --build-sif to auto-build, or build manually." >&2
-    return 0  # ponytail: warn but don't block — admin may build later
+    return 1
   fi
 }
 
 build_slurm_images() {
-  local runners_dir="${CONFIG_DIR:-${SERVER_ROOT}/config}/runners"
-  local def_dir="${SERVER_ROOT}/docker/runners"
   local name=""
   local image=""
+  local dockerfile=""
+  local definition=""
+  local slurm_image=""
   local def_file=""
   local built=0
 
   if ! command -v apptainer >/dev/null 2>&1; then
-    echo "[SLURM] apptainer not found on PATH — skipping SIF build." >&2
-    return 0
+    echo "[SLURM] apptainer not found on PATH; cannot build requested SIF images." >&2
+    return 1
   fi
 
-  for runner_yaml in "${runners_dir}"/*.yaml; do
-    [[ -f "${runner_yaml}" ]] || continue
-    name="$(basename "${runner_yaml}" .yaml)"
-    image="$(python3 -c "
-import yaml
-with open('${runner_yaml}') as f:
-    data = yaml.safe_load(f) or {}
-print(data.get('slurm_image', ''))
-" 2>/dev/null)"
-    if [[ -z "${image}" ]]; then
-      continue
-    fi
-    def_file=$(find "${def_dir}" -maxdepth 2 -name "${name}.def" -print -quit 2>/dev/null || true)
+  while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+    def_file="${SERVER_ROOT}/${definition}"
     if [[ -z "${def_file}" || ! -f "${def_file}" ]]; then
-      echo "[SLURM] No .def file for '${name}' — skipping." >&2
+      echo "[SLURM] No .def file for runtime family '${name}': ${def_file}" >&2
+      return 1
+    fi
+    if [[ -f "${slurm_image}" ]]; then
+      echo "[SLURM] SIF image already exists: ${slurm_image} — skipping."
       continue
     fi
-    if [[ -f "${image}" ]]; then
-      echo "[SLURM] SIF image already exists: ${image} — skipping."
-      continue
-    fi
-    echo "[SLURM] Building ${image} from ${def_file}..."
-    apptainer build --fakeroot "${image}" "${def_file}" || {
+    echo "[SLURM] Building ${slurm_image} from ${def_file}..."
+    apptainer build --fakeroot "${slurm_image}" "${def_file}" || {
       echo "[SLURM] Build failed for ${name}." >&2
       return 1
     }
     built=$((built + 1))
-  done
+  done < <(runtime_manifest)
 
   if [[ ${built} -gt 0 ]]; then
     echo "[SLURM] Built ${built} SIF image(s)."
@@ -567,6 +720,10 @@ cmd_setup() {
 cmd_build() {
   require_env_file
   validate_required_settings
+  set -a
+  source "${ENV_FILE}"
+  set +a
+  validate_runtime_files
   ensure_docker_gid
   resolve_runner_identity
   generate_runner_compose
@@ -576,22 +733,16 @@ cmd_build() {
   fi
 
   echo "Building runner images..."
-  for dockerfile in "${SERVER_ROOT}"/docker/runners/*/Dockerfile; do
-    dir=$(basename "$(dirname "$dockerfile")")
-    if [[ "$dir" == "pssm_gremlin" ]]; then
-      tag="revodesign-revocompute-runner"
-    else
-      tag="revodesign-revocompute-runner-${dir}"
-    fi
-    _resolve_dockerfile "${dockerfile}"
-    echo "  → ${tag}"
+  while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+    _resolve_dockerfile "${SERVER_ROOT}/${dockerfile}"
+    echo "  → ${image} (${name})"
     docker build \
       --build-arg RUNNER_UID="${RUNNER_UID}" \
       --build-arg RUNNER_GID="${RUNNER_GID}" \
       --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
       --build-arg RUNNER_GROUP="${RUNNER_GROUP}" \
-      -t "${tag}" -f "${_BUILD_DOCKERFILE}" "${SERVER_ROOT}"
-  done
+      -t "${image}" -f "${_BUILD_DOCKERFILE}" "${SERVER_ROOT}"
+  done < <(runtime_manifest)
 
   echo "Building web/worker images..."
   if [[ -n "${USE_PROXY:-}" ]]; then
@@ -615,6 +766,13 @@ cmd_build() {
 cmd_up() {
   require_env_file
   validate_required_settings
+  set -a
+  source "${ENV_FILE}"
+  set +a
+  validate_runtime_files
+  if [[ "${USE_SLURM}" == "1" ]]; then
+    validate_slurm_images
+  fi
   validate_auth_storage
   prepare_admin_bootstrap
   ensure_docker_gid
@@ -650,11 +808,28 @@ cmd_restart() {
   set +a
   set -u
 
+  validate_runtime_files
+
   if [[ "${MODE}" == "prod" ]]; then
     require_production_identity
   fi
 
   prepare_admin_bootstrap
+
+  # Production pulls and development builds must use the same generated
+  # runtime-family service manifest from the selected CONFIG_DIR.
+  generate_runner_compose
+
+  # A deployment that expects existing SIFs must prove they are present before
+  # stopping the healthy stack. Building new SIFs still happens after the
+  # corresponding Docker images have been built or pulled.
+  if [[ "${USE_SLURM}" == "1" && "${BUILD_SIF}" == "0" ]]; then
+    validate_slurm_images
+  fi
+  if [[ "${USE_SLURM}" == "1" && "${BUILD_SIF}" == "1" ]] && ! command -v apptainer >/dev/null 2>&1; then
+    echo "[SLURM] apptainer not found on PATH; refusing to stop the current deployment." >&2
+    return 1
+  fi
 
   cmd_down
 
@@ -664,7 +839,11 @@ cmd_restart() {
       ;;
     prod)
       echo "Pulling configured production images..."
-      "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" --profile runner pull web gateway runner
+      "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" pull web gateway
+      while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+        echo "  → ${image} (${name})"
+        docker pull "${image}"
+      done < <(runtime_manifest)
       ;;
   esac
 
@@ -675,7 +854,9 @@ cmd_restart() {
     if [[ "${BUILD_SIF}" == "1" ]]; then
       build_slurm_images
     fi
-    validate_slurm_images
+    if [[ "${BUILD_SIF}" == "1" ]]; then
+      validate_slurm_images
+    fi
   fi
   cmd_up --no-build
 
@@ -717,9 +898,10 @@ while [[ $# -gt 0 ]]; do
       usage
       exit 1
       ;;
-    --use-slurm)
-      USE_SLURM=1
-      export SLURM_ENABLED=true
+    --mode)
+      echo "Too many arguments. Use --mode=dev or --mode=prod." >&2
+      usage
+      exit 1
       ;;
     --allowed-slurm-queue)
       shift
@@ -746,6 +928,37 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+_REGISTRY_FILE="${SERVER_ROOT}/config/task_types.yaml"
+if [[ -f "${ENV_FILE}" ]]; then
+  _CONFIG_ROOT="$(
+    set +u
+    set -a
+    source "${ENV_FILE}"
+    set +a
+    printf '%s' "${CONFIG_DIR:-${SERVER_ROOT}/config}"
+  )"
+  _REGISTRY_FILE="${_CONFIG_ROOT}/task_types.yaml"
+fi
+_JOB_EXECUTOR="$(yaml_scalar "${_REGISTRY_FILE}" job_executor 2>/dev/null || true)"
+case "${_JOB_EXECUTOR}" in
+  slurm)
+    USE_SLURM=1
+    export SLURM_ENABLED=true
+    ;;
+  docker)
+    USE_SLURM=0
+    export SLURM_ENABLED=false
+    if [[ "${BUILD_SIF}" == "1" || -n "${SLURM_ALLOWED_QUEUES:-}" ]]; then
+      echo "SLURM flags require job_executor: slurm in ${_REGISTRY_FILE}" >&2
+      exit 1
+    fi
+    ;;
+  *)
+    echo "job_executor must be docker or slurm in ${_REGISTRY_FILE}" >&2
+    exit 1
+    ;;
+esac
 
 echo "Using env file: ${ENV_FILE}"
 

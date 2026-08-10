@@ -8,22 +8,26 @@ DiffDock, and other compute tasks without changing server code.
 ## Multi-Task Architecture
 
 The server uses a YAML-based task type registry. Adding a new compute task
-type means writing three files — no server code changes needed:
+type selects a runtime family; several compatible task types can share one
+image and SIF without duplicating dependency stacks:
 
 | File | Owner | Contains |
 |------|-------|----------|
-| `config/task_types.yaml` | Developer (git) | Docker image, command, I/O format, stage markers, user-facing params |
-| `config/runners/<name>.yaml` | Operator (per-machine) | Host paths for DBs/models, resource limits, extra env vars, default param values.  Set `runner: slurm` + `slurm_image` to use the SLURM backend |
-| `docker/runners/<name>/Dockerfile` | Developer | Runner image with compute dependencies |
-| `docker/runners/<name>/<name>.def` | Developer | Apptainer definition for SIF image (SLURM backend only) |
+| `config/task_types.yaml` | Developer/operator | Global executor/runtime, per-family images/SIFs, plus task I/O and constrained params |
+| `config/runners/<runtime-family>.yaml` | Operator (per-machine) | One machine-specific mount/resource config shared by the family |
+| `docker/runners/<runtime-family>/Dockerfile` | Developer | One dependency image for the family |
+| Runtime family `definition` | Developer | Exact Apptainer definition path used for its SIF |
 
 The server loads the registry at startup via `CONFIG_DIR`. `gremlin` is always
 enabled; additional runners are gated by `ENABLED_TASKRUNNERS` in `.env`.
 
 Each runner container follows a standard contract:
-- Reads from `/workspace/inputs/`, writes to `/workspace/outputs/`
+- Sees one immutable task snapshot at `/mnt/revocompute/<username>/inputs/`
+  and task-owned results at `/mnt/revocompute/<username>/outputs/`. Concurrent
+  tasks have isolated host snapshots even though their virtual paths match.
 - Emits `REVODESIGN_STAGE:<marker>` on stdout for progress tracking
-- Receives params via `TASK_PARAMS` env var (JSON) and CLI args (`-i`, `-o`, `-r`)
+- Receives params via `TASK_PARAMS`, the complete input manifest via
+  `TASK_INPUTS`, and the primary input/output via CLI args (`-i`, `-o`, `-r`)
 - Runs as non-root `--user` (identity from `RUNNER_UID`/`RUNNER_GID` in `.env`)
 
 The create-task page dynamically builds its form from `GET /compute/api/types/<name>`
@@ -47,10 +51,10 @@ The server stack contains:
 - `redis`: Celery broker/backend
 - `runner` image: GREMLIN/PSSM execution container launched by `worker`
 
-**Alternative runner backend (SLURM + Apptainer):** When `SLURM_ENABLED=true`,
-the worker dispatches jobs via `srun` + Apptainer instead of Docker.  Enable
-with `restart.sh restart --use-slurm`.  See [SLURM + Apptainer](#slurm--apptainer-deployment)
-below.
+**Alternative executor (SLURM + Apptainer):** When the deployed
+`task_types.yaml` sets `job_executor: slurm` and
+`container_runtime: apptainer`, the worker dispatches every task via `srun` +
+Apptainer instead of Docker. See [SLURM + Apptainer](#slurm--apptainer-deployment).
 
 Scientific Python dependencies used by GREMLIN scripts belong to the runner's
 `docker/runners/pssm_gremlin/GREMLIN.yml`; they are not installed into the web and worker package.
@@ -80,7 +84,7 @@ Install the following on the deployment host:
 
 - Docker Engine 24+ with Compose plugin
 - NCBI BLAST+ (`makeblastdb`)
-- Enough disk space for UniRef databases, logs, and result archives
+- Enough disk space for UniRef databases, logs, and uncompressed task results
 
 Ubuntu example:
 
@@ -168,7 +172,12 @@ Create production env file:
 
 ```bash
 cp server/.env.example server/.env.production
+chmod 600 server/.env.production
 ```
+
+Production env files contain secrets and must not be group/world-readable.
+They are ignored by Git; keep them on the deployment host and never bake them
+into an image.
 
 ### Env-file isolation
 
@@ -296,8 +305,8 @@ CLIENT_COUNTRY_HEADER="CF-IPCountry"
 
 ## 4. Runner Configuration
 
-Database paths and resource limits no longer live in `.env`. Each task type
-has its own runner YAML at `config/runners/<name>.yaml`:
+Database paths and resource limits no longer live in `.env`. Each runtime
+family has one runner YAML at `config/runners/<runtime-family>.yaml`:
 
 ```yaml
 # config/runners/gremlin.yaml — deployment-specific (machine-local)
@@ -319,21 +328,33 @@ defaults:
 
 Edit this file when deploying to a new node — not `.env`. The task type
 definition at `config/task_types.yaml` (checked into git) declares the
-portable interface: Docker image, command, input format, stage markers,
-result patterns, and user-facing params.
+portable runtime-to-task mapping, accepted input set, stage markers, result
+patterns, and typed parameter constraints. A deployed config from the older
+per-task layout must be migrated to family filenames before startup; missing
+family YAMLs fail closed.
 
 `CONFIG_DIR` must point to the directory containing both files. In Docker
 deployments, set it to `/app/server/config` to use the baked-in source copy.
 
-**SLURM runner fields** — add these to the runner YAML to use the SLURM backend:
+Execution selection is global in `task_types.yaml`; it is not repeated in
+runner YAMLs:
 
 ```yaml
-# config/runners/gremlin.yaml — with SLURM backend
-runner: slurm
+# config/task_types.yaml — deployed SLURM configuration
+job_executor: slurm
 container_runtime: apptainer
-slurm_image: /mnt/data/srv/revodesign/server-slurm/images/gremlin_v1.sif
-# mounts, env, nproc, maxmem, defaults ... same as Docker runner
+runtime_families:
+  gremlin:
+    docker_image: revodesign-revocompute-runner
+    # dockerfile, definition, entrypoint ...
+    slurm_image: /mnt/data/srv/revodesign/server-slurm/images/gremlin_v1.sif
 ```
+
+With `job_executor: docker`, `container_runtime` must be `docker` and all
+`slurm_image` values are inert metadata. With `job_executor: slurm`,
+`container_runtime` must be `apptainer` and every runtime family must declare
+an absolute `slurm_image`. Startup fails before stopping the current deployment
+when required config or existing SIFs are missing.
 
 Per-task-type SLURM resource directives (partition, cpus-per-task, mem, time,
 gres, etc.) are configured via the admin UI at `/compute/configuration` and
@@ -501,12 +522,12 @@ environment file:
 - `--mode=prod` pulls the configured `SERVER_IMAGE` and `RUNNER_IMAGE`, then
   starts with `--no-build`. Published images use the fixed `1000:1000` identity,
   so production mode rejects any other `RUNNER_UID` or `RUNNER_GID`.
-- `--use-slurm` enables the SLURM+Apptainer runner backend.  Merges
-  `docker-compose.slurm.yml` into the compose invocation, bind-mounts SLURM
-  client tools + MUNGE, validates SIF images, and sets `SLURM_ENABLED=true`.
+- `job_executor: slurm` in the selected registry automatically merges
+  `docker-compose.slurm.yml`, bind-mounts SLURM client tools + MUNGE, validates
+  SIF images, and exports `SLURM_ENABLED=true` to the services.
 - `--build-sif` auto-builds missing `.sif` images from `.def` files before
-  starting services (requires Apptainer on PATH).  Only meaningful with
-  `--use-slurm`.
+  starting services (requires Apptainer on PATH). It is accepted only when the
+  registry selects SLURM.
 
 Provision production bind-mounted directories as writable by UID/GID
 `1000:1000`. This identity contract provides non-root execution and compatible
@@ -605,8 +626,8 @@ curl -H "Authorization: Bearer ${TOKEN}" -X POST \
 Current server states:
 
 - `pending`
+- `queued`
 - `running`
-- `packing results`
 - `finished`
 - `failed`
 - `cancelled`
@@ -624,11 +645,18 @@ The final `cleaned:*` states identify automatic retention cleanup; `deleted:*`
 states remain reserved for explicit user deletion.
 The `deleted:finshed` spelling is intentionally preserved for runtime compatibility.
 
+`finished` means `manifest.json` has been atomically published in the
+uncompressed result tree. Individual manifest-listed files are previewed or
+downloaded through authenticated endpoints and can be streamed by Nginx. A
+full ZIP is an optional asynchronous cache created only after an explicit
+archive request. It contains only files published by the manifest and is not
+part of task completion.
+
 ## 9. Public Access
 
 Docker Compose publishes the Nginx `gateway` service. The Flask/Gunicorn `web`
-service is internal-only. Nginx proxies application requests and serves result
-ZIP bytes after Flask authorizes the request with an internal
+service is internal-only. Nginx proxies application requests and serves
+authorized individual artifacts or optional ZIP bytes with an internal
 `X-Accel-Redirect`. The gateway mounts only `${SERVER_DIR}/results` and mounts
 it read-only.
 
@@ -711,7 +739,7 @@ banned users, and login throttling are maintained in
 - Restrict Docker socket access to trusted operators only.
 - Task visibility and operations are always restricted to the owner or an
   administrator.
-- Regularly back up sqlite and result archives.
+- Regularly back up sqlite and finalized result trees. Optional ZIP files are derived caches.
 - If a task is deleted, result artifacts are removed, but the sqlite record remains for audit.
 
 ## 12. Local Development
@@ -774,33 +802,29 @@ Key SLURM-specific variables:
 | `COMPOSE_PROJECT_NAME` | **Must differ from production** (e.g. `server-slurm`). Compose isolation prevents one deployment from interfering with another. |
 | `SERVER_IMAGE` | **Must differ from production** (e.g. `revodesign-revocompute-server-slurm`). Image tag collision would overwrite the wrong image. |
 | `PORT` | Choose a free host port (e.g. `8081`). |
-| `SLURM_ENABLED` | `true` |
 | `SLURM_ALLOWED_QUEUES` | Comma-separated partition names visible in `/compute/configuration` (e.g. `normal,gpu`). |
 | `ENABLED_TASKRUNNERS` | Comma-separated list of additional task types beyond `gremlin` (e.g. `pythia_ddg`). |
 | `CONFIG_DIR` | Path to deployed config directory containing `task_types.yaml` and `runners/`. |
 | `REDIS_URL` | `redis://redis:6379/0` for bridge containers; `redis://127.0.0.1:6380/0` for host-networked worker (set in `docker-compose.slurm.yml`). |
 
-#### Step 3: Configure the runner YAML
+#### Step 3: Configure the executor and runtime families
 
-For each task type that should use SLURM, create a runner config at
-`<CONFIG_DIR>/runners/<name>.yaml` with SLURM fields:
+Select SLURM once in `<CONFIG_DIR>/task_types.yaml` and set each family’s SIF:
 
 ```yaml
-# <CONFIG_DIR>/runners/pythia_ddg.yaml
-mounts: []                          # DB/model mounts (none needed if baked into image)
-env: {}                             # extra env vars
-nproc: 4
-max_runtime_seconds: 3600
-defaults: {}
-
-runner: slurm                       # "docker" (default) or "slurm"
-container_runtime: apptainer        # "apptainer" (required for SLURM)
-slurm_image: /mnt/data/srv/revodesign/server-slurm/images/pythia_ddg_v1.sif
+job_executor: slurm
+container_runtime: apptainer
+runtime_families:
+  pythia_ddg:
+    docker_image: revodesign-revocompute-runner-pythia_ddg
+    entrypoint: [bash, /app/revocompute/run.sh]
+    dockerfile: docker/runners/pythia_ddg/Dockerfile
+    definition: docker/runners/pythia_ddg/pythia_ddg.def
+    slurm_image: /mnt/data/srv/revodesign/server-slurm/images/pythia_ddg_v1.sif
 ```
 
 Fields `mounts`, `env`, `nproc`, `max_runtime_seconds`, and `defaults` work
-identically for both Docker and SLURM backends — only `runner`,
-`container_runtime`, and `slurm_image` are SLURM-specific.
+identically for both executors and remain in the corresponding runner YAML.
 
 Per-task SLURM resource directives (partition, cpus-per-task, mem, time,
 gres, etc.) are configured via the admin UI at `/compute/configuration` and
@@ -808,10 +832,9 @@ stored in `manage.sqlite` — not in the YAML.
 
 #### Step 4: Create the `.def` file
 
-Each SLURM runner needs an Apptainer definition file at
-`server/docker/runners/<directory>/<name>.def`.  The script locates it
-automatically via `find` — any directory layout works as long as the `.def`
-file is under `server/docker/runners/`.
+Each runtime family declares its exact Apptainer definition path in
+`config/task_types.yaml`. The restart helper rejects missing definitions; it
+does not guess with `find`.
 
 ```def
 Bootstrap: docker-daemon
@@ -828,23 +851,21 @@ The `.def` uses `Bootstrap: docker-daemon` to convert a locally-built Docker
 image into SIF.  The Docker image must already exist in the local Docker
 daemon (built by `cmd_build` in `restart.sh`).
 
-**Convention:** place the `.def` alongside the Dockerfile (e.g.
-`server/docker/runners/pythia_ddg/pythia_ddg.def`).  The build script uses
-`find -maxdepth 2 -name <name>.def` to locate it — no directory naming
-convention to follow.
+**Convention:** place the `.def` alongside the Dockerfile and keep its `From:`
+image equal to the runtime family's `docker_image`. Pythia's repository-bundled
+checkpoints are intentionally retained because they are small.
 
 #### Step 5: Build and deploy
 
 ```bash
 REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
-  bash server/run/restart.sh restart --mode=dev --use-slurm --build-sif
+  bash server/run/restart.sh restart --mode=dev --build-sif
 ```
 
 This runs in order:
 
 1. **`cmd_down`** — stops the existing stack
-2. **`cmd_build`** — builds Docker images for web, worker, and ALL runner profiles
-   (gremlin + pythia_ddg + any others defined in docker-compose)
+2. **`cmd_build`** — builds each declared runtime family once, then web/worker
 3. **`build_slurm_images`** — converts each Docker image to `.sif` via Apptainer
    (skips images that already exist at the target path)
 4. **`validate_slurm_images`** — confirms all SIF files exist at their expected paths
@@ -852,7 +873,6 @@ This runs in order:
 
 | Flag | Purpose |
 |------|---------|
-| `--use-slurm` | Enables SLURM, merges `docker-compose.slurm.yml` override, exports `SLURM_ENABLED=true` |
 | `--build-sif` | Auto-builds `.sif` images from `.def` files (requires Apptainer on PATH) |
 
 The SIF build runs **after** Docker builds because `.def` files use
@@ -898,8 +918,8 @@ Worker (host network)                   SLURM controller
   │                                         │
   │     SLURM compute node                  │
   │       ├─ apptainer run --nv *.sif       │
-  │       │   ├─ /workspace/inputs  (ro)    │
-  │       │   ├─ /workspace/outputs (rw)    │
+  │       │   ├─ /mnt/revocompute/<user>/inputs  (snapshot, ro) │
+  │       │   ├─ /mnt/revocompute/<user>/outputs (task-owned, rw)│
   │       │   └─ DB mounts (ro, from YAML)  │
   │       │                                 │
   │       └─ stdout/stderr → srun pipes → worker threads
@@ -921,10 +941,29 @@ apptainer build --fakeroot /path/to/pythia_ddg_v1.sif \
   server/docker/runners/pythia_ddg/pythia_ddg.def
 ```
 
-The `restart.sh --build-sif` flag automates both steps for all runners that
-have `slurm_image` set in their deployed runner YAML.
+The `restart.sh --build-sif` flag automates both steps for every runtime family
+in a registry whose global executor is SLURM.
 
-### 13.5 GPU Privilege Gating
+### 13.5 Runtime Size Gate
+
+Do not estimate savings from Dockerfile text. After building on the designated
+Linux builder, record both expanded Docker bytes and compressed SIF bytes:
+
+```bash
+python server/tools/audit_runtime_sizes.py \
+  --task-types "${CONFIG_DIR}/task_types.yaml" \
+  --require-all \
+  --json > runtime-sizes.json
+```
+
+The command only inspects artifacts already present; it never pulls, builds,
+or runs them. Compare the JSON with the previous production release before
+promotion. Runtime-family sharing reduces the number of distinct artifacts;
+the MPNN family additionally omits inference-unused CUDA stub, Triton,
+torchvision, and torchaudio wheels. Removing build tools in a later Docker
+layer is not counted as a size optimization because earlier layer bytes remain.
+
+### 13.6 GPU Privilege Gating
 
 Users must have `allow_gpu_use=true` (toggled by admins via the User Control
 page) to submit task types marked `gpus: true` in `task_types.yaml`.  This

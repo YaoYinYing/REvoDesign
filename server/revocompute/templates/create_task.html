@@ -64,18 +64,18 @@ Length: 0 residues</div>
 
       <aside class="info-panel">
         <div id="structureSnapshot" style="display:none;">
-          <p class="info-title">Structure Snapshot</p>
-          <div id="molstarViewport" style="width:100%;height:320px;border-radius:10px;overflow:hidden;background:var(--paper);border:1px solid var(--line);"></div>
-          <p class="muted" style="margin-top:0.35rem;font-size:0.76rem;">Preview only &mdash; unchanged from uploaded file.</p>
+          <p class="info-title">Structure Input Summary</p>
+          <pre id="molstarViewport" class="preview" style="min-height:180px;"></pre>
+          <p class="muted" style="margin-top:0.35rem;font-size:0.76rem;">Parsed locally in your browser; the file is unchanged.</p>
         </div>
         <div id="submissionChecklist">
           <p class="info-title">Submission Checklist</p>
           <ul class="info-list">
-            <li>Single-sequence input is recommended for stable queueing.</li>
+            <li>Multi-file task types preserve safe relative paths in an immutable snapshot.</li>
             <li>Sequence editor can convert raw letters into the required format before upload.</li>
             <li>Upload identity is tracked from your authenticated session for data isolation.</li>
             <li>Progress can be followed on the dashboard with live states.</li>
-            <li>Completed runs are packed to zip before entering <code>finished</code>.</li>
+            <li>Completed runs publish a browsable result manifest; ZIP creation is optional.</li>
           </ul>
         </div>
       </aside>

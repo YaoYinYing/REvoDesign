@@ -1,8 +1,0 @@
-Bootstrap: docker-daemon
-From: revodesign-revocompute-runner-placer-rfdiffusion:latest
-
-%post
-    echo "PLACER runner containerised"
-
-%runscript
-    exec bash /app/revocompute/run.sh placer "$@"

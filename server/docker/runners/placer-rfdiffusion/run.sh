@@ -11,6 +11,10 @@ _run_placer() {
   [[ -z "${input_file:-}" || -z "${output_dir:-}" ]] && usage
   input_file=$(readlink -f "$input_file"); output_dir=$(readlink -f "$output_dir")
   [[ ! -f "$input_file" ]] && { echo "Input not found: $input_file"; exit 1; }
+  case "$input_file" in
+    */inputs/*) input_root="${input_file%%/inputs/*}/inputs" ;;
+    *) input_root=$(dirname "$input_file") ;;
+  esac
   mkdir -p "$output_dir"
 
   : "${NUM_SAMPLES:=$(_parse_param num_samples)}"; : "${NUM_SAMPLES:=50}"
@@ -19,7 +23,8 @@ _run_placer() {
   echo "REVODESIGN_STAGE:placer"
   local extra=""
   [[ "$PREDICT_LIGAND" == "true" ]] && extra="--predict_ligand"
-  python3 "${PLACER_PATH}/run_PLACER.py" -i "$(dirname "$input_file")" -o "$output_dir" -n "$NUM_SAMPLES" $extra
+  export REVOCOMPUTE_INPUT_ROOT="$input_root"
+  python3 "${PLACER_PATH}/run_PLACER.py" -i "$input_root" -o "$output_dir" -n "$NUM_SAMPLES" $extra
 
   touch "${output_dir}/task_finished"
   echo "PLACER complete."

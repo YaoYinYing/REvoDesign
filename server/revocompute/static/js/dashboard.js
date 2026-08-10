@@ -19,7 +19,6 @@
   var statusMap = {
     "pending": { label: "Pending", css: "status-pending", accent: "var(--pending)" },
     "running": { label: "Running", css: "status-running", accent: "var(--running)" },
-    "packing results": { label: "Packing Results", css: "status-packing", accent: "var(--packing)" },
     "finished": { label: "Finished", css: "status-finished", accent: "var(--finished)" },
     "failed": { label: "Failed", css: "status-failed", accent: "var(--failed)" },
     "cancelled": { label: "Cancelled", css: "status-cancelled", accent: "var(--cancelled)" },
@@ -74,11 +73,10 @@
   }
 
   function updateSummary() {
-    var counts = { total: allTasks.length, pending: 0, running: 0, packing: 0, finished: 0, failed: 0, cancelled: 0, deleted: 0 };
+    var counts = { total: allTasks.length, pending: 0, running: 0, finished: 0, failed: 0, cancelled: 0, deleted: 0 };
     allTasks.forEach(function (task) {
       if (task.status === "pending") counts.pending += 1;
       if (task.status === "running") counts.running += 1;
-      if (task.status === "packing results") counts.packing += 1;
       if (task.status === "finished") counts.finished += 1;
       if (task.status === "failed") counts.failed += 1;
       if (task.status === "cancelled") counts.cancelled += 1;
@@ -89,7 +87,6 @@
     document.getElementById("totalTasks").textContent = counts.total;
     document.getElementById("inQueue").textContent = counts.pending;
     document.getElementById("inRunning").textContent = counts.running;
-    document.getElementById("packingResults").textContent = counts.packing;
     document.getElementById("finished").textContent = counts.finished;
     document.getElementById("issues").textContent = counts.failed + counts.cancelled + counts.deleted;
   }
@@ -181,8 +178,7 @@
       card.className = "task-card";
       card.style.setProperty("--accent-stripe", meta.accent);
       card.style.animationDelay = Math.min(index * 35, 260) + "ms";
-      var canDownload = task.status === "finished" || task.status === "failed";
-      var downloadClass = task.status === "failed" ? "download-failed" : "download";
+      var hasResults = task.status === "finished" || task.status === "failed";
       var canCancel = task.status === "pending" || task.status === "running";
       var canDelete = Boolean(task.can_delete);
       var hasError = task.status === "failed" && task.error;
@@ -220,8 +216,10 @@
           '<div class="meta-box"><p class="meta-label">Wall Time</p><p class="meta-value">' + escapeHtml(String(task.walltime ?? "-")) + '</p></div>' +
         '</div>' +
         '<details class="sequence"><summary>Sequence Snapshot</summary><pre>' + escapeHtml(task.sequence || "-") + '</pre></details>' +
+        (hasResults ? '<section class="result-browser" data-results-for="' + escapeHtml(task.md5) + '" hidden></section>' : "") +
         '<div class="actions">' +
-          (canDownload ? downloadButtonHtml(task, downloadClass) : "") +
+          (hasResults ? '<button class="task-btn download" data-action="results" data-md5="' + escapeHtml(task.md5) + '">Browse Results</button>' : "") +
+          (hasResults ? downloadButtonHtml(task, task.status === "failed" ? "download-failed" : "download") : "") +
           (canCancel ? '<button class="task-btn cancel" data-action="cancel" data-md5="' + escapeHtml(task.md5) + '">Cancel</button>' : "") +
           (canDelete ? '<button class="task-btn delete" data-action="delete" data-md5="' + escapeHtml(task.md5) + '">Delete</button>' : "") +
         '</div>';
@@ -357,16 +355,27 @@
     }
   }
 
+  async function waitForArchive(md5sum) {
+    for (var attempt = 0; attempt < 120; attempt += 1) {
+      var result = await A.authFetch("/compute/api/results/" + encodeURIComponent(md5sum));
+      if (!result.ok) throw new Error("Could not read result manifest");
+      var manifest = await result.json();
+      if (manifest.archive && manifest.archive.ready) return manifest.archive.download_url;
+      await new Promise(function (resolve) { setTimeout(resolve, 5000); });
+    }
+    throw new Error("Archive is still building. You can leave this page and try again later.");
+  }
+
   async function downloadFile(md5sum) {
     if (!md5sum || downloads.has(md5sum)) return;
     downloads.set(md5sum, "preparing");
     updateDownloadButton(md5sum);
     try {
-      var url = "/compute/api/download/" + encodeURIComponent(md5sum);
-      var response = await A.authFetch(url, { method: "HEAD" });
-      if (!response.ok) {
-        throw new Error("Download failed (HTTP " + response.status + ")");
-      }
+      var requestUrl = "/compute/api/results/" + encodeURIComponent(md5sum) + "/archive";
+      var requestResponse = await A.authFetch(requestUrl, { method: "POST" });
+      var requestPayload = await requestResponse.json().catch(function () { return {}; });
+      if (!requestResponse.ok && requestResponse.status !== 202) throw new Error(requestPayload.error || "Archive request failed");
+      var url = requestPayload.download_url || await waitForArchive(md5sum);
       downloads.set(md5sum, "started");
       updateDownloadButton(md5sum);
       var a = document.createElement("a");
@@ -384,6 +393,190 @@
       downloads.delete(md5sum);
       updateDownloadButton(md5sum);
       showToast(error.message || "Download failed", "error");
+    }
+  }
+
+  function formatBytes(value) {
+    var bytes = Number(value || 0);
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KiB";
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MiB";
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GiB";
+  }
+
+  function renderStructurePreview(text, artifact, previewNode) {
+    var points = String(text).split(/\r?\n/).filter(function (line) {
+      return line.startsWith("ATOM  ") && line.slice(12, 16).trim() === "CA";
+    }).map(function (line) {
+      return {
+        chain: line.slice(21, 22).trim() || "_",
+        x: Number(line.slice(30, 38)),
+        y: Number(line.slice(38, 46)),
+        z: Number(line.slice(46, 54)),
+      };
+    }).filter(function (point) { return Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.z); });
+    if (points.length < 2) {
+      var fallback = document.createElement("pre");
+      fallback.textContent = text + (artifact.size > 262144 ? "\n\n[Preview truncated at 256 KiB]" : "");
+      previewNode.appendChild(fallback);
+      return;
+    }
+    var canvas = document.createElement("canvas");
+    canvas.className = "artifact-structure-preview";
+    canvas.width = 960;
+    canvas.height = 420;
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", "Alpha-carbon trace preview for " + artifact.path);
+    previewNode.appendChild(canvas);
+    var context = canvas.getContext("2d");
+    var xs = points.map(function (point) { return point.x; });
+    var ys = points.map(function (point) { return point.y; });
+    var minX = Math.min.apply(Math, xs); var maxX = Math.max.apply(Math, xs);
+    var minY = Math.min.apply(Math, ys); var maxY = Math.max.apply(Math, ys);
+    var scale = Math.min(880 / Math.max(maxX - minX, 1), 340 / Math.max(maxY - minY, 1));
+    var colors = ["#0f6f8f", "#c06035", "#4d8b57", "#8b5fb3", "#b08a20", "#b3485d"];
+    var chainColors = new Map();
+    context.fillStyle = "#f5f8f7"; context.fillRect(0, 0, canvas.width, canvas.height);
+    context.lineWidth = 3; context.lineJoin = "round"; context.lineCap = "round";
+    var previous = null;
+    points.forEach(function (point) {
+      if (!chainColors.has(point.chain)) chainColors.set(point.chain, colors[chainColors.size % colors.length]);
+      var px = 40 + (point.x - minX) * scale;
+      var py = 380 - (point.y - minY) * scale;
+      if (previous && previous.chain === point.chain) {
+        context.strokeStyle = chainColors.get(point.chain);
+        context.beginPath(); context.moveTo(previous.px, previous.py); context.lineTo(px, py); context.stroke();
+      }
+      previous = { chain: point.chain, px: px, py: py };
+    });
+    var caption = document.createElement("p");
+    caption.className = "artifact-structure-caption";
+    caption.textContent = points.length + " alpha carbons · chains " + Array.from(chainColors.keys()).join(", ") + " · XY projection";
+    previewNode.appendChild(caption);
+  }
+
+  function parseDelimitedRows(text, delimiter, maxRows, maxColumns) {
+    var rows = []; var row = []; var value = ""; var quoted = false;
+    for (var index = 0; index < text.length && rows.length < maxRows; index += 1) {
+      var character = text[index];
+      if (quoted) {
+        if (character === '"' && text[index + 1] === '"') { value += '"'; index += 1; }
+        else if (character === '"') quoted = false;
+        else value += character;
+      } else if (character === '"') quoted = true;
+      else if (character === delimiter) {
+        if (row.length < maxColumns) row.push(value);
+        value = "";
+      } else if (character === "\n") {
+        if (row.length < maxColumns) row.push(value.replace(/\r$/, ""));
+        rows.push(row); row = []; value = "";
+      } else value += character;
+    }
+    if ((value || row.length) && rows.length < maxRows) {
+      if (row.length < maxColumns) row.push(value.replace(/\r$/, ""));
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function renderTablePreview(text, artifact, previewNode) {
+    var delimiter = artifact.path.toLowerCase().endsWith(".tsv") ? "\t" : ",";
+    var rows = parseDelimitedRows(text, delimiter, 101, 50);
+    if (!rows.length) { previewNode.textContent = "This table is empty."; return; }
+    var wrapper = document.createElement("div");
+    wrapper.className = "artifact-table-wrap";
+    var table = document.createElement("table");
+    table.className = "artifact-table-preview";
+    rows.forEach(function (values, rowIndex) {
+      var tableRow = document.createElement("tr");
+      values.forEach(function (value) {
+        var cell = document.createElement(rowIndex === 0 ? "th" : "td");
+        cell.textContent = value;
+        tableRow.appendChild(cell);
+      });
+      table.appendChild(tableRow);
+    });
+    wrapper.appendChild(table);
+    previewNode.appendChild(wrapper);
+    if (rows.length === 101 || artifact.size > 262144) {
+      var note = document.createElement("p");
+      note.className = "artifact-structure-caption";
+      note.textContent = "Preview limited to 101 rows, 50 columns, and 256 KiB.";
+      previewNode.appendChild(note);
+    }
+  }
+
+  async function previewArtifact(button, artifact, previewNode) {
+    previewNode.replaceChildren();
+    if (!artifact.preview) {
+      previewNode.textContent = "No inline preview is available for this file type.";
+      return;
+    }
+    try {
+      var response = await A.authFetch(artifact.url, { headers: { "Range": "bytes=0-262143" } });
+      if (!response.ok && response.status !== 206) throw new Error("Preview unavailable");
+      if (artifact.preview === "image") {
+        var blob = await response.blob();
+        var image = document.createElement("img");
+        image.className = "artifact-image-preview";
+        image.alt = artifact.path;
+        image.src = URL.createObjectURL(blob);
+        image.addEventListener("load", function () { URL.revokeObjectURL(image.src); }, { once: true });
+        previewNode.appendChild(image);
+      } else {
+        var text = await response.text();
+        if (artifact.preview === "structure") renderStructurePreview(text, artifact, previewNode);
+        else if (artifact.preview === "table") renderTablePreview(text, artifact, previewNode);
+        else {
+          var pre = document.createElement("pre");
+          pre.textContent = text + (artifact.size > 262144 ? "\n\n[Preview truncated at 256 KiB]" : "");
+          previewNode.appendChild(pre);
+        }
+      }
+      button.setAttribute("aria-expanded", "true");
+    } catch (error) {
+      previewNode.textContent = error.message || "Preview unavailable";
+    }
+  }
+
+  async function openResults(md5sum) {
+    var panel = document.querySelector('[data-results-for="' + CSS.escape(md5sum) + '"]');
+    if (!panel) return;
+    if (!panel.hidden) { panel.hidden = true; return; }
+    panel.hidden = false;
+    panel.textContent = "Loading finalized result tree…";
+    try {
+      var response = await A.authFetch("/compute/api/results/" + encodeURIComponent(md5sum));
+      var manifest = await response.json().catch(function () { return {}; });
+      if (!response.ok) throw new Error(manifest.message || "Could not load results");
+      panel.replaceChildren();
+      var summary = document.createElement("p");
+      summary.className = "result-summary";
+      summary.textContent = manifest.artifacts.length + " files · " + formatBytes(manifest.total_size);
+      panel.appendChild(summary);
+      var tree = document.createElement("ul");
+      tree.className = "artifact-tree";
+      manifest.artifacts.forEach(function (artifact) {
+        var row = document.createElement("li");
+        var previewButton = document.createElement("button");
+        previewButton.type = "button";
+        previewButton.className = "artifact-preview-button";
+        previewButton.textContent = artifact.path + " · " + formatBytes(artifact.size);
+        previewButton.disabled = !artifact.preview;
+        previewButton.setAttribute("aria-expanded", "false");
+        var download = document.createElement("a");
+        download.className = "artifact-download";
+        download.href = artifact.url + "?download=1";
+        download.textContent = "Download";
+        var preview = document.createElement("div");
+        preview.className = "artifact-preview";
+        previewButton.addEventListener("click", function () { previewArtifact(previewButton, artifact, preview); });
+        row.append(previewButton, download, preview);
+        tree.appendChild(row);
+      });
+      panel.appendChild(tree);
+    } catch (error) {
+      panel.textContent = error.message || "Could not load results";
     }
   }
 
@@ -511,6 +704,7 @@
       }
       var md5sum = btn.dataset.md5;
       if (action === "download") downloadFile(md5sum);
+      else if (action === "results") openResults(md5sum);
       else if (action === "cancel") cancelFile(md5sum, btn);
       else if (action === "delete") deleteFile(md5sum, btn);
     });

@@ -32,9 +32,10 @@ RUN python3 -m pip install --no-cache-dir \
 
 # esm2 fork with ESMFold extras (openfold, dllogger, biopython, etc.).
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
-ARG ESM_REF=main
-RUN git config --global http.postBuffer 524288000 && (git clone --depth 1 --branch ${ESM_REF} ${ESM_REPO} /opt/esm2 || git clone --depth 1 --branch ${ESM_REF} ${ESM_REPO} /opt/esm2 || git clone --depth 1 --branch ${ESM_REF} ${ESM_REPO} /opt/esm2) && \
-    python3 -m pip install --no-cache-dir -e "/opt/esm2[esmfold]"
+ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
+RUN git init /opt/esm2 && git -C /opt/esm2 remote add origin ${ESM_REPO} && \
+    git -C /opt/esm2 fetch --depth 1 origin ${ESM_REF} && git -C /opt/esm2 checkout --detach FETCH_HEAD && \
+    python3 -m pip install --no-cache-dir -e "/opt/esm2[esmfold]" && rm -rf /opt/esm2/.git
 
 # Re-create the non-root user (UID/GID from host may differ from the base image's).
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \

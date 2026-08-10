@@ -41,7 +41,6 @@ class DockerJob(Job):
         self._docker_client_arg = docker_client  # lazy — connect in submit()
         self._client: Any = None
         self._container: Any = None
-        self._link_paths: list[str] = []
 
     # -- Job ABC -------------------------------------------------------------
 
@@ -57,8 +56,8 @@ class DockerJob(Job):
         command_args = self._build_command_args()
 
         self._container = self._client.containers.run(
-            image=self.tt.docker_image,
-            entrypoint=self.tt.command,
+            image=self.tt.runtime.docker_image,
+            entrypoint=list(self.tt.runtime.entrypoint),
             command=command_args,
             remove=False,
             detach=True,
@@ -101,8 +100,8 @@ class DockerJob(Job):
                 raise docker.errors.ContainerError(
                     container=self._container,
                     exit_status=status_code,
-                    command=self.tt.command,
-                    image=self.tt.docker_image,
+                    command=list(self.tt.runtime.entrypoint),
+                    image=self.tt.runtime.docker_image,
                     stderr="\n".join(stderr_lines[-200:]),
                 )
             return JobState.COMPLETED
@@ -129,41 +128,42 @@ class DockerJob(Job):
 
         os.makedirs(self.output_dir, exist_ok=True)
         if self.file_entities:
-            fe = self.file_entities[0]
-            upload_dir = CONFIG.upload_folder
-            # ponytail: unique-per-job hardlink <md5>_<task>_<original>.fasta
-            # -> <md5>.upload so run.sh sees the original filename without
-            # racing other jobs on the same name.
-            hash_name = f"{fe['hash']}.upload"
-            link_path = os.path.join(upload_dir, self._input_link_name())
-            try:
-                os.link(os.path.join(upload_dir, hash_name), link_path)
-            except FileExistsError:
-                pass
-            self._link_paths.append(link_path)
-            volumes[os.path.abspath(upload_dir)] = {"bind": "/workspace/inputs", "mode": "ro"}
-        volumes[os.path.abspath(self.output_dir)] = {"bind": "/workspace/outputs", "mode": "rw"}
+            volumes[os.path.abspath(self.input_snapshot_root)] = {
+                "bind": f"{self.virtual_workspace_root}/inputs",
+                "mode": "ro",
+            }
+        volumes[os.path.abspath(self.output_dir)] = {
+            "bind": f"{self.virtual_workspace_root}/outputs",
+            "mode": "rw",
+        }
         return volumes
-
-    def _input_link_name(self) -> str:
-        fe = self.file_entities[0]
-        return f"{fe['hash']}_{self.task_id[:8]}_{fe['verified_value']}"
 
     def _build_env(self) -> dict[str, str]:
         params = {e["name"]: e["verified_value"] for e in self.param_entities}
         container_env: dict[str, str] = dict(self.runner.env)
         container_env["TASK_ID"] = self.task_id
         container_env["TASK_TYPE"] = self.tt.name
-        if params:
-            container_env["TASK_PARAMS"] = json.dumps(params)
+        container_env["TASK_PARAMS"] = json.dumps(params, separators=(",", ":"), sort_keys=True)
+        container_env["TASK_INPUTS"] = json.dumps(
+            [
+                {
+                    "name": entity["name"],
+                    "path": entity["mounted"],
+                    "relative_path": entity["relative_path"],
+                }
+                for entity in self.file_entities
+            ],
+            separators=(",", ":"),
+            sort_keys=True,
+        )
         return container_env
 
     def _build_command_args(self) -> list[str]:
         params = {e["name"]: e["verified_value"] for e in self.param_entities}
-        command_args: list[str] = []
+        command_args: list[str] = list(self.tt.runner_args)
         if self.file_entities:
-            command_args.extend(["-i", f"/workspace/inputs/{self._input_link_name()}"])
-        command_args.extend(["-o", "/workspace/outputs"])
+            command_args.extend(["-i", self.file_entities[0]["mounted"]])
+        command_args.extend(["-o", f"{self.virtual_workspace_root}/outputs"])
         for key, flag in (("iter", "-r"),):
             if key in params:
                 command_args.extend([flag, str(params[key])])
@@ -176,9 +176,3 @@ class DockerJob(Job):
             except docker.errors.DockerException:
                 pass
             self._container = None
-        for link_path in self._link_paths:
-            if os.path.lexists(link_path):
-                try:
-                    os.unlink(link_path)
-                except OSError:
-                    pass

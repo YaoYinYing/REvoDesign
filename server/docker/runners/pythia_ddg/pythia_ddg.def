@@ -1,5 +1,5 @@
 Bootstrap: docker-daemon
-From: revodesign-revocompute-runner-pythia:latest
+From: revodesign-revocompute-runner-pythia_ddg:latest
 
 %post
     echo "Pythia-ddG runner containerised"

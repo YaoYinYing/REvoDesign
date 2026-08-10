@@ -1,7 +1,0 @@
-mounts: []
-env: {}
-gpus: true
-nproc: 1
-max_runtime_seconds: 7200
-defaults: {}
-# slurm_image: /mnt/data/srv/revodesign/server-slurm/images/placer-rfdiffusion_v1.sif

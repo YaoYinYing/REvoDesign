@@ -5,11 +5,13 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+import yaml
 from conftest import REPO_DIR
 
 
@@ -21,6 +23,7 @@ def _run_restart_script(
     admins="admin",
     omit_settings=(),
     fail_chmod=False,
+    config_dir=None,
 ):
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir(parents=True)
@@ -56,6 +59,8 @@ def _run_restart_script(
         "RUNNER_GROUP": "revodesign",
         "SERVER_IMAGE": "example/revodesign-server:latest",
     }
+    if config_dir is not None:
+        settings["CONFIG_DIR"] = str(config_dir)
     env_file.write_text(
         "\n".join(f"{name}={value}" for name, value in settings.items() if name not in omit_settings),
         encoding="utf-8",
@@ -83,11 +88,29 @@ def _run_restart_script(
     return result, commands
 
 
+def _make_deployed_config(tmp_path, executor="docker", missing_sif=None):
+    source_root = Path(REPO_DIR) / "server" / "config"
+    config_dir = tmp_path / "deployed-config"
+    shutil.copytree(source_root / "runners", config_dir / "runners")
+    registry = yaml.safe_load((source_root / "task_types.yaml").read_text(encoding="utf-8"))
+    registry["job_executor"] = executor
+    registry["container_runtime"] = "apptainer" if executor == "slurm" else "docker"
+    sif_dir = tmp_path / "sifs"
+    sif_dir.mkdir()
+    for name, runtime in registry["runtime_families"].items():
+        sif_path = sif_dir / f"{name}.sif"
+        runtime["slurm_image"] = str(sif_path)
+        if executor == "slurm" and name != missing_sif:
+            sif_path.touch()
+    (config_dir / "task_types.yaml").write_text(yaml.safe_dump(registry, sort_keys=False), encoding="utf-8")
+    return config_dir
+
+
 def test_restart_modes_choose_build_or_pull(tmp_path):
     dev_result, dev_commands = _run_restart_script(tmp_path / "dev", "restart")
     assert dev_result.returncode == 0, dev_result.stderr
     assert "Admin login — username: admin  password:" in dev_result.stdout
-    assert any("--profile runner build runner" in command for command in dev_commands)
+    assert any("build --build-arg" in command and "revodesign-revocompute-runner" in command for command in dev_commands)
     assert any("build web worker" in command for command in dev_commands)
     assert not any(" pull " in command for command in dev_commands)
     assert any("up --no-build -d redis web gateway maintenance worker" in command for command in dev_commands)
@@ -95,9 +118,10 @@ def test_restart_modes_choose_build_or_pull(tmp_path):
     prod_result, prod_commands = _run_restart_script(tmp_path / "prod", "restart", "--mode=prod")
     assert prod_result.returncode == 0, prod_result.stderr
     assert not any(" build " in command for command in prod_commands)
-    pull_index = next(i for i, command in enumerate(prod_commands) if " pull web gateway runner" in command)
+    pull_index = next(i for i, command in enumerate(prod_commands) if " pull web gateway" in command)
     up_index = next(i for i, command in enumerate(prod_commands) if "up --no-build" in command)
     assert pull_index < up_index
+    assert any(command == "pull revodesign-revocompute-runner" for command in prod_commands)
 
 
 def test_reload_sends_hup_through_compose(tmp_path):
@@ -193,6 +217,47 @@ def test_restart_rejects_missing_required_settings_before_shutdown(tmp_path, nam
     assert not any(
         " down" in command or " build " in command or " pull " in command or " up " in command for command in commands
     )
+
+
+def test_restart_rejects_incomplete_external_runtime_config_before_shutdown(tmp_path):
+    config_dir = tmp_path / "deployed-config"
+    config_dir.mkdir()
+    source = Path(REPO_DIR) / "server" / "config" / "task_types.yaml"
+    (config_dir / "task_types.yaml").write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+
+    result, commands = _run_restart_script(
+        tmp_path / "deployment",
+        "restart",
+        config_dir=config_dir,
+    )
+
+    assert result.returncode != 0
+    assert "Runtime runner directory is missing" in result.stderr
+    assert not any(" down" in command or " pull " in command or " up " in command for command in commands)
+
+
+def test_global_slurm_executor_selects_override_without_cli_backend_flag(tmp_path):
+    config_dir = _make_deployed_config(tmp_path, executor="slurm")
+    result, commands = _run_restart_script(tmp_path / "deployment", "up", config_dir=config_dir)
+
+    assert result.returncode == 0, result.stderr
+    slurm_override = str(Path(REPO_DIR) / "server" / "docker-compose.slurm.yml")
+    assert any(slurm_override in command and "up -d redis web gateway maintenance worker" in command for command in commands)
+
+
+def test_missing_global_slurm_family_image_is_rejected_before_shutdown(tmp_path):
+    config_dir = _make_deployed_config(tmp_path, executor="slurm", missing_sif="esm")
+    result, commands = _run_restart_script(
+        tmp_path / "deployment",
+        "restart",
+        "--mode=prod",
+        config_dir=config_dir,
+    )
+
+    assert result.returncode != 0
+    assert "Missing SIF image" in result.stderr
+    assert "esm.sif" in result.stderr
+    assert not any(" down" in command or " pull " in command or " up " in command for command in commands)
 
 
 def test_worker_runtime_import_has_no_auth_or_flask_side_effects(tmp_path):

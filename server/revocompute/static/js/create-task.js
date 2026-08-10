@@ -69,11 +69,13 @@
     return cleaned || "sequence";
   }
 
-  function setSelectedFile(file) {
+  function setSelectedFiles(files) {
     var dt = new DataTransfer();
-    dt.items.add(file);
+    Array.from(files).forEach(function (file) { dt.items.add(file); });
     fileInput.files = dt.files;
-    fileNameDisplay.textContent = file.name;
+    fileNameDisplay.textContent = Array.from(files).map(function (file) {
+      return file.webkitRelativePath || file.name;
+    }).join(", ");
   }
 
   // -- form building from server schema ---------------------------------------
@@ -83,9 +85,11 @@
     var fi = formDef.file_input;
 
     fileInput.accept = fi.accept;
+    fileInput.multiple = Boolean(fi.multiple);
     fileButton.textContent = "Choose " + fi.label;
     fileUploadLabel.textContent = fi.label;
-    fileHint.innerHTML = 'Upload a <code>' + fi.accept + '</code> file, or drag &amp; drop one anywhere on this card. Use the optional editor below to paste a sequence instead.';
+    fileHint.innerHTML = 'Upload ' + (fi.multiple ? "up to " + fi.max_files + " files; the first selected file is primary" : "one file") +
+      ' matching <code>' + fi.accept + '</code>. Selected paths are copied into an immutable task snapshot.';
 
     editorZone.style.display = formDef.show_sequence_editor ? "" : "none";
 
@@ -102,22 +106,35 @@
     paramsZone.style.display = "";
     var html = '<p class="field-label">Parameters</p>';
     params.forEach(function (p) {
-      var inputType = "text";
-      if (p.type === "int" || p.type === "float") inputType = "number";
-      html += '<div style="margin-bottom:0.5rem;">' +
-        '<label style="display:block;font-size:0.85rem;color:var(--muted);">' + p.name + '</label>' +
-        '<input class="text-input" type="' + inputType + '"' +
-        ' id="param_' + p.name + '" value="' + (p.default != null ? p.default : "") + '"' +
-        ' placeholder="' + (p.description || "") + '" style="width:100%;">' +
-        '</div>';
+      var label = p.label || p.name;
+      html += '<div class="param-field">' +
+        '<label class="param-label" for="param_' + p.name + '">' + label + (p.unit ? " (" + p.unit + ")" : "") + '</label>';
+      if (p.choices && p.choices.length) {
+        html += '<select class="text-input" id="param_' + p.name + '">' + p.choices.map(function (choice) {
+          return '<option value="' + choice + '"' + (choice === p.default ? ' selected' : '') + '>' + choice + '</option>';
+        }).join("") + '</select>';
+      } else if (p.type === "bool") {
+        html += '<select class="text-input" id="param_' + p.name + '">' +
+          '<option value="true"' + (p.default === true ? ' selected' : '') + '>Yes</option>' +
+          '<option value="false"' + (p.default === false ? ' selected' : '') + '>No</option></select>';
+      } else {
+        var inputType = (p.type === "int" || p.type === "float") ? "number" : "text";
+        html += '<input class="text-input" type="' + inputType + '" id="param_' + p.name + '"' +
+          ' value="' + (p.default != null ? p.default : "") + '"' +
+          (p.minimum != null ? ' min="' + p.minimum + '"' : '') +
+          (p.maximum != null ? ' max="' + p.maximum + '"' : '') +
+          (p.step != null ? ' step="' + p.step + '"' : '') +
+          (p.required ? ' required' : '') + '>';
+      }
+      html += '<p class="param-help">' + (p.description || "") + '</p></div>';
     });
     paramsZone.innerHTML = html;
   }
 
   function isValidInputFile(file) {
     if (!currentFormDef) return true;
-    var ext = currentFormDef.file_input.accept;
-    return file.name.toLowerCase().endsWith(ext.toLowerCase());
+    var extensions = currentFormDef.file_input.extensions || currentFormDef.file_input.accept.split(",");
+    return extensions.some(function (ext) { return file.name.toLowerCase().endsWith(ext.toLowerCase()); });
   }
 
   // -- task type selection ---------------------------------------------------
@@ -172,7 +189,9 @@
 
   fileInput.addEventListener("change", function () {
     if (fileInput.files && fileInput.files.length > 0) {
-      fileNameDisplay.textContent = fileInput.files[0].name;
+      fileNameDisplay.textContent = Array.from(fileInput.files).map(function (file) {
+        return file.webkitRelativePath || file.name;
+      }).join(", ");
     } else {
       fileNameDisplay.textContent = "No file selected";
     }
@@ -204,15 +223,18 @@
     e.preventDefault();
     e.stopPropagation();
     dropZone.classList.remove("drop-highlight");
-    var file = e.dataTransfer.files[0];
-    if (!file) return;
-    if (!isValidInputFile(file)) {
-      var ext = currentFormDef ? currentFormDef.file_input.accept : "";
-      setStatus("Only " + ext + " files are accepted.", "error");
+    var files = Array.from(e.dataTransfer.files || []);
+    if (!files.length) return;
+    if (!currentFormDef.file_input.multiple && files.length > 1) {
+      setStatus("This task type accepts exactly one input file.", "error");
       return;
     }
-    setSelectedFile(file);
-    setStatus("File ready: " + file.name + " (" + file.size + " bytes)", "ok");
+    if (files.length > currentFormDef.file_input.max_files || files.some(function (file) { return !isValidInputFile(file); })) {
+      setStatus("Check the accepted extensions and maximum input count.", "error");
+      return;
+    }
+    setSelectedFiles(files);
+    setStatus(files.length + " input file(s) ready for snapshot.", "ok");
   });
 
   document.addEventListener("dragover", function (e) { e.preventDefault(); });
@@ -250,24 +272,31 @@
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
     var tt = currentFormDef || { name: "gremlin", file_input: { accept: ".fasta" } };
-    var ext = tt.file_input.accept;
-    var selectedFile = (fileInput.files && fileInput.files.length > 0) ? fileInput.files[0] : null;
+    var ext = (tt.file_input.extensions || [tt.file_input.accept])[0];
+    var selectedFiles = (fileInput.files && fileInput.files.length > 0) ? Array.from(fileInput.files) : [];
     var normalizedSequence = normalizeSequence(sequenceInput.value);
-    var fileToUpload = selectedFile;
-
-    if (selectedFile && !selectedFile.name.toLowerCase().endsWith(ext.toLowerCase())) {
-      setStatus("Only " + ext + " files are accepted.", "error"); return;
+    if (selectedFiles.some(function (file) { return !isValidInputFile(file); })) {
+      setStatus("One or more selected files has an unsupported extension.", "error"); return;
     }
-    if (!fileToUpload && !normalizedSequence.length) {
+    var primaryExtensions = tt.file_input.primary_extensions || [ext];
+    if (selectedFiles.length && !primaryExtensions.some(function (candidate) {
+      return selectedFiles[0].name.toLowerCase().endsWith(candidate.toLowerCase());
+    })) {
+      setStatus("The first selected file must be a primary input: " + primaryExtensions.join(", "), "error"); return;
+    }
+    if (!selectedFiles.length && !normalizedSequence.length) {
       setStatus("Please upload a " + ext + " file or provide a sequence in the editor.", "error"); return;
     }
-    if (!fileToUpload) {
+    if (!selectedFiles.length) {
       var header = sanitizeHeader(taskNameInput.value);
-      fileToUpload = new File([">" + header + "\n" + wrapSequence(normalizedSequence, 80) + "\n"], header + ext, { type: "text/plain" });
+      selectedFiles = [new File([">" + header + "\n" + wrapSequence(normalizedSequence, 80) + "\n"], header + ext, { type: "text/plain" })];
     }
 
     var formData = new FormData();
-    formData.append("file", fileToUpload);
+    selectedFiles.forEach(function (file) {
+      formData.append("files", file);
+      formData.append("input_paths", file.webkitRelativePath || file.name);
+    });
     formData.append("task_type", tt.name);
 
     // Collect params from dynamically-built form
@@ -309,18 +338,7 @@
     }
   });
 
-  // -- structure snapshot (Molstar 3D viewer for PDB inputs) -----------------
-
-  var molstarLoaded = false;
-  var molstarViewer = null;
-
-  function loadMolstar(callback) {
-    if (molstarLoaded) { callback(); return; }
-    var script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/molstar@4.12.0/build/viewer/molstar.js";
-    script.onload = function () { molstarLoaded = true; callback(); };
-    document.head.appendChild(script);
-  }
+  // -- local structure summary (no third-party scripts or upload) ------------
 
   function showStructureSnapshot(file) {
     var snap = document.getElementById("structureSnapshot");
@@ -330,22 +348,33 @@
     snap.style.display = "";
     if (checklist) checklist.style.display = "none";
 
-    loadMolstar(function () {
-      var url = URL.createObjectURL(file);
-      if (molstarViewer) {
-        molstarViewer.loadStructureFromData(url, "pdb");
-        return;
-      }
-      molstarViewer = new PDBeMolstar.Molstar({
-        target: viewport,
-        bgColor: { r: 246, g: 251, b: 255 },
-        sequencePanel: false,
-        ligandView: true,
-        hideCanvasControls: ["selection", "controlInfo", "expand", "selectionMode"],
-        allowFocus: false,
+    viewport.textContent = "Reading structure…";
+    file.text().then(function (text) {
+      var lines = text.split(/\r?\n/);
+      var atoms = 0;
+      var heteroAtoms = 0;
+      var chains = new Set();
+      var residues = new Set();
+      lines.forEach(function (line) {
+        if (line.startsWith("ATOM  ") || line.startsWith("HETATM")) {
+          if (line.startsWith("ATOM  ")) atoms += 1;
+          else heteroAtoms += 1;
+          var chain = line.slice(21, 22).trim() || "(blank)";
+          chains.add(chain);
+          residues.add(chain + ":" + line.slice(22, 27).trim());
+        }
       });
-      molstarViewer.loadStructureFromData(url, "pdb");
-    });
+      var summary = [
+        file.name,
+        "Size: " + file.size + " bytes",
+        "ATOM records: " + atoms,
+        "HETATM records: " + heteroAtoms,
+        "Residues: " + residues.size,
+        "Chains: " + (chains.size ? Array.from(chains).join(", ") : "not detected"),
+      ];
+      if (!atoms && !heteroAtoms) summary.push("No PDB coordinate records detected; the runner will validate this file.");
+      viewport.textContent = summary.join("\n");
+    }).catch(function () { viewport.textContent = "Could not read this structure locally."; });
   }
 
   function hideStructureSnapshot() {
@@ -379,10 +408,10 @@
 
   // Wire into task type switch
   taskTypeSelect.addEventListener("change", function () {
-    var ext = currentFormDef ? currentFormDef.file_input.accept : "";
-    if (ext === ".pdb" && fileInput.files && fileInput.files.length > 0) {
+    var extensions = currentFormDef ? currentFormDef.file_input.extensions || [] : [];
+    if (extensions.includes(".pdb") && fileInput.files && fileInput.files.length > 0) {
       showStructureSnapshot(fileInput.files[0]);
-    } else if (ext !== ".pdb") {
+    } else if (!extensions.includes(".pdb")) {
       hideStructureSnapshot();
     }
   });

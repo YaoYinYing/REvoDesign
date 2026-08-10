@@ -11,12 +11,14 @@ opens the user database.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
+import mimetypes
 import os
 import re
-import shutil
 import time
+import zipfile
 from datetime import datetime
 from typing import Any
 
@@ -27,7 +29,7 @@ from revocompute.job import Job, JobState
 from revocompute.job.runners.docker_runner import DockerJob
 from revocompute.job.runners.slurm_runner import SlurmJob
 from revocompute.manage_db import ManageDatabase  # noqa: E402
-from revocompute.task_types import RunnerConfig, RunnerMount, TaskParam, TaskType
+from revocompute.task_types import RuntimeFamily, RunnerConfig, RunnerMount, TaskParam, TaskType
 from revocompute.task_types import get as _get_task_type
 from revocompute.task_types import load_registry as _load_task_registry
 from revocompute.task_types import register as _register_tt
@@ -48,7 +50,7 @@ celery = Celery(
 celery.conf.broker_connection_retry_on_startup = True
 
 task_store = TaskDatabase(CONFIG.db_path)
-ensure_directories(CONFIG.upload_folder, CONFIG.results_folder)
+ensure_directories(CONFIG.upload_folder, CONFIG.workspace_folder, CONFIG.results_folder)
 
 # Load the task type registry — shared by web and worker processes.
 # gremlin is always enabled; additional runners are gated by ENABLED_TASKRUNNERS.
@@ -64,8 +66,13 @@ except FileNotFoundError:
         TaskType(
             name="gremlin",
             display_name="PSSM-GREMLIN",
-            docker_image="revodesign-revocompute-runner",
-            command=["bash", "/app/revocompute/run.sh"],
+            runtime=RuntimeFamily(
+                name="gremlin",
+                docker_image="revodesign-revocompute-runner",
+                entrypoint=("bash", "/app/revocompute/run.sh"),
+                dockerfile="docker/runners/pssm_gremlin/Dockerfile",
+                definition="docker/runners/pssm_gremlin/gremlin.def",
+            ),
             input_extension=".fasta",
             input_label="FASTA file",
             stage_markers={
@@ -229,7 +236,7 @@ def _create_job(
     username: str = "",
 ) -> Job:
     """Factory: return the correct Job subclass for the runner config."""
-    if getattr(runner, "runner", "docker") == "slurm":
+    if tt.runtime.job_executor == "slurm":
         return SlurmJob(
             task_id,
             tt,
@@ -269,21 +276,121 @@ def _run_compute_job(
 
 
 # ---------------------------------------------------------------------------
-# Result packing
+# Result finalization and optional archive cache
 # ---------------------------------------------------------------------------
 
 
-def _pack_results_archive(task: dict) -> None:
+_TEXT_PREVIEW_EXTENSIONS = {
+    ".csv",
+    ".fasta",
+    ".fa",
+    ".json",
+    ".log",
+    ".md",
+    ".mrf",
+    ".pdb",
+    ".tsv",
+    ".txt",
+    ".yaml",
+    ".yml",
+}
+_STRUCTURE_PREVIEW_EXTENSIONS = {".cif", ".mmcif", ".pdb"}
+_IMAGE_PREVIEW_EXTENSIONS = {".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"}
+
+
+def _sha256_file(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _preview_kind(relative_path: str) -> str | None:
+    extension = os.path.splitext(relative_path)[1].lower()
+    if extension in _STRUCTURE_PREVIEW_EXTENSIONS:
+        return "structure"
+    if extension in _IMAGE_PREVIEW_EXTENSIONS:
+        return "image"
+    if extension in {".csv", ".tsv"}:
+        return "table"
+    if extension in _TEXT_PREVIEW_EXTENSIONS:
+        return "text"
+    return None
+
+
+def _finalize_results_manifest(task: dict) -> dict[str, Any]:
+    """Atomically publish the immutable result-tree inventory for a task."""
+    result_dir = os.path.abspath(task["result_dir"])
+    os.makedirs(result_dir, exist_ok=True)
+    artifacts: list[dict[str, Any]] = []
+    for root, dirs, files in os.walk(result_dir, followlinks=False):
+        dirs[:] = sorted(d for d in dirs if not os.path.islink(os.path.join(root, d)))
+        for filename in sorted(files):
+            path = os.path.join(root, filename)
+            relative_path = os.path.relpath(path, result_dir).replace(os.sep, "/")
+            if relative_path in {"manifest.json", ".manifest.json.tmp"} or os.path.islink(path):
+                continue
+            stat = os.stat(path, follow_symlinks=False)
+            artifacts.append(
+                {
+                    "path": relative_path,
+                    "size": stat.st_size,
+                    "sha256": _sha256_file(path),
+                    "media_type": mimetypes.guess_type(relative_path)[0] or "application/octet-stream",
+                    "preview": _preview_kind(relative_path),
+                }
+            )
+    manifest = {
+        "schema_version": 1,
+        "task_id": task["md5sum"],
+        "task_type": task.get("task_type", "gremlin"),
+        "created_at": datetime.now().astimezone().isoformat(),
+        "artifacts": artifacts,
+        "total_size": sum(item["size"] for item in artifacts),
+    }
+    temporary = _safe_join(result_dir, ".manifest.json.tmp")
+    destination = _safe_join(result_dir, "manifest.json")
+    with open(temporary, "w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, ensure_ascii=True, indent=2, sort_keys=True)
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, destination)
+    return manifest
+
+
+def _build_results_archive(task: dict) -> str:
+    """Build an optional ZIP from the artifacts published in the manifest."""
     zip_filename = _task_zip_path(task)
-    zip_base = os.path.splitext(zip_filename)[0]
-    if os.path.exists(zip_filename):
-        os.remove(zip_filename)
-    shutil.make_archive(zip_base, "zip", task["result_dir"])
-    if os.path.isdir(task["result_dir"]):
-        shutil.rmtree(task["result_dir"])
+    result_dir = os.path.abspath(task["result_dir"])
+    manifest_path = _safe_join(result_dir, "manifest.json")
+    try:
+        with open(manifest_path, encoding="utf-8") as handle:
+            manifest = json.load(handle)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise FileNotFoundError("Result manifest is not finalized") from exc
+    temporary_zip = f"{os.path.splitext(zip_filename)[0]}.tmp-{os.getpid()}-{time.time_ns()}.zip"
+    try:
+        with zipfile.ZipFile(temporary_zip, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.write(manifest_path, "manifest.json")
+            for artifact in manifest.get("artifacts", []):
+                relative_path = artifact.get("path", "")
+                parts = relative_path.split("/")
+                if not relative_path or any(part in {"", ".", ".."} for part in parts):
+                    raise ValueError("Result manifest contains an invalid artifact path")
+                path = _safe_join(result_dir, *parts)
+                if os.path.islink(path) or not os.path.isfile(path):
+                    raise FileNotFoundError(f"Published result artifact is unavailable: {relative_path}")
+                archive.write(path, relative_path)
+        os.replace(temporary_zip, zip_filename)
+    finally:
+        if os.path.exists(temporary_zip):
+            os.unlink(temporary_zip)
+    return zip_filename
 
 
-def _pack_failed_results_archive(task: dict, error: Any) -> None:
+def _finalize_failed_results(task: dict, error: Any) -> None:
     result_dir = task.get("result_dir")
     if not result_dir:
         return
@@ -298,9 +405,9 @@ def _pack_failed_results_archive(task: dict, error: Any) -> None:
             handle.write(f"Input: {task.get('filename', 'unknown')}\n\n")
             handle.write(message)
             handle.write("\n")
-        _pack_results_archive(task)
+        _finalize_results_manifest(task)
     except Exception as exc:  # pylint: disable=broad-except
-        logging.warning("Failed to archive failed task %s: %s", task.get("md5sum"), exc)
+        logging.warning("Failed to finalize failed task %s: %s", task.get("md5sum"), exc)
 
 
 # ---------------------------------------------------------------------------
@@ -352,7 +459,7 @@ def _record_failure(md5sum: str, task: dict, start_time: float, run_stage: str, 
     finish_time = time.time()
     if _task_is_terminal(md5sum):
         return
-    _pack_failed_results_archive(task, error_message)
+    _finalize_failed_results(task, error_message)
     task_store.update_task(
         md5sum,
         status="failed",
@@ -379,7 +486,7 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
     if not task:
         logging.error("Task %s missing from database", md5sum)
         return
-    if task["status"] not in {"pending", "queued", "running", "packing results"}:
+    if task["status"] not in {"pending", "queued", "running"}:
         return
 
     try:
@@ -405,16 +512,29 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         upload_file = os.path.join(CONFIG.upload_folder, f"{fe['hash']}.upload")
         if not os.path.lexists(upload_file):
             error_message = f"Uploaded input file not found: {upload_file}"
-            _pack_failed_results_archive(task, error_message)
+            _finalize_failed_results(task, error_message)
             task_store.update_task(md5sum, status="failed", error=error_message, finished_at=time.time())
             logging.error("Uploaded file missing for task %s: %s", md5sum, upload_file)
+            return
+        snapshot_path = str(fe.get("snapshot_path") or "")
+        if (
+            not snapshot_path
+            or not _path_is_within(CONFIG.workspace_folder, snapshot_path)
+            or os.path.islink(snapshot_path)
+            or not os.path.isfile(snapshot_path)
+            or _sha256_file(snapshot_path) != fe["hash"]
+        ):
+            error_message = f"Immutable input snapshot is missing or changed: {fe.get('relative_path', 'unknown')}"
+            _finalize_failed_results(task, error_message)
+            task_store.update_task(md5sum, status="failed", error=error_message, finished_at=time.time())
+            logging.error("Input snapshot verification failed for task %s", md5sum)
             return
 
     stages = list(tt.stage_markers.items())
     start_time = task.get("started_at") or time.time()
     current_stage = str(task.get("run_stage") or (stages[0][0] if stages else "")).strip().lower()
 
-    is_slurm = getattr(runner, "runner", "docker") == "slurm"
+    is_slurm = tt.runtime.job_executor == "slurm"
     initial_status = "queued" if is_slurm else "running"
     update_fields: dict[str, Any] = {
         "status": initial_status,
@@ -468,11 +588,10 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
             return
 
         final_stage = stage_state["current"] or (stages[-1][0] if stages else "")
-        task_store.update_task(md5sum, status="packing results", run_stage=final_stage)
         refreshed_task = task_store.get_task(md5sum) or task
         if _is_terminal_status(refreshed_task.get("status")):
             return
-        _pack_results_archive(refreshed_task)
+        _finalize_results_manifest(refreshed_task)
         refreshed_task = task_store.get_task(md5sum) or refreshed_task
         if _is_terminal_status(refreshed_task.get("status")):
             return
@@ -504,3 +623,13 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
 def run_compute_task(self, md5sum: str, task_type: str = "gremlin", params: dict | None = None):
     """Compute task — dispatched by task_type."""
     return _execute_compute_task(md5sum, task_type, params)
+
+
+@celery.task(name="build_results_archive", bind=True, max_retries=0)
+def build_results_archive(self, md5sum: str):
+    """Create the full-task ZIP only after a user explicitly requests it."""
+    task_id = _normalize_task_id(md5sum)
+    task = task_store.get_task(task_id) if task_id else None
+    if task is None or task.get("status") not in {"finished", "failed"}:
+        raise ValueError("Task results are not ready")
+    return _build_results_archive(task)

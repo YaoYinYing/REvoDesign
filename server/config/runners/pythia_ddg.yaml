@@ -12,8 +12,3 @@ nproc: 4
 max_runtime_seconds: 3600
 
 defaults: {}
-
-# -- SLURM + Apptainer (set in deployed config, not here) --
-# runner: slurm
-# container_runtime: apptainer
-# slurm_image: /mnt/data/srv/revodesign/server-slurm/images/pythia_ddg_v1.sif

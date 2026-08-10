@@ -13,13 +13,18 @@ from revocompute.job.runners.slurm_runner import SlurmJob
 
 
 def _make_task_type():
-    from revocompute.task_types import TaskType
+    from revocompute.task_types import RuntimeFamily, TaskType
 
     return TaskType(
         name="test",
         display_name="Test Task",
-        docker_image="test:latest",
-        command=["bash", "run.sh"],
+        runtime=RuntimeFamily(
+            name="test",
+            docker_image="test:latest",
+            entrypoint=("bash", "run.sh"),
+            dockerfile="docker/test/Dockerfile",
+            definition="docker/test/test.def",
+        ),
         input_extension=".fasta",
         input_label="FASTA file",
         stage_markers={
@@ -42,8 +47,12 @@ def _make_entities():
             "type": "file",
             "value": "input.fasta",
             "verified_value": "input.fasta",
+            "relative_path": "input.fasta",
             "hash": "abc123",
-            "mounted": "/workspace/inputs/input.fasta",
+            "mounted": "/mnt/revocompute/tester/inputs/input.fasta",
+            "snapshot_path": "/tmp/snapshot/input.fasta",
+            "snapshot_root": "/tmp/snapshot",
+            "workspace_key": "tester",
         },
         {"name": "iter", "type": "param", "name": "iter", "value": "100", "verified_value": "100"},
     ]

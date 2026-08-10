@@ -11,6 +11,7 @@ boundary.  Response models ensure sensitive fields (``password_hash``,
 
 from __future__ import annotations
 
+import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -28,6 +29,7 @@ AcademicPosition = Literal[
     "industry_researcher",
     "other",
 ]
+_USERNAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{2,63}$")
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -85,8 +87,8 @@ class RegisterRequest(BaseModel):
     @classmethod
     def _sanitize_username(cls, v: str) -> str:
         v = v.strip()
-        if not v or any(ord(c) < 32 for c in v):
-            raise ValueError("username contains invalid characters")
+        if not _USERNAME_PATTERN.fullmatch(v):
+            raise ValueError("username must use 3-64 letters, digits, dots, underscores, or hyphens")
         return v
 
     @field_validator("full_name", "affiliation", "pi_name", mode="before")
@@ -120,6 +122,14 @@ class AdminCreateUserRequest(BaseModel):
     position: AcademicPosition | None = None
     pi_name: str | None = Field(default=None, max_length=128)
     role: str = "user"
+
+    @field_validator("username")
+    @classmethod
+    def _sanitize_username(cls, v: str) -> str:
+        v = v.strip()
+        if not _USERNAME_PATTERN.fullmatch(v):
+            raise ValueError("username must use 3-64 letters, digits, dots, underscores, or hyphens")
+        return v
 
     @field_validator("email", mode="before")
     @classmethod
@@ -209,7 +219,7 @@ class TaskSubmissionRequest(BaseModel):
         from revocompute.task_types import get as _get_type
 
         try:
-            tt, _ = _get_type(self.task_type)
+            tt, runner = _get_type(self.task_type)
         except KeyError:
             raise ValueError(f"Unknown task type: {self.task_type!r}") from None
 
@@ -219,27 +229,65 @@ class TaskSubmissionRequest(BaseModel):
             if key not in known_params:
                 raise ValueError(f"Unknown parameter {key!r} for task type {self.task_type!r}")
 
+        for name, param in known_params.items():
+            if name in self.params:
+                raw = self.params[name]
+            elif name in runner.defaults:
+                raw = runner.defaults[name]
+            elif param.default is not None:
+                raw = param.default
+            elif param.required:
+                raise ValueError(f"Parameter {name!r} is required for task type {self.task_type!r}")
+            else:
+                continue
+            _coerce_param_value(param, raw)
+
         return self
 
     def coerce_params(self) -> dict[str, Any]:
         """Return params with values coerced to their declared types."""
         from revocompute.task_types import get as _get_type
 
-        tt, _ = _get_type(self.task_type)
+        tt, runner = _get_type(self.task_type)
         known_params = {p.name: p for p in tt.params}
         coerced: dict[str, Any] = {}
-        for key, raw in self.params.items():
-            param = known_params[key]
-            if param.type in ("int", "float"):
-                try:
-                    coerced[key] = int(raw) if param.type == "int" else float(raw)
-                except (TypeError, ValueError):
-                    raise ValueError(f"Parameter {key!r} must be a valid {param.type}") from None
-            elif param.type == "bool":
-                coerced[key] = str(raw).lower() in ("true", "1", "yes")
+        for key, param in known_params.items():
+            if key in self.params:
+                raw = self.params[key]
+            elif key in runner.defaults:
+                raw = runner.defaults[key]
+            elif param.default is not None:
+                raw = param.default
             else:
-                coerced[key] = str(raw)
+                continue
+            coerced[key] = _coerce_param_value(param, raw)
         return coerced
+
+
+def _coerce_param_value(param: Any, raw: Any) -> Any:
+    """Coerce and constrain one task parameter from any submission source."""
+    if param.type in ("int", "float"):
+        try:
+            value = int(raw) if param.type == "int" else float(raw)
+        except (TypeError, ValueError):
+            raise ValueError(f"Parameter {param.name!r} must be a valid {param.type}") from None
+        if param.minimum is not None and value < param.minimum:
+            raise ValueError(f"Parameter {param.name!r} must be at least {param.minimum}")
+        if param.maximum is not None and value > param.maximum:
+            raise ValueError(f"Parameter {param.name!r} must be at most {param.maximum}")
+    elif param.type == "bool":
+        if isinstance(raw, bool):
+            value = raw
+        else:
+            normalized = str(raw).strip().lower()
+            if normalized not in {"true", "1", "yes", "false", "0", "no"}:
+                raise ValueError(f"Parameter {param.name!r} must be a valid bool")
+            value = normalized in {"true", "1", "yes"}
+    else:
+        value = str(raw)
+    if param.choices and value not in param.choices:
+        raise ValueError(f"Parameter {param.name!r} must be one of {list(param.choices)!r}")
+    return value
 
 
 # ---------------------------------------------------------------------------
