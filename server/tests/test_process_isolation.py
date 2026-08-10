@@ -30,7 +30,11 @@ def _run_restart_script(
     docker_log = tmp_path / "docker.log"
     docker = fake_bin / "docker"
     docker.write_text(
-        '#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "${DOCKER_LOG}"\n',
+        '#!/usr/bin/env bash\n'
+        'printf "%s\\n" "$*" >> "${DOCKER_LOG}"\n'
+        'if [[ "$*" == *" ps --status running --services"* ]]; then\n'
+        '  printf "redis\\nweb\\ngateway\\nmaintenance\\nworker\\n"\n'
+        'fi\n',
         encoding="utf-8",
     )
     docker.chmod(0o755)
@@ -122,6 +126,38 @@ def test_restart_modes_choose_build_or_pull(tmp_path):
     up_index = next(i for i, command in enumerate(prod_commands) if "up --no-build" in command)
     assert pull_index < up_index
     assert any(command == "pull revodesign-revocompute-runner" for command in prod_commands)
+
+
+def test_prepared_restart_validates_before_down_without_build_or_pull(tmp_path):
+    config_dir = _make_deployed_config(tmp_path, executor="slurm")
+    result, commands = _run_restart_script(
+        tmp_path / "deployment",
+        "restart",
+        "--mode=prepared",
+        config_dir=config_dir,
+    )
+
+    assert result.returncode == 0, result.stderr
+    down_index = next(i for i, command in enumerate(commands) if command.endswith(" down"))
+    assert any("image inspect example/revodesign-server:latest" in command for command in commands[:down_index])
+    assert any(" config --quiet" in command for command in commands[:down_index])
+    assert not any(" build " in command or " pull " in command for command in commands)
+    assert any("up --no-build -d redis web gateway maintenance worker" in command for command in commands)
+    assert "All prepared deployment services are running." in result.stdout
+
+
+def test_prepared_restart_rejects_missing_sif_before_down(tmp_path):
+    config_dir = _make_deployed_config(tmp_path, executor="slurm", missing_sif="esm")
+    result, commands = _run_restart_script(
+        tmp_path / "deployment",
+        "restart",
+        "--mode=prepared",
+        config_dir=config_dir,
+    )
+
+    assert result.returncode != 0
+    assert "Missing SIF image" in result.stderr
+    assert not any(command.endswith(" down") for command in commands)
 
 
 def test_reload_sends_hup_through_compose(tmp_path):

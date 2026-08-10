@@ -504,6 +504,9 @@ REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart.sh restart --mod
 # production: down + pull configured Docker Hub images + up without building
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh restart --mode=prod
 
+# prepared production: preflight local images/SIFs/config, then down + up only
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh restart --mode=prepared
+
 # subcommands
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh build
 REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh up
@@ -522,6 +525,11 @@ environment file:
 - `--mode=prod` pulls the configured `SERVER_IMAGE` and `RUNNER_IMAGE`, then
   starts with `--no-build`. Published images use the fixed `1000:1000` identity,
   so production mode rejects any other `RUNNER_UID` or `RUNNER_GID`.
+- `--mode=prepared` activates locally prepared production artifacts. Before it
+  stops anything, it verifies all server/runtime Docker images, every required
+  SIF, the external registry and runner files, auth-storage separation, and the
+  rendered Compose model. It performs no build or pull, starts with
+  `--no-build`, and waits for all five Compose services to report running.
 - `job_executor: slurm` in the selected registry automatically merges
   `docker-compose.slurm.yml`, bind-mounts SLURM client tools + MUNGE, validates
   SIF images, and exports `SLURM_ENABLED=true` to the services.

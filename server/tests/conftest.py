@@ -72,6 +72,27 @@ REQUIRES_DOCKER = pytest.mark.skipif(
 )
 
 
+# Fresh application imports below own SQLite engines/connections that are not
+# reachable through sys.modules after the import-isolation cleanup.  Keep the
+# modules alive until the test finishes, then close their resources explicitly
+# so the full suite does not exhaust the process file-descriptor limit.
+_LOADED_APP_MODULES: list[object] = []
+
+
+@pytest.fixture(autouse=True)
+def _close_loaded_app_resources():
+    start = len(_LOADED_APP_MODULES)
+    yield
+    for module in reversed(_LOADED_APP_MODULES[start:]):
+        user_db = module.app.config.get("user_db")
+        if user_db is not None:
+            user_db.engine.dispose()
+        module.task_store.engine.dispose()
+        module.manage_db._conn.close()
+        module.task_runtime._manage_db._conn.close()
+    del _LOADED_APP_MODULES[start:]
+
+
 # ── runner identity helpers ────────────────────────────────────────────────────
 
 
@@ -164,6 +185,7 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
         spec.loader.exec_module(module)  # type: ignore[attr-defined]
         module.run_compute_task = module.task_runtime.run_compute_task
         module._ROOT_MOUNT_DIRECTORY = module.task_runtime._ROOT_MOUNT_DIRECTORY
+        _LOADED_APP_MODULES.append(module)
         return module
     finally:
         sys.modules.pop(module_name, None)

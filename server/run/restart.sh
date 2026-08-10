@@ -317,7 +317,7 @@ ENV_FILE="$(resolve_env_file)"
 usage() {
   cat <<'USAGE'
 Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart]
-       bash server/run/restart.sh restart [--mode=dev|--mode=prod]
+       bash server/run/restart.sh restart [--mode=dev|--mode=prod|--mode=prepared]
 
        SLURM flags (when task_types.yaml selects job_executor: slurm):
            --allowed-slurm-queue q1,q2,...     Comma-separated SLURM partitions.
@@ -343,6 +343,8 @@ Subcommands:
   restart  Restart in dev mode by default.
            --mode=dev:  down, build local images with host UID/GID, then up.
            --mode=prod: down, pull configured images, then up without building.
+           --mode=prepared: validate local images, SIFs, configuration, and
+                            Compose before down, then up without build or pull.
            --use-proxy=<url>  Inject proxy ENV into temp Dockerfiles during build.
 USAGE
 }
@@ -763,6 +765,52 @@ cmd_build() {
   _cleanup_temp_dockerfiles
 }
 
+validate_prepared_images() {
+  local image=""
+  local name=""
+  local dockerfile=""
+  local definition=""
+  local slurm_image=""
+  local required_images=(
+    "${SERVER_IMAGE:-revodesign-revocompute-server:latest}"
+    "nginx:1.28-alpine"
+    "redis:7.2-alpine"
+  )
+  while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+    required_images+=("${image}")
+  done < <(runtime_manifest)
+  for image in "${required_images[@]}"; do
+    if ! docker image inspect "${image}" >/dev/null; then
+      echo "Prepared Docker image is missing: ${image}" >&2
+      return 1
+    fi
+  done
+}
+
+validate_compose_model() {
+  "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" config --quiet
+}
+
+wait_for_services() {
+  local expected=(redis web gateway maintenance worker)
+  local running=""
+  local service=""
+  local attempt=0
+  for attempt in $(seq 1 30); do
+    running="$("${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" ps --status running --services)"
+    for service in "${expected[@]}"; do
+      if ! grep -qx "${service}" <<< "${running}"; then
+        sleep 2
+        continue 2
+      fi
+    done
+    echo "All prepared deployment services are running."
+    return 0
+  done
+  echo "Prepared deployment readiness failed; not all required services are running." >&2
+  return 1
+}
+
 cmd_up() {
   require_env_file
   validate_required_settings
@@ -831,6 +879,15 @@ cmd_restart() {
     return 1
   fi
 
+  if [[ "${MODE}" == "prepared" ]]; then
+    validate_prepared_images
+    if [[ "${USE_SLURM}" == "1" ]]; then
+      validate_slurm_images
+    fi
+    validate_auth_storage
+    validate_compose_model
+  fi
+
   cmd_down
 
   case "${MODE}" in
@@ -844,6 +901,9 @@ cmd_restart() {
         echo "  → ${image} (${name})"
         docker pull "${image}"
       done < <(runtime_manifest)
+      ;;
+    prepared)
+      echo "Activating validated prepared images without builds or pulls."
       ;;
   esac
 
@@ -859,6 +919,9 @@ cmd_restart() {
     fi
   fi
   cmd_up --no-build
+  if [[ "${MODE}" == "prepared" ]]; then
+    wait_for_services
+  fi
 
   DOMAIN="0.0.0.0"
   PORT="${PORT:-8080}"
@@ -893,13 +956,21 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
+    --mode=prepared)
+      MODE="prepared"
+      if [[ "${SUBCOMMAND}" != "restart" ]]; then
+        echo "--mode is only supported by the restart subcommand." >&2
+        usage
+        exit 1
+      fi
+      ;;
     --mode=*)
-      echo "Invalid mode: ${1#--mode=}. Expected dev or prod." >&2
+      echo "Invalid mode: ${1#--mode=}. Expected dev, prod, or prepared." >&2
       usage
       exit 1
       ;;
     --mode)
-      echo "Too many arguments. Use --mode=dev or --mode=prod." >&2
+      echo "Too many arguments. Use --mode=dev, --mode=prod, or --mode=prepared." >&2
       usage
       exit 1
       ;;
@@ -928,6 +999,11 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+if [[ "${MODE}" == "prepared" && "${BUILD_SIF}" == "1" ]]; then
+  echo "--build-sif is incompatible with --mode=prepared; prepare and validate SIFs before activation." >&2
+  exit 1
+fi
 
 _REGISTRY_FILE="${SERVER_ROOT}/config/task_types.yaml"
 if [[ -f "${ENV_FILE}" ]]; then
