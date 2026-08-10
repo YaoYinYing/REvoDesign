@@ -198,11 +198,25 @@ prepare_result_storage() {
   local results_dir="${SERVER_DIR}/results"
   mkdir -p "${results_dir}"
   if [[ "$(id -u)" == "0" ]]; then
-    chown "${RUNNER_UID}:${RUNNER_GID}" "${results_dir}"
+    if ! chown "${RUNNER_UID}:${RUNNER_GID}" "${results_dir}"; then
+      echo "Warning: could not change ownership of ${results_dir}; the backing filesystem may not support chown." >&2
+    fi
   fi
-  chmod u+rwx,go+rx "${results_dir}"
-  if [[ ! -w "${results_dir}" ]]; then
-    echo "Results directory is not writable: ${results_dir}" >&2
+  if ! chmod u+rwx,go+rx "${results_dir}"; then
+    echo "Warning: could not change permissions of ${results_dir}; continuing with container access checks." >&2
+    printf 'To apply the permissions manually, run: sudo chmod u+rwx,go+rx %q\n' "${results_dir}" >&2
+  fi
+}
+
+validate_result_storage() {
+  if ! "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" exec -T web \
+    test -w "${SERVER_DIR}/results"; then
+    echo "Results directory is not writable by the web container: ${SERVER_DIR}/results" >&2
+    exit 1
+  fi
+  if ! "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" exec -T gateway \
+    test -r /srv/results; then
+    echo "Results directory is not readable by the Nginx gateway: ${SERVER_DIR}/results" >&2
     exit 1
   fi
 }
@@ -359,6 +373,7 @@ cmd_up() {
   prepare_result_storage
   echo "Starting services via docker compose..."
   "${COMPOSE_CMD[@]}" -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up "$@" -d redis web gateway maintenance worker
+  validate_result_storage
   print_admin_logins
 }
 

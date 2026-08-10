@@ -20,6 +20,7 @@ def _run_restart_script(
     gid="1000",
     admins="admin",
     omit_settings=(),
+    fail_chmod=False,
 ):
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir(parents=True)
@@ -30,6 +31,13 @@ def _run_restart_script(
         encoding="utf-8",
     )
     docker.chmod(0o755)
+    if fail_chmod:
+        chmod = fake_bin / "chmod"
+        chmod.write_text(
+            '#!/usr/bin/env bash\necho "chmod: Operation not permitted" >&2\nexit 1\n',
+            encoding="utf-8",
+        )
+        chmod.chmod(0o755)
 
     task_dir = tmp_path / "tasks"
     auth_dir = tmp_path / "auth"
@@ -124,7 +132,20 @@ def test_up_generates_bootstrap_password_for_empty_user_database(tmp_path):
     assert result.returncode == 0, result.stderr
     assert "Admin login — username: admin  password:" in result.stdout
     assert any("up -d redis web gateway maintenance worker" in command for command in commands)
+    assert any("exec -T web test -w" in command for command in commands)
+    assert any("exec -T gateway test -r /srv/results" in command for command in commands)
     assert (root / "tasks" / "results").is_dir()
+
+
+def test_up_continues_after_chmod_failure_and_prints_manual_command(tmp_path):
+    root = tmp_path / "chmod-failure"
+    result, commands = _run_restart_script(root, "up", fail_chmod=True)
+
+    assert result.returncode == 0, result.stderr
+    assert "continuing with container access checks" in result.stderr
+    assert "sudo chmod u+rwx,go+rx" in result.stderr
+    assert f"{root}/tasks/results" in result.stderr
+    assert any("up -d redis web gateway maintenance worker" in command for command in commands)
 
 
 def test_up_rejects_duplicate_admin_usernames_before_start(tmp_path):
