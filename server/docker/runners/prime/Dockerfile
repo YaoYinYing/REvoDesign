@@ -25,5 +25,6 @@ COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/prime/run.sh /app/revo
 
 WORKDIR /app/revocompute/
 ENV RUNNER_USERNAME=${RUNNER_USERNAME} \
-    PRIME_MODEL_DIR=/mnt/db/weights/prime/ProPrime_650M_OGT_Prediction-91490f95c707
+    PRIME_MODEL_DIR=/mnt/db/weights/prime/ProPrime_650M_OGT_Prediction-91490f95c707 \
+    PRIME_DMS_MODEL_DIR=/mnt/db/weights/prime/Prime_690M-7b75010748d2
 ENTRYPOINT ["bash", "/app/revocompute/run.sh"]

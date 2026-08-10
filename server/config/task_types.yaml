@@ -284,12 +284,29 @@ task_types:
   prime:
     display_name: "Pro-Prime"
     runtime_family: "prime"
+    runner_args: ["ogt"]
     gpus: true
     input_extension: ".fasta"
     input_label: "FASTA file"
     stage_markers:
       prime: "Pro-Prime OGT prediction"
     result_patterns: ["*.csv"]
+    params: []
+
+  prime_dms:
+    display_name: "PRIME DMS"
+    runtime_family: "prime"
+    runner_args: ["dms"]
+    gpus: true
+    input_extension: ".fasta"
+    input_label: "Protein FASTA file"
+    input_extensions: [".fasta", ".fa", ".faa"]
+    primary_input_extensions: [".fasta", ".fa", ".faa"]
+    allow_multiple_inputs: true
+    max_input_files: 64
+    stage_markers:
+      prime_dms: "PRIME zero-shot mutation scoring"
+    result_patterns: ["*_prime_dms.csv", "*_prime_combinatorial.csv"]
     params: []
 
   rfdiffusion:

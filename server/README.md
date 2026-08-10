@@ -863,12 +863,20 @@ daemon (built by `cmd_build` in `restart.sh`).
 image equal to the runtime family's `docker_image`. Pythia's repository-bundled
 checkpoints are intentionally retained because they are small.
 
-The `prime` family implements the registered **Pro-Prime OGT prediction** task
-with the pinned `AI4Protein/ProPrime_650M_OGT_Prediction` snapshot. Provision
-that snapshot at the `PRIME_MODEL_DIR` path before activation. The legacy
-`prime_base.pt` file belongs to the mutant-effect workflow from the `Prime_1`
-repository and is not an OGT checkpoint; renaming it to `checkpoint.pt` does
-not change that contract.
+The `prime` family serves two distinct model contracts. **Pro-Prime OGT
+prediction** uses the pinned `AI4Protein/ProPrime_650M_OGT_Prediction` snapshot
+at `PRIME_MODEL_DIR`. **PRIME DMS** uses the pinned `AI4Protein/Prime_690M`
+snapshot at `PRIME_DMS_MODEL_DIR`, matching the upstream
+`notebooks/run_proteingym.ipynb` scoring rule. One input sequence produces an
+exhaustive single-substitution DMS CSV. If the upload contains multiple FASTA
+records or files, the first sequence is the reference and each remaining
+sequence is scored as a supplied combinatorial variant; all substitutions'
+log-probability differences are summed.
+
+The older `prime_base.pt` file belongs to the legacy `Prime_1` mutant-effect
+implementation. It is preserved for rollback and provenance, but renaming it
+to `checkpoint.pt` neither makes it an OGT checkpoint nor makes it equivalent
+to the immutable Hugging Face snapshots used by these production tasks.
 
 #### Step 5: Build and deploy
 

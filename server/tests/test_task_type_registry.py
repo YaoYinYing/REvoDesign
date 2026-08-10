@@ -126,6 +126,37 @@ def test_prime_runtime_uses_pinned_ogt_model_contract():
     assert ".predict_ogt(" not in script
 
 
+def test_prime_family_exposes_distinct_ogt_and_dms_contracts():
+    with _preserve_registry():
+        task_types.load_registry(
+            str(SERVER_ROOT / "config" / "task_types.yaml"),
+            str(SERVER_ROOT / "config" / "runners"),
+            {"prime", "prime_dms"},
+        )
+        ogt, ogt_runner = task_types.get("prime")
+        dms, dms_runner = task_types.get("prime_dms")
+        assert ogt.runtime is dms.runtime
+        assert ogt_runner is dms_runner
+        assert ogt.runner_args == ("ogt",)
+        assert dms.runner_args == ("dms",)
+        assert dms.allow_multiple_inputs is True
+        assert dms.max_input_files == 64
+        assert set(dms.input_extensions) == {".fasta", ".fa", ".faa"}
+
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "prime" / "Dockerfile").read_text(
+        encoding="utf-8"
+    )
+    script = (SERVER_ROOT / "docker" / "runners" / "prime" / "run.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "Prime_690M-7b75010748d2" in dockerfile
+    assert '"predict_score"' in script
+    assert 'tuple("ACDEFGHIKLMNPQRSTVWY")' in script
+    assert '"position": position' in script
+    assert '"mutation_count": len(substitutions)' in script
+    assert 'f"{input_fasta.stem}_prime_combinatorial.csv"' in script
+
+
 def test_shared_placer_rfdiffusion_runtime_uses_audited_compatible_versions():
     dockerfile = (
         SERVER_ROOT / "docker" / "runners" / "placer-rfdiffusion" / "Dockerfile"
