@@ -85,14 +85,14 @@ def _wait_for_archive(
     raise AssertionError(f"Optional archive for {task_id} was not ready after {timeout:g} seconds")
 
 
-def run_full_stack_checks(base_url: str, fasta_path: Path, admin_password: str) -> None:
+def run_full_stack_checks(base_url: str, fasta_path: Path, admin_username: str, admin_password: str) -> None:
     with requests.Session() as session:
         _wait_for_server(session, base_url)
         _assert_page(session, base_url, "/compute/login", "Sign in")
 
         login = session.post(
             f"{base_url}/compute/api/auth/login",
-            json={"username": "admin", "password": admin_password},
+            json={"username": admin_username, "password": admin_password},
             timeout=10,
         )
         assert login.status_code == 200, f"Admin login failed: {login.status_code} {login.text[:300]}"
@@ -101,15 +101,15 @@ def run_full_stack_checks(base_url: str, fasta_path: Path, admin_password: str) 
 
         me = session.get(f"{base_url}/compute/api/auth/me", headers=headers, timeout=10)
         assert me.status_code == 200
-        assert me.json()["username"] == "admin"
+        assert me.json()["username"] == admin_username
         assert me.json()["role"] == "admin"
 
         users = session.get(f"{base_url}/compute/api/auth/admin/users", headers=headers, timeout=10)
         assert users.status_code == 200
 
         for path, marker in (
-            ("/compute/dashboard", "PSSM GREMLIN Task Dashboard"),
-            ("/compute/create_task", "Create PSSM GREMLIN Task"),
+            ("/compute/dashboard", "REvoCompute Task Dashboard"),
+            ("/compute/create_task", "Create Compute Task"),
             ("/compute/profile", "Profile"),
             ("/compute/user_control", "User Control"),
         ):
@@ -177,10 +177,11 @@ def main() -> None:
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--fasta", required=True, type=Path)
     args = parser.parse_args()
+    admin_username = os.environ.get("FULL_STACK_ADMIN_USERNAME", "admin")
     admin_password = os.environ.get("FULL_STACK_ADMIN_PASSWORD", "")
     if not admin_password:
         raise SystemExit("FULL_STACK_ADMIN_PASSWORD is required")
-    run_full_stack_checks(args.base_url.rstrip("/"), args.fasta, admin_password)
+    run_full_stack_checks(args.base_url.rstrip("/"), args.fasta, admin_username, admin_password)
 
 
 if __name__ == "__main__":
