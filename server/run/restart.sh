@@ -214,9 +214,12 @@ Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart|reset-pass
                                                (requires apptainer on PATH).
 
        Build flags (build / restart --mode=dev):
-           --use-proxy                         Use REVODESIGN_BUILD_PROXY as a
-                                               BuildKit secret for networked
-                                               apt/pip/git Docker build steps.
+           --use-proxy[=<url>]                 Use proxy for apt/pip/git during
+                                               Docker builds via predefined
+                                               non-persisted build arguments.
+                                               Without a URL, read
+                                               REVODESIGN_BUILD_PROXY from the
+                                               selected environment file.
 
 Environment:
   REVODESIGN_SERVER_ENV
@@ -234,7 +237,7 @@ Subcommands:
            --mode=prod: down, pull configured images, then up without building.
            --mode=prepared: validate local images, SIFs, configuration, and
                             Compose before down, then up without build or pull.
-           --use-proxy          Mount REVODESIGN_BUILD_PROXY as a BuildKit secret.
+           --use-proxy[=<url>]  Pass redacted, non-persisted proxy build arguments.
 USAGE
 }
 
@@ -769,7 +772,7 @@ cmd_setup() {
 }
 
 cmd_build() {
-  local proxy_build_options=()
+  local proxy_build_args=()
   require_env_file
   validate_required_settings
   set -a
@@ -781,20 +784,30 @@ cmd_build() {
       echo "--use-proxy requires REVODESIGN_BUILD_PROXY in ${ENV_FILE}." >&2
       exit 1
     fi
-    proxy_build_options+=(--secret "id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY")
+    export HTTP_PROXY="${USE_PROXY}"
+    export HTTPS_PROXY="${USE_PROXY}"
+    export NO_PROXY="${NO_PROXY:-localhost,127.0.0.1,.local}"
   fi
   validate_runtime_files
   ensure_docker_gid
   resolve_runner_identity
   if [[ -n "${USE_PROXY:-}" ]]; then
     echo "Using configured proxy for Docker builds (credential redacted)."
+    proxy_build_args+=(
+      --build-arg "HTTP_PROXY=${HTTP_PROXY}"
+      --build-arg "HTTPS_PROXY=${HTTPS_PROXY}"
+      --build-arg "NO_PROXY=${NO_PROXY}"
+      --build-arg "http_proxy=${HTTP_PROXY}"
+      --build-arg "https_proxy=${HTTPS_PROXY}"
+      --build-arg "no_proxy=${NO_PROXY}"
+    )
   fi
 
   echo "Building runner images..."
   while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
     echo "  → ${image} (${name})"
     docker build \
-      "${proxy_build_options[@]}" \
+      "${proxy_build_args[@]}" \
       --build-arg RUNNER_UID="${RUNNER_UID}" \
       --build-arg RUNNER_GID="${RUNNER_GID}" \
       --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
@@ -806,7 +819,7 @@ cmd_build() {
   if [[ -n "${USE_PROXY:-}" ]]; then
     local _server_df="${SERVER_ROOT}/docker/server/Dockerfile"
     docker build \
-      "${proxy_build_options[@]}" \
+      "${proxy_build_args[@]}" \
       --build-arg RUNNER_UID="${RUNNER_UID}" \
       --build-arg RUNNER_GID="${RUNNER_GID}" \
       --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
@@ -1055,8 +1068,10 @@ while [[ $# -gt 0 ]]; do
       BUILD_SIF=1
       ;;
     --use-proxy=*)
-      echo "Proxy URLs must not be passed on the command line; set REVODESIGN_BUILD_PROXY in the selected environment file." >&2
-      exit 1
+      USE_PROXY="${1#--use-proxy=}"
+      export HTTP_PROXY="${USE_PROXY}"
+      export HTTPS_PROXY="${USE_PROXY}"
+      export NO_PROXY="${NO_PROXY:-localhost,127.0.0.1,.local}"
       ;;
     --use-proxy)
       USE_PROXY_FROM_ENV=1

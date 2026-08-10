@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.10
 # set ubuntu as backend OS (force x86_64 for compatibility with GREMLIN stack)
 FROM --platform=linux/amd64 condaforge/mambaforge
 
@@ -22,10 +21,7 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
 SHELL ["/bin/bash", "-c"]
 
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/pssm_gremlin/GREMLIN.yml /tmp/
-RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
-    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
-      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
-    conda env create -f /tmp/GREMLIN.yml \
+RUN conda env create -f /tmp/GREMLIN.yml \
       && conda clean --all --force-pkgs-dirs --yes \
       && rm -f /tmp/GREMLIN.yml
 

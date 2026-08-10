@@ -1,40 +1,27 @@
-# syntax=docker/dockerfile:1.10
 # EasIFA: enzyme active-site annotation.  GPU, TorchDrug + RDKit.
 FROM --platform=linux/amd64 python:3.10-slim AS builder
 
 ARG EASIFA_REPO=https://github.com/YaoYinYing/EasIFA.git
 ARG EASIFA_REF=fb65cfe083c8a247ceae0174a59c8e4811fc8c1b
 
-RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
-    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
-      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
-    DEBIAN_FRONTEND=noninteractive apt-get update && \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends git build-essential && \
     rm -rf /var/lib/apt/lists/* && \
     python -m venv /opt/venv
 
-RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
-    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
-      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
-    git init /opt/EasIFA && git -C /opt/EasIFA remote add origin ${EASIFA_REPO} && \
+RUN git init /opt/EasIFA && git -C /opt/EasIFA remote add origin ${EASIFA_REPO} && \
     git -C /opt/EasIFA fetch --depth 1 origin ${EASIFA_REF} && git -C /opt/EasIFA checkout --detach FETCH_HEAD && \
     rm -rf /opt/EasIFA/.git
 
 # Resolve Torch and its downstream packages together inside the copied venv.
-RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
-    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
-      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
-    /opt/venv/bin/pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121 && \
+RUN /opt/venv/bin/pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121 && \
     /opt/venv/bin/pip install --no-cache-dir rdkit fair-esm==2.0.0 torchdrug==0.2.1
 
 FROM --platform=linux/amd64 python:3.10-slim
 
 ARG RUNNER_UID ARG RUNNER_GID ARG RUNNER_USERNAME ARG RUNNER_GROUP
 
-RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
-    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
-      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
-    ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
+RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends libexpat1 libxext6 libxrender1 && \

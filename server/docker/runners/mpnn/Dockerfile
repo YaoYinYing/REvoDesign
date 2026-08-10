@@ -1,10 +1,6 @@
-# syntax=docker/dockerfile:1.10
 FROM --platform=linux/amd64 python:3.11-slim AS builder
 
-RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
-    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
-      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
-    DEBIAN_FRONTEND=noninteractive apt-get update && \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends git build-essential && \
     rm -rf /var/lib/apt/lists/*
 
@@ -13,19 +9,13 @@ ENV PATH=/opt/venv/bin:${PATH}
 
 ARG MPNN_REPO=https://github.com/YaoYinYing/ProteinMPNN.git
 ARG MPNN_REF=8907e6671bfbfc92303b5f79c4b5e6ce47cdef57
-RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
-    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
-      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
-    git init /opt/ProteinMPNN && git -C /opt/ProteinMPNN remote add origin ${MPNN_REPO} && \
+RUN git init /opt/ProteinMPNN && git -C /opt/ProteinMPNN remote add origin ${MPNN_REPO} && \
     git -C /opt/ProteinMPNN fetch --depth 1 origin ${MPNN_REF} && \
     git -C /opt/ProteinMPNN checkout --detach FETCH_HEAD && rm -rf /opt/ProteinMPNN/.git
 
 ARG HYPERMPNN_REPO=https://github.com/YaoYinYing/HyperMPNN.git
 ARG HYPERMPNN_REF=1877ea181d23fe84fb33147748e1367e5a02b6a9
-RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
-    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
-      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
-    git init /opt/HyperMPNN && git -C /opt/HyperMPNN remote add origin ${HYPERMPNN_REPO} && \
+RUN git init /opt/HyperMPNN && git -C /opt/HyperMPNN remote add origin ${HYPERMPNN_REPO} && \
     git -C /opt/HyperMPNN fetch --depth 1 origin ${HYPERMPNN_REF} && \
     git -C /opt/HyperMPNN checkout --detach FETCH_HEAD && \
     mkdir -p /opt/hypermpnn_weights && cp /opt/HyperMPNN/retrained_models/*.pt /opt/hypermpnn_weights/ && \
@@ -33,20 +23,14 @@ RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,req
 
 ARG LIGANDMPNN_REPO=https://github.com/dauparas/LigandMPNN.git
 ARG LIGANDMPNN_REF=26ec57ac976ade5379920dbd43c7f97a91cf82de
-RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
-    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
-      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
-    git init /opt/LigandMPNN && git -C /opt/LigandMPNN remote add origin ${LIGANDMPNN_REPO} && \
+RUN git init /opt/LigandMPNN && git -C /opt/LigandMPNN remote add origin ${LIGANDMPNN_REPO} && \
     git -C /opt/LigandMPNN fetch --depth 1 origin ${LIGANDMPNN_REF} && \
     git -C /opt/LigandMPNN checkout --detach FETCH_HEAD && rm -rf /opt/LigandMPNN/.git
 
 COPY docker/runners/mpnn/requirements.txt /tmp/requirements.txt
 ARG THERMOREPO=https://github.com/YaoYinYing/ThermoMPNN-D.git
 ARG THERMOREF=6ec15ae8d870fc70748e6d4f0c8c5555c076efd1
-RUN --mount=type=secret,id=revodesign_build_proxy,env=REVODESIGN_BUILD_PROXY,required=false \
-    export HTTP_PROXY="${REVODESIGN_BUILD_PROXY:-}" HTTPS_PROXY="${REVODESIGN_BUILD_PROXY:-}" \
-      http_proxy="${REVODESIGN_BUILD_PROXY:-}" https_proxy="${REVODESIGN_BUILD_PROXY:-}" && \
-    pip install --no-cache-dir -r /tmp/requirements.txt \
+RUN pip install --no-cache-dir -r /tmp/requirements.txt \
       --index-url https://download.pytorch.org/whl/cpu \
       --extra-index-url https://pypi.org/simple && \
     pip install --no-cache-dir --no-deps "git+${THERMOREPO}@${THERMOREF}"
