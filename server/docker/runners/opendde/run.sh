@@ -8,7 +8,7 @@
 #   4. Accepts -i <input_json> -o <output_dir>
 #   5. Exits 0 on success
 
-set -e
+set -euo pipefail
 
 REVODESIGN_RUNSCRIPT_PATH=$(readlink -f "$(dirname "$0")")
 
@@ -50,6 +50,33 @@ fi
 
 mkdir -p "$output_dir"
 
+# OpenDDE's MSA client writes an ``*-update-msa.json`` file next to the input
+# JSON.  Production input snapshots are deliberately mounted read-only, so run
+# inference from a task-private writable copy of the complete snapshot.  Copying
+# the whole snapshot also preserves relative references to auxiliary inputs.
+case "$input_file" in
+    */inputs/*)
+        input_root="${input_file%%/inputs/*}/inputs"
+        input_relative_path="${input_file#"$input_root"/}"
+        ;;
+    *)
+        input_root=$(dirname "$input_file")
+        input_relative_path=$(basename "$input_file")
+        ;;
+esac
+opendde_input_root=$(mktemp -d "${TMPDIR:-/tmp}/revodesign-opendde.XXXXXX")
+cleanup_opendde_inputs() {
+    rm -rf -- "$opendde_input_root"
+}
+trap cleanup_opendde_inputs EXIT
+cp -a -- "$input_root"/. "$opendde_input_root"/
+writable_input_file="$opendde_input_root/$input_relative_path"
+
+if [[ ! -f "$writable_input_file" ]]; then
+    echo "Failed to prepare writable OpenDDE input snapshot" >&2
+    exit 1
+fi
+
 # Parse TASK_PARAMS JSON into env vars.
 _parse_param() { python3 -c "import json,os; print(json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''))"; }
 : "${MODEL_NAME:=$(_parse_param model_name)}"
@@ -75,7 +102,7 @@ echo "MSA: $USE_MSA  Template: $USE_TEMPLATE"
 echo "REVODESIGN_STAGE:opendde"
 
 opendde pred \
-    -i "$input_file" \
+    -i "$writable_input_file" \
     -o "$output_dir" \
     -n "$MODEL_NAME" \
     --sample "$NUM_SAMPLES" \
@@ -84,6 +111,13 @@ opendde pred \
     --use_msa "$USE_MSA" \
     --use_template "$USE_TEMPLATE" \
     --use_rna_msa false
+
+# Some OpenDDE versions catch per-input inference exceptions and still exit 0.
+# Never publish success unless inference produced at least one non-empty result.
+if ! find "$output_dir" -type f -size +0c ! -name task_finished -print -quit | grep -q .; then
+    echo "OpenDDE exited without producing a result artifact" >&2
+    exit 1
+fi
 
 touch "${output_dir}/task_finished"
 echo "OpenDDE inference complete."

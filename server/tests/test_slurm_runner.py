@@ -109,9 +109,9 @@ def test_build_srun_args_includes_job_name(tmp_path):
 def test_build_srun_args_no_db_defaults(tmp_path):
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
     args = job._build_srun_args()
-    # Without a manage_db, only --job-name is emitted
-    assert len(args) == 1
-    assert args[0].startswith("--job-name=")
+    # Resource defaults come from the management DB, but cwd and name are
+    # always explicit so compute nodes never inherit the worker-container cwd.
+    assert args == [f"--chdir={tmp_path / 'out'}", "--job-name=revocomput_unknown_gremlin_task-1"]
 
 
 # -- apptainer invocation -----------------------------------------------------
@@ -210,9 +210,23 @@ def test_poll_returns_completed_on_exit_zero(tmp_path):
 
     with patch("subprocess.Popen", return_value=fake_proc):
         job.submit()
+        (tmp_path / "out" / "result.csv").write_text("score\n1.0\n")
         # process already exited, poll should detect that
         state = job.poll()
         assert state == JobState.COMPLETED
+
+
+def test_poll_returns_failed_on_exit_zero_without_result_artifact(tmp_path):
+    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
+    fake_proc = subprocess.Popen(["true"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    fake_proc.pid = 12345
+    fake_proc.returncode = 0
+
+    with patch("subprocess.Popen", return_value=fake_proc):
+        job.submit()
+        (tmp_path / "out" / "task_finished").touch()
+        state = job.poll()
+        assert state == JobState.FAILED
 
 
 def test_cancel_terminates_process(tmp_path):

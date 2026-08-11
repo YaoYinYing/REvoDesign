@@ -115,6 +115,12 @@ class SlurmJob(Job):
 
             exit_code = self._process.returncode
             if exit_code == 0:
+                if not self._has_result_artifact():
+                    logging.error(
+                        "SLURM job %s exited successfully but produced no non-empty result artifacts",
+                        self._job_id,
+                    )
+                    return JobState.FAILED
                 self._maybe_stage_callback(JobState.COMPLETED)
                 return JobState.COMPLETED
 
@@ -161,6 +167,10 @@ class SlurmJob(Job):
                 continue
             opts.append(f"--{option}={value}")
 
+        # The worker container's /app/server cwd does not exist on compute
+        # nodes.  Use the task-specific shared output directory so slurmstepd
+        # never falls back to /tmp and every job has an isolated valid cwd.
+        opts.append(f"--chdir={self.output_dir}")
         opts.append(f"--job-name=revocomput_{_sanitize_name(self._username)}_{self.tt.name}_{self.task_id[:8]}")
         return opts
 
@@ -282,6 +292,29 @@ class SlurmJob(Job):
                 f.writelines(self._stderr_lines)
         except OSError as exc:
             logging.warning("Could not save SLURM output for %s: %s", self._job_id, exc)
+
+    def _has_result_artifact(self) -> bool:
+        """Return true when the task produced a real, non-empty result file.
+
+        SLURM capture logs, wrapper scripts, and completion sentinels are
+        operational files.  They cannot by themselves prove that a scientific
+        tool succeeded—some tools catch inference errors and still exit zero.
+        """
+        for root, _dirs, files in os.walk(self.output_dir):
+            for filename in files:
+                if filename == "task_finished":
+                    continue
+                if filename.startswith("_slurm_wrapper_") and filename.endswith(".sh"):
+                    continue
+                if filename.startswith("slurm_") and filename.endswith((".out", ".err")):
+                    continue
+                path = os.path.join(root, filename)
+                try:
+                    if not os.path.islink(path) and os.path.isfile(path) and os.path.getsize(path) > 0:
+                        return True
+                except OSError:
+                    continue
+        return False
 
     def _maybe_stage_callback(self, state: JobState) -> None:
         if state == JobState.COMPLETED and self.stage_callback and self.tt.stage_markers:
