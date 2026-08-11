@@ -281,6 +281,7 @@ def test_bioemu_runtime_pins_release_and_driver_compatible_torch_once():
     assert "python:3.11-slim" in dockerfile
     assert '"bioemu[cuda]==1.4.1"' in dockerfile
     assert '"torch==2.7.1"' in dockerfile
+    assert '"jax[cuda12]==0.5.3"' in dockerfile
     assert "https://download.pytorch.org/whl/cu128" in dockerfile
     assert dockerfile.count('"torch==2.7.1"') == 1
     assert dockerfile.index('"torch==2.7.1"') < dockerfile.index('"bioemu[cuda]==1.4.1"')

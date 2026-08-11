@@ -1,0 +1,18 @@
+# Keep BioEmu's two GPU frameworks on the production driver's CUDA 12.8 line.
+# Without these constraints pip upgrades Torch to cu130 to satisfy the newest
+# JAX CUDA plugin, retaining two multi-gigabyte CUDA dependency generations.
+torch==2.7.1
+jax==0.5.3
+jaxlib==0.5.3
+jax-cuda12-plugin==0.5.3
+jax-cuda12-pjrt==0.5.3
+nvidia-cuda-nvcc-cu12==12.8.93
+nvidia-cublas-cu12==12.8.3.14
+nvidia-cuda-cupti-cu12==12.8.57
+nvidia-cuda-runtime-cu12==12.8.57
+nvidia-cudnn-cu12==9.7.1.26
+nvidia-cufft-cu12==11.3.3.41
+nvidia-cusolver-cu12==11.7.2.55
+nvidia-cusparse-cu12==12.5.7.53
+nvidia-nccl-cu12==2.26.2
+nvidia-nvjitlink-cu12==12.8.61
