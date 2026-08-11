@@ -252,6 +252,7 @@ def test_easifa_runtime_uses_pinned_official_easifa2_single_prediction_contract(
         encoding="utf-8"
     )
     assert "EASIFA_REF=146ed9ca6ccbc7458bd2d343ec2de0ce149c9aad" in dockerfile
+    assert "EASIFA_REPO=https://github.com/wangxr0526/EasIFA2.0_Core.git" in dockerfile
     assert "EASIFA_METADATA_REF=f26aecd922a48d935315fe7d4f61381a388492af" in dockerfile
     assert "EASIFA_ENV_SHA256=da5751abd99297eaae813591a8b32a006d244d0d8ba376712223d83f24fe88f2" in dockerfile
     assert "libexpat1" in dockerfile

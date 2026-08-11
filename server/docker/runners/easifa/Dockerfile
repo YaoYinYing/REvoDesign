@@ -1,9 +1,9 @@
 # EasIFA2: enzyme active-site annotation from a structure, with optional reaction context.
 # The upstream packed environment is used because its DGL/TorchDrug CUDA stack is not
 # reproducibly expressible by the repository's broad, unpinned requirements.txt.
-FROM --platform=linux/amd64 python:3.11-slim AS builder
+FROM python:3.11-slim AS builder
 
-ARG EASIFA_REPO=https://github.com/wangxr0526/EasIFA2.git
+ARG EASIFA_REPO=https://github.com/wangxr0526/EasIFA2.0_Core.git
 ARG EASIFA_REF=146ed9ca6ccbc7458bd2d343ec2de0ce149c9aad
 ARG EASIFA_METADATA_REPO=xiaoruiwang/EasIFA2.0_Metadata
 ARG EASIFA_METADATA_REF=f26aecd922a48d935315fe7d4f61381a388492af
@@ -14,7 +14,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir "huggingface_hub[hf_xet]==0.34.4"
 
-RUN git init /opt/EasIFA2 && git -C /opt/EasIFA2 remote add origin ${EASIFA_REPO} && \
+RUN git init -q /opt/EasIFA2 && git -C /opt/EasIFA2 remote add origin ${EASIFA_REPO} && \
     git -C /opt/EasIFA2 fetch --depth 1 origin ${EASIFA_REF} && \
     git -C /opt/EasIFA2 checkout --detach FETCH_HEAD && \
     rm -rf /opt/EasIFA2/.git
@@ -34,7 +34,7 @@ RUN mkdir -p /tmp/easifa-metadata /opt/easifa-env && \
     /opt/easifa-env/bin/conda-unpack && \
     /opt/easifa-env/bin/pip install --no-cache-dir --no-deps /opt/EasIFA2
 
-FROM --platform=linux/amd64 debian:bookworm-slim
+FROM debian:bookworm-slim
 
 ARG RUNNER_UID ARG RUNNER_GID ARG RUNNER_USERNAME ARG RUNNER_GROUP
 
