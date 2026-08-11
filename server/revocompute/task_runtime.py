@@ -302,15 +302,16 @@ def _finalize_results_manifest(task: dict) -> dict[str, Any]:
             if relative_path in {"manifest.json", ".manifest.json.tmp"} or os.path.islink(path):
                 continue
             stat = os.stat(path, follow_symlinks=False)
-            artifacts.append(
-                {
-                    "path": relative_path,
-                    "size": stat.st_size,
-                    "sha256": _sha256_file(path),
-                    "media_type": mimetypes.guess_type(relative_path)[0] or "application/octet-stream",
-                    "preview": _preview_kind(relative_path),
-                }
-            )
+            artifact = {
+                "path": relative_path,
+                "size": stat.st_size,
+                "sha256": _sha256_file(path),
+                "media_type": mimetypes.guess_type(relative_path)[0] or "application/octet-stream",
+                "preview": _preview_kind(relative_path),
+            }
+            if relative_path.startswith("execution/") and relative_path.endswith((".stdout.log", ".stderr.log")):
+                artifact["role"] = "diagnostic"
+            artifacts.append(artifact)
     manifest = {
         "schema_version": 1,
         "task_id": task["md5sum"],

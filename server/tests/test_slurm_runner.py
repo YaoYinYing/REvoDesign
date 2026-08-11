@@ -262,6 +262,21 @@ def test_poll_returns_failed_on_exit_zero_without_result_artifact(tmp_path):
         assert state == JobState.FAILED
 
 
+def test_slurm_output_is_named_previewable_execution_diagnostics(tmp_path):
+    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
+    job._job_id = "srun-32"
+    job._stdout_lines = ["REVODESIGN_STAGE:proteinmpnn\n"]
+    job._stderr_lines = ["warning\n"]
+
+    job._save_output()
+
+    stdout = tmp_path / "out" / "execution" / "slurm-srun-32.stdout.log"
+    stderr = tmp_path / "out" / "execution" / "slurm-srun-32.stderr.log"
+    assert stdout.read_text() == "REVODESIGN_STAGE:proteinmpnn\n"
+    assert stderr.read_text() == "warning\n"
+    assert job._is_execution_log(str(stdout))
+
+
 def test_cancel_terminates_process(tmp_path):
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
     job._process = subprocess.Popen(["sleep", "10"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)

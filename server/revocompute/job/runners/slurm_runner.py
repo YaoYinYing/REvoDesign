@@ -236,10 +236,15 @@ class SlurmJob(Job):
             [
                 'allocated_cpus="${SLURM_CPUS_PER_TASK:-1}"',
                 'case "${allocated_cpus}" in (*[!0-9]*|""|0) allocated_cpus=1 ;; esac',
+                'export APPTAINERENV_NPROC="${allocated_cpus}"',
+                'export APPTAINERENV_GREMLIN_CALC_CPU_NUM="${allocated_cpus}"',
                 'export APPTAINERENV_OMP_NUM_THREADS="${allocated_cpus}"',
                 'export APPTAINERENV_MKL_NUM_THREADS="${allocated_cpus}"',
                 'export APPTAINERENV_OPENBLAS_NUM_THREADS="${allocated_cpus}"',
+                'export APPTAINERENV_VECLIB_MAXIMUM_THREADS="${allocated_cpus}"',
                 'export APPTAINERENV_NUMEXPR_NUM_THREADS="${allocated_cpus}"',
+                'export APPTAINERENV_TF_NUM_INTRAOP_THREADS="${allocated_cpus}"',
+                'export APPTAINERENV_TF_NUM_INTEROP_THREADS="${allocated_cpus}"',
             ]
         )
 
@@ -263,6 +268,10 @@ class SlurmJob(Job):
         cmd = f"apptainer run{gpu_flag} {' '.join(bind_parts)} {_sh_quote(sif_image)}"
         for arg in self.tt.runner_args:
             cmd += f" {_sh_quote(arg)}"
+        if self.tt.name == "gremlin" and not self.tt.runner_args:
+            # GREMLIN/PSSM consumes its worker count from -j; environment
+            # thread caps alone do not constrain its BLAST/HH-suite flags.
+            cmd += ' -j "${allocated_cpus}"'
         if self.file_entities:
             cmd += f" -i {_sh_quote(self.file_entities[0]['mounted'])}"
         cmd += f" -o {_sh_quote(self.virtual_workspace_root + '/outputs')}"
@@ -301,8 +310,13 @@ class SlurmJob(Job):
             stream.close()
 
     def _save_output(self) -> None:
-        out_path = os.path.join(self.output_dir, f"slurm_{self._job_id}.out")
-        err_path = os.path.join(self.output_dir, f"slurm_{self._job_id}.err")
+        # Keep scheduler diagnostics in a clearly named, previewable namespace
+        # instead of ambiguous ``slurm_srun-32.out`` files at the result root.
+        execution_dir = os.path.join(self.output_dir, "execution")
+        os.makedirs(execution_dir, exist_ok=True)
+        job_label = _sanitize_name(self._job_id or "unknown")
+        out_path = os.path.join(execution_dir, f"slurm-{job_label}.stdout.log")
+        err_path = os.path.join(execution_dir, f"slurm-{job_label}.stderr.log")
         try:
             with open(out_path, "w") as f:
                 f.writelines(self._stdout_lines)
@@ -324,7 +338,7 @@ class SlurmJob(Job):
                     continue
                 if filename.startswith("_slurm_wrapper_") and filename.endswith(".sh"):
                     continue
-                if filename.startswith("slurm_") and filename.endswith((".out", ".err")):
+                if self._is_execution_log(os.path.join(root, filename)):
                     continue
                 path = os.path.join(root, filename)
                 try:
@@ -333,6 +347,15 @@ class SlurmJob(Job):
                 except OSError:
                     continue
         return False
+
+    def _is_execution_log(self, path: str) -> bool:
+        relative = os.path.relpath(path, self.output_dir).replace(os.sep, "/")
+        filename = os.path.basename(relative)
+        return (
+            relative.startswith("execution/")
+            and filename.startswith("slurm-")
+            and filename.endswith((".stdout.log", ".stderr.log"))
+        )
 
     def _maybe_stage_callback(self, state: JobState) -> None:
         if state == JobState.COMPLETED and self.stage_callback and self.tt.stage_markers:

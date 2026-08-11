@@ -149,6 +149,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **SLURM execution diagnostics**: scheduler stdout/stderr are now stored under
+  explicit `execution/slurm-<job>.stdout.log` and `.stderr.log` paths. They are
+  manifest-listed as diagnostic text artifacts, available through the text
+  previewer, and kept out of the Main Results gallery.
+- **SLURM CPU propagation**: the wrapper now forwards the allocated CPU count
+  to `NPROC`, GREMLIN, OpenMP, BLAS, NumExpr, and TensorFlow variables and
+  passes GREMLIN/PSSM's `-j` option, so scheduler allocation and scientific
+  thread counts remain consistent.
 - **MPNN SLURM resources and checkpoints**: MPNN design tasks now request an
   explicit 16-CPU/16G allocation, propagate the allocated CPU count to threaded
   numerical libraries, and validate LigandMPNN's mounted absolute checkpoint

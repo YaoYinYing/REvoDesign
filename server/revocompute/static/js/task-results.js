@@ -342,7 +342,7 @@
     name.textContent = artifact.path;
     var size = document.createElement("span");
     size.className = "artifact-row-size";
-    size.textContent = formatBytes(artifact.size);
+    size.textContent = (artifact.role === "diagnostic" ? "Execution log · " : "") + formatBytes(artifact.size);
     button.append(name, size);
     button.addEventListener("click", function () { previewArtifact(artifact); });
     return button;
@@ -381,7 +381,9 @@
     thumbnailUrls.forEach(function (url) { URL.revokeObjectURL(url); });
     thumbnailUrls = [];
     main.replaceChildren();
-    artifacts.filter(function (artifact) { return Boolean(artifact.preview); }).forEach(function (artifact) {
+    artifacts.filter(function (artifact) {
+      return Boolean(artifact.preview) && artifact.role !== "diagnostic";
+    }).forEach(function (artifact) {
       var card = document.createElement("button");
       card.type = "button";
       card.className = "main-result-card main-result-" + artifact.preview;

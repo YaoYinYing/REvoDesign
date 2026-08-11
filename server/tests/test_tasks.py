@@ -110,6 +110,14 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert ".artifact-molstar-preview" in styles
 
 
+def test_execution_logs_are_diagnostic_text_artifacts_not_main_results():
+    runtime = (SERVER_PACKAGE / "task_runtime.py").read_text(encoding="utf-8")
+    results = (SERVER_PACKAGE / "static" / "js" / "task-results.js").read_text(encoding="utf-8")
+    assert 'artifact["role"] = "diagnostic"' in runtime
+    assert 'artifact.role !== "diagnostic"' in results
+    assert 'Execution log · ' in results
+
+
 def test_full_stack_smoke_uses_manifest_first_result_contract():
     script = (Path(__file__).parent / "full_stack_smoke.py").read_text(encoding="utf-8")
     assert 'manifest = results.json()' in script
