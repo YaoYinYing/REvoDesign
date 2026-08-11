@@ -356,6 +356,46 @@ task_types:
       - {name: "packed_suffix", type: "str", default: "_packed", description: "Suffix for packed structures", advanced: true}
       - {name: "pack_with_ligand_context", type: "int", default: 1, choices: [0, 1], description: "Use ligand context during packing", advanced: true}
 
+  lasermpnn:
+    display_name: "LASErMPNN"
+    runtime_family: "mpnn"
+    input_extension: ".pdb"
+    input_extensions: [".pdb", ".cif", ".mmcif"]
+    primary_input_extensions: [".pdb", ".cif", ".mmcif"]
+    allow_multiple_inputs: true
+    max_input_files: 64
+    input_label: "Protonated protein–ligand structures (PDB/mmCIF)"
+    stage_markers:
+      lasermpnn: "LASErMPNN ligand-conditioned sequence and side-chain design"
+    params:
+      - {name: "designs_per_input", type: "int", default: 5, minimum: 1, maximum: 1000, description: "Designs generated for each uploaded structure"}
+      - {name: "designs_per_batch", type: "int", default: 5, minimum: 1, maximum: 1000, description: "Designs generated in one model pass; reduce to limit memory"}
+      - {name: "inputs_processed_simultaneously", type: "int", default: 1, minimum: 1, maximum: 64, description: "Uploaded structures processed together per model pass"}
+      - {name: "model_checkpoint", type: "str", default: "all_data", choices: ["all_data", "paper"], description: "All-data checkpoint (current upstream default) or held-out-split checkpoint used in the paper"}
+      - {name: "sequence_temp", type: "float", default: null, minimum: 0, description: "Sequence sampling temperature; blank uses the checkpoint default", advanced: true}
+      - {name: "first_shell_sequence_temp", type: "float", default: null, minimum: 0, description: "Separate sequence temperature for ligand first-shell residues", advanced: true}
+      - {name: "chi_temp", type: "float", default: null, minimum: 0, description: "Side-chain chi-angle sampling temperature", advanced: true}
+      - {name: "chi_min_p", type: "float", default: 0.0, minimum: 0, maximum: 1, description: "Minimum chi-angle sampling probability; upstream does not recommend changing this", advanced: true}
+      - {name: "seq_min_p", type: "float", default: 0.0, minimum: 0, maximum: 1, description: "Minimum sequence sampling probability; upstream does not recommend changing this", advanced: true}
+      - {name: "use_water", type: "bool", default: false, description: "Treat HOH records as ligand context", advanced: true}
+      - {name: "silent", type: "bool", default: false, description: "Suppress upstream status output", advanced: true}
+      - {name: "disabled_residues", type: "str", default: "X,C", description: "Comma-separated residue symbols excluded from sampling", advanced: true}
+      - {name: "fix_beta", type: "bool", default: false, description: "Fix residues and rotamers whose input B-factor is 1", advanced: true}
+      - {name: "repack_only_input_sequence", type: "bool", default: false, description: "Keep the input sequence and only repack side chains", advanced: true}
+      - {name: "ignore_ligand", type: "bool", default: false, description: "Run without ligand context", advanced: true}
+      - {name: "constrain_ala_gly_sampling_to_exposed_non_secondary_structure", type: "bool", default: false, description: "Apply upstream surface ALA/GLY sampling constraints", advanced: true}
+      - {name: "budget_residue_sele_string", type: "str", default: "", description: "Optional ProDy residue selection for ALA/GLY budgets", advanced: true}
+      - {name: "ala_budget", type: "int", default: 4, minimum: 0, description: "Maximum ALA samples in budgeted residues", advanced: true}
+      - {name: "gly_budget", type: "int", default: 0, minimum: 0, description: "Maximum GLY samples in budgeted residues", advanced: true}
+      - {name: "noncanonical_aa_ligand", type: "bool", default: false, description: "Treat noncanonical amino acids as ligand atoms", advanced: true}
+      - {name: "repack_all", type: "bool", default: false, description: "Repack every residue, including masked residues", advanced: true}
+      - {name: "output_fasta", type: "bool", default: true, description: "Write designed FASTA sequences alongside structure outputs"}
+      - {name: "output_fasta_only", type: "bool", default: false, description: "Write FASTA sequences without designed PDB structures", advanced: true}
+      - {name: "fs_calc_ca_distance", type: "float", default: 10.0, minimum: 0, unit: "Å", description: "Ligand-heavy-atom to Cα cutoff for first-shell residues", advanced: true}
+      - {name: "fs_calc_burial_hull_alpha_value", type: "float", default: 9.0, minimum: 0, description: "Alpha-hull value used for first-shell burial", advanced: true}
+      - {name: "fs_no_calc_burial", type: "bool", default: false, description: "Select first-shell residues by distance without burial filtering", advanced: true}
+      - {name: "disable_charged_fs", type: "bool", default: false, description: "Disable D/K/R/E sampling in the ligand first shell", advanced: true}
+
   thermompnn:
     display_name: "ThermoMPNN-D"
     runtime_family: "mpnn"

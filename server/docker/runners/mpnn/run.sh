@@ -111,6 +111,81 @@ case "${task_type}" in
     done
     python3 "${LIGANDMPNN_PATH}/run.py" "${ligand_args[@]}"
     ;;
+  lasermpnn)
+    laser_checkpoint=$(_parse_param model_checkpoint)
+    case "${laser_checkpoint:-all_data}" in
+      all_data)
+        laser_weights="${LASERMPNN_PATH}/model_weights/laser_weights_0p1A_nothing_heldout.pt"
+        ;;
+      paper)
+        laser_weights="${LASERMPNN_PATH}/model_weights/laser_weights_0p1A_noise_ligandmpnn_split.pt"
+        ;;
+      *)
+        echo "Unknown LASErMPNN model_checkpoint: ${laser_checkpoint}" >&2
+        exit 1
+        ;;
+    esac
+
+    laser_input_manifest=$(mktemp --suffix=.txt)
+    trap 'rm -f "${laser_input_manifest}"' EXIT
+    LASER_INPUT_MANIFEST="${laser_input_manifest}" python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+inputs = json.loads(os.environ.get("TASK_INPUTS", "[]"))
+if not inputs:
+    raise SystemExit("TASK_INPUTS did not contain any LASErMPNN structures")
+allowed = {".pdb", ".cif", ".mmcif"}
+paths = []
+for item in inputs:
+    raw_path = item.get("path", "") if isinstance(item, dict) else ""
+    path = Path(raw_path)
+    if "\n" in raw_path or "\r" in raw_path or path.suffix.lower() not in allowed:
+        raise SystemExit(f"Unsupported LASErMPNN input: {path.name}")
+    if not path.is_file():
+        raise SystemExit(f"LASErMPNN input not found: {path.name}")
+    paths.append(str(path))
+Path(os.environ["LASER_INPUT_MANIFEST"]).write_text("\n".join(paths) + "\n", encoding="utf-8")
+PY
+
+    designs_per_input=$(_parse_param designs_per_input); : "${designs_per_input:=5}"
+    designs_per_batch=$(_parse_param designs_per_batch); : "${designs_per_batch:=5}"
+    inputs_simultaneously=$(_parse_param inputs_processed_simultaneously); : "${inputs_simultaneously:=1}"
+    (( designs_per_batch <= designs_per_input )) || {
+      echo "designs_per_batch must not exceed designs_per_input" >&2
+      exit 1
+    }
+    laser_args=(
+      "${laser_input_manifest}"
+      "${output_dir}"
+      "${designs_per_input}"
+      --designs_per_batch "${designs_per_batch}"
+      --inputs_processed_simultaneously "${inputs_simultaneously}"
+      --model_weights_path "${laser_weights}"
+      --device cpu
+      --chi_min_p "$(_parse_param chi_min_p)"
+      --seq_min_p "$(_parse_param seq_min_p)"
+      --disabled_residues "$(_parse_param disabled_residues)"
+      --ala_budget "$(_parse_param ala_budget)"
+      --gly_budget "$(_parse_param gly_budget)"
+      --fs_calc_ca_distance "$(_parse_param fs_calc_ca_distance)"
+      --fs_calc_burial_hull_alpha_value "$(_parse_param fs_calc_burial_hull_alpha_value)"
+    )
+    for key in sequence_temp first_shell_sequence_temp chi_temp budget_residue_sele_string; do
+      value=$(_parse_param "${key}")
+      [[ -n "${value}" && "${value}" != "None" ]] && laser_args+=("--${key}" "${value}")
+    done
+    for flag in use_water silent fix_beta repack_only_input_sequence ignore_ligand \
+      constrain_ala_gly_sampling_to_exposed_non_secondary_structure noncanonical_aa_ligand \
+      repack_all output_fasta output_fasta_only fs_no_calc_burial disable_charged_fs; do
+      [[ "$(_parse_param "${flag}")" == "true" ]] && laser_args+=("--${flag}")
+    done
+    (
+      cd "$(dirname "${LASERMPNN_PATH}")"
+      python3 -m LASErMPNN.run_batch_inference "${laser_args[@]}"
+    )
+    ;;
   thermompnn)
     read -r -a thermo_chains <<< "$CHAINS"
     thermo_args=(

@@ -1,5 +1,9 @@
 # REvoCompute Server
 
+For the complete production build → versioned SIF → prepared SLURM activation
+runbook and the new-task/runtime-family adapter contract, see
+[REvoCompute Operations and Task Adapter Guide](OPERATIONS_AND_TASK_ADAPTER_GUIDE.md).
+
 The server is a Docker-deployed Flask + Celery + Docker-runner web service for
 protein bioinformatics computation — currently GREMLIN co-evolution analysis,
 with a generic multi-task architecture that supports adding AlphaFold, ESM,
@@ -896,7 +900,12 @@ The shared `mpnn` family pins a commit-identical fork of the official
 **SolubleMPNN** is a distinct task that passes the upstream
 `--use_soluble_model` flag and permits only the published `v_48_010` and
 `v_48_020` soluble checkpoints. HyperMPNN, LigandMPNN, and ThermoMPNN-D remain
-separate task contracts in the same dependency image.
+separate task contracts in the same dependency image. **LASErMPNN** also uses
+this CPU family for ligand-conditioned sequence and side-chain design. It
+accepts multiple protonated PDB/mmCIF snapshots, preserves nested upload paths,
+and exposes the upstream all-data default and paper-analysis checkpoints as
+explicit choices; arbitrary checkpoint paths and key-mismatch bypasses remain
+server controlled.
 
 The `easifa` family uses the pinned official EasIFA2 Core single-prediction
 interface, not the legacy EasIFA dataset benchmark. Its read-only checkpoint

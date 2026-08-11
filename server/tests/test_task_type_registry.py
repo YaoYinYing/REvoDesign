@@ -45,6 +45,7 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
         "proteinmpnn",
         "solublempnn",
         "ligandmpnn",
+        "lasermpnn",
         "thermompnn",
         "placer",
         "rfdiffusion",
@@ -67,7 +68,14 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
 
         mpnn_tasks = [
             task_types.get(name)
-            for name in ("hypermpnn", "proteinmpnn", "solublempnn", "ligandmpnn", "thermompnn")
+            for name in (
+                "hypermpnn",
+                "proteinmpnn",
+                "solublempnn",
+                "ligandmpnn",
+                "lasermpnn",
+                "thermompnn",
+            )
         ]
         assert {tt.runtime.name for tt, _ in mpnn_tasks} == {"mpnn"}
         assert len({id(runner) for _, runner in mpnn_tasks}) == 1
@@ -156,6 +164,31 @@ def test_proteinmpnn_and_solublempnn_share_the_pinned_official_runtime():
         item for item in registry["task_types"]["solublempnn"]["params"] if item["name"] == "model_name"
     )
     assert soluble_model["choices"] == ["v_48_010", "v_48_020"]
+
+
+def test_lasermpnn_uses_pinned_source_checkpoints_and_cpu_runtime():
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "Dockerfile").read_text(
+        encoding="utf-8"
+    )
+    run_script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text(
+        encoding="utf-8"
+    )
+    registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
+
+    assert "LASERMPNN_REPO=https://github.com/YaoYinYing/LASErMPNN.git" in dockerfile
+    assert "LASERMPNN_REF=5df210fced6764d83f01425d1fc4319a22b70c2a" in dockerfile
+    assert "laser_weights_0p1A_nothing_heldout.pt" in run_script
+    assert "laser_weights_0p1A_noise_ligandmpnn_split.pt" in run_script
+    assert "--device cpu" in run_script
+    assert "--ignore_key_mismatch" not in run_script
+    assert 'item.get("path", "")' in run_script
+    assert 'json.loads(os.environ.get("TASK_INPUTS", "[]"))' in run_script
+    assert "mktemp --suffix=.txt" in run_script
+    task = registry["task_types"]["lasermpnn"]
+    assert task["runtime_family"] == "mpnn"
+    assert task["allow_multiple_inputs"] is True
+    assert set(task["input_extensions"]) == {".pdb", ".cif", ".mmcif"}
+    assert "protonated" in task["input_label"].lower()
 
 
 def test_every_declared_submission_parameter_is_consumed_by_its_runtime_script():
