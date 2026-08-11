@@ -59,29 +59,30 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     assert "file-input-offscreen" not in html
 
 
-def test_dashboard_download_uses_native_browser_streaming():
-    script = (SERVER_PACKAGE / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
-    styles = (SERVER_PACKAGE / "static" / "css" / "dashboard.css").read_text(encoding="utf-8")
+def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
+    dashboard_script = (SERVER_PACKAGE / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
+    script = (SERVER_PACKAGE / "static" / "js" / "task-results.js").read_text(encoding="utf-8")
+    styles = (SERVER_PACKAGE / "static" / "css" / "task-results.css").read_text(encoding="utf-8")
+    template = (SERVER_PACKAGE / "templates" / "task_results.html").read_text(encoding="utf-8")
 
-    assert 'A.authFetch(requestUrl, { method: "POST" })' in script
+    assert 'window.location.assign("/compute/results/"' in dashboard_script
     assert 'A.authFetch("/compute/api/results/"' in script
-    assert "a.href = url" in script
-    assert 'a.download = ""' in script
-    assert "response.body.getReader()" not in script
-    assert "new Blob(" not in script
-    assert 'button.setAttribute("aria-busy"' in script
-    assert "table: async function" in script
-    assert "parseDelimitedRows" in script
-    assert "artifactPreviewPlugins" in script
+    assert "Main Results" in template
+    assert "Scientific previews" not in template
     assert 'MOLSTAR_VERSION = "5.10.0"' in script
     assert "MOLSTAR_SCRIPT_INTEGRITY" in script
-    assert "loadStructureFromUrl" in script
-    assert "artifact-gallery" in script
-    assert ".task-btn.download-progress" in styles
+    assert "RIontCdJN53gEl2f" in script
+    assert "A.authFetch(artifact.url)" in script
+    assert "loadStructureFromData" in script
+    assert "loadStructureFromUrl" not in script
+    assert 'PY2DMOL_COMMIT = "8c95fd9efae6007e124e143cd276244d89228c66"' in script
+    assert "PY2DMOL_SCRIPT_INTEGRITY" in script
+    assert "renderPy2DmolFallback" in script
+    assert "parseCifAlphaCarbons" in script
+    assert "var previewPlugins = Object.freeze" in script
+    assert "await plugin.render(artifact, stage)" in script
     assert ".artifact-table-preview" in styles
-    assert ".artifact-gallery" in styles
     assert ".artifact-molstar-preview" in styles
-    assert "prefers-reduced-motion: reduce" in styles
 
 
 def test_full_stack_smoke_uses_manifest_first_result_contract():
@@ -239,6 +240,44 @@ def test_run_compute_task_finalizes_uncompressed_result_manifest(monkeypatch, tm
     assert observed_statuses.index("running") < observed_statuses.index("finished")
 
 
+def test_single_stage_slurm_task_transitions_from_queued_to_running(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ENABLED_TASKRUNNERS": "opendde",
+        },
+    )
+    result_dir = tmp_path / "result"
+    md5sum = _insert_pending_task(module, result_dir)
+    module.task_store.update_task(md5sum, task_type="opendde")
+    observed_statuses: list[str] = []
+    original_update_task = module.task_store.update_task
+
+    def _track_update(md5_value: str, **fields):
+        if "status" in fields:
+            observed_statuses.append(fields["status"])
+        return original_update_task(md5_value, **fields)
+
+    def _fake_runner(task_id, tt, runner, entities, output_dir, stage_callback=None, username=""):
+        del task_id, tt, runner, entities, username
+        if stage_callback:
+            stage_callback("opendde")
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        (output_path / "model.cif").write_text("data_model\n", encoding="utf-8")
+
+    monkeypatch.setattr(module.task_runtime, "_get_job_executor", lambda: "slurm")
+    monkeypatch.setattr(module.task_store, "update_task", _track_update)
+    monkeypatch.setattr(module.task_runtime, "_run_compute_job", _fake_runner)
+
+    module.run_compute_task(md5sum, "opendde", {})
+
+    assert observed_statuses == ["queued", "running", "finished"]
+
+
 def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -354,6 +393,7 @@ def test_result_manifest_allows_only_published_artifacts(monkeypatch, tmp_path):
     (result_dir / "not-published.txt").write_text("late mutation", encoding="utf-8")
 
     manifest_response = client.get(f"/compute/api/results/{md5sum}", headers=auth_header)
+    result_page = client.get(f"/compute/results/{md5sum}", headers=auth_header)
     artifact = manifest_response.json["artifacts"][0]
     inline = client.get(artifact["url"], headers=auth_header)
     download = client.get(f"{artifact['url']}?download=1", headers=auth_header)
@@ -363,6 +403,9 @@ def test_result_manifest_allows_only_published_artifacts(monkeypatch, tmp_path):
     )
 
     assert manifest_response.status_code == 200
+    assert result_page.status_code == 200
+    assert "Main Results" in result_page.get_data(as_text=True)
+    assert md5sum in result_page.get_data(as_text=True)
     assert artifact["path"] == "scores/result.csv"
     assert artifact["preview"] == "table"
     assert inline.status_code == 200
@@ -884,6 +927,10 @@ def test_private_dashboard_blocks_non_owner_access(monkeypatch, tmp_path):
         response = method(f"/compute/api/{route}/{md5sum}", headers=other_header)
         assert response.status_code == 403
         assert response.json["status"] == "forbidden"
+
+    result_page = client.get(f"/compute/results/{md5sum}", headers=other_header)
+    assert result_page.status_code == 403
+    assert result_page.json["status"] == "forbidden"
 
     owner_dashboard = client.get("/compute/dashboard", headers=owner_header)
     other_dashboard = client.get("/compute/dashboard", headers=other_header)

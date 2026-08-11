@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | Main Results</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/compute/logo.svg">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/task-results.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="page result-page">
+  <section class="panel result-hero">
+    <div>
+      <p class="result-eyebrow">{{ task.task_type }}</p>
+      <h1 class="headline">{{ task.fasta_fn }}</h1>
+      <p class="subline"><code>{{ task.md5 }}</code></p>
+    </div>
+    <div class="hero-actions">
+      <a class="btn btn-soft" href="/compute/dashboard">Dashboard</a>
+      <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
+      <button class="btn btn-soft" type="button" id="refreshResults">Refresh</button>
+    </div>
+  </section>
+
+  <section class="result-summary-grid" aria-label="Task result summary">
+    <article class="panel result-stat"><span>Status</span><strong id="resultStatus">{{ task.status }}</strong></article>
+    <article class="panel result-stat"><span>Files</span><strong id="resultFileCount">—</strong></article>
+    <article class="panel result-stat"><span>Total size</span><strong id="resultTotalSize">—</strong></article>
+    <article class="panel result-stat"><span>Wall time</span><strong>{{ task.walltime }}</strong></article>
+  </section>
+
+  <section class="result-layout">
+    <aside class="panel artifact-sidebar">
+      <div class="section-title-row">
+        <h2>Artifacts</h2>
+        <button class="btn btn-soft btn-small" type="button" id="archiveButton">Create ZIP</button>
+      </div>
+      <p class="muted" id="archiveState">The manifest and individual files are available without an archive.</p>
+      <input class="artifact-search" id="artifactSearch" type="search" placeholder="Filter files" aria-label="Filter result artifacts">
+      <nav class="artifact-list" id="artifactList" aria-label="Result artifacts"></nav>
+    </aside>
+
+    <section class="panel preview-workspace">
+      <div class="section-title-row">
+        <div>
+          <p class="result-eyebrow">Main Results</p>
+          <h2 id="previewTitle">Choose an artifact</h2>
+        </div>
+        <a class="btn btn-soft btn-small" id="artifactDownload" hidden>Download file</a>
+      </div>
+      <div class="main-results" id="mainResults"></div>
+      <div class="artifact-preview-stage" id="artifactPreview" aria-live="polite">
+        <p class="empty-result">Select a previewable result from Main Results or the artifact list.</p>
+      </div>
+    </section>
+  </section>
+</main>
+
+<aside class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></aside>
+<script>window.__RESULT_TASK__ = {{ task | tojson }};</script>
+<script src="/static/js/auth-api.js"></script>
+<script src="/static/js/task-results.js"></script>
+</body>
+</html>

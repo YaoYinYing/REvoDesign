@@ -159,14 +159,10 @@ class DockerJob(Job):
         return container_env
 
     def _build_command_args(self) -> list[str]:
-        params = {e["name"]: e["verified_value"] for e in self.param_entities}
         command_args: list[str] = list(self.tt.runner_args)
         if self.file_entities:
             command_args.extend(["-i", self.file_entities[0]["mounted"]])
         command_args.extend(["-o", f"{self.virtual_workspace_root}/outputs"])
-        for key, flag in (("iter", "-r"),):
-            if key in params:
-                command_args.extend([flag, str(params[key])])
         return command_args
 
     def _teardown(self) -> None:

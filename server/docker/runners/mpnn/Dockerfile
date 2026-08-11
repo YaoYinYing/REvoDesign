@@ -58,7 +58,7 @@ COPY --chown=${RUNNER_UID}:${RUNNER_GID} docker/runners/mpnn/run.sh /app/revocom
 WORKDIR /app/revocompute/
 ENV PATH=/opt/venv/bin:${PATH}
 ENV RUNNER_USERNAME=${RUNNER_USERNAME}
-ENV MPNN_PATH=/opt/ProteinMPNN/vanilla_proteinmpnn
+ENV MPNN_PATH=/opt/ProteinMPNN
 ENV LIGANDMPNN_PATH=/opt/LigandMPNN
 ENV HYPERMPNN_WEIGHTS=/app/revocompute/hypermpnn_weights
 ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \

@@ -121,6 +121,35 @@ def test_mpnn_cpu_runtime_omits_inference_unused_gpu_and_media_wheels():
     assert '--no-deps "git+${THERMOREPO}@${THERMOREF}"' in dockerfile
 
 
+def test_ligandmpnn_uses_the_pinned_upstream_cli_flags():
+    run_script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text(
+        encoding="utf-8"
+    )
+
+    ligand_case = run_script.split("  ligandmpnn)", 1)[1].split("    ;;", 1)[0]
+    assert '--number_of_batches "${NUM_SEQ}"' in ligand_case
+    assert '--temperature "${SAMPLING_TEMP}"' in ligand_case
+    assert "--num_seq_per_target" not in ligand_case
+    assert "--sampling_temp" not in ligand_case
+
+
+def test_every_declared_submission_parameter_is_consumed_by_its_runtime_script():
+    """Prevent the schema-driven form from advertising ignored scientific controls."""
+    registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
+    for task_name, task in registry["task_types"].items():
+        declared = {param["name"] for param in task.get("params", [])}
+        if not declared:
+            continue
+        runtime = registry["runtime_families"][task["runtime_family"]]
+        script = (SERVER_ROOT / Path(runtime["dockerfile"]).parent / "run.sh").read_text(encoding="utf-8")
+        consumed = {
+            name
+            for name in declared
+            if re.search(rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])", script)
+        }
+        assert consumed == declared, f"{task_name} exposes ignored parameters: {sorted(declared - consumed)}"
+
+
 def test_prime_runtime_uses_pinned_ogt_model_contract():
     runtime_dir = SERVER_ROOT / "docker" / "runners" / "prime"
     dockerfile = (runtime_dir / "Dockerfile").read_text(encoding="utf-8")
@@ -322,7 +351,8 @@ def test_shared_runner_passes_full_snapshot_root_to_placer():
         encoding="utf-8"
     )
     assert 'input_root="${input_file%%/inputs/*}/inputs"' in script
-    assert 'run_PLACER.py" -i "$input_root"' in script
+    assert 'placer_args=(-i "$input_root" -o "$output_dir" -n "$NUM_SAMPLES")' in script
+    assert 'run_PLACER.py" "${placer_args[@]}"' in script
 
 
 def test_submission_resolves_defaults_and_constraints():

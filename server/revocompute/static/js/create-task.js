@@ -106,10 +106,9 @@
       return;
     }
     paramsZone.style.display = "";
-    var html = '<p class="field-label">Parameters</p>';
-    params.forEach(function (p) {
+    function renderParam(p) {
       var label = p.label || p.name;
-      html += '<div class="param-field">' +
+      var html = '<div class="param-field">' +
         '<label class="param-label" for="param_' + p.name + '">' + label + (p.unit ? " (" + p.unit + ")" : "") + '</label>';
       if (p.choices && p.choices.length) {
         html += '<select class="text-input" id="param_' + p.name + '">' + p.choices.map(function (choice) {
@@ -129,7 +128,20 @@
           (p.required ? ' required' : '') + '>';
       }
       html += '<p class="param-help">' + (p.description || "") + '</p></div>';
+      return html;
+    }
+    var basicParams = params.filter(function (p) { return !p.advanced; });
+    var advancedParams = params.filter(function (p) { return Boolean(p.advanced); });
+    var html = '<p class="field-label">Parameters</p>';
+    basicParams.forEach(function (p) {
+      html += renderParam(p);
     });
+    if (advancedParams.length) {
+      html += '<details class="advanced-params"><summary>Advanced parameters (' + advancedParams.length + ')</summary>' +
+        '<div class="advanced-params-grid">';
+      advancedParams.forEach(function (p) { html += renderParam(p); });
+      html += '</div></details>';
+    }
     paramsZone.innerHTML = html;
   }
 

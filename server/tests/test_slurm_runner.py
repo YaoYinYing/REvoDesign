@@ -176,10 +176,12 @@ def test_render_apptainer_omits_nvidia_flag_for_cpu_task(tmp_path):
     assert "apptainer run --bind" in script
 
 
-def test_render_apptainer_passes_iter_flag(tmp_path):
+def test_render_apptainer_keeps_parameters_in_typed_json_env(tmp_path):
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
     script = job._render_wrapper()
-    assert "-r 100" in script
+    assert "-r 100" not in script
+    assert 'export APPTAINERENV_TASK_PARAMS=' in script
+    assert '"iter":"100"' in script
 
 
 def test_render_apptainer_passes_runtime_subcommand(tmp_path):

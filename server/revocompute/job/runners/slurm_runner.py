@@ -252,9 +252,6 @@ class SlurmJob(Job):
         if self.file_entities:
             cmd += f" -i {_sh_quote(self.file_entities[0]['mounted'])}"
         cmd += f" -o {_sh_quote(self.virtual_workspace_root + '/outputs')}"
-        for key, flag in (("iter", "-r"),):
-            if key in params:
-                cmd += f" {flag} {params[key]}"
         lines.append(cmd)
 
     # -- output capture ------------------------------------------------------

@@ -487,6 +487,7 @@ def test_login_sets_auth_cookie(monkeypatch, tmp_path):
     cookies = resp.headers.get_all("Set-Cookie")
     assert any("auth_token" in c for c in cookies)
     assert any("HttpOnly" in c for c in cookies)
+    assert any("Path=/" in c for c in cookies)
 
 
 # --- Page routes ---

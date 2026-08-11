@@ -73,6 +73,11 @@ while getopts ":i:o:j:r:U:u:B:h:" opt; do
     esac
 done
 
+_parse_param() { python -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
+if [[ -z "${gremlin_iter:-}" ]]; then
+  gremlin_iter=$(_parse_param iter)
+fi
+
 if [[ -z "${fasta:-}" ]]; then
   echo "Missing required option: -i <fasta>"
   usage

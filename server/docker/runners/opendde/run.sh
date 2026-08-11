@@ -108,7 +108,7 @@ fi
 export OPENDDE_ROOT_DIR="$writable_opendde_root"
 
 # Parse TASK_PARAMS JSON into env vars.
-_parse_param() { python3 -c "import json,os; print(json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''))"; }
+_parse_param() { python3 -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
 : "${MODEL_NAME:=$(_parse_param model_name)}"
 : "${MODEL_NAME:=opendde_v1}"
 : "${NUM_SAMPLES:=$(_parse_param num_samples)}"
@@ -121,6 +121,9 @@ _parse_param() { python3 -c "import json,os; print(json.loads(os.environ.get('TA
 : "${USE_MSA:=true}"
 : "${USE_TEMPLATE:=$(_parse_param use_template)}"
 : "${USE_TEMPLATE:=true}"
+: "${SEEDS:=$(_parse_param seeds)}"
+: "${DTYPE:=$(_parse_param dtype)}"
+: "${DTYPE:=fp32}"
 
 echo "Processing $input_file ..."
 echo "Output directory: $output_dir"
@@ -135,10 +138,11 @@ echo "MSA: $USE_MSA  Template: $USE_TEMPLATE"
 # production inference image.
 echo "REVODESIGN_STAGE:opendde"
 
-opendde pred \
+opendde_args=(pred \
     -i "$writable_input_file" \
     -o "$output_dir" \
     -n "$MODEL_NAME" \
+    --dtype "$DTYPE" \
     --sample "$NUM_SAMPLES" \
     --step "$NUM_STEPS" \
     --cycle "$NUM_CYCLES" \
@@ -147,7 +151,15 @@ opendde pred \
     --trimul_kernel torch \
     --triatt_kernel torch \
     --enable_fusion false \
-    --use_rna_msa false
+    --enable_cache "$(_parse_param enable_cache)" \
+    --enable_tf32 "$(_parse_param enable_tf32)" \
+    --deterministic "$(_parse_param deterministic)" \
+    --need_atom_confidence "$(_parse_param need_atom_confidence)" \
+    --use_default_params "$(_parse_param use_default_params)" \
+    --use_tfg_guidance "$(_parse_param use_tfg_guidance)" \
+    --use_rna_msa false)
+[[ -n "$SEEDS" ]] && opendde_args+=(--seeds "$SEEDS")
+opendde "${opendde_args[@]}"
 
 # Some OpenDDE versions catch per-input inference exceptions and still exit 0,
 # leaving MSA intermediates plus ERR/error.txt.  Only a non-empty predicted

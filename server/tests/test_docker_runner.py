@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import replace
 from pathlib import Path
@@ -288,7 +289,7 @@ def test_build_env_includes_task_params(tmp_path):
     assert params["iter"] == "50"
 
 
-def test_build_command_args_passes_iter_flag(tmp_path):
+def test_build_command_args_keeps_parameters_in_typed_json_env(tmp_path):
     tt = _make_task_type(runner_args=("subcommand",))
     runner = _make_runner()
     entities = [
@@ -315,5 +316,6 @@ def test_build_command_args_passes_iter_flag(tmp_path):
     assert "/mnt/revocompute/tester/inputs/x.fasta" in args
     assert "-o" in args
     assert "/mnt/revocompute/tester/outputs" in args
-    assert "-r" in args
-    assert "200" in args
+    assert "-r" not in args
+    assert "200" not in args
+    assert json.loads(job._build_env()["TASK_PARAMS"]) == {"iter": "200"}

@@ -26,7 +26,7 @@ from typing import Any
 from urllib.parse import quote
 
 from celery.result import AsyncResult
-from flask import Response, current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Response, abort, current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 from pydantic import ValidationError
 from revocompute.app import (
     ENABLE_REGISTER,
@@ -936,6 +936,24 @@ def task_dashboard():  # skipcq: PY-R1000 -- dashboard filtering and response as
     )
 
 
+@app.route("/compute/results/<md5sum>", methods=["GET"])
+@login_required
+def task_results_page(md5sum):
+    """Render the dedicated manifest-first result workspace for one task."""
+    normalized = _normalize_task_id(md5sum)
+    if normalized is None:
+        abort(404)
+    task = task_store.get_task(normalized)
+    if task is None:
+        abort(404)
+    if not _task_access_allowed(task):
+        return _task_access_denied(normalized)
+    return render_template(
+        "task_results.html",
+        task=_dashboard_task_status(task, 0, _current_username() or "", _is_admin_user()),
+    )
+
+
 def _soft_delete_task(md5sum: str, task: dict[str, Any]) -> None:
     if task["status"] in {"pending", "queued", "running"}:
         _revoke_celery_task(task)
@@ -1252,7 +1270,14 @@ def auth_login():
     # secure=True only when SERVER_BASE_URL uses https — plain-http dev
     # environments would silently drop Secure cookies.
     _cookie_secure = _env_str("SERVER_BASE_URL", "http://localhost:8080").startswith("https://")
-    response.set_cookie("auth_token", token, httponly=True, samesite="Lax", secure=_cookie_secure)
+    response.set_cookie(
+        "auth_token",
+        token,
+        path="/",
+        httponly=True,
+        samesite="Lax",
+        secure=_cookie_secure,
+    )
     return response
 
 

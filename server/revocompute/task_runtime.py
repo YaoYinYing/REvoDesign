@@ -521,13 +521,14 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
     stage_state = {"current": current_stage, "first": True}
 
     def _on_stage_change(stage: str) -> None:
-        if stage == stage_state["current"] or _task_is_terminal(md5sum):
+        if _task_is_terminal(md5sum):
             return
+        stage_changed = stage != stage_state["current"]
         stage_state["current"] = stage
         if stage_state.get("first"):
             stage_state["first"] = False
             task_store.update_task(md5sum, status="running", run_stage=stage)
-        else:
+        elif stage_changed:
             task_store.update_task(md5sum, run_stage=stage)
 
     try:

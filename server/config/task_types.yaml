@@ -146,6 +146,9 @@ task_types:
         type: "str"
         default: "33"
         description: "Representation layers (space-separated)"
+      - {name: "include", type: "str", default: "mean per_tok", description: "Space-separated outputs: mean, per_tok, bos, contacts"}
+      - {name: "toks_per_batch", type: "int", default: 4096, minimum: 1, description: "Maximum tokens per inference batch", advanced: true}
+      - {name: "truncation_seq_length", type: "int", default: 1022, minimum: 1, description: "Maximum residues retained from each sequence", advanced: true}
 
   esm_1v:
     display_name: "ESM-1v Scoring"
@@ -155,12 +158,7 @@ task_types:
     input_label: "FASTA file"
     stage_markers:
       esm_1v: "ESM-1v variant effect prediction"
-    params:
-      - name: "scoring_strategy"
-        type: "str"
-        default: "wt-marginals"
-        description: "Scoring strategy (wt-marginals, masked-marginals, pseudo-ppl)"
-        choices: ["wt-marginals", "masked-marginals", "pseudo-ppl"]
+    params: []
 
   esm_if1:
     display_name: "ESM-IF1 Design"
@@ -183,6 +181,7 @@ task_types:
         description: "Number of sequences to sample"
         minimum: 1
         step: 1
+      - {name: "chain", type: "str", default: "A", description: "Backbone chain to redesign", advanced: true}
 
   opendde:
     display_name: "OpenDDE"
@@ -218,6 +217,14 @@ task_types:
         type: "bool"
         default: true
         description: "Enable template searching"
+      - {name: "seeds", type: "str", default: "", description: "Optional comma-separated random seeds", advanced: true}
+      - {name: "dtype", type: "str", default: "fp32", choices: ["fp32", "bf16"], description: "Inference numeric precision", advanced: true}
+      - {name: "use_default_params", type: "bool", default: false, description: "Reset cycles and steps to model defaults", advanced: true}
+      - {name: "enable_cache", type: "bool", default: true, description: "Cache diffusion shared variables", advanced: true}
+      - {name: "enable_tf32", type: "bool", default: true, description: "Allow TF32 matrix multiplication", advanced: true}
+      - {name: "deterministic", type: "bool", default: false, description: "Enable deterministic PyTorch algorithms", advanced: true}
+      - {name: "need_atom_confidence", type: "bool", default: true, description: "Calculate atom-level confidence scores", advanced: true}
+      - {name: "use_tfg_guidance", type: "bool", default: false, description: "Enable training-free guidance", advanced: true}
 
   hypermpnn:
     display_name: "HyperMPNN"
@@ -227,14 +234,30 @@ task_types:
     stage_markers:
       hypermpnn: "HyperMPNN thermostable design"
     params:
-      - name: "num_seq"
+      - name: "num_seq_per_target"
         type: "int"
         default: 100
         description: "Number of sequences to design"
+        minimum: 1
+        maximum: 10000
       - name: "sampling_temp"
-        type: "float"
-        default: 0.1
-        description: "Sampling temperature"
+        type: "str"
+        default: "0.1"
+        description: "Space-separated sampling temperatures, e.g. 0.1 0.2"
+      - {name: "batch_size", type: "int", default: 1, minimum: 1, description: "Sequences generated per model pass"}
+      - {name: "seed", type: "int", default: 0, minimum: 0, description: "Random seed; 0 selects a random seed"}
+      - {name: "pdb_path_chains", type: "str", default: "", description: "Space-separated chains to design", advanced: true}
+      - {name: "ca_only", type: "bool", default: false, description: "Parse CA-only structures", advanced: true}
+      - {name: "backbone_noise", type: "float", default: 0.0, minimum: 0, description: "Gaussian backbone coordinate noise", unit: "Å", advanced: true}
+      - {name: "max_length", type: "int", default: 200000, minimum: 1, description: "Maximum parsed sequence length", advanced: true}
+      - {name: "omit_AAs", type: "str", default: "X", description: "Amino acids to omit from generated sequences", advanced: true}
+      - {name: "save_score", type: "int", default: 0, choices: [0, 1], description: "Save per-sequence scores", advanced: true}
+      - {name: "save_probs", type: "int", default: 0, choices: [0, 1], description: "Save predicted residue probabilities", advanced: true}
+      - {name: "score_only", type: "int", default: 0, choices: [0, 1], description: "Score the input backbone-sequence pair without design", advanced: true}
+      - {name: "conditional_probs_only", type: "int", default: 0, choices: [0, 1], description: "Output conditional probabilities given the remaining sequence", advanced: true}
+      - {name: "conditional_probs_only_backbone", type: "int", default: 0, choices: [0, 1], description: "Output conditional probabilities given backbone only", advanced: true}
+      - {name: "unconditional_probs_only", type: "int", default: 0, choices: [0, 1], description: "Output unconditional probabilities given backbone", advanced: true}
+      - {name: "suppress_print", type: "int", default: 0, choices: [0, 1], description: "Suppress upstream progress output", advanced: true}
 
   ligandmpnn:
     display_name: "LigandMPNN"
@@ -244,14 +267,44 @@ task_types:
     stage_markers:
       ligandmpnn: "LigandMPNN sequence design"
     params:
-      - name: "num_seq"
+      - name: "number_of_batches"
         type: "int"
         default: 100
-        description: "Number of sequences per target"
+        description: "Number of model passes; total sequences equal batches × batch size"
+        minimum: 1
+        maximum: 10000
       - name: "sampling_temp"
         type: "float"
         default: 0.1
         description: "Sampling temperature"
+        minimum: 0.0001
+      - {name: "batch_size", type: "int", default: 1, minimum: 1, description: "Sequences generated per model pass"}
+      - {name: "seed", type: "int", default: 0, minimum: 0, description: "Random seed; 0 selects a random seed"}
+      - {name: "chains_to_design", type: "str", default: "", description: "Comma-separated chains to redesign", advanced: true}
+      - {name: "parse_these_chains_only", type: "str", default: "", description: "Comma-separated chains to parse", advanced: true}
+      - {name: "fixed_residues", type: "str", default: "", description: "Space-separated fixed residues, e.g. A12 A13 B2", advanced: true}
+      - {name: "redesigned_residues", type: "str", default: "", description: "Space-separated residues to redesign", advanced: true}
+      - {name: "bias_AA", type: "str", default: "", description: "Amino-acid bias, e.g. A:-1.0,P:2.0", advanced: true}
+      - {name: "omit_AA", type: "str", default: "", description: "Amino acids to omit, e.g. C", advanced: true}
+      - {name: "symmetry_residues", type: "str", default: "", description: "Symmetric residue groups in LigandMPNN syntax", advanced: true}
+      - {name: "symmetry_weights", type: "str", default: "", description: "Weights matching symmetry residue groups", advanced: true}
+      - {name: "homo_oligomer", type: "int", default: 0, choices: [0, 1], description: "Apply equal-weight homo-oligomer symmetry", advanced: true}
+      - {name: "fasta_seq_separation", type: "str", default: ":", description: "Chain separator in output FASTA", advanced: true}
+      - {name: "zero_indexed", type: "int", default: 0, choices: [0, 1], description: "Use zero-based residue numbering in output", advanced: true}
+      - {name: "verbose", type: "int", default: 1, choices: [0, 1], description: "Include upstream progress output", advanced: true}
+      - {name: "save_stats", type: "int", default: 0, choices: [0, 1], description: "Save upstream statistics", advanced: true}
+      - {name: "ligand_mpnn_use_atom_context", type: "int", default: 1, choices: [0, 1], description: "Use ligand atom context", advanced: true}
+      - {name: "ligand_mpnn_cutoff_for_score", type: "float", default: 8.0, minimum: 0, unit: "Å", description: "Ligand-context scoring cutoff", advanced: true}
+      - {name: "ligand_mpnn_use_side_chain_context", type: "int", default: 0, choices: [0, 1], description: "Use fixed-residue side chains as ligand context", advanced: true}
+      - {name: "parse_atoms_with_zero_occupancy", type: "int", default: 0, choices: [0, 1], description: "Parse atoms with zero occupancy", advanced: true}
+      - {name: "pack_side_chains", type: "int", default: 0, choices: [0, 1], description: "Run the LigandMPNN side-chain packer", advanced: true}
+      - {name: "number_of_packs_per_design", type: "int", default: 4, minimum: 1, description: "Independent side-chain packing samples", advanced: true}
+      - {name: "sc_num_denoising_steps", type: "int", default: 3, minimum: 1, description: "Side-chain denoising steps", advanced: true}
+      - {name: "sc_num_samples", type: "int", default: 16, minimum: 1, description: "Mixture samples per side-chain step", advanced: true}
+      - {name: "repack_everything", type: "int", default: 0, choices: [0, 1], description: "Repack fixed as well as designed residues", advanced: true}
+      - {name: "force_hetatm", type: "int", default: 0, choices: [0, 1], description: "Write ligand atoms as HETATM after packing", advanced: true}
+      - {name: "packed_suffix", type: "str", default: "_packed", description: "Suffix for packed structures", advanced: true}
+      - {name: "pack_with_ligand_context", type: "int", default: 1, choices: [0, 1], description: "Use ligand context during packing", advanced: true}
 
   thermompnn:
     display_name: "ThermoMPNN-D"
@@ -270,6 +323,10 @@ task_types:
         default: "single"
         description: "single, additive, or epistatic"
         choices: ["single", "additive", "epistatic"]
+      - {name: "batch_size", type: "int", default: 256, minimum: 1, description: "Prediction batch size"}
+      - {name: "threshold", type: "float", default: -0.5, description: "Only save mutations below this ΔΔG threshold", unit: "kcal/mol", advanced: true}
+      - {name: "distance", type: "float", default: 5.0, minimum: 0, description: "Pairwise Cα cutoff for double mutants", unit: "Å", advanced: true}
+      - {name: "ss_penalty", type: "bool", default: false, description: "Apply an explicit disulfide breakage penalty", advanced: true}
 
   prime:
     display_name: "Pro-Prime"
@@ -322,6 +379,45 @@ task_types:
         minimum: 1
         maximum: 1000
         step: 1
+      - {name: "design_startnum", type: "int", default: 0, minimum: 0, description: "Starting output design number", advanced: true}
+      - {name: "symmetry", type: "str", default: "", description: "Optional symmetry, e.g. c3, d2, tetrahedral", advanced: true}
+      - {name: "recenter", type: "bool", default: true, description: "Recenter coordinates before diffusion", advanced: true}
+      - {name: "radius", type: "float", default: 10.0, minimum: 0, description: "Symmetry neighbor radius", unit: "Å", advanced: true}
+      - {name: "model_only_neighbors", type: "bool", default: false, description: "Model only neighboring symmetric subunits", advanced: true}
+      - {name: "write_trajectory", type: "bool", default: true, description: "Write diffusion trajectories", advanced: true}
+      - {name: "empty_cache_per_design", type: "bool", default: false, description: "Clear CUDA cache between designs", advanced: true}
+      - {name: "cautious", type: "bool", default: true, description: "Skip designs whose outputs already exist", advanced: true}
+      - {name: "align_motif", type: "bool", default: true, description: "Align the motif during sampling", advanced: true}
+      - {name: "symmetric_self_cond", type: "bool", default: true, description: "Use symmetric self-conditioning", advanced: true}
+      - {name: "final_step", type: "int", default: 1, minimum: 1, description: "Final reverse-diffusion step", advanced: true}
+      - {name: "deterministic", type: "bool", default: false, description: "Use deterministic sampling", advanced: true}
+      - {name: "cyclic", type: "bool", default: false, description: "Enable cyclic peptide mode", advanced: true}
+      - {name: "cyc_chains", type: "str", default: "a", description: "Chains treated as cyclic", advanced: true}
+      - {name: "inpaint_seq", type: "str", default: "", description: "Hydra list of sequence positions to mask", advanced: true}
+      - {name: "inpaint_str", type: "str", default: "", description: "Hydra list of structure positions to mask", advanced: true}
+      - {name: "inpaint_str_helix", type: "str", default: "", description: "Hydra list of helix-masked positions", advanced: true}
+      - {name: "inpaint_str_strand", type: "str", default: "", description: "Hydra list of strand-masked positions", advanced: true}
+      - {name: "inpaint_str_loop", type: "str", default: "", description: "Hydra list of loop-masked positions", advanced: true}
+      - {name: "provide_seq", type: "str", default: "", description: "Hydra list of sequence positions kept visible", advanced: true}
+      - {name: "length", type: "str", default: "", description: "Optional contig length constraint", advanced: true}
+      - {name: "diffuser_T", type: "int", default: 50, minimum: 1, description: "Number of diffusion timesteps", advanced: true}
+      - {name: "diffuser_b_0", type: "float", default: 0.01, minimum: 0, description: "Initial translation variance", advanced: true}
+      - {name: "diffuser_b_T", type: "float", default: 0.07, minimum: 0, description: "Final translation variance", advanced: true}
+      - {name: "diffuser_schedule_type", type: "str", default: "linear", choices: ["linear"], description: "Translation noise schedule", advanced: true}
+      - {name: "partial_T", type: "int", default: null, minimum: 1, description: "Optional partial-diffusion timestep", advanced: true}
+      - {name: "noise_scale_ca", type: "float", default: 1.0, minimum: 0, description: "Cα noise scale", advanced: true}
+      - {name: "final_noise_scale_ca", type: "float", default: 1.0, minimum: 0, description: "Final Cα noise scale", advanced: true}
+      - {name: "ca_noise_schedule_type", type: "str", default: "constant", choices: ["constant"], description: "Cα noise schedule", advanced: true}
+      - {name: "noise_scale_frame", type: "float", default: 1.0, minimum: 0, description: "Frame noise scale", advanced: true}
+      - {name: "final_noise_scale_frame", type: "float", default: 1.0, minimum: 0, description: "Final frame noise scale", advanced: true}
+      - {name: "frame_noise_schedule_type", type: "str", default: "constant", choices: ["constant"], description: "Frame noise schedule", advanced: true}
+      - {name: "hotspot_res", type: "str", default: "", description: "Hydra list of PPI hotspot residues", advanced: true}
+      - {name: "guiding_potentials", type: "str", default: "", description: "Hydra list of guiding potential definitions", advanced: true}
+      - {name: "guide_scale", type: "float", default: 10.0, minimum: 0, description: "Guiding potential scale", advanced: true}
+      - {name: "guide_decay", type: "str", default: "constant", description: "Guiding potential decay schedule", advanced: true}
+      - {name: "substrate", type: "str", default: "", description: "Substrate residue identifier for substrate-contact potentials", advanced: true}
+      - {name: "sidechain_input", type: "bool", default: false, description: "Include side-chain input features", advanced: true}
+      - {name: "motif_sidechain_input", type: "bool", default: true, description: "Include motif side-chain features", advanced: true}
 
   placer:
     display_name: "PLACER"
@@ -345,9 +441,22 @@ task_types:
         maximum: 10000
         step: 1
       - name: "predict_ligand"
-        type: "bool"
-        default: true
-        description: "Predict ligand coordinates"
+        type: "str"
+        default: ""
+        description: "Space-separated ligand identifiers to predict; blank uses PLACER defaults"
+      - {name: "use_sm", type: "bool", default: true, description: "Use small-molecule context"}
+      - {name: "fixed_ligand", type: "str", default: "", description: "Space-separated ligand identifiers to keep fixed", advanced: true}
+      - {name: "target_res", type: "str", default: "", description: "Protein residue used as crop center when no ligand is present", advanced: true}
+      - {name: "fixed_ligand_noise", type: "float", default: null, minimum: 0, unit: "Å", description: "Noise applied to fixed ligand coordinates", advanced: true}
+      - {name: "rerank", type: "str", default: "", choices: ["", "prmsd", "plddt", "plddt_pde"], description: "Metric used to rerank output models", advanced: true}
+      - {name: "cautious", type: "bool", default: false, description: "Skip an input when its output CSV already exists", advanced: true}
+      - {name: "exclude_common_ligands", type: "bool", default: false, description: "Exclude common solvents and crystallographic additives", advanced: true}
+      - {name: "predict_multi", type: "bool", default: false, description: "Predict and score all allowed ligands", advanced: true}
+      - {name: "bonds", type: "str", default: "", description: "Space-separated custom bond specifications", advanced: true}
+      - {name: "mutate", type: "str", default: "", description: "Space-separated residue mutations, e.g. 5A:TRP", advanced: true}
+      - {name: "crop_centers", type: "str", default: "", description: "Space-separated atom crop centers", advanced: true}
+      - {name: "corruption_centers", type: "str", default: "", description: "Space-separated atom corruption centers", advanced: true}
+      - {name: "ignore_ligand_hydrogens", type: "bool", default: false, description: "Ignore ligand hydrogen mismatches", advanced: true}
 
   bioemu:
     display_name: "BioEmu"
@@ -362,6 +471,12 @@ task_types:
         type: "int"
         default: 10
         description: "Number of structure samples"
+        minimum: 1
+        maximum: 10000
+      - {name: "batch_size_100", type: "int", default: 10, minimum: 1, description: "GPU batch size scaled to a 100-residue sequence", advanced: true}
+      - {name: "denoiser_type", type: "str", default: "dpm", choices: ["dpm", "heun"], description: "Sampling denoiser", advanced: true}
+      - {name: "filter_samples", type: "bool", default: true, description: "Filter structures with clashes or invalid bond lengths", advanced: true}
+      - {name: "base_seed", type: "int", default: null, minimum: 0, description: "Optional deterministic base seed", advanced: true}
 
   easifa:
     display_name: "EasIFA"

@@ -45,6 +45,14 @@
 }
 
 .param-field { margin-bottom: 0.65rem; }
+.advanced-params {
+  margin-top: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.8rem 0.15rem;
+}
+.advanced-params > summary { cursor: pointer; font-weight: 600; }
+.advanced-params-grid { margin-top: 0.8rem; }
 .param-label { display: block; margin-bottom: 0.25rem; color: var(--ink); font-size: 0.84rem; font-weight: 650; }
 .param-help { margin: 0.22rem 0 0; color: var(--muted); font-size: 0.76rem; line-height: 1.35; }
 
