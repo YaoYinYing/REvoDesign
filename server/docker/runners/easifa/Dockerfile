@@ -10,7 +10,7 @@ ARG EASIFA_METADATA_REF=f26aecd922a48d935315fe7d4f61381a388492af
 ARG EASIFA_ENV_SHA256=da5751abd99297eaae813591a8b32a006d244d0d8ba376712223d83f24fe88f2
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates git && \
+    apt-get install -y --no-install-recommends ca-certificates git libxext6 libxrender1 && \
     rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir "huggingface_hub[hf_xet]==0.34.4"
 
@@ -31,8 +31,11 @@ RUN mkdir -p /tmp/easifa-metadata /opt/easifa-env && \
     echo "${EASIFA_ENV_SHA256}  /tmp/easifa-metadata/easifa2_core_env.tar.gz" | sha256sum -c - && \
     tar -xzf /tmp/easifa-metadata/easifa2_core_env.tar.gz -C /opt/easifa-env && \
     rm -rf /tmp/easifa-metadata && \
-    /opt/easifa-env/bin/conda-unpack && \
-    /opt/easifa-env/bin/pip install --no-cache-dir --no-deps /opt/EasIFA2
+    /opt/easifa-env/bin/conda-unpack
+
+RUN /opt/easifa-env/bin/python -m pip install --no-cache-dir --no-deps /opt/EasIFA2 && \
+    /opt/easifa-env/bin/python -c "import easifa_core" && \
+    test -x /opt/easifa-env/bin/easifa-predict
 
 FROM debian:bookworm-slim
 

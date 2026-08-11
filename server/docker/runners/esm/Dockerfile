@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir torch==1.12.1+cu113 \
     --extra-index-url https://download.pytorch.org/whl/cu113 && \
     pip install --no-cache-dir \
       "numpy<2" \
+      "pandas==2.2.3" \
       "pytorch-lightning==1.9.5" \
       "torchmetrics==0.11.4"
 
@@ -25,7 +26,9 @@ ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
 RUN git init /opt/esm2 && git -C /opt/esm2 remote add origin ${ESM_REPO} && \
     git -C /opt/esm2 fetch --depth 1 origin ${ESM_REF} && \
     git -C /opt/esm2 checkout --detach FETCH_HEAD && \
-    pip install --no-cache-dir -e "/opt/esm2[esmfold]" && rm -rf /opt/esm2/.git
+    pip install --no-cache-dir -e "/opt/esm2[esmfold]" && \
+    python -c "import esm2, pandas" && \
+    rm -rf /opt/esm2/.git
 
 FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
 

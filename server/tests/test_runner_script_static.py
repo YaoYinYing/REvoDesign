@@ -266,3 +266,18 @@ def test_final_docker_images_clear_build_proxy_environment():
         final_stage = dockerfile.read_text().rsplit("\nFROM ", 1)[-1]
         assert expected in final_stage, dockerfile
         assert final_stage.rfind("RUN ") < final_stage.index(expected), dockerfile
+
+
+def test_esm_image_installs_the_esm1v_csv_dependency():
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "esm" / "Dockerfile").read_text()
+
+    assert '"pandas==2.2.3"' in dockerfile
+    assert 'python -c "import esm2, pandas"' in dockerfile
+
+
+def test_easifa_image_requires_the_installed_prediction_cli():
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "easifa" / "Dockerfile").read_text()
+
+    assert '/opt/easifa-env/bin/python -m pip install' in dockerfile
+    assert '/opt/easifa-env/bin/python -c "import easifa_core"' in dockerfile
+    assert "test -x /opt/easifa-env/bin/easifa-predict" in dockerfile
