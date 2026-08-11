@@ -7,7 +7,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
 RUN python -m venv /opt/venv
 ENV PATH=/opt/venv/bin:${PATH}
 
-ARG MPNN_REPO=https://github.com/dauparas/ProteinMPNN.git
+ARG MPNN_REPO=https://github.com/YaoYinYing/ProteinMPNN.git
 ARG MPNN_REF=8907e6671bfbfc92303b5f79c4b5e6ce47cdef57
 RUN git init /opt/ProteinMPNN && git -C /opt/ProteinMPNN remote add origin ${MPNN_REPO} && \
     git -C /opt/ProteinMPNN fetch --depth 1 origin ${MPNN_REF} && \

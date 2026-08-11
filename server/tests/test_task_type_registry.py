@@ -147,7 +147,7 @@ def test_proteinmpnn_and_solublempnn_share_the_pinned_official_runtime():
     )
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
 
-    assert "MPNN_REPO=https://github.com/dauparas/ProteinMPNN.git" in dockerfile
+    assert "MPNN_REPO=https://github.com/YaoYinYing/ProteinMPNN.git" in dockerfile
     assert "MPNN_REF=8907e6671bfbfc92303b5f79c4b5e6ce47cdef57" in dockerfile
     assert '[[ "${task_type}" == "solublempnn" ]] && protein_args+=(--use_soluble_model)' in run_script
     assert registry["task_types"]["proteinmpnn"]["runtime_family"] == "mpnn"

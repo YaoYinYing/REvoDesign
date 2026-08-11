@@ -890,7 +890,8 @@ implementation. It is preserved for rollback and provenance, but renaming it
 to `checkpoint.pt` neither makes it an OGT checkpoint nor makes it equivalent
 to the immutable Hugging Face snapshots used by these production tasks.
 
-The shared `mpnn` family pins the official `dauparas/ProteinMPNN` repository.
+The shared `mpnn` family pins a commit-identical fork of the official
+`dauparas/ProteinMPNN` repository.
 **ProteinMPNN** uses its vanilla (or explicitly selected CA-only) checkpoints;
 **SolubleMPNN** is a distinct task that passes the upstream
 `--use_soluble_model` flag and permits only the published `v_48_010` and
