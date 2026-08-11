@@ -18,8 +18,8 @@ mkdir -p "$output_dir"
 
 # Parse TASK_PARAMS
 _parse_param() { python3 -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
-: "${NUM_SEQ:=$(_parse_param number_of_batches)}"
-: "${NUM_SEQ:=100}"
+: "${NUMBER_OF_BATCHES:=$(_parse_param number_of_batches)}"
+: "${NUMBER_OF_BATCHES:=100}"
 : "${SAMPLING_TEMP:=$(_parse_param sampling_temp)}"
 : "${SAMPLING_TEMP:=0.1}"
 : "${CHAINS:=$(_parse_param chains)}"
@@ -30,16 +30,21 @@ _parse_param() { python3 -c "import json,os; v=json.loads(os.environ.get('TASK_P
 
 echo "REVODESIGN_STAGE:${TASK_TYPE:-mpnn}"
 
-case "${TASK_TYPE:-hypermpnn}" in
-  hypermpnn)
-    hyper_args=(
+task_type=${TASK_TYPE:-hypermpnn}
+case "${task_type}" in
+  hypermpnn|proteinmpnn|solublempnn)
+    num_seq_per_target=$(_parse_param num_seq_per_target); : "${num_seq_per_target:=100}"
+    batch_size=$(_parse_param batch_size); : "${batch_size:=1}"
+    (( batch_size <= num_seq_per_target )) || {
+      echo "batch_size must not exceed num_seq_per_target" >&2
+      exit 1
+    }
+    protein_args=(
       --pdb_path "${input_file}"
       --out_folder "${output_dir}"
-      --num_seq_per_target "$(_parse_param num_seq_per_target)"
+      --num_seq_per_target "${num_seq_per_target}"
       --sampling_temp "${SAMPLING_TEMP}"
-      --path_to_model_weights "${HYPERMPNN_WEIGHTS}"
-      --model_name v48_020_epoch300_hyper
-      --batch_size "$(_parse_param batch_size)"
+      --batch_size "${batch_size}"
       --seed "$(_parse_param seed)"
       --suppress_print "$(_parse_param suppress_print)"
       --save_score "$(_parse_param save_score)"
@@ -52,17 +57,29 @@ case "${TASK_TYPE:-hypermpnn}" in
       --max_length "$(_parse_param max_length)"
       --omit_AAs "$(_parse_param omit_AAs)"
     )
-    [[ "$(_parse_param ca_only)" == "true" ]] && hyper_args+=(--ca_only)
+    if [[ "${task_type}" == "hypermpnn" ]]; then
+      protein_args+=(--path_to_model_weights "${HYPERMPNN_WEIGHTS}" --model_name v48_020_epoch300_hyper)
+    else
+      protein_args+=(--model_name "$(_parse_param model_name)")
+    fi
+    if [[ "${task_type}" == "proteinmpnn" && "$(_parse_param ca_only)" == "true" ]]; then
+      [[ "$(_parse_param model_name)" != "v_48_030" ]] || {
+        echo "The official CA-only model does not provide a v_48_030 checkpoint" >&2
+        exit 1
+      }
+      protein_args+=(--ca_only)
+    fi
+    [[ "${task_type}" == "solublempnn" ]] && protein_args+=(--use_soluble_model)
     chains=$(_parse_param pdb_path_chains)
-    [[ -n "$chains" ]] && hyper_args+=(--pdb_path_chains "$chains")
-    python3 "${MPNN_PATH}/protein_mpnn_run.py" "${hyper_args[@]}"
+    [[ -n "$chains" ]] && protein_args+=(--pdb_path_chains "$chains")
+    python3 "${MPNN_PATH}/protein_mpnn_run.py" "${protein_args[@]}"
     ;;
   ligandmpnn)
     ligand_args=(
       --model_type ligand_mpnn
       --pdb_path "${input_file}"
       --out_folder "${output_dir}"
-      --number_of_batches "${NUM_SEQ}"
+      --number_of_batches "${NUMBER_OF_BATCHES}"
       --temperature "${SAMPLING_TEMP}"
       --seed "$(_parse_param seed)"
       --batch_size "$(_parse_param batch_size)"

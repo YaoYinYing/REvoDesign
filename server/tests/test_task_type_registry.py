@@ -42,6 +42,8 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
         "esm_1v",
         "esm_if1",
         "hypermpnn",
+        "proteinmpnn",
+        "solublempnn",
         "ligandmpnn",
         "thermompnn",
         "placer",
@@ -63,7 +65,10 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
         assert len({id(runner) for _, runner in esm_tasks}) == 1
         assert esm_tasks[0][1].mounts[0].container_path == "/mnt/db/weights/esm"
 
-        mpnn_tasks = [task_types.get(name) for name in ("hypermpnn", "ligandmpnn", "thermompnn")]
+        mpnn_tasks = [
+            task_types.get(name)
+            for name in ("hypermpnn", "proteinmpnn", "solublempnn", "ligandmpnn", "thermompnn")
+        ]
         assert {tt.runtime.name for tt, _ in mpnn_tasks} == {"mpnn"}
         assert len({id(runner) for _, runner in mpnn_tasks}) == 1
 
@@ -127,10 +132,30 @@ def test_ligandmpnn_uses_the_pinned_upstream_cli_flags():
     )
 
     ligand_case = run_script.split("  ligandmpnn)", 1)[1].split("    ;;", 1)[0]
-    assert '--number_of_batches "${NUM_SEQ}"' in ligand_case
+    assert '--number_of_batches "${NUMBER_OF_BATCHES}"' in ligand_case
     assert '--temperature "${SAMPLING_TEMP}"' in ligand_case
     assert "--num_seq_per_target" not in ligand_case
     assert "--sampling_temp" not in ligand_case
+
+
+def test_proteinmpnn_and_solublempnn_share_the_pinned_official_runtime():
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "Dockerfile").read_text(
+        encoding="utf-8"
+    )
+    run_script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text(
+        encoding="utf-8"
+    )
+    registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
+
+    assert "MPNN_REPO=https://github.com/dauparas/ProteinMPNN.git" in dockerfile
+    assert "MPNN_REF=8907e6671bfbfc92303b5f79c4b5e6ce47cdef57" in dockerfile
+    assert '[[ "${task_type}" == "solublempnn" ]] && protein_args+=(--use_soluble_model)' in run_script
+    assert registry["task_types"]["proteinmpnn"]["runtime_family"] == "mpnn"
+    assert registry["task_types"]["solublempnn"]["runtime_family"] == "mpnn"
+    soluble_model = next(
+        item for item in registry["task_types"]["solublempnn"]["params"] if item["name"] == "model_name"
+    )
+    assert soluble_model["choices"] == ["v_48_010", "v_48_020"]
 
 
 def test_every_declared_submission_parameter_is_consumed_by_its_runtime_script():
@@ -219,13 +244,24 @@ def test_bioemu_runtime_pins_current_release_without_duplicate_torch_layer():
     assert "pip install --no-cache-dir torch" not in dockerfile
 
 
-def test_easifa_runtime_includes_rdkit_shared_libraries():
+def test_easifa_runtime_uses_pinned_official_easifa2_single_prediction_contract():
     dockerfile = (SERVER_ROOT / "docker" / "runners" / "easifa" / "Dockerfile").read_text(
         encoding="utf-8"
     )
+    run_script = (SERVER_ROOT / "docker" / "runners" / "easifa" / "run.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "EASIFA_REF=146ed9ca6ccbc7458bd2d343ec2de0ce149c9aad" in dockerfile
+    assert "EASIFA_METADATA_REF=f26aecd922a48d935315fe7d4f61381a388492af" in dockerfile
+    assert "EASIFA_ENV_SHA256=da5751abd99297eaae813591a8b32a006d244d0d8ba376712223d83f24fe88f2" in dockerfile
     assert "libexpat1" in dockerfile
     assert "libxext6" in dockerfile
     assert "libxrender1" in dockerfile
+    assert 'easifa-predict "${easifa_args[@]}"' in run_script
+    assert "main_test.py" not in run_script
+    assert "--checkpoint-dir" in run_script
+    assert "--device cuda:0" in run_script
+    assert "active_sites.csv" in run_script
 
 
 def test_multi_file_task_contract_is_bounded():

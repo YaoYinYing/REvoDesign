@@ -890,6 +890,22 @@ implementation. It is preserved for rollback and provenance, but renaming it
 to `checkpoint.pt` neither makes it an OGT checkpoint nor makes it equivalent
 to the immutable Hugging Face snapshots used by these production tasks.
 
+The shared `mpnn` family pins the official `dauparas/ProteinMPNN` repository.
+**ProteinMPNN** uses its vanilla (or explicitly selected CA-only) checkpoints;
+**SolubleMPNN** is a distinct task that passes the upstream
+`--use_soluble_model` flag and permits only the published `v_48_010` and
+`v_48_020` soluble checkpoints. HyperMPNN, LigandMPNN, and ThermoMPNN-D remain
+separate task contracts in the same dependency image.
+
+The `easifa` family uses the pinned official EasIFA2 Core single-prediction
+interface, not the legacy EasIFA dataset benchmark. Its read-only checkpoint
+mount contains only `all_features`, `wo_reactions`, and `rxn_model` directories
+from the pinned `xiaoruiwang/EasIFA2.0_Metadata` revision. A structure without
+reaction SMILES selects `wo_reactions`; supplying `reactants>>products` selects
+`all_features`. Checkpoint paths and CUDA device selection remain operator
+controlled. Each successful task publishes the complete upstream JSON plus an
+`active_sites.csv` residue table for manifest-first preview and download.
+
 #### Step 5: Build and deploy
 
 ```bash

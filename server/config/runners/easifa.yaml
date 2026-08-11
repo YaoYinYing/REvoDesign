@@ -1,6 +1,6 @@
 mounts:
-  - host_path: "/mnt/db/weights/easifa"
-    container_path: "/mnt/db/weights/easifa"
+  - host_path: "/mnt/db/weights/easifa2"
+    container_path: "/mnt/db/weights/easifa2"
     mode: "ro"
 env: {}
 max_runtime_seconds: 3600

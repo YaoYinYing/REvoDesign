@@ -247,7 +247,57 @@ task_types:
       - {name: "batch_size", type: "int", default: 1, minimum: 1, description: "Sequences generated per model pass"}
       - {name: "seed", type: "int", default: 0, minimum: 0, description: "Random seed; 0 selects a random seed"}
       - {name: "pdb_path_chains", type: "str", default: "", description: "Space-separated chains to design", advanced: true}
-      - {name: "ca_only", type: "bool", default: false, description: "Parse CA-only structures", advanced: true}
+      - {name: "backbone_noise", type: "float", default: 0.0, minimum: 0, description: "Gaussian backbone coordinate noise", unit: "Å", advanced: true}
+      - {name: "max_length", type: "int", default: 200000, minimum: 1, description: "Maximum parsed sequence length", advanced: true}
+      - {name: "omit_AAs", type: "str", default: "X", description: "Amino acids to omit from generated sequences", advanced: true}
+      - {name: "save_score", type: "int", default: 0, choices: [0, 1], description: "Save per-sequence scores", advanced: true}
+      - {name: "save_probs", type: "int", default: 0, choices: [0, 1], description: "Save predicted residue probabilities", advanced: true}
+      - {name: "score_only", type: "int", default: 0, choices: [0, 1], description: "Score the input backbone-sequence pair without design", advanced: true}
+      - {name: "conditional_probs_only", type: "int", default: 0, choices: [0, 1], description: "Output conditional probabilities given the remaining sequence", advanced: true}
+      - {name: "conditional_probs_only_backbone", type: "int", default: 0, choices: [0, 1], description: "Output conditional probabilities given backbone only", advanced: true}
+      - {name: "unconditional_probs_only", type: "int", default: 0, choices: [0, 1], description: "Output unconditional probabilities given backbone", advanced: true}
+      - {name: "suppress_print", type: "int", default: 0, choices: [0, 1], description: "Suppress upstream progress output", advanced: true}
+
+  proteinmpnn:
+    display_name: "ProteinMPNN"
+    runtime_family: "mpnn"
+    input_extension: ".pdb"
+    input_label: "Protein backbone (PDB)"
+    stage_markers:
+      proteinmpnn: "ProteinMPNN sequence design"
+    params:
+      - {name: "num_seq_per_target", type: "int", default: 100, minimum: 1, maximum: 10000, description: "Number of sequences to design"}
+      - {name: "sampling_temp", type: "str", default: "0.1", description: "Space-separated sampling temperatures, e.g. 0.1 0.2"}
+      - {name: "model_name", type: "str", default: "v_48_020", choices: ["v_48_002", "v_48_010", "v_48_020", "v_48_030"], description: "Official ProteinMPNN checkpoint"}
+      - {name: "batch_size", type: "int", default: 1, minimum: 1, description: "Sequences generated per model pass"}
+      - {name: "seed", type: "int", default: 0, minimum: 0, description: "Random seed; 0 selects a random seed"}
+      - {name: "pdb_path_chains", type: "str", default: "", description: "Space-separated chains to design", advanced: true}
+      - {name: "ca_only", type: "bool", default: false, description: "Use the official CA-only ProteinMPNN model", advanced: true}
+      - {name: "backbone_noise", type: "float", default: 0.0, minimum: 0, description: "Gaussian backbone coordinate noise", unit: "Å", advanced: true}
+      - {name: "max_length", type: "int", default: 200000, minimum: 1, description: "Maximum parsed sequence length", advanced: true}
+      - {name: "omit_AAs", type: "str", default: "X", description: "Amino acids to omit from generated sequences", advanced: true}
+      - {name: "save_score", type: "int", default: 0, choices: [0, 1], description: "Save per-sequence scores", advanced: true}
+      - {name: "save_probs", type: "int", default: 0, choices: [0, 1], description: "Save predicted residue probabilities", advanced: true}
+      - {name: "score_only", type: "int", default: 0, choices: [0, 1], description: "Score the input backbone-sequence pair without design", advanced: true}
+      - {name: "conditional_probs_only", type: "int", default: 0, choices: [0, 1], description: "Output conditional probabilities given the remaining sequence", advanced: true}
+      - {name: "conditional_probs_only_backbone", type: "int", default: 0, choices: [0, 1], description: "Output conditional probabilities given backbone only", advanced: true}
+      - {name: "unconditional_probs_only", type: "int", default: 0, choices: [0, 1], description: "Output unconditional probabilities given backbone", advanced: true}
+      - {name: "suppress_print", type: "int", default: 0, choices: [0, 1], description: "Suppress upstream progress output", advanced: true}
+
+  solublempnn:
+    display_name: "SolubleMPNN"
+    runtime_family: "mpnn"
+    input_extension: ".pdb"
+    input_label: "Soluble protein backbone (PDB)"
+    stage_markers:
+      solublempnn: "SolubleMPNN sequence design"
+    params:
+      - {name: "num_seq_per_target", type: "int", default: 100, minimum: 1, maximum: 10000, description: "Number of sequences to design"}
+      - {name: "sampling_temp", type: "str", default: "0.1", description: "Space-separated sampling temperatures, e.g. 0.1 0.2"}
+      - {name: "model_name", type: "str", default: "v_48_020", choices: ["v_48_010", "v_48_020"], description: "Official soluble-protein checkpoint"}
+      - {name: "batch_size", type: "int", default: 1, minimum: 1, description: "Sequences generated per model pass"}
+      - {name: "seed", type: "int", default: 0, minimum: 0, description: "Random seed; 0 selects a random seed"}
+      - {name: "pdb_path_chains", type: "str", default: "", description: "Space-separated chains to design", advanced: true}
       - {name: "backbone_noise", type: "float", default: 0.0, minimum: 0, description: "Gaussian backbone coordinate noise", unit: "Å", advanced: true}
       - {name: "max_length", type: "int", default: 200000, minimum: 1, description: "Maximum parsed sequence length", advanced: true}
       - {name: "omit_AAs", type: "str", default: "X", description: "Amino acids to omit from generated sequences", advanced: true}
@@ -479,16 +529,15 @@ task_types:
       - {name: "base_seed", type: "int", default: null, minimum: 0, description: "Optional deterministic base seed", advanced: true}
 
   easifa:
-    display_name: "EasIFA"
+    display_name: "EasIFA2 Active Sites"
     runtime_family: "easifa"
     gpus: true
     input_extension: ".pdb"
-    input_label: "PDB file / dataset dir"
+    input_label: "Enzyme structure (PDB)"
     stage_markers:
-      easifa: "EasIFA active-site annotation"
+      easifa: "EasIFA2 active-site annotation"
     params:
-      - name: "task_subtype"
-        type: "str"
-        default: "active-site-position-prediction"
-        description: "active-site-position-prediction or active-site-categorie-prediction"
-        choices: ["active-site-position-prediction", "active-site-categorie-prediction"]
+      - {name: "reaction_smiles", type: "str", default: "", description: "Optional reaction SMILES (reactants>>products); blank uses the structure-only model"}
+      - {name: "max_length", type: "int", default: 1000, minimum: 1, description: "Maximum enzyme sequence length", advanced: true}
+      - {name: "pretty", type: "bool", default: true, description: "Pretty-print the full JSON result", advanced: true}
+      - {name: "verbose", type: "bool", default: false, description: "Include detailed upstream inference progress", advanced: true}
