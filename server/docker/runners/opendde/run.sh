@@ -129,6 +129,10 @@ echo "MSA: $USE_MSA  Template: $USE_TEMPLATE"
 
 # OpenDDE inference — MSA + template search happens inside opendde pred
 # if enabled (requires network access and search databases).
+# Use the supported PyTorch triangle kernels and disable efficient fusion.
+# The auto-selected cuequivariance/Triton path compiles a launcher at runtime
+# and therefore requires a C toolchain, which is intentionally absent from the
+# production inference image.
 echo "REVODESIGN_STAGE:opendde"
 
 opendde pred \
@@ -140,6 +144,9 @@ opendde pred \
     --cycle "$NUM_CYCLES" \
     --use_msa "$USE_MSA" \
     --use_template "$USE_TEMPLATE" \
+    --trimul_kernel torch \
+    --triatt_kernel torch \
+    --enable_fusion false \
     --use_rna_msa false
 
 # Some OpenDDE versions catch per-input inference exceptions and still exit 0,

@@ -39,6 +39,9 @@ def test_opendde_runner_uses_writable_snapshot_copy_and_checks_outputs():
     assert '-i "$writable_input_file"' in script
     assert 'find "$output_dir/ERR" -type f -size +0c' in script
     assert "-iname '*.pdb' -o -iname '*.cif' -o -iname '*.mmcif'" in script
+    assert "--trimul_kernel torch" in script
+    assert "--triatt_kernel torch" in script
+    assert "--enable_fusion false" in script
     assert script.index('find "$output_dir"') < script.index('touch "${output_dir}/task_finished"')
 
 
