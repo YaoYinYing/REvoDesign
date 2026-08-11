@@ -286,6 +286,6 @@ def test_easifa_image_requires_the_installed_prediction_cli():
 def test_easifa_runner_reuses_the_read_only_esm_checkpoint_cache():
     runner = (SERVER_ROOT / "config" / "runners" / "easifa.yaml").read_text()
 
-    assert 'host_path: "/mnt/db/weights/esm"' in runner
-    assert 'container_path: "/mnt/db/weights/esm"' in runner
-    assert 'TORCH_HOME: "/mnt/db/weights/esm"' in runner
+    assert 'host_path: "/mnt/db/weights/esm/checkpoints"' in runner
+    assert 'container_path: "/home/revodesign/.cache/torch/hub/checkpoints"' in runner
+    assert 'HOME: "/home/revodesign"' in runner
