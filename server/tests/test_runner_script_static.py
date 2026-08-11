@@ -219,6 +219,8 @@ def test_ligandmpnn_runner_omits_blank_optional_cli_values(tmp_path):
     input_file.write_text("ATOM\n", encoding="utf-8")
     output_dir.mkdir()
     ligand_root.mkdir()
+    (ligand_root / "model_params").mkdir()
+    (ligand_root / "model_params" / "ligandmpnn_v_32_010_25.pt").write_bytes(b"checkpoint")
     (ligand_root / "run.py").write_text(
         "import json, os, sys\n"
         "open(os.environ['CAPTURE_ARGV'], 'w', encoding='utf-8').write(json.dumps(sys.argv[1:]))\n",
@@ -308,9 +310,28 @@ def test_thermompnn_uses_preprovisioned_read_only_weights():
 
     assert 'host_path: "/mnt/db/weights/thermompnn"' in runner
     assert 'container_path: "/mnt/db/weights/thermompnn"' in runner
+    assert 'container_path: "/app/revocompute/model_params"' in runner
+    assert 'LIGANDMPNN_MODEL_PARAMS: "/app/revocompute/model_params"' in runner
     assert 'mode: "ro"' in runner
     assert 'XDG_DATA_HOME: "/mnt/db/weights/thermompnn"' in runner
     assert "ThermoMPNN-ens1.ckpt ThermoMPNN-D-ens1.ckpt" in script
     assert 'THERMOMPNN_VANILLA_WEIGHT_DIR: "/mnt/db/weights/thermompnn/ProteinMPNN/vanilla/vanilla_model_weights"' in runner
     assert "ThermoMPNN ProteinMPNN backbone checkpoint is missing" in script
     assert "runtime downloads are disabled" in script
+
+
+def test_ligandmpnn_runner_uses_a_mounted_absolute_checkpoint():
+    script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text()
+
+    assert 'checkpoint_ligand_mpnn' in script
+    assert 'ligandmpnn_v_32_010_25.pt' in script
+    assert 'LIGANDMPNN_MODEL_PARAMS' in script
+
+
+def test_slurm_runner_limits_threaded_libraries_to_the_allocation():
+    script = (SERVER_ROOT / "revocompute" / "job" / "runners" / "slurm_runner.py").read_text()
+
+    assert 'SLURM_CPUS_PER_TASK' in script
+    assert 'APPTAINERENV_OMP_NUM_THREADS' in script
+    assert 'APPTAINERENV_MKL_NUM_THREADS' in script
+    assert 'APPTAINERENV_OPENBLAS_NUM_THREADS' in script

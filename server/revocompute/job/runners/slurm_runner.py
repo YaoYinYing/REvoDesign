@@ -229,6 +229,20 @@ class SlurmJob(Job):
         for key, val in self.runner.env.items():
             lines.append(f"export APPTAINERENV_{key}={_sh_quote(val)}")
 
+        # Keep threaded numerical libraries inside the allocation.  Without
+        # this, PyTorch/OpenMP can observe all host CPUs even when Slurm grants
+        # a smaller cpus-per-task value, causing silent overcommit.
+        lines.extend(
+            [
+                'allocated_cpus="${SLURM_CPUS_PER_TASK:-1}"',
+                'case "${allocated_cpus}" in (*[!0-9]*|""|0) allocated_cpus=1 ;; esac',
+                'export APPTAINERENV_OMP_NUM_THREADS="${allocated_cpus}"',
+                'export APPTAINERENV_MKL_NUM_THREADS="${allocated_cpus}"',
+                'export APPTAINERENV_OPENBLAS_NUM_THREADS="${allocated_cpus}"',
+                'export APPTAINERENV_NUMEXPR_NUM_THREADS="${allocated_cpus}"',
+            ]
+        )
+
         params = {e["name"]: e["verified_value"] for e in self.param_entities}
         params_json = json.dumps(params, separators=(",", ":"), sort_keys=True)
         lines.append(f"export APPTAINERENV_TASK_PARAMS={_sh_quote(params_json)}")

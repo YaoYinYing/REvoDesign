@@ -149,6 +149,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **MPNN SLURM resources and checkpoints**: MPNN design tasks now request an
+  explicit 16-CPU/16G allocation, propagate the allocated CPU count to threaded
+  numerical libraries, and validate LigandMPNN's mounted absolute checkpoint
+  path. The previous 2-CPU default and relative `./model_params` lookup could
+  overcommit or fail before inference.
 - **ThermoMPNN-D offline model data**: provisioned both the ThermoMPNN ensemble
   and hidden vanilla ProteinMPNN backbone through a shared read-only data root.
   The MPNN runner validates representative checkpoints and refuses runtime

@@ -81,10 +81,17 @@ case "${task_type}" in
     python3 "${MPNN_PATH}/protein_mpnn_run.py" "${protein_args[@]}"
     ;;
   ligandmpnn)
+    ligand_checkpoint_dir=${LIGANDMPNN_MODEL_PARAMS:-${LIGANDMPNN_PATH}/model_params}
+    ligand_checkpoint="${ligand_checkpoint_dir}/ligandmpnn_v_32_010_25.pt"
+    [[ -s "${ligand_checkpoint}" ]] || {
+      echo "LigandMPNN checkpoint is missing: ${ligand_checkpoint}" >&2
+      exit 1
+    }
     ligand_args=(
       --model_type ligand_mpnn
       --pdb_path "${input_file}"
       --out_folder "${output_dir}"
+      --checkpoint_ligand_mpnn "${ligand_checkpoint}"
       --number_of_batches "${NUMBER_OF_BATCHES}"
       --temperature "${SAMPLING_TEMP}"
     )
