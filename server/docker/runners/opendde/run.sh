@@ -112,10 +112,17 @@ opendde pred \
     --use_template "$USE_TEMPLATE" \
     --use_rna_msa false
 
-# Some OpenDDE versions catch per-input inference exceptions and still exit 0.
-# Never publish success unless inference produced at least one non-empty result.
-if ! find "$output_dir" -type f -size +0c ! -name task_finished -print -quit | grep -q .; then
-    echo "OpenDDE exited without producing a result artifact" >&2
+# Some OpenDDE versions catch per-input inference exceptions and still exit 0,
+# leaving MSA intermediates plus ERR/error.txt.  Only a non-empty predicted
+# structure proves successful inference.
+if [[ -d "$output_dir/ERR" ]] && find "$output_dir/ERR" -type f -size +0c -print -quit | grep -q .; then
+    echo "OpenDDE reported an internal inference error" >&2
+    exit 1
+fi
+if ! find "$output_dir" -type f -size +0c \
+    \( -iname '*.pdb' -o -iname '*.cif' -o -iname '*.mmcif' \) \
+    -print -quit | grep -q .; then
+    echo "OpenDDE exited without producing a structure artifact" >&2
     exit 1
 fi
 

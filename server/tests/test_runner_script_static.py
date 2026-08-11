@@ -37,7 +37,8 @@ def test_opendde_runner_uses_writable_snapshot_copy_and_checks_outputs():
     assert 'mktemp -d "${TMPDIR:-/tmp}/revodesign-opendde.XXXXXX"' in script
     assert 'cp -a -- "$input_root"/. "$opendde_input_root"/' in script
     assert '-i "$writable_input_file"' in script
-    assert 'find "$output_dir" -type f -size +0c' in script
+    assert 'find "$output_dir/ERR" -type f -size +0c' in script
+    assert "-iname '*.pdb' -o -iname '*.cif' -o -iname '*.mmcif'" in script
     assert script.index('find "$output_dir"') < script.index('touch "${output_dir}/task_finished"')
 
 
@@ -60,6 +61,10 @@ test -f "$snapshot_root/config/settings.json"
 printf '{}\n' > "${input_file%.json}-update-msa.json"
 if [[ "${FAKE_OPENDDE_RESULT:-yes}" == "yes" ]]; then
     printf 'data_model\n' > "$output_dir/model.cif"
+elif [[ "${FAKE_OPENDDE_RESULT:-yes}" == "error" ]]; then
+    mkdir -p "$output_dir/ERR" "$output_dir/job/msa"
+    printf 'internal failure\n' > "$output_dir/ERR/error.txt"
+    printf '>query\nAAAA\n' > "$output_dir/job/msa/intermediate.a3m"
 fi
 """
     )
@@ -125,7 +130,38 @@ def test_opendde_runner_rejects_zero_exit_without_results(tmp_path):
     )
 
     assert completed.returncode != 0
-    assert "without producing a result artifact" in completed.stderr
+    assert "without producing a structure artifact" in completed.stderr
+    assert not (output_dir / "task_finished").exists()
+
+
+def test_opendde_runner_rejects_error_and_msa_intermediates(tmp_path):
+    input_root = tmp_path / "workspace" / "inputs"
+    input_file = input_root / "structures" / "job.json"
+    auxiliary = input_root / "config" / "settings.json"
+    output_dir = tmp_path / "outputs"
+    bin_dir = tmp_path / "bin"
+    input_file.parent.mkdir(parents=True)
+    auxiliary.parent.mkdir(parents=True)
+    output_dir.mkdir()
+    bin_dir.mkdir()
+    input_file.write_text('{}\n')
+    auxiliary.write_text('{}\n')
+    _write_fake_opendde(bin_dir)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}:{env['PATH']}"
+    env["TASK_PARAMS"] = "{}"
+    env["FAKE_OPENDDE_RESULT"] = "error"
+    completed = subprocess.run(
+        ["bash", str(OPENDDE_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode != 0
+    assert "reported an internal inference error" in completed.stderr
     assert not (output_dir / "task_finished").exists()
 
 
