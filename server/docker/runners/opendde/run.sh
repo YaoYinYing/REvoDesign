@@ -77,6 +77,36 @@ if [[ ! -f "$writable_input_file" ]]; then
     exit 1
 fi
 
+# Template inference downloads missing mmCIF files beneath
+# ``$OPENDDE_ROOT_DIR/search_database/mmcif``.  Keep the production database
+# mount read-only and expose its trusted contents through symlinks inside a
+# task-private writable root.  Newly fetched template files then live only for
+# this task and disappear with the other temporary inputs.
+readonly_opendde_root="${OPENDDE_ROOT_DIR:-/mnt/db/opendde}"
+writable_opendde_root="$opendde_input_root/.opendde-runtime"
+mkdir -p "$writable_opendde_root/search_database/mmcif"
+for source_path in "$readonly_opendde_root"/*; do
+    [[ -e "$source_path" ]] || continue
+    source_name=$(basename "$source_path")
+    [[ "$source_name" == "search_database" ]] && continue
+    ln -s "$source_path" "$writable_opendde_root/$source_name"
+done
+if [[ -d "$readonly_opendde_root/search_database" ]]; then
+    for source_path in "$readonly_opendde_root/search_database"/*; do
+        [[ -e "$source_path" ]] || continue
+        source_name=$(basename "$source_path")
+        [[ "$source_name" == "mmcif" ]] && continue
+        ln -s "$source_path" "$writable_opendde_root/search_database/$source_name"
+    done
+fi
+if [[ -d "$readonly_opendde_root/search_database/mmcif" ]]; then
+    for source_path in "$readonly_opendde_root/search_database/mmcif"/*; do
+        [[ -e "$source_path" ]] || continue
+        ln -s "$source_path" "$writable_opendde_root/search_database/mmcif/$(basename "$source_path")"
+    done
+fi
+export OPENDDE_ROOT_DIR="$writable_opendde_root"
+
 # Parse TASK_PARAMS JSON into env vars.
 _parse_param() { python3 -c "import json,os; print(json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''))"; }
 : "${MODEL_NAME:=$(_parse_param model_name)}"

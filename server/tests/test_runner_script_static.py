@@ -59,6 +59,10 @@ done
 snapshot_root=${input_file%/structures/job.json}
 test -f "$snapshot_root/config/settings.json"
 printf '{}\n' > "${input_file%.json}-update-msa.json"
+if [[ "${FAKE_OPENDDE_CHECK_RUNTIME_ROOT:-no}" == "yes" ]]; then
+    test -f "$OPENDDE_ROOT_DIR/checkpoint/opendde.pt"
+    printf 'downloaded template\n' > "$OPENDDE_ROOT_DIR/search_database/mmcif/fetched.cif"
+fi
 if [[ "${FAKE_OPENDDE_RESULT:-yes}" == "yes" ]]; then
     printf 'data_model\n' > "$output_dir/model.cif"
 elif [[ "${FAKE_OPENDDE_RESULT:-yes}" == "error" ]]; then
@@ -101,6 +105,43 @@ def test_opendde_runner_preserves_read_only_nested_snapshot(tmp_path):
     assert (output_dir / "task_finished").is_file()
     assert not (input_file.parent / "job-update-msa.json").exists()
     assert auxiliary.read_text() == '{}\n'
+
+
+def test_opendde_runner_uses_task_private_template_cache(tmp_path):
+    input_root = tmp_path / "workspace" / "inputs"
+    input_file = input_root / "structures" / "job.json"
+    auxiliary = input_root / "config" / "settings.json"
+    output_dir = tmp_path / "outputs"
+    bin_dir = tmp_path / "bin"
+    database_root = tmp_path / "database"
+    source_cache = database_root / "search_database" / "mmcif"
+    input_file.parent.mkdir(parents=True)
+    auxiliary.parent.mkdir(parents=True)
+    output_dir.mkdir()
+    bin_dir.mkdir()
+    source_cache.mkdir(parents=True)
+    (database_root / "checkpoint").mkdir()
+    (database_root / "checkpoint" / "opendde.pt").write_text("checkpoint\n")
+    input_file.write_text('{}\n')
+    auxiliary.write_text('{}\n')
+    _write_fake_opendde(bin_dir)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}:{env['PATH']}"
+    env["TASK_PARAMS"] = "{}"
+    env["OPENDDE_ROOT_DIR"] = str(database_root)
+    env["FAKE_OPENDDE_CHECK_RUNTIME_ROOT"] = "yes"
+    completed = subprocess.run(
+        ["bash", str(OPENDDE_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert not (source_cache / "fetched.cif").exists()
+    assert (output_dir / "model.cif").is_file()
 
 
 def test_opendde_runner_rejects_zero_exit_without_results(tmp_path):
