@@ -14,9 +14,13 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
 # BioEmu 1.4.1 is the package published from upstream's v1.4.0 release tag.
-# Let its CUDA extra select one compatible Torch stack; preinstalling Torch
-# causes pip to retain/download two heavyweight generations as constraints move.
-RUN pip install --no-cache-dir "bioemu[cuda]==1.4.1"
+# The unconstrained CUDA extra currently selects a CUDA 13 Torch build, which
+# cannot initialize against production's CUDA 12.8-capable NVIDIA driver. Pin
+# one supported Torch generation first; BioEmu accepts torch>=2.6.0 and reuses
+# this installation instead of retaining a second heavyweight Torch layer.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu128 \
+      "torch==2.7.1" && \
+    pip install --no-cache-dir "bioemu[cuda]==1.4.1"
 
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/bioemu/run.sh /app/revocompute/

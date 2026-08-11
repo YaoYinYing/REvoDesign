@@ -1,7 +1,11 @@
 mounts:
-  - host_path: "/mnt/db/weights/alphafold"
-    container_path: "/root/.cache/colabfold"
+  - host_path: "/mnt/db/weights/bioemu"
+    container_path: "/mnt/db/weights/bioemu"
     mode: "ro"
-env: {}
+  - host_path: "/mnt/db/weights/alphafold/colabfold"
+    container_path: "/home/revodesign/.cache/colabfold"
+    mode: "ro"
+env:
+  BIOEMU_CHECKPOINT_ROOT: "/mnt/db/weights/bioemu/checkpoints/bioemu-v1.1"
 max_runtime_seconds: 7200
 defaults: {}

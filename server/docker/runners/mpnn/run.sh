@@ -18,6 +18,19 @@ mkdir -p "$output_dir"
 
 # Parse TASK_PARAMS
 _parse_param() { python3 -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
+_append_param() {
+    local -n target_args=$1
+    local flag=$2
+    local key=${3:-$2}
+    local value
+    value=$(_parse_param "${key}")
+    # Empty HTML fields are intentionally omitted so the pinned upstream CLI
+    # can apply its own default. Passing `--seed ''`, for example, makes
+    # argparse reject the entire task before inference starts.
+    if [[ -n "${value}" && "${value}" != "None" && "${value}" != "null" ]]; then
+        target_args+=("--${flag}" "${value}")
+    fi
+}
 : "${NUMBER_OF_BATCHES:=$(_parse_param number_of_batches)}"
 : "${NUMBER_OF_BATCHES:=100}"
 : "${SAMPLING_TEMP:=$(_parse_param sampling_temp)}"
@@ -45,22 +58,15 @@ case "${task_type}" in
       --num_seq_per_target "${num_seq_per_target}"
       --sampling_temp "${SAMPLING_TEMP}"
       --batch_size "${batch_size}"
-      --seed "$(_parse_param seed)"
-      --suppress_print "$(_parse_param suppress_print)"
-      --save_score "$(_parse_param save_score)"
-      --save_probs "$(_parse_param save_probs)"
-      --score_only "$(_parse_param score_only)"
-      --conditional_probs_only "$(_parse_param conditional_probs_only)"
-      --conditional_probs_only_backbone "$(_parse_param conditional_probs_only_backbone)"
-      --unconditional_probs_only "$(_parse_param unconditional_probs_only)"
-      --backbone_noise "$(_parse_param backbone_noise)"
-      --max_length "$(_parse_param max_length)"
-      --omit_AAs "$(_parse_param omit_AAs)"
     )
+    for key in seed suppress_print save_score save_probs score_only conditional_probs_only \
+      conditional_probs_only_backbone unconditional_probs_only backbone_noise max_length omit_AAs; do
+      _append_param protein_args "${key}"
+    done
     if [[ "${task_type}" == "hypermpnn" ]]; then
       protein_args+=(--path_to_model_weights "${HYPERMPNN_WEIGHTS}" --model_name v48_020_epoch300_hyper)
     else
-      protein_args+=(--model_name "$(_parse_param model_name)")
+      _append_param protein_args model_name
     fi
     if [[ "${task_type}" == "proteinmpnn" && "$(_parse_param ca_only)" == "true" ]]; then
       [[ "$(_parse_param model_name)" != "v_48_030" ]] || {
@@ -81,33 +87,14 @@ case "${task_type}" in
       --out_folder "${output_dir}"
       --number_of_batches "${NUMBER_OF_BATCHES}"
       --temperature "${SAMPLING_TEMP}"
-      --seed "$(_parse_param seed)"
-      --batch_size "$(_parse_param batch_size)"
-      --verbose "$(_parse_param verbose)"
-      --fasta_seq_separation "$(_parse_param fasta_seq_separation)"
-      --homo_oligomer "$(_parse_param homo_oligomer)"
-      --zero_indexed "$(_parse_param zero_indexed)"
-      --save_stats "$(_parse_param save_stats)"
-      --ligand_mpnn_use_atom_context "$(_parse_param ligand_mpnn_use_atom_context)"
-      --ligand_mpnn_cutoff_for_score "$(_parse_param ligand_mpnn_cutoff_for_score)"
-      --ligand_mpnn_use_side_chain_context "$(_parse_param ligand_mpnn_use_side_chain_context)"
-      --parse_atoms_with_zero_occupancy "$(_parse_param parse_atoms_with_zero_occupancy)"
-      --pack_side_chains "$(_parse_param pack_side_chains)"
-      --number_of_packs_per_design "$(_parse_param number_of_packs_per_design)"
-      --sc_num_denoising_steps "$(_parse_param sc_num_denoising_steps)"
-      --sc_num_samples "$(_parse_param sc_num_samples)"
-      --repack_everything "$(_parse_param repack_everything)"
-      --force_hetatm "$(_parse_param force_hetatm)"
-      --packed_suffix "$(_parse_param packed_suffix)"
-      --pack_with_ligand_context "$(_parse_param pack_with_ligand_context)"
     )
-    for mapping in \
-      fixed_residues:fixed_residues redesigned_residues:redesigned_residues \
-      bias_AA:bias_AA omit_AA:omit_AA symmetry_residues:symmetry_residues \
-      symmetry_weights:symmetry_weights chains_to_design:chains_to_design \
-      parse_these_chains_only:parse_these_chains_only; do
-      key=${mapping%%:*}; flag=${mapping#*:}; value=$(_parse_param "$key")
-      [[ -n "$value" ]] && ligand_args+=("--${flag}" "$value")
+    for key in seed batch_size verbose fasta_seq_separation homo_oligomer zero_indexed \
+      save_stats ligand_mpnn_use_atom_context ligand_mpnn_cutoff_for_score \
+      ligand_mpnn_use_side_chain_context parse_atoms_with_zero_occupancy pack_side_chains \
+      number_of_packs_per_design sc_num_denoising_steps sc_num_samples repack_everything \
+      force_hetatm packed_suffix pack_with_ligand_context fixed_residues redesigned_residues \
+      bias_AA omit_AA symmetry_residues symmetry_weights chains_to_design parse_these_chains_only; do
+      _append_param ligand_args "${key}"
     done
     python3 "${LIGANDMPNN_PATH}/run.py" "${ligand_args[@]}"
     ;;
@@ -164,17 +151,11 @@ PY
       --inputs_processed_simultaneously "${inputs_simultaneously}"
       --model_weights_path "${laser_weights}"
       --device cpu
-      --chi_min_p "$(_parse_param chi_min_p)"
-      --seq_min_p "$(_parse_param seq_min_p)"
-      --disabled_residues "$(_parse_param disabled_residues)"
-      --ala_budget "$(_parse_param ala_budget)"
-      --gly_budget "$(_parse_param gly_budget)"
-      --fs_calc_ca_distance "$(_parse_param fs_calc_ca_distance)"
-      --fs_calc_burial_hull_alpha_value "$(_parse_param fs_calc_burial_hull_alpha_value)"
     )
-    for key in sequence_temp first_shell_sequence_temp chi_temp budget_residue_sele_string; do
-      value=$(_parse_param "${key}")
-      [[ -n "${value}" && "${value}" != "None" ]] && laser_args+=("--${key}" "${value}")
+    for key in chi_min_p seq_min_p disabled_residues ala_budget gly_budget fs_calc_ca_distance \
+      fs_calc_burial_hull_alpha_value sequence_temp first_shell_sequence_temp chi_temp \
+      budget_residue_sele_string; do
+      _append_param laser_args "${key}"
     done
     for flag in use_water silent fix_beta repack_only_input_sequence ignore_ligand \
       constrain_ala_gly_sampling_to_exposed_non_secondary_structure noncanonical_aa_ligand \
@@ -193,10 +174,10 @@ PY
       --out "${output_dir}/thermompnn"
       --mode "${MODE}"
       --chains "${thermo_chains[@]}"
-      --batch_size "$(_parse_param batch_size)"
-      --threshold "$(_parse_param threshold)"
-      --distance "$(_parse_param distance)"
     )
+    for key in batch_size threshold distance; do
+      _append_param thermo_args "${key}"
+    done
     [[ "$(_parse_param ss_penalty)" == "true" ]] && thermo_args+=(--ss_penalty)
     thermompnn "${thermo_args[@]}"
     ;;

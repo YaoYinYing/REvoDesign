@@ -4,12 +4,14 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import subprocess
 
 RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin" / "run.sh"
 OPENDDE_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "opendde" / "run.sh"
+MPNN_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "mpnn" / "run.sh"
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -207,6 +209,48 @@ def test_opendde_runner_rejects_error_and_msa_intermediates(tmp_path):
     assert completed.returncode != 0
     assert "reported an internal inference error" in completed.stderr
     assert not (output_dir / "task_finished").exists()
+
+
+def test_ligandmpnn_runner_omits_blank_optional_cli_values(tmp_path):
+    input_file = tmp_path / "input.pdb"
+    output_dir = tmp_path / "outputs"
+    ligand_root = tmp_path / "LigandMPNN"
+    capture = tmp_path / "argv.json"
+    input_file.write_text("ATOM\n", encoding="utf-8")
+    output_dir.mkdir()
+    ligand_root.mkdir()
+    (ligand_root / "run.py").write_text(
+        "import json, os, sys\n"
+        "open(os.environ['CAPTURE_ARGV'], 'w', encoding='utf-8').write(json.dumps(sys.argv[1:]))\n",
+        encoding="utf-8",
+    )
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "TASK_TYPE": "ligandmpnn",
+            "TASK_PARAMS": json.dumps(
+                {"seed": "", "batch_size": 2, "verbose": 0, "chains_to_design": ""}
+            ),
+            "LIGANDMPNN_PATH": str(ligand_root),
+            "CAPTURE_ARGV": str(capture),
+        }
+    )
+    completed = subprocess.run(
+        ["bash", str(MPNN_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    argv = json.loads(capture.read_text(encoding="utf-8"))
+    assert "--seed" not in argv
+    assert "--chains_to_design" not in argv
+    assert argv[argv.index("--batch_size") + 1] == "2"
+    assert argv[argv.index("--verbose") + 1] == "0"
+    assert (output_dir / "task_finished").is_file()
 
 
 def test_final_docker_images_clear_build_proxy_environment():

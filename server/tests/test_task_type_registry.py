@@ -268,13 +268,29 @@ def test_shared_placer_rfdiffusion_runtime_uses_audited_compatible_versions():
     assert "python3-openbabel" in dockerfile
 
 
-def test_bioemu_runtime_pins_current_release_without_duplicate_torch_layer():
+def test_bioemu_runtime_pins_release_and_driver_compatible_torch_once():
     dockerfile = (SERVER_ROOT / "docker" / "runners" / "bioemu" / "Dockerfile").read_text(
         encoding="utf-8"
     )
+    run_script = (SERVER_ROOT / "docker" / "runners" / "bioemu" / "run.sh").read_text(
+        encoding="utf-8"
+    )
+    runner = yaml.safe_load(
+        (SERVER_ROOT / "config" / "runners" / "bioemu.yaml").read_text(encoding="utf-8")
+    )
     assert "python:3.11-slim" in dockerfile
     assert '"bioemu[cuda]==1.4.1"' in dockerfile
-    assert "pip install --no-cache-dir torch" not in dockerfile
+    assert '"torch==2.7.1"' in dockerfile
+    assert "https://download.pytorch.org/whl/cu128" in dockerfile
+    assert dockerfile.count('"torch==2.7.1"') == 1
+    assert dockerfile.index('"torch==2.7.1"') < dockerfile.index('"bioemu[cuda]==1.4.1"')
+    assert "--ckpt_path=" in run_script
+    assert "--model_config_path=" in run_script
+    assert "--model_name=None" in run_script
+    assert "--cache_embeds_dir=" in run_script
+    assert "--cache_so3_dir=" in run_script
+    assert runner["mounts"][0]["host_path"] == "/mnt/db/weights/bioemu"
+    assert runner["mounts"][0]["mode"] == "ro"
 
 
 def test_easifa_runtime_uses_pinned_official_easifa2_single_prediction_contract():
