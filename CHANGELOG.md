@@ -8,18 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```text
 ## TEMPLATE
 ### Added
-- **Immutable multi-file task workspaces**: submissions now preserve safe
-  relative paths in a per-task snapshot and expose the isolated virtual tree
-  as `/mnt/revocompute/<username>/inputs` (read-only) and `outputs`
-  (task-owned writable) for both Docker and SLURM/Apptainer. `TASK_INPUTS`
-  carries the complete input manifest and checksums are verified before launch.
-- **Manifest-first result browsing**: successful and failed tasks atomically
-  publish checksummed `manifest.json` files while keeping result trees
-  uncompressed. The dashboard lists and previews individual text, table,
-  structure-text, and image artifacts through authenticated Nginx-offloadable
-  routes. Full-task ZIPs are optional asynchronous derived caches.
-- **Runtime artifact size audit**: added an inspect-only builder tool that
-  reports expanded Docker and SIF bytes per shared runtime family.
 
 ### Changed
 
@@ -32,13 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - **Multi-task server architecture**: task-type-agnostic compute server with a
-  YAML-based registry. Adding a new task type (AlphaFold, ESM, DiffDock) means
-  writing a `task_types.yaml` entry + runner YAML + Dockerfile — server code
-  never changes. The registry pairs each portable `TaskType` (Docker image,
-  command, I/O contract, stage markers, user-facing params) with a
-  machine-local `RunnerConfig` (host paths for DBs/models, resource limits,
-  default param values). `gremlin` is the built-in fallback; additional
-  runners are gated by `ENABLED_TASKRUNNERS`.
+  YAML-based registry. Portable task schemas select one of nine shared runtime
+  families, while one machine-local runner YAML per family supplies mounts,
+  environment, timeout, and deployment defaults. Missing registry files fail
+  closed; `gremlin` is always enabled and additional tasks are gated by
+  `ENABLED_TASKRUNNERS`.
 - **Server-driven dynamic form workflow**: the create-task page fetches form
   schema from `GET /compute/api/types/<name>` and dynamically builds the file
   input (accept extension, label), sequence editor visibility, and params form
@@ -51,14 +37,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`GET /compute/api/types` and `GET /compute/api/types/<name>`**: public
   endpoints listing all enabled task types with full param schemas.
 - **Runner config directory deployment**: `CONFIG_DIR` env var points to the
-  baked-in `/app/server/config`, letting maintainers ship `task_types.yaml`
-  and runner YAMLs alongside the server image without embedding
-  machine-specific paths.
+  active `task_types.yaml` and `runners/` directory. Production can mount an
+  external machine-owned configuration read-only instead of baking host paths
+  into the server image.
 - **Structured issue reporting**: added GitHub Issue Forms for bugs,
   installation and environment problems, feature requests, and documentation
   problems, with private routing for security vulnerabilities.
 
 ### Changed
+- **Server deployment and adapter documentation**: reconciled the server
+  README and developer guides with the global executor/runtime model,
+  runtime-family sharing, immutable multi-file workspaces, manifest-first
+  results, prepared activation, versioned SIF promotion, offline model data,
+  proxy build semantics, and the current task/result APIs. The runbook now
+  explicitly distinguishes `build`, default dev restart, published-image prod
+  mode, and no-build/no-pull prepared activation.
 - **Runtime-family deployment model**: task types now select shared runtime
   families which own one image, entrypoint, runner YAML, and SIF definition.
   PLACER and RFdiffusion share one family; Docker and SLURM receive identical
@@ -94,10 +87,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dashboard and create-task UI**: task type selector, dynamic file accept,
   params form, task type badges on dashboard cards. Hardcoded GREMLIN trace
   fallback and label regexes removed — stage labels come from the registry.
-- **Runner database/env config**: `DB_UNIREF30`, `DB_UNIREF90`, NPROC, MAXMEM,
-  and runner env vars moved from `.env` to per-runner YAML
-  (`config/runners/<name>.yaml`). Edit the runner YAML when deploying to a new
-  node instead of the global `.env`.
+- **Runner database/env config**: runtime-family database/model mounts and
+  runner-specific environment variables moved to one
+  `config/runners/<family>.yaml`. Global service settings remain in the
+  deployment environment; SLURM resources remain in the management database.
 - **Server reload operation**: added zero-downtime Gunicorn reload as a
   subcommand of the main deployment helper.
 - **Experimental cluster visibility**: marked EvoCluster and KMeansCluster as
@@ -156,6 +149,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **ThermoMPNN-D offline model data**: provisioned both the ThermoMPNN ensemble
+  and hidden vanilla ProteinMPNN backbone through a shared read-only data root.
+  The MPNN runner validates representative checkpoints and refuses runtime
+  downloads into a small compute-node home cache.
 - **GREMLIN Docker server tests**: made the Python 3.6 compatibility and
   full-stack checks bounded, least-privileged, root-safe, and responsive to
   unexpected HTTP failures while preserving accepted task polling and keeping

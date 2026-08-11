@@ -1,273 +1,236 @@
-# Task Types — Design Model
+# Task Types and Runtime Families
 
-## Configuration Layers
+REvoCompute separates the portable scientific interface from the execution
+environment and from machine-local configuration. This lets several task types
+share one dependency image without copying host paths or SLURM policy into the
+portable registry.
 
-Three layers, each with a distinct owner:
+For the full build, versioned-SIF, activation, rollback, and adapter procedure,
+see the [operations and task adapter guide](../../server/OPERATIONS_AND_TASK_ADAPTER_GUIDE.md).
 
-| Layer | File | Owner | Contains |
-|-------|------|-------|----------|
-| Server | `.env` | Operator | `SERVER_DIR`, `PORT`, auth, Redis, `ENABLED_TASKRUNNERS`, `DOCKER_USER` |
-| Runner | `config/runners/<name>.yaml` | Operator (per-machine) | Host paths for DBs/models, resource limits, default param values, extra env vars |
-| Task type | `config/task_types.yaml` | Developer | Docker image, command, input format, stage markers, result patterns, user-facing param schema |
+## Ownership model
 
-`.env` never carries runner-specific paths (`DB_UNIREF30`, `AF_DATA_DIR`, etc.).
-Those live in per-runner YAML files — edit the runner YAML when deploying to a new node.
+```text
+task_types.yaml
+├── global: job_executor + container_runtime
+├── runtime_families
+│   └── image + entrypoint + Dockerfile + definition + versioned SIF
+└── task_types
+    └── runtime selection + inputs + GPU flag + stages + typed parameters
 
-## Dataclasses
+runners/<runtime-family>.yaml
+└── host mounts + environment + timeout + deployment defaults
 
-```python
-@dataclass(frozen=True)
-class TaskParam:
-    """A parameter the user can set when submitting a job."""
-    name: str                    # "model", "num_samples", "temperature"
-    type: str = "str"            # "str" | "int" | "float" | "bool"
-    default: Any = None          # default value (from task_types.yaml)
-    required: bool = False
-    description: str = ""
-
-
-@dataclass(frozen=True)
-class TaskType:
-    """Portable task definition — same on every deployment."""
-    name: str                    # "gremlin", "alphafold", "diffdock", "esm"
-    display_name: str            # "PSSM-GREMLIN", "AlphaFold2"
-
-    # Docker runner
-    docker_image: str            # "revodesign/runner-gremlin:latest"
-    command: list[str]           # ["bash", "/opt/run.sh"]
-
-    # I/O
-    input_extension: str         # ".fasta", ".pdb"
-    input_label: str             # "FASTA file", "PDB file"
-
-    # Optional fields with defaults
-    gpus: bool = False
-    stage_markers: dict[str, str] = field(default_factory=dict)
-    params: tuple[TaskParam, ...] = ()
-
-
-@dataclass(frozen=True)
-class RunnerMount:
-    """A bind mount from host into the runner container."""
-    host_path: str               # "/srv/revodesign/databases/uniref30"
-    container_path: str          # "/opt/db/uniref30"
-    mode: str = "ro"             # "ro" | "rw"
-
-
-@dataclass(frozen=True)
-class RunnerConfig:
-    """Deployment-specific settings for a task type.
-
-    Loaded from config/runners/<name>.yaml at startup.
-    Host paths are machine-specific.
-    """
-    mounts: tuple[RunnerMount, ...] = ()
-    env: dict[str, str] = field(default_factory=dict)     # extra env vars → container
-    nproc: int | None = None      # override server default if set
-    maxmem: int | None = None     # override server default if set
-    max_runtime_seconds: int | None = None  # override task_type default if set
-    defaults: dict[str, Any] = field(default_factory=dict)  # default param values
-    # SLURM + Apptainer (set in deployed runner YAML)
-    runner: str = "docker"         # "docker" | "slurm"
-    container_runtime: str = ""    # "apptainer" | ""
-    slurm_image: str = ""          # path to .sif image
+management database
+└── per-task enabled state + SLURM partition/resources
 ```
 
-## Registry
-
-```python
-_registry: dict[str, tuple[TaskType, RunnerConfig]] = {}
-
-def register(task_type: TaskType, runner: RunnerConfig) -> None:
-    """Register a task type + runner config pair."""
-
-def get(name: str) -> tuple[TaskType, RunnerConfig]:
-    """Look up a registered task type. Raises KeyError if not found."""
-
-def list_types() -> list[TaskType]:
-    """Return all registered task types (for GET /api/types)."""
-
-def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> None:
-    """Load task type definitions + per-runner configs.
-
-    Reads task_types.yaml, then for each enabled task type (gated by
-    ENABLED_TASKRUNNERS; gremlin always enabled), loads the corresponding
-    config/runners/<name>.yaml if it exists.
-    """
-```
-
-## YAML Files
-
-### `config/task_types.yaml` — portable task interface (checked into git)
+The executor is selected once for the deployment:
 
 ```yaml
-task_types:
-  gremlin:
-    display_name: "PSSM-GREMLIN"
-    docker_image: "revodesign-revocompute-runner"
-    command: ["bash", "/app/revocompute/run.sh"]
-    input_extension: ".fasta"
-    input_label: "FASTA file"
-    stage_markers:
-      hhblits: "HHblits MSA generation"
-      hhfilter: "HHfilter filtering"
-      gremlin: "GREMLIN optimization"
-      blast: "PSI-BLAST PSSM"
-    params:
-      - name: "iter"
-        type: "int"
-        default: 100
-        description: "GREMLIN optimization iterations"
-
-  esm_fold:
-    display_name: "ESMFold"
-    docker_image: "revodesign-revocompute-runner-esm"
-    command: ["bash", "/app/revocompute/run.sh"]
-    gpus: true
-    input_extension: ".fasta"
-    input_label: "FASTA file"
-    stage_markers:
-      esm_fold: "ESMFold structure prediction"
-    params:
-      - name: "num_recycles"
-        type: "int"
-        default: 4
+job_executor: slurm
+container_runtime: apptainer
 ```
 
-Multiple task types can share the same `docker_image` (e.g. `esm_fold`,
-`esm_extract`, `esm_1v`, `esm_if1` all use `revodesign-revocompute-runner-esm`).
-They dispatch on `$TASK_TYPE` set by the launcher.
+Docker execution requires `docker`/`docker`; SLURM execution requires
+`slurm`/`apptainer`. These global fields are not copied into each family.
 
-### `config/runners/gremlin.yaml` — deployment-specific (machine-local)
+## Registry data model
+
+The implementation in `server/revocompute/task_types/__init__.py` has four
+portable/runtime records:
+
+- `RuntimeFamily`: `name`, `docker_image`, `entrypoint`, `dockerfile`,
+  `definition`, and `slurm_image`.
+- `TaskType`: display name, selected family, accepted input extensions,
+  multi-upload limits, runner arguments, GPU requirement, stages, and params.
+- `TaskParam`: typed UI/API field with defaults, choices, bounds, step, unit,
+  required state, and advanced-field state.
+- `RunnerConfig`: only mounts, environment, maximum runtime, and deployment
+  parameter defaults.
+
+Runner YAML must not contain `runner`, `job_executor`, `container_runtime`,
+`slurm_image`, `gpus`, `nproc`, or `maxmem`. GPU eligibility belongs to the task
+schema; SLURM requests belong to the management database.
+
+The registry loader fails when `task_types.yaml` is absent, empty, structurally
+invalid, or inconsistent. There is no built-in GREMLIN registry fallback that
+can conceal a missing deployment file. `gremlin` remains enabled by policy;
+other tasks are filtered by `ENABLED_TASKRUNNERS`.
+
+## Portable YAML example
+
+```yaml
+job_executor: slurm
+container_runtime: apptainer
+
+runtime_families:
+  mpnn:
+    docker_image: revodesign-revocompute-runner-mpnn:latest
+    entrypoint: [bash, /app/revocompute/run.sh]
+    dockerfile: docker/runners/mpnn/Dockerfile
+    definition: docker/runners/mpnn/mpnn.def
+    slurm_image: /srv/revocompute/images/mpnn_20260811.sif
+
+task_types:
+  proteinmpnn:
+    display_name: ProteinMPNN
+    runtime_family: mpnn
+    runner_args: [proteinmpnn]
+    input_extension: .pdb
+    input_extensions: [.pdb, .cif, .mmcif]
+    primary_input_extensions: [.pdb, .cif, .mmcif]
+    allow_multiple_inputs: false
+    max_input_files: 1
+    input_label: Protein structure
+    gpus: false
+    stage_markers:
+      design: Design sequences
+    params:
+      - name: temperature
+        type: float
+        default: 0.1
+        minimum: 0.01
+        maximum: 1.0
+        step: 0.01
+```
+
+One family can serve materially different commands. The MPNN family currently
+shares its image across ProteinMPNN, SolubleMPNN, LigandMPNN, HyperMPNN,
+LASErMPNN, and ThermoMPNN-D; the ESM family similarly serves several distinct
+entrypoints. Sharing is appropriate only when the interpreter, dependency
+graph, accelerator model, ABI, and license are compatible.
+
+## Machine runner YAML
+
+Exactly one active YAML exists per runtime family:
 
 ```yaml
 mounts:
-  - host_path: "/srv/revodesign/databases/uniref30/UniRef30_2023_02"
-    container_path: "/opt/db/uniref30"
-    mode: "ro"
-  - host_path: "/srv/revodesign/databases/uniref90/uniref90"
-    container_path: "/opt/db/uniref90"
-    mode: "ro"
+  - host_path: /mnt/db/weights/thermompnn
+    container_path: /mnt/db/weights/thermompnn
+    mode: ro
 env:
-  GREMLIN_CALC_CPU_NUM: "16"
-  OMP_NUM_THREADS: "16"
+  XDG_DATA_HOME: /mnt/db/weights/thermompnn
 max_runtime_seconds: 7200
-defaults:
-  iter: 100
+defaults: {}
 ```
 
-## Runner Contract
+Mounts must preserve the deployment's real database and checkpoint locations.
+Model caches required for inference should be provisioned on shared storage,
+mounted read-only, and validated before launch. Runtime downloads into a small
+or compute-node-local home directory are not a production weight strategy.
 
-Each container:
-1. Reads input from `/workspace/inputs/`
-2. Writes output to `/workspace/outputs/`
-3. Emits `REVODESIGN_STAGE:<marker>` on stdout for progress tracking
-4. Reads `TASK_PARAMS` env var (JSON string) for user-provided parameters
-5. Exits 0 on success
+## Submission and workspace contract
 
-## ComputeConfig After Migration
+The API validates task type, files, relative paths, and params before it creates
+the task. Each task receives an immutable host snapshot:
 
-```python
-@dataclass(frozen=True, slots=True)
-class ComputeConfig:
-    """Server-level configuration only — no task-type-specific fields."""
-    server_dir: str
-    upload_folder: str
-    results_folder: str
-    db_path: str
-    port: int
-    slurm_enabled: bool
-    slurm_allowed_queues: list[str]
-    task_types_config: str   # path to task_types.yaml
-    runners_dir: str         # path to config/runners/
+```text
+${SERVER_DIR}/workspaces/<username>/<task-id>/
+├── inputs/
+└── outputs/
 ```
 
-`uniref30_db`, `uniref90_db`, `nproc`, `maxmem`, `docker_image` are gone —
-they live in `config/runners/gremlin.yaml` now.
+Both Docker and Apptainer expose only that task's snapshot at the stable virtual
+path:
 
-## Auto-Discovery
-
-`restart.sh` scans `docker/runners/*/Dockerfile` at build time.  Each
-directory becomes a build target:
-
-```
-docker/runners/
-  pssm_gremlin/Dockerfile  → revodesign-revocompute-runner       (base, no suffix)
-  pythia_ddg/Dockerfile    → revodesign-revocompute-runner-pythia_ddg
-  esm/Dockerfile           → revodesign-revocompute-runner-esm
-  opendde/Dockerfile       → revodesign-revocompute-runner-opendde
+```text
+/mnt/revocompute/<username>/
+├── inputs/    read-only
+└── outputs/   writable for this task
 ```
 
-The naming convention: `revodesign-revocompute-runner{-<dirname>}`, where
-`pssm_gremlin` is the special base case (no suffix).  `task_types.yaml`
-references images by these tags.
+The username in the virtual path does not imply a shared mutable host home.
+Two concurrent tasks for the same user see the same virtual prefix in their
+separate containers, backed by different host directories.
 
-`restart.sh` reads the runtime-family manifest and builds or pulls every image
-directly. Compose only manages the long-lived server services from the static
-base file and optional SLURM override; runtime images are launched by workers,
-not represented as profile-disabled Compose services.
+Multi-file uploads preserve safe `relative_path` values. Absolute paths,
+traversal, unsupported extensions, and symlink escape are rejected. The worker
+verifies staged file checksums before launch and binds inputs read-only.
 
-## Entities and InputForm
+Runner adapters receive:
 
-When a user submits a task, the HTTP handler builds an `input_form` JSON blob
-that captures *what* was submitted and *how* it was validated.  This blob is
-stored in the `input_form` column of the tasks table and read by the worker at
-runtime to set up Docker mounts and params.
+- `TASK_TYPE`: selected task name;
+- `TASK_PARAMS`: JSON object containing validated, non-empty parameter values;
+- `TASK_INPUTS`: JSON array containing `name`, mounted `path`, and preserved
+  `relative_path` for every input;
+- `-i`: primary input path;
+- `-o`: task-owned output directory;
+- any fixed `runner_args` before the generic input/output flags.
 
-### Structure
+Optional empty form fields are omitted instead of being passed as empty CLI
+arguments. Every user-visible parameter must map to an actual flag supported by
+the pinned upstream revision. Path, checkpoint, device, and integrity-bypass
+arguments remain server/operator controlled.
 
-```json
-{
-  "user": "alice",
-  "submitted_at": "2026-08-06T12:34:56+00:00",
-  "entities": [
-    {
-      "name": "file",
-      "type": "file",
-      "value": "2KL8.fasta",
-      "verified_value": "2KL8.fasta",
-      "mounted": "/workspace/inputs/2KL8.fasta",
-      "hash": "3855bf8ca11fda660cd9406adab909df"
-    },
-    {
-      "name": "iter",
-      "type": "int",
-      "value": "100",
-      "verified_value": 100
-    }
-  ]
-}
+## Execution lifecycle
+
+```text
+validated submission
+        |
+        v
+task snapshot + input checksums
+        |
+        v
+resolve global executor and selected family
+        |
+        +-------------------+
+        |                   |
+        v                   v
+DockerJob              SlurmJob
+docker create/run      srun + Apptainer
+        |                   |
+        +---------+---------+
+                  v
+        stage markers + exit status
+                  |
+                  v
+       validate real output artifacts
+                  |
+                  v
+       atomically publish manifest.json
 ```
 
-### Entity kinds
+GPU tasks require both `gpus: true` and user GPU permission. SLURM adds the
+configured GPU resource and Apptainer `--nv`; CPU tasks receive neither. A
+zero process exit is not enough for success: the worker also requires a
+non-empty scientific artifact. Adapters must propagate internal per-input
+failure and create `task_finished` only after the scientific command succeeds.
 
-| Kind | Fields | Purpose |
-|------|--------|---------|
-| **file** | `name`, `type`, `value` (original filename), `verified_value` (sanitised filename), `mounted` (container path), `hash` (task MD5) | The uploaded input file. The on-disk file is `CONFIG.upload_folder/<hash>.fasta`; the runner sees it at `mounted`. |
-| **param** | `name`, `type`, `value` (raw form string), `verified_value` (Pydantic-coerced) | A user-facing parameter. `value` is the string from the HTML form; `verified_value` is the typed coercion (e.g. `"100"` → `100`). |
+Upstream programs that write beside their input need explicit redirection to
+`outputs/` or `/tmp`; attempts to update the read-only snapshot are defects, not
+a reason to make inputs writable.
 
-### Why the upload directory is mounted directly
+## Result contract
 
-The runner gets `/workspace/inputs` → `CONFIG.upload_folder` (e.g.
-`/srv/revodesign/compute/upload/`), not the per-task `results/<md5sum>/`
-directory.  The upload directory lives outside the web container's
-`SERVER_DIR` bind mount, so the Docker daemon always sees it.  By contrast,
-`results/<md5sum>/` is created inside the bind mount and may not sync to
-the host filesystem in time for Docker to mount it.
+The uncompressed output tree and its atomically published `manifest.json` are
+the source of truth. Authenticated endpoints support artifact metadata,
+individual downloads, suitable byte-range requests, and bounded text, table,
+image, and structure previews. The dedicated result page selects a preview
+plugin by manifest metadata and safely falls back to download when a file is
+too large or unsupported.
 
-### Filename preservation via hardlink
+A ZIP is an explicit asynchronous derived artifact. It contains only the
+manifest-approved files plus `manifest.json`; task completion does not depend
+on archive creation. Cleanup independently targets the result tree, optional
+ZIP, and selected task workspace.
 
-The uploaded file is stored on disk as `<md5sum>.fasta` (hash-based, no
-collisions).  The runner script uses `readlink -f` to resolve the input
-filename before constructing output filenames — if the input is
-`2KL8.fasta`, the outputs are `2KL8.GREMLIN.mrf.pkl`, `2KL8_ascii_mtx_file`,
-etc.
+## Adding or changing a task
 
-`readlink -f` resolves symlinks to their canonical targets, so a symlink
-`2KL8.fasta` → `3855bf8c.fasta` would cause every output file to be prefixed
-`3855bf8c.*` instead of `2KL8.*`.  Hardlinks (`os.link()`) don't have this
-problem — `readlink -f` returns the accessed name as-is.
+1. Choose an existing compatible family or declare a new one.
+2. Add the constrained task schema and fixed `runner_args`.
+3. Implement the family `run.sh` dispatch using `TASK_INPUTS` and
+   `TASK_PARAMS`.
+4. Confirm every emitted upstream flag against the pinned command's `--help`.
+5. Add/update exactly one runner YAML for the family.
+6. Add static contract, validation, and failure-semantics tests.
+7. Build and smoke Docker without stopping production.
+8. Build a versioned `.sif.partial`, inspect/smoke it, then atomically promote.
+9. Back up external configuration and activate with `--mode=prepared`.
+10. Exercise the real server → worker → SLURM → Apptainer path using the
+    smallest safe input.
 
-Before each run, the worker creates a hardlink `<original>.fasta` →
-`<md5sum>.fasta` in the upload directory.  The hardlink is removed in the
-`finally` block after the container exits, regardless of success or failure.
+Do not generate profile-disabled runner Compose services. Runtime images are
+built/pulled from the registry manifest and launched on demand; Compose manages
+only gateway, web, worker, maintenance, and Redis.

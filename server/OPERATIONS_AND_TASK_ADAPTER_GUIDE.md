@@ -228,6 +228,17 @@ REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
   bash server/run/restart.sh build --use-proxy
 ```
 
+`--use-proxy` reads `REVODESIGN_BUILD_PROXY` from the selected environment
+file and passes it only as build arguments. Final runner stages explicitly
+clear proxy variables. Never add a literal proxy URL to a Dockerfile.
+
+A bare `restart` uses `--mode=dev`: it stops the stack, rebuilds every runtime
+family and the server image, then starts the stack. This is expected behavior,
+but it is not the activation command for an existing SLURM/SIF deployment. If
+the configured SIFs are already prepared, use `restart --mode=prepared`.
+Docker runner images need rebuilding only to produce a replacement SIF or test
+Docker execution.
+
 The build loop creates one image per runtime family and then the server image.
 Before rebuilding a production tag, preserve its current image ID with a
 timestamped rollback tag:
@@ -358,6 +369,24 @@ python server/tools/audit_runtime_sizes.py \
 
 Save the JSON outside the worktree and compare deduplicated runtime-family
 totals, not one copy per task type.
+
+### Offline model weights
+
+Treat model weights like versioned runtime artifacts, not disposable home
+directory caches. Download into a staging directory on a filesystem with
+enough capacity, verify the publisher checksum, reject archive traversal, and
+promote the extracted tree to a shared, read-only path. Mount only that path in
+the family runner YAML and set the tool's documented cache/data variables to
+it. Where supported, prove a production smoke succeeds without runtime network
+downloads.
+
+ThermoMPNN-D requires both upstream archives: its ThermoMPNN ensemble weights
+and the vanilla ProteinMPNN backbone weights. The MPNN runner sets
+`XDG_DATA_HOME`, `THERMOMPNN_WEIGHT_DIR`, and
+`THERMOMPNN_VANILLA_WEIGHT_DIR`, validates representative non-empty checkpoint
+files, and refuses runtime downloads. BioEmu, ESM, EasIFA, and similar families
+must likewise use operator-provisioned shared weight mounts rather than
+`/home/<user>/.cache`, which may be small or node-local.
 
 ## 10. Prepared activation and rollback
 
