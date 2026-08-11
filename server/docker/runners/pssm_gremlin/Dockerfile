@@ -35,6 +35,8 @@ WORKDIR /app/revocompute/
 
 # Persist the build arg so the entrypoint can resolve ${RUNNER_USERNAME} at runtime.
 ENV RUNNER_USERNAME=${RUNNER_USERNAME}
+ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
+    http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
 
 # ponytail: no ldconfig or runuser here — task_runtime passes --user at
 # container start, so we already are ${RUNNER_USERNAME}.  ldconfig is a

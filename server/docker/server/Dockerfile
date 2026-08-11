@@ -37,6 +37,9 @@ ENV PYTHONPATH=/app/server
 # app.py as a top-level module, shadowing the revocompute package.
 WORKDIR /app/server
 
+ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
+    http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
+
 USER ${RUNNER_UID}:${RUNNER_GID}
 
 CMD ["sh", "-c", "exec gunicorn --preload -w 2 -b 0.0.0.0:${PORT:-8080} revocompute.app:app"]

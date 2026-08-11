@@ -41,4 +41,6 @@ WORKDIR /app/revocompute/
 ENV PATH=/opt/venv/bin:${PATH} \
     RUNNER_USERNAME=${RUNNER_USERNAME} \
     EASIFA_PATH=/opt/EasIFA
+ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
+    http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
 ENTRYPOINT ["bash", "/app/revocompute/run.sh"]

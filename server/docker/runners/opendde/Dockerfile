@@ -40,5 +40,7 @@ WORKDIR /app/revocompute/
 
 ENV RUNNER_USERNAME=${RUNNER_USERNAME}
 ENV OPENDDE_ROOT_DIR=/mnt/db/opendde
+ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
+    http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
 
 ENTRYPOINT ["bash", "/app/revocompute/run.sh"]

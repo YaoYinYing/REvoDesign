@@ -114,6 +114,37 @@ def test_build_srun_args_no_db_defaults(tmp_path):
     assert args == [f"--chdir={tmp_path / 'out'}", "--job-name=revocomput_unknown_gremlin_task-1"]
 
 
+def test_build_srun_args_gpu_task_reserves_one_gpu_by_default(tmp_path):
+    job = SlurmJob(
+        "task-1",
+        _make_task_type(gpus=True),
+        _make_runner(),
+        _make_entities(),
+        str(tmp_path / "out"),
+    )
+
+    assert "--gres=gpu:1" in job._build_srun_args()
+
+
+def test_build_srun_args_gpu_task_uses_configured_gres(tmp_path):
+    class _ManageDb:
+        def slurm_sbatch_args(self, _tool):
+            return {"slurm_gres": "gpu:a100:1"}
+
+    job = SlurmJob(
+        "task-1",
+        _make_task_type(gpus=True),
+        _make_runner(),
+        _make_entities(),
+        str(tmp_path / "out"),
+        manage_db=_ManageDb(),
+    )
+    args = job._build_srun_args()
+
+    assert "--gres=gpu:a100:1" in args
+    assert "--gres=gpu:1" not in args
+
+
 # -- apptainer invocation -----------------------------------------------------
 
 

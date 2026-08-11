@@ -1043,8 +1043,8 @@ A proper `http-proxy.conf` file might look like this:
 
 ```text
 [Service]
-Environment="HTTP_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
-Environment="HTTPS_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
-Environment="ALL_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
+Environment="HTTP_PROXY=http://proxy-user:proxy-password@proxy.internal:8080"
+Environment="HTTPS_PROXY=http://proxy-user:proxy-password@proxy.internal:8080"
+Environment="ALL_PROXY=http://proxy-user:proxy-password@proxy.internal:8080"
 Environment="NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,localhost,127.0.0.1,10.96.0.0/12,192.168.59.0/24,192.168.49.0/24,192.168.39.0/24,192.168.67.0/24,172.17.0.0/24,192.168.0.0/16,100.87.0.0/16,192.168.75.0/24,192.168.194.0/24,192.168.67.2"
 ```

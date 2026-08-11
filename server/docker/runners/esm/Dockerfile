@@ -60,5 +60,7 @@ COPY --chown=${RUNNER_UID}:${RUNNER_GID} \
 WORKDIR /app/revocompute/
 ENV PATH=/opt/venv/bin:${PATH}
 ENV RUNNER_USERNAME=${RUNNER_USERNAME}
+ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
+    http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
 
 ENTRYPOINT ["bash", "/app/revocompute/run.sh"]

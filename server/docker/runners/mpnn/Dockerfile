@@ -61,5 +61,7 @@ ENV RUNNER_USERNAME=${RUNNER_USERNAME}
 ENV MPNN_PATH=/opt/ProteinMPNN/vanilla_proteinmpnn
 ENV LIGANDMPNN_PATH=/opt/LigandMPNN
 ENV HYPERMPNN_WEIGHTS=/app/revocompute/hypermpnn_weights
+ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
+    http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
 
 ENTRYPOINT ["bash", "/app/revocompute/run.sh"]

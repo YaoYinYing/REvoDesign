@@ -68,4 +68,6 @@ ENV RUNNER_USERNAME=${RUNNER_USERNAME} \
     PLACER_PATH=/opt/PLACER \
     RFDIFFUSION_PATH=/opt/RFdiffusion \
     PYTHONPATH=/opt/RFdiffusion:/opt/RFdiffusion/env/SE3Transformer:${PYTHONPATH}
+ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
+    http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
 ENTRYPOINT ["bash", "/app/revocompute/run.sh"]

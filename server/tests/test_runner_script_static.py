@@ -10,6 +10,7 @@ import subprocess
 
 RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin" / "run.sh"
 OPENDDE_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "opendde" / "run.sh"
+SERVER_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_runner_script_does_not_eval_user_controlled_commands():
@@ -126,3 +127,18 @@ def test_opendde_runner_rejects_zero_exit_without_results(tmp_path):
     assert completed.returncode != 0
     assert "without producing a result artifact" in completed.stderr
     assert not (output_dir / "task_finished").exists()
+
+
+def test_final_docker_images_clear_build_proxy_environment():
+    dockerfiles = [SERVER_ROOT / "docker" / "server" / "Dockerfile"]
+    dockerfiles.extend(sorted((SERVER_ROOT / "docker" / "runners").glob("*/Dockerfile")))
+    expected = (
+        'ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \\\n'
+        '    http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""'
+    )
+
+    assert dockerfiles
+    for dockerfile in dockerfiles:
+        final_stage = dockerfile.read_text().rsplit("\nFROM ", 1)[-1]
+        assert expected in final_stage, dockerfile
+        assert final_stage.rfind("RUN ") < final_stage.index(expected), dockerfile

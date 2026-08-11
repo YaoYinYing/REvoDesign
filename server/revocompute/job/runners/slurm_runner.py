@@ -167,6 +167,13 @@ class SlurmJob(Job):
                 continue
             opts.append(f"--{option}={value}")
 
+        # ``apptainer --nv`` exposes host GPU libraries but does not reserve a
+        # device from SLURM.  A GPU task must always request one explicitly;
+        # administrators can still override the GRES shape (for example,
+        # ``gpu:a100:1``) per task or globally.
+        if self.tt.gpus and not sbatch_args.get("slurm_gres"):
+            opts.append("--gres=gpu:1")
+
         # The worker container's /app/server cwd does not exist on compute
         # nodes.  Use the task-specific shared output directory so slurmstepd
         # never falls back to /tmp and every job has an isolated valid cwd.

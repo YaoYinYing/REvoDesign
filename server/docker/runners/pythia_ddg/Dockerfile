@@ -48,5 +48,7 @@ COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/pythia_ddg/run.sh /app
 WORKDIR /app/revocompute/
 
 ENV RUNNER_USERNAME=${RUNNER_USERNAME}
+ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
+    http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
 
 ENTRYPOINT ["bash", "/app/revocompute/run.sh"]
