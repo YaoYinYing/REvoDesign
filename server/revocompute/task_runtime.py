@@ -309,7 +309,7 @@ def _finalize_results_manifest(task: dict) -> dict[str, Any]:
                 "media_type": mimetypes.guess_type(relative_path)[0] or "application/octet-stream",
                 "preview": _preview_kind(relative_path),
             }
-            if relative_path.startswith("execution/") and relative_path.endswith((".stdout.log", ".stderr.log")):
+            if relative_path.startswith("execution/slurm-") and relative_path.endswith((".stdout.log", ".stderr.log")):
                 artifact["role"] = "diagnostic"
             artifacts.append(artifact)
     manifest = {

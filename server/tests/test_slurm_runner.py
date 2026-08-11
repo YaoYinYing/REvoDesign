@@ -73,7 +73,14 @@ def _make_entities():
 
 
 def test_render_wrapper_has_shebang_and_set_e(tmp_path):
-    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
+    job = SlurmJob(
+        "task-1",
+        _make_task_type(),
+        _make_runner(),
+        _make_entities(),
+        str(tmp_path / "out"),
+        username="alice",
+    )
     script = job._render_wrapper()
     lines = script.splitlines()
     assert lines[0] == "#!/bin/bash"
@@ -263,15 +270,22 @@ def test_poll_returns_failed_on_exit_zero_without_result_artifact(tmp_path):
 
 
 def test_slurm_output_is_named_previewable_execution_diagnostics(tmp_path):
-    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
+    job = SlurmJob(
+        "task-1",
+        _make_task_type(),
+        _make_runner(),
+        _make_entities(),
+        str(tmp_path / "out"),
+        username="alice",
+    )
     job._job_id = "srun-32"
     job._stdout_lines = ["REVODESIGN_STAGE:proteinmpnn\n"]
     job._stderr_lines = ["warning\n"]
 
     job._save_output()
 
-    stdout = tmp_path / "out" / "execution" / "slurm-srun-32.stdout.log"
-    stderr = tmp_path / "out" / "execution" / "slurm-srun-32.stderr.log"
+    stdout = tmp_path / "out" / "execution" / "slurm-alice-gremlin-task-1.stdout.log"
+    stderr = tmp_path / "out" / "execution" / "slurm-alice-gremlin-task-1.stderr.log"
     assert stdout.read_text() == "REVODESIGN_STAGE:proteinmpnn\n"
     assert stderr.read_text() == "warning\n"
     assert job._is_execution_log(str(stdout))

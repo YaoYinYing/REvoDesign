@@ -150,7 +150,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **SLURM execution diagnostics**: scheduler stdout/stderr are now stored under
-  explicit `execution/slurm-<job>.stdout.log` and `.stderr.log` paths. They are
+  explicit `execution/slurm-<username>-<task>-<task-id>.stdout.log` and
+  `.stderr.log` paths. They are
   manifest-listed as diagnostic text artifacts, available through the text
   previewer, and kept out of the Main Results gallery.
 - **SLURM CPU propagation**: the wrapper now forwards the allocated CPU count

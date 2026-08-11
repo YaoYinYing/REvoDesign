@@ -314,9 +314,11 @@ class SlurmJob(Job):
         # instead of ambiguous ``slurm_srun-32.out`` files at the result root.
         execution_dir = os.path.join(self.output_dir, "execution")
         os.makedirs(execution_dir, exist_ok=True)
-        job_label = _sanitize_name(self._job_id or "unknown")
-        out_path = os.path.join(execution_dir, f"slurm-{job_label}.stdout.log")
-        err_path = os.path.join(execution_dir, f"slurm-{job_label}.stderr.log")
+        username = _sanitize_name(self._username or "unknown-user")
+        task_name = _sanitize_name(getattr(self.tt, "name", "unknown-task"))
+        task_id = _sanitize_name(self.task_id)
+        out_path = os.path.join(execution_dir, f"slurm-{username}-{task_name}-{task_id}.stdout.log")
+        err_path = os.path.join(execution_dir, f"slurm-{username}-{task_name}-{task_id}.stderr.log")
         try:
             with open(out_path, "w") as f:
                 f.writelines(self._stdout_lines)
@@ -352,7 +354,7 @@ class SlurmJob(Job):
         relative = os.path.relpath(path, self.output_dir).replace(os.sep, "/")
         filename = os.path.basename(relative)
         return (
-            relative.startswith("execution/")
+            relative.startswith("execution/slurm-")
             and filename.startswith("slurm-")
             and filename.endswith((".stdout.log", ".stderr.log"))
         )
