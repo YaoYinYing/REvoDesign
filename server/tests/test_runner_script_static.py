@@ -300,3 +300,17 @@ def test_easifa_runner_uses_private_runtime_caches():
     assert 'mktemp -d "${runtime_tmp%/}/revodesign-easifa.XXXXXX"' in script
     assert 'export TORCH_EXTENSIONS_DIR="$easifa_tmp/torch-extensions"' in script
     assert 'export MPLCONFIGDIR="$easifa_tmp/matplotlib"' in script
+
+
+def test_thermompnn_uses_preprovisioned_read_only_weights():
+    runner = (SERVER_ROOT / "config" / "runners" / "mpnn.yaml").read_text()
+    script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text()
+
+    assert 'host_path: "/mnt/db/weights/thermompnn"' in runner
+    assert 'container_path: "/mnt/db/weights/thermompnn"' in runner
+    assert 'mode: "ro"' in runner
+    assert 'XDG_DATA_HOME: "/mnt/db/weights/thermompnn"' in runner
+    assert "ThermoMPNN-ens1.ckpt ThermoMPNN-D-ens1.ckpt" in script
+    assert 'THERMOMPNN_VANILLA_WEIGHT_DIR: "/mnt/db/weights/thermompnn/ProteinMPNN/vanilla/vanilla_model_weights"' in runner
+    assert "ThermoMPNN ProteinMPNN backbone checkpoint is missing" in script
+    assert "runtime downloads are disabled" in script

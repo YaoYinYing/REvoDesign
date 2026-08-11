@@ -2,6 +2,12 @@ mounts:
   - host_path: "/mnt/db/weights/ligandmpnn"
     container_path: "/opt/LigandMPNN/model_params"
     mode: "ro"
-env: {}
+  - host_path: "/mnt/db/weights/thermompnn"
+    container_path: "/mnt/db/weights/thermompnn"
+    mode: "ro"
+env:
+  XDG_DATA_HOME: "/mnt/db/weights/thermompnn"
+  THERMOMPNN_WEIGHT_DIR: "/mnt/db/weights/thermompnn/ThermoMPNN/double/model_weights"
+  THERMOMPNN_VANILLA_WEIGHT_DIR: "/mnt/db/weights/thermompnn/ProteinMPNN/vanilla/vanilla_model_weights"
 max_runtime_seconds: 7200
 defaults: {}

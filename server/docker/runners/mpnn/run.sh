@@ -168,6 +168,20 @@ PY
     )
     ;;
   thermompnn)
+    thermo_weight_dir=${THERMOMPNN_WEIGHT_DIR:-/mnt/db/weights/thermompnn/ThermoMPNN/double/model_weights}
+    thermo_vanilla_weight_dir=${THERMOMPNN_VANILLA_WEIGHT_DIR:-/mnt/db/weights/thermompnn/ProteinMPNN/vanilla/vanilla_model_weights}
+    for checkpoint in ThermoMPNN-ens1.ckpt ThermoMPNN-D-ens1.ckpt; do
+      [[ -s "${thermo_weight_dir}/${checkpoint}" ]] || {
+        echo "ThermoMPNN checkpoint is missing: ${thermo_weight_dir}/${checkpoint}" >&2
+        echo "Provision the pinned v1.0.0 weights on the host; runtime downloads are disabled." >&2
+        exit 1
+      }
+    done
+    [[ -s "${thermo_vanilla_weight_dir}/v_48_020.pt" ]] || {
+      echo "ThermoMPNN ProteinMPNN backbone checkpoint is missing: ${thermo_vanilla_weight_dir}/v_48_020.pt" >&2
+      echo "Provision the pinned v1.0.0 vanilla weights on the host; runtime downloads are disabled." >&2
+      exit 1
+    }
     read -r -a thermo_chains <<< "$CHAINS"
     thermo_args=(
       --pdb "${input_file}"
