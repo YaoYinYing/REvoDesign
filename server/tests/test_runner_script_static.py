@@ -281,3 +281,11 @@ def test_easifa_image_requires_the_installed_prediction_cli():
     assert '/opt/easifa-env/bin/python -m pip install' in dockerfile
     assert '/opt/easifa-env/bin/python -c "import easifa_core"' in dockerfile
     assert "test -x /opt/easifa-env/bin/easifa-predict" in dockerfile
+
+
+def test_easifa_runner_reuses_the_read_only_esm_checkpoint_cache():
+    runner = (SERVER_ROOT / "config" / "runners" / "easifa.yaml").read_text()
+
+    assert 'host_path: "/mnt/db/weights/esm"' in runner
+    assert 'container_path: "/mnt/db/weights/esm"' in runner
+    assert 'TORCH_HOME: "/mnt/db/weights/esm"' in runner
