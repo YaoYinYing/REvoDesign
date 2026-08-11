@@ -281,6 +281,9 @@ def test_easifa_image_requires_the_installed_prediction_cli():
     assert '/opt/easifa-env/bin/python -m pip install' in dockerfile
     assert '/opt/easifa-env/bin/python -c "import easifa_core"' in dockerfile
     assert "test -x /opt/easifa-env/bin/easifa-predict" in dockerfile
+    assert 'cpp_extension.load("torch_ext"' in dockerfile
+    assert "import torch_ext" in dockerfile
+    assert "RUN ! command -v c++" in dockerfile
 
 
 def test_easifa_runner_reuses_the_read_only_esm_checkpoint_cache():
@@ -288,4 +291,12 @@ def test_easifa_runner_reuses_the_read_only_esm_checkpoint_cache():
 
     assert 'host_path: "/mnt/db/weights/esm/checkpoints"' in runner
     assert 'container_path: "/home/revodesign/.cache/torch/hub/checkpoints"' in runner
-    assert 'HOME: "/home/revodesign"' in runner
+    assert 'HOME: "/home/revodesign"' not in runner
+
+
+def test_easifa_runner_uses_private_runtime_caches():
+    script = (SERVER_ROOT / "docker" / "runners" / "easifa" / "run.sh").read_text()
+
+    assert 'mktemp -d "${runtime_tmp%/}/revodesign-easifa.XXXXXX"' in script
+    assert 'export TORCH_EXTENSIONS_DIR="$easifa_tmp/torch-extensions"' in script
+    assert 'export MPLCONFIGDIR="$easifa_tmp/matplotlib"' in script

@@ -9,7 +9,17 @@ done
 input_file=$(readlink -f "$input_file")
 output_dir=$(readlink -f "$output_dir")
 [[ ! -f "$input_file" ]] && { echo "Input not found: $input_file" >&2; exit 1; }
-mkdir -p "$output_dir" "$TORCH_EXTENSIONS_DIR" "$MPLCONFIGDIR"
+mkdir -p "$output_dir"
+
+# Apptainer shares the host /tmp by default. Use a private directory so jobs
+# submitted by different users cannot inherit an unwritable cache directory.
+runtime_tmp=${TMPDIR:-/tmp}
+[[ -d "$runtime_tmp" && -w "$runtime_tmp" ]] || runtime_tmp=/tmp
+easifa_tmp=$(mktemp -d "${runtime_tmp%/}/revodesign-easifa.XXXXXX")
+trap 'rm -rf -- "$easifa_tmp"' EXIT
+export TORCH_EXTENSIONS_DIR="$easifa_tmp/torch-extensions"
+export MPLCONFIGDIR="$easifa_tmp/matplotlib"
+mkdir -p "$TORCH_EXTENSIONS_DIR" "$MPLCONFIGDIR"
 
 _parse_param() {
   python3 -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"

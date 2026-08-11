@@ -5,7 +5,5 @@ mounts:
   - host_path: "/mnt/db/weights/esm/checkpoints"
     container_path: "/home/revodesign/.cache/torch/hub/checkpoints"
     mode: "ro"
-env:
-  HOME: "/home/revodesign"
 max_runtime_seconds: 3600
 defaults: {}

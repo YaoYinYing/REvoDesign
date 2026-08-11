@@ -10,7 +10,7 @@ ARG EASIFA_METADATA_REF=f26aecd922a48d935315fe7d4f61381a388492af
 ARG EASIFA_ENV_SHA256=da5751abd99297eaae813591a8b32a006d244d0d8ba376712223d83f24fe88f2
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates git libxext6 libxrender1 && \
+    apt-get install -y --no-install-recommends ca-certificates g++ git libxext6 libxrender1 && \
     rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir "huggingface_hub[hf_xet]==0.34.4"
 
@@ -36,6 +36,18 @@ RUN mkdir -p /tmp/easifa-metadata /opt/easifa-env && \
 RUN /opt/easifa-env/bin/python -m pip install --no-cache-dir --no-deps /opt/EasIFA2 && \
     /opt/easifa-env/bin/python -c "import easifa_core" && \
     test -x /opt/easifa-env/bin/easifa-predict
+
+# TorchDrug lazily compiles this CPU-only sparse-tensor shim on its first
+# forward pass. Build it once, install it as a normal extension module, and
+# replace the lazy loader so production does not retain a compiler toolchain.
+RUN mkdir -p /opt/easifa-torch-extensions/torch_ext_0 && \
+    TORCH_EXTENSIONS_DIR=/opt/easifa-torch-extensions \
+      /opt/easifa-env/bin/python -c 'from torch.utils import cpp_extension; cpp_extension.load("torch_ext", ["/opt/easifa-env/lib/python3.11/site-packages/torchdrug/utils/extension/torch_ext.cpp"], extra_cflags=["-Ofast", "-fopenmp", "-DAT_PARALLEL_OPENMP", "-DCUDA_OP"], extra_cuda_cflags=["-O3"], build_directory="/opt/easifa-torch-extensions/torch_ext_0")' && \
+    cp /opt/easifa-torch-extensions/torch_ext_0/torch_ext.so /opt/easifa-env/lib/python3.11/site-packages/torch_ext.so && \
+    sed -i 's#torch_ext = load_extension("torch_ext", \[os.path.join(path, "torch_ext.cpp")\])#import torch_ext#' \
+      /opt/easifa-env/lib/python3.11/site-packages/torchdrug/utils/torch.py && \
+    grep -qx 'import torch_ext' /opt/easifa-env/lib/python3.11/site-packages/torchdrug/utils/torch.py && \
+    /opt/easifa-env/bin/python -c 'import torch, torch_ext; from torchdrug.utils import torch as torch_utils; assert torch_utils.torch_ext is torch_ext'
 
 FROM debian:bookworm-slim
 
@@ -65,6 +77,7 @@ ENV PATH=/opt/easifa-env/bin:${PATH} \
     TORCH_EXTENSIONS_DIR=/tmp/easifa-torch-extensions \
     MPLCONFIGDIR=/tmp/easifa-matplotlib \
     DGLBACKEND=pytorch
+RUN ! command -v c++
 ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
     http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
 ENTRYPOINT ["bash", "/app/revocompute/run.sh"]
