@@ -59,6 +59,31 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     assert "file-input-offscreen" not in html
 
 
+def test_task_type_api_exposes_runtime_family_and_gpu_contract(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ENABLED_TASKRUNNERS": "lasermpnn",
+        },
+    )
+    client = module.app.test_client()
+
+    response = client.get("/compute/api/types")
+    assert response.status_code == 200
+    laser = next(item for item in response.get_json() if item["name"] == "lasermpnn")
+    assert laser["runtime_family"] == "mpnn"
+    assert laser["gpus"] is False
+
+    form_response = client.get("/compute/api/types/lasermpnn")
+    assert form_response.status_code == 200
+    form = form_response.get_json()
+    assert form["runtime_family"] == "mpnn"
+    assert form["gpus"] is False
+
+
 def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     dashboard_script = (SERVER_PACKAGE / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
     script = (SERVER_PACKAGE / "static" / "js" / "task-results.js").read_text(encoding="utf-8")
