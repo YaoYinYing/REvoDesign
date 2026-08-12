@@ -63,6 +63,7 @@ export RUNNER_UID RUNNER_GID
 cp -r "${SERVER_ROOT}/config" "${WORK_DIR}/state/server/config"
 sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc30|${WORK_DIR}/state/server/miniuc/uc30|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
 sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc90|${WORK_DIR}/state/server/miniuc/uc90|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
+sed -i "s|docker_image: \"revodesign-revocompute-runner\"|docker_image: \"${RUNNER_IMAGE}\"|" "${WORK_DIR}/state/server/config/task_types.yaml"
 cat >>"${ENV_FILE}" <<EOF
 
 # Full-stack test overrides
