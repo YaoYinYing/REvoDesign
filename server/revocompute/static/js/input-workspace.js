@@ -87,6 +87,14 @@
       tip.appendChild(bubble);
       labelRow.appendChild(tip);
     }
+    var hasDefault = parameter.default != null;
+    var resetBtn = null;
+    if (hasDefault) {
+      resetBtn = element("span", "param-reset", "↻");  // ↻
+      resetBtn.title = "Reset to default";
+      resetBtn.setAttribute("aria-label", "Reset to default value");
+      labelRow.appendChild(resetBtn);
+    }
     wrap.appendChild(labelRow);
     function isBinaryChoice(choices) {
       if (!choices || choices.length !== 2) return false;
@@ -147,6 +155,28 @@
       });
     }
     wrap.appendChild(control);
+    if (resetBtn) {
+      resetBtn.addEventListener("click", function () {
+        if (parameter.type === "bool" || isBinaryChoice(parameter.choices)) {
+          var hiddenEl = control.querySelector("input[type=hidden]");
+          var cb = control.querySelector("input[type=checkbox]");
+          var onVal = isBinaryChoice(parameter.choices) ? String(parameter.choices[0]) : "true";
+          var offVal = isBinaryChoice(parameter.choices) ? String(parameter.choices[1]) : "false";
+          var isOn = parameter.default === true || String(parameter.default) === onVal;
+          if (hiddenEl) hiddenEl.value = isOn ? onVal : offVal;
+          if (cb) cb.checked = isOn;
+        } else if (parameter.choices && parameter.choices.length) {
+          var options = control.querySelectorAll("option");
+          options.forEach(function (opt) { opt.selected = String(opt.value) === String(parameter.default); });
+        } else {
+          control.value = parameter.default == null ? "" : parameter.default;
+        }
+        control.removeAttribute("aria-invalid");
+        var err = document.getElementById("param_error_" + parameter.name);
+        if (err) { err.hidden = true; err.textContent = ""; }
+        context.changed();
+      });
+    }
     if (parameter.description) wrap.appendChild(element("p", "param-help", parameter.description));
     wrap.appendChild(error);
     return wrap;

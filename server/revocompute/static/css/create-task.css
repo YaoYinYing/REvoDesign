@@ -252,6 +252,15 @@
   color: var(--muted); cursor: help; user-select: none;
 }
 .param-tooltip:hover { border-color: var(--accent); color: var(--accent); }
+.param-reset {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 0.94rem; height: 0.94rem; border-radius: 999px;
+  font-size: 0.6rem; color: var(--muted); cursor: pointer; user-select: none;
+  opacity: 0; transition: opacity 120ms ease;
+}
+.param-field:hover .param-reset,
+.param-field:focus-within .param-reset { opacity: 1; }
+.param-reset:hover { color: var(--accent); }
 .param-tooltip-bubble {
   display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
   transform: translateX(-50%); z-index: 20;
