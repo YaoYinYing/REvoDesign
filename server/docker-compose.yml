@@ -130,7 +130,7 @@ services:
       -b 0.0.0.0:${PORT:-8080}
       --access-logfile ${LOG_DIR}/gunicorn-access.log
       --error-logfile ${LOG_DIR}/gunicorn-error.log
-      --access-logformat '%({CF-Connecting-IP}i)s (%({Cf-Ipcountry}i)s) - %(u)s %(t)s "%(r)s" %(s)s %(B)s "%(a)s"'
+      --access-logformat '%({CF-Connecting-IP}i)s (%({Cf-Ipcountry}i)s) - %(u)s %(t)s "%(m)s %(U)s" %(s)s %(B)s "%(a)s"'
       revocompute.app:app
     working_dir: /app/server
     expose:

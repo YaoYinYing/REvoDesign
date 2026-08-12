@@ -112,6 +112,10 @@ class UserDatabase:
     def __init__(self, path: str | None = None):
         self.path = os.path.abspath(path or _get_user_db_path())
         os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
+        try:
+            os.chmod(self.path, 0o600)
+        except OSError:
+            pass  # file does not exist yet — SQLAlchemy create_all will create it
         self.engine = sa.create_engine(
             f"sqlite:///{self.path}",
             future=True,
@@ -125,6 +129,10 @@ class UserDatabase:
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
             _metadata.create_all(conn, checkfirst=True)
+        try:
+            os.chmod(self.path, 0o600)
+        except OSError:
+            pass
 
     # -- write helpers -------------------------------------------------------
 
@@ -329,7 +337,7 @@ class UserDatabase:
 # Token serialiser
 # ---------------------------------------------------------------------------
 
-_SECRET_KEY = secrets.token_hex(32)
+_SECRET_KEY = os.environ.get("AUTH_SECRET_KEY", "") or secrets.token_hex(32)
 
 _TOKEN_MAX_AGE = _env_int("AUTH_TOKEN_MAX_AGE", 7 * 24 * 3600)  # 7 days
 
@@ -740,7 +748,9 @@ def send_password_reset_email(email: str, db: UserDatabase) -> bool:
         # Don't leak whether the email is registered — pretend success
         return True
 
-    token = _serializer.dumps({"uid": user["id"], "purpose": "reset-password"})
+    token = _serializer.dumps(
+        {"uid": user["id"], "purpose": "reset-password", "ver": user.get("token_version", 0), "nonce": secrets.token_hex(16)}
+    )
     base_url = _public_base_url()
     reset_url = f"{base_url}/compute/reset_password?c={token}"
 
@@ -923,12 +933,26 @@ def send_admin_digest() -> bool:
     return any_sent
 
 
-def validate_reset_token(token: str) -> int | None:
-    """Validate a password-reset token.  Returns *user_id* or ``None``."""
+def validate_reset_token(token: str, db: UserDatabase | None = None) -> int | None:
+    """Validate a password-reset token.  Returns *user_id* or ``None``.
+
+    When *db* is provided, also verifies that the user's current
+    ``token_version`` matches the one embedded in the token, so
+    incrementing ``token_version`` invalidates outstanding reset links.
+    """
     try:
         payload = _serializer.loads(token, max_age=3600)  # 1-hour expiry
     except (SignatureExpired, BadSignature):
         return None
     if payload.get("purpose") != "reset-password":
         return None
-    return payload.get("uid")
+    uid = payload.get("uid")
+    if uid is None:
+        return None
+    if db is not None:
+        user = db.get_user(uid)
+        if user is None:
+            return None
+        if user.get("token_version", 0) != payload.get("ver"):
+            return None
+    return uid

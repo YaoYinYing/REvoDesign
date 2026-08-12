@@ -1336,18 +1336,13 @@ def auth_login():
 
     token = generate_token(user["id"], user.get("token_version", 0))
     response = jsonify({"token": token, "username": user["username"]})
-    # ponytail: set cookie so browser page navigations (not just fetch())
-    # carry the auth token.  HttpOnly; SameSite=Lax prevents CSRF.
-    # secure=True only when SERVER_BASE_URL uses https — plain-http dev
-    # environments would silently drop Secure cookies.
-    _cookie_secure = _env_str("SERVER_BASE_URL", "http://localhost:8080").startswith("https://")
     response.set_cookie(
         "auth_token",
         token,
         path="/",
         httponly=True,
         samesite="Lax",
-        secure=_cookie_secure,
+        secure=request.is_secure,
     )
     return response
 
@@ -1379,7 +1374,7 @@ def auth_reset_password_page():
     token = request.args.get("c", "").strip()
     if not token:
         return render_template("error.html", code=400, message="Missing reset token."), 400
-    user_id = validate_reset_token(token)
+    user_id = validate_reset_token(token, _get_user_db())
     if user_id is None:
         return render_template("error.html", code=400, message="Invalid or expired reset token."), 400
     return render_template("reset-password.html", token=token), 200
@@ -1392,11 +1387,11 @@ def auth_reset_password():
     if isinstance(req, tuple):
         return req
 
-    user_id = validate_reset_token(req.token)
+    db = _get_user_db()
+    user_id = validate_reset_token(req.token, db)
     if user_id is None:
         return jsonify({"error": "Invalid or expired reset token"}), 400
 
-    db = _get_user_db()
     db.update_user(user_id, password_hash=generate_password_hash(req.password))
     db.increment_token_version(user_id)
     logging.info("User %d reset their password", user_id)
@@ -1407,18 +1402,17 @@ def auth_reset_password():
 @optional_user
 def auth_logout():
     """Clear the auth cookie and invalidate all tokens for the current user.
-
-    No auth required — idempotent.  If the user is authenticated (cookie or
-    Bearer token), their ``token_version`` is incremented so all previously
-    issued tokens become invalid.
+    Bearer token required for the token-version bump; cookie-only requests
+    only clear the cookie without invalidating tokens (CSRF-safe).
     """
     user = g.get("current_user")
     if user is not None:
+        if result := require_bearer_auth():
+            return result
         db = _get_user_db()
         db.increment_token_version(user["id"])
     response = jsonify({"status": "logged_out"})
-    secure = _env_str("SERVER_BASE_URL", "http://localhost:8080").startswith("https://")
-    response.set_cookie("auth_token", "", max_age=0, path="/", httponly=True, samesite="Lax", secure=secure)
+    response.set_cookie("auth_token", "", max_age=0, path="/", httponly=True, samesite="Lax", secure=request.is_secure)
     return response
 
 

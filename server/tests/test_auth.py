@@ -317,7 +317,11 @@ def test_logout_invalidates_cookie_dashboard_and_authenticated_pages_are_not_cac
     assert dashboard.status_code == 200
     assert dashboard.headers["Cache-Control"] == "private, no-store"
 
-    logout = client.post("/compute/api/auth/logout")
+    token_resp = client.get("/compute/api/auth/token")
+    assert token_resp.status_code == 200
+    bearer = token_resp.get_json()["token"]
+
+    logout = client.post("/compute/api/auth/logout", headers={"Authorization": f"Bearer {bearer}"})
     assert logout.status_code == 200
     after_logout = client.get("/compute/dashboard", headers={"Accept": "text/html"})
     assert after_logout.status_code == 302
@@ -387,7 +391,9 @@ def test_reset_password_get_renders_form(monkeypatch, tmp_path):
 
     db = module.app.config["user_db"]
     user = db.create_user(username="resetme", email="resetme@test.local", password="oldpass123")
-    token = _serializer.dumps({"uid": user["id"], "purpose": "reset-password"})
+    token = _serializer.dumps(
+        {"uid": user["id"], "purpose": "reset-password", "ver": user.get("token_version", 0), "nonce": "test-nonce"}
+    )
     client = module.app.test_client()
     resp = client.get(f"/compute/reset_password?c={token}")
     assert resp.status_code == 200
@@ -423,7 +429,9 @@ def test_reset_password_post_sets_new_password(monkeypatch, tmp_path):
         user_status="active",
     )
     db.verify_email(user["id"])
-    token = _serializer.dumps({"uid": user["id"], "purpose": "reset-password"})
+    token = _serializer.dumps(
+        {"uid": user["id"], "purpose": "reset-password", "ver": user.get("token_version", 0), "nonce": "test-nonce"}
+    )
     client = module.app.test_client()
     resp = client.post(
         "/compute/reset_password",
