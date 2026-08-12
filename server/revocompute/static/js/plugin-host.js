@@ -67,9 +67,9 @@
   PluginHost.prototype.collect = function () {
     var values = {};
     this.instances.forEach(function (mounted) {
-      if (typeof mounted.instance.readValue === "function") {
-        values[mounted.definition.id] = mounted.instance.readValue();
-      }
+      if (typeof mounted.instance.readValue !== "function") return;
+      try { values[mounted.definition.id] = mounted.instance.readValue(); }
+      catch (error) { values[mounted.definition.id] = null; }
     });
     return values;
   };
@@ -78,9 +78,11 @@
     var errors = [];
     this.instances.forEach(function (mounted) {
       if (typeof mounted.instance.validate !== "function") return;
-      var result = mounted.instance.validate();
-      if (Array.isArray(result)) errors.push.apply(errors, result);
-      else if (result) errors.push(result);
+      try {
+        var result = mounted.instance.validate();
+        if (Array.isArray(result)) errors.push.apply(errors, result);
+        else if (result) errors.push(result);
+      } catch (error) { errors.push(mounted.plugin.id + ": " + error.message); }
     });
     return errors;
   };

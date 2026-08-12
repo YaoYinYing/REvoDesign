@@ -150,9 +150,13 @@
       if (folderInput) target.appendChild(folderInput);
       var hint = element("p", "param-help"); target.appendChild(hint);
       var fileList = element("div", "input-file-list"); target.appendChild(fileList);
+      var fileError = element("p", "param-error"); fileError.id = "file_error"; fileError.hidden = true;
+      target.appendChild(fileError);
 
       function refresh() {
         var files = context.files();
+        button.removeAttribute("aria-invalid");
+        fileError.hidden = true; fileError.textContent = "";
         summary.textContent = files.length ? files.length + " file(s) selected" : "No files selected";
         hint.textContent = "Accepted: " + context.form.file_input.extensions.join(", ") +
           ". Maximum " + context.form.file_input.max_files + ". Nested relative paths are preserved.";
@@ -181,10 +185,12 @@
         readValue: function () { return context.orderedFiles().map(pathFor); },
         validate: function () {
           var files = context.files(); var errors = [];
+          fileError.hidden = true; fileError.textContent = "";
           if (!files.length && !context.sequence()) errors.push("Choose an input file or provide a sequence.");
           if (files.length > context.form.file_input.max_files) errors.push("Too many input files selected.");
           if (files.some(function (file) { return !matchesExtension(file, context.form.file_input.extensions); })) errors.push("One or more files has an unsupported extension.");
           if (files.length && !matchesExtension(files[context.primaryIndex], context.form.file_input.primary_extensions)) errors.push("Choose a supported primary input.");
+          if (errors.length) { button.setAttribute("aria-invalid", "true"); fileError.textContent = errors[0]; fileError.hidden = false; }
           return errors;
         },
         destroy: function () {
@@ -202,15 +208,19 @@
       var name = element("input", "text-input"); name.type = "text"; name.placeholder = "Sequence name";
       var textarea = element("textarea", "sequence-input"); textarea.placeholder = "Paste protein sequence letters (A-Z)";
       var preview = element("pre", "preview", sequenceSummary(""));
-      target.append(name, textarea, preview);
+      var seqError = element("p", "param-error"); seqError.id = "sequence_error"; seqError.hidden = true;
+      target.append(name, textarea, preview, seqError);
       context.sequenceNameInput = name; context.sequenceInput = textarea;
-      function refresh() { preview.textContent = sequenceSummary(context.sequence()); context.changed(); }
+      function refresh() { textarea.removeAttribute("aria-invalid"); seqError.hidden = true; seqError.textContent = ""; preview.textContent = sequenceSummary(context.sequence()); context.changed(); }
       textarea.addEventListener("input", refresh); name.addEventListener("input", context.changed);
       return {
         readValue: function () { return { name: name.value.trim(), sequence: context.sequence() }; },
         validate: function () {
-          if (context.sequence() && context.files().length) return ["Use either the pasted sequence or uploaded FASTA files, not both."];
-          return context.sequence() || context.files().length ? [] : ["Enter a sequence or choose a FASTA file."];
+          var errors = [];
+          if (context.sequence() && context.files().length) errors.push("Use either the pasted sequence or uploaded FASTA files, not both.");
+          if (!context.sequence() && !context.files().length) errors.push("Enter a sequence or choose a FASTA file.");
+          if (errors.length) { textarea.setAttribute("aria-invalid", "true"); seqError.textContent = errors[0]; seqError.hidden = false; }
+          return errors;
         },
         destroy: function () { textarea.removeEventListener("input", refresh); name.removeEventListener("input", context.changed); }
       };
@@ -225,6 +235,10 @@
       var residues = element("select", "text-input structure-residue-select"); residues.multiple = true; residues.hidden = true;
       target.append(status, chains, residues);
       var generation = 0;
+      // ponytail: generation guard prevents stale DOM writes but doesn't
+      // cancel in-flight file.text() reads. If large local files (>50 MiB)
+      // cause noticeable UI jank during rapid primary switches, upgrade to
+      // AbortController.
       function refresh() {
         generation += 1; var current = generation;
         var file = context.primaryFile();
