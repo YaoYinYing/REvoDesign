@@ -40,22 +40,6 @@
 
   var workspace = new Workspace(workspaceRoot, { fileInput: fileInput, status: setStatus });
 
-  function fallbackForm() {
-    return {
-      name: "gremlin", display_name: "PSSM-GREMLIN", runtime_family: "gremlin", gpus: false,
-      file_input: { accept: ".fasta", extensions: [".fasta"], primary_extensions: [".fasta"], label: "FASTA file", required: true, multiple: false, max_files: 1 },
-      params: [
-        { name: "iter", type: "int", default: 100, minimum: 1, maximum: 10000, step: 1, label: "Iterations", description: "GREMLIN optimization iterations", advanced: true }
-      ],
-      input_workspace: { version: 1, capabilities: [
-        { plugin: "files", id: "source_files", title: "FASTA input", options: { roles: ["primary"], primary_required: true } },
-        { plugin: "sequence", id: "sequence_editor", title: "Sequence", options: { allow_multiple: false, format: "fasta" } },
-        { plugin: "parameters", id: "task_parameters", title: "GREMLIN settings", options: {} },
-        { plugin: "review", id: "submission_review", title: "Review", options: { show_resources: true, show_paths: true } }
-      ] }
-    };
-  }
-
   function mountForm(definition) {
     currentForm = definition;
     fileInput.accept = definition.file_input.accept;
@@ -81,8 +65,7 @@
       } catch (_) { /* non-critical — tooltips and reset-to-default are absent */ }
       mountForm(def);
     } catch (error) {
-      if (name === "gremlin") mountForm(fallbackForm());
-      else setStatus("Could not load the selected task: " + error.message, "error");
+      setStatus("Could not load the selected task: " + error.message, "error");
     }
   }
 
@@ -100,8 +83,7 @@
       if (taskTypes.length) await fetchFormDefinition(taskTypes[0].name);
       else setStatus("No task types are currently enabled.", "error");
     } catch (error) {
-      var option = document.createElement("option"); option.value = "gremlin"; option.textContent = "PSSM-GREMLIN";
-      taskTypeSelect.replaceChildren(option); mountForm(fallbackForm());
+      setStatus("Could not reach the server. Check your connection and reload the page.", "error");
     }
   }
 
