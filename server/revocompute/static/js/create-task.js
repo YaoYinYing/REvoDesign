@@ -44,7 +44,14 @@
     return {
       name: "gremlin", display_name: "PSSM-GREMLIN", runtime_family: "gremlin", gpus: false,
       file_input: { accept: ".fasta", extensions: [".fasta"], primary_extensions: [".fasta"], label: "FASTA file", required: true, multiple: false, max_files: 1 },
-      params: [{ name: "iter", type: "int", default: 100, minimum: 1, maximum: 10000, step: 1, label: "Iterations", description: "GREMLIN optimization iterations", advanced: true }],
+      params: [
+        { name: "iter", type: "int", default: 100, minimum: 1, maximum: 10000, step: 1, label: "Iterations", description: "GREMLIN optimization iterations", advanced: true },
+        { name: "evalue", type: "text", default: "1E-10", label: "HHblits E-value", description: "Significance threshold (lower = more stringent)", advanced: true },
+        { name: "mact", type: "float", default: 0.35, minimum: 0.0, maximum: 1.0, step: 0.05, label: "Mact", description: "HHblits posterior probability threshold [0–1]", advanced: true },
+        { name: "maxfilt", type: "int", default: 100000000, minimum: 1, label: "Maxfilt", description: "HHblits maximum hits through prefilter", advanced: true },
+        { name: "neffmax", type: "float", default: 20.0, minimum: 1.0, label: "Neffmax", description: "HHblits target effective sequences after diversity filtering", advanced: true },
+        { name: "num_iterations", type: "int", default: 3, minimum: 1, maximum: 10, step: 1, label: "PSI-BLAST iterations", description: "Search iterations for PSSM refinement", advanced: true }
+      ],
       input_workspace: { version: 1, capabilities: [
         { plugin: "files", id: "source_files", title: "FASTA input", options: { roles: ["primary"], primary_required: true } },
         { plugin: "sequence", id: "sequence_editor", title: "Sequence", options: { allow_multiple: false, format: "fasta" } },

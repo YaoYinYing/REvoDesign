@@ -37,6 +37,10 @@ REVODESIGN_RUNSCRIPT_PATH=$(readlink -f "$(dirname "$0")")
 
 evalue=1E-10
 iter=4
+mact=0.35
+maxfilt=100000000
+neffmax=20
+num_iterations=3
 maxmem=${MAXMEM:-64}
 
 # make it stop if error occurs.
@@ -77,6 +81,17 @@ _parse_param() { python -c "import json,os; v=json.loads(os.environ.get('TASK_PA
 if [[ -z "${gremlin_iter:-}" ]]; then
   gremlin_iter=$(_parse_param iter)
 fi
+# Advanced scientific parameters (override hardcoded defaults when provided)
+parsed_evalue=$(_parse_param evalue)
+if [[ -n "${parsed_evalue:-}" ]]; then evalue="${parsed_evalue}"; fi
+parsed_mact=$(_parse_param mact)
+if [[ -n "${parsed_mact:-}" ]]; then mact="${parsed_mact}"; fi
+parsed_maxfilt=$(_parse_param maxfilt)
+if [[ -n "${parsed_maxfilt:-}" ]]; then maxfilt="${parsed_maxfilt}"; fi
+parsed_neffmax=$(_parse_param neffmax)
+if [[ -n "${parsed_neffmax:-}" ]]; then neffmax="${parsed_neffmax}"; fi
+parsed_num_iterations=$(_parse_param num_iterations)
+if [[ -n "${parsed_num_iterations:-}" ]]; then num_iterations="${parsed_num_iterations}"; fi
 
 if [[ -z "${fasta:-}" ]]; then
   echo "Missing required option: -i <fasta>"
@@ -192,9 +207,9 @@ RUN_GREMLIN() {
             -d "$uniref30_db"
             -n "$iter"
             -e "$evalue"
-            -mact 0.35
-            -maxfilt 100000000
-            -neffmax 20
+            -mact "$mact"
+            -maxfilt "$maxfilt"
+            -neffmax "$neffmax"
             -cpu "$nproc"
             -nodiff
             -realign_max 10000000
@@ -275,7 +290,7 @@ RUN_PSSM() {
             -evalue 0.01
             -out_ascii_pssm "${instance}_ascii_mtx_file"
             -out "${instance}_output_file"
-            -num_iterations 3
+            -num_iterations "$num_iterations"
             -num_threads "$nproc"
         )
         echo "${cmd[*]}"
