@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```text
 ## TEMPLATE
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+```
+## [Unreleased]
+
+### Added
 - **Pluggable scientific input and result workspaces**: added a shared local
   plugin registry and lifecycle host, a validated additive input-capability
   schema, reusable file/sequence/structure/region/parameter/review components,
@@ -30,14 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   SLURM CPU/memory controls with canonical per-task overrides and visible
   effective values. Legacy database fields remain migration fallbacks, empty
   overrides restore inheritance, and multi-field updates are transactional.
-
-### Fixed
-
-### Removed
-
-
-```
-## [Unreleased]
 ### Added
 - **Multi-task server architecture**: task-type-agnostic compute server with a
   YAML-based registry. Portable task schemas select one of nine shared runtime
