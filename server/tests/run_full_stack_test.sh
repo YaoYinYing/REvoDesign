@@ -60,7 +60,7 @@ elif [[ "${RUNNER_GID}" == "0" ]]; then
   RUNNER_GID="${RUNNER_UID}"
 fi
 export RUNNER_UID RUNNER_GID
-cp -r "${SERVER_ROOT}/config" "${WORK_DIR}/state/config"
+cp -r "${SERVER_ROOT}/config" "${WORK_DIR}/state/server/config"
 cat >>"${ENV_FILE}" <<EOF
 
 # Full-stack test overrides
@@ -80,6 +80,7 @@ MAXMEM=1
 WORKER_CONCURRENCY=1
 PORT=${PORT}
 GUNICORN_WORKERS=1
+CONFIG_DIR=${WORK_DIR}/state/server/config
 ENABLED_TASKRUNNERS=gremlin
 TZ=UTC
 EOF
