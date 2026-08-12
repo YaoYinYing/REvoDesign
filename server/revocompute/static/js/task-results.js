@@ -281,7 +281,10 @@
     stage.appendChild(structureViewerBar(artifact));
 
     if (structureViewer === "py2dmol") {
-      try { await renderPy2DmolFallback(structureText, artifact, stage, new Error("User selected alpha-trace viewer")); }
+      try {
+        await renderPy2DmolFallback(structureText, artifact, stage, new Error("User selected alpha-trace viewer"));
+        setTimeout(function () { setStructureColor(activeColorMode); }, 100);
+      }
       catch (e) {
         var unavailableMsg = document.createElement("p");
         unavailableMsg.className = "preview-message";
@@ -297,15 +300,17 @@
       stage.appendChild(structureViewerBar(artifact));
       var msg = document.createElement("p");
       msg.className = "preview-message";
-      msg.textContent = "Mol* could not be loaded. ";
+      msg.textContent = "Mol* could not be loaded: " + (error.message || error);
+      var br = document.createElement("br");
       var retry = document.createElement("button");
       retry.type = "button";
       retry.className = "btn btn-soft btn-small";
       retry.textContent = "Open with py2Dmol (alpha-trace)";
       retry.type = "button";
       retry.addEventListener("click", function () { structureViewer = "py2dmol"; previewArtifact(artifact); });
-      msg.appendChild(retry);
+      msg.append(br, retry);
       stage.appendChild(msg);
+      console.warn("Mol* error:", error);
     }
   }
 
