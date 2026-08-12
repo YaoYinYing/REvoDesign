@@ -830,6 +830,15 @@ cmd_build() {
 
   echo "Building runner images..."
   while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+    # Skip runners not in the user's enabled list (empty = build all).
+    if [[ -n "${ENABLED_TASKRUNNERS:-}" ]]; then
+      local _match=0
+      IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
+      for _n in "${_names[@]}"; do
+        [[ "${_n}" == "${name}" ]] && { _match=1; break; }
+      done
+      [[ ${_match} -eq 0 ]] && continue
+    fi
     echo "  → ${image} (${name})"
     docker build \
       "${proxy_build_args[@]}" \
@@ -870,6 +879,14 @@ validate_prepared_images() {
     "redis:7.2-alpine"
   )
   while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+    if [[ -n "${ENABLED_TASKRUNNERS:-}" ]]; then
+      local _match=0
+      IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
+      for _n in "${_names[@]}"; do
+        [[ "${_n}" == "${name}" ]] && { _match=1; break; }
+      done
+      [[ ${_match} -eq 0 ]] && continue
+    fi
     required_images+=("${image}")
   done < <(runtime_manifest)
   for image in "${required_images[@]}"; do
