@@ -157,7 +157,7 @@ def test_race_token_usage_after_concurrent_logout(monkeypatch, tmp_path):
     )
     token = login.json["token"]
     # Logout — increments token_version, invalidating all tokens
-    client.post("/compute/api/auth/logout")
+    client.post("/compute/api/auth/logout", headers={"Authorization": f"Bearer {token}"})
     # Old token must be rejected
     resp = client.get("/compute/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 401
