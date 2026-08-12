@@ -205,14 +205,28 @@
   // preference store).  Resets when the user selects a different artifact.
   var structureViewer = "molstar";
 
-  function setMolstarColor(mode) {
-    if (!activeMolstar || !activeMolstar.plugin) return;
-    try {
-      var component = activeMolstar.plugin.managers.structure.component;
-      var themes = { plddt: "b-factor", chain: "chain-id", rainbow: "residue-index" };
-      var themeName = themes[mode] || mode;
-      component.updateRepresentationsTheme({ color: { name: themeName, params: {} } });
-    } catch (e) { /* non-critical — Mol* built-in panel has these controls */ }
+  var activeColorMode = "plddt";
+
+  function setStructureColor(mode) {
+    activeColorMode = mode;
+    // Mol* backend
+    if (activeMolstar && activeMolstar.plugin) {
+      try {
+        var themes = { plddt: "b-factor", chain: "chain-id", rainbow: "residue-index" };
+        var component = activeMolstar.plugin.managers.structure.component;
+        component.updateRepresentationsTheme({ color: { name: themes[mode] || mode, params: {} } });
+      } catch (e) { /* Mol* handles this via its own panel too */ }
+    }
+    // py2Dmol backend — drive the existing color select in its right panel
+    var colorSelect = document.querySelector(".py2dmol-fallback #colorSelect");
+    if (colorSelect) {
+      colorSelect.value = mode;
+      colorSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    // Highlight active color toggle
+    document.querySelectorAll(".color-toggle").forEach(function (btn) {
+      btn.classList.toggle("active", btn.dataset.mode === mode);
+    });
   }
 
   function structureViewerBar(artifact) {
@@ -231,8 +245,9 @@
     colorBar.className = "structure-color-bar";
     [{ mode: "plddt", label: "pLDDT" }, { mode: "chain", label: "Chain" }, { mode: "rainbow", label: "Rainbow" }].forEach(function (c) {
       var btn = document.createElement("button");
-      btn.type = "button"; btn.className = "color-toggle"; btn.textContent = c.label;
-      btn.addEventListener("click", function () { setMolstarColor(c.mode); });
+      btn.type = "button"; btn.className = "color-toggle"; btn.textContent = c.label; btn.dataset.mode = c.mode;
+      if (activeColorMode === c.mode) btn.classList.add("active");
+      btn.addEventListener("click", function () { setStructureColor(c.mode); });
       colorBar.appendChild(btn);
     });
     bar.appendChild(colorBar);

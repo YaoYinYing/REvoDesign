@@ -34,6 +34,7 @@
 .structure-color-bar { display: flex; gap: 0.25rem; margin-left: 0.5rem; padding-left: 0.5rem; border-left: 1px solid var(--line); }
 .color-toggle { padding: 0.25rem 0.45rem; border: 1px solid transparent; border-radius: 0.35rem; background: transparent; color: var(--muted); font-size: 0.68rem; cursor: pointer; }
 .color-toggle:hover { border-color: var(--line); background: color-mix(in srgb, var(--paper) 90%, var(--accent) 10%); color: var(--accent); }
+.color-toggle.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .preview-message .btn-soft { margin-left: 0.5rem; vertical-align: middle; }
 .msa-viewer { max-height: 70vh; overflow: auto; padding: 0.75rem; }
 .msa-block { font: 0.78rem/ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.55; white-space: pre; }
