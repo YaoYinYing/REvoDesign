@@ -66,13 +66,15 @@
 .submission-review dd { margin: 0; overflow-wrap: anywhere; font-size: 0.8rem; }
 
 .param-field {
-  padding: 0.55rem 0.65rem; border: 1px solid transparent;
+  display: flex; flex-direction: column; justify-content: flex-start;
+  padding: 0.6rem 0.7rem; border: 1px solid transparent;
   border-radius: 0.6rem; background: transparent;
   transition: border-color 140ms ease, background 140ms ease;
 }
 .param-field:hover { border-color: var(--line); background: color-mix(in srgb, var(--paper) 95%, var(--accent) 5%); }
 .param-field:has(.param-toggle-wrap) {
-  display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+  flex-direction: row; align-items: center; justify-content: space-between; gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
 }
 .advanced-params {
   margin-top: 0.75rem;
@@ -98,6 +100,8 @@
   grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
   gap: 0.5rem;
 }
+/* Cards in the same row match heights via default stretch alignment,
+   internal flex-column keeps content top-aligned. */
 .param-label-row { display: flex; align-items: center; gap: 0.3rem; }
 .param-label { color: var(--ink); font-size: 0.82rem; font-weight: 650; }
 .param-field:has(.param-toggle-wrap) .param-label-row { margin-bottom: 0; }
