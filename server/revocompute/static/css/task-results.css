@@ -28,10 +28,18 @@
 .result-plugin-surface { min-height: inherit; }
 .result-plugin-surface > pre { margin: 0; padding: 1rem; white-space: pre; font-size: 0.78rem; }
 .empty-result, .preview-message { margin: 0; padding: 2rem; color: var(--muted); text-align: center; }
-.structure-viewer-bar { display: flex; gap: 0.35rem; padding: 0.45rem 0.65rem; border-bottom: 1px solid var(--line); }
+.structure-viewer-bar { display: flex; gap: 0.35rem; align-items: center; padding: 0.45rem 0.65rem; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .viewer-toggle { padding: 0.3rem 0.55rem; border: 1px solid var(--line); border-radius: 0.4rem; background: var(--paper); color: var(--muted); font-size: 0.72rem; cursor: pointer; }
 .viewer-toggle.active { border-color: var(--accent); background: color-mix(in srgb, var(--paper) 85%, var(--accent) 15%); color: var(--accent); font-weight: 600; }
+.structure-color-bar { display: flex; gap: 0.25rem; margin-left: 0.5rem; padding-left: 0.5rem; border-left: 1px solid var(--line); }
+.color-toggle { padding: 0.25rem 0.45rem; border: 1px solid transparent; border-radius: 0.35rem; background: transparent; color: var(--muted); font-size: 0.68rem; cursor: pointer; }
+.color-toggle:hover { border-color: var(--line); background: color-mix(in srgb, var(--paper) 90%, var(--accent) 10%); color: var(--accent); }
 .preview-message .btn-soft { margin-left: 0.5rem; vertical-align: middle; }
+.msa-viewer { max-height: 70vh; overflow: auto; padding: 0.75rem; }
+.msa-block { font: 0.78rem/ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.55; white-space: pre; }
+.msa-header { display: block; color: #0f4f63; font-weight: 700; margin-top: 0.5rem; }
+.msa-header:first-child { margin-top: 0; }
+.msa-sequence { display: block; }
 .artifact-image-preview { display: block; max-width: 100%; max-height: 72vh; margin: auto; padding: 0.75rem; }
 .artifact-molstar-preview { width: 100%; height: 70vh; min-height: 34rem; }
 .py2dmol-fallback { display: flex; align-items: flex-start; gap: 0.6rem; min-width: 0; padding: 0.75rem; overflow: auto; }

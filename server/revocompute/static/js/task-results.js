@@ -205,6 +205,16 @@
   // preference store).  Resets when the user selects a different artifact.
   var structureViewer = "molstar";
 
+  function setMolstarColor(mode) {
+    if (!activeMolstar || !activeMolstar.plugin) return;
+    try {
+      var component = activeMolstar.plugin.managers.structure.component;
+      var themes = { plddt: "b-factor", chain: "chain-id", rainbow: "residue-index" };
+      var themeName = themes[mode] || mode;
+      component.updateRepresentationsTheme({ color: { name: themeName, params: {} } });
+    } catch (e) { /* non-critical — Mol* built-in panel has these controls */ }
+  }
+
   function structureViewerBar(artifact) {
     var bar = document.createElement("div");
     bar.className = "structure-viewer-bar";
@@ -217,6 +227,15 @@
       return btn;
     };
     bar.append(makeBtn("Mol* (full)", "molstar"), makeBtn("py2Dmol (alpha)", "py2dmol"));
+    var colorBar = document.createElement("div");
+    colorBar.className = "structure-color-bar";
+    [{ mode: "plddt", label: "pLDDT" }, { mode: "chain", label: "Chain" }, { mode: "rainbow", label: "Rainbow" }].forEach(function (c) {
+      var btn = document.createElement("button");
+      btn.type = "button"; btn.className = "color-toggle"; btn.textContent = c.label;
+      btn.addEventListener("click", function () { setMolstarColor(c.mode); });
+      colorBar.appendChild(btn);
+    });
+    bar.appendChild(colorBar);
     return bar;
   }
 
@@ -316,11 +335,70 @@
     stage.appendChild(image);
   }
 
+  function isMsaFile(path) {
+    var ext = String(path || "").toLowerCase();
+    return /\.(a3m|aln|fa|faa|fasta|sto)$/.test(ext);
+  }
+
+  // Zappo/Clustal residue color scheme
+  var RESIDUE_COLORS = {
+    A: "#80a0f0", I: "#80a0f0", L: "#80a0f0", M: "#80a0f0", F: "#80a0f0", W: "#80a0f0", V: "#80a0f0", // hydrophobic
+    K: "#f01505", R: "#f01505",                                                                         // positive
+    D: "#c048c0", E: "#c048c0",                                                                         // negative
+    N: "#15c015", Q: "#15c015", S: "#15c015", T: "#15c015",                                             // polar
+    C: "#f08080",                                                                                       // cysteine
+    G: "#f09048",                                                                                       // glycine
+    P: "#c0c000",                                                                                       // proline
+    H: "#15a4a4", Y: "#15a4a4",                                                                         // aromatic
+    "-": "#c0c0c0", ".": "#c0c0c0"                                                                      // gap
+  };
+
+  function renderMsa(text, stage) {
+    var wrapper = document.createElement("div");
+    wrapper.className = "msa-viewer";
+    var lines = String(text).split(/\r?\n/);
+    var block = document.createElement("div");
+    block.className = "msa-block";
+    var lineCount = 0;
+    lines.forEach(function (line) {
+      if (lineCount >= 5000) return;
+      var trimmed = line.trimEnd();
+      if (trimmed.startsWith(">") || trimmed.startsWith("#")) {
+        var headerSpan = document.createElement("span");
+        headerSpan.className = "msa-header";
+        headerSpan.textContent = trimmed;
+        block.appendChild(headerSpan);
+      } else if (trimmed) {
+        var seqSpan = document.createElement("span");
+        seqSpan.className = "msa-sequence";
+        for (var i = 0; i < trimmed.length; i++) {
+          var char = trimmed[i].toUpperCase();
+          var span = document.createElement("span");
+          span.textContent = trimmed[i];
+          span.style.color = RESIDUE_COLORS[char] || "inherit";
+          seqSpan.appendChild(span);
+        }
+        block.appendChild(seqSpan);
+      } else {
+        block.appendChild(document.createElement("br"));
+      }
+      lineCount += 1;
+    });
+    if (lines.length > 5000) block.appendChild(document.createTextNode("\n\n[Preview truncated at 5000 lines]"));
+    wrapper.appendChild(block);
+    stage.appendChild(wrapper);
+  }
+
   async function previewText(artifact, stage) {
     var response = await A.authFetch(artifact.url, { headers: { Range: "bytes=0-262143" } });
     if (!response.ok && response.status !== 206) throw new Error("Text preview download failed");
+    var text = await response.text();
+    if (isMsaFile(artifact.path)) {
+      renderMsa(text, stage);
+      return;
+    }
     var pre = document.createElement("pre");
-    pre.textContent = await response.text() + (artifact.size > 262144 ? "\n\n[Preview truncated at 256 KiB]" : "");
+    pre.textContent = text + (artifact.size > 262144 ? "\n\n[Preview truncated at 256 KiB]" : "");
     stage.appendChild(pre);
   }
 

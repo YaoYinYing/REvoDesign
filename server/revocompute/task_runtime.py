@@ -266,14 +266,18 @@ def _run_compute_job(
 
 
 _TEXT_PREVIEW_EXTENSIONS = {
+    ".a3m",
+    ".aln",
     ".csv",
-    ".fasta",
     ".fa",
+    ".faa",
+    ".fasta",
     ".json",
     ".log",
     ".md",
     ".mrf",
     ".pdb",
+    ".sto",
     ".tsv",
     ".txt",
     ".yaml",
