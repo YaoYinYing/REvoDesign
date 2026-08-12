@@ -19,7 +19,8 @@ RUN pip install --no-cache-dir torch==1.12.1+cu113 \
       "numpy<2" \
       "pandas==2.2.3" \
       "pytorch-lightning==1.9.5" \
-      "torchmetrics==0.11.4"
+      "torchmetrics==0.11.4" \
+      "openfold==1.0.1"
 
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
