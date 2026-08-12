@@ -38,10 +38,31 @@
     { key: "slurm_exclusive",     label: "Exclusive",     type: "toggle",  placeholder: "" },
   ];
 
+  function parseRuntime(raw) {
+    if (raw == null || String(raw).trim() === "") return null;
+    var s = String(raw).trim();
+    // HH:MM:SS or H:MM:SS
+    var parts = s.split(":");
+    if (parts.length === 3) {
+      var h = parseInt(parts[0], 10), m = parseInt(parts[1], 10), sec = parseInt(parts[2], 10);
+      if (!isNaN(h) && !isNaN(m) && !isNaN(sec)) return h * 3600 + m * 60 + sec;
+    }
+    var n = Number(s);
+    return isNaN(n) ? null : Math.round(n);
+  }
+
+  function formatRuntime(seconds) {
+    if (seconds == null || seconds === "") return "";
+    var s = Number(seconds);
+    if (isNaN(s)) return String(seconds);
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+  }
+
   var RESOURCE_FIELDS = [
     { key: "cpus",                 label: "CPU cores",   type: "number", placeholder: "e.g. 8" },
     { key: "memory",               label: "Memory",      type: "text",   placeholder: "e.g. 16G" },
-    { key: "max_runtime_seconds",  label: "Max runtime", type: "number", placeholder: "seconds" },
+    { key: "max_runtime_seconds",  label: "Max runtime", type: "text",   placeholder: "1:00:00 or 3600" },
   ];
 
   // -- Sub-tab navigation ------------------------------------------------
@@ -280,9 +301,10 @@
     if (isToggle) {
       value = rawValue;
     } else if (rawValue === "") {
-      // Empty removes the task override so the resolved global/default policy
-      // becomes visible immediately.
       value = null;
+    } else if (key === "max_runtime_seconds") {
+      value = parseRuntime(rawValue);
+      if (value === null) { toast("Invalid runtime format — use 1:00:00 or 3600", "error"); return; }
     } else {
       var num = Number(rawValue);
       value = isNaN(num) ? rawValue : num;
@@ -307,7 +329,7 @@
     if (effective) {
       parts.push("cpus=" + escapeHtml(String(effective.cpus)));
       parts.push("memory=" + escapeHtml(effective.memory));
-      parts.push("runtime=" + Math.round(effective.max_runtime_seconds / 60) + "min");
+      parts.push("runtime=" + formatRuntime(effective.max_runtime_seconds));
       if (effective.partition) parts.push("partition=" + escapeHtml(effective.partition));
       if (effective.gres) parts.push("gres=" + escapeHtml(effective.gres));
     }
@@ -339,12 +361,17 @@
     return keys;
   }
 
+  function displayResourceValue(key, raw) {
+    if (key === "max_runtime_seconds" && raw != null && raw !== "") return formatRuntime(raw);
+    return raw || "";
+  }
+
   function renderResourceTable() {
     var keys = getResourceKeys();
     resourceBody.innerHTML = keys.map(function (rk) {
       return '<tr>' +
         '<td><strong>' + escapeHtml(rk.label) + '</strong></td>' +
-        '<td><input class="config-value" type="text" data-key="' + escapeHtml(rk.key) + '" value="' + escapeHtml(resources[rk.key] || "") + '" placeholder="(default)"></td>' +
+        '<td><input class="config-value" type="text" data-key="' + escapeHtml(rk.key) + '" value="' + escapeHtml(displayResourceValue(rk.key, resources[rk.key])) + '" placeholder="(default)"></td>' +
         '<td class="config-desc">' + escapeHtml(rk.desc) + '</td>' +
       '</tr>';
     }).join("");
@@ -358,7 +385,14 @@
     resourceBody.querySelectorAll(".config-value").forEach(function (input) {
       var key = input.dataset.key;
       var val = input.value.trim();
-      if (val !== (resources[key] || "")) changed[key] = val;
+      if (val === (resources[key] || "")) return;
+      if (key === "max_runtime_seconds" && val !== "") {
+        var parsed = parseRuntime(val);
+        if (parsed === null) { toast("Invalid runtime format — use 1:00:00 or 3600", "error"); return; }
+        changed[key] = String(parsed);
+      } else {
+        changed[key] = val === "" ? "" : val;
+      }
     });
     if (!Object.keys(changed).length) {
       resourceSaveStatus.textContent = "No changes.";
