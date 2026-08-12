@@ -495,6 +495,11 @@ details.sequence summary::-webkit-details-marker { display: none; }
   border-color: #d53a2f;
   color: #b9251b;
 }
+.task-btn.download-failed.download-progress {
+  background: #fce3e0;
+  border-color: #e08076;
+  color: #8b1a12;
+}
 .task-btn.download-progress {
   position: relative;
   isolation: isolate;
@@ -648,6 +653,7 @@ html[data-theme="dark"] .toast.error { background: #41241f; border-color: #75423
 html[data-theme="dark"] .task-btn.cancel { background: #17252c; border-color: #324751; color: #d7e3e8; }
 html[data-theme="dark"] .task-btn.delete { background: #17252c; border-color: #324751; color: #d7e3e8; }
 html[data-theme="dark"] .task-btn.download-failed { background: #351e1b; border-color: #a94b41; color: #ffb7ad; }
+html[data-theme="dark"] .task-btn.download-failed.download-progress { background: #3f2420; border-color: #c05a4f; color: #ffb7ad; }
 html[data-theme="dark"] .task-btn.download-progress {
   border-color: #39778a;
   background: #183844;

@@ -108,7 +108,7 @@
     return allTasks.filter(function (task) {
       if (state.filter !== "all" && task.status !== state.filter) return false;
       if (!query) return true;
-      var haystack = [task.fasta_fn, task.md5, task.status, task.sequence, task.submitted_time, task.finished_time].join(" ").toLowerCase();
+      var haystack = [task.fasta_fn, task.md5, task.status, task.owner, task.sequence, task.submitted_time, task.finished_time].join(" ").toLowerCase();
       return haystack.includes(query);
     });
   }
