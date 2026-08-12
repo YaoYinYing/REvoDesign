@@ -7,18 +7,13 @@
 Three tables:
 
   task_type_config
-    tool     TEXT PRIMARY KEY
-    enabled  INTEGER DEFAULT 1
-    cpus     INTEGER
-    memory   TEXT
-    max_runtime_seconds INTEGER
-    nproc / maxmem / slurm_cpus_per_task / slurm_mem
-             legacy migration fallbacks
-    max_runtime_seconds INTEGER
+    tool                 TEXT PRIMARY KEY
+    enabled              INTEGER DEFAULT 1
+    cpus                 INTEGER
+    memory               TEXT
+    max_runtime_seconds  INTEGER
     slurm_partition      TEXT
-    slurm_cpus_per_task  INTEGER
     slurm_gres           TEXT
-    slurm_mem            TEXT
     slurm_time           TEXT
     slurm_nodes          INTEGER
     slurm_ntasks         INTEGER
@@ -28,14 +23,12 @@ Three tables:
     slurm_exclusive      INTEGER
 
   resource_config
-    key      TEXT PRIMARY KEY
-    value    TEXT NOT NULL
+    key        TEXT PRIMARY KEY
+    value      TEXT NOT NULL
     updated_at REAL NOT NULL
 
-Per-task canonical fields override global canonical defaults. Legacy values are
-read only when their canonical replacement is absent. Use
-``resolve_task_resources`` for job launch; raw-key helpers exist only for
-administration and migration compatibility.
+Per-task canonical fields override global canonical defaults. Use
+``resolve_task_resources`` for job launch.
 """
 
 from __future__ import annotations
@@ -48,30 +41,12 @@ import time
 from revocompute.resource_policy import (
     CANONICAL_TASK_FIELDS,
     GLOBAL_RESOURCE_KEYS,
-    LEGACY_TASK_FIELDS,
     ResolvedResources,
     normalize_resource_value,
     resolve_resources,
 )
 
-# Fields in task_type_config that can override global resource_config keys
-_SLURM_FIELDS = (
-    "slurm_partition",
-    "slurm_cpus_per_task",
-    "slurm_gres",
-    "slurm_mem",
-    "slurm_time",
-    "slurm_nodes",
-    "slurm_ntasks",
-    "slurm_qos",
-    "slurm_account",
-    "slurm_constraint",
-    "slurm_exclusive",
-)
-
-_ALL_TASK_TYPE_FIELDS = CANONICAL_TASK_FIELDS + tuple(
-    field for field in LEGACY_TASK_FIELDS if field not in CANONICAL_TASK_FIELDS
-)
+_ALL_TASK_TYPE_FIELDS = CANONICAL_TASK_FIELDS
 
 
 class ManageDatabase:
@@ -87,24 +62,20 @@ class ManageDatabase:
         self._conn.execute("PRAGMA busy_timeout=5000")
         self._conn.execute(
             "CREATE TABLE IF NOT EXISTS task_type_config ("
-            "  tool    TEXT PRIMARY KEY,"
-            "  enabled INTEGER NOT NULL DEFAULT 1,"
-            "  cpus    INTEGER,"
-            "  memory  TEXT,"
-            "  nproc   INTEGER,"
-            "  maxmem  INTEGER,"
-            "  max_runtime_seconds INTEGER,"
-            "  slurm_partition     TEXT,"
-            "  slurm_cpus_per_task INTEGER,"
-            "  slurm_gres          TEXT,"
-            "  slurm_mem           TEXT,"
-            "  slurm_time          TEXT,"
-            "  slurm_nodes         INTEGER,"
-            "  slurm_ntasks        INTEGER,"
-            "  slurm_qos           TEXT,"
-            "  slurm_account       TEXT,"
-            "  slurm_constraint    TEXT,"
-            "  slurm_exclusive     INTEGER"
+            "  tool                 TEXT PRIMARY KEY,"
+            "  enabled              INTEGER NOT NULL DEFAULT 1,"
+            "  cpus                 INTEGER,"
+            "  memory               TEXT,"
+            "  max_runtime_seconds  INTEGER,"
+            "  slurm_partition      TEXT,"
+            "  slurm_gres           TEXT,"
+            "  slurm_time           TEXT,"
+            "  slurm_nodes          INTEGER,"
+            "  slurm_ntasks         INTEGER,"
+            "  slurm_qos            TEXT,"
+            "  slurm_account        TEXT,"
+            "  slurm_constraint     TEXT,"
+            "  slurm_exclusive      INTEGER"
             ")"
         )
         self._conn.execute(
@@ -115,8 +86,6 @@ class ManageDatabase:
             ")"
         )
         self._conn.commit()
-        # Migrate older task_type_config tables in-place. Legacy resource
-        # columns remain readable as fallbacks but new writes use cpus/memory.
         self._migrate_columns()
 
     def _migrate_columns(self) -> None:
@@ -128,10 +97,7 @@ class ManageDatabase:
                 in (
                     "enabled",
                     "cpus",
-                    "nproc",
-                    "maxmem",
                     "max_runtime_seconds",
-                    "slurm_cpus_per_task",
                     "slurm_nodes",
                     "slurm_ntasks",
                     "slurm_exclusive",
@@ -227,22 +193,6 @@ class ManageDatabase:
         if row is None:
             return None
         return row["enabled"]
-
-    def task_type_resolve(self, tool: str, field: str) -> str | None:
-        """Resolve a setting: per-task-type → global resource → None.
-
-        For boolean fields (enabled, slurm_exclusive), returns "true"/"false".
-        For all others, returns the raw value or None.
-        """
-        row = self.task_type_get(tool)
-        if row is not None:
-            val = row.get(field)
-            if val is not None:
-                if isinstance(val, bool):
-                    return "true" if val else "false"
-                return str(val)
-        # Fall back to resource_config
-        return self.resource_get(field)
 
     def task_type_value(self, tool: str, field: str) -> str | None:
         """Return only a per-task value, without falling back globally."""
@@ -351,31 +301,6 @@ class ManageDatabase:
         """Return the whitelist of allowed SLURM queues/partitions."""
         raw = self.resource_get("slurm_allowed_queues", "")
         return [q.strip() for q in raw.split(",") if q.strip()]
-
-    def slurm_sbatch_args(self, tool: str | None = None) -> dict[str, str | int | None]:
-        """Build the resolved sbatch argument dict for a task type (or global).
-
-        Resolution: task_type_config → resource_config → None (omitted from sbatch).
-        """
-        args: dict[str, str | int | None] = {}
-        for field in _SLURM_FIELDS:
-            val = None
-            if tool:
-                val = self.task_type_resolve(tool, field)
-            else:
-                val = self.resource_get(field)
-            if val is not None:
-                # Convert back to proper types for integer fields
-                if field in ("slurm_cpus_per_task", "slurm_nodes", "slurm_ntasks"):
-                    try:
-                        args[field] = int(val)
-                    except (ValueError, TypeError):
-                        pass
-                elif field == "slurm_exclusive":
-                    args[field] = val.lower() in ("true", "1", "yes", "on")
-                else:
-                    args[field] = val
-        return args
 
     def resolve_task_resources(
         self,

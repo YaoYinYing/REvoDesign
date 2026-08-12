@@ -39,10 +39,6 @@ CANONICAL_TASK_FIELDS = (
     "slurm_exclusive",
 )
 
-# Retained for database migration and read compatibility only. New UI/API
-# clients should use cpus/memory.
-LEGACY_TASK_FIELDS = ("nproc", "maxmem", "slurm_cpus_per_task", "slurm_mem")
-
 GLOBAL_RESOURCE_KEYS = {
     "cpus",
     "memory",
@@ -58,7 +54,7 @@ GLOBAL_RESOURCE_KEYS = {
     "slurm_exclusive",
     "slurm_enabled",
     "slurm_allowed_queues",
-} | set(LEGACY_TASK_FIELDS)
+}
 
 
 def _positive_int(value: Any, field: str, maximum: int | None = None) -> int:
@@ -96,15 +92,13 @@ def normalize_resource_value(field: str, value: Any) -> Any:
     """Validate and normalize one persisted task/global resource value."""
     if value is None or (isinstance(value, str) and not value.strip()):
         return None
-    if field in {"cpus", "nproc", "slurm_cpus_per_task"}:
+    if field == "cpus":
         return _positive_int(value, field, 1024)
     if field in {"slurm_nodes", "slurm_ntasks"}:
         return _positive_int(value, field, 128)
     if field in {"max_runtime_seconds"}:
         return _positive_int(value, field, 31 * 24 * 60 * 60)
-    if field == "maxmem":
-        return _positive_int(value, field, 1024 * 1024)
-    if field in {"memory", "slurm_mem"}:
+    if field == "memory":
         normalized = str(value).strip().upper()
         if not _MEMORY_RE.fullmatch(normalized):
             raise ResourceValidationError(f"{field} must look like 4000M or 16G")
@@ -241,32 +235,8 @@ def resolve_resources(
         sources[field] = "default"
         return default
 
-    cpus = first(
-        "cpus",
-        [("task", "cpus"), ("task", "slurm_cpus_per_task"), ("task", "nproc"),
-         ("global", "cpus"), ("global", "slurm_cpus_per_task"), ("global", "nproc")],
-        1,
-    )
-    memory = first(
-        "memory",
-        [("task", "memory"), ("task", "slurm_mem")],
-        None,
-    )
-    if memory is None:
-        task_legacy_mem = first("memory", [("task", "maxmem")], None)
-        if task_legacy_mem is not None:
-            memory = f"{task_legacy_mem}G"
-    if memory is None:
-        memory = first(
-            "memory",
-            [("global", "memory"), ("global", "slurm_mem")],
-            None,
-        )
-    if memory is None:
-        global_legacy_mem = first("memory", [("global", "maxmem")], None)
-        memory = f"{global_legacy_mem}G" if global_legacy_mem is not None else "4G"
-        if global_legacy_mem is None:
-            sources["memory"] = "default"
+    cpus = first("cpus", [("task", "cpus"), ("global", "cpus")], 1)
+    memory = first("memory", [("task", "memory"), ("global", "memory")], "4G")
 
     configured_runtime = first(
         "max_runtime_seconds",

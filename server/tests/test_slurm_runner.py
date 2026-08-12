@@ -139,8 +139,17 @@ def test_build_srun_args_gpu_task_reserves_one_gpu_by_default(tmp_path):
 
 def test_build_srun_args_gpu_task_uses_configured_gres(tmp_path):
     class _ManageDb:
-        def slurm_sbatch_args(self, _tool):
-            return {"slurm_gres": "gpu:a100:1"}
+        def resolve_task_resources(self, tool, *, requires_gpu, default_timeout_seconds):
+            return ResolvedResources(
+                cpus=1, memory="4G", max_runtime_seconds=3600,
+                partition=None, gres="gpu:a100:1",
+                nodes=1, ntasks=1, qos=None, account=None,
+                constraint=None, exclusive=False,
+                requires_gpu=True,
+                sources={"gres": "task:slurm_gres"},
+            )
+
+    from revocompute.resource_policy import ResolvedResources
 
     job = SlurmJob(
         "task-1",

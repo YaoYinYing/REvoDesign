@@ -29,9 +29,9 @@ def _resolve(task=None, global_values=None, *, gpu=False, queues=(), timeout=720
     )
 
 
-def test_canonical_resources_override_legacy_values_and_are_explicit():
+def test_canonical_per_task_values_override_global_defaults():
     resources = _resolve(
-        {"cpus": 16, "memory": "32G", "nproc": 2, "slurm_mem": "4G"},
+        {"cpus": 16, "memory": "32G"},
         {"cpus": 8, "memory": "8G"},
     )
     assert resources.cpus == 16
@@ -42,15 +42,20 @@ def test_canonical_resources_override_legacy_values_and_are_explicit():
     assert resources.ntasks == 1
 
 
-def test_legacy_resources_are_migration_fallbacks():
-    resources = _resolve(
-        {"slurm_cpus_per_task": "12", "maxmem": "24"},
-        {"cpus": "4", "memory": "8G"},
-    )
-    assert resources.cpus == 12
-    assert resources.memory == "24G"
-    assert resources.sources["cpus"] == "task:slurm_cpus_per_task"
-    assert resources.sources["memory"] == "task:maxmem"
+def test_global_resource_defaults_apply_when_per_task_is_empty():
+    resources = _resolve({}, {"cpus": 8, "memory": "16G"})
+    assert resources.cpus == 8
+    assert resources.memory == "16G"
+    assert resources.sources["cpus"] == "global:cpus"
+    assert resources.sources["memory"] == "global:memory"
+
+
+def test_safe_defaults_apply_when_no_values_are_configured():
+    resources = _resolve({}, {})
+    assert resources.cpus == 1
+    assert resources.memory == "4G"
+    assert resources.sources["cpus"] == "default"
+    assert resources.sources["memory"] == "default"
 
 
 def test_gpu_policy_reserves_one_device_but_cpu_policy_ignores_global_gres():
@@ -107,9 +112,9 @@ def test_manage_database_migrates_canonical_columns_and_resolves_policy(tmp_path
     connection.execute(
         "CREATE TABLE task_type_config ("
         "tool TEXT PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 1, "
-        "nproc INTEGER, maxmem INTEGER)"
+        "cpus INTEGER, memory TEXT)"
     )
-    connection.execute("INSERT INTO task_type_config (tool, nproc, maxmem) VALUES ('gremlin', 6, 12)")
+    connection.execute("INSERT INTO task_type_config (tool, cpus, memory) VALUES ('gremlin', 6, '12G')")
     connection.commit()
     connection.close()
 
@@ -136,7 +141,7 @@ def test_preflight_database_read_is_read_only(tmp_path):
     database_path = tmp_path / "manage.sqlite"
     connection = sqlite3.connect(database_path)
     connection.execute(
-        "CREATE TABLE task_type_config (tool TEXT PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 1, nproc INTEGER)"
+        "CREATE TABLE task_type_config (tool TEXT PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 1, cpus INTEGER)"
     )
     connection.execute(
         "CREATE TABLE resource_config (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at REAL NOT NULL)"
@@ -149,7 +154,7 @@ def test_preflight_database_read_is_read_only(tmp_path):
 
     globals_, tasks = _read_database(str(database_path))
     assert globals_["memory"] == "8G"
-    assert tasks["gremlin"]["nproc"] == 4
+    assert tasks["gremlin"]["cpus"] == 4
 
     connection = sqlite3.connect(database_path)
     try:

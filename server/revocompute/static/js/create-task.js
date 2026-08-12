@@ -44,7 +44,7 @@
     return {
       name: "gremlin", display_name: "PSSM-GREMLIN", runtime_family: "gremlin", gpus: false,
       file_input: { accept: ".fasta", extensions: [".fasta"], primary_extensions: [".fasta"], label: "FASTA file", required: true, multiple: false, max_files: 1 },
-      params: [{ name: "iter", type: "int", default: 100, minimum: 1, maximum: 10000, step: 1, label: "Iterations", description: "GREMLIN optimization iterations" }],
+      params: [{ name: "iter", type: "int", default: 100, minimum: 1, maximum: 10000, step: 1, label: "Iterations", description: "GREMLIN optimization iterations", advanced: true }],
       input_workspace: { version: 1, capabilities: [
         { plugin: "files", id: "source_files", title: "FASTA input", options: { roles: ["primary"], primary_required: true } },
         { plugin: "sequence", id: "sequence_editor", title: "Sequence", options: { allow_multiple: false, format: "fasta" } },

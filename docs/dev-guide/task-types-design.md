@@ -50,7 +50,7 @@ portable/runtime records:
   parameter defaults.
 
 Runner YAML must not contain `runner`, `job_executor`, `container_runtime`,
-`slurm_image`, `gpus`, `nproc`, or `maxmem`. GPU eligibility belongs to the task
+`slurm_image` or `gpus`. GPU eligibility and resource policy belong to the task
 schema; SLURM requests belong to the management database.
 
 Resource settings resolve once through `resource_policy.py`:
@@ -62,7 +62,7 @@ per-task canonical cpus/memory/runtime
 global canonical defaults
         |
         v
-legacy nproc/maxmem/slurm_* fallback
+resource resolution chain (per-task → global → default)
         |
         v
 safe explicit defaults

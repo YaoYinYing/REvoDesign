@@ -166,14 +166,13 @@ defaults:
 ```
 
 GPU requests belong to task types (`gpus: true`) and per-task SLURM resources
-belong to the management database/UI. Do not place ignored `gpus`, `nproc`, or
-`maxmem` keys in runner YAML.
+are managed through the admin UI and are not placed in runner YAML.
 
 Configure canonical `cpus`, `memory`, and `max_runtime_seconds` globally or per
 task in `/compute/configuration`. Per-task values inherit from global defaults
 when left empty. SLURM partition/GRES/nodes/tasks/QOS/account/constraint and
 exclusive placement are separate validated fields. Legacy database values
-(`nproc`, `maxmem`, `slurm_cpus_per_task`, `slurm_mem`, and `slurm_time`) are
+(`cpus`, `memory`, `max_runtime_seconds`, and `slurm_time`) are
 migration fallbacks only; do not create new ones.
 
 Before migration, back up `manage.sqlite`. Record the effective policy shown by

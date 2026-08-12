@@ -155,16 +155,6 @@ class SlurmJob(Job):
                 requires_gpu=self.tt.gpus,
                 default_timeout_seconds=self.runner.max_runtime_seconds,
             )
-        elif self._db is not None and hasattr(self._db, "slurm_sbatch_args"):
-            # Compatibility for small test doubles and transitional callers.
-            legacy = self._db.slurm_sbatch_args(self.tt.name)
-            resources = resolve_resources(
-                lambda field: legacy.get(field),
-                lambda _field: None,
-                requires_gpu=self.tt.gpus,
-                allowed_queues=(),
-                default_timeout_seconds=self.runner.max_runtime_seconds,
-            )
         else:
             resources = resolve_resources(
                 lambda _field: None,

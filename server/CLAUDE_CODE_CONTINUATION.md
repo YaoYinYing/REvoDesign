@@ -224,18 +224,12 @@ Raw coordinate text must not be presented as though it were a structure view.
 
 `resource_policy.py` defines the one typed resource contract. New admin writes
 use `cpus`, `memory`, and `max_runtime_seconds`; SLURM placement remains in
-validated `slurm_*` fields. Old `nproc`, `maxmem`, `slurm_cpus_per_task`, and
-`slurm_mem` values remain resolution fallbacks for production database
-migration, but they are no longer shown as competing controls.
+validated `slurm_*` fields.
 
 The precedence is:
 
 ```text
-per-task canonical
-  -> per-task legacy
-  -> global canonical
-  -> global legacy
-  -> explicit safe default
+per-task canonical -> global canonical -> explicit safe default
 ```
 
 The effective policy contains CPU, memory, maximum runtime, partition, GRES,
@@ -295,9 +289,6 @@ Do not assume the new UI is production-ready. Address these in order:
     and management database without changing database schema or ownership.
 12. Browser-test the redesigned configuration page: inheritance clearing,
     effective values, validation errors, GPU GRES, and allowed partitions.
-13. Plan production migration from legacy resource columns. Do not delete old
-    columns or values in the first deployment; compare resolved policies before
-    and after writing canonical overrides.
 
 ## UX requirements by task complexity
 

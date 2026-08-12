@@ -96,6 +96,7 @@ task_types:
         minimum: 1
         maximum: 10000
         step: 1
+        advanced: true
 
   pythia_ddg:
     display_name: "Pythia-ddG"

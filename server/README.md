@@ -396,9 +396,7 @@ on first launch via `sqlite3`.
 The admin UI stores one portable policy for CPU cores, memory, and maximum
 runtime. Per-task values override global defaults. SLURM-only placement fields
 (partition, GRES, nodes, tasks, QOS, account, constraint, and exclusivity) are
-resolved afterward. Legacy `nproc`, `maxmem`, `slurm_cpus_per_task`, and
-`slurm_mem` database values remain read-only migration fallbacks; new clients
-write `cpus` and `memory`.
+resolved afterward.
 
 Resolution happens before upload persistence. The accepted policy is stored in
 the task's `input_form` record, validated again by the worker, and passed to the
