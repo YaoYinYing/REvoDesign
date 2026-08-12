@@ -93,6 +93,7 @@ task_types:
         type: "int"
         default: 100
         description: "GREMLIN optimization iterations"
+        help: "Number of gradient-descent iterations the GREMLIN Markov random field model runs during training. Higher values (e.g. 500–1000) can yield more converged coupling scores at the cost of longer runtime, while lower values (50–100) produce a faster but rougher model. Typical values for production runs are 100–200."
         minimum: 1
         maximum: 10000
         step: 1
@@ -101,11 +102,13 @@ task_types:
         type: "text"
         default: "1E-10"
         description: "HHblits E-value significance threshold (lower = more stringent)"
+        help: "The E-value controls which sequence matches HHblits considers statistically significant during iterative profile construction. A lower threshold (e.g. 1E-20) admits only near-identical homologs and produces a tighter, less diverse alignment; a higher threshold (e.g. 1E-4) brings in remote homologs and increases sequence diversity. The default 1E-10 balances coverage and quality for most protein families."
         advanced: true
       - name: "mact"
         type: "float"
         default: 0.35
         description: "HHblits posterior probability threshold for alignment columns [0–1]"
+        help: "The mact (maximum accuracy) parameter determines how conservative the column inclusion is in the output alignment. Values near 1.0 keep only high-confidence columns, producing a shorter but more reliable MSA. Values near 0.0 include nearly every column regardless of quality, which adds noise but preserves more sequence information. The default 0.35 is a broadly accepted trade-off."
         minimum: 0.0
         maximum: 1.0
         step: 0.05
@@ -114,18 +117,21 @@ task_types:
         type: "int"
         default: 100000000
         description: "HHblits maximum hits through prefilter"
+        help: "The maximum number of raw database hits that pass through the HHblits prefilter before the more expensive alignment stage. A very high value (default 100 million) effectively disables the cap and lets all candidates through. Lower this if you observe excessive memory use or wall-clock time during the HHblits stage — values around 1–10 million are sufficient for most single-domain proteins while dramatically reducing resource consumption."
         minimum: 1
         advanced: true
       - name: "neffmax"
         type: "float"
         default: 20.0
         description: "HHblits target effective sequences after diversity filtering"
+        help: "The target number of effective (non-redundant) sequences HHblits aims to retain after its diversity-filtering stage. Higher values (e.g. 50–100) produce a deeper, more informative MSA that improves GREMLIN contact prediction but scales computation quadratically. Lower values (5–10) run faster but may miss co-evolutionary signal from underrepresented clades. The default 20 is typical for most medium-sized protein families."
         minimum: 1.0
         advanced: true
       - name: "num_iterations"
         type: "int"
         default: 3
         description: "PSI-BLAST search iterations for PSSM refinement"
+        help: "Number of PSI-BLAST rounds used to build the position-specific scoring matrix (PSSM). Each iteration re-searches the database using the profile from the previous round, progressively refining the PSSM. Fewer iterations (1–2) produce a coarser but faster PSSM; more iterations (5–10) may pull in spurious hits and dilute the profile. The default of 3 is the NCBI-recommended value and works well for most queries."
         minimum: 1
         maximum: 10
         step: 1
