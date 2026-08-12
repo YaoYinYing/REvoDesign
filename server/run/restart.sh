@@ -541,6 +541,14 @@ validate_slurm_images() {
   local slurm_image=""
 
   while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+    if [[ -n "${ENABLED_TASKRUNNERS:-}" ]]; then
+      local _match=0
+      IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
+      for _n in "${_names[@]}"; do
+        [[ "${_n}" == "${name}" ]] && { _match=1; break; }
+      done
+      [[ ${_match} -eq 0 ]] && continue
+    fi
     if [[ ! -f "${slurm_image}" ]]; then
       echo "[SLURM] Missing SIF image: ${slurm_image}" >&2
       echo "        Build it:  apptainer build --fakeroot ${slurm_image} ${SERVER_ROOT}/${definition}" >&2
@@ -571,6 +579,14 @@ build_slurm_images() {
   fi
 
   while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+    if [[ -n "${ENABLED_TASKRUNNERS:-}" ]]; then
+      local _match=0
+      IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
+      for _n in "${_names[@]}"; do
+        [[ "${_n}" == "${name}" ]] && { _match=1; break; }
+      done
+      [[ ${_match} -eq 0 ]] && continue
+    fi
     def_file="${SERVER_ROOT}/${definition}"
     if [[ -z "${def_file}" || ! -f "${def_file}" ]]; then
       echo "[SLURM] No .def file for runtime family '${name}': ${def_file}" >&2
@@ -1015,6 +1031,14 @@ cmd_restart() {
       echo "Pulling configured production images..."
       "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" pull web gateway
       while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
+        if [[ -n "${ENABLED_TASKRUNNERS:-}" ]]; then
+          local _match=0
+          IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
+          for _n in "${_names[@]}"; do
+            [[ "${_n}" == "${name}" ]] && { _match=1; break; }
+          done
+          [[ ${_match} -eq 0 ]] && continue
+        fi
         echo "  → ${image} (${name})"
         docker pull "${image}"
       done < <(runtime_manifest)
