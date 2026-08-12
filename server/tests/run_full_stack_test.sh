@@ -144,6 +144,8 @@ docker build \
   --tag "${SERVER_IMAGE}" \
   "${SERVER_ROOT}"
 
+ls -d "${WORK_DIR}/miniuc/uc30" "${WORK_DIR}/miniuc/uc90" >/dev/null || {
+  echo "Database directories missing before server launch." >&2; exit 1; }
 echo "Launching the full server stack from the generated test environment..."
 if ! UP_OUTPUT="$(REVODESIGN_SERVER_ENV="${ENV_FILE}" bash "${DEPLOY_SCRIPT}" up 2>&1)"; then
   printf '%s\n' "${UP_OUTPUT}" | sed 's/password: .*/password: [REDACTED]/'
