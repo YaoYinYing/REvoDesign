@@ -334,6 +334,7 @@ def task_type_form(name: str):
                     "maximum": p.maximum,
                     "step": p.step,
                     "unit": p.unit,
+                    "help": p.help,
                     "advanced": p.advanced,
                 }
                 for p in tt.params
