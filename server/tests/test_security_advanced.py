@@ -9,14 +9,7 @@ import json
 import os
 
 import pytest
-from conftest import (
-    _admin_client_auth,
-    _extract_md5,
-    _insert_pending_task,
-    _load_pssm_module,
-    _test_client_auth,
-    _upsert_task_for_user,
-)
+from conftest import _admin_client_auth, _load_pssm_module, _test_client_auth
 
 # Auth endpoint tests — /api/auth/me, API keys, password reset, etc.
 # ==================================================================
@@ -31,7 +24,7 @@ def test_attack_upload_path_traversal_via_filename(monkeypatch, tmp_path):
     class _DummyAsyncResult:
         id = "celery-test-id"
 
-    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
+    monkeypatch.setattr(module.run_compute_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
 
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
@@ -48,7 +41,7 @@ def test_attack_upload_path_traversal_via_filename(monkeypatch, tmp_path):
     for i, fname in enumerate(traversal_names):
         content = f">test{i}\nACDE{i}\n".encode()  # unique per upload to avoid dedup
         resp = client.post(
-            "/PSSM_GREMLIN/api/post",
+            "/compute/api/post",
             data={"file": (io.BytesIO(content), fname)},
             headers=auth_header,
         )
@@ -71,7 +64,7 @@ def test_attack_download_path_traversal_in_task_id(monkeypatch, tmp_path):
     ]
     for tid in traversal_ids:
         for route in ("running", "results", "download"):
-            resp = client.get(f"/PSSM_GREMLIN/api/{route}/{tid}", headers=auth_header)
+            resp = client.get(f"/compute/api/{route}/{tid}", headers=auth_header)
             assert resp.status_code in {400, 404}, f"{route} {tid!r}: got {resp.status_code}"
 
 
@@ -114,11 +107,11 @@ def test_attack_log_archive_download_rejects_traversal_and_prefix_spoofing(
     client = module.app.test_client()
     admin_header = _admin_client_auth(module)
     listing = client.get(
-        "/PSSM_GREMLIN/api/auth/admin/logs/archives",
+        "/compute/api/auth/admin/logs/archives",
         headers=admin_header,
     )
     response = client.get(
-        f"/PSSM_GREMLIN/api/auth/admin/logs/archives/{archive_name}",
+        f"/compute/api/auth/admin/logs/archives/{archive_name}",
         headers=admin_header,
     )
 
@@ -148,11 +141,11 @@ def test_attack_log_archive_listing_and_download_reject_symlink_escape(
     client = module.app.test_client()
     admin_header = _admin_client_auth(module)
     listing = client.get(
-        "/PSSM_GREMLIN/api/auth/admin/logs/archives",
+        "/compute/api/auth/admin/logs/archives",
         headers=admin_header,
     )
     download = client.get(
-        f"/PSSM_GREMLIN/api/auth/admin/logs/archives/{archive_name}",
+        f"/compute/api/auth/admin/logs/archives/{archive_name}",
         headers=admin_header,
     )
 
@@ -190,7 +183,7 @@ def test_attack_active_log_stream_rejects_traversal_names(
     outside.write_bytes(sentinel)
 
     response = module.app.test_client().get(
-        f"/PSSM_GREMLIN/api/auth/admin/logs/{log_name}",
+        f"/compute/api/auth/admin/logs/{log_name}",
         headers=_admin_client_auth(module),
     )
 
@@ -206,11 +199,11 @@ def test_attack_register_with_path_traversal_email(monkeypatch, tmp_path):
         extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLE_REGISTER": "true", "SMTP_HOST": "localhost"},
     )
     client = module.app.test_client()
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     captcha_token = _serializer.dumps({"answer": 7, "purpose": "captcha"})
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/register",
+        "/compute/api/auth/register",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
@@ -238,7 +231,7 @@ def test_attack_header_injection_via_user_agent(monkeypatch, tmp_path):
     # the correct defense: CRLF injection is blocked at the WSGI layer.
     with pytest.raises(ValueError, match="newline"):
         client.get(
-            "/PSSM_GREMLIN/api/auth/captcha",
+            "/compute/api/auth/captcha",
             headers={
                 "User-Agent": "evil\r\nX-Injected: true",
             },
@@ -254,7 +247,7 @@ def test_attack_forgot_password_with_crlf_email(monkeypatch, tmp_path):
     )
     client = module.app.test_client()
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/forgot-password",
+        "/compute/api/auth/forgot-password",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"email": "test@test.local\r\nBcc: attacker@evil.com"}),
     )
@@ -282,7 +275,7 @@ def test_rce_ssti_in_username_not_executed(monkeypatch, tmp_path):
     ]
     for payload in ssti_payloads:
         resp = client.post(
-            "/PSSM_GREMLIN/api/auth/login",
+            "/compute/api/auth/login",
             headers={"Content-Type": "application/json"},
             data=json.dumps({"username": payload, "password": "anything"}),
         )
@@ -303,7 +296,7 @@ def test_rce_ssti_alternate_syntax_not_executed(monkeypatch, tmp_path):
     ]
     for payload, ip in alt_payloads:
         resp = client.post(
-            "/PSSM_GREMLIN/api/auth/login",
+            "/compute/api/auth/login",
             headers={"Content-Type": "application/json"},
             data=json.dumps({"username": payload, "password": "anything"}),
             environ_base={"REMOTE_ADDR": ip},
@@ -318,7 +311,7 @@ def test_rce_command_injection_in_filename(monkeypatch, tmp_path):
     class _DummyAsyncResult:
         id = "celery-test-id"
 
-    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
+    monkeypatch.setattr(module.run_compute_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
 
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
@@ -333,7 +326,7 @@ def test_rce_command_injection_in_filename(monkeypatch, tmp_path):
     for i, fname in enumerate(cmd_names):
         content = f">cmd{i}\nACDE{i}\n".encode()  # unique per upload to avoid dedup
         resp = client.post(
-            "/PSSM_GREMLIN/api/post",
+            "/compute/api/post",
             data={"file": (io.BytesIO(content), fname)},
             headers=auth_header,
             environ_base={"REMOTE_ADDR": f"10.0.2.{i + 1}"},  # unique IP to avoid rate limit
@@ -356,7 +349,7 @@ def test_rce_python_eval_in_json_fields(monkeypatch, tmp_path):
     ]
     for payload in eval_payloads:
         resp = client.post(
-            "/PSSM_GREMLIN/api/auth/login",
+            "/compute/api/auth/login",
             headers={"Content-Type": "application/json"},
             data=json.dumps({"username": payload, "password": "anything"}),
         )
@@ -372,7 +365,7 @@ def test_rce_prototype_pollution_in_json(monkeypatch, tmp_path):
     client = module.app.test_client()
     # Python's json module just treats these as regular keys — no prototype chain
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
@@ -393,7 +386,7 @@ def test_rce_yaml_deserialization_not_exposed(monkeypatch, tmp_path):
     # Send YAML with Python object tag — treated as invalid JSON
     yaml_payload = '!!python/object/apply:os.system ["id"]'
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/json"},
         data=yaml_payload,
     )
@@ -410,7 +403,7 @@ def test_rce_pickle_deserialization_not_accepted(monkeypatch, tmp_path):
     # Serialize a harmless string — should be rejected as invalid JSON
     pickled = pickle.dumps({"username": "admin", "password": "hack"})
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/octet-stream"},
         data=pickled,
     )
@@ -431,7 +424,7 @@ def test_rce_api_key_brute_force_enumeration_infeasible(monkeypatch, tmp_path):
         "revodesign_ffff" + "cafebabe" * 7 + "ffff",
     ]
     for key in bad_keys:
-        resp = client.get("/PSSM_GREMLIN/api/auth/me", headers={"X-API-Key": key})
+        resp = client.get("/compute/api/auth/me", headers={"X-API-Key": key})
         assert resp.status_code == 401, f"Key {key[:20]}... should be rejected"
 
 
@@ -443,7 +436,7 @@ def test_rce_email_header_injection_in_register(monkeypatch, tmp_path):
         extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLE_REGISTER": "true", "SMTP_HOST": "localhost"},
     )
     client = module.app.test_client()
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     captcha_token = _serializer.dumps({"answer": 7, "purpose": "captcha"})
     header_injection_emails = [
@@ -454,7 +447,7 @@ def test_rce_email_header_injection_in_register(monkeypatch, tmp_path):
     ]
     for i, (email, expected) in enumerate(header_injection_emails):
         resp = client.post(
-            "/PSSM_GREMLIN/api/auth/register",
+            "/compute/api/auth/register",
             headers={"Content-Type": "application/json"},
             data=json.dumps(
                 {
@@ -483,7 +476,7 @@ def test_rce_large_binary_upload_not_executed(monkeypatch, tmp_path):
     # ELF magic bytes + garbage
     elf_header = b"\x7fELF\x02\x01\x01\x00" + b"\x00" * 100
     resp = client.post(
-        "/PSSM_GREMLIN/api/post",
+        "/compute/api/post",
         data={"file": (io.BytesIO(elf_header), "payload.fasta")},
         headers=auth_header,
     )

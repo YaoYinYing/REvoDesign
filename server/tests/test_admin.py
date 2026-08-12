@@ -8,9 +8,10 @@ import inspect
 import json
 import os
 import zipfile
+from pathlib import Path
 
 import pytest
-from conftest import _extract_md5, _insert_pending_task, _load_pssm_module, _test_client_auth, _upsert_task_for_user
+from conftest import _load_pssm_module, _test_client_auth
 
 # Admin user control helpers
 # ==================================================================
@@ -30,7 +31,7 @@ def _admin_client_auth(module, username: str = "sysadmin") -> dict[str, str]:
             user_status="active",
         )
         db.verify_email(user["id"])
-    from pssm_gremlin_server.auth import generate_token
+    from revocompute.auth import generate_token
 
     return {"Authorization": f"Bearer {generate_token(user['id'])}"}
 
@@ -50,7 +51,7 @@ def test_admin_can_list_users(monkeypatch, tmp_path):
     # Create a regular user too
     db.create_user(username="regular", email="regular@test.local", password="pass1234")
 
-    resp = client.get("/PSSM_GREMLIN/api/auth/admin/users", headers=admin_header)
+    resp = client.get("/compute/api/auth/admin/users", headers=admin_header)
     assert resp.status_code == 200
     data = json.loads(resp.text)
     assert "users" in data
@@ -71,7 +72,7 @@ def test_non_admin_cannot_list_users(monkeypatch, tmp_path):
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     user_header = _test_client_auth(module)
-    resp = client.get("/PSSM_GREMLIN/api/auth/admin/users", headers=user_header)
+    resp = client.get("/compute/api/auth/admin/users", headers=user_header)
     assert resp.status_code == 403
 
 
@@ -86,7 +87,7 @@ def test_admin_can_update_user_status(monkeypatch, tmp_path):
 
     # Approve registration
     resp = client.put(
-        f"/PSSM_GREMLIN/api/auth/admin/users/{user['id']}",
+        f"/compute/api/auth/admin/users/{user['id']}",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"registration_status": "approved", "user_status": "active"}),
     )
@@ -98,7 +99,7 @@ def test_admin_can_update_user_status(monkeypatch, tmp_path):
 
     # Ban user
     resp = client.put(
-        f"/PSSM_GREMLIN/api/auth/admin/users/{user['id']}",
+        f"/compute/api/auth/admin/users/{user['id']}",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"user_status": "banned"}),
     )
@@ -149,31 +150,31 @@ def test_banned_user_cannot_authenticate_with_existing_credentials(monkeypatch, 
     )
     db.verify_email(user["id"])
 
-    from pssm_gremlin_server.auth import generate_token
+    from revocompute.auth import generate_token
 
     old_bearer = {"Authorization": f"Bearer {generate_token(user['id'])}"}
     api_key = db.generate_api_key(user["id"])
 
     resp = client.put(
-        f"/PSSM_GREMLIN/api/auth/admin/users/{user['id']}",
+        f"/compute/api/auth/admin/users/{user['id']}",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"user_status": "banned"}),
     )
     assert resp.status_code == 200
 
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"username": "bancheck", "password": "pass1234"}),
     )
     assert resp.status_code == 403
     assert resp.json["error"] == "Account has been suspended"
 
-    resp = client.get("/PSSM_GREMLIN/api/auth/me", headers=old_bearer)
+    resp = client.get("/compute/api/auth/me", headers=old_bearer)
     assert resp.status_code == 401
     assert resp.json["error"] == "Authentication required"
 
-    resp = client.get("/PSSM_GREMLIN/api/auth/me", headers={"X-API-Key": api_key})
+    resp = client.get("/compute/api/auth/me", headers={"X-API-Key": api_key})
     assert resp.status_code == 401
     assert resp.json["error"] == "Authentication required"
 
@@ -186,7 +187,7 @@ def test_login_rate_limit_returns_retry_after_seconds(monkeypatch, tmp_path):
 
     for _ in range(5):
         resp = client.post(
-            "/PSSM_GREMLIN/api/auth/login",
+            "/compute/api/auth/login",
             headers={"Content-Type": "application/json"},
             data=json.dumps(payload),
             environ_base={"REMOTE_ADDR": "198.51.100.77"},
@@ -194,7 +195,7 @@ def test_login_rate_limit_returns_retry_after_seconds(monkeypatch, tmp_path):
         assert resp.status_code == 401
 
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/json"},
         data=json.dumps(payload),
         environ_base={"REMOTE_ADDR": "198.51.100.77"},
@@ -215,16 +216,49 @@ def test_admin_cannot_lock_out_self(monkeypatch, tmp_path):
     assert admin is not None
 
     resp = client.put(
-        f"/PSSM_GREMLIN/api/auth/admin/users/{admin['id']}",
+        f"/compute/api/auth/admin/users/{admin['id']}",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"user_status": "banned"}),
     )
     assert resp.status_code == 400
     assert db.get_user(admin["id"])["user_status"] == "active"
 
-    resp = client.delete(f"/PSSM_GREMLIN/api/auth/admin/users/{admin['id']}", headers=admin_header)
+    resp = client.delete(f"/compute/api/auth/admin/users/{admin['id']}", headers=admin_header)
     assert resp.status_code == 400
     assert db.get_user(admin["id"])["deleted"] is False
+
+
+def test_admin_can_enable_own_gpu_access_with_unchanged_role(monkeypatch, tmp_path):
+    """An unchanged self-role must not block an otherwise valid GPU update."""
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+    db = module.app.config["user_db"]
+    admin = db.get_user_by_username("sysadmin")
+    assert admin is not None
+    assert admin["role"] == "admin"
+    assert admin["allow_gpu_use"] is False
+
+    response = client.put(
+        f"/compute/api/auth/admin/users/{admin['id']}",
+        headers={**admin_header, "Content-Type": "application/json"},
+        data=json.dumps({"role": "admin", "allow_gpu_use": True}),
+    )
+
+    assert response.status_code == 200
+    updated = db.get_user(admin["id"])
+    assert updated["role"] == "admin"
+    assert updated["allow_gpu_use"] is True
+
+    listing = client.get("/compute/api/auth/admin/users", headers=admin_header)
+    assert listing.status_code == 200
+    serialized = next(user for user in listing.json["users"] if user["id"] == admin["id"])
+    assert serialized["allow_gpu_use"] is True
+
+    script = (Path(__file__).resolve().parents[1] / "revocompute" / "static" / "js" / "user-control.js").read_text(
+        encoding="utf-8"
+    )
+    assert "if (self) delete payload.role;" in script
 
 
 def test_admin_update_rejects_invalid_status(monkeypatch, tmp_path):
@@ -236,7 +270,7 @@ def test_admin_update_rejects_invalid_status(monkeypatch, tmp_path):
     user = db.create_user(username="target2", email="target2@test.local", password="pass1234")
 
     resp = client.put(
-        f"/PSSM_GREMLIN/api/auth/admin/users/{user['id']}",
+        f"/compute/api/auth/admin/users/{user['id']}",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"registration_status": "nonexistent"}),
     )
@@ -251,7 +285,7 @@ def test_admin_can_delete_user(monkeypatch, tmp_path):
     db = module.app.config["user_db"]
     user = db.create_user(username="deleteme", email="deleteme@test.local", password="pass1234")
 
-    resp = client.delete(f"/PSSM_GREMLIN/api/auth/admin/users/{user['id']}", headers=admin_header)
+    resp = client.delete(f"/compute/api/auth/admin/users/{user['id']}", headers=admin_header)
     assert resp.status_code == 200
     # Record still exists (soft-delete) but marked deleted
     deleted_user = db.get_user(user["id"])
@@ -271,7 +305,7 @@ def test_admin_create_user_with_affiliation(monkeypatch, tmp_path):
     db = module.app.config["user_db"]
 
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users",
+        "/compute/api/auth/admin/users",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps(
             {"username": "affuser", "email": "aff@test.local", "password": "pass1234", "affiliation": "MIT"}
@@ -294,7 +328,7 @@ def test_admin_create_user_ignores_legacy_is_admin_input(monkeypatch, tmp_path):
     db = module.app.config["user_db"]
 
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users",
+        "/compute/api/auth/admin/users",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps(
             {
@@ -325,7 +359,7 @@ def test_register_with_required_research_profile_and_terms(monkeypatch, tmp_path
             "SMTP_HOST": "localhost",
         },
     )
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     client = module.app.test_client()
     db = module.app.config["user_db"]
@@ -334,7 +368,7 @@ def test_register_with_required_research_profile_and_terms(monkeypatch, tmp_path
 
     # Registration with all fields
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/register",
+        "/compute/api/auth/register",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
@@ -376,14 +410,14 @@ def test_register_rejects_without_terms(monkeypatch, tmp_path):
             "SMTP_HOST": "localhost",
         },
     )
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     client = module.app.test_client()
 
     captcha_token: str = _serializer.dumps({"answer": 7, "purpose": "captcha"})
 
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/register",
+        "/compute/api/auth/register",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
@@ -416,12 +450,12 @@ def test_register_rejects_missing_research_profile(monkeypatch, tmp_path):
             "SMTP_HOST": "localhost",
         },
     )
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     client = module.app.test_client()
     captcha_token: str = _serializer.dumps({"answer": 7, "purpose": "captcha"})
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/register",
+        "/compute/api/auth/register",
         json={
             "username": "missingprofile",
             "email": "missing@test.local",
@@ -437,18 +471,18 @@ def test_register_rejects_missing_research_profile(monkeypatch, tmp_path):
 
 
 def test_user_control_page_requires_admin(monkeypatch, tmp_path):
-    """GET /PSSM_GREMLIN/user_control returns 403 for non-admin."""
+    """GET /compute/user_control returns 403 for non-admin."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
 
     admin_header = _admin_client_auth(module)
     user_header = _test_client_auth(module)
 
-    resp = client.get("/PSSM_GREMLIN/user_control", headers=admin_header)
+    resp = client.get("/compute/user_control", headers=admin_header)
     assert resp.status_code == 200
     assert b"User Control" in resp.data or b"user_control" in resp.data or b"User Management" in resp.data
 
-    resp = client.get("/PSSM_GREMLIN/user_control", headers=user_header)
+    resp = client.get("/compute/user_control", headers=user_header)
     assert resp.status_code == 403
 
 
@@ -461,7 +495,7 @@ def test_log_viewer_page_requires_admin(monkeypatch, tmp_path):
     client = module.app.test_client()
 
     response = client.get(
-        "/PSSM_GREMLIN/logs",
+        "/compute/logs",
         headers=_admin_client_auth(module),
     )
     assert response.status_code == 200
@@ -470,14 +504,14 @@ def test_log_viewer_page_requires_admin(monkeypatch, tmp_path):
     assert b"/static/js/log-viewer.js" in response.data
 
     response = client.get(
-        "/PSSM_GREMLIN/dashboard",
+        "/compute/dashboard",
         headers=_admin_client_auth(module),
     )
     assert response.status_code == 200
-    assert b'href="/PSSM_GREMLIN/logs"' in response.data
+    assert b'href="/compute/logs"' in response.data
 
     response = client.get(
-        "/PSSM_GREMLIN/logs",
+        "/compute/logs",
         headers=_test_client_auth(module),
     )
     assert response.status_code == 403
@@ -504,7 +538,7 @@ def test_admin_can_stream_fixed_server_logs(monkeypatch, tmp_path, log_name, fil
         handle.write(content)
 
     response = module.app.test_client().get(
-        f"/PSSM_GREMLIN/api/auth/admin/logs/{log_name}",
+        f"/compute/api/auth/admin/logs/{log_name}",
         headers=_admin_client_auth(module),
         buffered=False,
     )
@@ -524,13 +558,13 @@ def test_server_log_stream_rejects_non_admin_and_unknown_names(monkeypatch, tmp_
     client = module.app.test_client()
 
     response = client.get(
-        "/PSSM_GREMLIN/api/auth/admin/logs/maintenance",
+        "/compute/api/auth/admin/logs/maintenance",
         headers=_test_client_auth(module),
     )
     assert response.status_code == 403
 
     response = client.get(
-        "/PSSM_GREMLIN/api/auth/admin/logs/not-a-log",
+        "/compute/api/auth/admin/logs/not-a-log",
         headers=_admin_client_auth(module),
     )
     assert response.status_code == 404
@@ -553,7 +587,7 @@ def test_admin_can_list_and_download_rotated_logs(monkeypatch, tmp_path):
     client = module.app.test_client()
     admin_header = _admin_client_auth(module)
     response = client.get(
-        "/PSSM_GREMLIN/api/auth/admin/logs/archives",
+        "/compute/api/auth/admin/logs/archives",
         headers=admin_header,
     )
 
@@ -563,7 +597,7 @@ def test_admin_can_list_and_download_rotated_logs(monkeypatch, tmp_path):
     assert all(item["filename"] != "unrelated.zip" for group in groups.values() for item in group["archives"])
 
     response = client.get(
-        f"/PSSM_GREMLIN/api/auth/admin/logs/archives/{archive_name}",
+        f"/compute/api/auth/admin/logs/archives/{archive_name}",
         headers=admin_header,
     )
     assert response.status_code == 200
@@ -581,30 +615,30 @@ def test_rotated_log_endpoints_reject_non_admin_and_unmanaged_files(monkeypatch,
     client = module.app.test_client()
 
     response = client.get(
-        "/PSSM_GREMLIN/api/auth/admin/logs/archives",
+        "/compute/api/auth/admin/logs/archives",
         headers=_test_client_auth(module),
     )
     assert response.status_code == 403
 
     response = client.get(
-        "/PSSM_GREMLIN/api/auth/admin/logs/archives/unrelated.zip",
+        "/compute/api/auth/admin/logs/archives/unrelated.zip",
         headers=_admin_client_auth(module),
     )
     assert response.status_code == 404
 
 
 def test_user_verify_endpoint(monkeypatch, tmp_path):
-    """GET /PSSM_GREMLIN/user_verify validates token and sets verified status."""
+    """GET /compute/user_verify validates token and sets verified status."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     db = module.app.config["user_db"]
 
     user = db.create_user(username="verifyme", email="verify@test.local", password="pass1234")
-    from pssm_gremlin_server.auth import _serializer
+    from revocompute.auth import _serializer
 
     token = _serializer.dumps({"uid": user["id"], "purpose": "verify-email"})
     client = module.app.test_client()
 
-    resp = client.get(f"/PSSM_GREMLIN/user_verify?c={token}")
+    resp = client.get(f"/compute/user_verify?c={token}")
     assert resp.status_code == 200
     assert b"verified" in resp.data.lower() or b"success" in resp.data.lower()
 
@@ -626,7 +660,7 @@ def test_admin_batch_operations(monkeypatch, tmp_path):
 
     # Batch disable
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users/batch",
+        "/compute/api/auth/admin/users/batch",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"action": "disable", "user_ids": ids}),
     )
@@ -636,7 +670,7 @@ def test_admin_batch_operations(monkeypatch, tmp_path):
 
     # Batch enable
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users/batch",
+        "/compute/api/auth/admin/users/batch",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"action": "enable", "user_ids": ids}),
     )
@@ -646,7 +680,7 @@ def test_admin_batch_operations(monkeypatch, tmp_path):
 
     # Batch delete (soft)
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users/batch",
+        "/compute/api/auth/admin/users/batch",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"action": "delete", "user_ids": ids}),
     )
@@ -666,7 +700,7 @@ def test_admin_batch_operations_skip_self_lockout(monkeypatch, tmp_path):
     user = db.create_user(username="batch_target", email="batch_target@test.local", password="pass1234")
 
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users/batch",
+        "/compute/api/auth/admin/users/batch",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"action": "disable", "user_ids": [admin["id"], user["id"]]}),
     )
@@ -676,7 +710,7 @@ def test_admin_batch_operations_skip_self_lockout(monkeypatch, tmp_path):
     assert db.get_user(user["id"])["user_status"] == "banned"
 
     resp = client.post(
-        "/PSSM_GREMLIN/api/auth/admin/users/batch",
+        "/compute/api/auth/admin/users/batch",
         headers={**admin_header, "Content-Type": "application/json"},
         data=json.dumps({"action": "delete", "user_ids": [admin["id"], user["id"]]}),
     )
@@ -708,3 +742,79 @@ def test_bootstrap_admin_has_correct_statuses(monkeypatch, tmp_path):
 
 
 # ==================================================================
+def test_configuration_page_script_initializes_theme_and_admin_data(monkeypatch, tmp_path):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+
+    page = client.get("/compute/configuration", headers=admin_header)
+    assert page.status_code == 200
+    response = client.get("/compute/api/auth/admin/config", headers=admin_header)
+    assert response.status_code == 200
+    assert response.json["task_types"]
+    assert "resources" in response.json
+
+    script = (Path(__file__).resolve().parents[1] / "revocompute" / "static" / "js" / "configuration.js").read_text(
+        encoding="utf-8"
+    )
+    assert "var T = window.REvoDesignTheme;" in script
+    assert "T.initToggle" in script
+    assert "init();" in script
+
+
+def test_admin_resource_api_returns_effective_policy_and_validates_updates(monkeypatch, tmp_path):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+
+    updated = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"task_types": [{"tool": "gremlin", "cpus": 8, "memory": "16G", "max_runtime_seconds": 3600}]},
+    )
+    assert updated.status_code == 200
+    payload = client.get("/compute/api/auth/admin/config", headers=admin_header).get_json()
+    gremlin = next(item for item in payload["task_types"] if item["tool"] == "gremlin")
+    assert gremlin["effective_resources"]["cpus"] == 8
+    assert gremlin["effective_resources"]["memory"] == "16G"
+    assert gremlin["effective_resources"]["slurm_time"] == "01:00:00"
+    assert gremlin["resource_error"] is None
+
+    invalid = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"task_types": [{"tool": "gremlin", "cpus": 0}]},
+    )
+    assert invalid.status_code == 400
+    assert "positive integer" in invalid.get_json()["error"]
+    mixed_invalid = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"task_types": [{"tool": "gremlin", "cpus": 4, "memory": "unbounded"}]},
+    )
+    assert mixed_invalid.status_code == 400
+    unchanged = client.get("/compute/api/auth/admin/config", headers=admin_header).get_json()
+    gremlin = next(item for item in unchanged["task_types"] if item["tool"] == "gremlin")
+    assert gremlin["cpus"] == 8
+    assert gremlin["memory"] == "16G"
+
+    unknown = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"resources": {"unused_setting": "1"}},
+    )
+    assert unknown.status_code == 400
+
+    allowed = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"slurm": {"allowed_queues": ["normal", "gpu"]}},
+    )
+    assert allowed.status_code == 200
+    forbidden_partition = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"task_types": [{"tool": "gremlin", "slurm_partition": "debug"}]},
+    )
+    assert forbidden_partition.status_code == 400
+    assert "allowed_queues" in forbidden_partition.get_json()["error"]

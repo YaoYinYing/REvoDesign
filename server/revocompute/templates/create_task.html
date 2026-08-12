@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | Create REvoCompute Task</title>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/compute/logo.svg"/>
+<link rel="mask-icon" href="/compute/logo.svg" color="#000000"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/create-task.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="page">
+  <section class="panel hero">
+    <div class="hero-top">
+      <div>
+        <h1 class="headline">Create Compute Task</h1>
+        <p class="subline">Upload an input file and queue a secured compute job.</p>
+      </div>
+      <div class="hero-actions">
+        <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
+        <a class="btn btn-soft" href="/compute/dashboard">Dashboard</a>
+        <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel card">
+    <div class="grid">
+      <div class="input-zone">
+        <p class="field-label">Task Type</p>
+        <select class="text-input" id="taskTypeSelect"></select>
+
+        <form id="uploadForm" enctype="multipart/form-data">
+          <input type="file" name="file" id="fileInput" class="sr-only">
+          <div class="input-workspace" id="inputWorkspace" aria-live="polite"></div>
+
+          <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button class="btn btn-primary" id="uploadButton" type="submit">Submit Task</button>
+            <button class="btn btn-soft" type="button" id="clearButton">Clear</button>
+          </div>
+        </form>
+        <p class="muted">Inputs are copied into an immutable, task-isolated snapshot. The server validates every file, path, and parameter again before execution.</p>
+        <div id="uploadStatus" class="status" aria-live="polite">Ready for upload.</div>
+      </div>
+
+      <div class="workspace-help-trigger" id="workspaceHelpWrap">
+        <button class="workspace-help-btn" type="button" id="workspaceHelpBtn" title="About the input workspace" aria-label="About the input workspace">?</button>
+        <div class="workspace-help-popover" id="workspaceHelpPopover" hidden>
+          <p class="info-title">Scientific input workspace</p>
+          <ul class="info-list">
+            <li>Simple tasks show only the sequence, file, and parameter controls they need.</li>
+            <li>Complex tasks compose file roles, structures, regions, parameters, and review steps.</li>
+            <li>Nested relative paths and the selected primary input are shown before submission.</li>
+            <li>Advanced scientific controls stay grouped and out of the normal workflow.</li>
+            <li>Completed runs publish individual manifest-approved results; ZIP remains optional.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="/static/js/auth-api.js"></script>
+<script src="/static/js/plugin-host.js"></script>
+<script src="/static/js/input-workspace.js"></script>
+<script src="/static/js/create-task.js"></script>
+</body>
+</html>

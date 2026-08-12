@@ -1,22 +1,22 @@
 # version: "3.9"
 
 x-task-env: &task-env
-  SERVER_IMAGE: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root}
-  RUNNER_IMAGE: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
+  SERVER_IMAGE: ${SERVER_IMAGE:-revodesign-revocompute-server}
 
   SERVER_DIR: ${SERVER_DIR}
+  CONFIG_DIR: ${CONFIG_DIR:-}
+  MANAGE_DB_PATH: ${MANAGE_DB_PATH:-}
+  ENABLED_TASKRUNNERS: ${ENABLED_TASKRUNNERS:-}
+  SLURM_ENABLED: ${SLURM_ENABLED:-false}
+  SLURM_ALLOWED_QUEUES: ${SLURM_ALLOWED_QUEUES:-}
   RUNNER_HOST_ROOT: ${RUNNER_HOST_ROOT:-}
   LOG_DIR: ${LOG_DIR}
   DB_PATH: ${DB_PATH:-}
-
-  DB_UNIREF30: ${DB_UNIREF30}
-  DB_UNIREF90: ${DB_UNIREF90}
 
   REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
   BROKER_URL: ${BROKER_URL:-redis://redis:6379/0}
   RESULT_BACKEND: ${RESULT_BACKEND:-redis://redis:6379/0}
 
-  NPROC: ${NPROC:-8}
   MAXMEM: ${MAXMEM:-64}
   WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
 
@@ -72,7 +72,7 @@ x-docker-socket-access: &docker-socket-access
   # this is usually the host docker group id; on Docker Desktop/OrbStack for
   # macOS the bind-mounted socket commonly appears as group 0.
   group_add:
-    - "${DOCKER_GID:?Run server/run/restart_pssm_flask.sh so DOCKER_GID is auto-detected, or export it explicitly}"
+    - "${DOCKER_GID:?Run server/run/restart.sh so DOCKER_GID is auto-detected, or export it explicitly}"
 
 services:
   redis:
@@ -106,7 +106,7 @@ services:
       - /tmp:size=16m,mode=1777
 
   web:
-    image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root:latest}
+    image: ${SERVER_IMAGE:-revodesign-revocompute-server:latest}
     build:
       context: .
       dockerfile: docker/server/Dockerfile
@@ -130,8 +130,8 @@ services:
       -b 0.0.0.0:${PORT:-8080}
       --access-logfile ${LOG_DIR}/gunicorn-access.log
       --error-logfile ${LOG_DIR}/gunicorn-error.log
-      --access-logformat '%({CF-Connecting-IP}i)s (%({Cf-Ipcountry}i)s) - %(u)s %(t)s "%(r)s" %(s)s %(B)s "%(a)s"'
-      pssm_gremlin_server.pssm_gremlin:app
+      --access-logformat '%({CF-Connecting-IP}i)s (%({Cf-Ipcountry}i)s) - %(u)s %(t)s "%(m)s %(U)s" %(s)s %(B)s "%(a)s"'
+      revocompute.app:app
     working_dir: /app/server
     expose:
       - "${PORT:-8080}"
@@ -141,12 +141,12 @@ services:
       - ${LOG_DIR}:${LOG_DIR}
 
   maintenance:
-    image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root}
+    image: ${SERVER_IMAGE:-revodesign-revocompute-server}
     environment:
       <<: [*task-env, *web-auth-env, *maintenance-env]
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
-    command: python -m pssm_gremlin_server.maintenance.manager
+    command: python -m revocompute.maintenance.manager
     working_dir: /app/server
     volumes:
       - ${SERVER_DIR}:${SERVER_DIR}
@@ -154,7 +154,7 @@ services:
       - ${LOG_DIR}:${LOG_DIR}
 
   worker:
-    image: ${SERVER_IMAGE:-revodesign-pssm-gremlin-server-non-root}
+    image: ${SERVER_IMAGE:-revodesign-revocompute-server}
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
     <<: *docker-socket-access
@@ -164,24 +164,22 @@ services:
     depends_on:
       - redis
     command: >-
-      celery -A pssm_gremlin_server.task_runtime.celery worker
+      celery -A revocompute.task_runtime.celery worker
       --loglevel=info
       --concurrency=${WORKER_CONCURRENCY:-2}
       --logfile ${LOG_DIR}/celery-worker.log
     working_dir: /app/server
     volumes:
       - ${SERVER_DIR}:${SERVER_DIR}
-      - ${DB_UNIREF30}:${DB_UNIREF30}:ro
-      - ${DB_UNIREF90}:${DB_UNIREF90}:ro
       - ${LOG_DIR}:${LOG_DIR}
       - /var/run/docker.sock:/var/run/docker.sock
 
   runner:
     profiles: ["runner"]
-    image: ${RUNNER_IMAGE:-revodesign-pssm-gremlin-non-root}
+    image: revodesign-revocompute-runner
     build:
       context: .
-      dockerfile: docker/runner/Dockerfile
+      dockerfile: docker/runners/pssm_gremlin/Dockerfile
       args:
         RUNNER_UID: ${RUNNER_UID}
         RUNNER_GID: ${RUNNER_GID}

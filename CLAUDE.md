@@ -20,6 +20,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   without checking its documentation and types.
 - Make architectural decisions for the long term. Do not accept a stopgap that
   only works for now and is meant to be replaced later.
+- The server is the single source of truth for all configuration data. Never
+  duplicate task-type definitions, parameter schemas, file-extension rules,
+  resource policies, or scientific constants from YAML/Python into JavaScript.
+  If the JS needs data that the server owns, add an API endpoint. A JS
+  fallback that mocks server config for when the API is unreachable is still
+  duplication — show an error instead.
+- **Pin Python packages only after checking the real distribution channels.**
+  Before adding a `package==X.Y.Z` to a Dockerfile, verify:
+  1. PyPI can be a stub — check `https://pypi.org/pypi/<pkg>/json` for actual
+     releases (`openfold` on PyPI has only `0.0.1`; the real releases install
+     from GitHub: `pip install '<pkg> @ git+https://github.com/<org>/<repo>.git@<tag>'`).
+  2. Extra indexes prune old versions — the PyTorch `cu121` index no longer
+     carries `2.1.2+cu121` (minimum is `2.2.0+cu121`); check the index before
+     pinning a build-tagged wheel.
+  3. pip's "Ignored versions that require a different python version" list
+     aggregates ALL packages in one resolution pass — versions listed there
+     are not necessarily versions of the package you asked for.
+  4. Packages whose `setup.py` imports `torch.utils.cpp_extension` (openfold,
+     torchdrug, etc.) need `nvcc` — the builder stage must use a `-devel`
+     CUDA image, not `-runtime`. Their C++/CUDA extensions are compiled
+     against the torch wheel's CUDA minor version, so the image's CUDA
+     version must match the wheel's build tag (`+cu121` ↔ CUDA 12.1).
 
 ## Workflow
 

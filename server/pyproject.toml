@@ -3,9 +3,9 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pssm_gremlin_server"
+name = "revocompute"
 version = "0.1.0"
-description = "REvoDesign GREMLIN PSSM web server — Flask + Celery + Docker runner"
+description = "REvoCompute — multi-task compute server with Flask + Celery + Docker runners"
 readme = "README.md"
 license = { text = "GPL-3.0-only" }
 requires-python = ">=3.10"
@@ -16,6 +16,7 @@ dependencies = [
     "Flask>=3.1",
     "gunicorn>=25.1",
     "pydantic>=2.0",
+    "PyYAML>=6.0",
     "SQLAlchemy>=2.0",
     "werkzeug",
     "itsdangerous",
@@ -33,10 +34,10 @@ test = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["pssm_gremlin_server*"]
+include = ["revocompute*"]
 
 [tool.setuptools.package-data]
-pssm_gremlin_server = [
+revocompute = [
     "templates/**",
     "templates/images/*",
     "static/css/*",

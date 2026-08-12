@@ -5,11 +5,13 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+import yaml
 from conftest import REPO_DIR
 
 
@@ -21,13 +23,20 @@ def _run_restart_script(
     admins="admin",
     omit_settings=(),
     fail_chmod=False,
+    config_dir=None,
+    build_proxy=None,
+    seed_user_db=False,
 ):
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir(parents=True)
     docker_log = tmp_path / "docker.log"
     docker = fake_bin / "docker"
     docker.write_text(
-        '#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "${DOCKER_LOG}"\n',
+        '#!/usr/bin/env bash\n'
+        'printf "%s\\n" "$*" >> "${DOCKER_LOG}"\n'
+        'if [[ "$*" == *" ps --status running --services"* ]]; then\n'
+        '  printf "redis\\nweb\\ngateway\\nmaintenance\\nworker\\n"\n'
+        'fi\n',
         encoding="utf-8",
     )
     docker.chmod(0o755)
@@ -44,21 +53,41 @@ def _run_restart_script(
     log_dir = tmp_path / "logs"
     for path in (task_dir, auth_dir, log_dir):
         path.mkdir(exist_ok=True)
+    # Model a host-mounted directory that the configured container uid can
+    # traverse. Production may instead grant the same access with a POSIX ACL.
+    auth_dir.chmod(0o777)
+    results_dir = task_dir / "results"
+    results_dir.mkdir()
+    results_dir.chmod(0o777)
+    if seed_user_db:
+        import sqlite3
+
+        from werkzeug.security import generate_password_hash
+
+        with sqlite3.connect(auth_dir / "users.sqlite3") as conn:
+            conn.execute(
+                "CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT NOT NULL, token_version INTEGER DEFAULT 0)"
+            )
+            conn.execute(
+                "INSERT INTO users (username, password_hash, token_version) VALUES (?, ?, ?)",
+                (admins.split(",", 1)[0], generate_password_hash("old-password"), 0),
+            )
     env_file = tmp_path / "server.env"
     settings = {
         "SERVER_DIR": str(task_dir),
         "AUTH_DIR": str(auth_dir),
         "LOG_DIR": str(log_dir),
-        "DB_UNIREF30": str(tmp_path / "uniref30"),
-        "DB_UNIREF90": str(tmp_path / "uniref90"),
         "ADMIN_USERS": admins,
         "RUNNER_UID": uid,
         "RUNNER_GID": gid,
         "RUNNER_USERNAME": "revodesign",
         "RUNNER_GROUP": "revodesign",
         "SERVER_IMAGE": "example/revodesign-server:latest",
-        "RUNNER_IMAGE": "example/revodesign-runner:latest",
     }
+    if config_dir is not None:
+        settings["CONFIG_DIR"] = str(config_dir)
+    if build_proxy is not None:
+        settings["REVODESIGN_BUILD_PROXY"] = build_proxy
     env_file.write_text(
         "\n".join(f"{name}={value}" for name, value in settings.items() if name not in omit_settings),
         encoding="utf-8",
@@ -72,7 +101,7 @@ def _run_restart_script(
             "PATH": f"{fake_bin}{os.pathsep}{env['PATH']}",
         }
     )
-    script = Path(REPO_DIR) / "server" / "run" / "restart_pssm_flask.sh"
+    script = Path(REPO_DIR) / "server" / "run" / "restart.sh"
     result = subprocess.run(
         ["bash", str(script), *arguments],
         cwd=REPO_DIR,
@@ -86,11 +115,30 @@ def _run_restart_script(
     return result, commands
 
 
+def _make_deployed_config(tmp_path, executor="docker", missing_sif=None):
+    source_root = Path(REPO_DIR) / "server" / "config"
+    config_dir = tmp_path / "deployed-config"
+    shutil.copytree(source_root / "runners", config_dir / "runners")
+    registry = yaml.safe_load((source_root / "task_types.yaml").read_text(encoding="utf-8"))
+    registry["job_executor"] = executor
+    registry["container_runtime"] = "apptainer" if executor == "slurm" else "docker"
+    sif_dir = tmp_path / "sifs"
+    sif_dir.mkdir()
+    for name, runtime in registry["runtime_families"].items():
+        sif_path = sif_dir / f"{name}.sif"
+        runtime["slurm_image"] = str(sif_path)
+        if executor == "slurm" and name != missing_sif:
+            sif_path.touch()
+    (config_dir / "task_types.yaml").write_text(yaml.safe_dump(registry, sort_keys=False), encoding="utf-8")
+    return config_dir
+
+
 def test_restart_modes_choose_build_or_pull(tmp_path):
     dev_result, dev_commands = _run_restart_script(tmp_path / "dev", "restart")
     assert dev_result.returncode == 0, dev_result.stderr
-    assert "Admin login — username: admin  password:" in dev_result.stdout
-    assert any("--profile runner build runner" in command for command in dev_commands)
+    assert "Bootstrap admin credentials written to:" in dev_result.stdout
+    assert "password:" not in dev_result.stdout
+    assert any("build --build-arg" in command and "revodesign-revocompute-runner" in command for command in dev_commands)
     assert any("build web worker" in command for command in dev_commands)
     assert not any(" pull " in command for command in dev_commands)
     assert any("up --no-build -d redis web gateway maintenance worker" in command for command in dev_commands)
@@ -98,9 +146,84 @@ def test_restart_modes_choose_build_or_pull(tmp_path):
     prod_result, prod_commands = _run_restart_script(tmp_path / "prod", "restart", "--mode=prod")
     assert prod_result.returncode == 0, prod_result.stderr
     assert not any(" build " in command for command in prod_commands)
-    pull_index = next(i for i, command in enumerate(prod_commands) if " pull web gateway runner" in command)
+    pull_index = next(i for i, command in enumerate(prod_commands) if " pull web gateway" in command)
     up_index = next(i for i, command in enumerate(prod_commands) if "up --no-build" in command)
     assert pull_index < up_index
+    assert any(command == "pull revodesign-revocompute-runner" for command in prod_commands)
+
+
+def test_proxy_build_redacts_url_and_uses_non_persisted_build_args(tmp_path):
+    proxy_url = "http://test-user:test-password@proxy.invalid:8080"
+    result, commands = _run_restart_script(tmp_path, "build", f"--use-proxy={proxy_url}")
+
+    assert result.returncode == 0, result.stderr
+    assert proxy_url not in result.stdout
+    assert proxy_url not in result.stderr
+    assert "credential redacted" in result.stdout
+    build_commands = [command for command in commands if command.startswith("build ")]
+    assert build_commands
+    assert all("--build-arg HTTP_PROXY=" in command for command in build_commands)
+    assert all("Dockerfile.proxy" not in command for command in build_commands)
+
+
+def test_proxy_build_can_read_url_from_selected_env_file(tmp_path):
+    proxy_url = "http://test-user:test-password@proxy.invalid:8080"
+    result, commands = _run_restart_script(
+        tmp_path,
+        "build",
+        "--use-proxy",
+        build_proxy=proxy_url,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert proxy_url not in result.stdout
+    assert proxy_url not in result.stderr
+    assert "credential redacted" in result.stdout
+    assert any("--build-arg HTTP_PROXY=" in command for command in commands)
+
+
+def test_proxy_build_requires_env_value_for_bare_flag(tmp_path):
+    result, commands = _run_restart_script(tmp_path, "build", "--use-proxy")
+
+    assert result.returncode != 0
+    assert "requires REVODESIGN_BUILD_PROXY" in result.stderr
+    assert not any(command.startswith("build ") for command in commands)
+
+
+def test_prepared_restart_validates_before_down_without_build_or_pull(tmp_path):
+    config_dir = _make_deployed_config(tmp_path, executor="slurm")
+    result, commands = _run_restart_script(
+        tmp_path / "deployment",
+        "restart",
+        "--mode=prepared",
+        config_dir=config_dir,
+    )
+
+    assert result.returncode == 0, result.stderr
+    down_index = next(i for i, command in enumerate(commands) if command.endswith(" down"))
+    assert any("image inspect example/revodesign-server:latest" in command for command in commands[:down_index])
+    assert any(" config --quiet" in command for command in commands[:down_index])
+    assert not any(" build " in command or " pull " in command for command in commands)
+    assert any("up --no-build -d redis web gateway maintenance worker" in command for command in commands)
+    assert "All prepared deployment services are running." in result.stdout
+
+    script = (Path(REPO_DIR) / "server" / "run" / "restart.sh").read_text(encoding="utf-8")
+    prepared = script.split('if [[ "${MODE}" == "prepared" ]]; then', 1)[1].split("  cmd_down", 1)[0]
+    assert prepared.index("ensure_docker_gid") < prepared.index("validate_compose_model")
+
+
+def test_prepared_restart_rejects_missing_sif_before_down(tmp_path):
+    config_dir = _make_deployed_config(tmp_path, executor="slurm", missing_sif="esm")
+    result, commands = _run_restart_script(
+        tmp_path / "deployment",
+        "restart",
+        "--mode=prepared",
+        config_dir=config_dir,
+    )
+
+    assert result.returncode != 0
+    assert "Missing SIF image" in result.stderr
+    assert not any(command.endswith(" down") for command in commands)
 
 
 def test_reload_sends_hup_through_compose(tmp_path):
@@ -118,9 +241,14 @@ def test_restart_generates_distinct_password_for_each_configured_admin(tmp_path)
     )
 
     assert result.returncode == 0, result.stderr
-    login_lines = [line for line in result.stdout.splitlines() if line.startswith("Admin login — ")]
-    assert [line.split()[4] for line in login_lines] == ["admin", "group_admin"]
-    passwords = [line.rsplit("password: ", 1)[1] for line in login_lines]
+    credential_line = next(
+        line for line in result.stdout.splitlines() if line.startswith("Bootstrap admin credentials written to:")
+    )
+    credential_file = Path(credential_line.removeprefix("Bootstrap admin credentials written to: ").split(" ", 1)[0])
+    assert credential_file.stat().st_mode & 0o777 == 0o600
+    credentials = [line.split("\t", 1) for line in credential_file.read_text(encoding="utf-8").splitlines()]
+    assert [username for username, _password in credentials] == ["admin", "group_admin"]
+    passwords = [password for _username, password in credentials]
     assert len(set(passwords)) == 2
     assert all(len(password) == 32 for password in passwords)
 
@@ -130,23 +258,80 @@ def test_up_generates_bootstrap_password_for_empty_user_database(tmp_path):
     result, commands = _run_restart_script(root, "up")
 
     assert result.returncode == 0, result.stderr
-    assert "Admin login — username: admin  password:" in result.stdout
+    assert "Bootstrap admin credentials written to:" in result.stdout
+    assert "password:" not in result.stdout
     assert any("up -d redis web gateway maintenance worker" in command for command in commands)
     assert any('exec -T web sh -c test -w "$1" && test -x "$1"' in command for command in commands)
     assert any(
         "exec -T gateway sh -c test -r /srv/results && test -x /srv/results" in command for command in commands
     )
+    assert any("exec -T web python -c" in command and "BEGIN IMMEDIATE" in command for command in commands)
     assert (root / "tasks" / "results").is_dir()
 
 
-def test_up_continues_after_chmod_failure_and_prints_manual_command(tmp_path):
-    root = tmp_path / "chmod-failure"
+def test_reset_passwd_rotates_hash_invalidates_tokens_and_writes_protected_credential(tmp_path):
+    result, _commands = _run_restart_script(
+        tmp_path / "reset-passwd",
+        "reset-passwd",
+        "admin",
+        uid=str(os.getuid()),
+        gid=str(os.getgid()),
+        seed_user_db=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "password:" not in result.stdout
+    credential_line = next(line for line in result.stdout.splitlines() if line.startswith("New credential written to:"))
+    credential_file = Path(credential_line.removeprefix("New credential written to: ").split(" ", 1)[0])
+    assert credential_file.stat().st_mode & 0o777 == 0o600
+    username, password = credential_file.read_text(encoding="utf-8").strip().split("\t", 1)
+    assert username == "admin"
+    assert len(password) == 32
+
+    import sqlite3
+
+    from werkzeug.security import check_password_hash
+
+    with sqlite3.connect(tmp_path / "reset-passwd" / "auth" / "users.sqlite3") as conn:
+        password_hash, token_version = conn.execute(
+            "SELECT password_hash, token_version FROM users WHERE username = ?", ("admin",)
+        ).fetchone()
+    assert check_password_hash(password_hash, password)
+    assert token_version == 1
+    backup_line = next(line for line in result.stdout.splitlines() if line.startswith("Auth database backup written to:"))
+    backup_db = Path(backup_line.removeprefix("Auth database backup written to: ").split(" ", 1)[0])
+    assert backup_db.is_file()
+    assert backup_db.stat().st_mode & 0o777 == 0o600
+
+
+def test_up_does_not_mutate_startup_storage_permissions(tmp_path):
+    root = tmp_path / "no-permission-mutation"
     result, commands = _run_restart_script(root, "up", fail_chmod=True)
 
     assert result.returncode == 0, result.stderr
-    assert "continuing with container access checks" in result.stderr
-    assert "sudo chmod u+rwx,go+rx" in result.stderr
-    assert f"{root}/tasks/results" in result.stderr
+    assert "chmod" not in result.stderr
+    assert "sudo" not in result.stderr
+    assert any("up -d redis web gateway maintenance worker" in command for command in commands)
+
+    script = (Path(REPO_DIR) / "server" / "run" / "restart.sh").read_text(encoding="utf-8")
+    startup_storage = script.split("prepare_auth_storage()", 1)[1].split("validate_result_storage()", 1)[0]
+    assert "chmod " not in startup_storage
+    assert "chown " not in startup_storage
+    assert "sudo " not in startup_storage
+
+
+def test_up_accepts_runner_owned_writable_auth_db_when_host_chmod_fails(tmp_path):
+    """Runner-owned SQLite files need access validation, not host chmod."""
+    result, commands = _run_restart_script(
+        tmp_path / "runner-owned-auth",
+        "up",
+        uid=str(os.getuid()),
+        gid=str(os.getgid()),
+        seed_user_db=True,
+        fail_chmod=True,
+    )
+
+    assert result.returncode == 0, result.stderr
     assert any("up -d redis web gateway maintenance worker" in command for command in commands)
 
 
@@ -181,7 +366,7 @@ def test_restart_mode_validation(tmp_path):
 
 @pytest.mark.parametrize(
     "name",
-    ["SERVER_DIR", "DB_UNIREF30", "DB_UNIREF90", "ADMIN_USERS"],
+    ["SERVER_DIR", "ADMIN_USERS"],
 )
 def test_restart_rejects_missing_required_settings_before_shutdown(tmp_path, name):
     result, commands = _run_restart_script(
@@ -198,6 +383,47 @@ def test_restart_rejects_missing_required_settings_before_shutdown(tmp_path, nam
     )
 
 
+def test_restart_rejects_incomplete_external_runtime_config_before_shutdown(tmp_path):
+    config_dir = tmp_path / "deployed-config"
+    config_dir.mkdir()
+    source = Path(REPO_DIR) / "server" / "config" / "task_types.yaml"
+    (config_dir / "task_types.yaml").write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+
+    result, commands = _run_restart_script(
+        tmp_path / "deployment",
+        "restart",
+        config_dir=config_dir,
+    )
+
+    assert result.returncode != 0
+    assert "Runtime runner directory is missing" in result.stderr
+    assert not any(" down" in command or " pull " in command or " up " in command for command in commands)
+
+
+def test_global_slurm_executor_selects_override_without_cli_backend_flag(tmp_path):
+    config_dir = _make_deployed_config(tmp_path, executor="slurm")
+    result, commands = _run_restart_script(tmp_path / "deployment", "up", config_dir=config_dir)
+
+    assert result.returncode == 0, result.stderr
+    slurm_override = str(Path(REPO_DIR) / "server" / "docker-compose.slurm.yml")
+    assert any(slurm_override in command and "up -d redis web gateway maintenance worker" in command for command in commands)
+
+
+def test_missing_global_slurm_family_image_is_rejected_before_shutdown(tmp_path):
+    config_dir = _make_deployed_config(tmp_path, executor="slurm", missing_sif="esm")
+    result, commands = _run_restart_script(
+        tmp_path / "deployment",
+        "restart",
+        "--mode=prod",
+        config_dir=config_dir,
+    )
+
+    assert result.returncode != 0
+    assert "Missing SIF image" in result.stderr
+    assert "esm.sif" in result.stderr
+    assert not any(" down" in command or " pull " in command or " up " in command for command in commands)
+
+
 def test_worker_runtime_import_has_no_auth_or_flask_side_effects(tmp_path):
     server_dir = Path(REPO_DIR) / "server"
     task_dir = tmp_path / "tasks"
@@ -207,13 +433,13 @@ import os
 import sys
 from pathlib import Path
 
-from pssm_gremlin_server import task_runtime
+from revocompute import task_runtime
 
-assert "pssm_gremlin_server.auth" not in sys.modules
-assert "pssm_gremlin_server.routes" not in sys.modules
-assert "pssm_gremlin_server.pssm_gremlin" not in sys.modules
+assert "revocompute.auth" not in sys.modules
+assert "revocompute.routes" not in sys.modules
+assert "revocompute.app" not in sys.modules
 assert not Path(os.environ["USER_DB_PATH"]).exists()
-assert task_runtime.run_gremlin_task.name == "run_gremlin_task"
+assert task_runtime.run_compute_task.name == "run_compute_task"
 assert task_runtime.task_store.path == os.path.abspath(os.environ["DB_PATH"])
 """
     env = os.environ.copy()
@@ -222,8 +448,7 @@ assert task_runtime.task_store.path == os.path.abspath(os.environ["DB_PATH"])
             "PYTHONPATH": str(server_dir),
             "SERVER_DIR": str(task_dir),
             "DB_PATH": str(task_dir / "tasks.sqlite3"),
-            "DB_UNIREF30": str(tmp_path / "uniref30"),
-            "DB_UNIREF90": str(tmp_path / "uniref90"),
+            "CONFIG_DIR": str(server_dir / "config"),
             "USER_DB_PATH": str(user_db),
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
@@ -290,10 +515,10 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
     assert "/var/lib/revodesign-auth" in maintenance
     assert "/var/run/docker.sock" not in maintenance
     assert "ports:" not in maintenance
-    assert "pssm_gremlin_server.maintenance.manager" in maintenance
+    assert "revocompute.maintenance.manager" in maintenance
     assert "web-auth-env" not in worker
     assert "/var/lib/revodesign-auth" not in worker
-    assert "pssm_gremlin_server.task_runtime.celery" in worker
+    assert "revocompute.task_runtime.celery" in worker
     assert "/var/run/docker.sock:/var/run/docker.sock" in worker
 
 

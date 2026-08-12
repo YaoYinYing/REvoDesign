@@ -16,7 +16,6 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-import docker
 import pytest
 import requests
 from conftest import (
@@ -41,6 +40,8 @@ from conftest import (
     _wait_for_task,
     has_docker_daemon,
 )
+
+import docker
 
 # Docker-specific helpers (most are imported from conftest)
 # ==================================================================
@@ -83,7 +84,7 @@ def runner_image_tag(miniuc_databases) -> str:
         pytest.skip("Docker daemon not available")
     _ = miniuc_databases
     tag = f"revodesign-pssm-gremlin-runner-test:{uuid.uuid4().hex[:12]}"
-    _build_image(tag, "server/docker/runner/Dockerfile", "server", build_args=_runner_build_args())
+    _build_image(tag, "server/docker/runners/pssm_gremlin/Dockerfile", "server", build_args=_runner_build_args())
     yield tag
     _run_command(["docker", "rmi", "-f", tag], check=False)
 
@@ -207,7 +208,7 @@ class DockerServerStack:
         password = f"test_password_{secrets.token_hex(32)}"
         self.username = "admin"
         self.password = password
-        self.db_path = self.server_dir / "pssm_gremlin_server.sqlite3"
+        self.db_path = self.server_dir / "revocompute.sqlite3"
         if self._needs_relaxed_permissions:
             self._relax_permissions()
         self.containers: list[str] = []
@@ -227,13 +228,10 @@ class DockerServerStack:
         self.task_env = {
             "SERVER_DIR": str(self.server_dir),
             "DB_PATH": str(self.db_path),
-            "DB_UNIREF30": self.miniuc["uniref30_prefix"],
-            "DB_UNIREF90": self.miniuc["uniref90_prefix"],
             "LOG_DIR": str(self.log_dir),
             "NPROC": "4",
             "GUNICORN_WORKERS": "2",
             "WORKER_CONCURRENCY": "2",
-            "RUNNER_IMAGE": self.runner_image_tag,
             "RUNNER_UID": self.runner_uid,
             "RUNNER_GID": self.runner_gid,
             "PORT": str(self.port),
@@ -329,7 +327,7 @@ class DockerServerStack:
             self.server_image_tag,
             "celery",
             "-A",
-            "pssm_gremlin_server.task_runtime.celery",
+            "revocompute.task_runtime.celery",
             "worker",
             "--loglevel=info",
             "--concurrency=1",
@@ -362,7 +360,7 @@ class DockerServerStack:
             f"{self.log_dir}/gunicorn-access.log",
             "--error-logfile",
             f"{self.log_dir}/gunicorn-error.log",
-            "pssm_gremlin_server.pssm_gremlin:app",
+            "revocompute.app:app",
         ]
         _run_command(cmd, cwd=Path(REPO_DIR) / "server")
         self.containers.append(self.web_name)
@@ -421,7 +419,7 @@ def _wait_for_server_ready(
     deadline = time.time() + timeout
     session = requests.Session()
     session.headers.update(headers)
-    url = f"{base_url}/PSSM_GREMLIN/login"
+    url = f"{base_url}/compute/login"
     last_error = ""
     while time.time() < deadline:
         try:
@@ -470,7 +468,7 @@ def _wait_for_task(base_url: str, headers: dict[str, str], md5sum: str, timeout:
     deadline = time.time() + timeout
     session = requests.Session()
     session.headers.update(headers)
-    url = f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}"
+    url = f"{base_url}/compute/api/running/{md5sum}"
     while time.time() < deadline:
         response = session.get(url, timeout=10)
         if response.status_code == 200:
@@ -487,7 +485,7 @@ def _wait_for_failed_task(base_url: str, headers: dict[str, str], md5sum: str, t
     deadline = time.time() + timeout
     with requests.Session() as session:
         session.headers.update(headers)
-        url = f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}"
+        url = f"{base_url}/compute/api/running/{md5sum}"
         while time.time() < deadline:
             response = session.get(url, timeout=10)
             payload = response.json() if response.headers.get("Content-Type", "").startswith("application/json") else {}
@@ -525,7 +523,7 @@ def test_server_image_handles_authenticated_requests(miniuc_databases, runner_im
         session.headers.update(headers)
         with open(fasta_path, "rb") as handle:
             response = session.post(
-                f"{base_url}/PSSM_GREMLIN/api/post",
+                f"{base_url}/compute/api/post",
                 files={"file": ("2KL8.fasta", handle, "text/plain")},
                 allow_redirects=False,
                 timeout=30,
@@ -537,7 +535,7 @@ def test_server_image_handles_authenticated_requests(miniuc_databases, runner_im
         _wait_for_task(base_url, headers, md5sum)
 
         results_resp = session.get(
-            f"{base_url}/PSSM_GREMLIN/api/results/{md5sum}",
+            f"{base_url}/compute/api/results/{md5sum}",
             allow_redirects=False,
             timeout=30,
         )
@@ -617,11 +615,11 @@ def test_web_worker_runtime_boundaries(running_gremlin_server):
 def test_server_rejects_unauthenticated_requests(running_gremlin_server):
     base_url = running_gremlin_server["base_url"]
     with requests.Session() as session:
-        create_resp = session.get(f"{base_url}/PSSM_GREMLIN/create_task", timeout=10)
+        create_resp = session.get(f"{base_url}/compute/create_task", timeout=10)
         assert create_resp.status_code == 401
 
         upload_resp = session.post(
-            f"{base_url}/PSSM_GREMLIN/api/post",
+            f"{base_url}/compute/api/post",
             files={"file": ("2KL8.fasta", b">fake\nAAA\n", "text/plain")},
             allow_redirects=False,
             timeout=10,
@@ -636,7 +634,7 @@ def test_server_rejects_invalid_uploads(running_gremlin_server):
     with requests.Session() as session:
         session.headers.update(headers)
         missing_resp = session.post(
-            f"{base_url}/PSSM_GREMLIN/api/post",
+            f"{base_url}/compute/api/post",
             data={"foo": "bar"},
             allow_redirects=False,
             timeout=10,
@@ -645,7 +643,7 @@ def test_server_rejects_invalid_uploads(running_gremlin_server):
         assert missing_resp.json()["error"] == "No file part"
 
         bad_ext_resp = session.post(
-            f"{base_url}/PSSM_GREMLIN/api/post",
+            f"{base_url}/compute/api/post",
             files={"file": ("invalid.txt", b">2KL8\nAAA\n", "text/plain")},
             allow_redirects=False,
             timeout=10,
@@ -654,7 +652,7 @@ def test_server_rejects_invalid_uploads(running_gremlin_server):
         assert "extension" in bad_ext_resp.json()["error"].lower()
 
         binary_resp = session.post(
-            f"{base_url}/PSSM_GREMLIN/api/post",
+            f"{base_url}/compute/api/post",
             files={"file": ("invalid.fasta", b"\x00\x01\x02", "application/octet-stream")},
             allow_redirects=False,
             timeout=10,
@@ -671,14 +669,14 @@ def test_server_reports_invalid_task_ids(running_gremlin_server):
     with requests.Session() as session:
         session.headers.update(headers)
         running_resp = session.get(
-            f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}",
+            f"{base_url}/compute/api/running/{md5sum}",
             timeout=10,
         )
         assert running_resp.status_code == 404
         assert running_resp.json()["status"] == "not_found"
 
         results_resp = session.get(
-            f"{base_url}/PSSM_GREMLIN/api/results/{md5sum}",
+            f"{base_url}/compute/api/results/{md5sum}",
             allow_redirects=False,
             timeout=10,
         )
@@ -695,7 +693,7 @@ def test_server_reports_invalid_task_ids(running_gremlin_server):
 #         session.headers.update(headers)
 #         with open(failed_fasta, "rb") as handle:
 #             response = session.post(
-#                 f"{base_url}/PSSM_GREMLIN/api/post",
+#                 f"{base_url}/compute/api/post",
 #                 files={"file": (failed_fasta.name, handle, "text/plain")},
 #                 allow_redirects=False,
 #                 timeout=30,
@@ -709,22 +707,22 @@ def test_server_reports_invalid_task_ids(running_gremlin_server):
 #         assert failure_payload.get("error")
 
 #         running_resp = session.get(
-#             f"{base_url}/PSSM_GREMLIN/api/running/{md5sum}",
+#             f"{base_url}/compute/api/running/{md5sum}",
 #             timeout=10,
 #         )
 #         assert running_resp.status_code == 404
 #         assert running_resp.json()["status"] == "failed"
 
 #         results_resp = session.get(
-#             f"{base_url}/PSSM_GREMLIN/api/results/{md5sum}",
+#             f"{base_url}/compute/api/results/{md5sum}",
 #             allow_redirects=False,
 #             timeout=10,
 #         )
 #         assert results_resp.status_code == 302
-#         assert results_resp.headers["Location"].endswith(f"/PSSM_GREMLIN/api/running/{md5sum}")
+#         assert results_resp.headers["Location"].endswith(f"/compute/api/running/{md5sum}")
 
 #         download_resp = session.get(
-#             f"{base_url}/PSSM_GREMLIN/api/download/{md5sum}",
+#             f"{base_url}/compute/api/download/{md5sum}",
 #             timeout=10,
 #         )
 #         assert download_resp.status_code == 400

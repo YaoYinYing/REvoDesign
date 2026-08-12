@@ -19,7 +19,7 @@ def _wait_for_server(session: requests.Session, base_url: str, timeout: float = 
     last_error = "server did not respond"
     while time.monotonic() < deadline:
         try:
-            response = session.get(f"{base_url}/PSSM_GREMLIN/login", timeout=5)
+            response = session.get(f"{base_url}/compute/login", timeout=5)
             if response.status_code == 200:
                 return
             last_error = f"login page returned HTTP {response.status_code}"
@@ -52,7 +52,7 @@ def _wait_for_task(
     last_payload: object = None
     while time.monotonic() < deadline:
         response = session.get(
-            f"{base_url}/PSSM_GREMLIN/api/running/{task_id}",
+            f"{base_url}/compute/api/running/{task_id}",
             headers=headers,
             timeout=10,
         )
@@ -67,39 +67,63 @@ def _wait_for_task(
     raise AssertionError(f"GREMLIN task timed out; last status: {last_payload}")
 
 
-def run_full_stack_checks(base_url: str, fasta_path: Path, admin_password: str) -> None:
+def _wait_for_archive(
+    session: requests.Session,
+    base_url: str,
+    task_id: str,
+    headers: dict[str, str],
+    timeout: float = 120.0,
+) -> str:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        response = session.get(f"{base_url}/compute/api/results/{task_id}", headers=headers, timeout=10)
+        assert response.status_code == 200, response.text[:300]
+        archive = response.json()["archive"]
+        if archive["ready"]:
+            return archive["download_url"]
+        time.sleep(2)
+    raise AssertionError(f"Optional archive for {task_id} was not ready after {timeout:g} seconds")
+
+
+def run_full_stack_checks(
+    base_url: str,
+    fasta_path: Path,
+    admin_username: str,
+    admin_password: str,
+    task_timeout: float = 7200.0,
+) -> None:
     with requests.Session() as session:
         _wait_for_server(session, base_url)
-        _assert_page(session, base_url, "/PSSM_GREMLIN/login", "Sign in")
+        _assert_page(session, base_url, "/compute/login", "Sign in")
 
         login = session.post(
-            f"{base_url}/PSSM_GREMLIN/api/auth/login",
-            json={"username": "admin", "password": admin_password},
+            f"{base_url}/compute/api/auth/login",
+            json={"username": admin_username, "password": admin_password},
             timeout=10,
         )
         assert login.status_code == 200, f"Admin login failed: {login.status_code} {login.text[:300]}"
         token = login.json()["token"]
         headers = {"Authorization": f"Bearer {token}"}
 
-        me = session.get(f"{base_url}/PSSM_GREMLIN/api/auth/me", headers=headers, timeout=10)
+        me = session.get(f"{base_url}/compute/api/auth/me", headers=headers, timeout=10)
         assert me.status_code == 200
-        assert me.json()["username"] == "admin"
+        assert me.json()["username"] == admin_username
         assert me.json()["role"] == "admin"
 
-        users = session.get(f"{base_url}/PSSM_GREMLIN/api/auth/admin/users", headers=headers, timeout=10)
+        users = session.get(f"{base_url}/compute/api/auth/admin/users", headers=headers, timeout=10)
         assert users.status_code == 200
 
         for path, marker in (
-            ("/PSSM_GREMLIN/dashboard", "PSSM GREMLIN Task Dashboard"),
-            ("/PSSM_GREMLIN/create_task", "Create PSSM GREMLIN Task"),
-            ("/PSSM_GREMLIN/profile", "Profile"),
-            ("/PSSM_GREMLIN/user_control", "User Control"),
+            ("/compute/dashboard", "REvoCompute Task Dashboard"),
+            ("/compute/create_task", "Create Compute Task"),
+            ("/compute/profile", "Profile"),
+            ("/compute/user_control", "User Control"),
         ):
             _assert_page(session, base_url, path, marker, headers)
 
         with fasta_path.open("rb") as handle:
             submitted = session.post(
-                f"{base_url}/PSSM_GREMLIN/api/post",
+                f"{base_url}/compute/api/post",
                 headers=headers,
                 files={"file": (fasta_path.name, handle, "text/plain")},
                 allow_redirects=False,
@@ -107,46 +131,82 @@ def run_full_stack_checks(base_url: str, fasta_path: Path, admin_password: str) 
             )
         assert submitted.status_code == 302, f"Task submission failed: {submitted.status_code} {submitted.text[:300]}"
         task_id = submitted.headers["Location"].rstrip("/").rsplit("/", 1)[-1]
-        _wait_for_task(session, base_url, task_id, headers)
+        _wait_for_task(session, base_url, task_id, headers, timeout=task_timeout)
 
         results = session.get(
-            f"{base_url}/PSSM_GREMLIN/api/results/{task_id}",
+            f"{base_url}/compute/api/results/{task_id}",
             headers=headers,
             allow_redirects=False,
             timeout=10,
         )
-        assert results.status_code == 302
-        download_url = results.headers["Location"]
-        if download_url.startswith("/"):
-            download_url = f"{base_url}{download_url}"
-        head_response = session.head(download_url, timeout=30)
+        assert results.status_code == 200, results.text[:300]
+        manifest = results.json()
+        artifacts = manifest["artifacts"]
+        paths = {artifact["path"] for artifact in artifacts}
+        artifact_prefix = fasta_path.stem
+        assert any(path.endswith("log/task_finished") for path in paths)
+        assert any(
+            path.endswith(f"gremlin_res/{artifact_prefix}.i90c75_aln.GREMLIN.mrf.pkl") for path in paths
+        )
+        assert any(path.endswith(f"pssm_msa/{artifact_prefix}_ascii_mtx_file") for path in paths)
+
+        artifact = next(
+            item
+            for item in artifacts
+            if item["path"].endswith(f"pssm_msa/{artifact_prefix}_ascii_mtx_file")
+        )
+        artifact_url = artifact["url"]
+        if artifact_url.startswith("/"):
+            artifact_url = f"{base_url}{artifact_url}"
+        head_response = session.head(artifact_url, headers=headers, timeout=30)
         assert head_response.status_code == 200
         assert int(head_response.headers.get("Content-Length", "0")) > 0
-        assert head_response.headers.get("Content-Disposition", "").startswith("attachment;")
         range_headers = dict(headers)
         range_headers["Range"] = "bytes=0-0"
-        range_response = session.get(download_url, headers=range_headers, timeout=30)
+        range_response = session.get(artifact_url, headers=range_headers, timeout=30)
         assert range_response.status_code == 206
         assert range_response.content and len(range_response.content) == 1
         assert range_response.headers.get("Content-Range", "").startswith("bytes 0-0/")
+
+        archive_request = session.post(
+            f"{base_url}/compute/api/results/{task_id}/archive",
+            headers=headers,
+            timeout=10,
+        )
+        assert archive_request.status_code in {200, 202}, archive_request.text[:300]
+        download_url = _wait_for_archive(session, base_url, task_id, headers)
+        if download_url.startswith("/"):
+            download_url = f"{base_url}{download_url}"
         archive_response = session.get(download_url, headers=headers, timeout=30)
         assert archive_response.status_code == 200
         with zipfile.ZipFile(io.BytesIO(archive_response.content)) as archive:
             names = set(archive.namelist())
-        assert any(name.endswith("log/task_finished") for name in names)
-        assert any(name.endswith("gremlin_res/2KL8.i90c75_aln.GREMLIN.mrf.pkl") for name in names)
-        assert any(name.endswith("pssm_msa/2KL8_ascii_mtx_file") for name in names)
+        assert paths <= names
+        assert "manifest.json" in names
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--fasta", required=True, type=Path)
+    parser.add_argument(
+        "--task-timeout",
+        type=float,
+        default=7200.0,
+        help="maximum seconds to wait for the production GREMLIN task (default: 7200)",
+    )
     args = parser.parse_args()
+    admin_username = os.environ.get("FULL_STACK_ADMIN_USERNAME", "admin")
     admin_password = os.environ.get("FULL_STACK_ADMIN_PASSWORD", "")
     if not admin_password:
         raise SystemExit("FULL_STACK_ADMIN_PASSWORD is required")
-    run_full_stack_checks(args.base_url.rstrip("/"), args.fasta, admin_password)
+    run_full_stack_checks(
+        args.base_url.rstrip("/"),
+        args.fasta,
+        admin_username,
+        admin_password,
+        task_timeout=args.task_timeout,
+    )
 
 
 if __name__ == "__main__":

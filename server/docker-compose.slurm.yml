@@ -1,0 +1,44 @@
+# SLURM override — merged automatically when the selected task registry sets
+# job_executor: slurm. This file is version-controlled but otherwise inactive.
+#
+# It bind-mounts:
+#   - Host SLURM client tools + libraries → worker (sbatch, squeue, etc.)
+#   - MUNGE socket → worker (SLURM authentication)
+#   - CONFIG_DIR → web, worker, maintenance (task type + runner YAMLs)
+
+services:
+  redis:
+    # Publish on a non-default port so host-networked containers can reach
+    # Redis via the Docker gateway (172.17.0.1).  Port 6379 is taken by the
+    # host's own redis-server.
+    ports:
+      - "6380:6379"
+
+  web:
+    volumes:
+      - ${CONFIG_DIR}:${CONFIG_DIR}:ro
+
+  maintenance:
+    volumes:
+      - ${CONFIG_DIR}:${CONFIG_DIR}:ro
+
+  worker:
+    network_mode: host
+    # Host-networked → can't resolve Docker DNS "redis".  Use the published
+    # port (6380 → container:6379) via localhost.
+    environment:
+      REDIS_URL: redis://127.0.0.1:6380/0
+      BROKER_URL: redis://127.0.0.1:6380/0
+      RESULT_BACKEND: redis://127.0.0.1:6380/0
+    volumes:
+      - ${CONFIG_DIR}:${CONFIG_DIR}:ro
+      - /usr/bin/sbatch:/usr/bin/sbatch:ro
+      - /usr/bin/squeue:/usr/bin/squeue:ro
+      - /usr/bin/scancel:/usr/bin/scancel:ro
+      - /usr/bin/sacct:/usr/bin/sacct:ro
+      - /usr/bin/sinfo:/usr/bin/sinfo:ro
+      - /usr/bin/srun:/usr/bin/srun:ro
+      - /usr/lib/x86_64-linux-gnu/slurm-wlm:/usr/lib/x86_64-linux-gnu/slurm-wlm:ro
+      - /etc/slurm-llnl:/etc/slurm-llnl:ro
+      - /run/munge:/run/munge:ro
+      - /lib/x86_64-linux-gnu/libmunge.so.2:/lib/x86_64-linux-gnu/libmunge.so.2:ro

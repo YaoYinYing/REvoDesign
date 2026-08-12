@@ -8,6 +8,9 @@ iprscan5-*
 REvoDesign/UI/REvoDesign-CommentMutant_ui.py
 REvoDesign/library/*
 draws/server_dashboard.tldr
+server/docker-compose.runners.generated.yml
+server/docker/runners/*/Dockerfile.proxy.*
+server/.env.production.*
 prompt/revised.txt
 REvoDesign/clients/UniBroadcaster.py
 REvoDesign/external_designer/ExternalBuilders.py
@@ -142,7 +145,11 @@ src/REvoDesign/UI/Ui_REvoDesign.py
 users.sqlite3
 testerror.txt
 /server/server_state
-/server/pssm_gremlin_server.egg-info
+/server/revocompute.egg-info
 /.tmp
 /playground/server_auth
 /dumped_sequences
+playground/config
+4MB8_GREMLIN_mtx_zscore.png
+/mutagenese
+/temperal_pdb

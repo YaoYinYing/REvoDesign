@@ -1,0 +1,8 @@
+Bootstrap: docker-daemon
+From: revodesign-revocompute-runner-bioemu:latest
+
+%post
+    echo "BioEmu runner containerised"
+
+%runscript
+    exec bash /app/revocompute/run.sh "$@"

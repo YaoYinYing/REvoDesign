@@ -104,6 +104,8 @@ Resetting Instance
 """
 
 from abc import ABC, abstractmethod
+
+
 class SingletonAbstract(ABC):
     """
     A base class that enforces the Singleton design pattern.

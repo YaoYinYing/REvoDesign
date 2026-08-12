@@ -28,7 +28,7 @@ jobs:
           --build-arg RUNNER_GID="${RUNNER_GID}" \
           --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
           --build-arg RUNNER_GROUP="${RUNNER_GROUP}" \
-          -f server/docker/runner/Dockerfile server \
+          -f server/docker/runners/pssm_gremlin/Dockerfile server \
           -t revodesign-pssm-gremlin-non-root
 
     - name: Build server Docker image

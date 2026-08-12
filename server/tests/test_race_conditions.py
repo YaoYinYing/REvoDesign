@@ -50,7 +50,7 @@ def test_race_cancel_finished_task_rejected(monkeypatch, tmp_path):
         user_agent="pytest",
         username="tester",
     )
-    resp = client.post(f"/PSSM_GREMLIN/api/cancel/{md5sum}", headers=auth_header)
+    resp = client.post(f"/compute/api/cancel/{md5sum}", headers=auth_header)
     assert resp.status_code == 400
     assert "not pending or running" in resp.json["error"]
 
@@ -79,7 +79,7 @@ def test_race_cancel_already_cancelled_task(monkeypatch, tmp_path):
         user_agent="pytest",
         username="tester",
     )
-    resp = client.post(f"/PSSM_GREMLIN/api/cancel/{md5sum}", headers=auth_header)
+    resp = client.post(f"/compute/api/cancel/{md5sum}", headers=auth_header)
     assert resp.status_code == 400
     assert "not pending or running" in resp.json["error"]
 
@@ -108,7 +108,7 @@ def test_race_delete_already_cancelled_task(monkeypatch, tmp_path):
         user_agent="pytest",
         username="tester",
     )
-    resp = client.delete(f"/PSSM_GREMLIN/api/delete/{md5sum}", headers=auth_header)
+    resp = client.delete(f"/compute/api/delete/{md5sum}", headers=auth_header)
     assert resp.status_code == 200
     assert resp.json["status"] == "deleted"
 
@@ -120,7 +120,7 @@ def test_race_upload_dedup_race_condition(monkeypatch, tmp_path):
     class _DummyAsyncResult:
         id = "celery-test-id"
 
-    monkeypatch.setattr(module.run_gremlin_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
+    monkeypatch.setattr(module.run_compute_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
 
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
@@ -128,14 +128,14 @@ def test_race_upload_dedup_race_condition(monkeypatch, tmp_path):
 
     # First upload
     r1 = client.post(
-        "/PSSM_GREMLIN/api/post",
+        "/compute/api/post",
         data={"file": (io.BytesIO(content), "same.fasta")},
         headers=auth_header,
     )
     assert r1.status_code == 302
     # Second upload — same content, no delay
     r2 = client.post(
-        "/PSSM_GREMLIN/api/post",
+        "/compute/api/post",
         data={"file": (io.BytesIO(content), "same.fasta")},
         headers=auth_header,
     )
@@ -151,15 +151,15 @@ def test_race_token_usage_after_concurrent_logout(monkeypatch, tmp_path):
     _test_client_auth(module)
     # Get token
     login = client.post(
-        "/PSSM_GREMLIN/api/auth/login",
+        "/compute/api/auth/login",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"username": "tester", "password": "password"}),
     )
     token = login.json["token"]
     # Logout — increments token_version, invalidating all tokens
-    client.post("/PSSM_GREMLIN/api/auth/logout")
+    client.post("/compute/api/auth/logout", headers={"Authorization": f"Bearer {token}"})
     # Old token must be rejected
-    resp = client.get("/PSSM_GREMLIN/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+    resp = client.get("/compute/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 401
 
 
@@ -177,7 +177,7 @@ def test_race_status_polling_during_task_transition(monkeypatch, tmp_path):
     fasta_path.write_text(">x\nACDE\n", encoding="utf-8")
 
     # Simulate rapid polling across status transitions
-    transitions = ["pending", "running", "packing results", "finished"]
+    transitions = ["pending", "queued", "running", "finished"]
     for status in transitions:
         db.upsert_task(
             md5sum,
@@ -191,7 +191,7 @@ def test_race_status_polling_during_task_transition(monkeypatch, tmp_path):
             user_agent="pytest",
             username="tester",
         )
-        resp = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=auth_header)
+        resp = client.get(f"/compute/api/running/{md5sum}", headers=auth_header)
         valid_statuses = {200, 202}
         assert resp.status_code in valid_statuses, f"Status {status}: got {resp.status_code}"
 
@@ -222,7 +222,7 @@ def test_race_batch_delete_duplicate_ids(monkeypatch, tmp_path):
     )
     # Send the same md5sum 3 times
     resp = client.post(
-        "/PSSM_GREMLIN/api/delete",
+        "/compute/api/delete",
         headers={**auth_header, "Content-Type": "application/json"},
         data=json.dumps({"md5sums": [md5sum, md5sum, md5sum]}),
     )
@@ -259,7 +259,7 @@ def test_race_batch_delete_with_nonexistent_and_duplicate(monkeypatch, tmp_path)
 
     nonexistent = "0" * 32
     resp = client.post(
-        "/PSSM_GREMLIN/api/delete",
+        "/compute/api/delete",
         headers={**auth_header, "Content-Type": "application/json"},
         data=json.dumps({"md5sums": [valid_md5, nonexistent, valid_md5, another_md5]}),
     )
@@ -326,7 +326,7 @@ def test_race_status_polling_on_deleted_task(monkeypatch, tmp_path):
             user_agent="pytest",
             username="tester",
         )
-        resp = client.get(f"/PSSM_GREMLIN/api/running/{md5sum}", headers=auth_header)
+        resp = client.get(f"/compute/api/running/{md5sum}", headers=auth_header)
         assert resp.status_code == 200
         data = resp.json
         assert data["md5sum"] == md5sum

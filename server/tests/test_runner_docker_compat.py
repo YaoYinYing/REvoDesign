@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 REPO_DIR = Path(__file__).resolve().parents[2]
-RUNNER_DOCKERFILE = REPO_DIR / "server" / "docker" / "runner" / "Dockerfile"
+RUNNER_DOCKERFILE = REPO_DIR / "server" / "docker" / "runners" / "pssm_gremlin" / "Dockerfile"
 RUNNER_CONTEXT = REPO_DIR / "server"
 DOCKER_BUILD_TIMEOUT = 900
 DOCKER_RUN_TIMEOUT = 120
@@ -74,8 +74,8 @@ import compileall
 import sys
 
 assert sys.version_info[:2] == (3, 6), sys.version
-assert compileall.compile_dir('/app/pssm_gremlin/scripts', quiet=1)
-sys.path.insert(0, '/app/pssm_gremlin/scripts')
+assert compileall.compile_dir('/app/revocompute/scripts', quiet=1)
+sys.path.insert(0, '/app/revocompute/scripts')
 from gremlin_labels import validate_position_label
 assert validate_position_label('A_1', 'AC') == 'A_1'
 """

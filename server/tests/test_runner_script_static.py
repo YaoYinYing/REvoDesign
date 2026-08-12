@@ -4,9 +4,24 @@
 
 from __future__ import annotations
 
+import json
+import os
 from pathlib import Path
+import subprocess
 
-RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "REvoDesign_PSSM_GREMLIN.sh"
+RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin" / "run.sh"
+OPENDDE_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "opendde" / "run.sh"
+MPNN_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "mpnn" / "run.sh"
+SERVER_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_prepared_activation_audits_resources_before_stopping_services():
+    script = (SERVER_ROOT / "run" / "restart.sh").read_text(encoding="utf-8")
+    prepared = script.split('if [[ "${MODE}" == "prepared" ]]', 1)[1]
+    preflight = prepared.split("\n  cmd_down", 1)[0]
+    assert "validate_resource_policies" in preflight
+    assert "--no-build --entrypoint python worker" in script
+    assert "-m revocompute.resource_audit" in script
 
 
 def test_runner_script_does_not_eval_user_controlled_commands():
@@ -25,3 +40,315 @@ def test_runner_script_executes_pipeline_commands_as_arrays():
         assert command in script
 
     assert '"${cmd[@]}"' in script
+
+
+def test_opendde_runner_uses_writable_snapshot_copy_and_checks_outputs():
+    script = OPENDDE_RUNNER_SCRIPT.read_text()
+
+    assert 'mktemp -d "${TMPDIR:-/tmp}/revodesign-opendde.XXXXXX"' in script
+    assert 'cp -a -- "$input_root"/. "$opendde_input_root"/' in script
+    assert '-i "$writable_input_file"' in script
+    assert 'find "$output_dir/ERR" -type f -size +0c' in script
+    assert "-iname '*.pdb' -o -iname '*.cif' -o -iname '*.mmcif'" in script
+    assert "--trimul_kernel torch" in script
+    assert "--triatt_kernel torch" in script
+    assert "--enable_fusion false" in script
+    assert script.index('find "$output_dir"') < script.index('touch "${output_dir}/task_finished"')
+
+
+def _write_fake_opendde(bin_dir: Path) -> None:
+    executable = bin_dir / "opendde"
+    executable.write_text(
+        """#!/bin/bash
+set -euo pipefail
+[[ "$1" == "pred" ]]
+shift
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -i) input_file=$2; shift 2 ;;
+        -o) output_dir=$2; shift 2 ;;
+        *) shift ;;
+    esac
+done
+snapshot_root=${input_file%/structures/job.json}
+test -f "$snapshot_root/config/settings.json"
+printf '{}\n' > "${input_file%.json}-update-msa.json"
+if [[ "${FAKE_OPENDDE_CHECK_RUNTIME_ROOT:-no}" == "yes" ]]; then
+    test -f "$OPENDDE_ROOT_DIR/checkpoint/opendde.pt"
+    printf 'downloaded template\n' > "$OPENDDE_ROOT_DIR/search_database/mmcif/fetched.cif"
+fi
+if [[ "${FAKE_OPENDDE_RESULT:-yes}" == "yes" ]]; then
+    printf 'data_model\n' > "$output_dir/model.cif"
+elif [[ "${FAKE_OPENDDE_RESULT:-yes}" == "error" ]]; then
+    mkdir -p "$output_dir/ERR" "$output_dir/job/msa"
+    printf 'internal failure\n' > "$output_dir/ERR/error.txt"
+    printf '>query\nAAAA\n' > "$output_dir/job/msa/intermediate.a3m"
+fi
+"""
+    )
+    executable.chmod(0o755)
+
+
+def test_opendde_runner_preserves_read_only_nested_snapshot(tmp_path):
+    input_root = tmp_path / "workspace" / "inputs"
+    input_file = input_root / "structures" / "job.json"
+    auxiliary = input_root / "config" / "settings.json"
+    output_dir = tmp_path / "outputs"
+    bin_dir = tmp_path / "bin"
+    input_file.parent.mkdir(parents=True)
+    auxiliary.parent.mkdir(parents=True)
+    output_dir.mkdir()
+    bin_dir.mkdir()
+    input_file.write_text('{}\n')
+    auxiliary.write_text('{}\n')
+    _write_fake_opendde(bin_dir)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}:{env['PATH']}"
+    env["TASK_PARAMS"] = "{}"
+    completed = subprocess.run(
+        ["bash", str(OPENDDE_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert (output_dir / "model.cif").read_text() == "data_model\n"
+    assert (output_dir / "task_finished").is_file()
+    assert not (input_file.parent / "job-update-msa.json").exists()
+    assert auxiliary.read_text() == '{}\n'
+
+
+def test_opendde_runner_uses_task_private_template_cache(tmp_path):
+    input_root = tmp_path / "workspace" / "inputs"
+    input_file = input_root / "structures" / "job.json"
+    auxiliary = input_root / "config" / "settings.json"
+    output_dir = tmp_path / "outputs"
+    bin_dir = tmp_path / "bin"
+    database_root = tmp_path / "database"
+    source_cache = database_root / "search_database" / "mmcif"
+    input_file.parent.mkdir(parents=True)
+    auxiliary.parent.mkdir(parents=True)
+    output_dir.mkdir()
+    bin_dir.mkdir()
+    source_cache.mkdir(parents=True)
+    (database_root / "checkpoint").mkdir()
+    (database_root / "checkpoint" / "opendde.pt").write_text("checkpoint\n")
+    input_file.write_text('{}\n')
+    auxiliary.write_text('{}\n')
+    _write_fake_opendde(bin_dir)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}:{env['PATH']}"
+    env["TASK_PARAMS"] = "{}"
+    env["OPENDDE_ROOT_DIR"] = str(database_root)
+    env["FAKE_OPENDDE_CHECK_RUNTIME_ROOT"] = "yes"
+    completed = subprocess.run(
+        ["bash", str(OPENDDE_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert not (source_cache / "fetched.cif").exists()
+    assert (output_dir / "model.cif").is_file()
+
+
+def test_opendde_runner_rejects_zero_exit_without_results(tmp_path):
+    input_root = tmp_path / "workspace" / "inputs"
+    input_file = input_root / "structures" / "job.json"
+    auxiliary = input_root / "config" / "settings.json"
+    output_dir = tmp_path / "outputs"
+    bin_dir = tmp_path / "bin"
+    input_file.parent.mkdir(parents=True)
+    auxiliary.parent.mkdir(parents=True)
+    output_dir.mkdir()
+    bin_dir.mkdir()
+    input_file.write_text('{}\n')
+    auxiliary.write_text('{}\n')
+    _write_fake_opendde(bin_dir)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}:{env['PATH']}"
+    env["TASK_PARAMS"] = "{}"
+    env["FAKE_OPENDDE_RESULT"] = "no"
+    completed = subprocess.run(
+        ["bash", str(OPENDDE_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode != 0
+    assert "without producing a structure artifact" in completed.stderr
+    assert not (output_dir / "task_finished").exists()
+
+
+def test_opendde_runner_rejects_error_and_msa_intermediates(tmp_path):
+    input_root = tmp_path / "workspace" / "inputs"
+    input_file = input_root / "structures" / "job.json"
+    auxiliary = input_root / "config" / "settings.json"
+    output_dir = tmp_path / "outputs"
+    bin_dir = tmp_path / "bin"
+    input_file.parent.mkdir(parents=True)
+    auxiliary.parent.mkdir(parents=True)
+    output_dir.mkdir()
+    bin_dir.mkdir()
+    input_file.write_text('{}\n')
+    auxiliary.write_text('{}\n')
+    _write_fake_opendde(bin_dir)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}:{env['PATH']}"
+    env["TASK_PARAMS"] = "{}"
+    env["FAKE_OPENDDE_RESULT"] = "error"
+    completed = subprocess.run(
+        ["bash", str(OPENDDE_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode != 0
+    assert "reported an internal inference error" in completed.stderr
+    assert not (output_dir / "task_finished").exists()
+
+
+def test_ligandmpnn_runner_omits_blank_optional_cli_values(tmp_path):
+    input_file = tmp_path / "input.pdb"
+    output_dir = tmp_path / "outputs"
+    ligand_root = tmp_path / "LigandMPNN"
+    capture = tmp_path / "argv.json"
+    input_file.write_text("ATOM\n", encoding="utf-8")
+    output_dir.mkdir()
+    ligand_root.mkdir()
+    (ligand_root / "model_params").mkdir()
+    (ligand_root / "model_params" / "ligandmpnn_v_32_010_25.pt").write_bytes(b"checkpoint")
+    (ligand_root / "run.py").write_text(
+        "import json, os, sys\n"
+        "open(os.environ['CAPTURE_ARGV'], 'w', encoding='utf-8').write(json.dumps(sys.argv[1:]))\n",
+        encoding="utf-8",
+    )
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "TASK_TYPE": "ligandmpnn",
+            "TASK_PARAMS": json.dumps(
+                {"seed": "", "batch_size": 2, "verbose": 0, "chains_to_design": ""}
+            ),
+            "LIGANDMPNN_PATH": str(ligand_root),
+            "CAPTURE_ARGV": str(capture),
+        }
+    )
+    completed = subprocess.run(
+        ["bash", str(MPNN_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    argv = json.loads(capture.read_text(encoding="utf-8"))
+    assert "--seed" not in argv
+    assert "--chains_to_design" not in argv
+    assert argv[argv.index("--batch_size") + 1] == "2"
+    assert argv[argv.index("--verbose") + 1] == "0"
+    assert (output_dir / "task_finished").is_file()
+
+
+def test_final_docker_images_clear_build_proxy_environment():
+    dockerfiles = [SERVER_ROOT / "docker" / "server" / "Dockerfile"]
+    dockerfiles.extend(sorted((SERVER_ROOT / "docker" / "runners").glob("*/Dockerfile")))
+    expected = (
+        'ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \\\n'
+        '    http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""'
+    )
+
+    assert dockerfiles
+    for dockerfile in dockerfiles:
+        final_stage = dockerfile.read_text().rsplit("\nFROM ", 1)[-1]
+        assert expected in final_stage, dockerfile
+        assert final_stage.rfind("RUN ") < final_stage.index(expected), dockerfile
+
+
+def test_esm_image_installs_the_esm1v_csv_dependency():
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "esm" / "Dockerfile").read_text()
+
+    assert '"pandas==2.2.3"' in dockerfile
+    assert 'python -c "import esm2, pandas"' in dockerfile
+
+
+def test_easifa_image_requires_the_installed_prediction_cli():
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "easifa" / "Dockerfile").read_text()
+
+    assert '/opt/easifa-env/bin/python -m pip install' in dockerfile
+    assert '/opt/easifa-env/bin/python -c "import easifa_core"' in dockerfile
+    assert "test -x /opt/easifa-env/bin/easifa-predict" in dockerfile
+    assert 'cpp_extension.load("torch_ext"' in dockerfile
+    assert "import torch_ext" in dockerfile
+    assert "RUN ! command -v c++" in dockerfile
+
+
+def test_easifa_runner_reuses_the_read_only_esm_checkpoint_cache():
+    runner = (SERVER_ROOT / "config" / "runners" / "easifa.yaml").read_text()
+
+    assert 'host_path: "/mnt/db/weights/esm/checkpoints"' in runner
+    assert 'container_path: "/home/revodesign/.cache/torch/hub/checkpoints"' in runner
+    assert 'HOME: "/home/revodesign"' not in runner
+
+
+def test_easifa_runner_uses_private_runtime_caches():
+    script = (SERVER_ROOT / "docker" / "runners" / "easifa" / "run.sh").read_text()
+
+    assert 'mktemp -d "${runtime_tmp%/}/revodesign-easifa.XXXXXX"' in script
+    assert 'export TORCH_EXTENSIONS_DIR="$easifa_tmp/torch-extensions"' in script
+    assert 'export MPLCONFIGDIR="$easifa_tmp/matplotlib"' in script
+
+
+def test_thermompnn_uses_preprovisioned_read_only_weights():
+    runner = (SERVER_ROOT / "config" / "runners" / "mpnn.yaml").read_text()
+    script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text()
+
+    assert 'host_path: "/mnt/db/weights/thermompnn"' in runner
+    assert 'container_path: "/mnt/db/weights/thermompnn"' in runner
+    assert 'container_path: "/app/revocompute/model_params"' in runner
+    assert 'LIGANDMPNN_MODEL_PARAMS: "/app/revocompute/model_params"' in runner
+    assert 'mode: "ro"' in runner
+    assert 'XDG_DATA_HOME: "/mnt/db/weights/thermompnn"' in runner
+    assert "ThermoMPNN-ens1.ckpt ThermoMPNN-D-ens1.ckpt" in script
+    assert (
+        'THERMOMPNN_VANILLA_WEIGHT_DIR: '
+        '"/mnt/db/weights/thermompnn/ProteinMPNN/vanilla/vanilla_model_weights"'
+    ) in runner
+    assert "ThermoMPNN ProteinMPNN backbone checkpoint is missing" in script
+    assert "runtime downloads are disabled" in script
+
+
+def test_ligandmpnn_runner_uses_a_mounted_absolute_checkpoint():
+    script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text()
+
+    assert 'checkpoint_ligand_mpnn' in script
+    assert 'ligandmpnn_v_32_010_25.pt' in script
+    assert 'LIGANDMPNN_MODEL_PARAMS' in script
+
+
+def test_slurm_runner_limits_threaded_libraries_to_the_allocation():
+    script = (SERVER_ROOT / "revocompute" / "job" / "runners" / "slurm_runner.py").read_text()
+
+    assert 'SLURM_CPUS_PER_TASK' in script
+    assert 'APPTAINERENV_OMP_NUM_THREADS' in script
+    assert 'APPTAINERENV_MKL_NUM_THREADS' in script
+    assert 'APPTAINERENV_OPENBLAS_NUM_THREADS' in script
+    assert 'APPTAINERENV_NPROC' in script
+    assert 'APPTAINERENV_GREMLIN_CALC_CPU_NUM' in script
+    assert 'APPTAINERENV_VECLIB_MAXIMUM_THREADS' in script
+    assert 'APPTAINERENV_TF_NUM_INTRAOP_THREADS' in script
+    assert 'cmd += \' -j "${allocated_cpus}"\'' in script

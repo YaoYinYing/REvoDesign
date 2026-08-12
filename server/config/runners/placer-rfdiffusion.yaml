@@ -1,0 +1,8 @@
+# Shared PLACER/RFdiffusion runtime settings.
+mounts:
+  - host_path: "/mnt/db/weights/RFdiffusion/models"
+    container_path: "/opt/RFdiffusion/models"
+    mode: "ro"
+env: {}
+max_runtime_seconds: 14400
+defaults: {}

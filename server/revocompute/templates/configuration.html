@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | Configuration</title>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/compute/logo.svg"/>
+<link rel="mask-icon" href="/compute/logo.svg" color="#000000"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/configuration.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="page">
+  <section class="panel hero">
+    <div class="hero-top">
+      <div>
+        <h1 class="headline">Configuration</h1>
+        <p class="subline">Runtime settings for task types, resource limits, and server behaviour.</p>
+      </div>
+      <div class="hero-actions">
+        <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme"><span class="theme-icon" aria-hidden="true">&#9680;</span></button>
+        <a class="btn btn-soft" href="/compute/dashboard">&larr;&nbsp;Dashboard</a>
+        <button class="btn btn-logout" type="button" id="logoutBtn">Log out</button>
+      </div>
+    </div>
+  </section>
+
+  <nav class="sub-tabs" id="configTabs">
+    <button class="sub-tab active" data-tab="task-types">Task Types</button>
+    <button class="sub-tab" data-tab="resources">Resources</button>
+  </nav>
+
+  <!-- Tab: Task Types -->
+  <section class="panel config-panel" id="tab-task-types">
+    <div class="config-toolbar">
+      <span class="muted" id="taskTypeStatus">Loading&hellip;</span>
+    </div>
+    <div class="config-cards" id="taskTypeCards"></div>
+    <p class="muted hint-text">
+      Disabling a task type hides it from the submission page immediately.
+      Running and queued tasks are not affected.
+    </p>
+  </section>
+
+  <!-- Tab: Resources -->
+  <section class="panel config-panel" id="tab-resources" style="display:none">
+    <p class="muted">CPU, memory, and maximum runtime form one canonical policy shared by Docker and SLURM. Per-task values override global defaults; an empty per-task field restores inheritance. Scheduler placement is validated before it is saved.</p>
+    <div class="config-toolbar">
+      <button class="btn btn-primary" id="saveResourcesBtn">Save Changes</button>
+      <span class="muted" id="resourceSaveStatus"></span>
+    </div>
+    <div class="config-table-wrap">
+      <table class="config-table">
+        <thead>
+          <tr><th>Parameter</th><th>Current Value</th><th>Description</th></tr>
+        </thead>
+        <tbody id="resourceBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<aside class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></aside>
+
+<script src="/static/js/auth-api.js"></script>
+<script src="/static/js/configuration.js"></script>
+</body>
+</html>

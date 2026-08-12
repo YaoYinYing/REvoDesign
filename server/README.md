@@ -1,13 +1,76 @@
-# PSSM GREMLIN Server
+# REvoCompute Server
 
-The server is a Docker-deployed Flask + Celery + Docker-runner web service for
-GREMLIN co-evolution analysis.
+For the complete production build → versioned SIF → prepared SLURM activation
+runbook and the new-task/runtime-family adapter contract, see
+[REvoCompute Operations and Task Adapter Guide](OPERATIONS_AND_TASK_ADAPTER_GUIDE.md).
 
-## Docker Deployment
+REvoCompute is a Flask + Celery service for multi-user protein computation.
+It supports Docker execution and production SLURM + Apptainer execution across
+nine shared runtime families: GREMLIN, Pythia-ddG, ESM, OpenDDE, MPNN, PRIME,
+PLACER/RFdiffusion, BioEmu, and EasIFA. Task schemas, runtime ownership, and
+machine-specific mounts are configuration-driven; adding an adapter normally
+does not require changing server routing code.
 
-This guide covers both local-image development (`--mode=dev`) and
-published-image production (`--mode=prod`). Native/manual production deployment
-is intentionally excluded.
+## Multi-Task Architecture
+
+The server uses a YAML-based task type registry. Adding a new compute task
+type selects a runtime family; several compatible task types can share one
+image and SIF without duplicating dependency stacks:
+
+| File | Owner | Contains |
+|------|-------|----------|
+| `config/task_types.yaml` | Developer/operator | Global executor/runtime, per-family images/SIFs, plus task I/O and constrained params |
+| `config/runners/<runtime-family>.yaml` | Operator (per-machine) | One machine-specific mounts/environment/defaults config shared by the family |
+| `docker/runners/<runtime-family>/Dockerfile` | Developer | One dependency image for the family |
+| Runtime family `definition` | Developer | Exact Apptainer definition path used for its SIF |
+
+The server loads the registry at startup via `CONFIG_DIR`. `gremlin` is always
+enabled; additional runners are gated by `ENABLED_TASKRUNNERS` in `.env`.
+
+Each runner container follows a standard contract:
+- Sees one immutable task snapshot at `/mnt/revocompute/<username>/inputs/`
+  and task-owned results at `/mnt/revocompute/<username>/outputs/`. Concurrent
+  tasks have isolated host snapshots even though their virtual paths match.
+- Emits `REVODESIGN_STAGE:<marker>` on stdout for progress tracking
+- Receives params via `TASK_PARAMS`, the complete input manifest via
+  `TASK_INPUTS`, and the primary input/output via CLI args (`-i`, `-o`, `-r`)
+- Runs as non-root `--user` (identity from `RUNNER_UID`/`RUNNER_GID` in `.env`)
+
+The create-task page builds a scientific input workspace from
+`GET /compute/api/types/<name>`. The response contains a versioned, declarative
+`input_workspace.capabilities` list. Local plugins compose file roles, pasted
+sequences, structure inspection, residue/region controls, typed parameters,
+and a final review. A simple FASTA task therefore stays small, while
+RFdiffusion or PLACER can expose a guided multi-file structure workflow without
+adding task-name conditionals to the page.
+
+Capability YAML selects only plugin IDs shipped by the server. Unknown plugins,
+unknown options, executable snippets, and remote plugin URLs are rejected at
+registry load. Browser validation is advisory: accepted extensions, safe
+relative paths, upload limits, parameters, resource policy, and runner command
+construction remain authoritative on the server. See
+[`TODO_PLUGGABLE_INPUT_RESULT_UI.md`](TODO_PLUGGABLE_INPUT_RESULT_UI.md) for the
+remaining migration and hardening work.
+
+## Deployment modes
+
+`restart.sh` has three deliberately different activation modes:
+
+| Mode | Artifact action | Intended use |
+|------|-----------------|--------------|
+| `dev` (default) | Builds every declared runtime image and the server image | Development or intentionally preparing fresh local Docker artifacts |
+| `prod` | Pulls configured images | Deployment only when every configured image is published and pullable |
+| `prepared` | No build and no pull; validates local images, SIFs, runner YAML, and Compose before stopping | Safe activation of already-prepared production artifacts |
+
+Prepared activation also launches a short-lived candidate worker preflight to
+read the external management database in SQLite read-only mode and resolve the
+resource policy for every enabled task. Any invalid CPU, memory, runtime, GPU,
+or partition policy aborts before `down`.
+
+For a SLURM deployment whose versioned SIFs already exist, use `prepared`.
+Rebuilding Docker runner images is unnecessary unless creating a replacement
+SIF or testing the Docker executor. A bare `restart` defaults to `dev` and will
+therefore rebuild all runtime families.
 
 ## Overview
 
@@ -18,15 +81,21 @@ The server stack contains:
   database backups, and log rotation
 - `worker`: Celery worker for background jobs
 - `redis`: Celery broker/backend
-- `runner` image: GREMLIN/PSSM execution container launched by `worker`
+- versioned runtime-family images: launched on demand by the worker; they are
+  not long-lived Compose services
+
+**Alternative executor (SLURM + Apptainer):** When the deployed
+`task_types.yaml` sets `job_executor: slurm` and
+`container_runtime: apptainer`, the worker dispatches every task via `srun` +
+Apptainer instead of Docker. See [SLURM + Apptainer](#slurm--apptainer-deployment).
 
 Scientific Python dependencies used by GREMLIN scripts belong to the runner's
-`env/GREMLIN.yml`; they are not installed into the web and worker package.
+`docker/runners/pssm_gremlin/GREMLIN.yml`; they are not installed into the web and worker package.
 
 Periodic jobs follow this package boundary:
 
 ```text
-pssm_gremlin_server/maintenance/
+revocompute/maintenance/
 ├── model.py                 # PeriodicTask interface
 ├── manager.py               # imports task objects and calls register()
 └── tasks/
@@ -48,7 +117,7 @@ Install the following on the deployment host:
 
 - Docker Engine 24+ with Compose plugin
 - NCBI BLAST+ (`makeblastdb`)
-- Enough disk space for UniRef databases, logs, and result archives
+- Enough disk space for UniRef databases, logs, and uncompressed task results
 
 Ubuntu example:
 
@@ -136,15 +205,20 @@ Create production env file:
 
 ```bash
 cp server/.env.example server/.env.production
+chmod 600 server/.env.production
 ```
+
+Production env files contain secrets and must not be group/world-readable.
+They are ignored by Git; keep them on the deployment host and never bake them
+into an image.
 
 ### Env-file isolation
 
 All restart helpers support `REVODESIGN_SERVER_ENV`:
 
 ```bash
-REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart_pssm_flask.sh restart --mode=dev
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
+REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart.sh restart --mode=dev
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh restart --mode=prod
 ```
 
 When `REVODESIGN_SERVER_ENV` is unset, the helper uses
@@ -154,12 +228,12 @@ When `REVODESIGN_SERVER_ENV` is unset, the helper uses
 
 | Variable | Purpose |
 | --- | --- |
-| `SERVER_IMAGE`, `RUNNER_IMAGE` | Image names built locally in dev mode or pulled in prod mode. Production must use full published Docker Hub references. |
+| `SERVER_IMAGE` | Long-lived server image. Runtime-family image names are declared in `task_types.yaml`. Production pull mode requires every configured image to be published and qualified. |
 | `SERVER_DIR` | Required host root shared by web and worker for uploads, task SQLite, and result folders. Never store the user database here. |
 | `RUNNER_HOST_ROOT` | Host root allowed for Docker runner bind mounts (default: parent of `SERVER_DIR`). |
 | `LOG_DIR` | Host directory for Gunicorn, Celery, and `maintenance.log`. |
-| `DB_UNIREF30` | Required UniRef30 prefix path. |
-| `DB_UNIREF90` | Required UniRef90 BLAST prefix path. |
+| `CONFIG_DIR` | Active directory containing `task_types.yaml` and `runners/`. Production normally uses an external machine-owned directory mounted read-only; the checked-in directory is suitable for development. |
+| `ENABLED_TASKRUNNERS` | Comma-separated additional task names to advertise and accept. `gremlin` is always enabled regardless of this setting. |
 | `ADMIN_USERS` | Required comma-separated bootstrap-administrator usernames. On an empty user database, the restart script creates each account and prints a distinct generated password; afterward, database roles control authorization. |
 | `AUTH_TOKEN_MAX_AGE` | Token lifetime in seconds (default: 604800 = 7 days). |
 | `AUTH_DIR` | Host-side directory containing `users.sqlite3`; Compose mounts it only into web and maintenance. It must be outside `SERVER_DIR`. |
@@ -168,9 +242,8 @@ When `REVODESIGN_SERVER_ENV` is unset, the helper uses
 | `SMTP_*`, `RESEND_*` | Email delivery settings. Resend takes priority when both backends are configured. |
 | `SERVER_BASE_URL` | Public base URL for email links and HTTPS-sensitive auth-cookie settings. |
 | `RUNNER_UID`, `RUNNER_GID` | Runner UID/GID. Dev may match the host; published production images require `1000:1000`. |
-| `DOCKER_GID` | Auto-detected by `restart_pssm_flask.sh` at runtime for Docker Compose interpolation. Override only as a shell variable when detection is wrong. |
-| `NPROC` | CPU threads passed to runner. |
-| `MAXMEM` | Memory cap (GB) passed to hhblits (`-maxmem`) inside runner script. |
+| `DOCKER_GID` | Auto-detected by `restart.sh` at runtime for Docker Compose interpolation. Override only as a shell variable when detection is wrong. |
+| `MAXMEM` | Global GREMLIN HHblits memory cap in GiB. Per-task SLURM CPU/memory requests are configured in the management database, not runner YAML. |
 | `WORKER_CONCURRENCY` | Celery worker concurrency. |
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `GUNICORN_TIMEOUT` | Gunicorn request timeout in seconds (default: `120`). Result transfers are handled by Nginx and do not require a long timeout. |
@@ -262,7 +335,88 @@ CLIENT_IP_HEADERS="CF-Connecting-IP, X-Forwarded-For, X-Real-IP"
 CLIENT_COUNTRY_HEADER="CF-IPCountry"
 ```
 
-## 4. Authentication
+## 4. Runner Configuration
+
+Database paths and resource limits no longer live in `.env`. Each runtime
+family has one runner YAML at `config/runners/<runtime-family>.yaml`:
+
+```yaml
+# config/runners/gremlin.yaml — deployment-specific (machine-local)
+mounts:
+  - host_path: "/srv/revodesign/databases/uniref30/UniRef30_2023_02"
+    container_path: "/opt/db/uniref30"
+    mode: "ro"
+  - host_path: "/srv/revodesign/databases/uniref90/uniref90"
+    container_path: "/opt/db/uniref90"
+    mode: "ro"
+env:
+  GREMLIN_CALC_CPU_NUM: "16"
+max_runtime_seconds: 7200
+defaults:
+  iter: 100
+```
+
+Edit this file when deploying to a new node — not `.env`. The task type
+definition at `config/task_types.yaml` (checked into git) declares the
+portable runtime-to-task mapping, accepted input set, stage markers, result
+patterns, and typed parameter constraints. A deployed config from the older
+per-task layout must be migrated to family filenames before startup; missing
+family YAMLs fail closed.
+
+`CONFIG_DIR` must point to the directory containing both files. In Docker
+deployments, set it to `/app/server/config` to use the baked-in source copy.
+
+Execution selection is global in `task_types.yaml`; it is not repeated in
+runner YAMLs:
+
+```yaml
+# config/task_types.yaml — deployed SLURM configuration
+job_executor: slurm
+container_runtime: apptainer
+runtime_families:
+  gremlin:
+    docker_image: revodesign-revocompute-runner
+    # dockerfile, definition, entrypoint ...
+    slurm_image: /mnt/data/srv/revodesign/server-slurm/images/gremlin_v1.sif
+```
+
+With `job_executor: docker`, `container_runtime` must be `docker` and all
+`slurm_image` values are inert metadata. With `job_executor: slurm`,
+`container_runtime` must be `apptainer` and every runtime family must declare
+an absolute `slurm_image`. Startup fails before stopping the current deployment
+when required config or existing SIFs are missing.
+
+Per-task-type SLURM resource directives (partition, cpus-per-task, mem, time,
+gres, etc.) are configured via the admin UI at `/compute/configuration` and
+stored in `manage.sqlite` — not in the YAML.  The web process can seed them
+on first launch via `sqlite3`.
+
+### Canonical task resource policy
+
+The admin UI stores one portable policy for CPU cores, memory, and maximum
+runtime. Per-task values override global defaults. SLURM-only placement fields
+(partition, GRES, nodes, tasks, QOS, account, constraint, and exclusivity) are
+resolved afterward.
+
+Resolution happens before upload persistence. The accepted policy is stored in
+the task's `input_form` record, validated again by the worker, and passed to the
+selected launcher. This prevents a queued task from changing because an admin
+edits defaults later.
+
+For SLURM, the policy always produces explicit `--cpus-per-task`, `--mem`,
+`--time`, `--nodes`, and `--ntasks` arguments. GPU task types receive a
+validated GRES (default `gpu:1`) and Apptainer `--nv`; CPU task types cannot
+carry a per-task GPU GRES and never inherit a global GPU GRES. Configured
+partitions must belong to `slurm_allowed_queues`. The allocated CPU count is
+then forwarded into Apptainer's thread-control environment.
+
+For Docker, the same CPU and memory values become `nano_cpus` and `mem_limit`,
+thread-control variables are set consistently, GPU jobs request one device,
+and a watchdog kills work that exceeds the snapshotted runtime. Invalid fields
+fail closed in the admin API and again at submission/launch rather than being
+silently discarded.
+
+## 5. Authentication
 
 The server uses Bearer-token authentication (replaces the old HTTP Basic Auth + `users.txt` model).
 
@@ -275,7 +429,7 @@ The server uses Bearer-token authentication (replaces the old HTTP Basic Auth + 
 - **API access**: Clients send `Authorization: Bearer <token>` for full access,
   or `X-API-Key: <key>` for long-lived programmatic access with restricted
   privileges (tasks only — no profile changes or admin actions).
-- **Logout**: `POST /PSSM_GREMLIN/api/auth/logout` clears the server-side
+- **Logout**: `POST /compute/api/auth/logout` clears the server-side
   cookie.  The profile page includes a logout button.
 - **Roles**: Three account types — `admin` (full access), `user` (registered
   user with API access), `guest` (publicly shared account, web-login only).
@@ -301,10 +455,15 @@ If the user database is empty, every username in the required `ADMIN_USERS`
 list is created automatically:
 
 - Passwords: generated separately and printed once by
-  `restart_pssm_flask.sh`. Change each after first login.
+  `restart.sh`. Change each after first login.
 
 Bootstrap passwords must not be stored in the env file. They are transient
 first-boot values supplied by the restart script only.
+
+`reset-passwd` rotates an existing account from the deployment host. It creates
+a timestamped auth-database backup under `${SERVER_DIR}/backups`, invalidates
+that user's existing bearer tokens, and writes the new username/password pair
+to a mode-0600 file under `AUTH_DIR`. The password itself is never printed.
 
 Set `ENABLE_REGISTER=true` and configure either SMTP or Resend to allow
 self-registration. Registration requires full name, affiliation, academic
@@ -319,15 +478,15 @@ create accounts.
 # Login to get a token
 curl -X POST -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"..."}' \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/login"
+  "http://<server-ip>:<port>/compute/api/auth/login"
 
 # Use the token for subsequent requests
 curl -H "Authorization: Bearer <token>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me"
+  "http://<server-ip>:<port>/compute/api/auth/me"
 
 # Logout (clears the auth cookie)
 curl -X POST -H "Authorization: Bearer <token>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/logout"
+  "http://<server-ip>:<port>/compute/api/auth/logout"
 ```
 
 ### Admin user management
@@ -337,7 +496,7 @@ curl -X POST -H "Authorization: Bearer <token>" \
 curl -X POST -H "Authorization: Bearer <admin-token>" \
   -H "Content-Type: application/json" \
   -d '{"username":"newuser","email":"user@example.com","password":"...","role":"user"}' \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/admin/users"
+  "http://<server-ip>:<port>/compute/api/auth/admin/users"
 ```
 
 `role` may be `admin`, `user`, or `guest` and is the sole authorization
@@ -348,7 +507,7 @@ Admins cannot ban or delete their own account.  Direct self-ban/self-delete
 requests return HTTP 400, and batch Disable/Delete skips the acting admin while
 still applying the requested action to other selected users.
 
-The dashboard header also links administrators to `/PSSM_GREMLIN/logs`. That
+The dashboard header also links administrators to `/compute/logs`. That
 standalone page loads only the selected active Gunicorn access, Gunicorn error,
 Celery worker, or maintenance log and streams it incrementally. Its lazy
 file tree lists rotated ZIP archives under those same four logs and permits
@@ -357,27 +516,27 @@ individual downloads; arbitrary filesystem paths are not exposed.
 ### API keys (programmatic access)
 
 Long-lived API keys are available for scripted/programmatic access. Generate and revoke
-them from the Profile page (`/PSSM_GREMLIN/profile`), or via the API:
+them from the Profile page (`/compute/profile`), or via the API:
 
 ```bash
 # Generate (returns plaintext key once — store it securely)
 curl -X POST -H "Authorization: Bearer <token>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me/api-key"
+  "http://<server-ip>:<port>/compute/api/auth/me/api-key"
 
 # Check status
 curl -H "Authorization: Bearer <token>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me/api-key"
+  "http://<server-ip>:<port>/compute/api/auth/me/api-key"
 
 # Revoke
 curl -X DELETE -H "Authorization: Bearer <token>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me/api-key"
+  "http://<server-ip>:<port>/compute/api/auth/me/api-key"
 ```
 
 Use the key via the `X-API-Key` header:
 
 ```bash
 curl -H "X-API-Key: revodesign_<hex>" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/auth/me"
+  "http://<server-ip>:<port>/compute/api/auth/me"
 ```
 
 API keys never expire but have **restricted privileges**: they can submit tasks and
@@ -389,7 +548,7 @@ Rate limits: 5 login attempts/minute per IP, 3 registrations/hour per IP.  The
 login endpoint returns HTTP 429 with `retry_after_seconds`; the login page uses
 that value to disable the submit button and count down until retry.
 
-## 5. Build and Run
+## 6. Build and Run
 
 ### Recommended helper script
 
@@ -397,19 +556,23 @@ No sudo required.
 
 ```bash
 # initialize the env file and print detected Docker socket group
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh setup
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh setup
 
 # development: down + local build using host UID/GID + up
-REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart_pssm_flask.sh restart --mode=dev
+REVODESIGN_SERVER_ENV=server/.env.local bash server/run/restart.sh restart --mode=dev
 
 # production: down + pull configured Docker Hub images + up without building
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh restart --mode=prod
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh restart --mode=prod
+
+# prepared production: preflight local images/SIFs/config, then down + up only
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh restart --mode=prepared
 
 # subcommands
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh build
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh up
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh down
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh reload
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh build
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh up
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh down
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh reload
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh reset-passwd <username>
 ```
 
 `restart` defaults to `--mode=dev` for backward compatibility. Only the
@@ -420,9 +583,20 @@ environment file:
 - `--mode=dev` builds the runner and server images locally, then starts with
   `--no-build`. This is the authoritative development workflow and preserves
   host UID/GID ownership for writable bind mounts.
-- `--mode=prod` pulls the configured `SERVER_IMAGE` and `RUNNER_IMAGE`, then
+- `--mode=prod` pulls the configured server and runtime-family images, then
   starts with `--no-build`. Published images use the fixed `1000:1000` identity,
   so production mode rejects any other `RUNNER_UID` or `RUNNER_GID`.
+- `--mode=prepared` activates locally prepared production artifacts. Before it
+  stops anything, it verifies all server/runtime Docker images, every required
+  SIF, the external registry and runner files, auth-storage separation, and the
+  rendered Compose model. It performs no build or pull, starts with
+  `--no-build`, and waits for all five Compose services to report running.
+- `job_executor: slurm` in the selected registry automatically merges
+  `docker-compose.slurm.yml`, bind-mounts SLURM client tools + MUNGE, validates
+  SIF images, and exports `SLURM_ENABLED=true` to the services.
+- `--build-sif` auto-builds missing `.sif` images from `.def` files during an
+  isolated development restart (requires Apptainer on PATH). Do not use it to
+  prepare production because restart stops services before construction.
 
 Provision production bind-mounted directories as writable by UID/GID
 `1000:1000`. This identity contract provides non-root execution and compatible
@@ -460,20 +634,23 @@ docker compose -f server/docker-compose.yml --env-file server/.env.production up
 ### Zero-downtime Gunicorn reload
 
 ```bash
-REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart_pssm_flask.sh reload
+REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh reload
 ```
 
-## 6. Usage
+## 7. Usage
 
 ### Create task page
 
-- `http://<server-ip>:<port>/PSSM_GREMLIN/create_task`
-- Upload ``.fasta`` files via the **Choose File** button or by **dragging and dropping** a file anywhere on the card.
-- An optional sequence editor lets you paste raw protein sequences as text instead of uploading a file.
+- `http://<server-ip>:<port>/compute/create_task`
+- Select a task type from the dropdown — the form adapts dynamically (file
+  extension, hints, params inputs, sequence editor visibility).
+- Upload input files via the **Choose File** button or by **dragging and dropping** a file anywhere on the card.
+- For ``.fasta`` task types, an optional sequence editor lets you paste raw
+  protein sequences as text instead of uploading a file.
 
 ### Dashboard
 
-- `http://<server-ip>:<port>/PSSM_GREMLIN/dashboard`
+- `http://<server-ip>:<port>/compute/dashboard`
 
 ### Upload via curl (with token auth)
 
@@ -484,7 +661,7 @@ TOKEN="<your-token>"
 curl -H "Authorization: Bearer ${TOKEN}" \
   -X POST \
   -F "file=@/path/to/input.fasta" \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/post"
+  "http://<server-ip>:<port>/compute/api/post"
 ```
 
 ### Batch upload via curl
@@ -492,7 +669,7 @@ curl -H "Authorization: Bearer ${TOKEN}" \
 ```bash
 for f in *.fasta; do
   curl -H "Authorization: Bearer ${TOKEN}" -X POST -F "file=@${f}" \
-    "http://<server-ip>:<port>/PSSM_GREMLIN/api/post"
+    "http://<server-ip>:<port>/compute/api/post"
 done
 ```
 
@@ -501,7 +678,7 @@ done
 ```bash
 TASK_MD5="<task-md5>"
 curl -H "Authorization: Bearer ${TOKEN}" -X DELETE \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/delete/${TASK_MD5}"
+  "http://<server-ip>:<port>/compute/api/delete/${TASK_MD5}"
 ```
 
 ### Delete multiple tasks (batch API)
@@ -510,16 +687,16 @@ curl -H "Authorization: Bearer ${TOKEN}" -X DELETE \
 curl -H "Authorization: Bearer ${TOKEN}" -X POST \
   -H "Content-Type: application/json" \
   -d '{"md5sums":["<task-md5-a>","<task-md5-b>"]}' \
-  "http://<server-ip>:<port>/PSSM_GREMLIN/api/delete"
+  "http://<server-ip>:<port>/compute/api/delete"
 ```
 
-## 7. Task States
+## 8. Task States
 
 Current server states:
 
 - `pending`
+- `queued`
 - `running`
-- `packing results`
 - `finished`
 - `failed`
 - `cancelled`
@@ -537,11 +714,28 @@ The final `cleaned:*` states identify automatic retention cleanup; `deleted:*`
 states remain reserved for explicit user deletion.
 The `deleted:finshed` spelling is intentionally preserved for runtime compatibility.
 
-## 8. Public Access
+`finished` means `manifest.json` has been atomically published in the
+uncompressed result tree. Individual manifest-listed files are previewed or
+downloaded through authenticated endpoints and can be streamed by Nginx. A
+full ZIP is an optional asynchronous cache created only after an explicit
+archive request. It contains only files published by the manifest and is not
+part of task completion.
+
+The dedicated result page presents previewable artifacts under **Main Results**.
+Its lifecycle-aware local plugin host resolves viewers from manifest `preview`
+metadata and preserves individual download as the universal fallback. Images,
+bounded CSV/TSV tables, and text use local preview plugins. PDB/mmCIF files use
+the pinned Mol* Viewer 5.10.0 bundle with subresource-integrity verification;
+if that asset or WebGL is unavailable, the dashboard falls back to a local
+alpha-carbon trace. Inline image and structure previews have size limits so a
+large artifact is downloaded instead of being loaded wholesale into browser
+memory.
+
+## 9. Public Access
 
 Docker Compose publishes the Nginx `gateway` service. The Flask/Gunicorn `web`
-service is internal-only. Nginx proxies application requests and serves result
-ZIP bytes after Flask authorizes the request with an internal
+service is internal-only. Nginx proxies application requests and serves
+authorized individual artifacts or optional ZIP bytes with an internal
 `X-Accel-Redirect`. The gateway mounts only `${SERVER_DIR}/results` and mounts
 it read-only.
 
@@ -559,9 +753,9 @@ custom TLS termination, routing, or rate limits are required.
 
 You can start from:
 
-- `server/nginx_sites/REvoDesign_PSSM_GREMLIN.app`
+- `server/nginx_sites/REvoCompute.app`
 
-## 9. Security
+## 10. Security
 
 ### Docker socket
 
@@ -572,14 +766,13 @@ container-escape boundary:
 - The worker runs as a non-root user for file ownership, but Docker socket
   access remains effectively Docker-daemon/host-level authority regardless of
   its primary UID.
-- `restart_pssm_flask.sh` auto-detects `DOCKER_GID` at runtime and exports it
+- `restart.sh` auto-detects `DOCKER_GID` at runtime and exports it
   for Docker Compose.  Do not persist host-specific socket groups in the env
   file.  If tasks fail with `PermissionError(13, 'Permission denied')`, compare
   the helper output with `docker exec server-worker-1 ls -ln
   /var/run/docker.sock`.  On Docker Desktop/OrbStack for macOS the bind-mounted
   socket commonly appears as group `0`, even when the host socket target has a
   user-owned group.
-- The runner container has a SETUID `ldconfig.real` binary for shared-library cache updates.
 - Consider using a Docker socket proxy (e.g. `docker-socket-proxy`) to restrict API access in untrusted environments.
 - Never expose the Docker socket to a public network.
 
@@ -619,15 +812,15 @@ banned users, and login throttling are maintained in
 - Task IDs are validated against `[a-f0-9]{32}` before any filesystem access.
 - File paths are validated with `_safe_join` / `_path_is_within` to prevent directory traversal.
 
-## 10. Operations Notes
+## 11. Operations Notes
 
 - Restrict Docker socket access to trusted operators only.
 - Task visibility and operations are always restricted to the owner or an
   administrator.
-- Regularly back up sqlite and result archives.
+- Regularly back up sqlite and finalized result trees. Optional ZIP files are derived caches.
 - If a task is deleted, result artifacts are removed, but the sqlite record remains for audit.
 
-## 11. Local Development
+## 12. Local Development
 
 ```bash
 # Install in editable mode with test dependencies
@@ -640,13 +833,299 @@ make -C server test
 make -C server test-cov
 
 # Run the server directly without Docker
-python -m pssm_gremlin_server.pssm_gremlin
+python -m revocompute.app
 ```
 
 Full test and security validation guidance is maintained in
 `docs/dev-guide/server.md`.
 
-## 12. Troubleshooting
+## 13. SLURM + Apptainer Deployment
+
+The server supports a SLURM + Apptainer runner backend as an alternative to
+Docker-out-of-Docker.  When enabled, the worker submits `srun` jobs that run
+Apptainer containers on SLURM compute nodes instead of launching Docker
+containers locally.
+
+### 13.1 Maintainer Workflow — Step by Step
+
+This is the checklist for enabling a task type on a SLURM deployment.
+
+#### Step 1: Prerequisites on the deployment host
+
+The host running the server containers must have:
+
+- **SLURM client** — `srun`, `squeue`, `scancel`, `sacct`, `sinfo` (bind-mounted into the worker)
+- **MUNGE** — `/run/munge` socket + `libmunge.so.2` (SLURM authentication)
+- **Apptainer** — on PATH if using `--build-sif`, or at least on the SLURM compute nodes
+- **SLURM config** — `/etc/slurm-llnl/` accessible to the worker (host networking)
+
+Verify connectivity from the worker container after startup:
+```bash
+docker exec server-slurm-worker-1 srun --version
+docker exec server-slurm-worker-1 sinfo
+```
+
+#### Step 2: Create the `.env` file
+
+Copy an existing SLURM env and customise:
+
+```bash
+cp server/.env.production.v7-slurm server/.env.production.v8-custom
+```
+
+Key SLURM-specific variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `COMPOSE_PROJECT_NAME` | **Must differ from production** (e.g. `server-slurm`). Compose isolation prevents one deployment from interfering with another. |
+| `SERVER_IMAGE` | **Must differ from production** (e.g. `revodesign-revocompute-server-slurm`). Image tag collision would overwrite the wrong image. |
+| `PORT` | Choose a free host port (e.g. `8081`). |
+| `SLURM_ALLOWED_QUEUES` | Comma-separated partition names visible in `/compute/configuration` (e.g. `normal,gpu`). |
+| `ENABLED_TASKRUNNERS` | Comma-separated list of additional task types beyond `gremlin` (e.g. `pythia_ddg`). |
+| `CONFIG_DIR` | Path to deployed config directory containing `task_types.yaml` and `runners/`. |
+| `REDIS_URL` | `redis://redis:6379/0` for bridge containers; `redis://127.0.0.1:6380/0` for host-networked worker (set in `docker-compose.slurm.yml`). |
+
+#### Step 3: Configure the executor and runtime families
+
+Select SLURM once in `<CONFIG_DIR>/task_types.yaml` and set each family’s SIF:
+
+```yaml
+job_executor: slurm
+container_runtime: apptainer
+runtime_families:
+  pythia_ddg:
+    docker_image: revodesign-revocompute-runner-pythia_ddg
+    entrypoint: [bash, /app/revocompute/run.sh]
+    dockerfile: docker/runners/pythia_ddg/Dockerfile
+    definition: docker/runners/pythia_ddg/pythia_ddg.def
+    slurm_image: /mnt/data/srv/revodesign/server-slurm/images/pythia_ddg_v1.sif
+```
+
+Fields `mounts`, `env`, `max_runtime_seconds`, and `defaults` work identically
+for both executors and remain in the corresponding runner YAML. Executor,
+container runtime, SIF path, GPU requirement, and SLURM resources do not belong
+in runner YAML.
+
+Per-task SLURM resource directives (partition, cpus-per-task, mem, time,
+gres, etc.) are configured via the admin UI at `/compute/configuration` and
+stored in `manage.sqlite` — not in the YAML.
+
+#### Step 4: Create the `.def` file
+
+Each runtime family declares its exact Apptainer definition path in
+`config/task_types.yaml`. The restart helper rejects missing definitions; it
+does not guess with `find`.
+
+```def
+Bootstrap: docker-daemon
+From: revodesign-revocompute-runner-pythia:latest
+
+%post
+    echo "Pythia-ddG runner containerised"
+
+%runscript
+    exec bash /app/revocompute/run.sh "$@"
+```
+
+The `.def` uses `Bootstrap: docker-daemon` to convert a locally-built Docker
+image into SIF.  The Docker image must already exist in the local Docker
+daemon (built by `cmd_build` in `restart.sh`).
+
+**Convention:** place the `.def` alongside the Dockerfile and keep its `From:`
+image equal to the runtime family's `docker_image`. Pythia's repository-bundled
+checkpoints are intentionally retained because they are small.
+
+The `prime` family serves two distinct model contracts. **Pro-Prime OGT
+prediction** uses the pinned `AI4Protein/ProPrime_650M_OGT_Prediction` snapshot
+at `PRIME_MODEL_DIR`. **PRIME DMS** uses the pinned `AI4Protein/Prime_690M`
+snapshot at `PRIME_DMS_MODEL_DIR`, matching the upstream
+`notebooks/run_proteingym.ipynb` scoring rule. One input sequence produces an
+exhaustive single-substitution DMS CSV. If the upload contains multiple FASTA
+records or files, the first sequence is the reference and each remaining
+sequence is scored as a supplied combinatorial variant; all substitutions'
+log-probability differences are summed.
+
+The older `prime_base.pt` file belongs to the legacy `Prime_1` mutant-effect
+implementation. It is preserved for rollback and provenance, but renaming it
+to `checkpoint.pt` neither makes it an OGT checkpoint nor makes it equivalent
+to the immutable Hugging Face snapshots used by these production tasks.
+
+The shared `mpnn` family pins a commit-identical fork of the official
+`dauparas/ProteinMPNN` repository.
+**ProteinMPNN** uses its vanilla (or explicitly selected CA-only) checkpoints;
+**SolubleMPNN** is a distinct task that passes the upstream
+`--use_soluble_model` flag and permits only the published `v_48_010` and
+`v_48_020` soluble checkpoints. HyperMPNN, LigandMPNN, and ThermoMPNN-D remain
+separate task contracts in the same dependency image. **LASErMPNN** also uses
+this CPU family for ligand-conditioned sequence and side-chain design. It
+accepts multiple protonated PDB/mmCIF snapshots, preserves nested upload paths,
+and exposes the upstream all-data default and paper-analysis checkpoints as
+explicit choices; arbitrary checkpoint paths and key-mismatch bypasses remain
+server controlled.
+
+The `easifa` family uses the pinned official EasIFA2 Core single-prediction
+interface, not the legacy EasIFA dataset benchmark. Its read-only checkpoint
+mount contains only `all_features`, `wo_reactions`, and `rxn_model` directories
+from the pinned `xiaoruiwang/EasIFA2.0_Metadata` revision. A structure without
+reaction SMILES selects `wo_reactions`; supplying `reactants>>products` selects
+`all_features`. Checkpoint paths and CUDA device selection remain operator
+controlled. Each successful task publishes the complete upstream JSON plus an
+`active_sites.csv` residue table for manifest-first preview and download.
+
+#### Step 5: Prepare artifacts without stopping production
+
+```bash
+# Build Docker images while the healthy stack remains running. Use
+# --use-proxy only when REVODESIGN_BUILD_PROXY is configured in the env file.
+REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
+  bash server/run/restart.sh build --use-proxy
+```
+
+Build each versioned SIF manually from the exact `definition` declared by its
+runtime family. Write to a partial path, validate it, and only then rename it
+atomically. Do not overwrite an active SIF:
+
+```bash
+apptainer build --fakeroot /absolute/images/family_v2.sif.partial \
+  server/docker/runners/family/family.def
+apptainer inspect /absolute/images/family_v2.sif.partial
+mv /absolute/images/family_v2.sif.partial /absolute/images/family_v2.sif
+```
+
+After backing up the external registry and adding rollback tags for current
+Docker image IDs, point each family at the completed versioned SIF. Activate
+without further artifact work:
+
+```bash
+REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
+  bash server/run/restart.sh restart --mode=prepared
+```
+
+Do not use `restart --build-sif` for production preparation: the restart path
+stops the stack before lengthy SIF construction. The complete backup,
+validation, sizing, activation, and rollback sequence is in the
+[operations guide](OPERATIONS_AND_TASK_ADAPTER_GUIDE.md).
+
+#### Step 6: Configure per-task SLURM resources
+
+After startup, go to `/compute/configuration` and set per-task-type SLURM
+parameters: partition, cpus-per-task, memory, time limit, GRES, etc.  These
+are stored in `manage.sqlite` in the server directory and become `--option=value`
+flags on the `srun` command line.
+
+#### Step 7: Verify
+
+Submit a test task and monitor:
+
+```bash
+# Watch SLURM queue
+squeue --name=revocomput_
+
+# Check task status via API
+curl -H "Authorization: Bearer <token>" \
+  "http://<server>:<port>/compute/api/running/<task_md5>"
+```
+
+### 13.2 docker-compose.slurm.yml
+
+The override file adds:
+
+- **worker** → `network_mode: host` (needed to reach the SLURM controller)
+- **worker** → bind-mounted SLURM tools (`srun`, `sbatch`, `squeue`, `scancel`, `sacct`, `sinfo`)
+- **worker** → bind-mounted MUNGE socket + library (SLURM authentication)
+- **redis** → published on `6380:6379` (host `:6379` is occupied; worker uses `REDIS_URL=redis://127.0.0.1:6380/0`)
+- **web, worker, maintenance** → `CONFIG_DIR` mounted read-only
+
+### 13.3 Architecture
+
+```
+Worker (host network)                   SLURM controller
+  │                                         │
+  ├─ srun bash _slurm_wrapper.sh ──────────►│
+  │                                         │
+  │     SLURM compute node                  │
+  │       ├─ apptainer run --nv *.sif       │
+  │       │   ├─ /mnt/revocompute/<user>/inputs  (snapshot, ro) │
+  │       │   ├─ /mnt/revocompute/<user>/outputs (task-owned, rw)│
+  │       │   └─ DB mounts (ro, from YAML)  │
+  │       │                                 │
+  │       └─ stdout/stderr → srun pipes → worker threads
+  │                                         │
+  └─ Popen.wait() → exit code               │
+```
+
+### 13.4 SIF Image Build (Manual)
+
+When the auto-build isn't suitable, build manually:
+
+```bash
+# 1. Build the Docker image
+docker build -t revodesign-revocompute-runner-pythia:latest \
+  -f server/docker/runners/pythia_ddg/Dockerfile server/
+
+# 2. Convert to a new partial SIF using the family's exact definition
+apptainer build --fakeroot /path/to/pythia_ddg_v2.sif.partial \
+  server/docker/runners/pythia_ddg/pythia_ddg.def
+
+# 3. Inspect, smoke-test, then atomically promote it
+apptainer inspect /path/to/pythia_ddg_v2.sif.partial
+mv /path/to/pythia_ddg_v2.sif.partial /path/to/pythia_ddg_v2.sif
+```
+
+The `--build-sif` helper is convenient for isolated development deployments;
+it is not the production preparation path because a restart stops services
+before those builds begin.
+
+### 13.5 Runtime Size Gate
+
+Do not estimate savings from Dockerfile text. After building on the designated
+Linux builder, record both expanded Docker bytes and compressed SIF bytes:
+
+```bash
+python server/tools/audit_runtime_sizes.py \
+  --task-types "${CONFIG_DIR}/task_types.yaml" \
+  --require-all \
+  --json > runtime-sizes.json
+```
+
+The command only inspects artifacts already present; it never pulls, builds,
+or runs them. Compare the JSON with the previous production release before
+promotion. Runtime-family sharing reduces the number of distinct artifacts;
+the MPNN family additionally omits inference-unused CUDA stub, Triton,
+torchvision, and torchaudio wheels. Removing build tools in a later Docker
+layer is not counted as a size optimization because earlier layer bytes remain.
+
+### 13.6 GPU Privilege Gating
+
+Users must have `allow_gpu_use=true` (toggled by admins via the User Control
+page) to submit task types marked `gpus: true` in `task_types.yaml`.  This
+is enforced at submission time — unprivileged users receive 403 before the
+job is enqueued.
+
+### 13.7 slurm_job_id Persistence
+
+The SLURM job ID (`srun-<pid>`) is stored in the `slurm_job_id` column of
+the tasks table.  When a user cancels a running SLURM task, the web process
+calls `scancel` with this ID before terminating the `srun` process.
+
+### 13.8 Live Output
+
+The `SlurmJob` class captures `srun` stdout/stderr via `subprocess.Popen`
+pipes in background threads.  `REVODESIGN_STAGE:` markers are parsed from
+stdout in real time and forwarded to the stage callback — matching the
+Docker runner's live progress behaviour.
+
+### 13.9 Task States
+
+SLURM tasks use an additional `queued` status:
+- **`queued`** — `srun` is waiting for a SLURM allocation (resource contention)
+- **`running`** — first `REVODESIGN_STAGE:` marker received, job is executing
+
+This transition happens via the stage callback: when the first
+`REVODESIGN_STAGE:` line appears on stdout, the status moves from `queued`
+to `running`.
+
+## 14. Troubleshooting
 
 ### Network issues
 
@@ -661,8 +1140,8 @@ A proper `http-proxy.conf` file might look like this:
 
 ```text
 [Service]
-Environment="HTTP_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
-Environment="HTTPS_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
-Environment="ALL_PROXY=socks5://oreo:oreo@192.168.194.98:17890"
+Environment="HTTP_PROXY=http://proxy-user:proxy-password@proxy.internal:8080"
+Environment="HTTPS_PROXY=http://proxy-user:proxy-password@proxy.internal:8080"
+Environment="ALL_PROXY=http://proxy-user:proxy-password@proxy.internal:8080"
 Environment="NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,localhost,127.0.0.1,10.96.0.0/12,192.168.59.0/24,192.168.49.0/24,192.168.39.0/24,192.168.67.0/24,172.17.0.0/24,192.168.0.0/16,100.87.0.0/16,192.168.75.0/24,192.168.194.0/24,192.168.67.2"
 ```

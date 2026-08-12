@@ -15,20 +15,105 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-
 ```
 ## [Unreleased]
+
 ### Added
+- **Pluggable scientific input and result workspaces**: added a shared local
+  plugin registry and lifecycle host, a validated additive input-capability
+  schema, reusable file/sequence/structure/region/parameter/review components,
+  and a manifest preview host. Simple sequence tasks remain compact while
+  RFdiffusion, PLACER, and EASIFA compose richer guided workspaces without
+  granting YAML or browser code authority over server validation or runners.
+- **Canonical end-to-end resource policy**: added typed validation and a single
+  resolution path for CPU, memory, runtime, accelerator, and SLURM placement.
+  Accepted tasks snapshot their effective policy; Docker and SLURM consume the
+  same values, invalid settings fail closed, allowed partitions are enforced,
+  and CPU tasks cannot accidentally inherit GPU GRES.
+
+### Changed
+- **Create-task scientific workflow**: replaced page-specific form assembly
+  with capability composition, explicit primary/auxiliary file roles, nested
+  folder selection, local structure summaries and residue selection, grouped
+  region controls, and a normalized pre-submission review. Existing task and
+  upload APIs remain backward compatible and authoritative.
+- **Resource administration**: replaced overlapping `nproc`/`maxmem` and
+  SLURM CPU/memory controls with canonical per-task overrides and visible
+  effective values. Legacy database fields remain migration fallbacks, empty
+  overrides restore inheritance, and multi-field updates are transactional.
+### Added
+- **Multi-task server architecture**: task-type-agnostic compute server with a
+  YAML-based registry. Portable task schemas select one of nine shared runtime
+  families, while one machine-local runner YAML per family supplies mounts,
+  environment, timeout, and deployment defaults. Missing registry files fail
+  closed; `gremlin` is always enabled and additional tasks are gated by
+  `ENABLED_TASKRUNNERS`.
+- **Server-driven dynamic form workflow**: the create-task page fetches form
+  schema from `GET /compute/api/types/<name>` and dynamically builds the file
+  input (accept extension, label), sequence editor visibility, and params form
+  (number/text inputs from `TaskParam` definitions). Adding a task type with
+  new params requires zero frontend changes.
+- **`TaskSubmissionRequest` pydantic model**: flat form data
+  (`params[key]=value`) is parsed into a nested dict, validated against the
+  task type registry, and forwarded to Celery. Unknown params or task types
+  are rejected at the API boundary.
+- **`GET /compute/api/types` and `GET /compute/api/types/<name>`**: public
+  endpoints listing all enabled task types with full param schemas.
+- **Runner config directory deployment**: `CONFIG_DIR` env var points to the
+  active `task_types.yaml` and `runners/` directory. Production can mount an
+  external machine-owned configuration read-only instead of baking host paths
+  into the server image.
 - **Structured issue reporting**: added GitHub Issue Forms for bugs,
   installation and environment problems, feature requests, and documentation
   problems, with private routing for security vulnerabilities.
 
 ### Changed
+- **Server deployment and adapter documentation**: reconciled the server
+  README and developer guides with the global executor/runtime model,
+  runtime-family sharing, immutable multi-file workspaces, manifest-first
+  results, prepared activation, versioned SIF promotion, offline model data,
+  proxy build semantics, and the current task/result APIs. The runbook now
+  explicitly distinguishes `build`, default dev restart, published-image prod
+  mode, and no-build/no-pull prepared activation.
+- **Runtime-family deployment model**: task types now select shared runtime
+  families which own one image, entrypoint, runner YAML, and SIF definition.
+  PLACER and RFdiffusion share one family; Docker and SLURM receive identical
+  resolved parameter/input manifests and missing family artifacts fail closed.
+- **Global execution configuration**: `task_types.yaml` now selects one
+  `job_executor` and `container_runtime` for the deployment, while each runtime
+  family declares its own `slurm_image`. Runner YAMLs contain only mounts,
+  environment, limits, and parameter defaults.
+- **Runner image reproducibility and size**: pinned all Git-sourced runner
+  repositories to audited commits and removed their `.git` data in the clone
+  layer. The CPU MPNN inference family no longer installs CUDA stub packages,
+  Triton, torchvision, or torchaudio; Pythia's small repository checkpoints
+  remain bundled intentionally.
+- **Server form schema**: task parameters now expose labels, choices, numeric
+  bounds, steps, units, and boolean controls; RFdiffusion and PLACER accept
+  bounded multi-file submissions.
 - **GREMLIN server: Nginx result offload**: made the Compose gateway own the
-  public port and stream authorized result ZIPs from a read-only mount via
-  Flask-issued internal redirects. Gunicorn no longer carries large download
-  bodies or creates missing archives inside HTTP requests; result downloads
-  support byte ranges while internal file paths remain unreachable directly.
+  public port and stream authorized result artifacts or optional ZIPs from a
+  read-only mount via Flask-issued internal redirects. Gunicorn no longer
+  carries large download bodies or creates missing archives inside HTTP
+  requests; result downloads support byte ranges while internal file paths
+  remain unreachable directly.
+- **Server package rename**: `pssm_gremlin_server` → `revocompute`
+  (REvoCompute). All branding across templates, JS, CSS, and email headers
+  updated from "REvoDesign GREMLIN Server" to "REvoCompute".
+- **Runner Docker entrypoint**: simplified to `["bash", "/app/revocompute/run.sh"]`
+  (no `ldconfig` or `runuser`). The Celery worker overrides entrypoint at
+  container start and passes CLI args (`-i`, `-o`, `-r`) directly, so the
+  runner runs as the non-root `--user` without requiring root in the image.
+- **`POST /compute/api/post`**: accepts `task_type` and `params[...]` form
+  fields. Validates against the task type registry and passes params to
+  Celery. Generic `_validate_input_upload` replaces hardcoded `.fasta` check.
+- **Dashboard and create-task UI**: task type selector, dynamic file accept,
+  params form, task type badges on dashboard cards. Hardcoded GREMLIN trace
+  fallback and label regexes removed — stage labels come from the registry.
+- **Runner database/env config**: runtime-family database/model mounts and
+  runner-specific environment variables moved to one
+  `config/runners/<family>.yaml`. Global service settings remain in the
+  deployment environment; SLURM resources remain in the management database.
 - **Server reload operation**: added zero-downtime Gunicorn reload as a
   subcommand of the main deployment helper.
 - **Experimental cluster visibility**: marked EvoCluster and KMeansCluster as
@@ -87,6 +172,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **SLURM execution diagnostics**: scheduler stdout/stderr are now stored under
+  explicit `execution/slurm-<username>-<task>-<task-id>.stdout.log` and
+  `.stderr.log` paths. They are
+  manifest-listed as diagnostic text artifacts, available through the text
+  previewer, and kept out of the Main Results gallery.
+- **SLURM CPU propagation**: the wrapper now forwards the allocated CPU count
+  to `NPROC`, GREMLIN, OpenMP, BLAS, NumExpr, and TensorFlow variables and
+  passes GREMLIN/PSSM's `-j` option, so scheduler allocation and scientific
+  thread counts remain consistent.
+- **MPNN SLURM resources and checkpoints**: MPNN design tasks now request an
+  explicit 16-CPU/16G allocation, propagate the allocated CPU count to threaded
+  numerical libraries, and validate LigandMPNN's mounted absolute checkpoint
+  path. The previous 2-CPU default and relative `./model_params` lookup could
+  overcommit or fail before inference.
+- **ThermoMPNN-D offline model data**: provisioned both the ThermoMPNN ensemble
+  and hidden vanilla ProteinMPNN backbone through a shared read-only data root.
+  The MPNN runner validates representative checkpoints and refuses runtime
+  downloads into a small compute-node home cache.
 - **GREMLIN Docker server tests**: made the Python 3.6 compatibility and
   full-stack checks bounded, least-privileged, root-safe, and responsive to
   unexpected HTTP failures while preserving accepted task polling and keeping
@@ -127,6 +230,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bootstrap path and still reject duplicate `ADMIN_USERS` entries.
 
 ### Removed
+- **Hardcoded GREMLIN frontend logic**: removed `runningTraceFallback` and
+  GREMLIN-specific label regexes from dashboard JS. Stage labels, file
+  extensions, param forms, and task type labels are now registry-driven.
+- **`DB_UNIREF30` / `DB_UNIREF90` from required `.env`**: database paths
+  are now in `config/runners/<name>.yaml`; the legacy `.env` variables are
+  no longer read by the multi-task launcher.
 - **Server deployment fallbacks**: removed the standalone `hot_fix.sh` helper
   and legacy `server/.env` fallback; deployment defaults explicitly to
   `.env.production` unless `REVODESIGN_SERVER_ENV` is set.
