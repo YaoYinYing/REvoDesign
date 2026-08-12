@@ -82,10 +82,10 @@
     if (parameter.unit) label.textContent += " (" + parameter.unit + ")";
     labelRow.appendChild(label);
     if (parameter.help) {
-      var tooltip = element("span", "param-tooltip", "?");
-      tooltip.title = parameter.help;
-      tooltip.setAttribute("aria-label", parameter.help);
-      labelRow.appendChild(tooltip);
+      var tip = element("span", "param-tooltip", "?");
+      var bubble = element("span", "param-tooltip-bubble", parameter.help);
+      tip.appendChild(bubble);
+      labelRow.appendChild(tip);
     }
     wrap.appendChild(labelRow);
     function isBinaryChoice(choices) {

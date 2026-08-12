@@ -211,12 +211,27 @@
 /* parameter toggles and tooltips */
 .param-label-row { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem; }
 .param-tooltip {
-  display: inline-flex; align-items: center; justify-content: center;
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
   width: 0.94rem; height: 0.94rem; border-radius: 999px;
   border: 1px solid var(--line); font-size: 0.56rem; font-weight: 700;
   color: var(--muted); cursor: help; user-select: none;
 }
 .param-tooltip:hover { border-color: var(--accent); color: var(--accent); }
+.param-tooltip-bubble {
+  display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%); z-index: 20;
+  width: 18rem; max-width: calc(100vw - 2rem);
+  padding: 0.6rem 0.75rem; border-radius: 10px;
+  background: #1e2d35; color: #d8e4e9; font-size: 0.76rem; font-weight: 400;
+  line-height: 1.45; text-align: left; white-space: normal; cursor: auto;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+}
+.param-tooltip-bubble::after {
+  content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: #1e2d35;
+}
+.param-tooltip:hover .param-tooltip-bubble,
+.param-tooltip:focus-within .param-tooltip-bubble { display: block; }
 .param-toggle-wrap { display: inline-flex; align-items: center; }
 .param-toggle {
   appearance: none; -webkit-appearance: none;
@@ -264,6 +279,8 @@ html[data-theme="dark"] .status.busy  { background: #163446; border-color: #2e60
 html[data-theme="dark"] .status.ok    { background: #173427; border-color: #35634a; color: #b6e1c1; }
 html[data-theme="dark"] .status.error { background: #41241f; border-color: #754239; color: #f2b4ac; }
 
+html[data-theme="dark"] .param-tooltip-bubble { background: #e0e8ec; color: #17252c; }
+html[data-theme="dark"] .param-tooltip-bubble::after { border-top-color: #e0e8ec; }
 html[data-theme="dark"] .workspace-help-popover {
   border-color: #30444f; background: #1a2930;
 }
