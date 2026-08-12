@@ -94,6 +94,11 @@
   transform: rotate(45deg); transition: transform 160ms ease;
 }
 .advanced-params[open] > summary::after { transform: rotate(-135deg); }
+.basic-params-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.5rem;
+}
 .advanced-params-grid {
   margin-top: 0.7rem;
   display: grid;

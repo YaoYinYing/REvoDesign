@@ -350,7 +350,11 @@
       var params = context.form.params.filter(function (parameter) { return !regionFields.has(parameter.name); });
       var basic = params.filter(function (parameter) { return !parameter.advanced; });
       var advanced = params.filter(function (parameter) { return Boolean(parameter.advanced); });
-      basic.forEach(function (parameter) { target.appendChild(renderParam(parameter, context)); });
+      if (basic.length) {
+        var basicGrid = element("div", "basic-params-grid");
+        basic.forEach(function (parameter) { basicGrid.appendChild(renderParam(parameter, context)); });
+        target.appendChild(basicGrid);
+      }
       if (advanced.length) {
         var details = element("details", "advanced-params");
         details.appendChild(element("summary", "", "Advanced parameters (" + advanced.length + ")"));
