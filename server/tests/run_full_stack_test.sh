@@ -61,6 +61,8 @@ elif [[ "${RUNNER_GID}" == "0" ]]; then
 fi
 export RUNNER_UID RUNNER_GID
 cp -r "${SERVER_ROOT}/config" "${WORK_DIR}/state/server/config"
+sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc30|${WORK_DIR}/miniuc/uc30|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
+sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc90|${WORK_DIR}/miniuc/uc90|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
 cat >>"${ENV_FILE}" <<EOF
 
 # Full-stack test overrides
