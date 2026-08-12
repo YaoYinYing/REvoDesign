@@ -63,7 +63,6 @@ export RUNNER_UID RUNNER_GID
 cp -r "${SERVER_ROOT}/config" "${WORK_DIR}/state/server/config"
 sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc30|${WORK_DIR}/state/server/miniuc/uc30|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
 sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc90|${WORK_DIR}/state/server/miniuc/uc90|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
-docker tag "${RUNNER_IMAGE}" "revodesign-revocompute-runner:latest"
 cat >>"${ENV_FILE}" <<EOF
 
 # Full-stack test overrides
@@ -97,6 +96,7 @@ docker build \
   --file "${SERVER_ROOT}/docker/runners/pssm_gremlin/Dockerfile" \
   --tag "${RUNNER_IMAGE}" \
   "${SERVER_ROOT}"
+docker tag "${RUNNER_IMAGE}" "revodesign-revocompute-runner:latest"
 
 echo "Preparing and validating miniUC databases using the GREMLIN toolchain..."
 docker run --rm \
