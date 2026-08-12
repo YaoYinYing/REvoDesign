@@ -169,6 +169,20 @@ GPU requests belong to task types (`gpus: true`) and per-task SLURM resources
 belong to the management database/UI. Do not place ignored `gpus`, `nproc`, or
 `maxmem` keys in runner YAML.
 
+Configure canonical `cpus`, `memory`, and `max_runtime_seconds` globally or per
+task in `/compute/configuration`. Per-task values inherit from global defaults
+when left empty. SLURM partition/GRES/nodes/tasks/QOS/account/constraint and
+exclusive placement are separate validated fields. Legacy database values
+(`nproc`, `maxmem`, `slurm_cpus_per_task`, `slurm_mem`, and `slurm_time`) are
+migration fallbacks only; do not create new ones.
+
+Before migration, back up `manage.sqlite`. Record the effective policy shown by
+the admin API for every enabled task, write canonical overrides, and compare
+again before activation. Accepted tasks snapshot their resolved policy, so do
+not edit queued task records manually. Prepared activation runs the candidate
+worker's read-only resource audit before `down` and refuses invalid memory,
+runtime, GPU, or partition configuration.
+
 ## 5. Establish a read-only baseline
 
 Before mutation, record Git, service, storage, Docker, SIF, and SLURM state:

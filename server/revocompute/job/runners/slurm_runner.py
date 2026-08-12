@@ -22,6 +22,7 @@ from typing import Any
 
 from revocompute.job import Job, JobState
 from revocompute.job._stages import extract_stage_from_log_line
+from revocompute.resource_policy import ResolvedResources, resolve_resources
 
 _SLURM_JOB_ID_RE = re.compile(r"srun:\s+[Jj]ob\s+(\d+)")
 
@@ -46,6 +47,7 @@ class SlurmJob(Job):
         stage_callback: Any = None,
         manage_db: Any = None,
         username: str = "",
+        resource_policy: ResolvedResources | None = None,
     ):
         super().__init__(task_id, tt, runner, entities, output_dir, stage_callback)
         self._db = manage_db
@@ -58,6 +60,7 @@ class SlurmJob(Job):
         self._wrapper_script_path: str | None = None
         self._slurm_job_id: str | None = None
         self._job_id_event = threading.Event()
+        self._resolved_resource_policy = resource_policy
 
     # -- Job ABC -------------------------------------------------------------
 
@@ -96,7 +99,7 @@ class SlurmJob(Job):
         if self._process is None:
             raise RuntimeError("poll() called before submit()")
 
-        max_runtime = self.runner.max_runtime_seconds or 86400
+        max_runtime = self._resolve_resources().max_runtime_seconds
         try:
             try:
                 self._process.wait(timeout=max_runtime)
@@ -143,36 +146,57 @@ class SlurmJob(Job):
 
     # -- srun arguments ------------------------------------------------------
 
-    def _build_srun_args(self) -> list[str]:
-        sbatch_args: dict[str, Any] = {}
-        if self._db is not None:
-            sbatch_args = self._db.slurm_sbatch_args(self.tt.name)
+    def _resolve_resources(self) -> ResolvedResources:
+        if self._resolved_resource_policy is not None:
+            return self._resolved_resource_policy
+        if self._db is not None and hasattr(self._db, "resolve_task_resources"):
+            resources = self._db.resolve_task_resources(
+                self.tt.name,
+                requires_gpu=self.tt.gpus,
+                default_timeout_seconds=self.runner.max_runtime_seconds,
+            )
+        elif self._db is not None and hasattr(self._db, "slurm_sbatch_args"):
+            # Compatibility for small test doubles and transitional callers.
+            legacy = self._db.slurm_sbatch_args(self.tt.name)
+            resources = resolve_resources(
+                lambda field: legacy.get(field),
+                lambda _field: None,
+                requires_gpu=self.tt.gpus,
+                allowed_queues=(),
+                default_timeout_seconds=self.runner.max_runtime_seconds,
+            )
+        else:
+            resources = resolve_resources(
+                lambda _field: None,
+                lambda _field: None,
+                requires_gpu=self.tt.gpus,
+                allowed_queues=(),
+                default_timeout_seconds=self.runner.max_runtime_seconds,
+            )
+        self._resolved_resource_policy = resources
+        return resources
 
-        _FIELD_TO_OPTION = {
-            "slurm_partition": "partition",
-            "slurm_cpus_per_task": "cpus-per-task",
-            "slurm_gres": "gres",
-            "slurm_mem": "mem",
-            "slurm_time": "time",
-            "slurm_nodes": "nodes",
-            "slurm_ntasks": "ntasks",
-            "slurm_qos": "qos",
-            "slurm_account": "account",
-            "slurm_constraint": "constraint",
+    def _build_srun_args(self) -> list[str]:
+        resources = self._resolve_resources()
+        resolved = {
+            "partition": resources.partition,
+            "cpus-per-task": resources.cpus,
+            "gres": resources.gres,
+            "mem": resources.memory,
+            "time": resources.slurm_time,
+            "nodes": resources.nodes,
+            "ntasks": resources.ntasks,
+            "qos": resources.qos,
+            "account": resources.account,
+            "constraint": resources.constraint,
         }
         opts: list[str] = []
-        for field, option in _FIELD_TO_OPTION.items():
-            value = sbatch_args.get(field)
+        for option, value in resolved.items():
             if value is None:
                 continue
             opts.append(f"--{option}={value}")
-
-        # ``apptainer --nv`` exposes host GPU libraries but does not reserve a
-        # device from SLURM.  A GPU task must always request one explicitly;
-        # administrators can still override the GRES shape (for example,
-        # ``gpu:a100:1``) per task or globally.
-        if self.tt.gpus and not sbatch_args.get("slurm_gres"):
-            opts.append("--gres=gpu:1")
+        if resources.exclusive:
+            opts.append("--exclusive")
 
         # The worker container's /app/server cwd does not exist on compute
         # nodes.  Use the task-specific shared output directory so slurmstepd

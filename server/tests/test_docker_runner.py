@@ -100,6 +100,9 @@ def test_submit_creates_container_and_returns_id(tmp_path):
     assert call_kwargs["entrypoint"] == ["bash", "run.sh"]
     assert call_kwargs["detach"] is True
     assert call_kwargs["remove"] is False
+    assert call_kwargs["nano_cpus"] == 1_000_000_000
+    assert call_kwargs["mem_limit"] == "4g"
+    assert call_kwargs["environment"]["OMP_NUM_THREADS"] == "1"
 
 
 def test_submit_passes_gpu_device_request(tmp_path):
@@ -118,6 +121,7 @@ def test_submit_passes_gpu_device_request(tmp_path):
 
     call_kwargs = mock_client.containers.run.call_args.kwargs
     assert call_kwargs["device_requests"] is not None
+    assert call_kwargs["device_requests"][0].count == 1
 
 
 def test_submit_without_gpu_has_no_device_request(tmp_path):

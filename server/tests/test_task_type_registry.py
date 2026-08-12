@@ -88,6 +88,62 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
         assert rfdiffusion.runner_args == ("rfdiffusion",)
 
 
+def test_input_workspace_capabilities_cover_simple_and_complex_tasks():
+    enabled = {"rfdiffusion", "placer", "easifa"}
+    with _preserve_registry():
+        task_types.load_registry(
+            str(SERVER_ROOT / "config" / "task_types.yaml"),
+            str(SERVER_ROOT / "config" / "runners"),
+            enabled,
+        )
+        gremlin, _ = task_types.get("gremlin")
+        rfdiffusion, _ = task_types.get("rfdiffusion")
+        easifa, _ = task_types.get("easifa")
+
+        assert [cap.plugin for cap in gremlin.input_workspace] == [
+            "files",
+            "sequence",
+            "parameters",
+            "review",
+        ]
+        assert [cap.plugin for cap in rfdiffusion.input_workspace] == [
+            "files",
+            "structure",
+            "regions",
+            "parameters",
+            "review",
+        ]
+        region_options = next(
+            cap.options for cap in rfdiffusion.input_workspace if cap.plugin == "regions"
+        )
+        assert {"contig", "hotspot_res", "inpaint_seq"}.issubset(region_options["fields"])
+        assert [cap.plugin for cap in easifa.input_workspace] == [
+            "files",
+            "structure",
+            "parameters",
+            "review",
+        ]
+
+
+def test_input_workspace_rejects_remote_or_unknown_plugin_configuration(tmp_path):
+    registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
+    registry["task_types"]["gremlin"]["input_workspace"] = {
+        "capabilities": [
+            {"plugin": "https://example.invalid/plugin.js", "id": "remote"},
+            {"plugin": "review", "id": "review"},
+        ]
+    }
+    registry_path = tmp_path / "task_types.yaml"
+    registry_path.write_text(yaml.safe_dump(registry), encoding="utf-8")
+
+    with _preserve_registry(), pytest.raises(ValueError, match="Unknown input workspace plugin"):
+        task_types.load_registry(
+            str(registry_path),
+            str(SERVER_ROOT / "config" / "runners"),
+            set(),
+        )
+
+
 def test_runtime_build_artifacts_match_declared_images():
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
     for name, runtime in registry["runtime_families"].items():

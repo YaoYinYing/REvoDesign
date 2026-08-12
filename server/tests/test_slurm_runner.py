@@ -116,9 +116,13 @@ def test_build_srun_args_includes_job_name(tmp_path):
 def test_build_srun_args_no_db_defaults(tmp_path):
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
     args = job._build_srun_args()
-    # Resource defaults come from the management DB, but cwd and name are
-    # always explicit so compute nodes never inherit the worker-container cwd.
-    assert args == [f"--chdir={tmp_path / 'out'}", "--job-name=revocomput_unknown_gremlin_task-1"]
+    assert "--cpus-per-task=1" in args
+    assert "--mem=4G" in args
+    assert "--time=1-00:00:00" in args
+    assert "--nodes=1" in args
+    assert "--ntasks=1" in args
+    assert f"--chdir={tmp_path / 'out'}" in args
+    assert "--job-name=revocomput_unknown_gremlin_task-1" in args
 
 
 def test_build_srun_args_gpu_task_reserves_one_gpu_by_default(tmp_path):

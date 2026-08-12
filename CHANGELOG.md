@@ -8,8 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```text
 ## TEMPLATE
 ### Added
+- **Pluggable scientific input and result workspaces**: added a shared local
+  plugin registry and lifecycle host, a validated additive input-capability
+  schema, reusable file/sequence/structure/region/parameter/review components,
+  and a manifest preview host. Simple sequence tasks remain compact while
+  RFdiffusion, PLACER, and EASIFA compose richer guided workspaces without
+  granting YAML or browser code authority over server validation or runners.
+- **Canonical end-to-end resource policy**: added typed validation and a single
+  resolution path for CPU, memory, runtime, accelerator, and SLURM placement.
+  Accepted tasks snapshot their effective policy; Docker and SLURM consume the
+  same values, invalid settings fail closed, allowed partitions are enforced,
+  and CPU tasks cannot accidentally inherit GPU GRES.
 
 ### Changed
+- **Create-task scientific workflow**: replaced page-specific form assembly
+  with capability composition, explicit primary/auxiliary file roles, nested
+  folder selection, local structure summaries and residue selection, grouped
+  region controls, and a normalized pre-submission review. Existing task and
+  upload APIs remain backward compatible and authoritative.
+- **Resource administration**: replaced overlapping `nproc`/`maxmem` and
+  SLURM CPU/memory controls with canonical per-task overrides and visible
+  effective values. Legacy database fields remain migration fallbacks, empty
+  overrides restore inheritance, and multi-field updates are transactional.
 
 ### Fixed
 

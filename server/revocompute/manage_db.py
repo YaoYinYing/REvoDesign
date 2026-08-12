@@ -9,8 +9,11 @@ Three tables:
   task_type_config
     tool     TEXT PRIMARY KEY
     enabled  INTEGER DEFAULT 1
-    nproc    INTEGER
-    maxmem   INTEGER
+    cpus     INTEGER
+    memory   TEXT
+    max_runtime_seconds INTEGER
+    nproc / maxmem / slurm_cpus_per_task / slurm_mem
+             legacy migration fallbacks
     max_runtime_seconds INTEGER
     slurm_partition      TEXT
     slurm_cpus_per_task  INTEGER
@@ -29,8 +32,10 @@ Three tables:
     value    TEXT NOT NULL
     updated_at REAL NOT NULL
 
-Per-task-type fields override global resource_config keys of the same name.
-Use ``task_type_resolve(tool, field)`` for the resolution chain.
+Per-task canonical fields override global canonical defaults. Legacy values are
+read only when their canonical replacement is absent. Use
+``resolve_task_resources`` for job launch; raw-key helpers exist only for
+administration and migration compatibility.
 """
 
 from __future__ import annotations
@@ -39,6 +44,15 @@ import os
 import sqlite3
 import threading
 import time
+
+from revocompute.resource_policy import (
+    CANONICAL_TASK_FIELDS,
+    GLOBAL_RESOURCE_KEYS,
+    LEGACY_TASK_FIELDS,
+    ResolvedResources,
+    normalize_resource_value,
+    resolve_resources,
+)
 
 # Fields in task_type_config that can override global resource_config keys
 _SLURM_FIELDS = (
@@ -55,12 +69,9 @@ _SLURM_FIELDS = (
     "slurm_exclusive",
 )
 
-_ALL_TASK_TYPE_FIELDS = (
-    "enabled",
-    "nproc",
-    "maxmem",
-    "max_runtime_seconds",
-) + _SLURM_FIELDS
+_ALL_TASK_TYPE_FIELDS = CANONICAL_TASK_FIELDS + tuple(
+    field for field in LEGACY_TASK_FIELDS if field not in CANONICAL_TASK_FIELDS
+)
 
 
 class ManageDatabase:
@@ -78,6 +89,8 @@ class ManageDatabase:
             "CREATE TABLE IF NOT EXISTS task_type_config ("
             "  tool    TEXT PRIMARY KEY,"
             "  enabled INTEGER NOT NULL DEFAULT 1,"
+            "  cpus    INTEGER,"
+            "  memory  TEXT,"
             "  nproc   INTEGER,"
             "  maxmem  INTEGER,"
             "  max_runtime_seconds INTEGER,"
@@ -102,28 +115,45 @@ class ManageDatabase:
             ")"
         )
         self._conn.commit()
-        # ponytail: migrate pre-SLURM task_type_config tables in-place
+        # Migrate older task_type_config tables in-place. Legacy resource
+        # columns remain readable as fallbacks but new writes use cpus/memory.
         self._migrate_columns()
 
     def _migrate_columns(self) -> None:
-        """Add SLURM columns if they don't exist yet (idempotent)."""
-        existing = {row[1] for row in self._conn.execute("PRAGMA table_info(task_type_config)")}
-        for field in _SLURM_FIELDS:
-            if field not in existing:
-                col_type = (
-                    "INTEGER"
-                    if field
-                    in (
-                        "slurm_cpus_per_task",
-                        "slurm_nodes",
-                        "slurm_ntasks",
-                        "slurm_exclusive",
-                    )
-                    else "TEXT"
+        """Add resource columns if they don't exist yet (idempotent)."""
+        for field in _ALL_TASK_TYPE_FIELDS:
+            col_type = (
+                "INTEGER"
+                if field
+                in (
+                    "enabled",
+                    "cpus",
+                    "nproc",
+                    "maxmem",
+                    "max_runtime_seconds",
+                    "slurm_cpus_per_task",
+                    "slurm_nodes",
+                    "slurm_ntasks",
+                    "slurm_exclusive",
                 )
-                with self._lock:
-                    self._conn.execute(f"ALTER TABLE task_type_config ADD COLUMN {field} {col_type}")
-                    self._conn.commit()
+                else "TEXT"
+            )
+            with self._lock:
+                existing = {
+                    row[1] for row in self._conn.execute("PRAGMA table_info(task_type_config)")
+                }
+                if field not in existing:
+                    try:
+                        self._conn.execute(
+                            f"ALTER TABLE task_type_config ADD COLUMN {field} {col_type}"
+                        )
+                        self._conn.commit()
+                    except sqlite3.OperationalError as exc:
+                        # Web, worker, and maintenance may start together. A
+                        # sibling process can win this idempotent migration
+                        # between our PRAGMA check and ALTER statement.
+                        if "duplicate column name" not in str(exc).lower():
+                            raise
 
     # -- task_type_config --------------------------------------------------
 
@@ -166,7 +196,11 @@ class ManageDatabase:
     def task_type_upsert(self, tool: str, **fields) -> None:
         """Insert or update one task type config row."""
         allowed = set(_ALL_TASK_TYPE_FIELDS)
-        updates = {k: v for k, v in fields.items() if k in allowed}
+        updates = {
+            key: normalize_resource_value(key, value)
+            for key, value in fields.items()
+            if key in allowed
+        }
         if not updates:
             return
         # Convert bool → int for boolean columns
@@ -210,6 +244,16 @@ class ManageDatabase:
         # Fall back to resource_config
         return self.resource_get(field)
 
+    def task_type_value(self, tool: str, field: str) -> str | None:
+        """Return only a per-task value, without falling back globally."""
+        row = self.task_type_get(tool)
+        if row is None or row.get(field) is None:
+            return None
+        value = row[field]
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        return str(value)
+
     # -- resource_config (key-value) ---------------------------------------
 
     def resource_all(self) -> dict[str, str]:
@@ -222,13 +266,80 @@ class ManageDatabase:
             row = self._conn.execute("SELECT value FROM resource_config WHERE key = ?", (key,)).fetchone()
             return row[0] if row else default
 
-    def resource_set(self, key: str, value: str) -> None:
+    def resource_set(self, key: str, value: object) -> None:
+        if key not in GLOBAL_RESOURCE_KEYS:
+            raise ValueError(f"Unknown global resource key: {key}")
+        normalized = normalize_resource_value(key, value)
+        if normalized is None:
+            self.resource_delete(key)
+            return
+        if isinstance(normalized, bool):
+            serialized = "true" if normalized else "false"
+        elif isinstance(normalized, tuple):
+            serialized = ",".join(normalized)
+        else:
+            serialized = str(normalized)
         with self._lock:
             self._conn.execute(
                 "INSERT OR REPLACE INTO resource_config (key, value, updated_at) " "VALUES (?, ?, ?)",
-                (key, value, time.time()),
+                (key, serialized, time.time()),
             )
             self._conn.commit()
+
+    def resource_delete(self, key: str) -> None:
+        with self._lock:
+            self._conn.execute("DELETE FROM resource_config WHERE key = ?", (key,))
+            self._conn.commit()
+
+    def apply_resource_updates(
+        self,
+        task_updates: list[tuple[str, dict]],
+        resource_updates: list[tuple[str, object]],
+    ) -> int:
+        """Apply an already-validated admin update in one transaction."""
+        with self._lock:
+            try:
+                for tool, raw_fields in task_updates:
+                    updates = {
+                        key: normalize_resource_value(key, value)
+                        for key, value in raw_fields.items()
+                        if key in _ALL_TASK_TYPE_FIELDS
+                    }
+                    for bool_field in ("enabled", "slurm_exclusive"):
+                        if bool_field in updates and isinstance(updates[bool_field], bool):
+                            updates[bool_field] = 1 if updates[bool_field] else 0
+                    if not updates:
+                        continue
+                    columns = ", ".join(updates)
+                    placeholders = ", ".join("?" for _ in updates)
+                    self._conn.execute(
+                        f"INSERT INTO task_type_config (tool, {columns}) VALUES (?, {placeholders}) "
+                        f"ON CONFLICT(tool) DO UPDATE SET "
+                        + ", ".join(f"{column}=excluded.{column}" for column in updates),
+                        [tool, *updates.values()],
+                    )
+                for key, raw_value in resource_updates:
+                    if key not in GLOBAL_RESOURCE_KEYS:
+                        raise ValueError(f"Unknown global resource key: {key}")
+                    value = normalize_resource_value(key, raw_value)
+                    if value is None:
+                        self._conn.execute("DELETE FROM resource_config WHERE key = ?", (key,))
+                        continue
+                    if isinstance(value, bool):
+                        serialized = "true" if value else "false"
+                    elif isinstance(value, tuple):
+                        serialized = ",".join(value)
+                    else:
+                        serialized = str(value)
+                    self._conn.execute(
+                        "INSERT OR REPLACE INTO resource_config (key, value, updated_at) VALUES (?, ?, ?)",
+                        (key, serialized, time.time()),
+                    )
+                self._conn.commit()
+            except Exception:
+                self._conn.rollback()
+                raise
+        return len(task_updates) + len(resource_updates)
 
     # -- SLURM helpers -----------------------------------------------------
 
@@ -265,3 +376,24 @@ class ManageDatabase:
                 else:
                     args[field] = val
         return args
+
+    def resolve_task_resources(
+        self,
+        tool: str,
+        *,
+        requires_gpu: bool,
+        default_timeout_seconds: int | None,
+    ) -> ResolvedResources:
+        """Return the canonical end-to-end resource policy for one task."""
+        return resolve_resources(
+            lambda field: self.task_type_value(tool, field),
+            lambda field: self.resource_get(field),
+            requires_gpu=requires_gpu,
+            allowed_queues=self.slurm_allowed_queues(),
+            default_timeout_seconds=default_timeout_seconds,
+        )
+
+    def close(self) -> None:
+        """Close the underlying SQLite connection."""
+        with self._lock:
+            self._conn.close()

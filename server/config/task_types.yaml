@@ -77,6 +77,12 @@ task_types:
     runtime_family: "gremlin"
     input_extension: ".fasta"
     input_label: "FASTA file"
+    input_workspace:
+      capabilities:
+        - {plugin: "files", id: "source_files", title: "FASTA input", options: {roles: ["primary"], primary_required: true}}
+        - {plugin: "sequence", id: "sequence_editor", title: "Sequence", description: "Upload a FASTA file or paste one protein sequence.", options: {allow_multiple: false, format: "fasta"}}
+        - {plugin: "parameters", id: "task_parameters", title: "GREMLIN settings"}
+        - {plugin: "review", id: "submission_review", title: "Review", options: {show_resources: true, show_paths: true}}
     stage_markers:
       hhblits: "HHblits MSA generation"
       hhfilter: "HHfilter filtering"
@@ -455,6 +461,13 @@ task_types:
     primary_input_extensions: [".pdb"]
     allow_multiple_inputs: true
     max_input_files: 64
+    input_workspace:
+      capabilities:
+        - {plugin: "files", id: "source_files", title: "Input workspace", description: "Upload the primary PDB and optional nested JSON/CIF support files.", options: {roles: ["primary", "auxiliary"], primary_required: true}}
+        - {plugin: "structure", id: "structure_builder", title: "Structure", description: "Inspect chains and residues in the primary structure.", options: {source: "source_files", select_chains: true, select_residues: true}}
+        - {plugin: "regions", id: "design_regions", title: "Design regions", description: "Describe contigs, motifs, masks, and interaction hotspots.", options: {source: "structure_builder", fields: ["contig", "hotspot_res", "inpaint_seq", "inpaint_str", "provide_seq"], syntax: "rfdiffusion"}}
+        - {plugin: "parameters", id: "task_parameters", title: "Diffusion settings", options: {groups: ["basic", "advanced"]}}
+        - {plugin: "review", id: "submission_review", title: "Review design", options: {show_resources: true, show_paths: true}}
     stage_markers:
       rfdiffusion: "RFdiffusion backbone generation"
     params:
@@ -520,6 +533,13 @@ task_types:
     primary_input_extensions: [".pdb", ".cif", ".mmcif"]
     allow_multiple_inputs: true
     max_input_files: 64
+    input_workspace:
+      capabilities:
+        - {plugin: "files", id: "source_files", title: "Structure workspace", description: "Upload all PDB/mmCIF inputs; nested paths remain intact.", options: {roles: ["primary", "auxiliary"], primary_required: true}}
+        - {plugin: "structure", id: "structure_builder", title: "Structures and ligands", description: "Inspect the primary structure and its chains before sampling.", options: {source: "source_files", select_chains: true, select_residues: true}}
+        - {plugin: "regions", id: "placement_regions", title: "Placement context", description: "Specify target residues, mutations, ligands, or crop centers when needed.", options: {source: "structure_builder", fields: ["predict_ligand", "fixed_ligand", "target_res", "mutate", "crop_centers", "corruption_centers"], syntax: "placer"}}
+        - {plugin: "parameters", id: "task_parameters", title: "Sampling settings", options: {groups: ["basic", "advanced"]}}
+        - {plugin: "review", id: "submission_review", title: "Review placement", options: {show_resources: true, show_paths: true}}
     stage_markers:
       placer: "PLACER structure generation"
     params:
@@ -574,6 +594,12 @@ task_types:
     gpus: true
     input_extension: ".pdb"
     input_label: "Enzyme structure (PDB)"
+    input_workspace:
+      capabilities:
+        - {plugin: "files", id: "source_files", title: "Enzyme structure", options: {roles: ["primary"], primary_required: true}}
+        - {plugin: "structure", id: "structure_builder", title: "Structure", description: "Inspect the uploaded enzyme and detected chains.", options: {source: "source_files", select_chains: false, select_residues: false}}
+        - {plugin: "parameters", id: "task_parameters", title: "Reaction context", options: {groups: ["basic", "advanced"]}}
+        - {plugin: "review", id: "submission_review", title: "Review annotation", options: {show_resources: true, show_paths: true}}
     stage_markers:
       easifa: "EasIFA2 active-site annotation"
     params:

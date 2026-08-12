@@ -36,9 +36,21 @@ Each runner container follows a standard contract:
   `TASK_INPUTS`, and the primary input/output via CLI args (`-i`, `-o`, `-r`)
 - Runs as non-root `--user` (identity from `RUNNER_UID`/`RUNNER_GID` in `.env`)
 
-The create-task page dynamically builds its form from `GET /compute/api/types/<name>`
-— file input, params form, and sequence editor visibility all come from the
-registry. Task type badges appear on the dashboard.
+The create-task page builds a scientific input workspace from
+`GET /compute/api/types/<name>`. The response contains a versioned, declarative
+`input_workspace.capabilities` list. Local plugins compose file roles, pasted
+sequences, structure inspection, residue/region controls, typed parameters,
+and a final review. A simple FASTA task therefore stays small, while
+RFdiffusion or PLACER can expose a guided multi-file structure workflow without
+adding task-name conditionals to the page.
+
+Capability YAML selects only plugin IDs shipped by the server. Unknown plugins,
+unknown options, executable snippets, and remote plugin URLs are rejected at
+registry load. Browser validation is advisory: accepted extensions, safe
+relative paths, upload limits, parameters, resource policy, and runner command
+construction remain authoritative on the server. See
+[`TODO_PLUGGABLE_INPUT_RESULT_UI.md`](TODO_PLUGGABLE_INPUT_RESULT_UI.md) for the
+remaining migration and hardening work.
 
 ## Deployment modes
 
@@ -49,6 +61,11 @@ registry. Task type badges appear on the dashboard.
 | `dev` (default) | Builds every declared runtime image and the server image | Development or intentionally preparing fresh local Docker artifacts |
 | `prod` | Pulls configured images | Deployment only when every configured image is published and pullable |
 | `prepared` | No build and no pull; validates local images, SIFs, runner YAML, and Compose before stopping | Safe activation of already-prepared production artifacts |
+
+Prepared activation also launches a short-lived candidate worker preflight to
+read the external management database in SQLite read-only mode and resolve the
+resource policy for every enabled task. Any invalid CPU, memory, runtime, GPU,
+or partition policy aborts before `down`.
 
 For a SLURM deployment whose versioned SIFs already exist, use `prepared`.
 Rebuilding Docker runner images is unnecessary unless creating a replacement
@@ -374,6 +391,33 @@ gres, etc.) are configured via the admin UI at `/compute/configuration` and
 stored in `manage.sqlite` — not in the YAML.  The web process can seed them
 on first launch via `sqlite3`.
 
+### Canonical task resource policy
+
+The admin UI stores one portable policy for CPU cores, memory, and maximum
+runtime. Per-task values override global defaults. SLURM-only placement fields
+(partition, GRES, nodes, tasks, QOS, account, constraint, and exclusivity) are
+resolved afterward. Legacy `nproc`, `maxmem`, `slurm_cpus_per_task`, and
+`slurm_mem` database values remain read-only migration fallbacks; new clients
+write `cpus` and `memory`.
+
+Resolution happens before upload persistence. The accepted policy is stored in
+the task's `input_form` record, validated again by the worker, and passed to the
+selected launcher. This prevents a queued task from changing because an admin
+edits defaults later.
+
+For SLURM, the policy always produces explicit `--cpus-per-task`, `--mem`,
+`--time`, `--nodes`, and `--ntasks` arguments. GPU task types receive a
+validated GRES (default `gpu:1`) and Apptainer `--nv`; CPU task types cannot
+carry a per-task GPU GRES and never inherit a global GPU GRES. Configured
+partitions must belong to `slurm_allowed_queues`. The allocated CPU count is
+then forwarded into Apptainer's thread-control environment.
+
+For Docker, the same CPU and memory values become `nano_cpus` and `mem_limit`,
+thread-control variables are set consistently, GPU jobs request one device,
+and a watchdog kills work that exceeds the snapshotted runtime. Invalid fields
+fail closed in the admin API and again at submission/launch rather than being
+silently discarded.
+
 ## 5. Authentication
 
 The server uses Bearer-token authentication (replaces the old HTTP Basic Auth + `users.txt` model).
@@ -680,7 +724,9 @@ archive request. It contains only files published by the manifest and is not
 part of task completion.
 
 The dedicated result page presents previewable artifacts under **Main Results**.
-Images, bounded CSV/TSV tables, and text use local preview plugins. PDB/mmCIF files use
+Its lifecycle-aware local plugin host resolves viewers from manifest `preview`
+metadata and preserves individual download as the universal fallback. Images,
+bounded CSV/TSV tables, and text use local preview plugins. PDB/mmCIF files use
 the pinned Mol* Viewer 5.10.0 bundle with subresource-integrity verification;
 if that asset or WebGL is unavailable, the dashboard falls back to a local
 alpha-carbon trace. Inline image and structure previews have size limits so a

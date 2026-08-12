@@ -44,6 +44,27 @@
   font-size: 0.84rem;
 }
 
+.input-workspace { display: grid; gap: 0.75rem; }
+.workspace-card { border: 1px solid var(--line); border-radius: 0.85rem; background: var(--paper); padding: 0.8rem; }
+.workspace-card-heading { display: flex; align-items: center; gap: 0.55rem; }
+.workspace-card-title { margin: 0; font-size: 1rem; }
+.workspace-plugin-badge { border-radius: 999px; background: color-mix(in srgb, var(--paper) 78%, var(--accent) 22%); color: var(--accent); padding: 0.18rem 0.45rem; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.workspace-card-description { margin: 0.4rem 0 0; color: var(--muted); font-size: 0.8rem; line-height: 1.4; }
+.workspace-card-body { display: grid; gap: 0.6rem; margin-top: 0.7rem; }
+.input-file-list { display: grid; gap: 0.35rem; }
+.input-file-item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.55rem; align-items: center; padding: 0.5rem 0.6rem; border: 1px solid var(--line); border-radius: 0.55rem; cursor: pointer; }
+.input-file-item:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--paper) 90%, var(--accent) 10%); }
+.input-file-details { display: grid; min-width: 0; }
+.input-file-details strong { overflow-wrap: anywhere; font: 600 0.76rem ui-monospace, SFMono-Regular, Menlo, monospace; }
+.input-file-details small { margin-top: 0.12rem; color: var(--muted); }
+.structure-status { margin: 0; color: var(--muted); font-size: 0.82rem; }
+.structure-chain-list { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.structure-chain { border: 1px solid var(--line); border-radius: 999px; padding: 0.22rem 0.5rem; font-size: 0.72rem; }
+.structure-residue-select { min-height: 8rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.submission-review { display: grid; grid-template-columns: minmax(6rem, auto) minmax(0, 1fr); gap: 0.4rem 0.8rem; margin: 0; }
+.submission-review dt { color: var(--muted); font-size: 0.76rem; font-weight: 700; }
+.submission-review dd { margin: 0; overflow-wrap: anywhere; font-size: 0.8rem; }
+
 .param-field { margin-bottom: 0.65rem; }
 .advanced-params {
   margin-top: 0.75rem;
@@ -55,6 +76,8 @@
 .advanced-params-grid { margin-top: 0.8rem; }
 .param-label { display: block; margin-bottom: 0.25rem; color: var(--ink); font-size: 0.84rem; font-weight: 650; }
 .param-help { margin: 0.22rem 0 0; color: var(--muted); font-size: 0.76rem; line-height: 1.35; }
+.param-error { margin: 0.22rem 0 0; color: #a02f24; font-size: 0.76rem; font-weight: 600; }
+[aria-invalid="true"] { border-color: #c54a3c !important; box-shadow: 0 0 0 3px rgba(197, 74, 60, 0.12) !important; }
 
 /* drag-and-drop highlight */
 .drop-highlight {
@@ -188,6 +211,7 @@ html[data-theme="dark"] .field-label,
 html[data-theme="dark"] .info-list { color: #a2b4bc; }
 
 html[data-theme="dark"] .input-zone { border-color: #30444f; background: #132128; }
+html[data-theme="dark"] .workspace-card { border-color: #30444f; background: #17252c; }
 
 html[data-theme="dark"] .file-name { color: var(--muted); }
 

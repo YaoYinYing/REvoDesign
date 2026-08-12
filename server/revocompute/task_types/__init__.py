@@ -42,6 +42,21 @@ class TaskParam:
 
 
 @dataclass(frozen=True)
+class InputCapability:
+    """A safe, declarative input-workspace component.
+
+    Capabilities select browser code that is already shipped with the server;
+    registry YAML cannot supply executable code or remote plugin locations.
+    """
+
+    plugin: str
+    id: str
+    title: str = ""
+    description: str = ""
+    options: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class RuntimeFamily:
     """Portable execution environment shared by one or more task types."""
 
@@ -78,6 +93,7 @@ class TaskType:
     gpus: bool = False
     stage_markers: dict[str, str] = field(default_factory=dict)
     params: tuple[TaskParam, ...] = ()
+    input_workspace: tuple[InputCapability, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -103,6 +119,7 @@ class RunnerConfig:
     max_runtime_seconds: int | None = None  # override task_type default if set
     defaults: dict[str, Any] = field(default_factory=dict)  # default param values
 
+
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
@@ -111,6 +128,23 @@ _registry: dict[str, tuple[TaskType, RunnerConfig]] = {}
 _runtime_registry: dict[str, RuntimeFamily] = {}
 _job_executor = "docker"
 _container_runtime = "docker"
+
+_INPUT_CAPABILITY_PLUGINS = {
+    "files",
+    "sequence",
+    "structure",
+    "regions",
+    "parameters",
+    "review",
+}
+_INPUT_CAPABILITY_OPTION_KEYS = {
+    "files": {"roles", "primary_required"},
+    "sequence": {"allow_multiple", "format"},
+    "structure": {"source", "select_chains", "select_residues"},
+    "regions": {"source", "fields", "syntax"},
+    "parameters": {"groups"},
+    "review": {"show_resources", "show_paths"},
+}
 
 
 def register(task_type: TaskType, runner: RunnerConfig) -> None:
@@ -143,6 +177,110 @@ def get_job_executor() -> str:
 def get_container_runtime() -> str:
     """Return the container runtime selected once for the active registry."""
     return _container_runtime
+
+
+def _default_input_workspace(
+    *, input_extension: str, input_extensions: tuple[str, ...], params: tuple[TaskParam, ...]
+) -> tuple[InputCapability, ...]:
+    """Build a friendly, backward-compatible workspace for older registries."""
+    capabilities = [
+        InputCapability(
+            plugin="files",
+            id="source_files",
+            title="Inputs",
+            description="Choose the scientific inputs for this task.",
+            options={"roles": ["primary", "auxiliary"], "primary_required": True},
+        )
+    ]
+    if input_extension in {".fasta", ".fa", ".faa"}:
+        capabilities.append(
+            InputCapability(
+                plugin="sequence",
+                id="sequence_editor",
+                title="Sequence",
+                description="Paste a sequence when no FASTA file is selected.",
+                options={"allow_multiple": False, "format": "fasta"},
+            )
+        )
+    if any(extension in {".pdb", ".cif", ".mmcif"} for extension in input_extensions):
+        capabilities.append(
+            InputCapability(
+                plugin="structure",
+                id="structure_summary",
+                title="Structure",
+                description="Inspect the primary structure before submission.",
+                options={"source": "source_files", "select_chains": False, "select_residues": False},
+            )
+        )
+    if params:
+        capabilities.append(InputCapability(plugin="parameters", id="task_parameters", title="Parameters"))
+    capabilities.append(
+        InputCapability(
+            plugin="review",
+            id="submission_review",
+            title="Review",
+            description="Review inputs and parameters before queueing the task.",
+            options={"show_resources": True, "show_paths": True},
+        )
+    )
+    return tuple(capabilities)
+
+
+def _load_input_workspace(
+    raw: Any, *, input_extension: str, input_extensions: tuple[str, ...], params: tuple[TaskParam, ...]
+) -> tuple[InputCapability, ...]:
+    if raw is None:
+        return _default_input_workspace(
+            input_extension=input_extension, input_extensions=input_extensions, params=params
+        )
+    if not isinstance(raw, dict) or set(raw) != {"capabilities"}:
+        raise ValueError("input_workspace must contain only a capabilities list")
+    entries = raw["capabilities"]
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("input_workspace.capabilities must be a non-empty list")
+    capabilities: list[InputCapability] = []
+    seen_ids: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ValueError("Each input workspace capability must be a mapping")
+        unknown = set(entry) - {"plugin", "id", "title", "description", "options"}
+        if unknown:
+            raise ValueError(f"Unknown input workspace capability fields: {sorted(unknown)}")
+        plugin = entry.get("plugin")
+        capability_id = entry.get("id")
+        if plugin not in _INPUT_CAPABILITY_PLUGINS:
+            raise ValueError(f"Unknown input workspace plugin: {plugin!r}")
+        if (
+            not isinstance(capability_id, str)
+            or not capability_id
+            or not capability_id.replace("_", "").replace("-", "").isalnum()
+        ):
+            raise ValueError(f"Invalid input workspace capability id: {capability_id!r}")
+        if capability_id in seen_ids:
+            raise ValueError(f"Duplicate input workspace capability id: {capability_id!r}")
+        options = entry.get("options", {})
+        if not isinstance(options, dict):
+            raise ValueError(f"Options for input workspace capability {capability_id!r} must be a mapping")
+        unknown_options = set(options) - _INPUT_CAPABILITY_OPTION_KEYS[plugin]
+        if unknown_options:
+            raise ValueError(
+                f"Unknown options for input workspace plugin {plugin!r}: {sorted(unknown_options)}"
+            )
+        seen_ids.add(capability_id)
+        capabilities.append(
+            InputCapability(
+                plugin=plugin,
+                id=capability_id,
+                title=str(entry.get("title") or ""),
+                description=str(entry.get("description") or ""),
+                options=options,
+            )
+        )
+    if capabilities[0].plugin not in {"files", "sequence"}:
+        raise ValueError("The first input workspace capability must collect files or a sequence")
+    if capabilities[-1].plugin != "review":
+        raise ValueError("The last input workspace capability must be review")
+    return tuple(capabilities)
 
 
 # ---------------------------------------------------------------------------
@@ -248,6 +386,10 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
                 f"Task type {name!r} must set max_input_files to 1 when multiple inputs are disabled"
             )
 
+        params = tuple(
+            TaskParam(**{**p, "choices": tuple(p.get("choices", []))})
+            for p in entry.get("params", [])
+        )
         tt = TaskType(
             name=name,
             display_name=entry["display_name"],
@@ -261,8 +403,12 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             allow_multiple_inputs=allow_multiple_inputs,
             max_input_files=max_input_files,
             stage_markers=entry.get("stage_markers", {}),
-            params=tuple(
-                TaskParam(**{**p, "choices": tuple(p.get("choices", []))}) for p in entry.get("params", [])
+            params=params,
+            input_workspace=_load_input_workspace(
+                entry.get("input_workspace"),
+                input_extension=entry["input_extension"],
+                input_extensions=input_extensions,
+                params=params,
             ),
         )
 

@@ -47,6 +47,7 @@
 
   <!-- Tab: Resources -->
   <section class="panel config-panel" id="tab-resources" style="display:none">
+    <p class="muted">CPU, memory, and maximum runtime form one canonical policy shared by Docker and SLURM. Per-task values override global defaults; an empty per-task field restores inheritance. Scheduler placement is validated before it is saved.</p>
     <div class="config-toolbar">
       <button class="btn btn-primary" id="saveResourcesBtn">Save Changes</button>
       <span class="muted" id="resourceSaveStatus"></span>

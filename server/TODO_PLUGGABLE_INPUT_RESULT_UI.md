@@ -1,7 +1,11 @@
 # TODO: Pluggable Scientific Input and Result Workspaces
 
-Status: deferred for the next development cycle. This document is a design
-plan, not an activation checklist, and does not authorize production changes.
+Status: implementation started on `feat/multi-task-server`. The additive
+capability schema, common plugin host, reusable input components, RFdiffusion /
+PLACER / EASIFA compositions, and result preview host are implemented. Browser
+contract testing, richer structure interaction, linked scientific results, and
+production smoke testing remain. This document is not an activation checklist
+and does not authorize production changes.
 
 ## Why this work exists
 

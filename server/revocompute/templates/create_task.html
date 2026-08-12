@@ -34,48 +34,28 @@
         <p class="field-label">Task Type</p>
         <select class="text-input" id="taskTypeSelect"></select>
 
-        <p class="field-label" id="fileUploadLabel">File Upload</p>
         <form id="uploadForm" enctype="multipart/form-data">
           <input type="file" name="file" id="fileInput" class="sr-only">
-          <div class="file-upload-row">
-            <button class="btn btn-soft" type="button" id="fileButton">Choose file</button>
-            <span class="file-name muted" id="fileNameDisplay">No file selected</span>
-          </div>
-          <p class="muted" id="fileHint">Upload an input file, or drag &amp; drop one anywhere on this card. Use the optional editor below to paste a sequence instead.</p>
-
-          <div class="editor-zone" id="editorZone">
-            <p class="field-label">Optional Sequence Editor</p>
-            <input class="text-input" type="text" id="taskNameInput" placeholder="Task name (used as sequence header)">
-            <textarea class="sequence-input" id="sequenceInput" placeholder="Paste protein sequence letters (A-Z)"></textarea>
-            <div id="sequencePreview" class="preview">Sequence: -
-Length: 0 residues</div>
-          </div>
-
-          <div class="params-zone" id="paramsZone" style="display:none;"></div>
+          <div class="input-workspace" id="inputWorkspace" aria-live="polite"></div>
 
           <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
             <button class="btn btn-primary" id="uploadButton" type="submit">Submit Task</button>
             <button class="btn btn-soft" type="button" id="clearButton">Clear</button>
           </div>
         </form>
-        <p class="muted">Only text content is accepted. Editor input is auto-formatted as needed.</p>
+        <p class="muted">Inputs are copied into an immutable, task-isolated snapshot. The server validates every file, path, and parameter again before execution.</p>
         <div id="uploadStatus" class="status" aria-live="polite">Ready for upload.</div>
       </div>
 
       <aside class="info-panel">
-        <div id="structureSnapshot" style="display:none;">
-          <p class="info-title">Structure Input Summary</p>
-          <pre id="molstarViewport" class="preview" style="min-height:180px;"></pre>
-          <p class="muted" style="margin-top:0.35rem;font-size:0.76rem;">Parsed locally in your browser; the file is unchanged.</p>
-        </div>
         <div id="submissionChecklist">
-          <p class="info-title">Submission Checklist</p>
+          <p class="info-title">Scientific input workspace</p>
           <ul class="info-list">
-            <li>Multi-file task types preserve safe relative paths in an immutable snapshot.</li>
-            <li>Sequence editor can convert raw letters into the required format before upload.</li>
-            <li>Upload identity is tracked from your authenticated session for data isolation.</li>
-            <li>Progress can be followed on the dashboard with live states.</li>
-            <li>Completed runs publish a browsable result manifest; ZIP creation is optional.</li>
+            <li>Simple tasks show only the sequence, file, and parameter controls they need.</li>
+            <li>Complex tasks compose file roles, structures, regions, parameters, and review steps.</li>
+            <li>Nested relative paths and the selected primary input are shown before submission.</li>
+            <li>Advanced scientific controls stay grouped and out of the normal workflow.</li>
+            <li>Completed runs publish individual manifest-approved results; ZIP remains optional.</li>
           </ul>
         </div>
       </aside>
@@ -84,6 +64,8 @@ Length: 0 residues</div>
 </main>
 
 <script src="/static/js/auth-api.js"></script>
+<script src="/static/js/plugin-host.js"></script>
+<script src="/static/js/input-workspace.js"></script>
 <script src="/static/js/create-task.js"></script>
 </body>
 </html>

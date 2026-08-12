@@ -12,6 +12,8 @@
   var py2dmolAssetsPromise = null;
   var activeMolstar = null;
   var thumbnailUrls = [];
+  var previewRegistry = null;
+  var previewHost = null;
   var MOLSTAR_VERSION = "5.10.0";
   var MOLSTAR_BASE = "https://cdn.jsdelivr.net/npm/molstar@" + MOLSTAR_VERSION + "/build/viewer/";
   var MOLSTAR_SCRIPT_INTEGRITY = "sha384-wBsrlRYNnkOyq4/N6JHjLcT71I5Ig8DhryHsQpwXE91zRmy3XK6KhkxqixmT1S0n";
@@ -36,10 +38,9 @@
     setTimeout(function () { node.remove(); }, 3600);
   }
 
-  function clearPreview() {
+  function disposeActiveViewer() {
     if (activeMolstar && activeMolstar.plugin) activeMolstar.plugin.dispose();
     activeMolstar = null;
-    document.getElementById("artifactPreview").replaceChildren();
   }
 
   function ensureMolstarAssets() {
@@ -292,18 +293,21 @@
     renderTable(await response.text(), artifact, stage);
   }
 
-  // Every result viewer implements the same contract. Domain-specific viewers
-  // can be added without changing artifact selection, errors, or size guards.
-  var previewPlugins = Object.freeze({
-    structure: { label: "3D structure", maxBytes: 64 * 1024 * 1024, render: previewStructure },
-    image: { label: "Image", maxBytes: 32 * 1024 * 1024, render: previewImage },
-    table: { label: "Table", maxBytes: null, render: previewTable },
-    text: { label: "Text", maxBytes: null, render: previewText }
+  previewRegistry = window.REvoComputeResultPreviews.createRegistry({
+    structure: previewStructure,
+    image: previewImage,
+    table: previewTable,
+    text: previewText
   });
+  previewHost = new window.REvoComputeResultPreviews.ResultPreviewHost(
+    previewRegistry,
+    document.getElementById("artifactPreview"),
+    { beforeClear: disposeActiveViewer }
+  );
 
   async function previewArtifact(artifact) {
     activeArtifact = artifact;
-    clearPreview();
+    previewHost.destroy();
     document.getElementById("previewTitle").textContent = artifact.path;
     var download = document.getElementById("artifactDownload");
     download.hidden = false;
@@ -313,7 +317,7 @@
       node.classList.toggle("active", node.dataset.path === artifact.path);
     });
     var stage = document.getElementById("artifactPreview");
-    var plugin = previewPlugins[artifact.preview];
+    var plugin = previewRegistry.resolve(artifact);
     if (!plugin) {
       stage.innerHTML = '<p class="preview-message">No inline preview is available for this file type. Download the artifact instead.</p>';
       return;
@@ -325,7 +329,7 @@
     stage.innerHTML = '<p class="preview-message">Loading preview…</p>';
     try {
       stage.replaceChildren();
-      await plugin.render(artifact, stage);
+      await previewHost.render(artifact);
     } catch (error) {
       stage.innerHTML = '<p class="preview-message"></p>';
       stage.firstChild.textContent = error.message || "Preview unavailable";
@@ -394,7 +398,7 @@
       var name = document.createElement("strong");
       name.textContent = artifact.path;
       var detail = document.createElement("span");
-      var plugin = previewPlugins[artifact.preview];
+      var plugin = previewRegistry.resolve(artifact);
       detail.textContent = (plugin ? plugin.label : artifact.preview) + " · " + formatBytes(artifact.size);
       card.append(frame, name, detail);
       card.addEventListener("click", function () { previewArtifact(artifact); });
@@ -450,6 +454,7 @@
     });
   });
   window.addEventListener("pagehide", function () {
+    previewHost.destroy();
     thumbnailUrls.forEach(function (url) { URL.revokeObjectURL(url); });
   });
 })();

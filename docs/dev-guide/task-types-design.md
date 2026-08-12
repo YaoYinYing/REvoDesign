@@ -22,7 +22,7 @@ runners/<runtime-family>.yaml
 └── host mounts + environment + timeout + deployment defaults
 
 management database
-└── per-task enabled state + SLURM partition/resources
+└── per-task enabled state + canonical resources + SLURM placement
 ```
 
 The executor is selected once for the deployment:
@@ -52,6 +52,31 @@ portable/runtime records:
 Runner YAML must not contain `runner`, `job_executor`, `container_runtime`,
 `slurm_image`, `gpus`, `nproc`, or `maxmem`. GPU eligibility belongs to the task
 schema; SLURM requests belong to the management database.
+
+Resource settings resolve once through `resource_policy.py`:
+
+```text
+per-task canonical cpus/memory/runtime
+        |
+        v
+global canonical defaults
+        |
+        v
+legacy nproc/maxmem/slurm_* fallback
+        |
+        v
+safe explicit defaults
+        |
+        v
+immutable submission snapshot
+        +------> Docker limits + thread environment
+        `------> SLURM flags + Apptainer environment
+```
+
+SLURM time and the worker watchdog use the same effective maximum (the stricter
+of a legacy configured SLURM time and the canonical runtime). Partition
+allowlists and GPU/CPU GRES consistency fail closed. Do not read raw resource
+keys directly in a launcher; consume the resolved snapshot.
 
 The registry loader fails when `task_types.yaml` is absent, empty, structurally
 invalid, or inconsistent. There is no built-in GREMLIN registry fallback that
@@ -122,6 +147,39 @@ mounted read-only, and validated before launch. Runtime downloads into a small
 or compute-node-local home directory are not a production weight strategy.
 
 ## Submission and workspace contract
+
+### Input workspace composition
+
+Task definitions may optionally declare a safe presentation composition:
+
+```yaml
+input_workspace:
+  capabilities:
+    - plugin: files
+      id: source_files
+      options: {roles: [primary, auxiliary], primary_required: true}
+    - plugin: structure
+      id: structure_builder
+      options: {source: source_files, select_chains: true, select_residues: true}
+    - plugin: regions
+      id: design_regions
+      options: {source: structure_builder, fields: [contig, hotspot_res], syntax: rfdiffusion}
+    - plugin: parameters
+      id: task_parameters
+    - plugin: review
+      id: submission_review
+```
+
+Only built-in plugin IDs and their allowlisted options are accepted. This
+composition affects presentation, not validation or execution authority. When
+the block is absent, the server derives a backward-compatible workspace from
+the input extensions and typed parameters. The first capability must collect
+files or sequences and the last must be `review`.
+
+Simple FASTA tasks normally compose files, sequence, parameters, and review.
+Structure tasks add structure inspection, while complex tools may add region
+controls. The browser submits the same `files`, `input_paths`, `task_type`, and
+`params[...]` fields as before.
 
 The API validates task type, files, relative paths, and params before it creates
 the task. Each task receives an immutable host snapshot:

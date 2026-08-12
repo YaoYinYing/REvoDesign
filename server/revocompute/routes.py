@@ -26,7 +26,18 @@ from typing import Any
 from urllib.parse import quote
 
 from celery.result import AsyncResult
-from flask import Response, abort, current_app, g, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import (
+    Response,
+    abort,
+    current_app,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    url_for,
+)
 from pydantic import ValidationError
 from revocompute.app import (
     ENABLE_REGISTER,
@@ -69,6 +80,11 @@ from revocompute.auth import (
     validate_reset_token,
 )
 from revocompute.ratelimit import rate_limit
+from revocompute.resource_policy import (
+    GLOBAL_RESOURCE_KEYS,
+    ResourceValidationError,
+    normalize_resource_value,
+)
 from revocompute.schemas import (
     AdminCreateUserRequest,
     AdminUpdateUserRequest,
@@ -235,6 +251,23 @@ def task_types_list():
     return jsonify(types_data)
 
 
+def _input_workspace_payload(tt) -> dict:
+    """Serialize the declarative, non-executable input workspace contract."""
+    return {
+        "version": 1,
+        "capabilities": [
+            {
+                "plugin": capability.plugin,
+                "id": capability.id,
+                "title": capability.title,
+                "description": capability.description,
+                "options": capability.options,
+            }
+            for capability in tt.input_workspace
+        ],
+    }
+
+
 @app.route("/compute/api/types/<name>", methods=["GET"])
 def task_type_form(name: str):
     """Return a single task type's full form definition (public).
@@ -243,7 +276,7 @@ def task_type_form(name: str):
     dynamically builds the upload form from the response.
     """
     try:
-        tt, _ = _get_task_type(name)
+        tt, runner = _get_task_type(name)
     except KeyError:
         return jsonify({"error": f"Unknown task type: {name!r}"}), 404
 
@@ -252,6 +285,25 @@ def task_type_form(name: str):
         enabled = manage_db.task_type_is_enabled(tt.name)
         if enabled is False:
             return jsonify({"error": f"Task type {name!r} is disabled"}), 404
+
+    resource_summary = None
+    if manage_db is not None:
+        try:
+            resolved = manage_db.resolve_task_resources(
+                tt.name,
+                requires_gpu=tt.gpus,
+                default_timeout_seconds=runner.max_runtime_seconds,
+            )
+            resource_summary = {
+                "cpus": resolved.cpus,
+                "memory": resolved.memory,
+                "max_runtime_seconds": resolved.max_runtime_seconds,
+                "partition": resolved.partition,
+                "gres": resolved.gres,
+                "requires_gpu": resolved.requires_gpu,
+            }
+        except ResourceValidationError as exc:
+            return jsonify({"error": f"Task resource policy is invalid: {exc}"}), 503
 
     return jsonify(
         {
@@ -286,6 +338,8 @@ def task_type_form(name: str):
                 for p in tt.params
             ],
             "show_sequence_editor": tt.input_extension == ".fasta",
+            "input_workspace": _input_workspace_payload(tt),
+            "resources": resource_summary,
         }
     )
 
@@ -511,6 +565,23 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         if enabled is False:
             return jsonify({"error": f"Task type {task_type!r} is currently disabled"}), 400
 
+    tt, runner = _get_task_type(task_type)
+    # Reject GPU-ineligible users and invalid scheduler configuration before
+    # writing uploads or creating a task record.
+    if tt.gpus and not g.current_user.get("allow_gpu_use"):
+        return jsonify({"error": "GPU access required for this task type. Contact an administrator."}), 403
+    resource_policy = None
+    if managedb is not None:
+        try:
+            resource_policy = managedb.resolve_task_resources(
+                tt.name,
+                requires_gpu=tt.gpus,
+                default_timeout_seconds=runner.max_runtime_seconds,
+            )
+        except ResourceValidationError as exc:
+            logging.error("Resource policy rejected submission for %s: %s", task_type, exc)
+            return jsonify({"error": "This task type has an invalid resource policy; contact an administrator."}), 503
+
     uploaded_inputs, upload_error = _validate_input_uploads(task_type)
     if upload_error is not None:
         return upload_error
@@ -560,11 +631,6 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         )
 
     # Param entities — raw form value vs pydantic-coerced verified_value
-    tt, _ = _get_task_type(task_type)
-    # GPU privilege gate: if the task type requires GPU, the user must have
-    # allow_gpu_use enabled by an admin.
-    if tt.gpus and not g.current_user.get("allow_gpu_use"):
-        return jsonify({"error": "GPU access required for this task type. Contact an administrator."}), 403
     known_params = {p.name: p for p in tt.params}
     for key, verified in coerced_params.items():
         param = known_params[key]
@@ -585,6 +651,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         "snapshot_root": snapshot_root,
         "submitted_at": datetime.now(tz=timezone.utc).isoformat(),
         "entities": entities,
+        "resource_policy": resource_policy.public_dict() if resource_policy is not None else None,
     }
 
     base_record = _prepare_task_record(
@@ -1856,9 +1923,9 @@ def admin_get_config():
     Response::
 
         {
-          "task_types": [{"tool": "gremlin", "enabled": true, "nproc": null,
-            "slurm_partition": null, "slurm_cpus_per_task": null, ...}, ...],
-          "resources": {"nproc": "4", "maxmem": "8", ...},
+          "task_types": [{"tool": "gremlin", "enabled": true, "cpus": null,
+            "memory": null, "slurm_partition": null, ...}, ...],
+          "resources": {"cpus": "4", "memory": "8G", ...},
           "slurm": {
             "enabled": false,
             "allowed_queues": []
@@ -1872,10 +1939,37 @@ def admin_get_config():
     manage_db = current_app.config.get("manage_db")
     if manage_db is None:
         return jsonify({"error": "Configuration database not available"}), 500
+    task_configs = manage_db.task_type_all()
+    type_map = {task_type.name: task_type for task_type in list_types()}
+    for config in task_configs:
+        task_type = type_map.get(config["tool"])
+        if task_type is None:
+            continue
+        config["display_name"] = task_type.display_name
+        config["requires_gpu"] = task_type.gpus
+        config["runtime_family"] = task_type.runtime.name
+        _, runner = _get_task_type(task_type.name)
+        try:
+            resolved = manage_db.resolve_task_resources(
+                task_type.name,
+                requires_gpu=task_type.gpus,
+                default_timeout_seconds=runner.max_runtime_seconds,
+            )
+            config["effective_resources"] = resolved.public_dict()
+            config["resource_sources"] = resolved.sources
+            config["resource_error"] = None
+        except ResourceValidationError as exc:
+            config["effective_resources"] = None
+            config["resource_sources"] = {}
+            config["resource_error"] = str(exc)
+    stored_resources = manage_db.resource_all()
     return jsonify(
         {
-            "task_types": manage_db.task_type_all(),
-            "resources": manage_db.resource_all(),
+            "task_types": task_configs,
+            "resources": {
+                key: value for key, value in stored_resources.items() if key in GLOBAL_RESOURCE_KEYS
+            },
+            "ignored_resource_keys": sorted(set(stored_resources) - GLOBAL_RESOURCE_KEYS),
             "slurm": {
                 "enabled": manage_db.slurm_enabled(),
                 "allowed_queues": manage_db.slurm_allowed_queues(),
@@ -1893,8 +1987,8 @@ def admin_set_config():
 
         {
           "task_types": [{"tool": "pythia_ddg", "enabled": false,
-            "slurm_partition": "gpu", "slurm_cpus_per_task": 4}],
-          "resources": {"nproc": "8", "slurm_enabled": "true"},
+            "cpus": 4, "memory": "16G", "slurm_partition": "gpu"}],
+          "resources": {"cpus": "8", "memory": "16G", "slurm_enabled": "true"},
           "slurm": {"enabled": true, "allowed_queues": ["gpu", "cpu"]}
         }
 
@@ -1912,16 +2006,13 @@ def admin_set_config():
     if not isinstance(body, dict):
         return jsonify({"error": "Expected a JSON object"}), 400
 
-    count = 0
     _tt_fields = (
         "enabled",
-        "nproc",
-        "maxmem",
+        "cpus",
+        "memory",
         "max_runtime_seconds",
         "slurm_partition",
-        "slurm_cpus_per_task",
         "slurm_gres",
-        "slurm_mem",
         "slurm_time",
         "slurm_nodes",
         "slurm_ntasks",
@@ -1931,39 +2022,96 @@ def admin_set_config():
         "slurm_exclusive",
     )
 
-    # Task type updates
-    for entry in body.get("task_types") or []:
-        tool = entry.get("tool")
-        if not tool or not isinstance(tool, str):
-            continue
-        fields = {f: entry[f] for f in _tt_fields if f in entry}
-        if fields:
-            manage_db.task_type_upsert(tool, **fields)
-            count += 1
+    unknown_sections = set(body) - {"task_types", "resources", "slurm"}
+    if unknown_sections:
+        return jsonify({"error": f"Unknown configuration sections: {sorted(unknown_sections)}"}), 400
 
-    # Resource updates
-    resources = body.get("resources")
-    if isinstance(resources, dict):
-        for key, value in resources.items():
-            if not isinstance(key, str) or not isinstance(value, str):
-                continue
-            manage_db.resource_set(key, value)
-            count += 1
+    known_tools = {entry["tool"] for entry in manage_db.task_type_all()}
+    type_map = {task_type.name: task_type for task_type in list_types()}
+    pending_task_updates: list[tuple[str, dict[str, Any]]] = []
+    pending_resources: list[tuple[str, Any]] = []
+    seen_tools: set[str] = set()
 
-    # SLURM feature flags
-    slurm = body.get("slurm")
-    if isinstance(slurm, dict):
-        if "enabled" in slurm:
-            manage_db.resource_set(
-                "slurm_enabled",
-                "true" if slurm["enabled"] else "false",
+    try:
+        for entry in body.get("task_types") or []:
+            if not isinstance(entry, dict):
+                raise ResourceValidationError("Each task_types update must be an object")
+            tool = entry.get("tool")
+            if tool not in known_tools:
+                raise ResourceValidationError(f"Unknown task type: {tool!r}")
+            if tool in seen_tools:
+                raise ResourceValidationError(f"Duplicate task type update: {tool!r}")
+            seen_tools.add(tool)
+            unknown_fields = set(entry) - {"tool", *_tt_fields}
+            if unknown_fields:
+                raise ResourceValidationError(
+                    f"Unknown resource fields for {tool}: {sorted(unknown_fields)}"
+                )
+            fields = {
+                field: normalize_resource_value(field, entry[field])
+                for field in _tt_fields
+                if field in entry
+            }
+            if "enabled" in fields and fields["enabled"] is None:
+                raise ResourceValidationError("enabled cannot be empty")
+            task_type = type_map.get(tool)
+            if task_type is not None and not task_type.gpus and fields.get("slurm_gres"):
+                raise ResourceValidationError(f"CPU-only task {tool!r} cannot request GPU GRES")
+            if fields:
+                pending_task_updates.append((tool, fields))
+
+        resources = body.get("resources")
+        if resources is not None and not isinstance(resources, dict):
+            raise ResourceValidationError("resources must be an object")
+        for key, value in (resources or {}).items():
+            if key not in GLOBAL_RESOURCE_KEYS:
+                raise ResourceValidationError(f"Unknown global resource key: {key}")
+            pending_resources.append((key, normalize_resource_value(key, value)))
+
+        slurm = body.get("slurm")
+        if slurm is not None and not isinstance(slurm, dict):
+            raise ResourceValidationError("slurm must be an object")
+        if isinstance(slurm, dict):
+            unknown_slurm = set(slurm) - {"enabled", "allowed_queues"}
+            if unknown_slurm:
+                raise ResourceValidationError(f"Unknown SLURM fields: {sorted(unknown_slurm)}")
+            if "enabled" in slurm:
+                pending_resources.append(
+                    ("slurm_enabled", normalize_resource_value("slurm_enabled", slurm["enabled"]))
+                )
+            if "allowed_queues" in slurm:
+                pending_resources.append(
+                    (
+                        "slurm_allowed_queues",
+                        normalize_resource_value("slurm_allowed_queues", slurm["allowed_queues"]),
+                    )
+                )
+
+        proposed_globals = {key: value for key, value in pending_resources}
+        if len(proposed_globals) != len(pending_resources):
+            raise ResourceValidationError("A global resource key was provided more than once")
+        allowed_queues = proposed_globals.get(
+            "slurm_allowed_queues", tuple(manage_db.slurm_allowed_queues())
+        )
+        global_partition = proposed_globals.get(
+            "slurm_partition", manage_db.resource_get("slurm_partition")
+        )
+        if allowed_queues and global_partition and global_partition not in allowed_queues:
+            raise ResourceValidationError(
+                f"Global partition {global_partition!r} is not in allowed_queues"
             )
-            count += 1
-        if "allowed_queues" in slurm and isinstance(slurm["allowed_queues"], list):
-            manage_db.resource_set(
-                "slurm_allowed_queues",
-                ",".join(q for q in slurm["allowed_queues"] if isinstance(q, str)),
+        proposed_tasks = {tool: fields for tool, fields in pending_task_updates}
+        for config in manage_db.task_type_all():
+            partition = proposed_tasks.get(config["tool"], {}).get(
+                "slurm_partition", config.get("slurm_partition")
             )
-            count += 1
+            if allowed_queues and partition and partition not in allowed_queues:
+                raise ResourceValidationError(
+                    f"Partition {partition!r} for {config['tool']!r} is not in allowed_queues"
+                )
+    except ResourceValidationError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    count = manage_db.apply_resource_updates(pending_task_updates, pending_resources)
 
     return jsonify({"message": f"{count} setting(s) updated"}), 200

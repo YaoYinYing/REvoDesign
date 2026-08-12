@@ -15,6 +15,15 @@ MPNN_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" 
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_prepared_activation_audits_resources_before_stopping_services():
+    script = (SERVER_ROOT / "run" / "restart.sh").read_text(encoding="utf-8")
+    prepared = script.split('if [[ "${MODE}" == "prepared" ]]', 1)[1]
+    preflight = prepared.split("\n  cmd_down", 1)[0]
+    assert "validate_resource_policies" in preflight
+    assert "--no-build --entrypoint python worker" in script
+    assert "-m revocompute.resource_audit" in script
+
+
 def test_runner_script_does_not_eval_user_controlled_commands():
     script = RUNNER_SCRIPT.read_text()
 
@@ -315,7 +324,10 @@ def test_thermompnn_uses_preprovisioned_read_only_weights():
     assert 'mode: "ro"' in runner
     assert 'XDG_DATA_HOME: "/mnt/db/weights/thermompnn"' in runner
     assert "ThermoMPNN-ens1.ckpt ThermoMPNN-D-ens1.ckpt" in script
-    assert 'THERMOMPNN_VANILLA_WEIGHT_DIR: "/mnt/db/weights/thermompnn/ProteinMPNN/vanilla/vanilla_model_weights"' in runner
+    assert (
+        'THERMOMPNN_VANILLA_WEIGHT_DIR: '
+        '"/mnt/db/weights/thermompnn/ProteinMPNN/vanilla/vanilla_model_weights"'
+    ) in runner
     assert "ThermoMPNN ProteinMPNN backbone checkpoint is missing" in script
     assert "runtime downloads are disabled" in script
 

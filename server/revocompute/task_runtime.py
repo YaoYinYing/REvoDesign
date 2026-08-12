@@ -29,10 +29,11 @@ from revocompute.job import Job, JobState
 from revocompute.job.runners.docker_runner import DockerJob
 from revocompute.job.runners.slurm_runner import SlurmJob
 from revocompute.manage_db import ManageDatabase  # noqa: E402
+from revocompute.resource_policy import ResolvedResources, ResourceValidationError
 from revocompute.task_types import get as _get_task_type
 from revocompute.task_types import get_job_executor as _get_job_executor
 from revocompute.task_types import load_registry as _load_task_registry
-from revocompute.task_types import register as _register_tt
+from revocompute.task_types import register as _register_tt  # noqa: F401 -- test/plugin compatibility
 
 import docker
 
@@ -204,6 +205,7 @@ def _create_job(
     output_dir: str,
     stage_callback=None,
     username: str = "",
+    resource_policy: ResolvedResources | None = None,
 ) -> Job:
     """Factory: return the correct Job subclass for the runner config."""
     if _get_job_executor() == "slurm":
@@ -216,6 +218,7 @@ def _create_job(
             stage_callback=stage_callback,
             manage_db=_manage_db,
             username=username,
+            resource_policy=resource_policy,
         )
     return DockerJob(
         task_id,
@@ -224,6 +227,8 @@ def _create_job(
         entities,
         output_dir,
         stage_callback=stage_callback,
+        manage_db=_manage_db,
+        resource_policy=resource_policy,
     )
 
 
@@ -235,9 +240,19 @@ def _run_compute_job(
     output_dir: str,
     stage_callback=None,
     username: str = "",
+    resource_policy: ResolvedResources | None = None,
 ) -> JobState:
     """Unified submit + poll — same flow for Docker and SLURM."""
-    job = _create_job(task_id, tt, runner, entities, output_dir, stage_callback, username=username)
+    job = _create_job(
+        task_id,
+        tt,
+        runner,
+        entities,
+        output_dir,
+        stage_callback,
+        username=username,
+        resource_policy=resource_policy,
+    )
     jid = job.submit()
     # Persist SLURM job ID so scancel can find it (Docker's id is a container id)
     if jid and isinstance(job, SlurmJob):
@@ -471,12 +486,17 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
     # Parse entities from the input_form JSON blob
     raw_form = task.get("input_form")
     entities: list[dict] = []
+    resource_policy: ResolvedResources | None = None
     if raw_form:
         try:
             parsed = json.loads(raw_form) if isinstance(raw_form, str) else raw_form
             entities = parsed.get("entities", [])
-        except (json.JSONDecodeError, TypeError):
-            logging.warning("Task %s: could not parse input_form, treating as no entities.", md5sum)
+            if parsed.get("resource_policy"):
+                resource_policy = ResolvedResources.from_snapshot(parsed["resource_policy"])
+        except (json.JSONDecodeError, TypeError, ResourceValidationError):
+            logging.warning("Task %s: input_form or resource policy is invalid.", md5sum)
+            _record_failure(md5sum, task, time.time(), "", "Task input or resource policy is invalid")
+            return
 
     # Verify file entities reference existing files
     for fe in [e for e in entities if e["type"] == "file"]:
@@ -533,15 +553,18 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
             task_store.update_task(md5sum, run_stage=stage)
 
     try:
-        final_state = _run_compute_job(
-            task_id=md5sum,
-            tt=tt,
-            runner=runner,
-            entities=entities,
-            output_dir=output_dir,
-            stage_callback=_on_stage_change,
-            username=task.get("username", ""),
-        )
+        job_kwargs = {
+            "task_id": md5sum,
+            "tt": tt,
+            "runner": runner,
+            "entities": entities,
+            "output_dir": output_dir,
+            "stage_callback": _on_stage_change,
+            "username": task.get("username", ""),
+        }
+        if resource_policy is not None:
+            job_kwargs["resource_policy"] = resource_policy
+        final_state = _run_compute_job(**job_kwargs)
         if _task_is_terminal(md5sum):
             logging.info("Task %s was deleted during execution; skipping result packing and finalization.", md5sum)
             return

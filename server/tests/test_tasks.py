@@ -55,7 +55,8 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     assert 'class="theme-icon" aria-hidden="true">◐</span>' in html
     assert 'src="/static/js/theme.js"' in html
     assert 'type="file" name="file" id="fileInput" class="sr-only"' in html
-    assert 'id="fileButton"' in html
+    assert 'id="inputWorkspace"' in html
+    assert 'src="/static/js/input-workspace.js"' in html
     assert "file-input-offscreen" not in html
 
 
@@ -82,6 +83,12 @@ def test_task_type_api_exposes_runtime_family_and_gpu_contract(monkeypatch, tmp_
     form = form_response.get_json()
     assert form["runtime_family"] == "mpnn"
     assert form["gpus"] is False
+    assert form["resources"]["cpus"] >= 1
+    assert form["resources"]["memory"]
+    assert form["resources"]["max_runtime_seconds"] >= 1
+    assert form["input_workspace"]["version"] == 1
+    assert form["input_workspace"]["capabilities"][0]["plugin"] == "files"
+    assert form["input_workspace"]["capabilities"][-1]["plugin"] == "review"
 
 
 def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
@@ -104,8 +111,14 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert "PY2DMOL_SCRIPT_INTEGRITY" in script
     assert "renderPy2DmolFallback" in script
     assert "parseCifAlphaCarbons" in script
-    assert "var previewPlugins = Object.freeze" in script
-    assert "await plugin.render(artifact, stage)" in script
+    preview_plugins = (SERVER_PACKAGE / "static" / "js" / "result-preview-plugins.js").read_text(
+        encoding="utf-8"
+    )
+    plugin_host = (SERVER_PACKAGE / "static" / "js" / "plugin-host.js").read_text(encoding="utf-8")
+    assert "ResultPreviewHost" in preview_plugins
+    assert 'id: "structure"' in preview_plugins
+    assert "previewRegistry.resolve(artifact)" in script
+    assert "PluginRegistry.prototype.register" in plugin_host
     assert ".artifact-table-preview" in styles
     assert ".artifact-molstar-preview" in styles
 
@@ -116,6 +129,21 @@ def test_execution_logs_are_diagnostic_text_artifacts_not_main_results():
     assert 'artifact["role"] = "diagnostic"' in runtime
     assert 'artifact.role !== "diagnostic"' in results
     assert 'Execution log · ' in results
+
+
+def test_create_task_uses_capability_plugins_with_safe_fallbacks():
+    template = (SERVER_PACKAGE / "templates" / "create_task.html").read_text(encoding="utf-8")
+    workspace = (SERVER_PACKAGE / "static" / "js" / "input-workspace.js").read_text(encoding="utf-8")
+    orchestrator = (SERVER_PACKAGE / "static" / "js" / "create-task.js").read_text(encoding="utf-8")
+
+    assert 'id="inputWorkspace"' in template
+    assert 'src="/static/js/plugin-host.js"' in template
+    assert 'src="/static/js/input-workspace.js"' in template
+    for plugin_id in ("files", "sequence", "structure", "regions", "parameters", "review"):
+        assert f'id: "{plugin_id}"' in workspace
+    assert "workspace.validate()" in orchestrator
+    assert 'formData.append("input_paths"' in orchestrator
+    assert 'formData.append("params[" + name + "]"' in orchestrator
 
 
 def test_full_stack_smoke_uses_manifest_first_result_contract():
@@ -323,9 +351,9 @@ def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, 
             base_type,
             name="multi_structure",
             display_name="Multi Structure",
-                input_extension=".pdb",
-                input_extensions=(".pdb", ".json"),
-                primary_input_extensions=(".pdb",),
+            input_extension=".pdb",
+            input_extensions=(".pdb", ".json"),
+            primary_input_extensions=(".pdb",),
             input_label="Structure bundle",
             allow_multiple_inputs=True,
             max_input_files=4,
@@ -333,6 +361,7 @@ def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, 
         ),
         runner,
     )
+
     class _Queued:
         id = "queued-multi"
 
@@ -361,6 +390,9 @@ def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, 
     assert [entity["relative_path"] for entity in files] == ["structures/model.pdb", "config/settings.json"]
     assert files[0]["mounted"] == "/mnt/revocompute/tester/inputs/structures/model.pdb"
     assert form["virtual_root"] == "/mnt/revocompute/tester"
+    assert form["resource_policy"]["cpus"] >= 1
+    assert form["resource_policy"]["memory"]
+    assert form["resource_policy"]["slurm_time"]
     for entity in files:
         snapshot = Path(entity["snapshot_path"])
         assert snapshot.is_file()

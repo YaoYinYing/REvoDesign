@@ -21,7 +21,7 @@
 
   // -- State -------------------------------------------------------------
 
-  var taskTypeConfigs = [];     // from admin config API: [{tool, enabled, nproc, ...slurm_*}]
+  var taskTypeConfigs = [];     // from admin config API, including effective_resources
   var resources = {};           // {key: value}
   var taskTypes = [];           // from /api/types (metadata: display_name, params, etc.)
   var slurmEnabled = false;     // global SLURM feature flag
@@ -29,10 +29,7 @@
 
   var SLURM_FIELDS = [
     { key: "slurm_partition",     label: "Partition",     type: "text",    placeholder: "e.g. gpu" },
-    { key: "slurm_cpus_per_task", label: "CPUs / task",   type: "number",  placeholder: "e.g. 8" },
     { key: "slurm_gres",          label: "GRES",          type: "text",    placeholder: "e.g. gpu:A100:1" },
-    { key: "slurm_mem",           label: "Memory",        type: "text",    placeholder: "e.g. 64G" },
-    { key: "slurm_time",          label: "Time limit",    type: "text",    placeholder: "e.g. 04:00:00" },
     { key: "slurm_nodes",         label: "Nodes",         type: "number",  placeholder: "e.g. 1" },
     { key: "slurm_ntasks",        label: "NTasks",        type: "number",  placeholder: "e.g. 1" },
     { key: "slurm_qos",           label: "QOS",           type: "text",    placeholder: "e.g. normal" },
@@ -42,8 +39,8 @@
   ];
 
   var RESOURCE_FIELDS = [
-    { key: "nproc",                label: "nproc",      type: "number", placeholder: "CPU cores" },
-    { key: "maxmem",               label: "maxmem",     type: "number", placeholder: "Memory GB" },
+    { key: "cpus",                 label: "CPU cores",   type: "number", placeholder: "e.g. 8" },
+    { key: "memory",               label: "Memory",      type: "text",   placeholder: "e.g. 16G" },
     { key: "max_runtime_seconds",  label: "Max runtime", type: "number", placeholder: "seconds" },
   ];
 
@@ -82,6 +79,9 @@
       resources = data.resources || {};
       slurmEnabled = (data.slurm && data.slurm.enabled) || false;
       slurmAllowedQueues = (data.slurm && data.slurm.allowed_queues) || [];
+      if (data.ignored_resource_keys && data.ignored_resource_keys.length) {
+        toast("Ignored obsolete resource keys: " + data.ignored_resource_keys.join(", "), "info");
+      }
     } catch (e) {
       toast("Failed to load configuration: " + e.message, "error");
       taskTypeConfigs = [];
@@ -139,7 +139,7 @@
 
     taskTypeCards.innerHTML = taskTypeConfigs.map(function (config) {
       var meta = findTypeMeta(config.tool);
-      var displayName = meta ? meta.display_name : config.tool;
+      var displayName = meta ? meta.display_name : (config.display_name || config.tool);
       var ext = meta ? meta.input_extension : "";
       var inputLabel = meta ? meta.input_label : "";
       var stageCount = meta ? Object.keys(meta.stage_markers).length : 0;
@@ -200,7 +200,9 @@
     // SLURM fields (only if globally enabled)
     var slurmSectionHtml = "";
     if (slurmEnabled) {
-      var slurmFieldsHtml = SLURM_FIELDS.map(function (f) {
+      var slurmFieldsHtml = SLURM_FIELDS.filter(function (field) {
+        return field.key !== "slurm_gres" || config.requires_gpu;
+      }).map(function (f) {
         return buildFieldInput(f.key, f.label, f.type, f.placeholder, config, tool);
       }).join("");
 
@@ -278,8 +280,9 @@
     if (isToggle) {
       value = rawValue;
     } else if (rawValue === "") {
-      // ponytail: empty = inherit global, skip save
-      return;
+      // Empty removes the task override so the resolved global/default policy
+      // becomes visible immediately.
+      value = null;
     } else {
       var num = Number(rawValue);
       value = isNaN(num) ? rawValue : num;
@@ -299,15 +302,14 @@
 
   function renderConfigMeta(config) {
     var parts = [];
-    if (config.nproc != null) parts.push("nproc=" + escapeHtml(String(config.nproc)));
-    if (config.maxmem != null) parts.push("maxmem=" + escapeHtml(String(config.maxmem)) + "G");
-    if (config.max_runtime_seconds != null) {
-      parts.push("runtime=" + Math.round(config.max_runtime_seconds / 60) + "min");
-    }
-    if (slurmEnabled) {
-      if (config.slurm_partition) parts.push("partition=" + escapeHtml(config.slurm_partition));
-      if (config.slurm_cpus_per_task) parts.push("cpus=" + escapeHtml(String(config.slurm_cpus_per_task)));
-      if (config.slurm_gres) parts.push("gres=" + escapeHtml(config.slurm_gres));
+    var effective = config.effective_resources;
+    if (config.resource_error) return '<span class="config-error">Invalid: ' + escapeHtml(config.resource_error) + "</span>";
+    if (effective) {
+      parts.push("cpus=" + escapeHtml(String(effective.cpus)));
+      parts.push("memory=" + escapeHtml(effective.memory));
+      parts.push("runtime=" + Math.round(effective.max_runtime_seconds / 60) + "min");
+      if (effective.partition) parts.push("partition=" + escapeHtml(effective.partition));
+      if (effective.gres) parts.push("gres=" + escapeHtml(effective.gres));
     }
     return parts.length
       ? parts.map(function (p) { return "<span>" + p + "</span>"; }).join(" &middot; ")
@@ -317,20 +319,21 @@
   // -- Resource table ----------------------------------------------------
 
   var RESOURCE_KEYS = [
-    { key: "nproc",                label: "nproc",                 desc: "CPU cores per runner container" },
-    { key: "maxmem",               label: "maxmem",                desc: "Memory limit (GB) per runner" },
-    { key: "worker_concurrency",   label: "Worker concurrency",    desc: "Celery concurrent jobs" },
-    { key: "gunicorn_workers",     label: "Gunicorn workers",      desc: "Number of web workers" },
-    { key: "result_retention_days",label: "Result retention",      desc: "Days before cleanup (fractional OK)" },
+    { key: "cpus",                 label: "CPU cores",              desc: "Default CPU allocation per scientific task" },
+    { key: "memory",               label: "Memory",                 desc: "Default task memory, e.g. 4G or 16000M" },
+    { key: "max_runtime_seconds",  label: "Maximum runtime",        desc: "Default wall-clock limit in seconds" },
   ];
 
   function getResourceKeys() {
     var keys = RESOURCE_KEYS.slice();
+    keys.push({ key: "slurm_enabled",         label: "SLURM enabled",         desc: "Feature flag: true / false" });
+    keys.push({ key: "slurm_allowed_queues",  label: "SLURM allowed queues",  desc: "Comma-separated partition names" });
     if (slurmEnabled) {
-      keys.push({ key: "slurm_enabled",         label: "SLURM enabled",         desc: "Feature flag: true / false" });
-      keys.push({ key: "slurm_allowed_queues",  label: "SLURM allowed queues",  desc: "Comma-separated partition names" });
       SLURM_FIELDS.forEach(function (f) {
-        keys.push({ key: f.key, label: f.label + " (global)", desc: "Default when per-task not set" });
+        var description = f.key === "slurm_gres"
+          ? "Default for GPU task types only; CPU tasks never inherit it"
+          : "Default when per-task not set";
+        keys.push({ key: f.key, label: f.label + " (global)", desc: description });
       });
     }
     return keys;

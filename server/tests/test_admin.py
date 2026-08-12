@@ -11,7 +11,7 @@ import zipfile
 from pathlib import Path
 
 import pytest
-from conftest import _extract_md5, _insert_pending_task, _load_pssm_module, _test_client_auth, _upsert_task_for_user
+from conftest import _load_pssm_module, _test_client_auth
 
 # Admin user control helpers
 # ==================================================================
@@ -760,3 +760,61 @@ def test_configuration_page_script_initializes_theme_and_admin_data(monkeypatch,
     assert "var T = window.REvoDesignTheme;" in script
     assert "T.initToggle" in script
     assert "init();" in script
+
+
+def test_admin_resource_api_returns_effective_policy_and_validates_updates(monkeypatch, tmp_path):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    admin_header = _admin_client_auth(module)
+
+    updated = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"task_types": [{"tool": "gremlin", "cpus": 8, "memory": "16G", "max_runtime_seconds": 3600}]},
+    )
+    assert updated.status_code == 200
+    payload = client.get("/compute/api/auth/admin/config", headers=admin_header).get_json()
+    gremlin = next(item for item in payload["task_types"] if item["tool"] == "gremlin")
+    assert gremlin["effective_resources"]["cpus"] == 8
+    assert gremlin["effective_resources"]["memory"] == "16G"
+    assert gremlin["effective_resources"]["slurm_time"] == "01:00:00"
+    assert gremlin["resource_error"] is None
+
+    invalid = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"task_types": [{"tool": "gremlin", "cpus": 0}]},
+    )
+    assert invalid.status_code == 400
+    assert "positive integer" in invalid.get_json()["error"]
+    mixed_invalid = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"task_types": [{"tool": "gremlin", "cpus": 4, "memory": "unbounded"}]},
+    )
+    assert mixed_invalid.status_code == 400
+    unchanged = client.get("/compute/api/auth/admin/config", headers=admin_header).get_json()
+    gremlin = next(item for item in unchanged["task_types"] if item["tool"] == "gremlin")
+    assert gremlin["cpus"] == 8
+    assert gremlin["memory"] == "16G"
+
+    unknown = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"resources": {"unused_setting": "1"}},
+    )
+    assert unknown.status_code == 400
+
+    allowed = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"slurm": {"allowed_queues": ["normal", "gpu"]}},
+    )
+    assert allowed.status_code == 200
+    forbidden_partition = client.put(
+        "/compute/api/auth/admin/config",
+        headers=admin_header,
+        json={"task_types": [{"tool": "gremlin", "slurm_partition": "debug"}]},
+    )
+    assert forbidden_partition.status_code == 400
+    assert "allowed_queues" in forbidden_partition.get_json()["error"]

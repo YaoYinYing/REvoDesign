@@ -25,7 +25,8 @@
 .main-result-frame { display: grid; place-items: center; overflow: hidden; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 82%, var(--accent) 18%); color: var(--accent); font: 700 0.8rem "IBM Plex Sans", sans-serif; letter-spacing: 0.08em; }
 .main-result-frame img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
 .artifact-preview-stage { min-height: 32rem; overflow: auto; border: 1px solid var(--line); border-radius: 0.8rem; background: var(--paper); }
-.artifact-preview-stage > pre { margin: 0; padding: 1rem; white-space: pre; font-size: 0.78rem; }
+.result-plugin-surface { min-height: inherit; }
+.result-plugin-surface > pre { margin: 0; padding: 1rem; white-space: pre; font-size: 0.78rem; }
 .empty-result, .preview-message { margin: 0; padding: 2rem; color: var(--muted); text-align: center; }
 .artifact-image-preview { display: block; max-width: 100%; max-height: 72vh; margin: auto; padding: 0.75rem; }
 .artifact-molstar-preview { width: 100%; height: 70vh; min-height: 34rem; }

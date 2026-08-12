@@ -187,6 +187,13 @@ validate_runtime_files() {
   done
 }
 
+validate_resource_policies() {
+  echo "Validating resolved task resource policies with the prepared worker image..."
+  "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" \
+    run --rm --no-deps --no-build --entrypoint python worker \
+    -m revocompute.resource_audit
+}
+
 resolve_env_file() {
   if [[ -n "${REVODESIGN_SERVER_ENV:-}" ]]; then
     if [[ "${REVODESIGN_SERVER_ENV}" = /* ]]; then
@@ -973,6 +980,9 @@ cmd_restart() {
     prepare_auth_storage
     prepare_result_storage
     validate_compose_model
+    # Audit the external management database through the candidate worker
+    # image before stopping the healthy deployment.
+    validate_resource_policies
   fi
 
   cmd_down
