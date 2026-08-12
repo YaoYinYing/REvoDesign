@@ -18,7 +18,7 @@ RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
 
 ENV PATH=/opt/venv/bin:${PATH}
-RUN pip install --no-cache-dir torch==2.1.2+cu121 \
+RUN pip install --no-cache-dir torch==2.2.0+cu121 \
     --extra-index-url https://download.pytorch.org/whl/cu121 && \
     pip install --no-cache-dir \
       "numpy<2" \
