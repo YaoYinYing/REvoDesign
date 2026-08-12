@@ -60,6 +60,7 @@ elif [[ "${RUNNER_GID}" == "0" ]]; then
   RUNNER_GID="${RUNNER_UID}"
 fi
 export RUNNER_UID RUNNER_GID
+cp -r "${SERVER_ROOT}/config" "${WORK_DIR}/state/config"
 cat >>"${ENV_FILE}" <<EOF
 
 # Full-stack test overrides
