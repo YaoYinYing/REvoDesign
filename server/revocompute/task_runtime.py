@@ -254,9 +254,13 @@ def _run_compute_job(
         resource_policy=resource_policy,
     )
     jid = job.submit()
-    # Persist SLURM job ID so scancel can find it (Docker's id is a container id)
-    if jid and isinstance(job, SlurmJob):
-        task_store.update_task(task_id, slurm_job_id=jid)
+    # Persist the job handle so cancel can stop the running process even
+    # after a server restart (Celery/Redis state is ephemeral).
+    if jid:
+        if isinstance(job, SlurmJob):
+            task_store.update_task(task_id, slurm_job_id=jid)
+        elif isinstance(job, DockerJob):
+            task_store.update_task(task_id, container_id=jid)
     return job.poll()
 
 

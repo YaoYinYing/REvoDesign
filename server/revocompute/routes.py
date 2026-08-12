@@ -929,6 +929,14 @@ def cancel_task(md5sum):
         except Exception as exc:  # pylint: disable=broad-except
             logging.warning("Failed to scancel SLURM job %s: %s", slurm_job_id, exc)
 
+    container_id = task.get("container_id")
+    if container_id:
+        try:
+            subprocess.run(["docker", "stop", str(container_id)], timeout=15, check=True)
+            logging.info("Stopped Docker container %s for task %s", container_id, md5sum)
+        except Exception as exc:  # pylint: disable=broad-except
+            logging.warning("Failed to stop container %s: %s", container_id, exc)
+
     celery_id = task.get("celery_task_id")
     if celery_id:
         try:
