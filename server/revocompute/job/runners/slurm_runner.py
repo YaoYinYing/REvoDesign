@@ -62,6 +62,21 @@ class SlurmJob(Job):
         self._job_id_event = threading.Event()
         self._resolved_resource_policy = resource_policy
 
+    def reconnect(self, slurm_job_id: str) -> bool:
+        """Check whether a SLURM job is still alive after a server restart.
+        We cannot re-attach the srun subprocess, but we can query sacct."""
+        self._slurm_job_id = slurm_job_id
+        self._job_id_event.set()
+        try:
+            result = subprocess.run(
+                ["sacct", "-j", slurm_job_id, "--noheader", "-o", "State", "-P"],
+                capture_output=True, text=True, timeout=10,
+            )
+            state = (result.stdout or "").strip().split("\n")[0].strip()
+            return state in ("RUNNING", "PENDING", "CONFIGURING")
+        except Exception:
+            return False
+
     # -- Job ABC -------------------------------------------------------------
 
     def submit(self) -> str:

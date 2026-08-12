@@ -618,6 +618,111 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
 
 
 # ---------------------------------------------------------------------------
+# Orphaned-task recovery after server restart
+# ---------------------------------------------------------------------------
+
+
+def _recover_orphaned_tasks() -> int:
+    """Scan for running tasks whose Celery task was lost (e.g. Redis restart).
+
+    Docker containers are reconnected and polled inline.  SLURM jobs are
+    re-queued as lightweight polling tasks.
+    """
+    recovered = 0
+    for task in task_store.list_tasks():
+        if task.get("status") != "running":
+            continue
+        container_id = str(task.get("container_id") or "")
+        slurm_job_id = str(task.get("slurm_job_id") or "")
+        if not container_id and not slurm_job_id:
+            continue
+        md5sum = task["md5sum"]
+        task_type = task.get("task_type", "gremlin")
+        logging.info("Recovery: checking orphaned task %s", md5sum)
+
+        if container_id:
+            try:
+                from revocompute.job.runners.docker_runner import DockerJob  # noqa: F811
+                from revocompute.task_types import get as _gt  # noqa: F811
+
+                tt, runner = _gt(task_type)
+                job = DockerJob(md5sum, tt, runner, [], task["result_dir"])
+                if job.reconnect(container_id):
+                    logging.info("Recovery: reconnected Docker %s for %s", container_id, md5sum)
+                    state = job.poll()
+                    _finalize_after_poll(md5sum, task, tt, state)
+                    recovered += 1
+                else:
+                    _record_failure(md5sum, task, task.get("started_at") or time.time(), "",
+                                    "Docker container not found after server restart")
+            except Exception as exc:
+                logging.error("Recovery failed for Docker task %s: %s", md5sum, exc)
+                _record_failure(md5sum, task, task.get("started_at") or time.time(), "",
+                                f"Recovery error: {exc}")
+
+        elif slurm_job_id:
+            try:
+                from revocompute.job.runners.slurm_runner import SlurmJob  # noqa: F811
+                from revocompute.task_types import get as _gt
+
+                tt, runner = _gt(task_type)
+                job = SlurmJob(md5sum, tt, runner, [], task["result_dir"])
+                if job.reconnect(slurm_job_id):
+                    logging.info("Recovery: SLURM job %s still running for %s, re-queuing poll",
+                                 slurm_job_id, md5sum)
+                    run_compute_task.apply_async(
+                        args=[md5sum], kwargs={"task_type": task_type, "recover_slurm": slurm_job_id}
+                    )
+                    recovered += 1
+                else:
+                    _record_failure(md5sum, task, task.get("started_at") or time.time(), "",
+                                    "SLURM job not found after server restart")
+            except Exception as exc:
+                logging.error("Recovery failed for SLURM task %s: %s", md5sum, exc)
+    return recovered
+
+
+def _finalize_after_poll(md5sum, task, tt, state):
+    """Publish results or record failure after a recovered job completes."""
+    if state == JobState.FAILED:
+        _record_failure(md5sum, task, task.get("started_at") or time.time(), "",
+                        "Recovered compute job failed")
+    elif state == JobState.CANCELLED:
+        task_store.update_task(md5sum, status="cancelled", finished_at=time.time())
+    else:
+        refreshed = task_store.get_task(md5sum) or task
+        if _is_terminal_status(refreshed.get("status")):
+            return
+        _finalize_results_manifest(refreshed)
+        refreshed = task_store.get_task(md5sum) or refreshed
+        if _is_terminal_status(refreshed.get("status")):
+            return
+        finish_time = time.time()
+        task_store.update_task(
+            md5sum,
+            status="finished",
+            finished_at=finish_time,
+            walltime=finish_time - (task.get("started_at") or finish_time),
+            error=None,
+            run_stage=list(tt.stage_markers.items())[-1][0] if tt.stage_markers else "",
+        )
+
+
+try:
+    @celery.on_after_configure.connect
+    def _setup_recovery_signal(sender, **kwargs):  # noqa: F811
+        from celery.signals import worker_ready
+
+        @worker_ready.connect
+        def _on_worker_ready(sender, **kwargs):
+            count = _recover_orphaned_tasks()
+            if count:
+                logging.info("Recovered %d orphaned task(s)", count)
+except ImportError:
+    pass  # celery.signals not available in all environments
+
+
+# ---------------------------------------------------------------------------
 # Celery task wrappers
 # ---------------------------------------------------------------------------
 

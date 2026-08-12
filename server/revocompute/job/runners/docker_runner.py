@@ -68,6 +68,17 @@ class DockerJob(Job):
         self._resolved_resource_policy = resources
         return resources
 
+    def reconnect(self, container_id: str) -> bool:
+        """Re-attach to an already-running container after a server restart.
+        Returns True if the container exists and is still active."""
+        self._ensure_client()
+        try:
+            self._container = self._client.containers.get(container_id)
+            self._job_id = container_id
+            return self._container.status in ("running", "created")
+        except Exception:
+            return False
+
     # -- Job ABC -------------------------------------------------------------
 
     def _ensure_client(self) -> None:
