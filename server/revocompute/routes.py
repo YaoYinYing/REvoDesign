@@ -335,7 +335,6 @@ def task_type_form(name: str):
                     "maximum": p.maximum,
                     "step": p.step,
                     "unit": p.unit,
-                    "help": p.help,
                     "advanced": p.advanced,
                 }
                 for p in tt.params
@@ -345,6 +344,28 @@ def task_type_form(name: str):
             "resources": resource_summary,
         }
     )
+
+
+@app.route("/compute/api/types/<name>/help", methods=["GET"])
+def task_type_help(name: str):
+    """Return help text and defaults for one task type's parameters (public).
+
+    Separated from the main form response so that long explanation text
+    does not bloat every page load.  The client fetches this lazily.
+    """
+    try:
+        tt, _ = _get_task_type(name)
+    except KeyError:
+        return jsonify({"error": f"Unknown task type: {name!r}"}), 404
+    entries = {}
+    for p in tt.params:
+        if p.help or p.default is not None:
+            entries[p.name] = {}
+            if p.help:
+                entries[p.name]["help"] = p.help
+            if p.default is not None:
+                entries[p.name]["default"] = p.default
+    return jsonify(entries), 200
 
 
 _WORKSPACE_KEY_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")

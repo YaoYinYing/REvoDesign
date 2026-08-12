@@ -60,16 +60,26 @@
     currentForm = definition;
     fileInput.accept = definition.file_input.accept;
     fileInput.multiple = Boolean(definition.file_input.multiple);
-    workspace.mount(definition);
+    workspace.mount(definition, helpCache);
     setStatus("Ready to prepare " + definition.display_name + ".");
   }
+
+  var helpCache = {};
 
   async function fetchFormDefinition(name) {
     setStatus("Loading task workspace…", "busy");
     try {
       var response = await fetch("/compute/api/types/" + encodeURIComponent(name));
       if (!response.ok) throw new Error("Failed to load task workspace");
-      mountForm(await response.json());
+      var def = await response.json();
+      // Fetch help text lazily — merge into a cache keyed by param name.
+      // The params themselves no longer carry inline help to keep the main
+      // response lean; this separate endpoint is the single source of truth.
+      try {
+        var helpResp = await fetch("/compute/api/types/" + encodeURIComponent(name) + "/help");
+        if (helpResp.ok) helpCache = await helpResp.json();
+      } catch (_) { /* non-critical — tooltips and reset-to-default are absent */ }
+      mountForm(def);
     } catch (error) {
       if (name === "gremlin") mountForm(fallbackForm());
       else setStatus("Could not load the selected task: " + error.message, "error");

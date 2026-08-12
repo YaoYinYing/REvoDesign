@@ -81,17 +81,19 @@
     label.htmlFor = "param_" + parameter.name;
     if (parameter.unit) label.textContent += " (" + parameter.unit + ")";
     labelRow.appendChild(label);
-    if (parameter.help) {
+    var helpText = (context.helpCache && context.helpCache[parameter.name]) ? context.helpCache[parameter.name].help : "";
+    var defaultOverride = (context.helpCache && context.helpCache[parameter.name]) ? context.helpCache[parameter.name].default : undefined;
+    var effectiveDefault = defaultOverride !== undefined ? defaultOverride : parameter.default;
+    if (helpText) {
       var tip = element("span", "param-tooltip", "?");
-      var bubble = element("span", "param-tooltip-bubble", parameter.help);
+      var bubble = element("span", "param-tooltip-bubble", helpText);
       tip.appendChild(bubble);
       labelRow.appendChild(tip);
     }
-    var hasDefault = parameter.default != null;
+    var hasDefault = effectiveDefault != null;
     var resetBtn = null;
     if (hasDefault) {
-      resetBtn = element("span", "param-reset", "↻");  // ↻
-      resetBtn.title = "Reset to default";
+      resetBtn = element("span", "param-reset", "↻");
       resetBtn.setAttribute("aria-label", "Reset to default value");
       labelRow.appendChild(resetBtn);
     }
@@ -157,19 +159,20 @@
     wrap.appendChild(control);
     if (resetBtn) {
       resetBtn.addEventListener("click", function () {
+        var defVal = effectiveDefault;
         if (parameter.type === "bool" || isBinaryChoice(parameter.choices)) {
           var hiddenEl = control.querySelector("input[type=hidden]");
           var cb = control.querySelector("input[type=checkbox]");
           var onVal = isBinaryChoice(parameter.choices) ? String(parameter.choices[0]) : "true";
           var offVal = isBinaryChoice(parameter.choices) ? String(parameter.choices[1]) : "false";
-          var isOn = parameter.default === true || String(parameter.default) === onVal;
+          var isOn = defVal === true || String(defVal) === onVal;
           if (hiddenEl) hiddenEl.value = isOn ? onVal : offVal;
           if (cb) cb.checked = isOn;
         } else if (parameter.choices && parameter.choices.length) {
           var options = control.querySelectorAll("option");
-          options.forEach(function (opt) { opt.selected = String(opt.value) === String(parameter.default); });
+          options.forEach(function (opt) { opt.selected = String(opt.value) === String(defVal); });
         } else {
-          control.value = parameter.default == null ? "" : parameter.default;
+          control.value = defVal == null ? "" : defVal;
         }
         control.removeAttribute("aria-invalid");
         var err = document.getElementById("param_error_" + parameter.name);
@@ -430,13 +433,15 @@
     });
   }
 
-  InputWorkspace.prototype.mount = function (formDefinition) {
+  InputWorkspace.prototype.mount = function (formDefinition, helpCache) {
+    helpCache = helpCache || {};
     var workspace = this; this.form = formDefinition; this.primaryIndex = 0;
     this.options.fileInput.value = "";
     var selectedFiles = [];
     var capabilities = formDefinition.input_workspace && formDefinition.input_workspace.capabilities;
     if (!capabilities || !capabilities.length) throw new Error("Task form has no input workspace capabilities");
     this.context = {
+      helpCache: helpCache,
       form: formDefinition,
       capabilities: capabilities,
       fileInput: this.options.fileInput,
