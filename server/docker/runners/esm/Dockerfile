@@ -1,20 +1,25 @@
 # ESM runner — CUDA-enabled image for ESMFold / ESM-2 / ESM-1v / ESM-IF1.
 # Build tools and Git stay in the builder; the runtime keeps only Python,
 # CUDA libraries, the pinned source, and its installed environment.
-FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04 AS builder
+# Python 3.12 is required by openfold 1.0.1 (esmfold's residue-constants
+# dependency); torch 2.1.2 is the matching cu121 build.
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04 AS builder
 
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends \
-      python3.9 python3.9-distutils python3.9-venv python3-pip git build-essential && \
+      software-properties-common git build-essential && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends python3.12 python3.12-venv python3.12-dev && \
     rm -rf /var/lib/apt/lists/* && \
-    python3.9 -m venv /opt/venv && \
+    python3.12 -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
 
 ENV PATH=/opt/venv/bin:${PATH}
-RUN pip install --no-cache-dir torch==1.12.1+cu113 \
-    --extra-index-url https://download.pytorch.org/whl/cu113 && \
+RUN pip install --no-cache-dir torch==2.1.2+cu121 \
+    --extra-index-url https://download.pytorch.org/whl/cu121 && \
     pip install --no-cache-dir \
       "numpy<2" \
       "pandas==2.2.3" \
@@ -31,7 +36,7 @@ RUN git init /opt/esm2 && git -C /opt/esm2 remote add origin ${ESM_REPO} && \
     python -c "import esm2, pandas" && \
     rm -rf /opt/esm2/.git
 
-FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 
 ARG RUNNER_UID
 ARG RUNNER_GID
@@ -41,9 +46,12 @@ ARG RUNNER_GROUP
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
-    apt-get install -y --no-install-recommends python3.9 && \
+    apt-get install -y --no-install-recommends software-properties-common && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends python3.12 && \
     rm -rf /var/lib/apt/lists/* && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     (id -u ${RUNNER_USERNAME} >/dev/null 2>&1 && usermod -u ${RUNNER_UID} -g ${RUNNER_GID} ${RUNNER_USERNAME}) || \
