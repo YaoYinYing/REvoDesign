@@ -242,6 +242,7 @@ def task_types_list():
                         "maximum": p.maximum,
                         "step": p.step,
                         "unit": p.unit,
+                        "help": p.help,
                         "advanced": p.advanced,
                     }
                     for p in tt.params
