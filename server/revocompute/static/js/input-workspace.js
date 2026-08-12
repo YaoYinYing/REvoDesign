@@ -88,26 +88,46 @@
       labelRow.appendChild(tooltip);
     }
     wrap.appendChild(labelRow);
+    function isBinaryChoice(choices) {
+      if (!choices || choices.length !== 2) return false;
+      var set = String(choices[0]) + "," + String(choices[1]);
+      return set === "0,1" || set === "1,0" || set === "true,false" || set === "false,true";
+    }
+
     var control;
-    if (parameter.choices && parameter.choices.length) {
+    if (isBinaryChoice(parameter.choices)) {
+      var onValue = String(parameter.choices[0]), offValue = String(parameter.choices[1]);
+      control = element("span", "param-toggle-wrap");
+      var hidden = element("input", "");
+      hidden.type = "hidden"; hidden.value = parameter.default === onValue || parameter.default === true ? onValue : offValue;
+      hidden.id = "param_" + parameter.name; hidden.dataset.paramName = parameter.name;
+      var checkbox = element("input", "param-toggle");
+      checkbox.type = "checkbox"; checkbox.checked = hidden.value === onValue;
+      checkbox.addEventListener("change", function () {
+        hidden.value = checkbox.checked ? onValue : offValue;
+        context.changed();
+      });
+      control.appendChild(hidden);
+      control.appendChild(checkbox);
+    } else if (parameter.type === "bool") {
+      control = element("span", "param-toggle-wrap");
+      var hiddenB = element("input", "");
+      hiddenB.type = "hidden"; hiddenB.value = parameter.default === true ? "true" : "false";
+      hiddenB.id = "param_" + parameter.name; hiddenB.dataset.paramName = parameter.name;
+      var checkboxB = element("input", "param-toggle");
+      checkboxB.type = "checkbox"; checkboxB.checked = parameter.default === true;
+      checkboxB.addEventListener("change", function () {
+        hiddenB.value = checkboxB.checked ? "true" : "false";
+        context.changed();
+      });
+      control.appendChild(hiddenB);
+      control.appendChild(checkboxB);
+    } else if (parameter.choices && parameter.choices.length) {
       control = element("select", "text-input");
       parameter.choices.forEach(function (choice) {
         var option = element("option", "", String(choice)); option.value = choice;
         option.selected = choice === parameter.default; control.appendChild(option);
       });
-    } else if (parameter.type === "bool") {
-      control = element("span", "param-toggle-wrap");
-      var hidden = element("input", "");
-      hidden.type = "hidden"; hidden.value = parameter.default === true ? "true" : "false";
-      hidden.id = "param_" + parameter.name; hidden.dataset.paramName = parameter.name;
-      var checkbox = element("input", "param-toggle");
-      checkbox.type = "checkbox"; checkbox.checked = parameter.default === true;
-      checkbox.addEventListener("change", function () {
-        hidden.value = checkbox.checked ? "true" : "false";
-        context.changed();
-      });
-      control.appendChild(hidden);
-      control.appendChild(checkbox);
     } else {
       control = element("input", "text-input");
       control.type = parameter.type === "int" || parameter.type === "float" ? "number" : "text";
