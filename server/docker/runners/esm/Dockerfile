@@ -1,8 +1,9 @@
 # ESM runner — CUDA-enabled image for ESMFold / ESM-2 / ESM-1v / ESM-IF1.
 # Build tools and Git stay in the builder; the runtime keeps only Python,
 # CUDA libraries, the pinned source, and its installed environment.
-# Python 3.12 is required by openfold 1.0.1 (esmfold's residue-constants
-# dependency); torch 2.1.2 is the matching cu121 build.
+# openfold installs from GitHub (PyPI only carries a 0.0.1 stub). v2.2.0
+# is torch-2.x/Python-3.12 compatible and builds a CPU stub when CUDA
+# toolkit is absent. dm-tree/biopython are its unpinned runtime deps.
 FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04 AS builder
 
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
@@ -25,7 +26,9 @@ RUN pip install --no-cache-dir torch==2.2.0+cu121 \
       "pandas==2.2.3" \
       "pytorch-lightning==1.9.5" \
       "torchmetrics==0.11.4" \
-      "openfold==1.0.1"
+      "dm-tree" \
+      "biopython" && \
+    pip install --no-cache-dir 'openfold @ git+https://github.com/aqlaboratory/openfold.git@v2.2.0'
 
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
