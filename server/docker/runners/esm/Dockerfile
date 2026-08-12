@@ -2,9 +2,11 @@
 # Build tools and Git stay in the builder; the runtime keeps only Python,
 # CUDA libraries, the pinned source, and its installed environment.
 # openfold installs from GitHub (PyPI only carries a 0.0.1 stub). v2.2.0
-# is torch-2.x/Python-3.12 compatible and builds a CPU stub when CUDA
-# toolkit is absent. dm-tree/biopython are its unpinned runtime deps.
-FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04 AS builder
+# is torch-2.x/Python-3.12 compatible. Its setup.py runs nvcc whenever
+# torch reports a CUDA_HOME, so the builder needs the devel image
+# (nvcc); the runtime stage stays on -runtime. dm-tree/biopython are
+# openfold's unpinned runtime deps.
+FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04 AS builder
 
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
@@ -28,7 +30,7 @@ RUN pip install --no-cache-dir torch==2.2.0+cu121 \
       "torchmetrics==0.11.4" \
       "dm-tree" \
       "biopython" && \
-    pip install --no-cache-dir 'openfold @ git+https://github.com/aqlaboratory/openfold.git@v2.2.0'
+    pip install --no-cache-dir --no-build-isolation 'openfold @ git+https://github.com/aqlaboratory/openfold.git@v2.2.0'
 
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
