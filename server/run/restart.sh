@@ -227,6 +227,9 @@ Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart|reset-pass
                                                Without a URL, read
                                                REVODESIGN_BUILD_PROXY from the
                                                selected environment file.
+           --enabled-runners=<csv>             Comma-separated runner names,
+                                               e.g. 'gremlin,pythia_ddg'.
+                                               Default: all registered runners.
 
 Environment:
   REVODESIGN_SERVER_ENV
@@ -1089,6 +1092,17 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       export SLURM_ALLOWED_QUEUES="$1"
+      ;;
+    --enabled-runners=*)
+      export ENABLED_TASKRUNNERS="${1#--enabled-runners=}"
+      ;;
+    --enabled-runners)
+      shift
+      if [[ -z "${1:-}" || "${1:0:2}" == "--" ]]; then
+        echo "--enabled-runners requires a comma-separated value, e.g. 'gremlin,pythia_ddg'." >&2
+        exit 1
+      fi
+      export ENABLED_TASKRUNNERS="$1"
       ;;
     --build-sif)
       BUILD_SIF=1
