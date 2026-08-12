@@ -20,6 +20,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   without checking its documentation and types.
 - Make architectural decisions for the long term. Do not accept a stopgap that
   only works for now and is meant to be replaced later.
+- The server is the single source of truth for all configuration data. Never
+  duplicate task-type definitions, parameter schemas, file-extension rules,
+  resource policies, or scientific constants from YAML/Python into JavaScript.
+  If the JS needs data that the server owns, add an API endpoint. A JS
+  fallback that mocks server config for when the API is unreachable is still
+  duplication — show an error instead.
 
 ## Workflow
 
