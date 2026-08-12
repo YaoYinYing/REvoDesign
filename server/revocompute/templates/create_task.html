@@ -47,8 +47,9 @@
         <div id="uploadStatus" class="status" aria-live="polite">Ready for upload.</div>
       </div>
 
-      <aside class="info-panel">
-        <div id="submissionChecklist">
+      <div class="workspace-help-trigger" id="workspaceHelpWrap">
+        <button class="workspace-help-btn" type="button" id="workspaceHelpBtn" title="About the input workspace" aria-label="About the input workspace">?</button>
+        <div class="workspace-help-popover" id="workspaceHelpPopover" hidden>
           <p class="info-title">Scientific input workspace</p>
           <ul class="info-list">
             <li>Simple tasks show only the sequence, file, and parameter controls they need.</li>
@@ -58,7 +59,7 @@
             <li>Completed runs publish individual manifest-approved results; ZIP remains optional.</li>
           </ul>
         </div>
-      </aside>
+      </div>
     </div>
   </section>
 </main>

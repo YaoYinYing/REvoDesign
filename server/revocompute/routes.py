@@ -199,6 +199,7 @@ def logo_svg():
 
 
 @app.route("/PSSM_GREMLIN/")
+@app.route("/PSSM_GREMLIN/dashboard")
 def legacy_dashboard_redirect():
     """302 redirect to the current dashboard root."""
     return redirect(url_for("task_dashboard")), 302

@@ -148,8 +148,7 @@
     submitButton.disabled = true; clearButton.disabled = true;
     setStatus("Uploading the immutable snapshot and queueing the task…", "busy");
     try {
-      var headers = {}; var token = A.getToken(); if (token) headers.Authorization = "Bearer " + token;
-      var response = await fetch("/compute/api/post", { method: "POST", body: formData, headers: headers });
+      var response = await A.authFetch("/compute/api/post", { method: "POST", body: formData });
       if (response.ok || response.status === 202) {
         setStatus("Task submitted. Redirecting to the dashboard…", "ok");
         window.location.assign("/compute/dashboard"); return;
@@ -166,5 +165,14 @@
   });
 
   T.initToggle(document.getElementById("themeToggle"));
+
+  var helpBtn = document.getElementById("workspaceHelpBtn");
+  var helpPopover = document.getElementById("workspaceHelpPopover");
+  helpBtn.addEventListener("click", function (event) {
+    event.stopPropagation();
+    helpPopover.hidden = !helpPopover.hidden;
+  });
+  document.addEventListener("click", function () { helpPopover.hidden = true; });
+
   loadTaskTypes();
 })();

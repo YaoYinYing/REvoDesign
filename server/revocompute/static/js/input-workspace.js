@@ -76,10 +76,18 @@
 
   function renderParam(parameter, context) {
     var wrap = element("div", "param-field");
+    var labelRow = element("div", "param-label-row");
     var label = element("label", "param-label", parameter.label || parameter.name);
     label.htmlFor = "param_" + parameter.name;
     if (parameter.unit) label.textContent += " (" + parameter.unit + ")";
-    wrap.appendChild(label);
+    labelRow.appendChild(label);
+    if (parameter.help) {
+      var tooltip = element("span", "param-tooltip", "?");
+      tooltip.title = parameter.help;
+      tooltip.setAttribute("aria-label", parameter.help);
+      labelRow.appendChild(tooltip);
+    }
+    wrap.appendChild(labelRow);
     var control;
     if (parameter.choices && parameter.choices.length) {
       control = element("select", "text-input");
@@ -88,11 +96,18 @@
         option.selected = choice === parameter.default; control.appendChild(option);
       });
     } else if (parameter.type === "bool") {
-      control = element("select", "text-input");
-      [{ value: "true", label: "Yes" }, { value: "false", label: "No" }].forEach(function (item) {
-        var option = element("option", "", item.label); option.value = item.value;
-        option.selected = (parameter.default === true) === (item.value === "true"); control.appendChild(option);
+      control = element("span", "param-toggle-wrap");
+      var hidden = element("input", "");
+      hidden.type = "hidden"; hidden.value = parameter.default === true ? "true" : "false";
+      hidden.id = "param_" + parameter.name; hidden.dataset.paramName = parameter.name;
+      var checkbox = element("input", "param-toggle");
+      checkbox.type = "checkbox"; checkbox.checked = parameter.default === true;
+      checkbox.addEventListener("change", function () {
+        hidden.value = checkbox.checked ? "true" : "false";
+        context.changed();
       });
+      control.appendChild(hidden);
+      control.appendChild(checkbox);
     } else {
       control = element("input", "text-input");
       control.type = parameter.type === "int" || parameter.type === "float" ? "number" : "text";
@@ -101,14 +116,16 @@
       if (parameter.maximum != null) control.max = parameter.maximum;
       if (parameter.step != null) control.step = parameter.step;
       control.required = Boolean(parameter.required);
+      control.id = "param_" + parameter.name;
+      control.dataset.paramName = parameter.name;
     }
-    control.id = "param_" + parameter.name;
-    control.dataset.paramName = parameter.name;
     var error = element("p", "param-error"); error.id = "param_error_" + parameter.name; error.hidden = true;
-    control.setAttribute("aria-describedby", error.id);
-    control.addEventListener("input", function () {
-      control.removeAttribute("aria-invalid"); error.hidden = true; error.textContent = ""; context.changed();
-    });
+    if (parameter.type !== "bool") {
+      control.setAttribute("aria-describedby", error.id);
+      control.addEventListener("input", function () {
+        control.removeAttribute("aria-invalid"); error.hidden = true; error.textContent = ""; context.changed();
+      });
+    }
     wrap.appendChild(control);
     if (parameter.description) wrap.appendChild(element("p", "param-help", parameter.description));
     wrap.appendChild(error);

@@ -38,6 +38,7 @@ class TaskParam:
     maximum: float | None = None
     step: float | None = None
     unit: str = ""
+    help: str = ""
     advanced: bool = False
 
 
