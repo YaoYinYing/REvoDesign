@@ -201,40 +201,77 @@
     stage.appendChild(note);
   }
 
+  // ponytail: current viewer choice per artifact — kept simple (no global
+  // preference store).  Resets when the user selects a different artifact.
+  var structureViewer = "molstar";
+
+  function structureViewerBar(artifact) {
+    var bar = document.createElement("div");
+    bar.className = "structure-viewer-bar";
+    var makeBtn = function (label, viewer) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "viewer-toggle" + (structureViewer === viewer ? " active" : "");
+      btn.textContent = label;
+      btn.addEventListener("click", function () { structureViewer = viewer; previewArtifact(artifact); });
+      return btn;
+    };
+    bar.append(makeBtn("Mol* (full)", "molstar"), makeBtn("py2Dmol (alpha)", "py2dmol"));
+    return bar;
+  }
+
+  async function renderMolstar(structureText, artifact, stage) {
+    var molstar = await ensureMolstarAssets();
+    var target = document.createElement("div");
+    target.className = "artifact-molstar-preview";
+    target.id = "molstar-result-" + Math.random().toString(36).slice(2);
+    stage.appendChild(target);
+    activeMolstar = await molstar.Viewer.create(target.id, {
+      layoutIsExpanded: false,
+      layoutShowControls: true,
+      layoutShowRemoteState: false,
+      layoutShowSequence: true,
+      layoutShowLog: false,
+      layoutShowLeftPanel: false,
+      viewportShowExpand: true,
+      viewportShowSelectionMode: true,
+      viewportShowAnimation: true
+    });
+    await activeMolstar.loadStructureFromData(structureText, structureFormat(artifact.path), { label: artifact.path });
+  }
+
   async function previewStructure(artifact, stage) {
     var response = await A.authFetch(artifact.url);
     if (!response.ok) throw new Error("Structure download failed (HTTP " + response.status + ")");
     var structureText = await response.text();
-    try {
-      var molstar = await ensureMolstarAssets();
-      var target = document.createElement("div");
-      target.className = "artifact-molstar-preview";
-      target.id = "molstar-result-" + Math.random().toString(36).slice(2);
-      stage.appendChild(target);
-      activeMolstar = await molstar.Viewer.create(target.id, {
-        layoutIsExpanded: false,
-        layoutShowControls: true,
-        layoutShowRemoteState: false,
-        layoutShowSequence: true,
-        layoutShowLog: false,
-        layoutShowLeftPanel: false,
-        viewportShowExpand: true,
-        viewportShowSelectionMode: true,
-        viewportShowAnimation: true
-      });
-      await activeMolstar.loadStructureFromData(structureText, structureFormat(artifact.path), { label: artifact.path });
-    } catch (error) {
-      stage.replaceChildren();
-      try {
-        await renderPy2DmolFallback(structureText, artifact, stage, error);
-      } catch (fallbackError) {
-        stage.replaceChildren();
-        var message = document.createElement("p");
-        message.className = "preview-message";
-        message.textContent = "Interactive structure preview is unavailable. Download the structure file to inspect it locally.";
-        stage.appendChild(message);
-        console.warn("Structure viewers unavailable", error, fallbackError);
+    stage.appendChild(structureViewerBar(artifact));
+
+    if (structureViewer === "py2dmol") {
+      try { await renderPy2DmolFallback(structureText, artifact, stage, new Error("User selected alpha-trace viewer")); }
+      catch (e) {
+        var unavailableMsg = document.createElement("p");
+        unavailableMsg.className = "preview-message";
+        unavailableMsg.textContent = "py2Dmol unavailable. Download the structure file to inspect it locally.";
+        stage.appendChild(unavailableMsg);
       }
+      return;
+    }
+
+    try { await renderMolstar(structureText, artifact, stage); }
+    catch (error) {
+      stage.replaceChildren();
+      stage.appendChild(structureViewerBar(artifact));
+      var msg = document.createElement("p");
+      msg.className = "preview-message";
+      msg.textContent = "Mol* could not be loaded. ";
+      var retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "btn btn-soft btn-small";
+      retry.textContent = "Open with py2Dmol (alpha-trace)";
+      retry.type = "button";
+      retry.addEventListener("click", function () { structureViewer = "py2dmol"; previewArtifact(artifact); });
+      msg.appendChild(retry);
+      stage.appendChild(msg);
     }
   }
 
@@ -448,6 +485,26 @@
     document.getElementById("refreshResults").addEventListener("click", function () { window.location.reload(); });
     document.getElementById("artifactSearch").addEventListener("input", function (event) { renderArtifacts(event.target.value); });
     document.getElementById("archiveButton").addEventListener("click", archiveAction);
+
+    // Space to preview (macOS Finder Quick Look), Escape to close
+    document.addEventListener("keydown", function (event) {
+      if (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA") return;
+      if (event.key === " " || event.code === "Space") {
+        event.preventDefault();
+        if (activeArtifact) { activeArtifact = null; previewHost.destroy(); return; }
+        var first = artifacts.find(function (a) { return Boolean(a.preview); });
+        if (first) previewArtifact(first);
+      }
+      if (event.key === "Escape" && activeArtifact) {
+        event.preventDefault();
+        activeArtifact = null;
+        previewHost.destroy();
+        document.getElementById("previewTitle").textContent = "";
+        document.getElementById("artifactDownload").hidden = true;
+        document.querySelectorAll(".artifact-row.active").forEach(function (r) { r.classList.remove("active"); });
+      }
+    });
+
     loadResults().catch(function (error) {
       document.getElementById("artifactPreview").innerHTML = '<p class="preview-message"></p>';
       document.getElementById("artifactPreview").firstChild.textContent = error.message || "Results unavailable";
