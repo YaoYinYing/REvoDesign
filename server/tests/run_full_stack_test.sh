@@ -43,10 +43,10 @@ mkdir -p \
   "${WORK_DIR}/state/server" \
   "${WORK_DIR}/state/auth" \
   "${WORK_DIR}/state/logs" \
-  "${WORK_DIR}/miniuc/uc30" \
-  "${WORK_DIR}/miniuc/uc90" \
-  "${WORK_DIR}/testminiuc/uc30" \
-  "${WORK_DIR}/testminiuc/uc90"
+  "${WORK_DIR}/state/miniuc/uc30" \
+  "${WORK_DIR}/state/miniuc/uc90" \
+  "${WORK_DIR}/state/testminiuc/uc30" \
+  "${WORK_DIR}/state/testminiuc/uc90"
 
 cp "${SERVER_ROOT}/.env.example" "${ENV_FILE}"
 PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
@@ -61,8 +61,8 @@ elif [[ "${RUNNER_GID}" == "0" ]]; then
 fi
 export RUNNER_UID RUNNER_GID
 cp -r "${SERVER_ROOT}/config" "${WORK_DIR}/state/server/config"
-sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc30|${WORK_DIR}/miniuc/uc30|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
-sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc90|${WORK_DIR}/miniuc/uc90|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
+sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc30|${WORK_DIR}/state/miniuc/uc30|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
+sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc90|${WORK_DIR}/state/miniuc/uc90|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
 cat >>"${ENV_FILE}" <<EOF
 
 # Full-stack test overrides
@@ -108,15 +108,15 @@ docker run --rm \
     makeblastdb \
       -in /repo/tests/data/msa/2KL8_blast.fasta \
       -dbtype prot -parse_seqids \
-      -out /work/miniuc/uc90/uniref90
+      -out /work/state/miniuc/uc90/uniref90
     psiblast \
       -query /repo/tests/data/msa/2KL8.fasta \
-      -db /work/miniuc/uc90/uniref90 \
-      -out_pssm /work/testminiuc/uc90/2KL8.ckp \
-      -out_ascii_pssm /work/testminiuc/uc90/2KL8_ascii.mtx \
-      -out /work/testminiuc/uc90/2KL8.out \
+      -db /work/state/miniuc/uc90/uniref90 \
+      -out_pssm /work/state/testminiuc/uc90/2KL8.ckp \
+      -out_ascii_pssm /work/state/testminiuc/uc90/2KL8_ascii.mtx \
+      -out /work/state/testminiuc/uc90/2KL8.out \
       -evalue 0.01 -num_iterations 3 -num_threads 2
-    cd /work/miniuc/uc30
+    cd /work/state/miniuc/uc30
     ffindex_from_fasta -s miniuc30_a3m.ffdata miniuc30_a3m.ffindex \
       /repo/tests/data/msa/2KL8.i90c75_aln.fas
     cstranslate \
@@ -126,9 +126,9 @@ docker run --rm \
     cd /repo
     hhblits \
       -i tests/data/msa/2KL8.fasta \
-      -oa3m /work/testminiuc/uc30/2KL8.a3m \
-      -o /work/testminiuc/uc30/2KL8.hhr \
-      -d /work/miniuc/uc30/miniuc30 \
+      -oa3m /work/state/testminiuc/uc30/2KL8.a3m \
+      -o /work/state/testminiuc/uc30/2KL8.hhr \
+      -d /work/state/miniuc/uc30/miniuc30 \
       -n 4 -e 1e-10 -mact 0.35 -maxfilt 1e8 -neffmax 20 \
       -cpu 2 -nodiff -realign_max 1e7 -maxmem 1
   '
@@ -144,7 +144,7 @@ docker build \
   --tag "${SERVER_IMAGE}" \
   "${SERVER_ROOT}"
 
-ls -d "${WORK_DIR}/miniuc/uc30" "${WORK_DIR}/miniuc/uc90" >/dev/null || {
+ls -d "${WORK_DIR}/state/miniuc/uc30" "${WORK_DIR}/state/miniuc/uc90" >/dev/null || {
   echo "Database directories missing before server launch." >&2; exit 1; }
 echo "Launching the full server stack from the generated test environment..."
 if ! UP_OUTPUT="$(REVODESIGN_SERVER_ENV="${ENV_FILE}" bash "${DEPLOY_SCRIPT}" up 2>&1)"; then
