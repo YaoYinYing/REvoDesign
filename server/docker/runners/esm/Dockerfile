@@ -4,8 +4,9 @@
 # openfold installs from GitHub (PyPI carries only a 0.0.1 stub); its
 # setup.py needs nvcc, so the builder uses the -devel image. Runtime
 # stays on -runtime. dm-tree/biopython/ml_collections/einops/modelcif/
-# scipy are its unpinned runtime deps (the [esmfold] extra pins
-# deepspeed==0.5.9, which does not support torch 2.2).
+# scipy/omegaconf are its unpinned runtime deps (omegaconf is needed at
+# checkpoint unpickle time). The [esmfold] extra is dropped because it
+# pins deepspeed==0.5.9, which does not support torch 2.2.
 FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04 AS builder
 
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
@@ -34,7 +35,8 @@ RUN pip install --no-cache-dir torch==2.2.0+cu121 \
       "ml_collections" \
       "einops" \
       "modelcif" \
-      "scipy" && \
+      "scipy" \
+      "omegaconf" && \
     pip install --no-cache-dir --no-build-isolation "openfold @ git+https://github.com/aqlaboratory/openfold.git@${OPENFOLD_REF}" && \
     python -c 'from openfold.np import residue_constants; from openfold.np.protein import Protein, to_pdb; from openfold.utils.feats import atom14_to_atom37; from openfold.data.data_transforms import make_atom14_masks; from openfold.utils.loss import compute_predicted_aligned_error, compute_tm; from openfold.model.structure_module import StructureModule; print("openfold imports OK")'
 
