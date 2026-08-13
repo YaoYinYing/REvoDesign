@@ -36,20 +36,7 @@ def _preserve_registry():
 
 
 def test_shared_tasks_resolve_one_runtime_and_runner_config():
-    enabled = {
-        "esm_fold",
-        "esm_extract",
-        "esm_1v",
-        "esm_if1",
-        "hypermpnn",
-        "proteinmpnn",
-        "solublempnn",
-        "ligandmpnn",
-        "lasermpnn",
-        "thermompnn",
-        "placer",
-        "rfdiffusion",
-    }
+    enabled = {"esm", "mpnn", "placer-rfdiffusion"}
     with _preserve_registry():
         task_types.load_registry(
             str(SERVER_ROOT / "config" / "task_types.yaml"),
@@ -89,7 +76,7 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
 
 
 def test_input_workspace_capabilities_cover_simple_and_complex_tasks():
-    enabled = {"rfdiffusion", "placer", "easifa"}
+    enabled = {"placer-rfdiffusion", "easifa"}
     with _preserve_registry():
         task_types.load_registry(
             str(SERVER_ROOT / "config" / "task_types.yaml"),
