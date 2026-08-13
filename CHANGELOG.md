@@ -19,6 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **ESM-MSA-1b variant-effect task** (`esm_msa`): masked-marginal
+  per-position profile over an uploaded a3m alignment, using
+  `esm_msa1b_t12_100M_UR50S`. Outputs `msa1b_profile.csv` and
+  `msa1b_summary.json`.
+- **Runner build-failure tolerance**: a failed Docker/SIF runner build
+  warns, drops the runner from `ENABLED_TASKRUNNERS`, and lets the
+  restart continue instead of aborting.
+
+### Changed
+- **ESMFold v1 removed**: the `esmfold_3B_v1` checkpoint is built against
+  the 2022 openfold whose kernels no longer compile on a supported
+  toolchain, and whose IPA internals changed in openfold v2.x — the
+  checkpoint cannot load. ESM-2 embedding, ESM-1v scoring, and ESM-IF1
+  design remain.
+- **`ENABLED_TASKRUNNERS` filters by runtime family** (esm, mpnn, …), not
+  task-type name — the submission page previously hid most task types.
+- ESM runner era-pinned dependency notes documented in its Dockerfile.
 - **Pluggable scientific input and result workspaces**: added a shared local
   plugin registry and lifecycle host, a validated additive input-capability
   schema, reusable file/sequence/structure/region/parameter/review components,
