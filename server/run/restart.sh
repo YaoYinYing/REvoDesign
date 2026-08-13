@@ -31,10 +31,11 @@ expand_enabled_runners() {
   export ENABLED_TASKRUNNERS="${_all}"
 }
 
-# True if the named runner is in the enabled list.
+# True if the named runner is in the enabled list (empty = all enabled).
 runner_enabled() {
   local target="$1" _n=""
-  IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS:-}"
+  [[ -z "${ENABLED_TASKRUNNERS:-}" ]] && return 0
+  IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
   for _n in "${_names[@]}"; do
     [[ "${_n}" == "${target}" ]] && return 0
   done

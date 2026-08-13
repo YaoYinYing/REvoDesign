@@ -15,13 +15,13 @@ RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
       software-properties-common git ca-certificates build-essential && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt-get install -y --no-install-recommends python3.12 python3.12-venv python3.12-dev && \
+    apt-get install -y --no-install-recommends python3.11 python3.11-venv python3.11-dev && \
     rm -rf /var/lib/apt/lists/* && \
-    python3.12 -m venv /opt/venv && \
+    python3.11 -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
 
 ENV PATH=/opt/venv/bin:${PATH}
-ARG OPENFOLD_REF=v2.2.0
+ARG OPENFOLD_REF=e938c184a291bf053af3b14c1e3e8bb29aee57e2
 RUN pip install --no-cache-dir torch==2.2.0+cu121 \
     --extra-index-url https://download.pytorch.org/whl/cu121 && \
     pip install --no-cache-dir \
@@ -44,7 +44,8 @@ RUN git init /opt/esm2 && git -C /opt/esm2 remote add origin ${ESM_REPO} && \
     git -C /opt/esm2 fetch --depth 1 origin ${ESM_REF} && \
     git -C /opt/esm2 checkout --detach FETCH_HEAD && \
     pip install --no-cache-dir -e /opt/esm2 && \
-    python -c "import esm2, pandas; from esm2.esmfold.v1 import esmfold; print('esm2 + esmfold imports OK')" && \
+    python -c "import esm2, pandas" && \
+    python -c "from esm2.esmfold.v1 import esmfold; print('esm2 + esmfold imports OK')" && \
     rm -rf /opt/esm2/.git
 
 FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
@@ -60,9 +61,9 @@ RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     apt-get install -y --no-install-recommends software-properties-common && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt-get install -y --no-install-recommends python3.12 && \
+    apt-get install -y --no-install-recommends python3.11 && \
     rm -rf /var/lib/apt/lists/* && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     (id -u ${RUNNER_USERNAME} >/dev/null 2>&1 && usermod -u ${RUNNER_UID} -g ${RUNNER_GID} ${RUNNER_USERNAME}) || \
