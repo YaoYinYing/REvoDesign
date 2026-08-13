@@ -67,7 +67,7 @@ def test_task_type_api_exposes_runtime_family_and_gpu_contract(monkeypatch, tmp_
         extra_env={
             "RUNNER_UID": "1234",
             "RUNNER_GID": "5678",
-            "ENABLED_TASKRUNNERS": "lasermpnn",
+            "ENABLED_TASKRUNNERS": "mpnn",
         },
     )
     client = module.app.test_client()

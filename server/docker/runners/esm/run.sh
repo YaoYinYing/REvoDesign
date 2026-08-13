@@ -1,5 +1,5 @@
 #!/bin/bash
-# REvoDesign ESM runner — ESMFold structure prediction and ESM-2 model scoring.
+# REvoDesign ESM runner — ESM-2 embedding, ESM-1v scoring, ESM-IF1 design.
 #
 # Runner contract:
 #   1. Reads input FASTA/PDB from /workspace/inputs/
@@ -53,6 +53,7 @@ mkdir -p "$output_dir"
 # Parse TASK_PARAMS JSON into env vars (docker_runner passes params this way).
 # Each task type has different params; we extract known keys with defaults.
 _parse_param() { python3 -c "import json,os; print(json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''))"; }
+: "${MSA_SAMPLES:=$(_parse_param msa_samples)}"
 : "${NUM_RECYCLES:=$(_parse_param num_recycles)}"
 : "${MAX_TOKENS_PER_BATCH:=$(_parse_param max_tokens_per_batch)}"
 : "${CHUNK_SIZE:=$(_parse_param chunk_size)}"
@@ -68,15 +69,13 @@ _parse_param() { python3 -c "import json,os; print(json.loads(os.environ.get('TA
 echo "Processing $input_file ..."
 echo "Output directory: $output_dir"
 
-echo "REVODESIGN_STAGE:${TASK_TYPE:-esm_fold}"
+echo "REVODESIGN_STAGE:${TASK_TYPE:-esm_extract}"
 
-case "${TASK_TYPE:-esm_fold}" in
-  esm_fold)
-    python "${REVODESIGN_RUNSCRIPT_PATH}/esmfold_inference.py" \
+case "${TASK_TYPE:-esm_extract}" in
+  esm_msa)
+    python "${REVODESIGN_RUNSCRIPT_PATH}/msa1b_score.py" \
       -i "$input_file" -o "$output_dir" -m /mnt/db/weights/esm \
-      --num-recycles "${NUM_RECYCLES:-4}" \
-      --max-tokens-per-batch "${MAX_TOKENS_PER_BATCH:-1024}" \
-      --chunk-size "${CHUNK_SIZE:-128}"
+      --msa-samples "${MSA_SAMPLES:-32}"
     ;;
   esm_extract)
     read -r -a repr_layer_args <<< "${REPR_LAYERS:-33}"

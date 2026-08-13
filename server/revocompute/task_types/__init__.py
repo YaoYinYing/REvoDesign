@@ -353,10 +353,9 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
 
     runner_configs: dict[str, RunnerConfig] = {}
     for name, entry in types_data.get("task_types", {}).items():
-        if name != "gremlin" and name not in enabled:
-            continue
-
         runtime_name = entry["runtime_family"]
+        if name != "gremlin" and runtime_name not in enabled:
+            continue
         if runtime_name not in runtimes:
             raise ValueError(f"Task type {name!r} references unknown runtime family {runtime_name!r}")
         runtime = runtimes[runtime_name]

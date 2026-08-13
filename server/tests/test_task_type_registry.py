@@ -36,20 +36,7 @@ def _preserve_registry():
 
 
 def test_shared_tasks_resolve_one_runtime_and_runner_config():
-    enabled = {
-        "esm_fold",
-        "esm_extract",
-        "esm_1v",
-        "esm_if1",
-        "hypermpnn",
-        "proteinmpnn",
-        "solublempnn",
-        "ligandmpnn",
-        "lasermpnn",
-        "thermompnn",
-        "placer",
-        "rfdiffusion",
-    }
+    enabled = {"esm", "mpnn", "placer-rfdiffusion"}
     with _preserve_registry():
         task_types.load_registry(
             str(SERVER_ROOT / "config" / "task_types.yaml"),
@@ -59,7 +46,7 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
         assert task_types.get_job_executor() == "docker"
         assert task_types.get_container_runtime() == "docker"
 
-        esm_tasks = [task_types.get(name) for name in ("esm_fold", "esm_extract", "esm_1v", "esm_if1")]
+        esm_tasks = [task_types.get(name) for name in ("esm_extract", "esm_1v", "esm_if1")]
         assert {tt.runtime.name for tt, _ in esm_tasks} == {"esm"}
         assert not hasattr(esm_tasks[0][0].runtime, "job_executor")
         assert not hasattr(esm_tasks[0][0].runtime, "container_runtime")
@@ -89,7 +76,7 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
 
 
 def test_input_workspace_capabilities_cover_simple_and_complex_tasks():
-    enabled = {"rfdiffusion", "placer", "easifa"}
+    enabled = {"placer-rfdiffusion", "easifa"}
     with _preserve_registry():
         task_types.load_registry(
             str(SERVER_ROOT / "config" / "task_types.yaml"),
@@ -386,7 +373,7 @@ def test_enabled_runtime_requires_family_runner_config(tmp_path):
         task_types.load_registry(
             str(SERVER_ROOT / "config" / "task_types.yaml"),
             str(tmp_path),
-            {"esm_fold"},
+            {"esm_extract"},
         )
 
 

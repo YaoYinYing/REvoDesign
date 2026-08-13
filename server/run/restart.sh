@@ -20,6 +20,39 @@ compose_files() {
   printf '%s\n' "${files[@]}"
 }
 
+# Normalize empty ENABLED_TASKRUNNERS ("build all") into an explicit list so a
+# failed runner can be dropped from it for the rest of the run.
+expand_enabled_runners() {
+  if [[ -n "${ENABLED_TASKRUNNERS:-}" ]]; then return; fi
+  local _all="" _name=""
+  while IFS=$'\t' read -r _name _; do
+    _all="${_all:+${_all},}${_name}"
+  done < <(runtime_manifest)
+  export ENABLED_TASKRUNNERS="${_all}"
+}
+
+# True if the named runner is in the enabled list (empty = all enabled).
+runner_enabled() {
+  local target="$1" _n=""
+  [[ -z "${ENABLED_TASKRUNNERS:-}" ]] && return 0
+  IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
+  for _n in "${_names[@]}"; do
+    [[ "${_n}" == "${target}" ]] && return 0
+  done
+  return 1
+}
+
+# Remove one runner from the exported enabled list (idempotent).
+drop_enabled_runner() {
+  local target="$1" remaining="" _n=""
+  IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS:-}"
+  for _n in "${_names[@]}"; do
+    [[ "${_n}" == "${target}" ]] && continue
+    remaining="${remaining:+${remaining},}${_n}"
+  done
+  export ENABLED_TASKRUNNERS="${remaining}"
+}
+
 runtime_manifest() {
   local registry_file="${CONFIG_DIR:-${SERVER_ROOT}/config}/task_types.yaml"
   if [[ ! -f "${registry_file}" ]]; then
@@ -541,14 +574,7 @@ validate_slurm_images() {
   local slurm_image=""
 
   while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
-    if [[ -n "${ENABLED_TASKRUNNERS:-}" ]]; then
-      local _match=0
-      IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
-      for _n in "${_names[@]}"; do
-        [[ "${_n}" == "${name}" ]] && { _match=1; break; }
-      done
-      [[ ${_match} -eq 0 ]] && continue
-    fi
+    if ! runner_enabled "${name}"; then continue; fi
     if [[ ! -f "${slurm_image}" ]]; then
       echo "[SLURM] Missing SIF image: ${slurm_image}" >&2
       echo "        Build it:  apptainer build --fakeroot ${slurm_image} ${SERVER_ROOT}/${definition}" >&2
@@ -578,30 +604,26 @@ build_slurm_images() {
     return 1
   fi
 
+  expand_enabled_runners
   while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
-    if [[ -n "${ENABLED_TASKRUNNERS:-}" ]]; then
-      local _match=0
-      IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
-      for _n in "${_names[@]}"; do
-        [[ "${_n}" == "${name}" ]] && { _match=1; break; }
-      done
-      [[ ${_match} -eq 0 ]] && continue
-    fi
+    if ! runner_enabled "${name}"; then continue; fi
     def_file="${SERVER_ROOT}/${definition}"
     if [[ -z "${def_file}" || ! -f "${def_file}" ]]; then
       echo "[SLURM] No .def file for runtime family '${name}': ${def_file}" >&2
-      return 1
+      drop_enabled_runner "${name}"
+      continue
     fi
     if [[ -f "${slurm_image}" ]]; then
       echo "[SLURM] SIF image already exists: ${slurm_image} — skipping."
       continue
     fi
     echo "[SLURM] Building ${slurm_image} from ${def_file}..."
-    apptainer build --fakeroot "${slurm_image}" "${def_file}" || {
-      echo "[SLURM] Build failed for ${name}." >&2
-      return 1
-    }
-    built=$((built + 1))
+    if ! apptainer build --fakeroot "${slurm_image}" "${def_file}"; then
+      echo "[SLURM] Build failed for ${name} — disabled for this restart." >&2
+      drop_enabled_runner "${name}"
+    else
+      built=$((built + 1))
+    fi
   done < <(runtime_manifest)
 
   if [[ ${built} -gt 0 ]]; then
@@ -844,25 +866,21 @@ cmd_build() {
     )
   fi
 
+  expand_enabled_runners
   echo "Building runner images..."
   while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
-    # Skip runners not in the user's enabled list (empty = build all).
-    if [[ -n "${ENABLED_TASKRUNNERS:-}" ]]; then
-      local _match=0
-      IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
-      for _n in "${_names[@]}"; do
-        [[ "${_n}" == "${name}" ]] && { _match=1; break; }
-      done
-      [[ ${_match} -eq 0 ]] && continue
-    fi
+    if ! runner_enabled "${name}"; then continue; fi
     echo "  → ${image} (${name})"
-    docker build \
+    if ! docker build \
       "${proxy_build_args[@]}" \
       --build-arg RUNNER_UID="${RUNNER_UID}" \
       --build-arg RUNNER_GID="${RUNNER_GID}" \
       --build-arg RUNNER_USERNAME="${RUNNER_USERNAME}" \
       --build-arg RUNNER_GROUP="${RUNNER_GROUP}" \
-      -t "${image}" -f "${SERVER_ROOT}/${dockerfile}" "${SERVER_ROOT}"
+      -t "${image}" -f "${SERVER_ROOT}/${dockerfile}" "${SERVER_ROOT}"; then
+      echo "  ✗ ${name} build failed — disabled for this restart." >&2
+      drop_enabled_runner "${name}"
+    fi
   done < <(runtime_manifest)
 
   echo "Building web/worker images..."
@@ -895,14 +913,7 @@ validate_prepared_images() {
     "redis:7.2-alpine"
   )
   while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
-    if [[ -n "${ENABLED_TASKRUNNERS:-}" ]]; then
-      local _match=0
-      IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
-      for _n in "${_names[@]}"; do
-        [[ "${_n}" == "${name}" ]] && { _match=1; break; }
-      done
-      [[ ${_match} -eq 0 ]] && continue
-    fi
+    if ! runner_enabled "${name}"; then continue; fi
     required_images+=("${image}")
   done < <(runtime_manifest)
   for image in "${required_images[@]}"; do
@@ -1031,14 +1042,7 @@ cmd_restart() {
       echo "Pulling configured production images..."
       "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" pull web gateway
       while IFS=$'\t' read -r name image dockerfile definition slurm_image; do
-        if [[ -n "${ENABLED_TASKRUNNERS:-}" ]]; then
-          local _match=0
-          IFS=',' read -ra _names <<<"${ENABLED_TASKRUNNERS}"
-          for _n in "${_names[@]}"; do
-            [[ "${_n}" == "${name}" ]] && { _match=1; break; }
-          done
-          [[ ${_match} -eq 0 ]] && continue
-        fi
+        if ! runner_enabled "${name}"; then continue; fi
         echo "  → ${image} (${name})"
         docker pull "${image}"
       done < <(runtime_manifest)
