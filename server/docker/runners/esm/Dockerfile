@@ -1,22 +1,21 @@
 # ESM runner — CUDA-enabled image for ESMFold / ESM-2 / ESM-1v / ESM-IF1.
 # Build tools and Git stay in the builder; the runtime keeps only Python,
 # CUDA libraries, the pinned source, and its installed environment.
-# openfold is cloned and copied into site-packages instead of pip install
-# (PyPI carries only a 0.0.1 stub, and its setup.py builds CUDA kernels
-# ESMFold never imports — no nvcc needed). The `: >` line empties its root
-# __init__: the cloned one does `from . import model`, which would pull
-# the full AlphaFold model tree (deepspeed) on every openfold.* import.
-# dm-tree/biopython/ml_collections/einops are its unpinned runtime deps.
-FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04 AS builder
+# openfold installs from GitHub (PyPI carries only a 0.0.1 stub); its
+# setup.py needs nvcc, so the builder uses the -devel image. Runtime
+# stays on -runtime. dm-tree/biopython/ml_collections/einops/modelcif/
+# scipy are its unpinned runtime deps (the [esmfold] extra pins
+# deepspeed==0.5.9, which does not support torch 2.2).
+FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04 AS builder
 
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends \
-      software-properties-common git ca-certificates wget && \
+      software-properties-common git ca-certificates build-essential && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt-get install -y --no-install-recommends python3.12 python3.12-venv && \
+    apt-get install -y --no-install-recommends python3.12 python3.12-venv python3.12-dev && \
     rm -rf /var/lib/apt/lists/* && \
     python3.12 -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
@@ -33,14 +32,11 @@ RUN pip install --no-cache-dir torch==2.2.0+cu121 \
       "dm-tree" \
       "biopython" \
       "ml_collections" \
-      "einops" && \
-    git clone --depth 1 --branch ${OPENFOLD_REF} https://github.com/aqlaboratory/openfold.git /opt/openfold-src && \
-    cp -r /opt/openfold-src/openfold /opt/venv/lib/python3.12/site-packages/openfold && \
-    : > /opt/venv/lib/python3.12/site-packages/openfold/__init__.py && \
-    wget -q -P /opt/venv/lib/python3.12/site-packages/openfold/resources \
-      https://git.scicore.unibas.ch/schwede/openstructure/-/raw/7102c63615b64735c4941278d92b554ec94415f8/modules/mol/alg/src/stereo_chemical_props.txt && \
-    python -c 'from openfold.np import residue_constants; from openfold.np.protein import Protein, to_pdb; from openfold.utils.feats import atom14_to_atom37; from openfold.data.data_transforms import make_atom14_masks; from openfold.utils.loss import compute_predicted_aligned_error, compute_tm; print("openfold imports OK")' && \
-    rm -rf /opt/openfold-src
+      "einops" \
+      "modelcif" \
+      "scipy" && \
+    pip install --no-cache-dir --no-build-isolation "openfold @ git+https://github.com/aqlaboratory/openfold.git@${OPENFOLD_REF}" && \
+    python -c 'from openfold.np import residue_constants; from openfold.np.protein import Protein, to_pdb; from openfold.utils.feats import atom14_to_atom37; from openfold.data.data_transforms import make_atom14_masks; from openfold.utils.loss import compute_predicted_aligned_error, compute_tm; from openfold.model.structure_module import StructureModule; print("openfold imports OK")'
 
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
