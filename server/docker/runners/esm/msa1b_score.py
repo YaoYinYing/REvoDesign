@@ -72,7 +72,8 @@ def main() -> None:
     rows = read_a3m(args.input, args.msa_samples)
     query = rows[0]
     converter = alphabet.get_batch_converter()
-    _, _, tokens = converter([("msa", rows)])
+    msa = [(f"seq{i}", seq) for i, seq in enumerate(rows)]
+    _, _, tokens = converter([msa])
 
     # masked marginals over the query (first) sequence
     all_log_probs = []
