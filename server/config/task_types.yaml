@@ -146,6 +146,23 @@ task_types:
       pythia_ddg: "Pythia masked ddG scan"
     params: []
 
+  esm_msa:
+    display_name: "ESM-MSA-1b Variant Effect"
+    runtime_family: "esm"
+    gpus: true
+    input_extension: ".a3m"
+    input_label: "Multiple sequence alignment (a3m)"
+    stage_markers:
+      esm_msa: "ESM-MSA-1b masked-marginal profile"
+    params:
+      - name: "msa_samples"
+        type: "int"
+        default: 32
+        description: "MSA rows to load (first N sequences)"
+        minimum: 1
+        maximum: 256
+        step: 1
+
   esm_extract:
     display_name: "ESM-2 Embedding"
     runtime_family: "esm"

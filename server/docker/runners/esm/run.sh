@@ -53,6 +53,7 @@ mkdir -p "$output_dir"
 # Parse TASK_PARAMS JSON into env vars (docker_runner passes params this way).
 # Each task type has different params; we extract known keys with defaults.
 _parse_param() { python3 -c "import json,os; print(json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''))"; }
+: "${MSA_SAMPLES:=$(_parse_param msa_samples)}"
 : "${NUM_RECYCLES:=$(_parse_param num_recycles)}"
 : "${MAX_TOKENS_PER_BATCH:=$(_parse_param max_tokens_per_batch)}"
 : "${CHUNK_SIZE:=$(_parse_param chunk_size)}"
@@ -71,6 +72,11 @@ echo "Output directory: $output_dir"
 echo "REVODESIGN_STAGE:${TASK_TYPE:-esm_extract}"
 
 case "${TASK_TYPE:-esm_extract}" in
+  esm_msa)
+    python "${REVODESIGN_RUNSCRIPT_PATH}/msa1b_score.py" \
+      -i "$input_file" -o "$output_dir" -m /mnt/db/weights/esm \
+      --msa-samples "${MSA_SAMPLES:-32}"
+    ;;
   esm_extract)
     read -r -a repr_layer_args <<< "${REPR_LAYERS:-33}"
     read -r -a include_args <<< "${INCLUDE:-mean per_tok}"

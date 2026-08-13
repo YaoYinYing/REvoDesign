@@ -65,6 +65,7 @@ COPY --chown=${RUNNER_UID}:${RUNNER_GID} \
     docker/runners/esm/run.sh \
     docker/runners/esm/esm1v_score.py \
     docker/runners/esm/esm_if1_design.py \
+    docker/runners/esm/msa1b_score.py \
     /app/revocompute/
 
 WORKDIR /app/revocompute/
