@@ -1,61 +1,38 @@
-# ESM runner — CUDA-enabled image for ESMFold / ESM-2 / ESM-1v / ESM-IF1.
-# Build tools and Git stay in the builder; the runtime keeps only Python,
-# CUDA libraries, the pinned source, and its installed environment.
-# openfold installs from GitHub (PyPI carries only a 0.0.1 stub); its
-# setup.py needs nvcc, so the builder uses the -devel image. Runtime
-# stays on -runtime. dm-tree/biopython/ml_collections/einops/modelcif/
-# scipy/omegaconf are its unpinned runtime deps (omegaconf is needed at
-# checkpoint unpickle time). The [esmfold] extra is dropped because it
-# pins deepspeed==0.5.9, which does not support torch 2.2.
-FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04 AS builder
+# ESM runner — CUDA-enabled image for ESM-2 embedding, ESM-1v scoring,
+# and ESM-IF1 design. ESMFold was dropped: its esmfold_3B_v1 checkpoint is
+# built against the 2022 openfold whose setup.py no longer compiles on a
+# supported toolchain, and the model is superseded by the dedicated
+# structure runners (RFdiffusion/PLACER).
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04 AS builder
 
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends \
-      software-properties-common git ca-certificates build-essential && \
+      software-properties-common git && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt-get install -y --no-install-recommends python3.11 python3.11-venv python3.11-dev && \
+    apt-get install -y --no-install-recommends python3.11 python3.11-venv && \
     rm -rf /var/lib/apt/lists/* && \
     python3.11 -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
 
 ENV PATH=/opt/venv/bin:${PATH}
-ARG OPENFOLD_REF=e938c184a291bf053af3b14c1e3e8bb29aee57e2
 RUN pip install --no-cache-dir torch==2.2.0+cu121 \
     --extra-index-url https://download.pytorch.org/whl/cu121 && \
     pip install --no-cache-dir \
       "numpy<2" \
       "pandas==2.2.3" \
       "pytorch-lightning==1.9.5" \
-      "torchmetrics==0.11.4" \
-      "dm-tree" \
-      "biopython" \
-      "ml_collections" \
-      "einops" \
-      "modelcif" \
-      "scipy" \
-      "omegaconf" && \
-    pip install --no-cache-dir --no-build-isolation "openfold @ git+https://github.com/aqlaboratory/openfold.git@${OPENFOLD_REF}" && \
-    python -c 'from openfold.np import residue_constants; from openfold.np.protein import Protein, to_pdb; from openfold.utils.feats import atom14_to_atom37; from openfold.data.data_transforms import make_atom14_masks; from openfold.utils.loss import compute_predicted_aligned_error, compute_tm; from openfold.model.structure_module import StructureModule; print("openfold imports OK")'
+      "torchmetrics==0.11.4"
 
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
-# Patch the pinned fork for py3.11+: mutable dataclass defaults, and the
-# esm/esm2 attribute mix-up (constructor assigns self.esm but reads
-# self.esm2 — AttributeError at model construction).
 RUN git init /opt/esm2 && git -C /opt/esm2 remote add origin ${ESM_REPO} && \
     git -C /opt/esm2 fetch --depth 1 origin ${ESM_REF} && \
     git -C /opt/esm2 checkout --detach FETCH_HEAD && \
-    sed -i 's|from dataclasses import dataclass|from dataclasses import dataclass, field|' /opt/esm2/esm2/esmfold/v1/trunk.py /opt/esm2/esm2/esmfold/v1/esmfold.py && \
-    sed -i 's|structure_module: StructureModuleConfig = StructureModuleConfig()|structure_module: StructureModuleConfig = field(default_factory=StructureModuleConfig)|' /opt/esm2/esm2/esmfold/v1/trunk.py && \
-    sed -i 's|trunk: T.Any = FoldingTrunkConfig()|trunk: T.Any = field(default_factory=FoldingTrunkConfig)|' /opt/esm2/esm2/esmfold/v1/esmfold.py && \
-    sed -i 's|self.esm, self.esm_dict = esm_registry.get|self.esm2, self.esm_dict = esm_registry.get|' /opt/esm2/esm2/esmfold/v1/esmfold.py && \
-    sed -i 's|res = self.esm(|res = self.esm2(|' /opt/esm2/esm2/esmfold/v1/esmfold.py && \
     pip install --no-cache-dir -e /opt/esm2 && \
     python -c "import esm2, pandas" && \
-    python -c "from esm2.esmfold.v1 import esmfold; print('esm2 + esmfold imports OK')" && \
     rm -rf /opt/esm2/.git
 
 FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
@@ -86,7 +63,6 @@ RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revoc
 
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} \
     docker/runners/esm/run.sh \
-    docker/runners/esm/esmfold_inference.py \
     docker/runners/esm/esm1v_score.py \
     docker/runners/esm/esm_if1_design.py \
     /app/revocompute/

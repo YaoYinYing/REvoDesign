@@ -146,35 +146,6 @@ task_types:
       pythia_ddg: "Pythia masked ddG scan"
     params: []
 
-  esm_fold:
-    display_name: "ESMFold"
-    runtime_family: "esm"
-    gpus: true
-    input_extension: ".fasta"
-    input_label: "FASTA file"
-    stage_markers:
-      esm_fold: "ESMFold structure prediction"
-    params:
-      - name: "num_recycles"
-        type: "int"
-        default: 4
-        description: "ESMFold recycling iterations"
-        minimum: 0
-        maximum: 48
-        step: 1
-      - name: "max_tokens_per_batch"
-        type: "int"
-        default: 1024
-        description: "Max tokens per GPU batch"
-        minimum: 1
-        step: 1
-      - name: "chunk_size"
-        type: "int"
-        default: 128
-        description: "Axial attention chunk size"
-        minimum: 1
-        step: 1
-
   esm_extract:
     display_name: "ESM-2 Embedding"
     runtime_family: "esm"

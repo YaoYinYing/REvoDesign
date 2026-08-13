@@ -1,5 +1,5 @@
 #!/bin/bash
-# REvoDesign ESM runner — ESMFold structure prediction and ESM-2 model scoring.
+# REvoDesign ESM runner — ESM-2 embedding, ESM-1v scoring, ESM-IF1 design.
 #
 # Runner contract:
 #   1. Reads input FASTA/PDB from /workspace/inputs/
@@ -68,16 +68,9 @@ _parse_param() { python3 -c "import json,os; print(json.loads(os.environ.get('TA
 echo "Processing $input_file ..."
 echo "Output directory: $output_dir"
 
-echo "REVODESIGN_STAGE:${TASK_TYPE:-esm_fold}"
+echo "REVODESIGN_STAGE:${TASK_TYPE:-esm_extract}"
 
-case "${TASK_TYPE:-esm_fold}" in
-  esm_fold)
-    python "${REVODESIGN_RUNSCRIPT_PATH}/esmfold_inference.py" \
-      -i "$input_file" -o "$output_dir" -m /mnt/db/weights/esm \
-      --num-recycles "${NUM_RECYCLES:-4}" \
-      --max-tokens-per-batch "${MAX_TOKENS_PER_BATCH:-1024}" \
-      --chunk-size "${CHUNK_SIZE:-128}"
-    ;;
+case "${TASK_TYPE:-esm_extract}" in
   esm_extract)
     read -r -a repr_layer_args <<< "${REPR_LAYERS:-33}"
     read -r -a include_args <<< "${INCLUDE:-mean per_tok}"
