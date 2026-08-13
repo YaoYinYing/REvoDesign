@@ -42,13 +42,17 @@ RUN pip install --no-cache-dir torch==2.2.0+cu121 \
 
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
-# py3.11+ rejects the fork's mutable dataclass defaults; patch both fields.
+# Patch the pinned fork for py3.11+: mutable dataclass defaults, and the
+# esm/esm2 attribute mix-up (constructor assigns self.esm but reads
+# self.esm2 — AttributeError at model construction).
 RUN git init /opt/esm2 && git -C /opt/esm2 remote add origin ${ESM_REPO} && \
     git -C /opt/esm2 fetch --depth 1 origin ${ESM_REF} && \
     git -C /opt/esm2 checkout --detach FETCH_HEAD && \
     sed -i 's|from dataclasses import dataclass|from dataclasses import dataclass, field|' /opt/esm2/esm2/esmfold/v1/trunk.py /opt/esm2/esm2/esmfold/v1/esmfold.py && \
     sed -i 's|structure_module: StructureModuleConfig = StructureModuleConfig()|structure_module: StructureModuleConfig = field(default_factory=StructureModuleConfig)|' /opt/esm2/esm2/esmfold/v1/trunk.py && \
     sed -i 's|trunk: T.Any = FoldingTrunkConfig()|trunk: T.Any = field(default_factory=FoldingTrunkConfig)|' /opt/esm2/esm2/esmfold/v1/esmfold.py && \
+    sed -i 's|self.esm, self.esm_dict = esm_registry.get|self.esm2, self.esm_dict = esm_registry.get|' /opt/esm2/esm2/esmfold/v1/esmfold.py && \
+    sed -i 's|res = self.esm(|res = self.esm2(|' /opt/esm2/esm2/esmfold/v1/esmfold.py && \
     pip install --no-cache-dir -e /opt/esm2 && \
     python -c "import esm2, pandas" && \
     python -c "from esm2.esmfold.v1 import esmfold; print('esm2 + esmfold imports OK')" && \
