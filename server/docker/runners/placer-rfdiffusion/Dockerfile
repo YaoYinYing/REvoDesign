@@ -47,7 +47,7 @@ COPY --from=rfdiffusion-source /opt/RFdiffusion /opt/RFdiffusion
 # pins older e3nn 0.3.3, but its vendored inference code only uses
 # o3.wigner_3j and o3.spherical_harmonics, whose call contract is retained by
 # PLACER's e3nn 0.5.4.
-RUN python3 -m pip install --no-cache-dir torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121 && \
+RUN python3 -m pip install --no-cache-dir torch==2.3.1 --extra-index-url https://download.pytorch.org/whl/cu121 && \
     python3 -m pip install --no-cache-dir dgl==2.4.0 -f https://data.dgl.ai/wheels/torch-2.3/cu121/repo.html && \
     python3 -m pip install --no-cache-dir \
       "e3nn @ https://github.com/e3nn/e3nn/archive/ef93f876c9985b3816aefb2982b3cf4325df6ba4.tar.gz" \

@@ -19,7 +19,7 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
 # one supported Torch generation first; constrain BioEmu's JAX extra to a
 # CUDA-12-compatible release so its resolver cannot replace Torch with cu130.
 COPY docker/runners/bioemu/constraints.txt /tmp/bioemu-constraints.txt
-RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu128 \
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu128 \
       "torch==2.7.1"
 RUN pip install --no-cache-dir --constraint /tmp/bioemu-constraints.txt \
       "jax[cuda12]==0.5.3" "bioemu[cuda]==1.4.1" && \
