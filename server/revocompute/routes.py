@@ -1017,12 +1017,13 @@ def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, 
         tt_obj = None
     if tt_obj is not None:
         extensions = set(tt_obj.input_extensions or (tt_obj.input_extension,))
-        if extensions & {".cif", ".mmcif"}:
+        if extensions & {".pdb", ".cif", ".mmcif"}:
             structure_input = True
-            structure_format = "mmcif"
-        elif ".pdb" in extensions:
-            structure_input = True
-            structure_format = "pdb"
+            # The parser depends on the UPLOADED file, not on the type's
+            # accepted extensions — a type accepting both PDB and mmCIF
+            # receives .pdb files too.
+            filename_lower = str(task.get("filename") or "").lower()
+            structure_format = "mmcif" if filename_lower.endswith((".cif", ".mmcif")) else "pdb"
     sequence_truncated = False
     if structure_input:
         # Structure tasks render a py2Dmol snapshot instead of sequence text;

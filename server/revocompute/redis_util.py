@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from functools import lru_cache
 
 import redis
@@ -37,6 +38,8 @@ def get_redis() -> redis.Redis | None:
     try:
         client.ping()
     except Exception:
-        _LOGGER.warning("Redis unavailable at %s — rate limiting and CAPTCHA fall back to per-process state", url)
+        # Never log the URL itself — it may carry the broker password.
+        redacted = re.sub(r"://:[^@]*@", "://:***@", url)
+        _LOGGER.warning("Redis unavailable at %s — rate limiting and CAPTCHA fall back to per-process state", redacted)
         return None
     return client

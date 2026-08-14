@@ -48,11 +48,14 @@ def rate_limit(max_requests: int, window_seconds: int):
         @wraps(f)
         def decorated(*args: Any, **kwargs: Any) -> Any:
             nonlocal _last_cleanup
-            # Forwarded-IP headers are useful for audit metadata but are not a
-            # trustworthy limiter key: clients can spoof them unless every
-            # request is guaranteed to traverse a trusted proxy. The socket
-            # peer cannot be changed by an HTTP header.
-            ip = request.remote_addr or "unknown"
+            # The compose gateway nginx overwrites X-Real-IP with the socket
+            # peer ($remote_addr) and the web service accepts connections
+            # only from that gateway, so X-Real-IP is the canonical
+            # per-client address in the supported deployment.  remote_addr
+            # would be the gateway container itself, collapsing every user
+            # into one shared quota.  Fall back to the socket peer for
+            # direct (non-gateway) deployments.
+            ip = (request.headers.get("X-Real-IP", "").split(",")[0].strip()) or request.remote_addr or "unknown"
             now = time.monotonic()
             cutoff = now - window_seconds
 

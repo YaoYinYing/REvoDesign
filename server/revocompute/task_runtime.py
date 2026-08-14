@@ -814,12 +814,21 @@ def _recover_orphaned_tasks() -> int:
 
                 tt, runner = _gt(task_type)
                 job = SlurmJob(md5sum, tt, runner, [], task["result_dir"])
-                if job.reconnect(slurm_job_id):
+                slurm_state = job.reconnect(slurm_job_id)
+                if slurm_state is True:
                     logging.info("Recovery: SLURM job %s still running for %s, re-queuing poll", slurm_job_id, md5sum)
                     run_compute_task.apply_async(
                         args=[md5sum], kwargs={"task_type": task_type, "recover_slurm": slurm_job_id}
                     )
                     recovered += 1
+                elif slurm_state is None:
+                    # Unknown state (sacct missing or query failed): the job
+                    # may still be running on the cluster.  Leave the task
+                    # running — do not record a failure and do not clean up
+                    # its input workspace under a live job.
+                    logging.warning(
+                        "Recovery: SLURM job %s state unknown for %s; leaving task running", slurm_job_id, md5sum
+                    )
                 else:
                     _record_failure(
                         md5sum,

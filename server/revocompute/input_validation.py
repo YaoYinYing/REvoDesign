@@ -57,6 +57,10 @@ CIF_SNIFF_LINES = 200
 # JSON
 MAX_JSON_NODES = 1_000_000  # ~8 MB of "0,0,0,..." would be needed to reach it
 MAX_JSON_DEPTH = 50
+# Byte ceiling applied BEFORE json.loads: a compact array of tiny values can
+# allocate tens of MiB of Python objects per worker even when the node count
+# passes. Scientific JSON inputs (config/metadata) are far below 1 MiB.
+MAX_JSON_BYTES = 1024 * 1024
 
 
 def _read_text(path: str, *, kind: str) -> tuple[str | None, str]:
@@ -205,6 +209,8 @@ def validate_json(path: str) -> str | None:
         return f"Could not read uploaded JSON file: {exc}"
     if b"\0" in data:
         return "Uploaded JSON file contains binary content (NUL byte)"
+    if len(data) > MAX_JSON_BYTES:
+        return f"JSON file exceeds the {MAX_JSON_BYTES // (1024 * 1024)} MiB input limit"
     try:
         value = json.loads(data.decode("utf-8"))
     except UnicodeDecodeError:

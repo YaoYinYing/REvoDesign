@@ -248,10 +248,13 @@ def test_json_rejects_invalid_json(tmp_path):
     assert "not appear to be valid JSON" in validate_json(str(path))
 
 
-def test_json_rejects_too_many_nodes(tmp_path):
-    # A flat list of MAX_JSON_NODES + 1 elements is well-formed JSON but too big.
+def test_json_rejects_oversized_input_before_parsing(tmp_path):
+    # A flat list of MAX_JSON_NODES + 1 elements is well-formed JSON but
+    # exceeds the pre-parse byte ceiling, which rejects it before the full
+    # object graph is allocated (the node-count cap is the second line of
+    # defence and stays for future ceiling changes).
     path = _write(tmp_path, ("[" + "0," * MAX_JSON_NODES + "0]").encode())
-    assert f"more than {MAX_JSON_NODES} values" in validate_json(str(path))
+    assert "MiB input limit" in validate_json(str(path))
 
 
 def test_json_rejects_deep_nesting(tmp_path):
