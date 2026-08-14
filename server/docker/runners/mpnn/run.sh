@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 
 REVODESIGN_RUNSCRIPT_PATH=$(readlink -f "$(dirname "$0")")
 
@@ -12,12 +14,13 @@ while getopts ":i:o:" opt; do
 done
 [[ -z "${input_file:-}" || -z "${output_dir:-}" ]] && usage
 input_file=$(readlink -f "$input_file")
+input_file=$(primary_input)
+
 output_dir=$(readlink -f "$output_dir")
 [[ ! -f "$input_file" ]] && { echo "Input not found: $input_file"; exit 1; }
 mkdir -p "$output_dir"
 
 # Parse TASK_PARAMS
-_parse_param() { python3 -c "import json,os; v=json.loads(open(os.environ['TASK_PARAMS_FILE']).read() if os.environ.get('TASK_PARAMS_FILE') else os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
 _append_param() {
     local -n target_args=$1
     local flag=$2
@@ -127,7 +130,7 @@ import json
 import os
 from pathlib import Path
 
-inputs = json.loads(os.environ.get("TASK_INPUTS", "[]"))
+inputs = json.load(open(os.environ["TASK_MANIFEST"]))["files"]
 if not inputs:
     raise SystemExit("TASK_INPUTS did not contain any LASErMPNN structures")
 allowed = {".pdb", ".cif", ".mmcif"}

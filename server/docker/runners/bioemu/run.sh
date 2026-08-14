@@ -1,9 +1,15 @@
 #!/bin/bash
 set -e
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 usage() { echo "Usage: $0 -i <fasta> -o <output_dir>"; exit 1; }
 while getopts ":i:o:" opt; do case "${opt}" in i) input_file=$OPTARG ;; o) output_dir=$OPTARG ;; ?) usage ;; esac; done
 [[ -z "${input_file:-}" || -z "${output_dir:-}" ]] && usage
-input_file=$(readlink -f "$input_file"); output_dir=$(readlink -f "$output_dir")
+input_file=$(readlink -f "$input_file")
+input_file=$(primary_input)
+
+input_file=$(python3 -c "import json,os;print(json.load(open(os.environ['TASK_MANIFEST']))['files'][0]['path'])")
+# ^ runner protocol v2: -i was the manifest; the real input comes from files[0].; output_dir=$(readlink -f "$output_dir")
 [[ ! -f "$input_file" ]] && { echo "Input not found: $input_file"; exit 1; }
 mkdir -p "$output_dir"
 
@@ -15,7 +21,6 @@ model_config_path=${checkpoint_root}/config.yaml
 runtime_cache=$(mktemp -d "${TMPDIR:-/tmp}/revodesign-bioemu.XXXXXX")
 trap 'rm -rf -- "${runtime_cache}"' EXIT
 
-_parse_param() { python3 -c "import json,os; v=json.loads(open(os.environ['TASK_PARAMS_FILE']).read() if os.environ.get('TASK_PARAMS_FILE') else os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
 : "${NUM_SAMPLES:=$(_parse_param num_samples)}"; : "${NUM_SAMPLES:=10}"
 : "${BATCH_SIZE_100:=$(_parse_param batch_size_100)}"; : "${BATCH_SIZE_100:=10}"
 : "${DENOISER_TYPE:=$(_parse_param denoiser_type)}"; : "${DENOISER_TYPE:=dpm}"

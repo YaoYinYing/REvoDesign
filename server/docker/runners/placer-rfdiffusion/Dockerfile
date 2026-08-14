@@ -63,7 +63,7 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
 
 # Runner workspace.
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute /opt/PLACER /opt/RFdiffusion
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/placer-rfdiffusion/run.sh /app/revocompute/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/placer-rfdiffusion/run.sh ./docker/runners/common/task_context.sh ./docker/runners/common/task_context.py /app/revocompute/
 
 WORKDIR /app/revocompute/
 ENV RUNNER_USERNAME=${RUNNER_USERNAME} \

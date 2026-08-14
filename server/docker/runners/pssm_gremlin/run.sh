@@ -1,4 +1,6 @@
 #!/bin/bash
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 #SBATCH --job-name=run_GREMLIN_PSSM
 #SBATCH --output=%x.o%j
 #SBATCH --error=%x.e%j
@@ -27,6 +29,7 @@ if command -v conda >/dev/null 2>&1; then
         break
       fi
     done
+fasta=$(primary_input)
   done
 else
  echo "expected in docker image."
@@ -77,7 +80,7 @@ while getopts ":i:o:j:r:U:u:B:h:" opt; do
     esac
 done
 
-_parse_param() { python -c "import json,os; v=json.loads(open(os.environ['TASK_PARAMS_FILE']).read() if os.environ.get('TASK_PARAMS_FILE') else os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
+fasta=$(python3 -c "import json,os;print(json.load(open(os.environ['TASK_MANIFEST']))['files'][0]['path'])")
 if [[ -z "${gremlin_iter:-}" ]]; then
   gremlin_iter=$(_parse_param iter)
 fi

@@ -9,6 +9,8 @@
 #   5. Exits 0 on success
 
 set -e
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 
 REVODESIGN_RUNSCRIPT_PATH=$(readlink -f "$(dirname "$0")")
 
@@ -41,6 +43,8 @@ if [[ -z "${output_dir:-}" ]]; then
 fi
 
 input_file=$(readlink -f "$input_file")
+input_file=$(primary_input)
+
 output_dir=$(readlink -f "$output_dir")
 
 if [[ ! -f "$input_file" ]]; then
@@ -52,7 +56,6 @@ mkdir -p "$output_dir"
 
 # Parse TASK_PARAMS JSON into env vars (docker_runner passes params this way).
 # Each task type has different params; we extract known keys with defaults.
-_parse_param() { python3 -c "import json,os; print(json.loads(open(os.environ['TASK_PARAMS_FILE']).read() if os.environ.get('TASK_PARAMS_FILE') else os.environ.get('TASK_PARAMS','{}')).get('$1',''))"; }
 : "${MSA_SAMPLES:=$(_parse_param msa_samples)}"
 : "${NUM_RECYCLES:=$(_parse_param num_recycles)}"
 : "${MAX_TOKENS_PER_BATCH:=$(_parse_param max_tokens_per_batch)}"
@@ -104,3 +107,5 @@ esac
 
 touch "${output_dir}/task_finished"
 echo "ESM ${TASK_TYPE} complete."
+
+# TODO esm anchor missing

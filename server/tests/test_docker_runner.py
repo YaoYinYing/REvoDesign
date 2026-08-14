@@ -271,7 +271,7 @@ def test_cancel_before_submit_is_noop():
 # -- env / command args -------------------------------------------------------
 
 
-def test_build_env_includes_task_params(tmp_path):
+def test_build_env_includes_task_manifest(tmp_path):
     tt = _make_task_type()
     runner = _make_runner()
     entities = [
@@ -295,11 +295,10 @@ def test_build_env_includes_task_params(tmp_path):
 
     assert env["TASK_ID"] == "task-1"
     assert env["TASK_TYPE"] == "test"
-    assert "TASK_PARAMS" in env
-    import json
-
-    params = json.loads(env["TASK_PARAMS"])
-    assert params["iter"] == "50"
+    # Protocol v2: params travel in the snapshot manifest, not the env.
+    assert env["TASK_MANIFEST"] == "/mnt/revocompute/tester/inputs/task.json"
+    assert "TASK_PARAMS" not in env
+    assert "TASK_INPUTS" not in env
 
 
 def test_build_command_args_keeps_parameters_in_typed_json_env(tmp_path):
@@ -326,9 +325,9 @@ def test_build_command_args_keeps_parameters_in_typed_json_env(tmp_path):
 
     assert args[0] == "subcommand"
     assert "-i" in args
-    assert "/mnt/revocompute/tester/inputs/x.fasta" in args
+    assert "/mnt/revocompute/tester/inputs/task.json" in args
     assert "-o" in args
     assert "/mnt/revocompute/tester/outputs" in args
     assert "-r" not in args
     assert "200" not in args
-    assert json.loads(job._build_env()["TASK_PARAMS"]) == {"iter": "200"}
+    assert job._build_env()["TASK_MANIFEST"] == "/mnt/revocompute/tester/inputs/task.json"

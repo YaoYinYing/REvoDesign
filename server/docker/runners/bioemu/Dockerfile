@@ -28,7 +28,7 @@ RUN uv pip install --system --no-cache --constraint /tmp/bioemu-constraints.txt 
     rm -f /tmp/bioemu-constraints.txt
 
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/bioemu/run.sh /app/revocompute/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/bioemu/run.sh ./docker/runners/common/task_context.sh ./docker/runners/common/task_context.py /app/revocompute/
 
 WORKDIR /app/revocompute/
 ENV RUNNER_USERNAME=${RUNNER_USERNAME}

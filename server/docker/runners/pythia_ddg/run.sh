@@ -9,6 +9,8 @@
 #   5. Exits 0 on success
 
 set -e
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 
 REVODESIGN_RUNSCRIPT_PATH=$(readlink -f "$(dirname "$0")")
 
@@ -35,6 +37,8 @@ if [[ -z "${input_pdb:-}" ]]; then
     usage
 fi
 
+input_pdb=$(python3 -c "import json,os;print(json.load(open(os.environ['TASK_MANIFEST']))['files'][0]['path'])")
+input_pdb=$(primary_input)
 if [[ -z "${output_dir:-}" ]]; then
     echo "Missing required option: -o <output_dir>"
     usage

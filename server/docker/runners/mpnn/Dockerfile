@@ -65,7 +65,7 @@ COPY --from=builder /opt/hypermpnn_weights /app/revocompute/hypermpnn_weights
 
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
 
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} docker/runners/mpnn/run.sh /app/revocompute/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} docker/runners/mpnn/run.sh docker/runners/common/task_context.sh docker/runners/common/task_context.py /app/revocompute/
 
 WORKDIR /app/revocompute/
 ENV PATH=/opt/venv/bin:${PATH}

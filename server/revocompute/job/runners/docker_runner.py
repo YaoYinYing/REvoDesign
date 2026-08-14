@@ -10,7 +10,6 @@ stage parsing, cancel, and teardown.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import threading
@@ -225,32 +224,22 @@ class DockerJob(Job):
         return volumes
 
     def _build_env(self) -> dict[str, str]:
-        params = {e["name"]: e["verified_value"] for e in self.param_entities}
         container_env: dict[str, str] = dict(self.runner.env)
         container_env["TASK_ID"] = self.task_id
         container_env["TASK_TYPE"] = self.tt.name
+        # Runner protocol v2: user-shaped data travels only through the
+        # immutable input snapshot; TASK_MANIFEST is the backslash-free path
+        # to task.json inside the container.
+        container_env["TASK_MANIFEST"] = f"{self.virtual_workspace_root}/inputs/task.json"
         # Root filesystem is read-only; point library caches at the writable
         # tmpfs instead of the (read-only) passwd home directory.
         container_env["HOME"] = "/tmp"
-        container_env["TASK_PARAMS"] = json.dumps(params, separators=(",", ":"), sort_keys=True)
-        container_env["TASK_INPUTS"] = json.dumps(
-            [
-                {
-                    "name": entity["name"],
-                    "path": entity["mounted"],
-                    "relative_path": entity["relative_path"],
-                }
-                for entity in self.file_entities
-            ],
-            separators=(",", ":"),
-            sort_keys=True,
-        )
         return container_env
 
     def _build_command_args(self) -> list[str]:
         command_args: list[str] = list(self.tt.runner_args)
         if self.file_entities:
-            command_args.extend(["-i", self.file_entities[0]["mounted"]])
+            command_args.extend(["-i", f"{self.virtual_workspace_root}/inputs/task.json"])
         command_args.extend(["-o", f"{self.virtual_workspace_root}/outputs"])
         return command_args
 

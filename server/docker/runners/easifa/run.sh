@@ -1,5 +1,7 @@
 #!/bin/bash
 set -euo pipefail
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 
 usage() { echo "Usage: $0 -i <enzyme.pdb> -o <output_dir>"; exit 1; }
 while getopts ":i:o:" opt; do
@@ -7,6 +9,8 @@ while getopts ":i:o:" opt; do
 done
 [[ -z "${input_file:-}" || -z "${output_dir:-}" ]] && usage
 input_file=$(readlink -f "$input_file")
+input_file=$(primary_input)
+
 output_dir=$(readlink -f "$output_dir")
 [[ ! -f "$input_file" ]] && { echo "Input not found: $input_file" >&2; exit 1; }
 mkdir -p "$output_dir"
@@ -22,7 +26,7 @@ export MPLCONFIGDIR="$easifa_tmp/matplotlib"
 mkdir -p "$TORCH_EXTENSIONS_DIR" "$MPLCONFIGDIR"
 
 _parse_param() {
-  python3 -c "import json,os; v=json.loads(open(os.environ['TASK_PARAMS_FILE']).read() if os.environ.get('TASK_PARAMS_FILE') else os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"
+  python3 -c "import json,os; v=json.load(open(os.environ['TASK_MANIFEST'])).get('params',{}).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"
 }
 
 reaction_smiles=$(_parse_param reaction_smiles)

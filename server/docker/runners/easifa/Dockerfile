@@ -80,7 +80,7 @@ COPY --from=builder /opt/easifa-env /opt/easifa-env
 COPY --from=builder /opt/EasIFA2 /opt/EasIFA2
 
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/easifa/run.sh /app/revocompute/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/easifa/run.sh ./docker/runners/common/task_context.sh ./docker/runners/common/task_context.py /app/revocompute/
 
 WORKDIR /app/revocompute/
 ENV PATH=/opt/easifa-env/bin:${PATH} \

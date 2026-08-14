@@ -683,6 +683,28 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         "resource_policy": resource_policy.public_dict() if resource_policy is not None else None,
     }
 
+    # Runner protocol v2: the immutable snapshot carries task.json — the
+    # single manifest every runner reads (params + file paths).  No
+    # user-shaped data travels through environment variables anymore.
+    task_manifest = {
+        "task_id": md5sum,
+        "task_type": task_type,
+        "params": {e["name"]: e["verified_value"] for e in entities if e["type"] == "param"},
+        "files": [
+            {
+                "name": e["name"],
+                "path": e["mounted"],
+                "relative_path": e["relative_path"],
+                "hash": e["hash"],
+            }
+            for e in entities
+            if e["type"] == "file"
+        ],
+    }
+    manifest_path = _safe_join(snapshot_root, "task.json")
+    with open(manifest_path, "w", encoding="utf-8") as handle:
+        json.dump(task_manifest, handle, indent=2, sort_keys=True)
+
     base_record = _prepare_task_record(
         md5sum,
         saved_inputs,

@@ -12,7 +12,6 @@ Apptainer.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
@@ -292,34 +291,12 @@ class SlurmJob(Job):
             ]
         )
 
-        params = {e["name"]: e["verified_value"] for e in self.param_entities}
-        params_json = json.dumps(params, separators=(",", ":"), sort_keys=True)
-        # APPTAINERENV_* forwarding collapses every run of backslashes to a
-        # single character (measured: 2, 4, and 8 all arrive as 1) — JSON can
-        # never survive the env channel.  Write the params into the mounted
-        # outputs dir via a verbatim heredoc and pass the backslash-free
-        # path through the environment instead.
-        lines.append("# -- task params (file channel: env forwarding mangles backslashes) --")
-        lines.append(f"cat > {_sh_quote(self.output_dir + '/task_params.json')} <<'REVODESIGN_PARAMS_EOF'")
-        lines.append(params_json)
-        lines.append("REVODESIGN_PARAMS_EOF")
+        # Runner protocol v2: task.json lives in the immutable input snapshot;
+        # the environment carries only its backslash-free path.
         lines.append(
-            "export APPTAINERENV_TASK_PARAMS_FILE="
-            + _sh_quote(self.virtual_workspace_root + "/outputs/task_params.json")
+            "export APPTAINERENV_TASK_MANIFEST="
+            + _sh_quote(self.virtual_workspace_root + "/inputs/task.json")
         )
-        inputs_json = json.dumps(
-            [
-                {
-                    "name": entity["name"],
-                    "path": entity["mounted"],
-                    "relative_path": entity["relative_path"],
-                }
-                for entity in self.file_entities
-            ],
-            separators=(",", ":"),
-            sort_keys=True,
-        )
-        lines.append(f"export APPTAINERENV_TASK_INPUTS={_sh_quote(inputs_json)}")
         gpu_flag = " --nv" if self.tt.gpus else ""
         # --containall: private /dev,/proc,/sys and fresh tmpfs for /tmp and
         # $HOME — no host HOME, shared filesystems, or credentials visible.
@@ -334,7 +311,7 @@ class SlurmJob(Job):
             # thread caps alone do not constrain its BLAST/HH-suite flags.
             cmd += ' -j "${allocated_cpus}"'
         if self.file_entities:
-            cmd += f" -i {_sh_quote(self.file_entities[0]['mounted'])}"
+            cmd += f" -i {_sh_quote(self.virtual_workspace_root + '/inputs/task.json')}"
         cmd += f" -o {_sh_quote(self.virtual_workspace_root + '/outputs')}"
         lines.append(cmd)
 
