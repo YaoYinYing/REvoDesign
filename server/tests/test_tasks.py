@@ -195,7 +195,7 @@ def test_submission_manifest_carries_params(monkeypatch, tmp_path):
         id = "celery-test-id"
 
     monkeypatch.setattr(module.run_compute_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
-    with open("/repo/REvoDesign/tests/data/msa/2KL8.fasta", "rb") as fh:
+    with open(Path(__file__).resolve().parents[2] / "tests/data/msa/2KL8.fasta", "rb") as fh:
         resp = client.post(
             "/compute/api/post",
             headers=auth_header,
