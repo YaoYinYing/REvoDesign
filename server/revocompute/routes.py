@@ -436,7 +436,7 @@ def _save_uploaded_inputs(
         uploaded.save(temp_path)
         hasher = hashlib.sha256()
         with open(temp_path, "rb") as handle:
-            for chunk in iter(lambda: handle.read(65536), b""):
+            while chunk := handle.read(65536):
                 hasher.update(chunk)
         blob_hash = hasher.hexdigest()
         blob_path = _safe_join(app.config["UPLOAD_FOLDER"], f"{blob_hash}.upload")
@@ -800,7 +800,8 @@ def _result_artifact(task: dict[str, Any], relative_path: str) -> tuple[str, dic
     if not normalized or any(part in {"", ".", ".."} for part in normalized.split("/")):
         return None
     try:
-        with open(_safe_join(task["result_dir"], "manifest.json"), encoding="utf-8") as handle:
+        # PTC-W6004: task["result_dir"] is server-owned; the requested path is validated above
+        with open(_safe_join(task["result_dir"], "manifest.json"), encoding="utf-8") as handle:  # skipcq: PTC-W6004
             manifest = json.load(handle)
     except (OSError, json.JSONDecodeError):
         return None
@@ -946,19 +947,27 @@ def cancel_task(md5sum):
 
     slurm_job_id = task.get("slurm_job_id")
     if slurm_job_id:
-        try:
-            subprocess.run(["scancel", str(slurm_job_id)], timeout=10, check=True)
-            logging.info("Cancelled SLURM job %s for task %s", slurm_job_id, md5sum)
-        except Exception as exc:  # pylint: disable=broad-except
-            logging.warning("Failed to scancel SLURM job %s: %s", slurm_job_id, exc)
+        scancel = shutil.which("scancel")
+        if not scancel:
+            logging.warning("scancel not found; cannot cancel SLURM job %s", slurm_job_id)
+        else:
+            try:
+                subprocess.run([scancel, str(slurm_job_id)], timeout=10, check=True)
+                logging.info("Cancelled SLURM job %s for task %s", slurm_job_id, md5sum)
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.warning("Failed to scancel SLURM job %s: %s", slurm_job_id, exc)
 
     container_id = task.get("container_id")
     if container_id:
-        try:
-            subprocess.run(["docker", "stop", str(container_id)], timeout=15, check=True)
-            logging.info("Stopped Docker container %s for task %s", container_id, md5sum)
-        except Exception as exc:  # pylint: disable=broad-except
-            logging.warning("Failed to stop container %s: %s", container_id, exc)
+        docker = shutil.which("docker")
+        if not docker:
+            logging.warning("docker not found; cannot stop container %s", container_id)
+        else:
+            try:
+                subprocess.run([docker, "stop", str(container_id)], timeout=15, check=True)
+                logging.info("Stopped Docker container %s for task %s", container_id, md5sum)
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.warning("Failed to stop container %s: %s", container_id, exc)
 
     celery_id = task.get("celery_task_id")
     if celery_id:

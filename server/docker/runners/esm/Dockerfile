@@ -24,15 +24,20 @@ RUN pip install --no-cache-dir torch==2.2.0+cu121 \
       "numpy<2" \
       "pandas==2.2.3" \
       "pytorch-lightning==1.9.5" \
+      "scipy==1.12.0" \
       "torchmetrics==0.11.4"
 
+# ESM-IF1 (esm2.inverse_folding) imports scipy.spatial.transform; the fork's
+# setup.py declares scipy, but the image pins dependencies explicitly rather
+# than trusting transitive resolution. The smoke import covers the full
+# inverse-folding import chain so a dependency gap fails at image build.
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
 RUN git init /opt/esm2 && git -C /opt/esm2 remote add origin ${ESM_REPO} && \
     git -C /opt/esm2 fetch --depth 1 origin ${ESM_REF} && \
     git -C /opt/esm2 checkout --detach FETCH_HEAD && \
     pip install --no-cache-dir -e /opt/esm2 && \
-    python -c "import esm2, pandas" && \
+    python -c "import esm2, esm2.inverse_folding, pandas" && \
     rm -rf /opt/esm2/.git
 
 FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04

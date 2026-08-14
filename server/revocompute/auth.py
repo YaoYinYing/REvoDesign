@@ -546,7 +546,7 @@ def _resend_from() -> str:
     return f"{name} <{addr}>"
 
 
-def _send_email(*, to: str, subject: str, text: str, html: str | None = None) -> bool:
+def _send_email(*, to: str, subject: str, text: str, html_body: str | None = None) -> bool:
     """Send an email.  Uses Resend if available+configured, else SMTP.
 
     Returns ``True`` on success, ``False`` on failure (logged).
@@ -560,8 +560,8 @@ def _send_email(*, to: str, subject: str, text: str, html: str | None = None) ->
                 "subject": subject,
                 "text": text,
             }
-            if html:
-                params["html"] = html
+            if html_body:
+                params["html"] = html_body
             _resend_module.Emails.send(params)  # type: ignore[union-attr]
             return True
         except Exception:
@@ -574,8 +574,8 @@ def _send_email(*, to: str, subject: str, text: str, html: str | None = None) ->
     msg["To"] = to
     msg["Subject"] = subject
     msg.attach(MIMEText(text, "plain"))
-    if html:
-        msg.attach(MIMEText(html, "html"))
+    if html_body:
+        msg.attach(MIMEText(html_body, "html"))
 
     try:
         if cfg["use_tls"]:
@@ -717,7 +717,7 @@ def send_verification_email(user: dict[str, Any]) -> bool:
         to=user["email"],
         subject="Verify your email — REvoCompute",
         text=text,
-        html=_email_html(html_body),
+        html_body=_email_html(html_body),
     )
 
 
@@ -789,7 +789,7 @@ def send_password_reset_email(email: str, db: UserDatabase) -> bool:
         to=email,
         subject="Reset your password — REvoCompute",
         text=text,
-        html=_email_html(html_body),
+        html_body=_email_html(html_body),
     )
 
 
@@ -819,7 +819,7 @@ def send_approval_email(user: dict[str, Any]) -> bool:
         to=user["email"],
         subject="Registration approved — REvoCompute",
         text=text,
-        html=_email_html(html_body),
+        html_body=_email_html(html_body),
     )
 
 
@@ -844,7 +844,7 @@ def send_rejection_email(user: dict[str, Any]) -> bool:
         to=user["email"],
         subject="Registration update — REvoCompute",
         text=text,
-        html=_email_html(html_body),
+        html_body=_email_html(html_body),
     )
 
 
@@ -924,7 +924,7 @@ def send_admin_digest() -> bool:
     html_content = _email_html(html_body)
     for email in recipients:
         try:
-            if _send_email(to=email, subject=subject, text=text, html=html_content):
+            if _send_email(to=email, subject=subject, text=text, html_body=html_content):
                 any_sent = True
         except Exception:
             logging.exception("Failed to send admin digest to %s", email)

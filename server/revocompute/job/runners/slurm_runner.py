@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import subprocess
 import threading
 from typing import Any
@@ -67,11 +68,16 @@ class SlurmJob(Job):
         We cannot re-attach the srun subprocess, but we can query sacct."""
         self._slurm_job_id = slurm_job_id
         self._job_id_event.set()
+        sacct = shutil.which("sacct")
+        if not sacct:
+            return False
         try:
             result = subprocess.run(
-                ["sacct", "-j", slurm_job_id, "--noheader", "-o", "State", "-P"],
+                [sacct, "-j", slurm_job_id, "--noheader", "-o", "State", "-P"],
                 capture_output=True, text=True, timeout=10,
             )
+            if result.returncode != 0:
+                return False
             state = (result.stdout or "").strip().split("\n")[0].strip()
             return state in ("RUNNING", "PENDING", "CONFIGURING")
         except Exception:

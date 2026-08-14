@@ -289,7 +289,8 @@ def _load_input_workspace(
 # ---------------------------------------------------------------------------
 
 
-def _load_runner_config(path: str) -> RunnerConfig:
+# PTC-W6004: operator-provisioned runner YAML path, not user input
+def _load_runner_config(path: str) -> RunnerConfig:  # skipcq: PTC-W6004
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
     return RunnerConfig(
@@ -315,7 +316,7 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
     ``gremlin`` is always enabled.
     """
     with open(task_types_yaml, encoding="utf-8") as f:
-        types_data = yaml.safe_load(f)
+        types_data = yaml.safe_load(f)  # skipcq: PTC-W6004 — deployment-owned registry path, not user input
 
     if not types_data:
         raise ValueError(f"Task registry is empty: {task_types_yaml}")

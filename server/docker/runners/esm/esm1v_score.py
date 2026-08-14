@@ -2,7 +2,6 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-#!/usr/bin/env python3
 # REvoDesign ESM-1v runner — zero-shot variant effect prediction via esm2.
 #
 # Adapted from RosettaWorkshop/2._Working/1._MutationEffects/ESM-1v
@@ -22,7 +21,7 @@ from pathlib import Path
 import pandas as pd
 import torch
 
-from esm2 import Alphabet, FastaBatchedDataset, ProteinBertModel, pretrained
+from esm2 import Alphabet, pretrained
 from esm2.data import read_fasta
 
 logger = logging.getLogger()
@@ -48,7 +47,8 @@ def label_mutation(mutation: str, sequence: str, token_probs: torch.Tensor, alph
     """
     wt, mt = mutation[0], mutation[-1]
     pos = int(mutation[1:-1]) - 1  # label positions are 1-based
-    assert sequence[pos] == wt, f"Wild-type mismatch at position {pos + 1}: {mutation}"
+    if sequence[pos] != wt:
+        raise ValueError(f"Wild-type mismatch at position {pos + 1}: {mutation}")
     wt_encoded, mt_encoded = alphabet.get_idx(wt), alphabet.get_idx(mt)
     # +1 skips the BOS token
     return (token_probs[0, 1 + pos, mt_encoded] - token_probs[0, 1 + pos, wt_encoded]).item()

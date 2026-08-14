@@ -2,7 +2,6 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-#!/usr/bin/env python3
 # REvoDesign ESM-IF1 runner — inverse folding (sequence design from backbone).
 #
 # Adapted from esm2/examples/inverse_folding/sample_sequences.py. Samples

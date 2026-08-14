@@ -283,7 +283,8 @@ def test_esm_image_installs_the_esm1v_csv_dependency():
     dockerfile = (SERVER_ROOT / "docker" / "runners" / "esm" / "Dockerfile").read_text()
 
     assert '"pandas==2.2.3"' in dockerfile
-    assert 'python -c "import esm2, pandas"' in dockerfile
+    assert '"scipy==1.12.0"' in dockerfile
+    assert 'python -c "import esm2, esm2.inverse_folding, pandas"' in dockerfile
 
 
 def test_easifa_image_requires_the_installed_prediction_cli():

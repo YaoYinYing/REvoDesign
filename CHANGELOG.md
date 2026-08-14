@@ -26,39 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Runner build-failure tolerance**: a failed Docker/SIF runner build
   warns, drops the runner from `ENABLED_TASKRUNNERS`, and lets the
   restart continue instead of aborting.
-
-### Changed
-- **ESMFold v1 removed**: the `esmfold_3B_v1` checkpoint is built against
-  the 2022 openfold whose kernels no longer compile on a supported
-  toolchain, and whose IPA internals changed in openfold v2.x — the
-  checkpoint cannot load. ESM-2 embedding, ESM-1v scoring, and ESM-IF1
-  design remain.
-- **`ENABLED_TASKRUNNERS` filters by runtime family** (esm, mpnn, …), not
-  task-type name — the submission page previously hid most task types.
-- ESM runner era-pinned dependency notes documented in its Dockerfile.
-- **Pluggable scientific input and result workspaces**: added a shared local
-  plugin registry and lifecycle host, a validated additive input-capability
-  schema, reusable file/sequence/structure/region/parameter/review components,
-  and a manifest preview host. Simple sequence tasks remain compact while
-  RFdiffusion, PLACER, and EASIFA compose richer guided workspaces without
-  granting YAML or browser code authority over server validation or runners.
-- **Canonical end-to-end resource policy**: added typed validation and a single
-  resolution path for CPU, memory, runtime, accelerator, and SLURM placement.
-  Accepted tasks snapshot their effective policy; Docker and SLURM consume the
-  same values, invalid settings fail closed, allowed partitions are enforced,
-  and CPU tasks cannot accidentally inherit GPU GRES.
-
-### Changed
-- **Create-task scientific workflow**: replaced page-specific form assembly
-  with capability composition, explicit primary/auxiliary file roles, nested
-  folder selection, local structure summaries and residue selection, grouped
-  region controls, and a normalized pre-submission review. Existing task and
-  upload APIs remain backward compatible and authoritative.
-- **Resource administration**: replaced overlapping `nproc`/`maxmem` and
-  SLURM CPU/memory controls with canonical per-task overrides and visible
-  effective values. Legacy database fields remain migration fallbacks, empty
-  overrides restore inheritance, and multi-field updates are transactional.
-### Added
 - **Multi-task server architecture**: task-type-agnostic compute server with a
   YAML-based registry. Portable task schemas select one of nine shared runtime
   families, while one machine-local runner YAML per family supplies mounts,
@@ -85,6 +52,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   problems, with private routing for security vulnerabilities.
 
 ### Changed
+- **ESMFold v1 removed**: the `esmfold_3B_v1` checkpoint is built against
+  the 2022 openfold whose kernels no longer compile on a supported
+  toolchain, and whose IPA internals changed in openfold v2.x — the
+  checkpoint cannot load. ESM-2 embedding, ESM-1v scoring, and ESM-IF1
+  design remain.
+- **`ENABLED_TASKRUNNERS` filters by runtime family** (esm, mpnn, …), not
+  task-type name — the submission page previously hid most task types.
+- ESM runner era-pinned dependency notes documented in its Dockerfile.
+- **Pluggable scientific input and result workspaces**: added a shared local
+  plugin registry and lifecycle host, a validated additive input-capability
+  schema, reusable file/sequence/structure/region/parameter/review components,
+  and a manifest preview host. Simple sequence tasks remain compact while
+  RFdiffusion, PLACER, and EASIFA compose richer guided workspaces without
+  granting YAML or browser code authority over server validation or runners.
+- **Canonical end-to-end resource policy**: added typed validation and a single
+  resolution path for CPU, memory, runtime, accelerator, and SLURM placement.
+  Accepted tasks snapshot their effective policy; Docker and SLURM consume the
+  same values, invalid settings fail closed, allowed partitions are enforced,
+  and CPU tasks cannot accidentally inherit GPU GRES.
+- **Create-task scientific workflow**: replaced page-specific form assembly
+  with capability composition, explicit primary/auxiliary file roles, nested
+  folder selection, local structure summaries and residue selection, grouped
+  region controls, and a normalized pre-submission review. Existing task and
+  upload APIs remain backward compatible and authoritative.
+- **Resource administration**: replaced overlapping `nproc`/`maxmem` and
+  SLURM CPU/memory controls with canonical per-task overrides and visible
+  effective values. Legacy database fields remain migration fallbacks, empty
+  overrides restore inheritance, and multi-field updates are transactional.
 - **Server deployment and adapter documentation**: reconciled the server
   README and developer guides with the global executor/runtime model,
   runtime-family sharing, immutable multi-file workspaces, manifest-first
@@ -189,6 +184,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be downloaded individually.
 
 ### Fixed
+- **ESM runner missing `scipy`**: the ESM image did not pin scipy, so
+  `esm_if1_design.py` crashed at import
+  (`esm2.inverse_folding.gvp_transformer` → `scipy.spatial.transform`,
+  `ModuleNotFoundError`) on the SLURM path. Pinned `scipy==1.12.0`
+  (matching the `prime` image) and extended the build-time smoke import to
+  cover the inverse-folding chain.
 - **SLURM execution diagnostics**: scheduler stdout/stderr are now stored under
   explicit `execution/slurm-<username>-<task>-<task-id>.stdout.log` and
   `.stderr.log` paths. They are

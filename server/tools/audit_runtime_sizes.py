@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -21,8 +22,11 @@ import yaml
 
 
 def _docker_size(image: str) -> int | None:
+    docker = shutil.which("docker")
+    if not docker:
+        return None
     result = subprocess.run(  # nosec B603 -- fixed executable and arguments
-        ["docker", "image", "inspect", "--format", "{{.Size}}", image],
+        [docker, "image", "inspect", "--format", "{{.Size}}", image],
         check=False,
         capture_output=True,
         text=True,

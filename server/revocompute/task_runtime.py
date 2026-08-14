@@ -291,7 +291,8 @@ _STRUCTURE_PREVIEW_EXTENSIONS = {".cif", ".mmcif", ".pdb"}
 _IMAGE_PREVIEW_EXTENSIONS = {".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"}
 
 
-def _sha256_file(path: str) -> str:
+# PTC-W6004: internal utility — callers pass server-built snapshot paths only
+def _sha256_file(path: str) -> str:  # skipcq: PTC-W6004
     digest = hashlib.sha256()
     with open(path, "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -640,10 +641,11 @@ def _recover_orphaned_tasks() -> int:
         task_type = task.get("task_type", "gremlin")
         logging.info("Recovery: checking orphaned task %s", md5sum)
 
+        from revocompute.task_types import get as _gt
+
         if container_id:
             try:
-                from revocompute.job.runners.docker_runner import DockerJob  # noqa: F811
-                from revocompute.task_types import get as _gt  # noqa: F811
+                from revocompute.job.runners.docker_runner import DockerJob
 
                 tt, runner = _gt(task_type)
                 job = DockerJob(md5sum, tt, runner, [], task["result_dir"])
@@ -662,8 +664,7 @@ def _recover_orphaned_tasks() -> int:
 
         elif slurm_job_id:
             try:
-                from revocompute.job.runners.slurm_runner import SlurmJob  # noqa: F811
-                from revocompute.task_types import get as _gt
+                from revocompute.job.runners.slurm_runner import SlurmJob
 
                 tt, runner = _gt(task_type)
                 job = SlurmJob(md5sum, tt, runner, [], task["result_dir"])
