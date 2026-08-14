@@ -1,6 +1,7 @@
 FROM python:3.11-slim AS builder
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+RUN echo 'Acquire::Queue-Mode "access"; Acquire::Retries "3";' > /etc/apt/apt.conf.d/99-speed.conf && \
+    DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends git build-essential && \
     rm -rf /var/lib/apt/lists/*
 

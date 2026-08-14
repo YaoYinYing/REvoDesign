@@ -13,7 +13,8 @@ ARG RUNNER_USERNAME
 ARG RUNNER_GROUP
 
 # Runtime search tools only; source-control/download/build tools are absent.
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+RUN echo 'Acquire::Queue-Mode "access"; Acquire::Retries "3";' > /etc/apt/apt.conf.d/99-speed.conf && \
+    DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends \
     hmmer \
     kalign \

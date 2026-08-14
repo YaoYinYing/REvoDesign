@@ -9,7 +9,8 @@ ARG EASIFA_METADATA_REPO=xiaoruiwang/EasIFA2.0_Metadata
 ARG EASIFA_METADATA_REF=f26aecd922a48d935315fe7d4f61381a388492af
 ARG EASIFA_ENV_SHA256=da5751abd99297eaae813591a8b32a006d244d0d8ba376712223d83f24fe88f2
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+RUN echo 'Acquire::Queue-Mode "access"; Acquire::Retries "3";' > /etc/apt/apt.conf.d/99-speed.conf && \
+    DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates g++ git libxext6 libxrender1 ninja-build && \
     rm -rf /var/lib/apt/lists/* && \
     python -m pip install --no-cache-dir uv && \
@@ -62,6 +63,7 @@ ARG RUNNER_UID ARG RUNNER_GID ARG RUNNER_USERNAME ARG RUNNER_GROUP
 
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
+    echo 'Acquire::Queue-Mode "access"; Acquire::Retries "3";' > /etc/apt/apt.conf.d/99-speed.conf && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates libexpat1 libxext6 libxrender1 && \
     rm -rf /var/lib/apt/lists/* && \
