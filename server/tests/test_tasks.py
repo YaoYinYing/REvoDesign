@@ -25,6 +25,21 @@ SERVER_PACKAGE = Path(__file__).resolve().parents[1] / "revocompute"
 # ==================================================================
 
 
+def test_health_endpoint_returns_empty_200_without_auth(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    client = module.app.test_client()
+    resp = client.get("/compute/health")
+    assert resp.status_code == 200
+    assert resp.data == b""
+
+
 def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,

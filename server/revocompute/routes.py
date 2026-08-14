@@ -121,6 +121,12 @@ from werkzeug.utils import secure_filename
 # ---------------------------------------------------------------------------
 
 
+@app.route("/compute/health", methods=["GET"])
+def health():
+    """Liveness probe — unauthenticated, empty 200 when the process answers."""
+    return "", 200
+
+
 @app.route("/compute/login", methods=["GET"])
 def login_page():
     if load_current_user() is not None:
