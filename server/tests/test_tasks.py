@@ -105,10 +105,12 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert "A.authFetch(artifact.url)" in script
     assert "loadStructureFromData" in script
     assert "loadStructureFromUrl" not in script
-    assert 'PY2DMOL_COMMIT = "8c95fd9efae6007e124e143cd276244d89228c66"' in script
-    assert "PY2DMOL_SCRIPT_INTEGRITY" in script
     assert "renderPy2DmolFallback" in script
-    assert "parseCifAlphaCarbons" in script
+    py2dmol_preview = (SERVER_PACKAGE / "static" / "js" / "py2dmol-preview.js").read_text(encoding="utf-8")
+    assert 'PY2DMOL_COMMIT = "8c95fd9efae6007e124e143cd276244d89228c66"' in py2dmol_preview
+    assert "PY2DMOL_SCRIPT_INTEGRITY" in py2dmol_preview
+    assert "parseCifAlphaCarbons" in py2dmol_preview
+    assert "renderAlphaTrace" in py2dmol_preview
     preview_plugins = (SERVER_PACKAGE / "static" / "js" / "result-preview-plugins.js").read_text(encoding="utf-8")
     plugin_host = (SERVER_PACKAGE / "static" / "js" / "plugin-host.js").read_text(encoding="utf-8")
     assert "ResultPreviewHost" in preview_plugins
@@ -155,6 +157,36 @@ def test_full_stack_smoke_uses_manifest_first_result_contract():
     assert '"PSSM GREMLIN Task Dashboard"' not in script
     assert '"Create PSSM GREMLIN Task"' not in script
     assert "results.status_code == 302" not in script
+
+
+def test_dashboard_serves_structure_preview_for_pdb_tasks(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ENABLED_TASKRUNNERS": "pythia_ddg",
+        },
+    )
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+    result_dir = Path(module.task_runtime.CONFIG.results_folder) / "tasks"
+    md5sum = _insert_pending_task(module, result_dir, filename="input.pdb")
+    module.task_store.update_task(md5sum, task_type="pythia_ddg")
+
+    dashboard = client.get("/compute/dashboard", headers=auth_header)
+    html = dashboard.get_data(as_text=True)
+    assert '"structure_input": true' in html
+    assert f'"/compute/api/tasks/{md5sum}/input"' in html
+    assert '"sequence": ""' in html
+
+    resp = client.get(f"/compute/api/tasks/{md5sum}/input", headers=auth_header)
+    assert resp.status_code == 200
+    assert resp.data == b">test\nACDE\n"
+
+    missing = client.get(f"/compute/api/tasks/{'b' * 32}/input", headers=auth_header)
+    assert missing.status_code == 404
 
 
 def _insert_pending_task(

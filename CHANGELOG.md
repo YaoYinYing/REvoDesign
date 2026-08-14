@@ -265,6 +265,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   marks truncated sequences in the UI; the create-task review step no longer
   shows resolved resource usage (the types API still fails early on broken
   resource policies).
+- **Dashboard structure snapshots**: structure-input tasks (`.pdb`/`.cif`/
+  `.mmcif`) render an interactive py2Dmol alpha-trace snapshot on the
+  dashboard card instead of the sequence block — lazy-loaded on first
+  expand from the new owner/admin-only `/compute/api/tasks/<md5>/input`
+  endpoint. The py2Dmol loading/parsing helpers moved to a shared
+  `static/js/py2dmol-preview.js` used by both the dashboard and the results
+  page's Mol* fallback.
 
 ### Fixed
 - **PRIME runner `trust_remote_code` removal**: the pinned Pro-Prime OGT/DMS

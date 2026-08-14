@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import mimetypes
 import os
 import re
 import shutil
@@ -99,6 +100,7 @@ from revocompute.task_runtime import (
     _get_task_type,
     _local_user_identity,
     _normalize_task_id,
+    _path_is_within,
     _safe_join,
     _sanitize_task_error,
     _task_zip_path,
@@ -998,8 +1000,27 @@ _DASHBOARD_SEQUENCE_PREVIEW_BYTES = 4096
 def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, is_admin: bool) -> dict[str, Any]:
     submitted_time = task.get("uploaded_at")
     finished_time = task.get("finished_at")
+    task_type_name = task.get("task_type", "gremlin")
+    structure_input = False
+    structure_format = "pdb"
+    try:
+        tt_obj, _ = _get_task_type(task_type_name)
+    except KeyError:
+        tt_obj = None
+    if tt_obj is not None:
+        extensions = set(tt_obj.input_extensions or (tt_obj.input_extension,))
+        if extensions & {".cif", ".mmcif"}:
+            structure_input = True
+            structure_format = "mmcif"
+        elif ".pdb" in extensions:
+            structure_input = True
+            structure_format = "pdb"
     sequence_truncated = False
-    if task.get("is_binary"):
+    if structure_input:
+        # Structure tasks render a py2Dmol snapshot instead of sequence text;
+        # skip the per-task file read entirely.
+        fasta_seq = ""
+    elif task.get("is_binary"):
         fasta_seq = "Binary file rejected"
     else:
         try:
@@ -1024,6 +1045,9 @@ def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, 
         "submitted_timestamp": submitted_time or 0,
         "sequence": fasta_seq,
         "sequence_truncated": sequence_truncated,
+        "structure_input": structure_input,
+        "structure_format": structure_format,
+        "input_url": f"/compute/api/tasks/{task['md5sum']}/input" if structure_input else None,
         "owner": task.get("username") or "-",
         "can_delete": (is_admin or task.get("username") == current_user)
         and task["status"] not in task_store.CLEANUP_CLAIM_STATUSES,
@@ -1069,6 +1093,41 @@ def task_results_page(md5sum):
     return render_template(
         "task_results.html",
         task=_dashboard_task_status(task, 0, _current_username() or "", _is_admin_user()),
+    )
+
+
+@app.route("/compute/api/tasks/<md5sum>/input", methods=["GET"])
+@login_required
+def task_input_file(md5sum):
+    """Stream a task's uploaded input file (dashboard structure previews).
+
+    The path comes from the server-owned task row, not from the request;
+    access is restricted to the task owner (or an admin).
+    """
+    normalized = _normalize_task_id(md5sum)
+    if normalized is None:
+        abort(404)
+    task = task_store.get_task(normalized)
+    if task is None:
+        abort(404)
+    if not _task_access_allowed(task):
+        return _task_access_denied(normalized)
+    file_path = str(task.get("file_path") or "")
+    if not file_path or not os.path.isfile(file_path):
+        return jsonify({"error": "Input file not found"}), 404
+    # The row is server-written, but containment is cheap insurance: serve
+    # only files that live inside one of the server-owned folders.
+    if not (
+        _path_is_within(app.config["UPLOAD_FOLDER"], file_path)
+        or _path_is_within(app.config["WORKSPACE_FOLDER"], file_path)
+        or _path_is_within(app.config["RESULTS_FOLDER"], file_path)
+    ):
+        return jsonify({"error": "Input file not found"}), 404
+    return send_from_directory(
+        os.path.dirname(file_path) or ".",
+        os.path.basename(file_path),
+        mimetype=mimetypes.guess_type(task.get("filename") or "")[0] or "application/octet-stream",
+        conditional=True,
     )
 
 
