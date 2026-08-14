@@ -7,15 +7,16 @@
 Usage: task_context.py param <name> [default]   # prints one param value
        task_context.py primary                  # prints files[0]["path"]
        task_context.py files                    # prints the files list as JSON
-"""
 
-from __future__ import annotations
+Kept Python 2/3 compatible: the GREMLIN runner's conda environment
+predates Python 3, so no annotations, f-strings, or py3-only syntax here.
+"""
 
 import json
 import os
 import sys
 
-manifest = json.load(open(os.environ["TASK_MANIFEST"], encoding="utf-8"))
+manifest = json.load(open(os.environ["TASK_MANIFEST"]))
 command = sys.argv[1] if len(sys.argv) > 1 else ""
 
 if command == "param":
@@ -28,5 +29,5 @@ elif command == "primary":
 elif command == "files":
     print(json.dumps(manifest["files"]))
 else:
-    print(f"task_context.py: unknown command {command!r}", file=sys.stderr)
+    sys.stderr.write("task_context.py: unknown command %r\n" % (command,))
     sys.exit(2)
