@@ -165,9 +165,11 @@ def _load_pssm_module(monkeypatch, tmp_path, extra_env: dict | None = None):
     # it at a dead port unless a test explicitly overrides REDIS_URL.
     if "REDIS_URL" not in (extra_env or {}):
         monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:1/0")
-        from revocompute.redis_util import get_redis
+    # Always clear the cached client — get_redis() caches both live clients
+    # and fallback None, and an overridden REDIS_URL must win in this test.
+    from revocompute.redis_util import get_redis
 
-        get_redis.cache_clear()
+    get_redis.cache_clear()
 
     # -- module load with import isolation --
     server_dir = str(Path(REPO_DIR) / "server")

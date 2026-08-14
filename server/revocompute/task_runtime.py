@@ -579,7 +579,15 @@ def _capture_debug_submission(task: dict[str, Any], entities: list[dict], params
                 continue
             destination = _safe_join(inputs_dir, *parts)
             os.makedirs(os.path.dirname(destination), exist_ok=True)
-            shutil.copyfile(snapshot_path, destination)
+            # Hardlink first: workspace and results live on the same server
+            # filesystem, so the debug copy costs no extra disk and the
+            # workspace deletion later only drops its own link.  Copy when
+            # linking is impossible (e.g. the results dir is a different
+            # mount).
+            try:
+                os.link(snapshot_path, destination)
+            except OSError:
+                shutil.copyfile(snapshot_path, destination)
             files.append(
                 {
                     "name": relative_path,
