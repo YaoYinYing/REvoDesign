@@ -12,7 +12,8 @@ ARG EASIFA_ENV_SHA256=da5751abd99297eaae813591a8b32a006d244d0d8ba376712223d83f24
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates g++ git libxext6 libxrender1 ninja-build && \
     rm -rf /var/lib/apt/lists/* && \
-    pip install --no-cache-dir "huggingface_hub[hf_xet]==0.34.4"
+    python -m pip install --no-cache-dir uv && \
+    uv pip install --system --no-cache "huggingface_hub[hf_xet]==0.34.4"
 
 RUN git init -q /opt/EasIFA2 && git -C /opt/EasIFA2 remote add origin ${EASIFA_REPO} && \
     git -C /opt/EasIFA2 fetch --depth 1 origin ${EASIFA_REF} && \
@@ -33,7 +34,8 @@ RUN mkdir -p /tmp/easifa-metadata /opt/easifa-env && \
     rm -rf /tmp/easifa-metadata && \
     /opt/easifa-env/bin/conda-unpack
 
-RUN /opt/easifa-env/bin/python -m pip install --no-cache-dir --no-deps /opt/EasIFA2 && \
+RUN /opt/easifa-env/bin/python -m pip install --no-cache-dir uv && \
+    uv pip install --python /opt/easifa-env/bin/python --no-cache --no-deps /opt/EasIFA2 && \
     /opt/easifa-env/bin/python -c "import easifa_core" && \
     test -x /opt/easifa-env/bin/easifa-predict
 

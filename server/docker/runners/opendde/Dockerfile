@@ -22,7 +22,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
 # Pin OpenDDE and let its GPU extra select the matching Torch/CUDA stack in the
 # same retained layer. Installing Torch separately would retain the superseded
 # wheel and CUDA packages when OpenDDE upgrades them.
-RUN python3 -m pip install --no-cache-dir "opendde[gpu]==1.0.3"
+RUN python3 -m pip install --no-cache-dir uv && \
+    uv pip install --system --no-cache "opendde[gpu]==1.0.3"
 
 # Non-root user.
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \

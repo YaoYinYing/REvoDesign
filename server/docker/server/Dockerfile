@@ -28,7 +28,8 @@ RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
 WORKDIR /app
 
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} . /app/server
-RUN pip install --no-cache-dir "/app/server[resend]"
+RUN python -m pip install --no-cache-dir uv && \
+    uv pip install --system --no-cache "/app/server[resend]"
 
 
 ENV PYTHONPATH=/app/server

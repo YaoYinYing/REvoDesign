@@ -4,7 +4,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends git build-essential && \
     rm -rf /var/lib/apt/lists/*
 
-RUN python -m venv /opt/venv
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir uv
 ENV PATH=/opt/venv/bin:${PATH}
 
 ARG MPNN_REPO=https://github.com/YaoYinYing/ProteinMPNN.git
@@ -39,10 +40,10 @@ RUN git init /opt/LASErMPNN && git -C /opt/LASErMPNN remote add origin ${LASERMP
 COPY docker/runners/mpnn/requirements.txt /tmp/requirements.txt
 ARG THERMOREPO=https://github.com/YaoYinYing/ThermoMPNN-D.git
 ARG THERMOREF=6ec15ae8d870fc70748e6d4f0c8c5555c076efd1
-RUN pip install --no-cache-dir -r /tmp/requirements.txt \
+RUN uv pip install --python /opt/venv/bin/python --no-cache -r /tmp/requirements.txt \
       --index-url https://download.pytorch.org/whl/cpu \
-      --extra-index-url https://pypi.org/simple && \
-    pip install --no-cache-dir --no-deps "git+${THERMOREPO}@${THERMOREF}"
+      --extra-index-url https://pypi.org/simple --index-strategy unsafe-best-match && \
+    uv pip install --python /opt/venv/bin/python --no-cache --no-deps "git+${THERMOREPO}@${THERMOREF}"
 
 FROM python:3.11-slim
 
