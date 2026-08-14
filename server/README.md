@@ -27,13 +27,20 @@ image and SIF without duplicating dependency stacks:
 The server loads the registry at startup via `CONFIG_DIR`. `gremlin` is always
 enabled; additional runners are gated by `ENABLED_TASKRUNNERS` in `.env`.
 
-Each runner container follows a standard contract:
+Each runner container follows a standard contract (protocol v2):
 - Sees one immutable task snapshot at `/mnt/revocompute/<username>/inputs/`
   and task-owned results at `/mnt/revocompute/<username>/outputs/`. Concurrent
   tasks have isolated host snapshots even though their virtual paths match.
 - Emits `REVODESIGN_STAGE:<marker>` on stdout for progress tracking
-- Receives params via `TASK_PARAMS`, the complete input manifest via
-  `TASK_INPUTS`, and the primary input/output via CLI args (`-i`, `-o`, `-r`)
+- Is invoked as `run.sh -i <inputs>/task.json -o <outputs>`; the snapshot's
+  `task.json` carries task id/type, `params`, and `files` (with in-container
+  paths). Environment variables carry nothing user-shaped — only
+  `TASK_MANIFEST`, the backslash-free manifest path (apptainer's
+  `APPTAINERENV_*` forwarding mangles backslash runs, so params never travel
+  through the environment).
+- Sources `task_context.sh` (next to `run.sh`, `TASK_CONTEXT_SRC`-overridable)
+  for the shared `_parse_param` / `primary_input` / `task_input_files`
+  helpers, backed by `task_context.py`.
 - Runs as non-root `--user` (identity from `RUNNER_UID`/`RUNNER_GID` in `.env`)
 
 The create-task page builds a scientific input workspace from
@@ -71,6 +78,13 @@ For a SLURM deployment whose versioned SIFs already exist, use `prepared`.
 Rebuilding Docker runner images is unnecessary unless creating a replacement
 SIF or testing the Docker executor. A bare `restart` defaults to `dev` and will
 therefore rebuild all runtime families.
+
+Image builds install Python packages with `uv pip install` (bootstrapped from
+its PyPI wheel) and keep PyPI in the index pool via `--extra-index-url`
+alongside the pytorch wheelhouses; `run.sh` edits invalidate only the final
+COPY layers. NOTE: `restart --build-sif` skips SIFs that already exist — after
+changing any runner `run.sh`, delete the corresponding `*.sif` files under the
+deployment images dir so the SIFs rebuild from the updated images.
 
 ## Overview
 
@@ -841,6 +855,8 @@ banned users, and login throttling are maintained in
   administrator.
 - Regularly back up sqlite and finalized result trees. Optional ZIP files are derived caches.
 - If a task is deleted, result artifacts are removed, but the sqlite record remains for audit.
+- Liveness probing: `GET /compute/health` returns an empty 200,
+  unauthenticated.
 
 ## 12. Local Development
 
