@@ -294,7 +294,10 @@ class SlurmJob(Job):
 
         params = {e["name"]: e["verified_value"] for e in self.param_entities}
         params_json = json.dumps(params, separators=(",", ":"), sort_keys=True)
-        lines.append(f"export APPTAINERENV_TASK_PARAMS={_sh_quote(params_json)}")
+        # Apptainer strips one backslash from APPTAINERENV_* values during
+        # forwarding — escape once more so JSON strings (e.g. SMILES with
+        # backslashes) survive intact inside the container.
+        lines.append(f"export APPTAINERENV_TASK_PARAMS={_sh_quote(params_json.replace(chr(92), chr(92) * 2))}")
         inputs_json = json.dumps(
             [
                 {
@@ -307,7 +310,7 @@ class SlurmJob(Job):
             separators=(",", ":"),
             sort_keys=True,
         )
-        lines.append(f"export APPTAINERENV_TASK_INPUTS={_sh_quote(inputs_json)}")
+        lines.append(f"export APPTAINERENV_TASK_INPUTS={_sh_quote(inputs_json.replace(chr(92), chr(92) * 2))}")
         gpu_flag = " --nv" if self.tt.gpus else ""
         # --containall: private /dev,/proc,/sys and fresh tmpfs for /tmp and
         # $HOME — no host HOME, shared filesystems, or credentials visible.

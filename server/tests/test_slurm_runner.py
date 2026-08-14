@@ -239,6 +239,27 @@ def test_render_apptainer_keeps_parameters_in_typed_json_env(tmp_path):
     assert '"iter":"100"' in script
 
 
+def test_render_apptainer_double_escapes_backslashes_for_env_forwarding(tmp_path):
+    """Apptainer strips one backslash from APPTAINERENV_* values — the wrapper
+    must escape JSON backslashes once more so the runner's json.loads sees
+    valid escapes (e.g. SMILES reaction strings)."""
+    entities = _make_entities() + [
+        {
+            "name": "reaction_smiles",
+            "type": "param",
+            "value": "C=C(" + chr(92) + "C)",
+            "verified_value": "C=C(" + chr(92) + "C)",
+        }
+    ]
+    job = SlurmJob("task-1", _make_task_type(), _make_runner(), entities, str(tmp_path / "out"))
+    script = job._render_wrapper()
+    # The wrapper export line carries FOUR backslashes for the original one:
+    # json.dumps escapes it (two), then the apptainer-forwarding
+    # compensation doubles again — apptainer strips one pair and the
+    # runner's json.loads sees the valid single escape.
+    assert "C=C(" + "\\\\" * 2 + "C)" in script
+
+
 def test_render_apptainer_passes_runtime_subcommand(tmp_path):
     task_type = _make_task_type(runner_args=("rfdiffusion",))
     job = SlurmJob("task-1", task_type, _make_runner(), _make_entities(), str(tmp_path / "out"))
