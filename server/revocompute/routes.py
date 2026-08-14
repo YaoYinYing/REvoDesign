@@ -522,23 +522,31 @@ def _prepare_task_record(
     }
 
 
-def _reject_invalid_input(md5sum: str, base_record: dict[str, Any], task_type: str = "gremlin"):
+def _reject_invalid_input(
+    md5sum: str, base_record: dict[str, Any], saved_inputs: list[dict[str, Any]], task_type: str = "gremlin"
+):
     """Reject uploads whose content doesn't match the expected format.
 
-    Every upload passes the 4096-byte binary sniff; the primary input is then
-    content-validated by extension (FASTA/A3M/PDB/mmCIF/JSON) with generous
-    DoS caps (see revocompute.input_validation), so third-party parsers never
-    see pathological content.
+    Every uploaded file — primary and auxiliary alike — passes the
+    4096-byte binary sniff and is then content-validated by extension
+    (FASTA/A3M/PDB/mmCIF/JSON) with generous DoS caps (see
+    revocompute.input_validation), so third-party parsers never see
+    pathological content from any input of a multi-file task.
     """
-    upload_path = base_record["file_path"]
-    if base_record["is_binary"]:
-        error_message = "Binary file uploads are not supported."
-        response_message = "Uploaded file contains binary content"
-    else:
-        error_message = validate_input_file(upload_path, base_record.get("filename") or "")
-        if error_message is None:
-            return None
-        response_message = error_message
+    error_message = None
+    response_message = ""
+    for item in saved_inputs:
+        blob_path = item["blob_path"]
+        if _is_binary_file(blob_path):
+            error_message = f"Binary file uploads are not supported: {item['relative_path']}"
+            response_message = "Uploaded file contains binary content"
+            break
+        error_message = validate_input_file(blob_path, item["relative_path"] or "")
+        if error_message is not None:
+            response_message = error_message
+            break
+    if error_message is None:
+        return None
 
     failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
     task_store.upsert_task(md5sum, **base_record, status="failed", error=error_message)
@@ -676,7 +684,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         task_type=task_type,
         input_form=input_form,
     )
-    if invalid_response := _reject_invalid_input(md5sum, base_record, task_type):
+    if invalid_response := _reject_invalid_input(md5sum, base_record, saved_inputs, task_type):
         return invalid_response
 
     task_store.upsert_task(

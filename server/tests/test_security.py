@@ -104,6 +104,40 @@ def test_security_email_enumeration_resend_verification(monkeypatch, tmp_path):
     assert resp1.json["message"] == resp2.json["message"]
 
 
+def test_security_auxiliary_uploads_content_validated(monkeypatch, tmp_path):
+    """Multi-file tasks: auxiliary files get the same content validation as
+    the primary (binary sniff + per-extension validators)."""
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    valid_pdb = tmp_path / "struc.pdb"
+    valid_pdb.write_text(
+        "ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N\n"
+        "ATOM      2  CA  ALA A   1       1.500   0.000   0.000  1.00  0.00           C\n"
+        "END\n"
+    )
+    broken_json = tmp_path / "aux.json"
+    broken_json.write_text("this is not json")
+    from revocompute.routes import _reject_invalid_input
+
+    base_record = {
+        "file_path": str(valid_pdb),
+        "filename": "struc.pdb",
+        "is_binary": 0,
+        "result_dir": str(tmp_path / "results"),
+        "uploaded_at": time.time(),
+        "username": "tester",
+    }
+    saved_inputs = [
+        {"blob_path": str(valid_pdb), "relative_path": "struc.pdb"},
+        {"blob_path": str(broken_json), "relative_path": "aux.json"},
+    ]
+    with module.app.app_context():
+        response = _reject_invalid_input("a" * 32, base_record, saved_inputs, "rfdiffusion")
+    assert response is not None and response[1] == 400
+    # All-valid inputs pass.
+    with module.app.app_context():
+        assert _reject_invalid_input("b" * 32, base_record, saved_inputs[:1], "rfdiffusion") is None
+
+
 def test_security_bearer_vs_cookie_csrf_gate(monkeypatch, tmp_path):
     """State-changing endpoints reject cookie-only auth (CSRF protection)."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})

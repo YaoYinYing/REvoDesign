@@ -73,6 +73,14 @@ def load_vendored_code(model_dir):
     if not model_type:
         raise SystemExit(f'PRIME {model_dir.name} config.json has no model_type')
 
+    def _entries(value):
+        # config.json auto_map values are conventionally strings
+        # ("AutoModel": "modeling_prime.PrimeModel"); only tokenizer maps
+        # use [slow, fast] lists. Normalize both shapes.
+        if isinstance(value, str):
+            return [value]
+        return list(value)
+
     def _load(entry):
         module_name, _, class_name = entry.rpartition('.')
         try:
@@ -91,7 +99,7 @@ def load_vendored_code(model_dir):
         return cls
 
     config_class = None
-    for entry in auto_map.get('AutoConfig', ()):
+    for entry in _entries(auto_map.get('AutoConfig', ())):
         config_class = _load(entry)
         AutoConfig.register(model_type, config_class)
     if config_class is None:
@@ -99,7 +107,7 @@ def load_vendored_code(model_dir):
     for auto_key, entries in auto_map.items():
         if auto_key == 'AutoConfig':
             continue
-        for index, entry in enumerate(entries):
+        for index, entry in enumerate(_entries(entries)):
             cls = _load(entry)
             if auto_key == 'AutoModel':
                 AutoModel.register(config_class, cls)
@@ -179,6 +187,14 @@ def load_vendored_code(model_dir):
     if not model_type:
         raise SystemExit(f'PRIME {model_dir.name} config.json has no model_type')
 
+    def _entries(value):
+        # config.json auto_map values are conventionally strings
+        # ("AutoModel": "modeling_prime.PrimeModel"); only tokenizer maps
+        # use [slow, fast] lists. Normalize both shapes.
+        if isinstance(value, str):
+            return [value]
+        return list(value)
+
     def _load(entry):
         module_name, _, class_name = entry.rpartition('.')
         try:
@@ -197,7 +213,7 @@ def load_vendored_code(model_dir):
         return cls
 
     config_class = None
-    for entry in auto_map.get('AutoConfig', ()):
+    for entry in _entries(auto_map.get('AutoConfig', ())):
         config_class = _load(entry)
         AutoConfig.register(model_type, config_class)
     if config_class is None:
@@ -205,7 +221,7 @@ def load_vendored_code(model_dir):
     for auto_key, entries in auto_map.items():
         if auto_key == 'AutoConfig':
             continue
-        for index, entry in enumerate(entries):
+        for index, entry in enumerate(_entries(entries)):
             cls = _load(entry)
             if auto_key == 'AutoModel':
                 AutoModel.register(config_class, cls)

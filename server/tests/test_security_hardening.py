@@ -19,7 +19,6 @@ import socket
 import sqlite3
 import subprocess
 import time
-from pathlib import Path
 
 import pytest
 import redis

@@ -25,7 +25,7 @@ _SOCKET_TIMEOUT = 1  # seconds — fail fast so requests don't pile up on a dead
 
 
 @lru_cache(maxsize=1)
-def get_redis() -> "redis.Redis | None":
+def get_redis() -> redis.Redis | None:
     """Return a Redis client for ``REDIS_URL``, or ``None`` if unavailable.
 
     The client (or the ``None`` failure) is cached for the process lifetime
