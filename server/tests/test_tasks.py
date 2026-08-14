@@ -172,7 +172,12 @@ def test_dashboard_serves_structure_preview_for_pdb_tasks(monkeypatch, tmp_path)
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
     result_dir = Path(module.task_runtime.CONFIG.results_folder) / "tasks"
-    md5sum = _insert_pending_task(module, result_dir, filename="input.pdb")
+    pdb_content = (
+        b"ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N\n"
+        b"ATOM      2  CA  ALA A   1       1.500   0.000   0.000  1.00  0.00           C\n"
+        b"END\n"
+    )
+    md5sum = _insert_pending_task(module, result_dir, filename="input.pdb", content=pdb_content)
     module.task_store.update_task(md5sum, task_type="pythia_ddg")
 
     dashboard = client.get("/compute/dashboard", headers=auth_header)
@@ -183,18 +188,21 @@ def test_dashboard_serves_structure_preview_for_pdb_tasks(monkeypatch, tmp_path)
 
     resp = client.get(f"/compute/api/tasks/{md5sum}/input", headers=auth_header)
     assert resp.status_code == 200
-    assert resp.data == b">test\nACDE\n"
+    assert resp.data == pdb_content
 
     missing = client.get(f"/compute/api/tasks/{'b' * 32}/input", headers=auth_header)
     assert missing.status_code == 404
 
 
 def _insert_pending_task(
-    module, result_dir: Path, filename: str = "input.fasta", entities: list[dict] | None = None
+    module,
+    result_dir: Path,
+    filename: str = "input.fasta",
+    entities: list[dict] | None = None,
+    content: bytes = b">test\nACDE\n",
 ) -> str:
     result_dir.mkdir(parents=True, exist_ok=True)
     fasta_path = result_dir / filename
-    content = b">test\nACDE\n"
     fasta_path.write_bytes(content)
     md5sum = uuid.uuid4().hex
     blob_hash = hashlib.sha256(content).hexdigest()

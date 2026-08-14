@@ -258,7 +258,8 @@ def test_json_rejects_oversized_input_before_parsing(tmp_path):
 
 
 def test_json_rejects_deep_nesting(tmp_path):
-    doc = "[" * (MAX_JSON_DEPTH + 1) + "0" + "]" * (MAX_JSON_DEPTH + 1)
+    # The leaf sits at depth MAX_JSON_DEPTH + 1 — one level past the cap.
+    doc = "[" * MAX_JSON_DEPTH + "0" + "]" * MAX_JSON_DEPTH
     path = _write(tmp_path, doc.encode())
     assert f"nested deeper than {MAX_JSON_DEPTH}" in validate_json(str(path))
 

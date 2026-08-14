@@ -69,6 +69,7 @@ def test_safe_join_accepts_new_child_and_symlink_inside_base(rt, tmp_path):
     assert rt._safe_join(base, "a", "b") == str(base / "a" / "b")
     # A symlink that stays inside the base is fine; the returned path stays
     # lexical (the OS resolves the symlink) — the guarantee is containment.
+    os.symlink(base / "real", base / "link")
     assert rt._safe_join(base, "link", "f") == str(base / "link" / "f")
 
 

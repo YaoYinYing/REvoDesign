@@ -12,6 +12,7 @@ must call ``get_redis.cache_clear()`` first.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import shutil
@@ -48,7 +49,11 @@ def test_api_key_generate_and_validate(tmp_path):
     user = db.create_user("alice", "alice@example.com", "password123")
     key = db.generate_api_key(user["id"])
     assert key.startswith("revodesign_")
-    assert key != user["api_key_digest"]  # only the digest is stored
+    # Re-read after generate — the stored value must be the sha256 digest,
+    # never the plaintext key.
+    stored = db.get_user(user["id"])
+    assert stored is not None and stored["api_key_digest"] == hashlib.sha256(key.encode("utf-8")).hexdigest()
+    assert stored["api_key_digest"] != key
 
     got = db.validate_api_key(key)
     assert got is not None
