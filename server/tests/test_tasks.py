@@ -208,9 +208,8 @@ def test_submission_manifest_carries_params(monkeypatch, tmp_path):
         )
     assert resp.status_code == 302, resp.get_data(as_text=True)[:300]
     md5sum = resp.headers["Location"].rstrip("/").rsplit("/", 1)[-1]
-    manifest = json.loads(
-        (Path(module.task_runtime.CONFIG.workspace_folder) / "tester" / md5sum / "inputs" / "task.json").read_text(encoding="utf-8")
-    )
+    manifest_path = Path(module.task_runtime.CONFIG.workspace_folder) / "tester" / md5sum / "inputs" / "task.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["params"]["iter"] == 100
     assert manifest["files"][0]["relative_path"] == "2KL8.fasta"
 

@@ -2,7 +2,7 @@
 set -e
 task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
 [[ -f "$task_context_src" ]] && source "$task_context_src"
-usage() { echo "Usage: $0 -i <fasta> -o <output_dir>"; exit 1; }
+usage() { echo "Usage: $0 -i <task.json> -o <output_dir>"; exit 1; }
 while getopts ":i:o:" opt; do case "${opt}" in i) input_file=$OPTARG ;; o) output_dir=$OPTARG ;; ?) usage ;; esac; done
 [[ -z "${input_file:-}" || -z "${output_dir:-}" ]] && usage
 input_file=$(readlink -f "$input_file")

@@ -5,7 +5,7 @@
 #   1. Reads input PDB from /workspace/inputs/
 #   2. Writes output to /workspace/outputs/
 #   3. Emits REVODESIGN_STAGE:<marker> on stdout
-#   4. Accepts -i <input_pdb> -o <output_dir>
+#   4. Accepts -i <task.json> -o <output_dir>
 #   5. Exits 0 on success
 
 set -e
@@ -18,7 +18,7 @@ usage() {
     echo ""
     echo "Usage: $0 <OPTIONS>"
     echo "Required Parameters:"
-    echo "      -i  <pdb>         Input PDB structure file"
+    echo "      -i  <task.json>   Task manifest (PDB resolved from files[0])"
     echo "      -o  <output_dir>  Output directory"
     echo ""
     exit 1

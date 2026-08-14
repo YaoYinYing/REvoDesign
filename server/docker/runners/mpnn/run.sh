@@ -6,7 +6,7 @@ task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
 REVODESIGN_RUNSCRIPT_PATH=$(readlink -f "$(dirname "$0")")
 
 usage() {
-    echo "Usage: $0 -i <input> -o <output_dir>"
+    echo "Usage: $0 -i <task.json> -o <output_dir>"
     exit 1
 }
 while getopts ":i:o:" opt; do

@@ -3,7 +3,7 @@ set -e
 task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
 [[ -f "$task_context_src" ]] && source "$task_context_src"
 
-usage() { echo "Usage: $0 [ogt|dms] -i <fasta> -o <output_dir>"; exit 1; }
+usage() { echo "Usage: $0 [ogt|dms] -i <task.json> -o <output_dir>"; exit 1; }
 mode=ogt
 if [[ "${1:-}" == "ogt" || "${1:-}" == "dms" ]]; then
     mode=$1

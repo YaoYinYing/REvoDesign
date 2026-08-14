@@ -310,8 +310,7 @@ class SlurmJob(Job):
             # GREMLIN/PSSM consumes its worker count from -j; environment
             # thread caps alone do not constrain its BLAST/HH-suite flags.
             cmd += ' -j "${allocated_cpus}"'
-        if self.file_entities:
-            cmd += f" -i {_sh_quote(self.virtual_workspace_root + '/inputs/task.json')}"
+        cmd += f" -i {_sh_quote(self.virtual_workspace_root + '/inputs/task.json')}"
         cmd += f" -o {_sh_quote(self.virtual_workspace_root + '/outputs')}"
         lines.append(cmd)
 

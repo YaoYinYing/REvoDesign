@@ -18,7 +18,7 @@ usage() {
     echo ""
     echo "Usage: $0 <OPTIONS>"
     echo "Required Parameters:"
-    echo "      -i  <json>        Input JSON file (OpenDDE job spec)"
+    echo "      -i  <task.json>    Task manifest (job spec resolved from files[0])"
     echo "      -o  <output_dir>  Output directory"
     echo ""
     exit 1
@@ -33,7 +33,7 @@ while getopts ":i:o:" opt; do
 done
 
 if [[ -z "${input_file:-}" ]]; then
-    echo "Missing required option: -i <json>"
+    echo "Missing required option: -i <task.json>"
     usage
 fi
 

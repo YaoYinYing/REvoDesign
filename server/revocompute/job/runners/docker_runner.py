@@ -238,8 +238,7 @@ class DockerJob(Job):
 
     def _build_command_args(self) -> list[str]:
         command_args: list[str] = list(self.tt.runner_args)
-        if self.file_entities:
-            command_args.extend(["-i", f"{self.virtual_workspace_root}/inputs/task.json"])
+        command_args.extend(["-i", f"{self.virtual_workspace_root}/inputs/task.json"])
         command_args.extend(["-o", f"{self.virtual_workspace_root}/outputs"])
         return command_args
 

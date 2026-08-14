@@ -52,7 +52,7 @@ usage() {
     echo ""
     echo "Usage: $0 <OPTIONS>"
     echo "Optional Parameters:"
-    echo "      -i                  <fasta> input fasta file"
+    echo "      -i                  <task.json> task manifest (fasta resolved from files[0])"
     echo "      -j                  <nproc> Number of threads used in this run. All processors will be used by default."
     echo "      -o                  <output_dir>   Output directory."
     echo "      -r                  <gremlin_iter> Iteration of GREMLIN, 100 by default"

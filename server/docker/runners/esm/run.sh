@@ -18,7 +18,7 @@ usage() {
     echo ""
     echo "Usage: $0 <OPTIONS>"
     echo "Required Parameters:"
-    echo "      -i  <input>        Input FASTA/PDB file"
+    echo "      -i  <task.json>    Task manifest (primary input resolved from files[0])"
     echo "      -o  <output_dir>   Output directory"
     echo ""
     exit 1
