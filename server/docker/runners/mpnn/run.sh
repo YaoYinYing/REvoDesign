@@ -17,7 +17,7 @@ output_dir=$(readlink -f "$output_dir")
 mkdir -p "$output_dir"
 
 # Parse TASK_PARAMS
-_parse_param() { python3 -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
+_parse_param() { python3 -c "import json,os; v=json.loads(open(os.environ['TASK_PARAMS_FILE']).read() if os.environ.get('TASK_PARAMS_FILE') else os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
 _append_param() {
     local -n target_args=$1
     local flag=$2

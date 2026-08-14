@@ -15,7 +15,7 @@ model_config_path=${checkpoint_root}/config.yaml
 runtime_cache=$(mktemp -d "${TMPDIR:-/tmp}/revodesign-bioemu.XXXXXX")
 trap 'rm -rf -- "${runtime_cache}"' EXIT
 
-_parse_param() { python3 -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
+_parse_param() { python3 -c "import json,os; v=json.loads(open(os.environ['TASK_PARAMS_FILE']).read() if os.environ.get('TASK_PARAMS_FILE') else os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
 : "${NUM_SAMPLES:=$(_parse_param num_samples)}"; : "${NUM_SAMPLES:=10}"
 : "${BATCH_SIZE_100:=$(_parse_param batch_size_100)}"; : "${BATCH_SIZE_100:=10}"
 : "${DENOISER_TYPE:=$(_parse_param denoiser_type)}"; : "${DENOISER_TYPE:=dpm}"

@@ -22,7 +22,7 @@ export MPLCONFIGDIR="$easifa_tmp/matplotlib"
 mkdir -p "$TORCH_EXTENSIONS_DIR" "$MPLCONFIGDIR"
 
 _parse_param() {
-  python3 -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"
+  python3 -c "import json,os; v=json.loads(open(os.environ['TASK_PARAMS_FILE']).read() if os.environ.get('TASK_PARAMS_FILE') else os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"
 }
 
 reaction_smiles=$(_parse_param reaction_smiles)

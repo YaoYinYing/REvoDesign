@@ -218,7 +218,7 @@ def test_render_apptainer_binds_and_env(tmp_path):
     assert "/mnt/revocompute/tester/outputs" in script
     assert "export APPTAINERENV_TASK_ID=" in script
     assert "export APPTAINERENV_TASK_TYPE=" in script
-    assert "export APPTAINERENV_TASK_PARAMS=" in script
+    assert "export APPTAINERENV_TASK_PARAMS_FILE=" in script
     assert "export APPTAINERENV_TASK_INPUTS=" in script
     assert '{"iter":"100"}' in script
     assert "/opt/images/gremlin_v1.sif" in script
@@ -235,14 +235,15 @@ def test_render_apptainer_keeps_parameters_in_typed_json_env(tmp_path):
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
     script = job._render_wrapper()
     assert "-r 100" not in script
-    assert "export APPTAINERENV_TASK_PARAMS=" in script
+    assert "export APPTAINERENV_TASK_PARAMS_FILE=" in script
     assert '"iter":"100"' in script
 
 
-def test_render_apptainer_double_escapes_backslashes_for_env_forwarding(tmp_path):
-    """Apptainer strips one backslash from APPTAINERENV_* values — the wrapper
-    must escape JSON backslashes once more so the runner's json.loads sees
-    valid escapes (e.g. SMILES reaction strings)."""
+def test_render_apptainer_ships_params_via_file_channel(tmp_path):
+    """APPTAINERENV_* forwarding collapses backslash runs (2, 4, and 8 all
+    arrive as 1) — params JSON can never survive the env channel.  The
+    wrapper must write it verbatim into the outputs dir and export the
+    (backslash-free) file path instead."""
     entities = _make_entities() + [
         {
             "name": "reaction_smiles",
@@ -253,11 +254,12 @@ def test_render_apptainer_double_escapes_backslashes_for_env_forwarding(tmp_path
     ]
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), entities, str(tmp_path / "out"))
     script = job._render_wrapper()
-    # The wrapper export line carries FOUR backslashes for the original one:
-    # json.dumps escapes it (two), then the apptainer-forwarding
-    # compensation doubles again — apptainer strips one pair and the
-    # runner's json.loads sees the valid single escape.
-    assert "C=C(" + "\\\\" * 2 + "C)" in script
+    assert "export APPTAINERENV_TASK_PARAMS_FILE=" in script
+    assert "export APPTAINERENV_TASK_PARAMS=" not in script
+    assert "REVODESIGN_PARAMS_EOF" in script
+    # The heredoc carries the json.dumps output verbatim: two backslashes
+    # for the escaped value, untouched by env forwarding.
+    assert "C=C(" + chr(92) * 2 + "C)" in script
 
 
 def test_render_apptainer_passes_runtime_subcommand(tmp_path):

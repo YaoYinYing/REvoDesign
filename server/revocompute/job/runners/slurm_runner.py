@@ -294,10 +294,19 @@ class SlurmJob(Job):
 
         params = {e["name"]: e["verified_value"] for e in self.param_entities}
         params_json = json.dumps(params, separators=(",", ":"), sort_keys=True)
-        # Apptainer strips one backslash from APPTAINERENV_* values during
-        # forwarding — escape once more so JSON strings (e.g. SMILES with
-        # backslashes) survive intact inside the container.
-        lines.append(f"export APPTAINERENV_TASK_PARAMS={_sh_quote(params_json.replace(chr(92), chr(92) * 2))}")
+        # APPTAINERENV_* forwarding collapses every run of backslashes to a
+        # single character (measured: 2, 4, and 8 all arrive as 1) — JSON can
+        # never survive the env channel.  Write the params into the mounted
+        # outputs dir via a verbatim heredoc and pass the backslash-free
+        # path through the environment instead.
+        lines.append("# -- task params (file channel: env forwarding mangles backslashes) --")
+        lines.append(f"cat > {_sh_quote(self.output_dir + '/task_params.json')} <<'REVODESIGN_PARAMS_EOF'")
+        lines.append(params_json)
+        lines.append("REVODESIGN_PARAMS_EOF")
+        lines.append(
+            "export APPTAINERENV_TASK_PARAMS_FILE="
+            + _sh_quote(self.virtual_workspace_root + "/outputs/task_params.json")
+        )
         inputs_json = json.dumps(
             [
                 {
@@ -310,7 +319,7 @@ class SlurmJob(Job):
             separators=(",", ":"),
             sort_keys=True,
         )
-        lines.append(f"export APPTAINERENV_TASK_INPUTS={_sh_quote(inputs_json.replace(chr(92), chr(92) * 2))}")
+        lines.append(f"export APPTAINERENV_TASK_INPUTS={_sh_quote(inputs_json)}")
         gpu_flag = " --nv" if self.tt.gpus else ""
         # --containall: private /dev,/proc,/sys and fresh tmpfs for /tmp and
         # $HOME — no host HOME, shared filesystems, or credentials visible.

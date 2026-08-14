@@ -3,7 +3,7 @@
 # $1 = tool name (set in task_types.yaml command field).
 set -e
 
-_parse_param() { python3 -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
+_parse_param() { python3 -c "import json,os; v=json.loads(open(os.environ['TASK_PARAMS_FILE']).read() if os.environ.get('TASK_PARAMS_FILE') else os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
 
 _run_placer() {
   usage() { echo "Usage: $0 -i <input_pdb> -o <output_dir>"; exit 1; }
