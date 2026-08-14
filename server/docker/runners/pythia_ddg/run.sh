@@ -37,7 +37,7 @@ if [[ -z "${input_pdb:-}" ]]; then
     usage
 fi
 
-input_pdb=$(python3 -c "import json,os;print(json.load(open(os.environ['TASK_MANIFEST']))['files'][0]['path'])")
+input_pdb=$(primary_input)
 input_pdb=$(primary_input)
 if [[ -z "${output_dir:-}" ]]; then
     echo "Missing required option: -o <output_dir>"

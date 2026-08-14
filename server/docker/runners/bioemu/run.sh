@@ -8,7 +8,7 @@ while getopts ":i:o:" opt; do case "${opt}" in i) input_file=$OPTARG ;; o) outpu
 input_file=$(readlink -f "$input_file")
 input_file=$(primary_input)
 
-input_file=$(python3 -c "import json,os;print(json.load(open(os.environ['TASK_MANIFEST']))['files'][0]['path'])")
+input_file=$(primary_input)
 # ^ runner protocol v2: -i was the manifest; the real input comes from files[0].; output_dir=$(readlink -f "$output_dir")
 [[ ! -f "$input_file" ]] && { echo "Input not found: $input_file"; exit 1; }
 mkdir -p "$output_dir"

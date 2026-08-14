@@ -29,7 +29,6 @@ if command -v conda >/dev/null 2>&1; then
         break
       fi
     done
-fasta=$(primary_input)
   done
 else
  echo "expected in docker image."
@@ -80,7 +79,7 @@ while getopts ":i:o:j:r:U:u:B:h:" opt; do
     esac
 done
 
-fasta=$(python3 -c "import json,os;print(json.load(open(os.environ['TASK_MANIFEST']))['files'][0]['path'])")
+fasta=$(primary_input)
 if [[ -z "${gremlin_iter:-}" ]]; then
   gremlin_iter=$(_parse_param iter)
 fi
