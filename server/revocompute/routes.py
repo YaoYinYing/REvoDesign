@@ -689,7 +689,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     task_manifest = {
         "task_id": md5sum,
         "task_type": task_type,
-        "params": {e["name"]: e["verified_value"] for e in entities if e["type"] == "param"},
+        "params": {e["name"]: e["verified_value"] for e in entities if e["type"] != "file"},
         "files": [
             {
                 "name": e["name"],
