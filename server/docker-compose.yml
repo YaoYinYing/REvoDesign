@@ -89,11 +89,13 @@ services:
       - >-
         envsubst '$$UPSTREAM_PORT' < /etc/nginx/nginx.conf.template > /tmp/nginx.conf
         && exec nginx -c /tmp/nginx.conf -g 'daemon off;'
-    # Loopback-only: the documented entry point is the host nginx (TLS /
-    # Basic Auth) proxying to localhost. Publishing on all interfaces would
-    # let clients bypass that outer layer.
+    # Loopback-only by default: the documented entry point is a host-side
+    # proxy (nginx TLS / Cloudflare Tunnel) reaching the gateway via
+    # localhost.  Deployments whose proxy terminates elsewhere can set
+    # GATEWAY_BIND=0.0.0.0 in the env file — that publishes on all host
+    # interfaces, so keep the outer auth/TLS layer in front of it.
     ports:
-      - "127.0.0.1:${PORT:-8080}:8080"
+      - "${GATEWAY_BIND:-127.0.0.1}:${PORT:-8080}:8080"
     volumes:
       - ./docker/nginx/default.conf.template:/etc/nginx/nginx.conf.template:ro
       - ${SERVER_DIR}/results:/srv/results:ro

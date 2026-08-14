@@ -23,8 +23,10 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 
 # PyTorch CPU + Pythia deps.
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir \
+RUN python -m pip install --no-cache-dir uv && \
+    uv pip install --system --no-cache --index-strategy unsafe-best-match torch \
+      --extra-index-url https://download.pytorch.org/whl/cpu && \
+    uv pip install --system --no-cache \
     biopython \
     joblib \
     numpy \

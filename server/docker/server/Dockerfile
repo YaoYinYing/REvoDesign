@@ -20,6 +20,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # System deps.  Pre-seed timezone to keep tzdata from prompting.
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
+    echo 'Acquire::Queue-Mode "access"; Acquire::Retries "3";' > /etc/apt/apt.conf.d/99-speed.conf && \
     DEBIAN_FRONTEND=noninteractive apt-get update \
     && apt-get install -y --no-install-recommends build-essential curl procps \
     && rm -rf /var/lib/apt/lists/* \
@@ -28,7 +29,8 @@ RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
 WORKDIR /app
 
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} . /app/server
-RUN pip install --no-cache-dir "/app/server[resend]"
+RUN python -m pip install --no-cache-dir uv && \
+    uv pip install --system --no-cache "/app/server[resend]"
 
 
 ENV PYTHONPATH=/app/server

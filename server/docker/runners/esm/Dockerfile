@@ -7,6 +7,7 @@ FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04 AS builder
 
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
+    echo 'Acquire::Queue-Mode "access"; Acquire::Retries "3";' > /etc/apt/apt.conf.d/99-speed.conf && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends \
       software-properties-common git && \
@@ -15,28 +16,33 @@ RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     apt-get install -y --no-install-recommends python3.11 python3.11-venv && \
     rm -rf /var/lib/apt/lists/* && \
     python3.11 -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
+    /opt/venv/bin/pip install --no-cache-dir uv
 
 ENV PATH=/opt/venv/bin:${PATH}
-RUN pip install --no-cache-dir torch==2.2.0+cu121 \
-    --extra-index-url https://download.pytorch.org/whl/cu121 && \
-    pip install --no-cache-dir \
+RUN uv pip install --python /opt/venv/bin/python --no-cache --index-strategy unsafe-best-match \
+      torch==2.2.0+cu121 --extra-index-url https://download.pytorch.org/whl/cu121 && \
+    uv pip install --python /opt/venv/bin/python --no-cache \
+      "biotite==0.41.0" \
       "numpy<2" \
       "pandas==2.2.3" \
       "pytorch-lightning==1.9.5" \
       "scipy==1.12.0" \
+      "torch-geometric==2.5.3" \
       "torchmetrics==0.11.4"
 
-# ESM-IF1 (esm2.inverse_folding) imports scipy.spatial.transform; the fork's
-# setup.py declares scipy, but the image pins dependencies explicitly rather
-# than trusting transitive resolution. The smoke import covers the full
-# inverse-folding import chain so a dependency gap fails at image build.
+# ESM-IF1 (esm2.inverse_folding) imports scipy.spatial.transform,
+# torch_geometric (via gvp_modules), and biotite (structure parsing in
+# util.py).  The fork's setup.py declares none of them; the image pins
+# dependencies explicitly rather than trusting transitive resolution.
+# torch-geometric and biotite ship plain wheels on PyPI (no matrix index
+# needed).  The smoke import covers the full inverse-folding import chain
+# so a dependency gap fails at image build.
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
 RUN git init /opt/esm2 && git -C /opt/esm2 remote add origin ${ESM_REPO} && \
     git -C /opt/esm2 fetch --depth 1 origin ${ESM_REF} && \
     git -C /opt/esm2 checkout --detach FETCH_HEAD && \
-    pip install --no-cache-dir -e /opt/esm2 && \
+    uv pip install --python /opt/venv/bin/python --no-cache -e /opt/esm2 && \
     python -c "import esm2, esm2.inverse_folding, pandas" && \
     rm -rf /opt/esm2/.git
 
@@ -49,6 +55,7 @@ ARG RUNNER_GROUP
 
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
+    echo 'Acquire::Queue-Mode "access"; Acquire::Retries "3";' > /etc/apt/apt.conf.d/99-speed.conf && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends software-properties-common && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
