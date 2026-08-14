@@ -25,10 +25,6 @@ export TORCH_EXTENSIONS_DIR="$easifa_tmp/torch-extensions"
 export MPLCONFIGDIR="$easifa_tmp/matplotlib"
 mkdir -p "$TORCH_EXTENSIONS_DIR" "$MPLCONFIGDIR"
 
-_parse_param() {
-  python3 -c "import json,os; v=json.load(open(os.environ['TASK_MANIFEST'])).get('params',{}).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"
-}
-
 reaction_smiles=$(_parse_param reaction_smiles)
 max_length=$(_parse_param max_length); : "${max_length:=1000}"
 pretty=$(_parse_param pretty); : "${pretty:=true}"
