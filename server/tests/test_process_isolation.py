@@ -32,11 +32,11 @@ def _run_restart_script(
     docker_log = tmp_path / "docker.log"
     docker = fake_bin / "docker"
     docker.write_text(
-        '#!/usr/bin/env bash\n'
+        "#!/usr/bin/env bash\n"
         'printf "%s\\n" "$*" >> "${DOCKER_LOG}"\n'
         'if [[ "$*" == *" ps --status running --services"* ]]; then\n'
         '  printf "redis\\nweb\\ngateway\\nmaintenance\\nworker\\n"\n'
-        'fi\n',
+        "fi\n",
         encoding="utf-8",
     )
     docker.chmod(0o755)
@@ -138,7 +138,9 @@ def test_restart_modes_choose_build_or_pull(tmp_path):
     assert dev_result.returncode == 0, dev_result.stderr
     assert "Bootstrap admin credentials written to:" in dev_result.stdout
     assert "password:" not in dev_result.stdout
-    assert any("build --build-arg" in command and "revodesign-revocompute-runner" in command for command in dev_commands)
+    assert any(
+        "build --build-arg" in command and "revodesign-revocompute-runner" in command for command in dev_commands
+    )
     assert any("build web worker" in command for command in dev_commands)
     assert not any(" pull " in command for command in dev_commands)
     assert any("up --no-build -d redis web gateway maintenance worker" in command for command in dev_commands)
@@ -262,9 +264,7 @@ def test_up_generates_bootstrap_password_for_empty_user_database(tmp_path):
     assert "password:" not in result.stdout
     assert any("up -d redis web gateway maintenance worker" in command for command in commands)
     assert any('exec -T web sh -c test -w "$1" && test -x "$1"' in command for command in commands)
-    assert any(
-        "exec -T gateway sh -c test -r /srv/results && test -x /srv/results" in command for command in commands
-    )
+    assert any("exec -T gateway sh -c test -r /srv/results && test -x /srv/results" in command for command in commands)
     assert any("exec -T web python -c" in command and "BEGIN IMMEDIATE" in command for command in commands)
     assert (root / "tasks" / "results").is_dir()
 
@@ -298,7 +298,9 @@ def test_reset_passwd_rotates_hash_invalidates_tokens_and_writes_protected_crede
         ).fetchone()
     assert check_password_hash(password_hash, password)
     assert token_version == 1
-    backup_line = next(line for line in result.stdout.splitlines() if line.startswith("Auth database backup written to:"))
+    backup_line = next(
+        line for line in result.stdout.splitlines() if line.startswith("Auth database backup written to:")
+    )
     backup_db = Path(backup_line.removeprefix("Auth database backup written to: ").split(" ", 1)[0])
     assert backup_db.is_file()
     assert backup_db.stat().st_mode & 0o777 == 0o600
@@ -406,7 +408,9 @@ def test_global_slurm_executor_selects_override_without_cli_backend_flag(tmp_pat
 
     assert result.returncode == 0, result.stderr
     slurm_override = str(Path(REPO_DIR) / "server" / "docker-compose.slurm.yml")
-    assert any(slurm_override in command and "up -d redis web gateway maintenance worker" in command for command in commands)
+    assert any(
+        slurm_override in command and "up -d redis web gateway maintenance worker" in command for command in commands
+    )
 
 
 def test_missing_global_slurm_family_image_is_rejected_before_shutdown(tmp_path):
@@ -476,7 +480,7 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
     assert "AUTH_SECRET_KEY" not in compose
     task_env = compose.split("x-task-env:", 1)[1].split("x-web-auth-env:", 1)[0]
     web_auth_env = compose.split("x-web-auth-env:", 1)[1].split("x-maintenance-env:", 1)[0]
-    maintenance_env = compose.split("x-maintenance-env:", 1)[1].split("x-docker-socket-access:", 1)[0]
+    maintenance_env = compose.split("x-maintenance-env:", 1)[1].split("services:", 1)[0]
     gateway = compose.split("  gateway:", 1)[1].split("  web:", 1)[0]
     web = compose.split("  web:", 1)[1].split("  maintenance:", 1)[0]
     maintenance = compose.split("  maintenance:", 1)[1].split("  worker:", 1)[0]
@@ -519,7 +523,22 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
     assert "web-auth-env" not in worker
     assert "/var/lib/revodesign-auth" not in worker
     assert "revocompute.task_runtime.celery" in worker
-    assert "/var/run/docker.sock:/var/run/docker.sock" in worker
+    # Executor-neutral base worker: the Docker socket lives only in
+    # docker-compose.docker.yml (compose concatenates volume lists, so a
+    # socket defined here could never be removed by the SLURM override).
+    assert "/var/run/docker.sock" not in worker
+
+
+def test_docker_executor_override_holds_socket_and_slurm_override_does_not():
+    docker_override = (Path(REPO_DIR) / "server" / "docker-compose.docker.yml").read_text(encoding="utf-8")
+    slurm_override = (Path(REPO_DIR) / "server" / "docker-compose.slurm.yml").read_text(encoding="utf-8")
+
+    assert "/var/run/docker.sock:/var/run/docker.sock" in docker_override
+    assert "DOCKER_GID" in docker_override
+    assert "group_add" in docker_override
+    assert "/var/run/docker.sock" not in slurm_override
+    assert "REDIS_PASSWORD" in slurm_override
+    assert "127.0.0.1:6380:6379" in slurm_override
 
 
 def test_nginx_result_location_is_internal_and_read_only():

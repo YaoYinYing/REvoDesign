@@ -141,10 +141,17 @@ def test_build_srun_args_gpu_task_uses_configured_gres(tmp_path):
     class _ManageDb:
         def resolve_task_resources(self, tool, *, requires_gpu, default_timeout_seconds):
             return ResolvedResources(
-                cpus=1, memory="4G", max_runtime_seconds=3600,
-                partition=None, gres="gpu:a100:1",
-                nodes=1, ntasks=1, qos=None, account=None,
-                constraint=None, exclusive=False,
+                cpus=1,
+                memory="4G",
+                max_runtime_seconds=3600,
+                partition=None,
+                gres="gpu:a100:1",
+                nodes=1,
+                ntasks=1,
+                qos=None,
+                account=None,
+                constraint=None,
+                exclusive=False,
                 requires_gpu=True,
                 sources={"gres": "task:slurm_gres"},
             )
@@ -179,12 +186,16 @@ def test_render_apptainer_binds_and_env(tmp_path):
     script = job._render_wrapper()
     assert "apptainer run --nv" in script
     assert "--bind" in script
+    # Strong containment: private /tmp + $HOME tmpfs, no host env or mounts
+    # beyond the explicit binds below.
+    assert "--containall" in script
+    assert "--cleanenv" in script
     assert "/mnt/revocompute/tester/inputs" in script
     assert "/mnt/revocompute/tester/outputs" in script
     assert "export APPTAINERENV_TASK_ID=" in script
     assert "export APPTAINERENV_TASK_TYPE=" in script
-    assert 'export APPTAINERENV_TASK_PARAMS=' in script
-    assert 'export APPTAINERENV_TASK_INPUTS=' in script
+    assert "export APPTAINERENV_TASK_PARAMS=" in script
+    assert "export APPTAINERENV_TASK_INPUTS=" in script
     assert '{"iter":"100"}' in script
     assert "/opt/images/gremlin_v1.sif" in script
 
@@ -193,14 +204,14 @@ def test_render_apptainer_omits_nvidia_flag_for_cpu_task(tmp_path):
     job = SlurmJob("task-1", _make_task_type(gpus=False), _make_runner(), _make_entities(), str(tmp_path / "out"))
     script = job._render_wrapper()
     assert "apptainer run --nv" not in script
-    assert "apptainer run --bind" in script
+    assert "apptainer run --containall --cleanenv --bind" in script
 
 
 def test_render_apptainer_keeps_parameters_in_typed_json_env(tmp_path):
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
     script = job._render_wrapper()
     assert "-r 100" not in script
-    assert 'export APPTAINERENV_TASK_PARAMS=' in script
+    assert "export APPTAINERENV_TASK_PARAMS=" in script
     assert '"iter":"100"' in script
 
 

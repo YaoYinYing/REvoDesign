@@ -17,11 +17,13 @@ import logging
 import mimetypes
 import os
 import re
+import shutil
 import time
 import zipfile
 from datetime import datetime
 from typing import Any
 
+import docker
 from celery import Celery
 from revocompute.config import ComputeConfig, ensure_directories, env_csv, env_path
 from revocompute.db import TaskDatabase
@@ -34,8 +36,6 @@ from revocompute.task_types import get as _get_task_type
 from revocompute.task_types import get_job_executor as _get_job_executor
 from revocompute.task_types import load_registry as _load_task_registry
 from revocompute.task_types import register as _register_tt  # noqa: F401 -- test/plugin compatibility
-
-import docker
 
 CONFIG = ComputeConfig.from_env()
 _manage_db = ManageDatabase(CONFIG.manage_db_path)
@@ -69,13 +69,35 @@ ROOT_MOUNT_DIRECTORY = _ROOT_MOUNT_DIRECTORY
 
 
 def _path_is_within(base_dir: str, candidate: str) -> bool:
+    """Lexical + symlink-aware containment.
+
+    The lexical check is fast and works for not-yet-existing paths.  The
+    second check resolves the base and the deepest existing ancestor of the
+    candidate (`lexists` so a dangling symlink is caught too), so a symlink
+    planted inside the base cannot point the real target outside it.
+    """
     base_abs = os.path.abspath(base_dir)
     target_abs = os.path.abspath(candidate)
     try:
-        common = os.path.commonpath([base_abs, target_abs])
+        if os.path.commonpath([base_abs, target_abs]) != base_abs:
+            return False
     except ValueError:
         return False
-    return common == base_abs
+
+    probe = target_abs
+    tail_parts: list[str] = []
+    while probe and not os.path.lexists(probe):
+        parent = os.path.dirname(probe)
+        if parent == probe:
+            break
+        tail_parts.append(os.path.basename(probe))
+        probe = parent
+    resolved_target = os.path.realpath(os.path.join(probe, *reversed(tail_parts)))
+    resolved_base = os.path.realpath(base_abs)
+    try:
+        return os.path.commonpath([resolved_base, resolved_target]) == resolved_base
+    except ValueError:
+        return False
 
 
 def _safe_join(base_dir: str, *parts: str) -> str:
@@ -454,6 +476,7 @@ def _record_failure(md5sum: str, task: dict, start_time: float, run_stage: str, 
     finish_time = time.time()
     if _task_is_terminal(md5sum):
         return
+    _capture_debug_submission(task, _entities_from_input_form(task))
     _finalize_failed_results(task, error_message)
     task_store.update_task(
         md5sum,
@@ -463,6 +486,121 @@ def _record_failure(md5sum: str, task: dict, start_time: float, run_stage: str, 
         error=error_message,
         run_stage=run_stage,
     )
+    _cleanup_task_workspace(task)
+
+
+def _cleanup_task_workspace(task: dict[str, Any]) -> None:
+    """Delete the per-task input workspace once the job reaches a terminal
+    state.  Results live in the separate results folder and are untouched;
+    only the immutable input snapshot and staging area are removed, so
+    finished tasks no longer hold duplicate input copies on disk."""
+    username = str(task.get("username") or "").strip()
+    md5sum = str(task.get("md5sum") or "")
+    if not username or not md5sum:
+        return
+    try:
+        workspace_dir = _safe_join(CONFIG.workspace_folder, username, md5sum)
+    except ValueError:
+        return
+    if os.path.isdir(workspace_dir):
+        shutil.rmtree(workspace_dir, ignore_errors=True)
+        logging.info("Cleaned up workspace %s for finished task %s", workspace_dir, md5sum)
+
+
+def _entities_from_input_form(task: dict[str, Any]) -> list[dict]:
+    """Parse the file/param entities out of a task row's ``input_form`` blob."""
+    raw_form = task.get("input_form")
+    if not raw_form:
+        return []
+    try:
+        parsed = json.loads(raw_form) if isinstance(raw_form, str) else raw_form
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if not isinstance(parsed, dict):
+        return []
+    entities = parsed.get("entities")
+    return entities if isinstance(entities, list) else []
+
+
+def _capture_debug_submission(task: dict[str, Any], entities: list[dict], params: dict | None = None) -> None:
+    """Best-effort copy of the user's submission into the result dir so it
+    survives workspace cleanup: the submission form as ``debug/submission.json``
+    plus each input snapshot copied to its user-facing path under
+    ``debug/inputs/``.  Any failure only logs a warning — debug capture must
+    never fail a job finalization."""
+    result_dir = str(task.get("result_dir") or "")
+    if not result_dir:
+        return
+    try:
+        debug_dir = _safe_join(result_dir, "debug")
+        inputs_dir = _safe_join(debug_dir, "inputs")
+        os.makedirs(inputs_dir, exist_ok=True)
+
+        raw_form = task.get("input_form")
+        if isinstance(raw_form, str):
+            try:
+                raw_form = json.loads(raw_form)
+            except json.JSONDecodeError:
+                raw_form = None
+        form = raw_form if isinstance(raw_form, dict) else {}
+
+        # The DB record is the source of truth — same convention as
+        # _execute_compute_task, where the Celery ``params`` argument is
+        # ignored in favor of the input_form param entities.
+        if params is None:
+            params = {
+                e["name"]: e.get("verified_value", e.get("value"))
+                for e in entities
+                if e.get("type") != "file" and e.get("name")
+            }
+
+        files: list[dict[str, Any]] = []
+        for fe in [e for e in entities if e.get("type") == "file"]:
+            relative_path = str(fe.get("relative_path") or "").replace("\\", "/")
+            snapshot_path = str(fe.get("snapshot_path") or "")
+            parts = relative_path.split("/")
+            if not relative_path or relative_path.startswith("/") or any(part in {"", ".", ".."} for part in parts):
+                logging.warning(
+                    "Skipping debug capture for invalid input path %r in task %s",
+                    relative_path,
+                    task.get("md5sum"),
+                )
+                continue
+            if (
+                not _path_is_within(CONFIG.workspace_folder, snapshot_path)
+                or os.path.islink(snapshot_path)
+                or not os.path.isfile(snapshot_path)
+            ):
+                logging.warning(
+                    "Skipping debug capture for invalid snapshot %r in task %s",
+                    snapshot_path,
+                    task.get("md5sum"),
+                )
+                continue
+            destination = _safe_join(inputs_dir, *parts)
+            os.makedirs(os.path.dirname(destination), exist_ok=True)
+            shutil.copyfile(snapshot_path, destination)
+            files.append(
+                {
+                    "name": relative_path,
+                    "size": os.path.getsize(destination),
+                    "sha256": str(fe.get("hash") or ""),
+                }
+            )
+
+        submission = {
+            "task_type": task.get("task_type", "gremlin"),
+            "params": params,
+            "username": str(task.get("username") or form.get("user") or ""),
+            "submitted_at": form.get("submitted_at") or task.get("uploaded_at"),
+            "files": files,
+        }
+        submission_path = _safe_join(debug_dir, "submission.json")
+        with open(submission_path, "w", encoding="utf-8") as handle:
+            json.dump(submission, handle, ensure_ascii=True, indent=2, sort_keys=True)
+            handle.write("\n")
+    except Exception as exc:  # pylint: disable=broad-except
+        logging.warning("Failed to capture debug submission for task %s: %s", task.get("md5sum"), exc)
 
 
 # ---------------------------------------------------------------------------
@@ -589,12 +727,15 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
             return
         if final_state == JobState.CANCELLED:
             task_store.update_task(md5sum, status="cancelled", finished_at=time.time())
+            _capture_debug_submission(task, entities, params)
+            _cleanup_task_workspace(task)
             return
 
         final_stage = stage_state["current"] or (stages[-1][0] if stages else "")
         refreshed_task = task_store.get_task(md5sum) or task
         if _is_terminal_status(refreshed_task.get("status")):
             return
+        _capture_debug_submission(task, entities, params)
         _finalize_results_manifest(refreshed_task)
         refreshed_task = task_store.get_task(md5sum) or refreshed_task
         if _is_terminal_status(refreshed_task.get("status")):
@@ -608,6 +749,7 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
             error=None,
             run_stage=final_stage,
         )
+        _cleanup_task_workspace(task)
     except docker.errors.ContainerError as exc:
         _record_failure(md5sum, task, start_time, stage_state["current"], f"docker: {exc}")
     except docker.errors.DockerException as exc:
@@ -655,12 +797,16 @@ def _recover_orphaned_tasks() -> int:
                     _finalize_after_poll(md5sum, task, tt, state)
                     recovered += 1
                 else:
-                    _record_failure(md5sum, task, task.get("started_at") or time.time(), "",
-                                    "Docker container not found after server restart")
+                    _record_failure(
+                        md5sum,
+                        task,
+                        task.get("started_at") or time.time(),
+                        "",
+                        "Docker container not found after server restart",
+                    )
             except Exception as exc:
                 logging.error("Recovery failed for Docker task %s: %s", md5sum, exc)
-                _record_failure(md5sum, task, task.get("started_at") or time.time(), "",
-                                f"Recovery error: {exc}")
+                _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
 
         elif slurm_job_id:
             try:
@@ -669,15 +815,19 @@ def _recover_orphaned_tasks() -> int:
                 tt, runner = _gt(task_type)
                 job = SlurmJob(md5sum, tt, runner, [], task["result_dir"])
                 if job.reconnect(slurm_job_id):
-                    logging.info("Recovery: SLURM job %s still running for %s, re-queuing poll",
-                                 slurm_job_id, md5sum)
+                    logging.info("Recovery: SLURM job %s still running for %s, re-queuing poll", slurm_job_id, md5sum)
                     run_compute_task.apply_async(
                         args=[md5sum], kwargs={"task_type": task_type, "recover_slurm": slurm_job_id}
                     )
                     recovered += 1
                 else:
-                    _record_failure(md5sum, task, task.get("started_at") or time.time(), "",
-                                    "SLURM job not found after server restart")
+                    _record_failure(
+                        md5sum,
+                        task,
+                        task.get("started_at") or time.time(),
+                        "",
+                        "SLURM job not found after server restart",
+                    )
             except Exception as exc:
                 logging.error("Recovery failed for SLURM task %s: %s", md5sum, exc)
     return recovered
@@ -686,14 +836,16 @@ def _recover_orphaned_tasks() -> int:
 def _finalize_after_poll(md5sum, task, tt, state):
     """Publish results or record failure after a recovered job completes."""
     if state == JobState.FAILED:
-        _record_failure(md5sum, task, task.get("started_at") or time.time(), "",
-                        "Recovered compute job failed")
+        _record_failure(md5sum, task, task.get("started_at") or time.time(), "", "Recovered compute job failed")
     elif state == JobState.CANCELLED:
         task_store.update_task(md5sum, status="cancelled", finished_at=time.time())
+        _capture_debug_submission(task, _entities_from_input_form(task))
+        _cleanup_task_workspace(task)
     else:
         refreshed = task_store.get_task(md5sum) or task
         if _is_terminal_status(refreshed.get("status")):
             return
+        _capture_debug_submission(task, _entities_from_input_form(task))
         _finalize_results_manifest(refreshed)
         refreshed = task_store.get_task(md5sum) or refreshed
         if _is_terminal_status(refreshed.get("status")):
@@ -707,9 +859,11 @@ def _finalize_after_poll(md5sum, task, tt, state):
             error=None,
             run_stage=list(tt.stage_markers.items())[-1][0] if tt.stage_markers else "",
         )
+        _cleanup_task_workspace(task)
 
 
 try:
+
     @celery.on_after_configure.connect
     def _setup_recovery_signal(sender, **kwargs):  # noqa: F811
         from celery.signals import worker_ready
@@ -719,6 +873,7 @@ try:
             count = _recover_orphaned_tasks()
             if count:
                 logging.info("Recovered %d orphaned task(s)", count)
+
 except ImportError:
     pass  # celery.signals not available in all environments
 

@@ -8,11 +8,12 @@
 
 services:
   redis:
-    # Publish on a non-default port so host-networked containers can reach
-    # Redis via the Docker gateway (172.17.0.1).  Port 6379 is taken by the
-    # host's own redis-server.
+    # Publish on a non-default port so the host-networked worker can reach
+    # Redis via localhost.  Loopback-only: never expose the broker on other
+    # host interfaces — it is authenticated, but it is still the task
+    # control plane.
     ports:
-      - "6380:6379"
+      - "127.0.0.1:6380:6379"
 
   web:
     volumes:
@@ -25,11 +26,12 @@ services:
   worker:
     network_mode: host
     # Host-networked → can't resolve Docker DNS "redis".  Use the published
-    # port (6380 → container:6379) via localhost.
+    # port (6380 → container:6379) via localhost.  REDIS_PASSWORD is provided
+    # by restart.sh through the deployment env file.
     environment:
-      REDIS_URL: redis://127.0.0.1:6380/0
-      BROKER_URL: redis://127.0.0.1:6380/0
-      RESULT_BACKEND: redis://127.0.0.1:6380/0
+      REDIS_URL: redis://:${REDIS_PASSWORD}@127.0.0.1:6380/0
+      BROKER_URL: redis://:${REDIS_PASSWORD}@127.0.0.1:6380/0
+      RESULT_BACKEND: redis://:${REDIS_PASSWORD}@127.0.0.1:6380/0
     volumes:
       - ${CONFIG_DIR}:${CONFIG_DIR}:ro
       - /usr/bin/sbatch:/usr/bin/sbatch:ro

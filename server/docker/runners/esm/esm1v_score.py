@@ -20,7 +20,6 @@ from pathlib import Path
 
 import pandas as pd
 import torch
-
 from esm2 import Alphabet, pretrained
 from esm2.data import read_fasta
 

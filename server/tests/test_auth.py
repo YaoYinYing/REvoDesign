@@ -37,7 +37,7 @@ def test_auth_me_returns_current_user(monkeypatch, tmp_path):
     assert data["pi_name"] is None
     assert "is_admin" not in data
     assert "password_hash" not in data
-    assert "api_key_hash" not in data
+    assert "api_key_digest" not in data
 
 
 def test_auth_me_rejects_unauthenticated(monkeypatch, tmp_path):
@@ -879,7 +879,8 @@ def test_upload_enforces_active_task_cap(monkeypatch, tmp_path):
     auth_header = _test_client_auth(module)
     # Submit 5 tasks with different content to avoid dedup
     for i in range(5):
-        content = f">test{i}\nACDE{i}\n".encode()
+        # Sequence must be a valid protein alphabet so content validation passes.
+        content = f">test{i}\nACDE{'FGHIK'[i]}\n".encode()
         resp = client.post(
             "/compute/api/post",
             data={"file": (io.BytesIO(content), f"task{i}.fasta")},
@@ -1026,7 +1027,7 @@ def test_schema_batch_user_requires_nonempty_user_ids(monkeypatch, tmp_path):
 
 
 def test_schema_user_response_excludes_password_hash(monkeypatch, tmp_path):
-    """UserResponse does not accept password_hash or api_key_hash fields."""
+    """UserResponse does not accept password_hash or api_key_digest fields."""
     from pydantic import ValidationError
     from revocompute.schemas import UserResponse
 
@@ -1050,3 +1051,4 @@ def test_schema_user_response_excludes_password_hash(monkeypatch, tmp_path):
     assert user.username == "test"
     # password_hash should not be in the model
     assert "password_hash" not in UserResponse.model_fields
+    assert "api_key_digest" not in UserResponse.model_fields

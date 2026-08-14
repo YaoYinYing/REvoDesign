@@ -145,15 +145,11 @@ def run_full_stack_checks(
         paths = {artifact["path"] for artifact in artifacts}
         artifact_prefix = fasta_path.stem
         assert any(path.endswith("log/task_finished") for path in paths)
-        assert any(
-            path.endswith(f"gremlin_res/{artifact_prefix}.i90c75_aln.GREMLIN.mrf.pkl") for path in paths
-        )
+        assert any(path.endswith(f"gremlin_res/{artifact_prefix}.i90c75_aln.GREMLIN.mrf.pkl") for path in paths)
         assert any(path.endswith(f"pssm_msa/{artifact_prefix}_ascii_mtx_file") for path in paths)
 
         artifact = next(
-            item
-            for item in artifacts
-            if item["path"].endswith(f"pssm_msa/{artifact_prefix}_ascii_mtx_file")
+            item for item in artifacts if item["path"].endswith(f"pssm_msa/{artifact_prefix}_ascii_mtx_file")
         )
         artifact_url = artifact["url"]
         if artifact_url.startswith("/"):

@@ -74,7 +74,9 @@ class SlurmJob(Job):
         try:
             result = subprocess.run(
                 [sacct, "-j", slurm_job_id, "--noheader", "-o", "State", "-P"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if result.returncode != 0:
                 return False
@@ -300,7 +302,12 @@ class SlurmJob(Job):
         )
         lines.append(f"export APPTAINERENV_TASK_INPUTS={_sh_quote(inputs_json)}")
         gpu_flag = " --nv" if self.tt.gpus else ""
-        cmd = f"apptainer run{gpu_flag} {' '.join(bind_parts)} {_sh_quote(sif_image)}"
+        # --containall: private /dev,/proc,/sys and fresh tmpfs for /tmp and
+        # $HOME — no host HOME, shared filesystems, or credentials visible.
+        # --cleanenv: host env is dropped; only the APPTAINERENV_* variables
+        # exported above are forwarded. All required mounts are the explicit
+        # --bind entries, so containment costs nothing for these images.
+        cmd = f"apptainer run{gpu_flag} --containall --cleanenv {' '.join(bind_parts)} {_sh_quote(sif_image)}"
         for arg in self.tt.runner_args:
             cmd += f" {_sh_quote(arg)}"
         if self.tt.name == "gremlin" and not self.tt.runner_args:

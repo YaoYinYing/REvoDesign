@@ -61,7 +61,7 @@
 </main>
 
 <aside class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></aside>
-<script>window.__RESULT_TASK__ = {{ task | tojson }};</script>
+<script type="application/json" id="result-task-data">{{ task | tojson }}</script>
 <script src="/static/js/auth-api.js"></script>
 <script src="/static/js/plugin-host.js"></script>
 <script src="/static/js/result-preview-plugins.js"></script>

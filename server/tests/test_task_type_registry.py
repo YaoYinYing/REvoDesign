@@ -6,8 +6,8 @@
 
 from __future__ import annotations
 
-from contextlib import contextmanager
 import re
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -100,9 +100,7 @@ def test_input_workspace_capabilities_cover_simple_and_complex_tasks():
             "parameters",
             "review",
         ]
-        region_options = next(
-            cap.options for cap in rfdiffusion.input_workspace if cap.plugin == "regions"
-        )
+        region_options = next(cap.options for cap in rfdiffusion.input_workspace if cap.plugin == "regions")
         assert {"contig", "hotspot_res", "inpaint_seq"}.issubset(region_options["fields"])
         assert [cap.plugin for cap in easifa.input_workspace] == [
             "files",
@@ -166,9 +164,9 @@ def test_git_runner_sources_are_commit_pinned_and_clone_metadata_is_removed_in_l
 def test_mpnn_cpu_runtime_omits_inference_unused_gpu_and_media_wheels():
     requirements = {
         line.split("==", 1)[0].lower()
-        for raw in (SERVER_ROOT / "docker" / "runners" / "mpnn" / "requirements.txt").read_text(
-            encoding="utf-8"
-        ).splitlines()
+        for raw in (SERVER_ROOT / "docker" / "runners" / "mpnn" / "requirements.txt")
+        .read_text(encoding="utf-8")
+        .splitlines()
         if (line := raw.strip()) and not line.startswith("#")
     }
     assert not any(package.startswith("nvidia-") for package in requirements)
@@ -178,9 +176,7 @@ def test_mpnn_cpu_runtime_omits_inference_unused_gpu_and_media_wheels():
 
 
 def test_ligandmpnn_uses_the_pinned_upstream_cli_flags():
-    run_script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text(
-        encoding="utf-8"
-    )
+    run_script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text(encoding="utf-8")
 
     ligand_case = run_script.split("  ligandmpnn)", 1)[1].split("    ;;", 1)[0]
     assert '--number_of_batches "${NUMBER_OF_BATCHES}"' in ligand_case
@@ -190,12 +186,8 @@ def test_ligandmpnn_uses_the_pinned_upstream_cli_flags():
 
 
 def test_proteinmpnn_and_solublempnn_share_the_pinned_official_runtime():
-    dockerfile = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "Dockerfile").read_text(
-        encoding="utf-8"
-    )
-    run_script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text(
-        encoding="utf-8"
-    )
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "Dockerfile").read_text(encoding="utf-8")
+    run_script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text(encoding="utf-8")
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
 
     assert "MPNN_REPO=https://github.com/YaoYinYing/ProteinMPNN.git" in dockerfile
@@ -210,12 +202,8 @@ def test_proteinmpnn_and_solublempnn_share_the_pinned_official_runtime():
 
 
 def test_lasermpnn_uses_pinned_source_checkpoints_and_cpu_runtime():
-    dockerfile = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "Dockerfile").read_text(
-        encoding="utf-8"
-    )
-    run_script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text(
-        encoding="utf-8"
-    )
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "Dockerfile").read_text(encoding="utf-8")
+    run_script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text(encoding="utf-8")
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
 
     assert "LASERMPNN_REPO=https://github.com/YaoYinYing/LASErMPNN.git" in dockerfile
@@ -244,9 +232,7 @@ def test_every_declared_submission_parameter_is_consumed_by_its_runtime_script()
         runtime = registry["runtime_families"][task["runtime_family"]]
         script = (SERVER_ROOT / Path(runtime["dockerfile"]).parent / "run.sh").read_text(encoding="utf-8")
         consumed = {
-            name
-            for name in declared
-            if re.search(rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])", script)
+            name for name in declared if re.search(rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])", script)
         }
         assert consumed == declared, f"{task_name} exposes ignored parameters: {sorted(declared - consumed)}"
 
@@ -281,12 +267,8 @@ def test_prime_family_exposes_distinct_ogt_and_dms_contracts():
         assert dms.max_input_files == 64
         assert set(dms.input_extensions) == {".fasta", ".fa", ".faa"}
 
-    dockerfile = (SERVER_ROOT / "docker" / "runners" / "prime" / "Dockerfile").read_text(
-        encoding="utf-8"
-    )
-    script = (SERVER_ROOT / "docker" / "runners" / "prime" / "run.sh").read_text(
-        encoding="utf-8"
-    )
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "prime" / "Dockerfile").read_text(encoding="utf-8")
+    script = (SERVER_ROOT / "docker" / "runners" / "prime" / "run.sh").read_text(encoding="utf-8")
     assert "Prime_690M-7b75010748d2" in dockerfile
     assert '"predict_score"' in script
     assert 'tuple("ACDEFGHIKLMNPQRSTVWY")' in script
@@ -296,9 +278,7 @@ def test_prime_family_exposes_distinct_ogt_and_dms_contracts():
 
 
 def test_shared_placer_rfdiffusion_runtime_uses_audited_compatible_versions():
-    dockerfile = (
-        SERVER_ROOT / "docker" / "runners" / "placer-rfdiffusion" / "Dockerfile"
-    ).read_text(encoding="utf-8")
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "placer-rfdiffusion" / "Dockerfile").read_text(encoding="utf-8")
     for requirement in (
         "torch==2.3.1",
         "dgl==2.4.0",
@@ -312,15 +292,9 @@ def test_shared_placer_rfdiffusion_runtime_uses_audited_compatible_versions():
 
 
 def test_bioemu_runtime_pins_release_and_driver_compatible_torch_once():
-    dockerfile = (SERVER_ROOT / "docker" / "runners" / "bioemu" / "Dockerfile").read_text(
-        encoding="utf-8"
-    )
-    run_script = (SERVER_ROOT / "docker" / "runners" / "bioemu" / "run.sh").read_text(
-        encoding="utf-8"
-    )
-    runner = yaml.safe_load(
-        (SERVER_ROOT / "config" / "runners" / "bioemu.yaml").read_text(encoding="utf-8")
-    )
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "bioemu" / "Dockerfile").read_text(encoding="utf-8")
+    run_script = (SERVER_ROOT / "docker" / "runners" / "bioemu" / "run.sh").read_text(encoding="utf-8")
+    runner = yaml.safe_load((SERVER_ROOT / "config" / "runners" / "bioemu.yaml").read_text(encoding="utf-8"))
     assert "python:3.11-slim" in dockerfile
     assert '"bioemu[cuda]==1.4.1"' in dockerfile
     assert '"torch==2.7.1"' in dockerfile
@@ -338,12 +312,8 @@ def test_bioemu_runtime_pins_release_and_driver_compatible_torch_once():
 
 
 def test_easifa_runtime_uses_pinned_official_easifa2_single_prediction_contract():
-    dockerfile = (SERVER_ROOT / "docker" / "runners" / "easifa" / "Dockerfile").read_text(
-        encoding="utf-8"
-    )
-    run_script = (SERVER_ROOT / "docker" / "runners" / "easifa" / "run.sh").read_text(
-        encoding="utf-8"
-    )
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "easifa" / "Dockerfile").read_text(encoding="utf-8")
+    run_script = (SERVER_ROOT / "docker" / "runners" / "easifa" / "run.sh").read_text(encoding="utf-8")
     assert "EASIFA_REF=146ed9ca6ccbc7458bd2d343ec2de0ce149c9aad" in dockerfile
     assert "EASIFA_REPO=https://github.com/wangxr0526/EasIFA2.0_Core.git" in dockerfile
     assert "EASIFA_METADATA_REF=f26aecd922a48d935315fe7d4f61381a388492af" in dockerfile
@@ -393,9 +363,7 @@ def test_empty_registry_is_rejected(tmp_path):
         ("slurm", "apptainer", "", "must declare slurm_image"),
     ],
 )
-def test_invalid_global_executor_contract_is_rejected(
-    tmp_path, job_executor, container_runtime, slurm_image, message
-):
+def test_invalid_global_executor_contract_is_rejected(tmp_path, job_executor, container_runtime, slurm_image, message):
     registry = tmp_path / "task_types.yaml"
     registry.write_text(
         f"job_executor: {job_executor}\n"
@@ -467,8 +435,7 @@ def test_invalid_input_contract_is_rejected(tmp_path, task_fields, message):
         "    display_name: GREMLIN\n"
         "    runtime_family: test\n"
         "    input_extension: .fasta\n"
-        "    input_label: FASTA\n"
-        + task_fields,
+        "    input_label: FASTA\n" + task_fields,
         encoding="utf-8",
     )
     (tmp_path / "test.yaml").write_text("{}\n", encoding="utf-8")
@@ -477,9 +444,7 @@ def test_invalid_input_contract_is_rejected(tmp_path, task_fields, message):
 
 
 def test_shared_runner_passes_full_snapshot_root_to_placer():
-    script = (SERVER_ROOT / "docker" / "runners" / "placer-rfdiffusion" / "run.sh").read_text(
-        encoding="utf-8"
-    )
+    script = (SERVER_ROOT / "docker" / "runners" / "placer-rfdiffusion" / "run.sh").read_text(encoding="utf-8")
     assert 'input_root="${input_file%%/inputs/*}/inputs"' in script
     assert 'placer_args=(-i "$input_root" -o "$output_dir" -n "$NUM_SAMPLES")' in script
     assert 'run_PLACER.py" "${placer_args[@]}"' in script

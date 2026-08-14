@@ -14,11 +14,10 @@ import zipfile
 from dataclasses import replace
 from pathlib import Path
 
+import docker
 import requests
 from conftest import _extract_md5, _load_pssm_module
 from werkzeug.utils import secure_filename
-
-import docker
 
 SERVER_PACKAGE = Path(__file__).resolve().parents[1] / "revocompute"
 
@@ -83,9 +82,8 @@ def test_task_type_api_exposes_runtime_family_and_gpu_contract(monkeypatch, tmp_
     form = form_response.get_json()
     assert form["runtime_family"] == "mpnn"
     assert form["gpus"] is False
-    assert form["resources"]["cpus"] >= 1
-    assert form["resources"]["memory"]
-    assert form["resources"]["max_runtime_seconds"] >= 1
+    # Resource usage is not part of the user-facing submission review.
+    assert "resources" not in form
     assert form["input_workspace"]["version"] == 1
     assert form["input_workspace"]["capabilities"][0]["plugin"] == "files"
     assert form["input_workspace"]["capabilities"][-1]["plugin"] == "review"
@@ -111,9 +109,7 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert "PY2DMOL_SCRIPT_INTEGRITY" in script
     assert "renderPy2DmolFallback" in script
     assert "parseCifAlphaCarbons" in script
-    preview_plugins = (SERVER_PACKAGE / "static" / "js" / "result-preview-plugins.js").read_text(
-        encoding="utf-8"
-    )
+    preview_plugins = (SERVER_PACKAGE / "static" / "js" / "result-preview-plugins.js").read_text(encoding="utf-8")
     plugin_host = (SERVER_PACKAGE / "static" / "js" / "plugin-host.js").read_text(encoding="utf-8")
     assert "ResultPreviewHost" in preview_plugins
     assert 'id: "structure"' in preview_plugins
@@ -128,7 +124,7 @@ def test_execution_logs_are_diagnostic_text_artifacts_not_main_results():
     results = (SERVER_PACKAGE / "static" / "js" / "task-results.js").read_text(encoding="utf-8")
     assert 'artifact["role"] = "diagnostic"' in runtime
     assert 'artifact.role !== "diagnostic"' in results
-    assert 'Execution log · ' in results
+    assert "Execution log · " in results
 
 
 def test_create_task_uses_capability_plugins_with_safe_fallbacks():
@@ -148,7 +144,7 @@ def test_create_task_uses_capability_plugins_with_safe_fallbacks():
 
 def test_full_stack_smoke_uses_manifest_first_result_contract():
     script = (Path(__file__).parent / "full_stack_smoke.py").read_text(encoding="utf-8")
-    assert 'manifest = results.json()' in script
+    assert "manifest = results.json()" in script
     assert 'artifact["url"]' in script
     assert 'f"{base_url}/compute/api/results/{task_id}/archive"' in script
     assert "artifact_prefix = fasta_path.stem" in script
@@ -460,8 +456,10 @@ def test_result_manifest_allows_only_published_artifacts(monkeypatch, tmp_path):
     manifest_response = client.get(f"/compute/api/results/{md5sum}", headers=auth_header)
     result_page = client.get(f"/compute/results/{md5sum}", headers=auth_header)
     artifact = manifest_response.json["artifacts"][0]
-    inline = client.get(artifact["url"], headers=auth_header)
-    download = client.get(f"{artifact['url']}?download=1", headers=auth_header)
+    artifact_url = artifact["url"]
+    default = client.get(artifact_url, headers=auth_header)
+    download = client.get(f"{artifact_url}?download=1", headers=auth_header)
+    inline = client.get(f"{artifact_url}?download=0", headers=auth_header)
     unpublished = client.get(
         f"/compute/api/results/{md5sum}/artifacts/not-published.txt",
         headers=auth_header,
@@ -471,12 +469,42 @@ def test_result_manifest_allows_only_published_artifacts(monkeypatch, tmp_path):
     assert result_page.status_code == 200
     assert "Main Results" in result_page.get_data(as_text=True)
     assert md5sum in result_page.get_data(as_text=True)
+    # Page bootstrap is an inert JSON script block, not executable inline JS.
+    assert 'id="result-task-data"' in result_page.get_data(as_text=True)
     assert artifact["path"] == "scores/result.csv"
     assert artifact["preview"] == "table"
-    assert inline.status_code == 200
-    assert inline.get_data(as_text=True) == "score\n1.0\n"
+    # Artifacts are untrusted runner output: default to attachment + sandbox.
+    assert default.status_code == 200
+    assert default.headers["Content-Disposition"].startswith("attachment;")
+    assert default.headers["Content-Security-Policy"] == "sandbox"
+    assert default.get_data(as_text=True) == "score\n1.0\n"
     assert download.headers["Content-Disposition"].startswith("attachment;")
+    assert inline.headers["Content-Disposition"].startswith("inline;")
+    assert inline.get_data(as_text=True) == "score\n1.0\n"
     assert unpublished.status_code == 404
+
+
+def test_page_csp_forbids_inline_scripts(monkeypatch, tmp_path):
+    """Main app CSP must not allow inline scripts; page bootstraps are inert
+    JSON blocks (see security-audit-tracking.md §11)."""
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+    admin_header = _test_client_auth(module, username="admin", password="test-admin-password")
+
+    for path, auth_header in (
+        ("/compute/dashboard", _test_client_auth(module)),
+        ("/compute/user_control", admin_header),
+    ):
+        response = client.get(path, headers=auth_header)
+        assert response.status_code == 200
+        csp = response.headers["Content-Security-Policy"]
+        script_src = next(part.strip() for part in csp.split(";") if part.strip().startswith("script-src"))
+        assert "'unsafe-inline'" not in script_src
+        assert "<script>" not in response.get_data(as_text=True)
 
 
 def test_archive_endpoint_queues_only_on_explicit_request(monkeypatch, tmp_path):

@@ -5,8 +5,9 @@
   var A = window.REvoDesignAuth;
   var T = window.REvoDesignTheme;
 
-  var allTasks = window.__DASHBOARD_TASKS__;
-  var isAdmin = window.__DASHBOARD_IS_ADMIN__;
+  var boot = JSON.parse(document.getElementById("dashboard-task-data").textContent);
+  var allTasks = boot.tasks;
+  var isAdmin = boot.is_admin;
 
   var state = {
     query: "",
@@ -215,7 +216,7 @@
           '<div class="meta-box"><p class="meta-label">Finished</p><p class="meta-value">' + escapeHtml(task.finished_time || "-") + '</p></div>' +
           '<div class="meta-box"><p class="meta-label">Wall Time</p><p class="meta-value">' + escapeHtml(String(task.walltime ?? "-")) + '</p></div>' +
         '</div>' +
-        '<details class="sequence"><summary>Sequence Snapshot</summary><pre>' + escapeHtml(task.sequence || "-") + '</pre></details>' +
+        '<details class="sequence"><summary>Sequence Snapshot</summary><pre>' + escapeHtml(task.sequence || "-") + (task.sequence_truncated ? "…" : "") + '</pre></details>' +
         '<div class="actions">' +
           (hasResults ? '<button class="task-btn download" data-action="results" data-md5="' + escapeHtml(task.md5) + '">Browse Results</button>' : "") +
           (hasResults ? downloadButtonHtml(task, task.status === "failed" ? "download-failed" : "download") : "") +

@@ -248,7 +248,9 @@ When `REVODESIGN_SERVER_ENV` is unset, the helper uses
 | `GUNICORN_WORKERS` | Gunicorn worker count. |
 | `GUNICORN_TIMEOUT` | Gunicorn request timeout in seconds (default: `120`). Result transfers are handled by Nginx and do not require a long timeout. |
 | `RESULT_DOWNLOAD_MODE` | Result delivery backend: `nginx` in Compose production, or `flask` for direct local Flask development. |
-| `PORT` | Public HTTP port. |
+| `PORT` | Public HTTP port. Published loopback-only (`127.0.0.1`) — the host TLS/Basic-Auth nginx is the entry point, and it must reach the gateway at `localhost:8080`. |
+| `REDIS_PASSWORD` | Redis `requirepass` secret. Generated and persisted into the env file by `restart.sh setup`; the compose stack applies it to `redis-server` and to the Celery broker/backend URIs. Set explicitly only for an external Redis. |
+| `AUTH_COOKIE_SECURE` | Force the auth cookie's `Secure` flag even if the proxy chain fails to report HTTPS (default: `false`). Enable on HTTPS-only deployments; plain-HTTP clients would otherwise stop receiving the cookie. |
 | `RESULT_RETENTION_DAYS` | Optional positive number of days to retain terminal-task result directories and archives. Fractions are allowed (`0.1` = 2.4 hours). Leave unset to disable cleanup; task audit rows remain. |
 | `BACKUP_DB_CRON` | Five-field crontab schedule for database snapshots. Leave unset to disable; recommended daily schedule: `0 0 * * *`. |
 | `BACKUP_DB_PATH` | Snapshot directory inside the maintenance container. `/var/lib/revodesign-auth/backups` persists at `${AUTH_DIR}/backups` on the host. |
@@ -755,13 +757,25 @@ You can start from:
 
 - `server/nginx_sites/REvoCompute.app`
 
+The example forwards `X-Forwarded-Proto $scheme` so the app can mark auth
+cookies `Secure` and add HSTS; keep that header in any custom proxy config.
+Gunicorn trusts forwarded headers only from the compose gateway
+(`--forwarded-allow-ips 127.0.0.1,172.16.0.0/12`), so client-supplied
+`X-Forwarded-Proto` values are ignored. On HTTPS-only deployments, also set
+`AUTH_COOKIE_SECURE=true` as a belt-and-braces force.
+
 ## 10. Security
 
 ### Docker socket
 
-Only the worker mounts `/var/run/docker.sock` to spawn runner containers. This
-separates Docker authority from the public web process, but it is not a
-container-escape boundary:
+Only the worker mounts `/var/run/docker.sock` to spawn runner containers, and
+only in docker-executor deployments: the mount and `DOCKER_GID` live in
+`docker-compose.docker.yml`, which `restart.sh` merges in when
+`job_executor: docker`. The base worker is executor-neutral, and SLURM-mode
+workers get no socket at all (compose concatenates volume lists across `-f`
+files, so a socket defined in the base file could never be removed by the
+SLURM override). This separates Docker authority from the public web process,
+but it is not a container-escape boundary:
 
 - The worker runs as a non-root user for file ownership, but Docker socket
   access remains effectively Docker-daemon/host-level authority regardless of
@@ -795,8 +809,15 @@ banned users, and login throttling are maintained in
 ### Redis
 
 - Redis is on an internal Docker network; do not expose its port publicly.
-- The current Compose stack does not configure Redis authentication. Do not
-  assume that setting `REDIS_PASSWORD` alone enables it.
+- Redis is authenticated: `restart.sh setup` generates `REDIS_PASSWORD` and
+  persists it in the env file; the compose stack applies it to
+  `redis-server --requirepass` and to the Celery broker/backend URIs
+  (`redis://:<password>@...`). The SLURM override publishes Redis only on
+  `127.0.0.1:6380` (loopback) because its host-networked worker cannot reach
+  the internal Docker DNS name. Uncomment `REDIS_URL`/`BROKER_URL`/
+  `RESULT_BACKEND` only for an external Redis, and include the password in
+  the URI.
+- Never publish a Redis port on non-loopback interfaces.
 
 ### Data
 

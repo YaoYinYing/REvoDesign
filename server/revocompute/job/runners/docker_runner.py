@@ -16,12 +16,11 @@ import os
 import threading
 from typing import Any
 
+import docker
 from revocompute.config import ComputeConfig
 from revocompute.job import Job, JobState
 from revocompute.job._stages import extract_stage_from_log_line
 from revocompute.resource_policy import ResolvedResources, resolve_resources
-
-import docker
 
 CONFIG = ComputeConfig.from_env()
 
@@ -120,6 +119,17 @@ class DockerJob(Job):
             user=CONFIG.docker_user,
             stdout=True,
             stderr=True,
+            # Assume the scientific code inside may be exploited: the
+            # container gets no capabilities, no privilege escalation, no
+            # network, a read-only root filesystem, a PID ceiling, and a
+            # writable tmpfs /tmp (HOME points there too, so library caches
+            # keep working; tmpfs usage is governed by mem_limit).
+            read_only=True,
+            cap_drop=["ALL"],
+            security_opt=["no-new-privileges:true"],
+            pids_limit=1024,
+            network_mode="none",
+            tmpfs={"/tmp": "mode=1777"},
         )
         self._job_id = self._container.id
         return self._job_id
@@ -219,6 +229,9 @@ class DockerJob(Job):
         container_env: dict[str, str] = dict(self.runner.env)
         container_env["TASK_ID"] = self.task_id
         container_env["TASK_TYPE"] = self.tt.name
+        # Root filesystem is read-only; point library caches at the writable
+        # tmpfs instead of the (read-only) passwd home directory.
+        container_env["HOME"] = "/tmp"
         container_env["TASK_PARAMS"] = json.dumps(params, separators=(",", ":"), sort_keys=True)
         container_env["TASK_INPUTS"] = json.dumps(
             [

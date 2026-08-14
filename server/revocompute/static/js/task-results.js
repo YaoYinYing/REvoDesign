@@ -5,7 +5,7 @@
   "use strict";
   var A = window.REvoDesignAuth;
   var T = window.REvoDesignTheme;
-  var task = window.__RESULT_TASK__;
+  var task = JSON.parse(document.getElementById("result-task-data").textContent);
   var artifacts = [];
   var activeArtifact = null;
   var molstarAssetsPromise = null;

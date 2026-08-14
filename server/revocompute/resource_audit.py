@@ -25,10 +25,7 @@ def _read_database(path: str) -> tuple[dict[str, str], dict[str, dict[str, objec
         return {}, {}
     connection = sqlite3.connect(f"file:{os.path.abspath(path)}?mode=ro", uri=True)
     try:
-        tables = {
-            row[0]
-            for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        }
+        tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         globals_: dict[str, str] = {}
         tasks: dict[str, dict[str, object]] = {}
         if "resource_config" in tables:

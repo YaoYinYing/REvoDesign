@@ -11,6 +11,8 @@ gated by ``ENABLE_REGISTER``.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import html
 import logging
 import os
@@ -30,7 +32,8 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from revocompute.config import env_bool as _env_bool
 from revocompute.config import env_int as _env_int
 from revocompute.config import env_str as _env_str
-from werkzeug.security import check_password_hash, generate_password_hash
+from revocompute.redis_util import get_redis
+from werkzeug.security import generate_password_hash
 
 # Pre-computed dummy hash used for constant-time comparison when a login
 # attempt targets a non-existent user — prevents timing-based username
@@ -69,7 +72,9 @@ _users_table = sa.Table(
     sa.Column("password_hash", sa.String(256), nullable=False),
     sa.Column("email_verified", sa.Boolean, nullable=False, default=False),
     sa.Column("created_at", sa.Float, nullable=False),
-    sa.Column("api_key_hash", sa.String(256), nullable=True),
+    # sha256 hex digest of the API key.  High-entropy keys need no slow KDF —
+    # the digest is indexed so validation is one lookup, not O(users x KDF).
+    sa.Column("api_key_digest", sa.String(64), nullable=True, index=True),
     sa.Column("full_name", sa.String(128), nullable=True),
     sa.Column("affiliation", sa.String(256), nullable=True),
     sa.Column("position", sa.String(64), nullable=True),
@@ -129,6 +134,19 @@ class UserDatabase:
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
             _metadata.create_all(conn, checkfirst=True)
+            # Migration: api_key_hash -> api_key_digest.  The old werkzeug KDF
+            # hashes are one-way and NOT convertible to a digest — every
+            # existing API key becomes invalid by design and must be
+            # re-issued.  The physical api_key_hash column, if present in an
+            # old DB, is left in place (harmless — the model no longer
+            # selects it).
+            columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users)")}
+            if "api_key_digest" not in columns:
+                conn.exec_driver_sql("ALTER TABLE users ADD COLUMN api_key_digest VARCHAR(64)")
+                # Index the migrated column so validation stays a single
+                # lookup — same index name SQLAlchemy creates for new DBs
+                # (index=True), so fresh and migrated DBs match.
+                conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_users_api_key_digest ON users(api_key_digest)")
         try:
             os.chmod(self.path, 0o600)
         except OSError:
@@ -188,7 +206,7 @@ class UserDatabase:
         """Update allowed user fields in-place.
 
         Allowed keys: ``username``, ``email``, ``password_hash``,
-        ``email_verified``, ``api_key_hash``,
+        ``email_verified``, ``api_key_digest``,
         ``full_name``, ``affiliation``, ``position``, ``pi_name``,
         ``terms_agreed``, ``registration_status``,
         ``user_status``, ``approved_by``, ``approved_at``,
@@ -200,7 +218,7 @@ class UserDatabase:
             "email",
             "password_hash",
             "email_verified",
-            "api_key_hash",
+            "api_key_digest",
             "full_name",
             "affiliation",
             "position",
@@ -232,27 +250,30 @@ class UserDatabase:
     def generate_api_key(self, user_id: int) -> str:
         """Generate a new API key for *user_id*.
 
-        Returns the *plaintext* key — store only its hash.  The caller is
-        responsible for showing the plaintext once.
+        Returns the *plaintext* key — store only its sha256 digest.  The
+        caller is responsible for showing the plaintext once.
         """
         raw = "revodesign_" + os.urandom(32).hex()
-        self.update_user(user_id, api_key_hash=generate_password_hash(raw))
+        self.update_user(user_id, api_key_digest=hashlib.sha256(raw.encode("utf-8")).hexdigest())
         return raw
 
     def revoke_api_key(self, user_id: int) -> None:
         """Remove the API key for *user_id*."""
-        self.update_user(user_id, api_key_hash=None)
+        self.update_user(user_id, api_key_digest=None)
 
     def validate_api_key(self, key: str) -> dict[str, Any] | None:
         """Return the user dict if *key* matches a stored API key, or ``None``."""
         if not key or not key.startswith("revodesign_"):
             return None
-        users = sa.select(_users_table).where(_users_table.c.api_key_hash.isnot(None))
+        digest = hashlib.sha256(key.encode("utf-8")).hexdigest()
+        stmt = sa.select(_users_table).where(_users_table.c.api_key_digest == digest)
         with self.engine.connect() as conn:
-            for row in conn.execute(users).mappings():
-                if check_password_hash(row["api_key_hash"], key):
-                    return dict(row)
-        return None
+            row = conn.execute(stmt).mappings().first()
+        # compare_digest is redundant for a 256-bit digest match but costs
+        # nothing and keeps the comparison constant-time by form.
+        if row is None or not hmac.compare_digest(row["api_key_digest"], digest):
+            return None
+        return dict(row)
 
     def increment_token_version(self, user_id: int) -> None:
         """Invalidate all existing bearer tokens for *user_id*."""
@@ -615,8 +636,9 @@ def _email_html(body_html: str) -> str:
 
 _CAPTCHA_MAX_AGE = 300  # seconds
 
-# ponytail: dict of {nonce: expiry_timestamp}.  Cleaned on each validation call.
-# Size bounded by CAPTCHA rate * 300 s — at ~10 req/s that's ~3k entries.
+# ponytail: in-memory CAPTCHA-nonce store, used only when Redis is down.
+# Per-process — not shared across gunicorn workers.  Bounded by CAPTCHA rate
+# * 300 s (~3k entries at 10 req/s); purged on each fallback validation.
 _used_captcha_nonces: dict[str, float] = {}
 
 
@@ -638,31 +660,51 @@ def generate_captcha() -> tuple[str, str]:
     return question, token
 
 
+def _consume_captcha_nonce(jti: str) -> bool:
+    """Atomically consume a CAPTCHA nonce.  ``False`` = replay (already used).
+
+    Redis-first: ``SET NX`` is atomic, so concurrent workers can never both
+    consume the same nonce.  When Redis is unavailable the nonce is tracked
+    in per-process memory instead (same guarantee, but only within one
+    worker).
+    """
+    client = get_redis()
+    if client is not None:
+        try:
+            return bool(client.set(f"captcha:{jti}", "1", nx=True, ex=_CAPTCHA_MAX_AGE))
+        except Exception:
+            pass  # Redis died — fall back to per-process memory
+    now = time.time()
+    _purge_expired_captcha_nonces(now)
+    if jti in _used_captcha_nonces:
+        return False  # replay
+    _used_captcha_nonces[jti] = now + _CAPTCHA_MAX_AGE
+    return True
+
+
 def validate_captcha(token: str, answer: str) -> bool:
     """Validate a CAPTCHA token and answer.  Tokens expire after 5 minutes.
 
-    Each token is single-use — the nonce (``jti``) is tracked and rejected
-    on replay.
+    Each token is single-use — the nonce (``jti``) is consumed once and
+    rejected on replay.  The answer is checked before the nonce is consumed,
+    so a wrong answer does not burn the token and the same challenge can be
+    retried.
     """
-    now = time.time()
-    _purge_expired_captcha_nonces(now)
     try:
         payload = _serializer.loads(token, max_age=_CAPTCHA_MAX_AGE)
     except (SignatureExpired, BadSignature):
         return False
     if payload.get("purpose") != "captcha":
         return False
-    jti = payload.get("jti")
-    if jti and jti in _used_captcha_nonces:
-        return False  # replay
     try:
         if int(payload.get("answer", -1)) != int(answer.strip()):
             return False
     except (TypeError, ValueError):
         return False
-    if jti:
-        _used_captcha_nonces[jti] = now + _CAPTCHA_MAX_AGE
-    return True
+    jti = payload.get("jti")
+    if not jti:
+        return True
+    return _consume_captcha_nonce(jti)
 
 
 def _public_base_url() -> str:
@@ -749,7 +791,12 @@ def send_password_reset_email(email: str, db: UserDatabase) -> bool:
         return True
 
     token = _serializer.dumps(
-        {"uid": user["id"], "purpose": "reset-password", "ver": user.get("token_version", 0), "nonce": secrets.token_hex(16)}
+        {
+            "uid": user["id"],
+            "purpose": "reset-password",
+            "ver": user.get("token_version", 0),
+            "nonce": secrets.token_hex(16),
+        }
     )
     base_url = _public_base_url()
     reset_url = f"{base_url}/compute/reset_password?c={token}"

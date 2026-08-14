@@ -18,11 +18,10 @@ import os
 import sys
 from pathlib import Path
 
-import numpy as np
-import torch
-
 import esm2
 import esm2.inverse_folding  # noqa: F401  (registers esm2.inverse_folding.util)
+import numpy as np
+import torch
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

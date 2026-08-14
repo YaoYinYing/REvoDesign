@@ -95,9 +95,7 @@ def test_slurm_constraint_expressions_are_preserved_without_whitespace_or_option
 
 
 def test_resource_snapshot_round_trip_is_strict():
-    resources = _resolve(
-        {"cpus": 8, "memory": "16G", "slurm_partition": "normal"}, gpu=True
-    )
+    resources = _resolve({"cpus": 8, "memory": "16G", "slurm_partition": "normal"}, gpu=True)
     restored = ResolvedResources.from_snapshot(resources.public_dict())
     assert restored.public_dict() == resources.public_dict()
     broken = resources.public_dict()
@@ -122,15 +120,11 @@ def test_manage_database_migrates_canonical_columns_and_resolves_policy(tmp_path
     try:
         columns = {row[1] for row in database._conn.execute("PRAGMA table_info(task_type_config)")}
         assert {"cpus", "memory"}.issubset(columns)
-        resources = database.resolve_task_resources(
-            "gremlin", requires_gpu=False, default_timeout_seconds=3600
-        )
+        resources = database.resolve_task_resources("gremlin", requires_gpu=False, default_timeout_seconds=3600)
         assert resources.cpus == 6
         assert resources.memory == "12G"
         database.task_type_upsert("gremlin", cpus=10, memory="20G")
-        updated = database.resolve_task_resources(
-            "gremlin", requires_gpu=False, default_timeout_seconds=3600
-        )
+        updated = database.resolve_task_resources("gremlin", requires_gpu=False, default_timeout_seconds=3600)
         assert updated.cpus == 10
         assert updated.memory == "20G"
     finally:

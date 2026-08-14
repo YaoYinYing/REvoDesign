@@ -93,12 +93,11 @@ def main() -> None:
         writer = csv.writer(handle)
         writer.writerow(["position", "residue", "log_prob", "entropy"])
         for i, residue in enumerate(query):
-            writer.writerow([i + 1, residue, f"{log_probs[i, alphabet.get_idx(residue)].item():.6f}",
-                             f"{entropy[i].item():.6f}"])
+            writer.writerow(
+                [i + 1, residue, f"{log_probs[i, alphabet.get_idx(residue)].item():.6f}", f"{entropy[i].item():.6f}"]
+            )
 
-    wt_log_probs = torch.stack(
-        [log_probs[i, alphabet.get_idx(residue)] for i, residue in enumerate(query)]
-    )
+    wt_log_probs = torch.stack([log_probs[i, alphabet.get_idx(residue)] for i, residue in enumerate(query)])
     mean_entropy = entropy.mean().item()
     with open(f"{args.output_dir}/msa1b_summary.json", "w") as handle:
         import json

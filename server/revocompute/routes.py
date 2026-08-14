@@ -50,7 +50,6 @@ from revocompute.app import (
     _is_admin_user,
     _is_binary_file,
     _is_deleted_status,
-    _is_fasta_content,
     _request_metadata,
     _revoke_celery_task,
     _task_access_allowed,
@@ -79,12 +78,9 @@ from revocompute.auth import (
     validate_email_token,
     validate_reset_token,
 )
+from revocompute.input_validation import validate_input_file
 from revocompute.ratelimit import rate_limit
-from revocompute.resource_policy import (
-    GLOBAL_RESOURCE_KEYS,
-    ResourceValidationError,
-    normalize_resource_value,
-)
+from revocompute.resource_policy import GLOBAL_RESOURCE_KEYS, ResourceValidationError, normalize_resource_value
 from revocompute.schemas import (
     AdminCreateUserRequest,
     AdminUpdateUserRequest,
@@ -99,17 +95,17 @@ from revocompute.schemas import (
 )
 from revocompute.task_runtime import (
     _build_running_trace,
+    _finalize_failed_results,
     _get_task_type,
     _local_user_identity,
     _normalize_task_id,
-    _finalize_failed_results,
     _safe_join,
     _sanitize_task_error,
     _task_zip_path,
     _virtual_upload_path,
+    build_results_archive,
     format_times,
     format_walltime,
-    build_results_archive,
     run_compute_task,
     task_store,
 )
@@ -288,22 +284,16 @@ def task_type_form(name: str):
         if enabled is False:
             return jsonify({"error": f"Task type {name!r} is disabled"}), 404
 
-    resource_summary = None
     if manage_db is not None:
+        # Fail the form early on a broken policy, but do not expose the
+        # resolved resource usage to users — resource review is not part of
+        # the submission flow.  The real enforcement happens at submission.
         try:
-            resolved = manage_db.resolve_task_resources(
+            manage_db.resolve_task_resources(
                 tt.name,
                 requires_gpu=tt.gpus,
                 default_timeout_seconds=runner.max_runtime_seconds,
             )
-            resource_summary = {
-                "cpus": resolved.cpus,
-                "memory": resolved.memory,
-                "max_runtime_seconds": resolved.max_runtime_seconds,
-                "partition": resolved.partition,
-                "gres": resolved.gres,
-                "requires_gpu": resolved.requires_gpu,
-            }
         except ResourceValidationError as exc:
             return jsonify({"error": f"Task resource policy is invalid: {exc}"}), 503
 
@@ -341,7 +331,6 @@ def task_type_form(name: str):
             ],
             "show_sequence_editor": tt.input_extension == ".fasta",
             "input_workspace": _input_workspace_payload(tt),
-            "resources": resource_summary,
         }
     )
 
@@ -402,9 +391,7 @@ def _validate_input_uploads(task_type: str = "gremlin"):
         return None, (jsonify({"error": f"At most {tt.max_input_files} input files are allowed"}), 400)
     submitted_paths = request.form.getlist("input_paths")
     accepted = tuple(extension.lower() for extension in (tt.input_extensions or (tt.input_extension,)))
-    primary_accepted = tuple(
-        extension.lower() for extension in (tt.primary_input_extensions or (tt.input_extension,))
-    )
+    primary_accepted = tuple(extension.lower() for extension in (tt.primary_input_extensions or (tt.input_extension,)))
     validated: list[tuple[Any, str]] = []
     seen_paths: set[str] = set()
     for index, uploaded in enumerate(uploads):
@@ -536,18 +523,20 @@ def _prepare_task_record(
 def _reject_invalid_input(md5sum: str, base_record: dict[str, Any], task_type: str = "gremlin"):
     """Reject uploads whose content doesn't match the expected format.
 
-    Only FASTA task types are validated for FASTA content — PDB and other
-    binary/structured formats are validated by the runner at execution time.
+    Every upload passes the 4096-byte binary sniff; the primary input is then
+    content-validated by extension (FASTA/A3M/PDB/mmCIF/JSON) with generous
+    DoS caps (see revocompute.input_validation), so third-party parsers never
+    see pathological content.
     """
     upload_path = base_record["file_path"]
     if base_record["is_binary"]:
         error_message = "Binary file uploads are not supported."
         response_message = "Uploaded file contains binary content"
-    elif task_type == "gremlin" and not _is_fasta_content(upload_path):
-        error_message = "Uploaded file does not appear to be a valid FASTA file."
-        response_message = "Uploaded file does not appear to be a valid FASTA file"
     else:
-        return None
+        error_message = validate_input_file(upload_path, base_record.get("filename") or "")
+        if error_message is None:
+            return None
+        response_message = error_message
 
     failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
     task_store.upsert_task(md5sum, **base_record, status="failed", error=error_message)
@@ -829,7 +818,10 @@ def get_result_artifact(md5sum: str, relative_path: str):
     if resolved is None:
         return jsonify({"error": "Artifact not found"}), 404
     path, artifact = resolved
-    as_attachment = request.args.get("download", "0") in {"1", "true", "yes"}
+    # Artifacts are untrusted runner output — default to attachment so they
+    # are never rendered same-origin.  `?download=1` still forces a download
+    # and `?download=0` explicitly opts back into inline rendering.
+    as_attachment = request.args.get("download", "1") in {"1", "true", "yes"}
     if app.config["RESULT_DOWNLOAD_MODE"] == "nginx":
         internal_path = quote(f"{md5sum}/{artifact['path']}", safe="/")
         response = Response(status=200, mimetype=artifact.get("media_type") or "application/octet-stream")
@@ -841,13 +833,18 @@ def get_result_artifact(md5sum: str, relative_path: str):
         )
         response.headers["Cache-Control"] = "private, no-store"
         return response
-    return send_from_directory(
+    response = send_from_directory(
         task["result_dir"],
         artifact["path"],
         as_attachment=as_attachment,
         download_name=os.path.basename(path),
         mimetype=artifact.get("media_type") or None,
     )
+    # Defense in depth: even an explicitly-inline artifact runs no scripts.
+    # (In nginx mode the served body comes from the internal location, which
+    # sets the same header in docker/nginx/default.conf.template.)
+    response.headers["Content-Security-Policy"] = "sandbox"
+    return response
 
 
 @app.route("/compute/api/results/<md5sum>/archive", methods=["POST"])
@@ -992,15 +989,23 @@ def cancel_task(md5sum):
     return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
 
 
+# ponytail: bounded per-task read for the dashboard — a full file read per
+# task turns N listed tasks into N x 16 MiB page loads. The full snapshot
+# lives on the task's own results page.
+_DASHBOARD_SEQUENCE_PREVIEW_BYTES = 4096
+
+
 def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, is_admin: bool) -> dict[str, Any]:
     submitted_time = task.get("uploaded_at")
     finished_time = task.get("finished_at")
+    sequence_truncated = False
     if task.get("is_binary"):
         fasta_seq = "Binary file rejected"
     else:
         try:
             with open(task["file_path"]) as handle:
-                fasta_seq = handle.read().strip()
+                fasta_seq = handle.read(_DASHBOARD_SEQUENCE_PREVIEW_BYTES).strip()
+                sequence_truncated = handle.read(1) != ""
         except (OSError, UnicodeDecodeError) as exc:
             reason = "file not found" if isinstance(exc, FileNotFoundError) else "file unavailable"
             fasta_seq = (
@@ -1018,6 +1023,7 @@ def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, 
         "walltime": format_walltime(task.get("walltime")),
         "submitted_timestamp": submitted_time or 0,
         "sequence": fasta_seq,
+        "sequence_truncated": sequence_truncated,
         "owner": task.get("username") or "-",
         "can_delete": (is_admin or task.get("username") == current_user)
         and task["status"] not in task_store.CLEANUP_CLAIM_STATUSES,
@@ -1383,7 +1389,7 @@ def auth_login():
         path="/",
         httponly=True,
         samesite="Lax",
-        secure=request.is_secure,
+        secure=request.is_secure or current_app.config.get("AUTH_COOKIE_SECURE", False),
     )
     return response
 
@@ -1453,7 +1459,15 @@ def auth_logout():
         db = _get_user_db()
         db.increment_token_version(user["id"])
     response = jsonify({"status": "logged_out"})
-    response.set_cookie("auth_token", "", max_age=0, path="/", httponly=True, samesite="Lax", secure=request.is_secure)
+    response.set_cookie(
+        "auth_token",
+        "",
+        max_age=0,
+        path="/",
+        httponly=True,
+        samesite="Lax",
+        secure=request.is_secure or current_app.config.get("AUTH_COOKIE_SECURE", False),
+    )
     return response
 
 
@@ -1693,7 +1707,7 @@ def auth_api_key_status():
         return _blocked
     db = _get_user_db()
     user = db.get_user(g.current_user["id"])
-    has_key = bool(user and user.get("api_key_hash"))
+    has_key = bool(user and user.get("api_key_digest"))
     return jsonify({"has_api_key": has_key}), 200
 
 
@@ -2001,9 +2015,7 @@ def admin_get_config():
     return jsonify(
         {
             "task_types": task_configs,
-            "resources": {
-                key: value for key, value in stored_resources.items() if key in GLOBAL_RESOURCE_KEYS
-            },
+            "resources": {key: value for key, value in stored_resources.items() if key in GLOBAL_RESOURCE_KEYS},
             "ignored_resource_keys": sorted(set(stored_resources) - GLOBAL_RESOURCE_KEYS),
             "slurm": {
                 "enabled": manage_db.slurm_enabled(),
@@ -2079,14 +2091,8 @@ def admin_set_config():
             seen_tools.add(tool)
             unknown_fields = set(entry) - {"tool", *_tt_fields}
             if unknown_fields:
-                raise ResourceValidationError(
-                    f"Unknown resource fields for {tool}: {sorted(unknown_fields)}"
-                )
-            fields = {
-                field: normalize_resource_value(field, entry[field])
-                for field in _tt_fields
-                if field in entry
-            }
+                raise ResourceValidationError(f"Unknown resource fields for {tool}: {sorted(unknown_fields)}")
+            fields = {field: normalize_resource_value(field, entry[field]) for field in _tt_fields if field in entry}
             if "enabled" in fields and fields["enabled"] is None:
                 raise ResourceValidationError("enabled cannot be empty")
             task_type = type_map.get(tool)
@@ -2111,9 +2117,7 @@ def admin_set_config():
             if unknown_slurm:
                 raise ResourceValidationError(f"Unknown SLURM fields: {sorted(unknown_slurm)}")
             if "enabled" in slurm:
-                pending_resources.append(
-                    ("slurm_enabled", normalize_resource_value("slurm_enabled", slurm["enabled"]))
-                )
+                pending_resources.append(("slurm_enabled", normalize_resource_value("slurm_enabled", slurm["enabled"])))
             if "allowed_queues" in slurm:
                 pending_resources.append(
                     (
@@ -2125,21 +2129,13 @@ def admin_set_config():
         proposed_globals = {key: value for key, value in pending_resources}
         if len(proposed_globals) != len(pending_resources):
             raise ResourceValidationError("A global resource key was provided more than once")
-        allowed_queues = proposed_globals.get(
-            "slurm_allowed_queues", tuple(manage_db.slurm_allowed_queues())
-        )
-        global_partition = proposed_globals.get(
-            "slurm_partition", manage_db.resource_get("slurm_partition")
-        )
+        allowed_queues = proposed_globals.get("slurm_allowed_queues", tuple(manage_db.slurm_allowed_queues()))
+        global_partition = proposed_globals.get("slurm_partition", manage_db.resource_get("slurm_partition"))
         if allowed_queues and global_partition and global_partition not in allowed_queues:
-            raise ResourceValidationError(
-                f"Global partition {global_partition!r} is not in allowed_queues"
-            )
+            raise ResourceValidationError(f"Global partition {global_partition!r} is not in allowed_queues")
         proposed_tasks = {tool: fields for tool, fields in pending_task_updates}
         for config in manage_db.task_type_all():
-            partition = proposed_tasks.get(config["tool"], {}).get(
-                "slurm_partition", config.get("slurm_partition")
-            )
+            partition = proposed_tasks.get(config["tool"], {}).get("slurm_partition", config.get("slurm_partition"))
             if allowed_queues and partition and partition not in allowed_queues:
                 raise ResourceValidationError(
                     f"Partition {partition!r} for {config['tool']!r} is not in allowed_queues"

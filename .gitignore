@@ -156,3 +156,5 @@ playground/config
 /temperal_pdb
 # security audit working doc (internal, not a deliverable)
 /server/security-audit-tracking.md
+server/manage.sqlite
+server/revocompute.sqlite3

@@ -23,6 +23,11 @@ RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revoc
 
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/prime/run.sh /app/revocompute/
 
+# Vendored model code for the pinned Prime snapshots (see vendor/README.md).
+# The model-dir code is never executed with trust_remote_code; it must be
+# vendored here at build time.
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/prime/vendor/ /opt/prime_model_code/
+
 WORKDIR /app/revocompute/
 ENV RUNNER_USERNAME=${RUNNER_USERNAME} \
     PRIME_MODEL_DIR=/mnt/db/weights/prime/ProPrime_650M_OGT_Prediction-91490f95c707 \

@@ -131,9 +131,7 @@
   </section>
 </main>
 
-<script>
-  window.__IS_ADMIN__ = {{ is_admin_user | tojson }};
-</script>
+<script type="application/json" id="user-control-data">{{ {"is_admin": is_admin_user} | tojson }}</script>
 <script src="/static/js/auth-api.js"></script>
 <script src="/static/js/user-control.js"></script>
 </body>

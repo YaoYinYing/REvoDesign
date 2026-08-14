@@ -105,14 +105,10 @@ class ManageDatabase:
                 else "TEXT"
             )
             with self._lock:
-                existing = {
-                    row[1] for row in self._conn.execute("PRAGMA table_info(task_type_config)")
-                }
+                existing = {row[1] for row in self._conn.execute("PRAGMA table_info(task_type_config)")}
                 if field not in existing:
                     try:
-                        self._conn.execute(
-                            f"ALTER TABLE task_type_config ADD COLUMN {field} {col_type}"
-                        )
+                        self._conn.execute(f"ALTER TABLE task_type_config ADD COLUMN {field} {col_type}")
                         self._conn.commit()
                     except sqlite3.OperationalError as exc:
                         # Web, worker, and maintenance may start together. A
@@ -165,11 +161,7 @@ class ManageDatabase:
     def task_type_upsert(self, tool: str, **fields) -> None:
         """Insert or update one task type config row."""
         allowed = set(_ALL_TASK_TYPE_FIELDS)
-        updates = {
-            key: normalize_resource_value(key, value)
-            for key, value in fields.items()
-            if key in allowed
-        }
+        updates = {key: normalize_resource_value(key, value) for key, value in fields.items() if key in allowed}
         if not updates:
             return
         # Convert bool → int for boolean columns

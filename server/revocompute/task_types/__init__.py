@@ -264,9 +264,7 @@ def _load_input_workspace(
             raise ValueError(f"Options for input workspace capability {capability_id!r} must be a mapping")
         unknown_options = set(options) - _INPUT_CAPABILITY_OPTION_KEYS[plugin]
         if unknown_options:
-            raise ValueError(
-                f"Unknown options for input workspace plugin {plugin!r}: {sorted(unknown_options)}"
-            )
+            raise ValueError(f"Unknown options for input workspace plugin {plugin!r}: {sorted(unknown_options)}")
         seen_ids.add(capability_id)
         capabilities.append(
             InputCapability(
@@ -369,28 +367,19 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             runner_configs[runtime_name] = _load_runner_config(runner_yaml)
 
         input_extensions = tuple(entry.get("input_extensions", [entry["input_extension"]]))
-        primary_input_extensions = tuple(
-            entry.get("primary_input_extensions", [entry["input_extension"]])
-        )
+        primary_input_extensions = tuple(entry.get("primary_input_extensions", [entry["input_extension"]]))
         allow_multiple_inputs = entry.get("allow_multiple_inputs", False)
         max_input_files = entry.get("max_input_files", 1)
         if not input_extensions:
             raise ValueError(f"Task type {name!r} must accept at least one input extension")
         if not set(primary_input_extensions).issubset(input_extensions):
-            raise ValueError(
-                f"Task type {name!r} primary input extensions must be accepted input extensions"
-            )
+            raise ValueError(f"Task type {name!r} primary input extensions must be accepted input extensions")
         if not isinstance(max_input_files, int) or isinstance(max_input_files, bool) or max_input_files < 1:
             raise ValueError(f"Task type {name!r} max_input_files must be a positive integer")
         if not allow_multiple_inputs and max_input_files != 1:
-            raise ValueError(
-                f"Task type {name!r} must set max_input_files to 1 when multiple inputs are disabled"
-            )
+            raise ValueError(f"Task type {name!r} must set max_input_files to 1 when multiple inputs are disabled")
 
-        params = tuple(
-            TaskParam(**{**p, "choices": tuple(p.get("choices", []))})
-            for p in entry.get("params", [])
-        )
+        params = tuple(TaskParam(**{**p, "choices": tuple(p.get("choices", []))}) for p in entry.get("params", []))
         tt = TaskType(
             name=name,
             display_name=entry["display_name"],

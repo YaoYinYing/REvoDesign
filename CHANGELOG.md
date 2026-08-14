@@ -13,12 +13,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Server auth hardening**: API keys are now stored as indexed sha256
+  digests (`api_key_digest`) with single-lookup validation; legacy KDF
+  hashes migrate over with existing keys invalidated by design. CAPTCHA
+  nonces and rate-limit counters are Redis-first with per-process in-memory
+  fallback when Redis is down — login/register/captcha endpoints never break
+  on a Redis outage. The rate limiter no longer re-executes the endpoint
+  when a Redis call fails mid-request.
+
 ### Removed
 
 ```
 ## [Unreleased]
 
 ### Added
+- **Upload content validation**: uploaded inputs are now content-checked by
+  extension (FASTA/A3M/PDB/mmCIF/JSON) with generous DoS caps, so third-party
+  parsers never see pathological files. Previously only GREMLIN FASTA inputs
+  got a first-line `>` check; non-GREMLIN inputs were checked by extension and
+  a 4096-byte binary sniff alone. NUL bytes beyond the sniff window, gzip
+  streams disguised as PDB, degenerate record counts, and JSON bombs are all
+  rejected at upload time.
 - **ESM-MSA-1b variant-effect task** (`esm_msa`): masked-marginal
   per-position profile over an uploaded a3m alignment, using
   `esm_msa1b_t12_100M_UR50S`. Outputs `msa1b_profile.csv` and
@@ -182,8 +197,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Gunicorn error, Celery worker, and maintenance logs through fixed-name
   admin-only endpoints. Rotated ZIPs are grouped in a lazy file tree and can
   be downloaded individually.
+- **Server: artifact responses default to attachment + sandbox CSP**: result
+  artifacts (untrusted runner output) are served with
+  `Content-Disposition: attachment` by default (`?download=0` opts back into
+  inline rendering) and every Flask-mode artifact response carries
+  `Content-Security-Policy: sandbox`, closing the stored-XSS path via inline
+  SVG/HTML/XML artifacts (nginx mode sets the same header in
+  `docker/nginx/default.conf.template`).
+- **Server: CSP no longer allows inline scripts**: all four inline
+  `<script>` blocks were removed — the three data bootstraps
+  (`__RESULT_TASK__`, `__DASHBOARD_*`, `__IS_ADMIN__`) became inert
+  `<script type="application/json">` blocks and the reset-password handler
+  moved to `static/js/reset-password.js`. `script-src` is now
+  `'self' https://cdn.jsdelivr.net`; the py2Dmol fallback viewer was
+  verified (code reading of the pinned `viewer-mol.js`) to emit no inline
+  scripts and never eval.
+- **Server: authenticated Redis and loopback-only publish**: `restart.sh
+  setup` generates `REDIS_PASSWORD` and persists it in the deployment env
+  file; the compose stack applies it to `redis-server --requirepass` and to
+  the Celery broker/backend URIs (defaults become
+  `redis://:<password>@...`). The gateway publishes `${PORT}` on
+  `127.0.0.1` only (the host TLS/Basic-Auth nginx is the entry point), and
+  the SLURM override publishes Redis on `127.0.0.1:6380` only — never on
+  non-loopback interfaces.
+- **Server: executor-scoped Docker socket**: the base worker is
+  executor-neutral and socket-free; a new `docker-compose.docker.yml`
+  override (merged by `restart.sh` when `job_executor: docker`) adds
+  `/var/run/docker.sock` + `DOCKER_GID`. Compose concatenates volume lists
+  across `-f` files, so SLURM-mode workers can no longer inherit
+  host-root-equivalent Docker access; `DOCKER_GID` is no longer required in
+  SLURM mode.
+- **Server: trusted HTTPS proxy chain**: the host nginx example forwards
+  `X-Forwarded-Proto $scheme`, gunicorn trusts forwarded headers only from
+  the compose gateway (`--forwarded-allow-ips 127.0.0.1,172.16.0.0/12`),
+  and `AUTH_COOKIE_SECURE=true` (default false, so plain-HTTP dev login
+  keeps working) force-sets the auth cookie's `Secure` flag on HTTPS-only
+  deployments.
+- **Server: scientific-runner sandboxes assumed hostile** — SLURM jobs run
+  under `apptainer --containall --cleanenv` (private `/dev`/`/proc`/`/sys`,
+  fresh tmpfs `/tmp` and `$HOME`, host env dropped; all required mounts are
+  the explicit `--bind` entries), and Docker jobs run with a read-only root
+  filesystem (`HOME=/tmp` on a tmpfs), `cap_drop=ALL`,
+  `no-new-privileges`, a 1024 PID ceiling, and no network — weights and
+  databases arrive only via declared mounts.
+- **Server: O(1) API-key validation**: API keys are stored as an indexed
+  sha256 digest (one lookup + constant-time compare) instead of a KDF hash
+  scanned across all users; existing KDF-hashed keys are not convertible and
+  become invalid by design (re-issue from the profile page). Rate limiting
+  and CAPTCHA nonces moved to Redis fixed-window / `SET NX EX` counters
+  shared across gunicorn workers, with a documented per-worker in-memory
+  fallback when Redis is down.
+- **Server: symlink-aware path containment**: `_safe_join` now re-checks
+  realpath-based containment after the lexical check, so symlinks planted
+  inside a trusted base (including dangling ones) cannot point the real
+  target outside it.
+- **Server: post-completion workspace cleanup**: the per-task input
+  workspace (immutable snapshot) is deleted when a job reaches a terminal
+  state — results, the manifest, and the audit row remain untouched.
+- **Server: debug capture of submissions**: every finalized task now stores
+  `debug/submission.json` (form params + file metadata) and
+  `debug/inputs/<user-facing paths>` (uploaded files under their original
+  names) inside the results directory before workspace cleanup, so failures
+  can be reproduced; the debug files are intentionally part of the result
+  manifest and ZIP.
+- **Dashboard performance**: the dashboard reads only a bounded 4 KiB
+  preview per task (full snapshot remains on the task's results page) and
+  marks truncated sequences in the UI; the create-task review step no longer
+  shows resolved resource usage (the types API still fails early on broken
+  resource policies).
 
 ### Fixed
+- **PRIME runner `trust_remote_code` removal**: the pinned Pro-Prime OGT/DMS
+  snapshots ship custom transformers code inside their weights dirs, which the
+  runner previously imported and executed from the mounted model directory at
+  task time (`trust_remote_code=True`) — a supply-chain code-execution path.
+  The custom `modeling_*` / `tokenization_*` / `configuration_*` modules are
+  now vendored into the image at build time
+  (`docker/runners/prime/vendor/`), imported and registered with
+  `AutoConfig` / `AutoModel` / `AutoTokenizer`, and the weights load with
+  `trust_remote_code=False, local_files_only=True`. Missing or broken vendored
+  code fails the task loudly with remediation pointing at `vendor/README.md`;
+  an optional `manifest.sha256` pins the weights dir and is verified with
+  `sha256sum -c` before loading.
 - **ESM runner missing `scipy`**: the ESM image did not pin scipy, so
   `esm_if1_design.py` crashed at import
   (`esm2.inverse_folding.gvp_transformer` → `scipy.spatial.transform`,
