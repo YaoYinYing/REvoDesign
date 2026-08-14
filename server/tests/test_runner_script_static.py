@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin" / "run.sh"
 OPENDDE_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "opendde" / "run.sh"
@@ -99,8 +99,8 @@ def test_opendde_runner_preserves_read_only_nested_snapshot(tmp_path):
     auxiliary.parent.mkdir(parents=True)
     output_dir.mkdir()
     bin_dir.mkdir()
-    input_file.write_text('{}\n')
-    auxiliary.write_text('{}\n')
+    input_file.write_text("{}\n")
+    auxiliary.write_text("{}\n")
     _write_fake_opendde(bin_dir)
 
     env = os.environ.copy()
@@ -118,7 +118,7 @@ def test_opendde_runner_preserves_read_only_nested_snapshot(tmp_path):
     assert (output_dir / "model.cif").read_text() == "data_model\n"
     assert (output_dir / "task_finished").is_file()
     assert not (input_file.parent / "job-update-msa.json").exists()
-    assert auxiliary.read_text() == '{}\n'
+    assert auxiliary.read_text() == "{}\n"
 
 
 def test_opendde_runner_uses_task_private_template_cache(tmp_path):
@@ -136,8 +136,8 @@ def test_opendde_runner_uses_task_private_template_cache(tmp_path):
     source_cache.mkdir(parents=True)
     (database_root / "checkpoint").mkdir()
     (database_root / "checkpoint" / "opendde.pt").write_text("checkpoint\n")
-    input_file.write_text('{}\n')
-    auxiliary.write_text('{}\n')
+    input_file.write_text("{}\n")
+    auxiliary.write_text("{}\n")
     _write_fake_opendde(bin_dir)
 
     env = os.environ.copy()
@@ -168,8 +168,8 @@ def test_opendde_runner_rejects_zero_exit_without_results(tmp_path):
     auxiliary.parent.mkdir(parents=True)
     output_dir.mkdir()
     bin_dir.mkdir()
-    input_file.write_text('{}\n')
-    auxiliary.write_text('{}\n')
+    input_file.write_text("{}\n")
+    auxiliary.write_text("{}\n")
     _write_fake_opendde(bin_dir)
 
     env = os.environ.copy()
@@ -199,8 +199,8 @@ def test_opendde_runner_rejects_error_and_msa_intermediates(tmp_path):
     auxiliary.parent.mkdir(parents=True)
     output_dir.mkdir()
     bin_dir.mkdir()
-    input_file.write_text('{}\n')
-    auxiliary.write_text('{}\n')
+    input_file.write_text("{}\n")
+    auxiliary.write_text("{}\n")
     _write_fake_opendde(bin_dir)
 
     env = os.environ.copy()
@@ -240,9 +240,7 @@ def test_ligandmpnn_runner_omits_blank_optional_cli_values(tmp_path):
     env.update(
         {
             "TASK_TYPE": "ligandmpnn",
-            "TASK_PARAMS": json.dumps(
-                {"seed": "", "batch_size": 2, "verbose": 0, "chains_to_design": ""}
-            ),
+            "TASK_PARAMS": json.dumps({"seed": "", "batch_size": 2, "verbose": 0, "chains_to_design": ""}),
             "LIGANDMPNN_PATH": str(ligand_root),
             "CAPTURE_ARGV": str(capture),
         }
@@ -283,13 +281,14 @@ def test_esm_image_installs_the_esm1v_csv_dependency():
     dockerfile = (SERVER_ROOT / "docker" / "runners" / "esm" / "Dockerfile").read_text()
 
     assert '"pandas==2.2.3"' in dockerfile
-    assert 'python -c "import esm2, pandas"' in dockerfile
+    assert '"scipy==1.12.0"' in dockerfile
+    assert 'python -c "import esm2, esm2.inverse_folding, pandas"' in dockerfile
 
 
 def test_easifa_image_requires_the_installed_prediction_cli():
     dockerfile = (SERVER_ROOT / "docker" / "runners" / "easifa" / "Dockerfile").read_text()
 
-    assert '/opt/easifa-env/bin/python -m pip install' in dockerfile
+    assert "/opt/easifa-env/bin/python -m pip install" in dockerfile
     assert '/opt/easifa-env/bin/python -c "import easifa_core"' in dockerfile
     assert "test -x /opt/easifa-env/bin/easifa-predict" in dockerfile
     assert 'cpp_extension.load("torch_ext"' in dockerfile
@@ -325,8 +324,7 @@ def test_thermompnn_uses_preprovisioned_read_only_weights():
     assert 'XDG_DATA_HOME: "/mnt/db/weights/thermompnn"' in runner
     assert "ThermoMPNN-ens1.ckpt ThermoMPNN-D-ens1.ckpt" in script
     assert (
-        'THERMOMPNN_VANILLA_WEIGHT_DIR: '
-        '"/mnt/db/weights/thermompnn/ProteinMPNN/vanilla/vanilla_model_weights"'
+        "THERMOMPNN_VANILLA_WEIGHT_DIR: " '"/mnt/db/weights/thermompnn/ProteinMPNN/vanilla/vanilla_model_weights"'
     ) in runner
     assert "ThermoMPNN ProteinMPNN backbone checkpoint is missing" in script
     assert "runtime downloads are disabled" in script
@@ -335,20 +333,106 @@ def test_thermompnn_uses_preprovisioned_read_only_weights():
 def test_ligandmpnn_runner_uses_a_mounted_absolute_checkpoint():
     script = (SERVER_ROOT / "docker" / "runners" / "mpnn" / "run.sh").read_text()
 
-    assert 'checkpoint_ligand_mpnn' in script
-    assert 'ligandmpnn_v_32_010_25.pt' in script
-    assert 'LIGANDMPNN_MODEL_PARAMS' in script
+    assert "checkpoint_ligand_mpnn" in script
+    assert "ligandmpnn_v_32_010_25.pt" in script
+    assert "LIGANDMPNN_MODEL_PARAMS" in script
 
 
 def test_slurm_runner_limits_threaded_libraries_to_the_allocation():
     script = (SERVER_ROOT / "revocompute" / "job" / "runners" / "slurm_runner.py").read_text()
 
-    assert 'SLURM_CPUS_PER_TASK' in script
-    assert 'APPTAINERENV_OMP_NUM_THREADS' in script
-    assert 'APPTAINERENV_MKL_NUM_THREADS' in script
-    assert 'APPTAINERENV_OPENBLAS_NUM_THREADS' in script
-    assert 'APPTAINERENV_NPROC' in script
-    assert 'APPTAINERENV_GREMLIN_CALC_CPU_NUM' in script
-    assert 'APPTAINERENV_VECLIB_MAXIMUM_THREADS' in script
-    assert 'APPTAINERENV_TF_NUM_INTRAOP_THREADS' in script
-    assert 'cmd += \' -j "${allocated_cpus}"\'' in script
+    assert "SLURM_CPUS_PER_TASK" in script
+    assert "APPTAINERENV_OMP_NUM_THREADS" in script
+    assert "APPTAINERENV_MKL_NUM_THREADS" in script
+    assert "APPTAINERENV_OPENBLAS_NUM_THREADS" in script
+    assert "APPTAINERENV_NPROC" in script
+    assert "APPTAINERENV_GREMLIN_CALC_CPU_NUM" in script
+    assert "APPTAINERENV_VECLIB_MAXIMUM_THREADS" in script
+    assert "APPTAINERENV_TF_NUM_INTRAOP_THREADS" in script
+    assert "cmd += ' -j \"${allocated_cpus}\"'" in script
+
+
+PRIME_DIR = SERVER_ROOT / "docker" / "runners" / "prime"
+
+
+def test_prime_runner_vendors_model_code_instead_of_trust_remote_code():
+    script = (PRIME_DIR / "run.sh").read_text(encoding="utf-8")
+    dockerfile = (PRIME_DIR / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "trust_remote_code=True" not in script
+    assert script.count("trust_remote_code=False") == 4  # tokenizer + model in both branches
+    assert (
+        "COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/prime/vendor/ /opt/prime_model_code/" in dockerfile
+    )
+    assert "PRIME_VENDOR_DIR" in script
+    assert "sys.path.insert(0, str(code_dir))" in script
+    assert "vendor/README.md" in script
+    assert (PRIME_DIR / "vendor" / "README.md").is_file()
+    assert (PRIME_DIR / "vendor" / "placeholder.txt").is_file()
+
+
+def _write_fake_prime_model(tmp_path, auto_map=True) -> Path:
+    model_dir = tmp_path / "weights" / "ProPrime_650M_OGT_Prediction-91490f95c707"
+    model_dir.mkdir(parents=True)
+    config = {"model_type": "prime"}
+    if auto_map:
+        config["auto_map"] = {
+            "AutoConfig": ["modeling_prime.PrimeConfig"],
+            "AutoModel": ["modeling_prime.PrimeForPrediction"],
+            "AutoTokenizer": ["tokenization_prime.PrimeTokenizer"],
+        }
+    (model_dir / "config.json").write_text(json.dumps(config), encoding="utf-8")
+    return model_dir
+
+
+def test_prime_runner_fails_closed_without_vendored_model_code(tmp_path):
+    model_dir = _write_fake_prime_model(tmp_path)
+    input_file = tmp_path / "input.fasta"
+    input_file.write_text(">test\nACDEFGHIK\n", encoding="utf-8")
+    output_dir = tmp_path / "outputs"
+
+    env = os.environ.copy()
+    env["PRIME_MODEL_DIR"] = str(model_dir)
+    env["PRIME_VENDOR_DIR"] = str(tmp_path / "vendor")
+    completed = subprocess.run(
+        ["bash", str(PRIME_DIR / "run.sh"), "ogt", "-i", str(input_file), "-o", str(output_dir)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode != 0
+    assert "PRIME vendored model code missing" in completed.stderr
+    assert "vendor/README.md" in completed.stderr
+    assert "trust_remote_code" not in completed.stderr
+    assert not (output_dir / "task_finished").exists()
+
+
+def test_prime_runner_rejects_weights_manifest_mismatch(tmp_path):
+    model_dir = _write_fake_prime_model(tmp_path)
+    (model_dir / "weights.bin").write_bytes(b"checkpoint")
+    input_file = tmp_path / "input.fasta"
+    input_file.write_text(">test\nACDEFGHIK\n", encoding="utf-8")
+    output_dir = tmp_path / "outputs"
+    vendor_dir = tmp_path / "vendor"
+    vendor_dir.mkdir()
+    (vendor_dir / "manifest.sha256").write_text(
+        "0" * 64 + "  ProPrime_650M_OGT_Prediction-91490f95c707/weights.bin\n",
+        encoding="utf-8",
+    )
+
+    env = os.environ.copy()
+    env["PRIME_MODEL_DIR"] = str(model_dir)
+    env["PRIME_VENDOR_DIR"] = str(vendor_dir)
+    completed = subprocess.run(
+        ["bash", str(PRIME_DIR / "run.sh"), "ogt", "-i", str(input_file), "-o", str(output_dir)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode != 0
+    assert "weights integrity check FAILED" in completed.stderr
+    assert not (output_dir / "task_finished").exists()

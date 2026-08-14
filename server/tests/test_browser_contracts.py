@@ -35,12 +35,16 @@ def test_js_modules_load_in_correct_order() -> None:
     js_dir = Path(__file__).resolve().parents[1] / "revocompute" / "static" / "js"
     check = subprocess.run(
         ["node", "--check", str(js_dir / "plugin-host.js")],
-        capture_output=True, text=True, timeout=10,
+        capture_output=True,
+        text=True,
+        timeout=10,
     )
     assert check.returncode == 0, f"plugin-host.js syntax: {check.stderr}"
     for filename in ("result-preview-plugins.js", "input-workspace.js"):
         result = subprocess.run(
             ["node", "--check", str(js_dir / filename)],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         assert result.returncode == 0, f"{filename} syntax: {result.stderr}"

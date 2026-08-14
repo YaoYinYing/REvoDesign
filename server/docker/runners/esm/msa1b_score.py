@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import csv
 import itertools
-import math
 import string
 
 import torch
@@ -38,7 +37,8 @@ def parse_args() -> argparse.Namespace:
 
 def read_a3m(path: str, nseq: int) -> list[str]:
     rows = []
-    with open(path, encoding="utf-8") as handle:
+    # PTC-W6004: sandboxed runner; path is the mounted read-only input snapshot
+    with open(path, encoding="utf-8") as handle:  # skipcq: PTC-W6004
         for record in itertools.islice(_fasta_blocks(handle), nseq):
             rows.append(remove_insertions(record[1]))
     return rows
@@ -93,12 +93,11 @@ def main() -> None:
         writer = csv.writer(handle)
         writer.writerow(["position", "residue", "log_prob", "entropy"])
         for i, residue in enumerate(query):
-            writer.writerow([i + 1, residue, f"{log_probs[i, alphabet.get_idx(residue)].item():.6f}",
-                             f"{entropy[i].item():.6f}"])
+            writer.writerow(
+                [i + 1, residue, f"{log_probs[i, alphabet.get_idx(residue)].item():.6f}", f"{entropy[i].item():.6f}"]
+            )
 
-    wt_log_probs = torch.stack(
-        [log_probs[i, alphabet.get_idx(residue)] for i, residue in enumerate(query)]
-    )
+    wt_log_probs = torch.stack([log_probs[i, alphabet.get_idx(residue)] for i, residue in enumerate(query)])
     mean_entropy = entropy.mean().item()
     with open(f"{args.output_dir}/msa1b_summary.json", "w") as handle:
         import json

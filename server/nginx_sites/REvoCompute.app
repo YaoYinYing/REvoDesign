@@ -25,6 +25,9 @@ server {
         proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        # Tell the app this connection is HTTPS so auth cookies get the
+        # Secure flag and HSTS can be added by the app itself.
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
 }

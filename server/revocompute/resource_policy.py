@@ -6,9 +6,10 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import re
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import asdict, dataclass
+from typing import Any
 
 
 class ResourceValidationError(ValueError):
@@ -180,16 +181,14 @@ class ResolvedResources:
         return payload
 
     @classmethod
-    def from_snapshot(cls, payload: dict[str, Any]) -> "ResolvedResources":
+    def from_snapshot(cls, payload: dict[str, Any]) -> ResolvedResources:
         """Validate a submission-time policy snapshot before job launch."""
         required = {"cpus", "memory", "max_runtime_seconds", "nodes", "ntasks", "requires_gpu"}
         missing = sorted(required - set(payload))
         if missing:
             raise ResourceValidationError(f"Resource snapshot is missing: {', '.join(missing)}")
         requires_gpu = _boolean(payload.get("requires_gpu", False), "requires_gpu")
-        max_runtime = normalize_resource_value(
-            "max_runtime_seconds", payload.get("max_runtime_seconds")
-        )
+        max_runtime = normalize_resource_value("max_runtime_seconds", payload.get("max_runtime_seconds"))
         declared_time = payload.get("slurm_time")
         if declared_time and slurm_time_to_seconds(str(declared_time)) != max_runtime:
             raise ResourceValidationError("Resource snapshot time fields are inconsistent")
@@ -252,17 +251,13 @@ def resolve_resources(
         configured_runtime = min(configured_runtime, slurm_time_to_seconds(configured_time))
         sources["max_runtime_seconds"] += "+slurm_time"
 
-    partition = first(
-        "partition", [("task", "slurm_partition"), ("global", "slurm_partition")], None
-    )
+    partition = first("partition", [("task", "slurm_partition"), ("global", "slurm_partition")], None)
     if allowed_queues and partition not in allowed_queues:
         if partition is None:
             partition = allowed_queues[0]
             sources["partition"] = "allowed_queues:first"
         else:
-            raise ResourceValidationError(
-                f"Partition {partition!r} is not in the configured allowed queue list"
-            )
+            raise ResourceValidationError(f"Partition {partition!r} is not in the configured allowed queue list")
 
     gres = None
     if requires_gpu:
@@ -282,12 +277,8 @@ def resolve_resources(
         ntasks=first("ntasks", [("task", "slurm_ntasks"), ("global", "slurm_ntasks")], 1),
         qos=first("qos", [("task", "slurm_qos"), ("global", "slurm_qos")], None),
         account=first("account", [("task", "slurm_account"), ("global", "slurm_account")], None),
-        constraint=first(
-            "constraint", [("task", "slurm_constraint"), ("global", "slurm_constraint")], None
-        ),
-        exclusive=first(
-            "exclusive", [("task", "slurm_exclusive"), ("global", "slurm_exclusive")], False
-        ),
+        constraint=first("constraint", [("task", "slurm_constraint"), ("global", "slurm_constraint")], None),
+        exclusive=first("exclusive", [("task", "slurm_exclusive"), ("global", "slurm_exclusive")], False),
         requires_gpu=requires_gpu,
         sources=sources,
     )

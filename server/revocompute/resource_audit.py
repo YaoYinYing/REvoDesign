@@ -25,17 +25,16 @@ def _read_database(path: str) -> tuple[dict[str, str], dict[str, dict[str, objec
         return {}, {}
     connection = sqlite3.connect(f"file:{os.path.abspath(path)}?mode=ro", uri=True)
     try:
-        tables = {
-            row[0]
-            for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        }
+        tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         globals_: dict[str, str] = {}
         tasks: dict[str, dict[str, object]] = {}
         if "resource_config" in tables:
             globals_ = dict(connection.execute("SELECT key, value FROM resource_config"))
         if "task_type_config" in tables:
             columns = [row[1] for row in connection.execute("PRAGMA table_info(task_type_config)")]
-            rows = connection.execute(f"SELECT {', '.join(columns)} FROM task_type_config")
+            rows = connection.execute(  # skipcq: BAN-B608 — column names come from PRAGMA table_info, not user input
+                f"SELECT {', '.join(columns)} FROM task_type_config"
+            )
             for row in rows:
                 record = dict(zip(columns, row, strict=True))
                 tasks[str(record.pop("tool"))] = record

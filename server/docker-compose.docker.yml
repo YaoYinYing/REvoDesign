@@ -1,0 +1,22 @@
+# Docker-executor override — merged automatically when the selected task
+# registry sets job_executor: docker. It adds the Docker socket to the
+# worker; the base worker service is executor-neutral and socket-free.
+#
+# Compose merges service `volumes` lists by concatenation across -f files,
+# so the socket must live here rather than in the base file: an override
+# can add mounts but never remove them, and SLURM-mode workers must not
+# inherit host-root-equivalent Docker access.
+
+services:
+  worker:
+    # Docker socket group access is host-root-equivalent — the Docker API
+    # can start privileged containers or bind-mount host paths.  This is
+    # an accepted architecture choice; constrain it with a socket proxy or
+    # separate runner service for a stronger boundary.
+    # Set DOCKER_GID to the socket group as seen inside containers.  On Linux
+    # this is usually the host docker group id; on Docker Desktop/OrbStack for
+    # macOS the bind-mounted socket commonly appears as group 0.
+    group_add:
+      - "${DOCKER_GID:?Run server/run/restart.sh so DOCKER_GID is auto-detected, or export it explicitly}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

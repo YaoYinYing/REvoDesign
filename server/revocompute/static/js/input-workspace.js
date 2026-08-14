@@ -409,12 +409,8 @@
       var summary = element("dl", "submission-review"); target.appendChild(summary);
       function refresh() {
         var files = context.orderedFiles(); var params = context.paramValues();
-        var resources = context.form.resources || {};
-        var resourceText = resources.cpus
-          ? resources.cpus + " CPU · " + resources.memory + " · " + Math.ceil(resources.max_runtime_seconds / 60) + " min" + (resources.gres ? " · " + resources.gres : "")
-          : (context.form.gpus ? "GPU task (resolved at submission)" : "CPU task (resolved at submission)");
         summary.replaceChildren();
-        [["Task", context.form.display_name], ["Runtime", context.form.runtime_family], ["Inputs", files.length ? files.map(pathFor).join(", ") : (context.sequence() ? "Pasted FASTA sequence" : "None")], ["Parameters", Object.keys(params).length ? Object.keys(params).length + " configured" : "Defaults only"], ["Resources", resourceText]].forEach(function (row) {
+        [["Task", context.form.display_name], ["Runtime", context.form.runtime_family], ["Inputs", files.length ? files.map(pathFor).join(", ") : (context.sequence() ? "Pasted FASTA sequence" : "None")], ["Parameters", Object.keys(params).length ? Object.keys(params).length + " configured" : "Defaults only"]].forEach(function (row) {
           summary.append(element("dt", "", row[0]), element("dd", "", row[1]));
         });
       }

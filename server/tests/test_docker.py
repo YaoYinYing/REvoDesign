@@ -16,6 +16,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+import docker
 import pytest
 import requests
 from conftest import (
@@ -40,8 +41,6 @@ from conftest import (
     _wait_for_task,
     has_docker_daemon,
 )
-
-import docker
 
 # Docker-specific helpers (most are imported from conftest)
 # ==================================================================
@@ -479,22 +478,6 @@ def _wait_for_task(base_url: str, headers: dict[str, str], md5sum: str, timeout:
                 raise AssertionError(f"GREMLIN task failed: {payload}")
         time.sleep(10)
     raise AssertionError("Timed out waiting for GREMLIN task to finish")
-
-
-def _wait_for_failed_task(base_url: str, headers: dict[str, str], md5sum: str, timeout: float = 900.0) -> dict:
-    deadline = time.time() + timeout
-    with requests.Session() as session:
-        session.headers.update(headers)
-        url = f"{base_url}/compute/api/running/{md5sum}"
-        while time.time() < deadline:
-            response = session.get(url, timeout=10)
-            payload = response.json() if response.headers.get("Content-Type", "").startswith("application/json") else {}
-            if response.status_code == 404 and payload.get("status") == "failed":
-                return payload
-            if payload.get("status") == "finished":
-                raise AssertionError("GREMLIN task unexpectedly succeeded")
-            time.sleep(10)
-    raise AssertionError("Timed out waiting for GREMLIN task to fail")
 
 
 # ==================================================================

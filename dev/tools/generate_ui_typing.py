@@ -151,7 +151,7 @@ def render_types(bindings: list[UiBinding], ui_path: Path = UI_PATH) -> str:
         "",
         "from typing import Protocol",
         "",
-        "from REvoDesign.Qt import QtCore, QtGui, QtWidgets",
+        "from REvoDesign.Qt import QtGui, QtWidgets",
         "",
         "",
         "class REvoDesignUiProtocol(Protocol):",

@@ -48,6 +48,8 @@ http {
             tcp_nopush on;
             default_type application/zip;
             add_header X-Content-Type-Options nosniff always;
+            # Runner-controlled artifacts must never execute scripts same-origin.
+            add_header Content-Security-Policy "sandbox" always;
         }
     }
 }

@@ -136,6 +136,7 @@ cluster_test.zip
 /site
 docs_old/**/*
 docs_old/
+docs/dev-guide/server-plugin-research.md
 test_sc/
 src/REvoDesign/UI/Ui_REvoDesign.py
 # loopkit — keep installable scaffolding, ignore runtime artifacts
@@ -153,3 +154,7 @@ playground/config
 4MB8_GREMLIN_mtx_zscore.png
 /mutagenese
 /temperal_pdb
+# security audit working doc (internal, not a deliverable)
+/server/security-audit-tracking.md
+server/manage.sqlite
+server/revocompute.sqlite3

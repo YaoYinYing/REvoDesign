@@ -19,11 +19,11 @@ cleanup() {
   local status=$?
   set +e
   if [[ ${status} -ne 0 && ${STACK_STARTED} -eq 1 ]]; then
-    docker compose -f "${SERVER_ROOT}/docker-compose.yml" --env-file "${ENV_FILE}" logs --no-color --tail=200
+    docker compose -f "${SERVER_ROOT}/docker-compose.yml" -f "${SERVER_ROOT}/docker-compose.docker.yml" --env-file "${ENV_FILE}" logs --no-color --tail=200
   fi
   if [[ -f "${ENV_FILE}" ]]; then
     REVODESIGN_SERVER_ENV="${ENV_FILE}" bash "${DEPLOY_SCRIPT}" down
-    DOCKER_GID=0 docker compose -f "${SERVER_ROOT}/docker-compose.yml" --env-file "${ENV_FILE}" \
+    DOCKER_GID=0 docker compose -f "${SERVER_ROOT}/docker-compose.yml" -f "${SERVER_ROOT}/docker-compose.docker.yml" --env-file "${ENV_FILE}" \
       down --volumes --remove-orphans
   fi
   docker image rm --force "${SERVER_IMAGE}" "${RUNNER_IMAGE}" >/dev/null 2>&1

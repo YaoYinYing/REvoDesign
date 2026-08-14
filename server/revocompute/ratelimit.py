@@ -2,10 +2,13 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Simple in-memory rate limiter for sensitive endpoints.
+"""Rate limiter for sensitive endpoints.
 
-Per-worker, not distributed — raises the bar against brute-force but
-doesn't provide hard guarantees across multiple gunicorn workers.
+Uses a Redis fixed window keyed by ``{module}.{qualname}:{ip}`` shared
+across gunicorn workers when Redis is available.  When Redis is down, falls
+back to the in-memory per-worker limiter (documented: not distributed).
+Availability beats strictness — a Redis outage degrades, never breaks,
+the endpoints.
 """
 
 from __future__ import annotations
@@ -17,6 +20,7 @@ from functools import wraps
 from typing import Any
 
 from flask import jsonify, request
+from revocompute.redis_util import get_redis
 
 
 def rate_limit(max_requests: int, window_seconds: int):
@@ -29,6 +33,7 @@ def rate_limit(max_requests: int, window_seconds: int):
         def login():
             ...
     """
+    # In-memory fallback state — only used when Redis is unavailable.
     state: dict[str, list[float]] = {}
     _lock = threading.Lock()
     _last_cleanup: float = time.monotonic()
@@ -43,14 +48,49 @@ def rate_limit(max_requests: int, window_seconds: int):
         @wraps(f)
         def decorated(*args: Any, **kwargs: Any) -> Any:
             nonlocal _last_cleanup
-            # Forwarded-IP headers are useful for audit metadata but are not a
-            # trustworthy limiter key: clients can spoof them unless every
-            # request is guaranteed to traverse a trusted proxy. The socket
-            # peer cannot be changed by an HTTP header.
-            ip = request.remote_addr or "unknown"
+            # The compose gateway nginx overwrites X-Real-IP with the socket
+            # peer ($remote_addr) and the web service accepts connections
+            # only from that gateway, so X-Real-IP is the canonical
+            # per-client address in the supported deployment.  remote_addr
+            # would be the gateway container itself, collapsing every user
+            # into one shared quota.  Fall back to the socket peer for
+            # direct (non-gateway) deployments.
+            ip = (request.headers.get("X-Real-IP", "").split(",")[0].strip()) or request.remote_addr or "unknown"
             now = time.monotonic()
             cutoff = now - window_seconds
 
+            redis_client = get_redis()
+            if redis_client is not None:
+                # Redis fixed window: INCR, set TTL on first hit, reject past
+                # the limit with the remaining TTL as retry_after.
+                key = f"{f.__module__}.{f.__qualname__}:{ip}"
+                try:
+                    count = redis_client.incr(key)
+                    if count == 1:
+                        if not redis_client.expire(key, window_seconds):
+                            if redis_client.ttl(key) == -1:
+                                redis_client.expire(key, window_seconds)
+                    if count > max_requests:
+                        ttl = redis_client.ttl(key)
+                        retry_after = int(ttl) if ttl > 0 else window_seconds
+                        return (
+                            jsonify(
+                                {
+                                    "error": "Too many requests",
+                                    "retry_after_seconds": max(retry_after, 1),
+                                }
+                            ),
+                            429,
+                        )
+                except Exception:
+                    # Only Redis failures fall back to in-memory — the
+                    # endpoint itself must never run twice because a Redis
+                    # call raised mid-request.
+                    redis_client = None
+                if redis_client is not None:
+                    return f(*args, **kwargs)
+
+            # In-memory fallback (per-worker, not distributed).
             with _lock:
                 # Periodic cleanup of expired entries — prevents unbounded
                 # growth of the state dict across process lifetime.

@@ -6,7 +6,7 @@
 
 All inbound request payloads are validated through these models at the API
 boundary.  Response models ensure sensitive fields (``password_hash``,
-``api_key_hash``) are never leaked.
+``api_key_digest``) are never leaked.
 """
 
 from __future__ import annotations

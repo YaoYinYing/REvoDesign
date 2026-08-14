@@ -60,7 +60,7 @@ def test_admin_can_list_users(monkeypatch, tmp_path):
     # Safe fields present, sensitive fields absent
     for u in data["users"]:
         assert "password_hash" not in u
-        assert "api_key_hash" not in u
+        assert "api_key_digest" not in u
         assert "id" in u
         assert "email" in u
         assert "registration_status" in u

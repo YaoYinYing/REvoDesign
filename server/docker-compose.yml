@@ -13,9 +13,9 @@ x-task-env: &task-env
   LOG_DIR: ${LOG_DIR}
   DB_PATH: ${DB_PATH:-}
 
-  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-  BROKER_URL: ${BROKER_URL:-redis://redis:6379/0}
-  RESULT_BACKEND: ${RESULT_BACKEND:-redis://redis:6379/0}
+  REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD}@redis:6379/0}
+  BROKER_URL: ${BROKER_URL:-redis://:${REDIS_PASSWORD}@redis:6379/0}
+  RESULT_BACKEND: ${RESULT_BACKEND:-redis://:${REDIS_PASSWORD}@redis:6379/0}
 
   MAXMEM: ${MAXMEM:-64}
   WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
@@ -36,6 +36,7 @@ x-web-auth-env: &web-auth-env
   AUTH_TOKEN_MAX_AGE: ${AUTH_TOKEN_MAX_AGE:-604800}
   USER_DB_PATH: ${USER_DB_PATH:-/var/lib/revodesign-auth/users.sqlite3}
   ENABLE_REGISTER: ${ENABLE_REGISTER:-false}
+  AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
 
   SMTP_HOST: ${SMTP_HOST:-}
   SMTP_PORT: ${SMTP_PORT:-587}
@@ -63,23 +64,14 @@ x-maintenance-env: &maintenance-env
   ROTATE_LOG_PERIOD: ${ROTATE_LOG_PERIOD:-}
   MAX_LOG_SIZE: ${MAX_LOG_SIZE:-}
 
-x-docker-socket-access: &docker-socket-access
-  # Docker socket group access is host-root-equivalent — the Docker API
-  # can start privileged containers or bind-mount host paths.  This is
-  # an accepted architecture choice; constrain it with a socket proxy or
-  # separate runner service for a stronger boundary.
-  # Set DOCKER_GID to the socket group as seen inside containers.  On Linux
-  # this is usually the host docker group id; on Docker Desktop/OrbStack for
-  # macOS the bind-mounted socket commonly appears as group 0.
-  group_add:
-    - "${DOCKER_GID:?Run server/run/restart.sh so DOCKER_GID is auto-detected, or export it explicitly}"
-
 services:
   redis:
     image: redis:7.2-alpine
     user: ${RUNNER_UID}:${RUNNER_GID}
     restart: unless-stopped
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    # --requirepass is mandatory: restart.sh generates and persists
+    # REDIS_PASSWORD in the deployment env file, and the Celery URIs embed it.
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--requirepass", "${REDIS_PASSWORD:?required; restart.sh setup generates the broker secret}"]
     volumes:
       - redis-data:/data
 
@@ -97,8 +89,11 @@ services:
       - >-
         envsubst '$$UPSTREAM_PORT' < /etc/nginx/nginx.conf.template > /tmp/nginx.conf
         && exec nginx -c /tmp/nginx.conf -g 'daemon off;'
+    # Loopback-only: the documented entry point is the host nginx (TLS /
+    # Basic Auth) proxying to localhost. Publishing on all interfaces would
+    # let clients bypass that outer layer.
     ports:
-      - "${PORT:-8080}:8080"
+      - "127.0.0.1:${PORT:-8080}:8080"
     volumes:
       - ./docker/nginx/default.conf.template:/etc/nginx/nginx.conf.template:ro
       - ${SERVER_DIR}/results:/srv/results:ro
@@ -123,10 +118,14 @@ services:
     user: ${RUNNER_UID}:${RUNNER_GID}
     depends_on:
       - redis
+    # Trust X-Forwarded-Proto only from the gateway container.  The web
+    # service publishes no ports, so nothing outside the compose bridge
+    # (default docker range 172.16.0.0/12) can reach gunicorn directly.
     command: >-
       gunicorn -w ${GUNICORN_WORKERS:-2}
       --timeout ${GUNICORN_TIMEOUT:-120}
       --preload
+      --forwarded-allow-ips 127.0.0.1,172.16.0.0/12
       -b 0.0.0.0:${PORT:-8080}
       --access-logfile ${LOG_DIR}/gunicorn-access.log
       --error-logfile ${LOG_DIR}/gunicorn-error.log
@@ -157,8 +156,10 @@ services:
     image: ${SERVER_IMAGE:-revodesign-revocompute-server}
     restart: unless-stopped
     user: ${RUNNER_UID}:${RUNNER_GID}
-    <<: *docker-socket-access
-
+    # Executor-neutral by design: the Docker socket is added only by
+    # docker-compose.docker.yml. Compose merges volume lists by
+    # concatenation, so a socket defined here could never be removed by the
+    # SLURM override.
     environment:
       <<: *task-env
     depends_on:
@@ -172,7 +173,6 @@ services:
     volumes:
       - ${SERVER_DIR}:${SERVER_DIR}
       - ${LOG_DIR}:${LOG_DIR}
-      - /var/run/docker.sock:/var/run/docker.sock
 
   runner:
     profiles: ["runner"]

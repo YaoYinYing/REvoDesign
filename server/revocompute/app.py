@@ -60,9 +60,12 @@ def _add_security_headers(response):
         "default-src 'self'; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com; "
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "img-src 'self' data: blob:; "
-        "worker-src 'self' blob:",
+        # No 'unsafe-inline' in script-src: all page data is injected via
+        # inert <script type="application/json"> blocks (or fetched), and the
+        # py2Dmol fallback viewer (task-results.js, loaded from jsdelivr) was
+        # verified not to emit inline scripts or eval — see
+        # security-audit-tracking.md §11.
+        "script-src 'self' https://cdn.jsdelivr.net; " "img-src 'self' data: blob:; " "worker-src 'self' blob:",
     )
     # Authenticated HTML and API responses can contain user task data.  In
     # addition to preventing ordinary HTTP caching, this discourages browsers
@@ -85,6 +88,13 @@ def _add_security_headers(response):
 _user_db = UserDatabase()
 app.config["user_db"] = _user_db
 ENABLE_REGISTER = _env_bool("ENABLE_REGISTER", False)
+
+# Force the auth cookie's Secure flag regardless of request.is_secure.
+# Default off: dev/testing runs over plain HTTP where a Secure cookie would
+# never be sent back. HTTPS-only production should enable it as belt-and-
+# braces on top of the trusted X-Forwarded-Proto chain.
+AUTH_COOKIE_SECURE = _env_bool("AUTH_COOKIE_SECURE", False)
+app.config["AUTH_COOKIE_SECURE"] = AUTH_COOKIE_SECURE
 
 # Gunicorn preloads this once, then forks workers with the same ephemeral key.
 app.secret_key = app.secret_key or _TOKEN_SIGNING_KEY

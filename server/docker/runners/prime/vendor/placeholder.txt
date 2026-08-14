@@ -1,0 +1,3 @@
+Placeholder so vendor/ exists in the image build context. Operators populate
+this directory with the pinned Prime snapshots' custom model code — see
+README.md. PRIME tasks fail closed until the code is vendored.

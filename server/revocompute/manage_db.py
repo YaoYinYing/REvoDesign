@@ -105,14 +105,10 @@ class ManageDatabase:
                 else "TEXT"
             )
             with self._lock:
-                existing = {
-                    row[1] for row in self._conn.execute("PRAGMA table_info(task_type_config)")
-                }
+                existing = {row[1] for row in self._conn.execute("PRAGMA table_info(task_type_config)")}
                 if field not in existing:
                     try:
-                        self._conn.execute(
-                            f"ALTER TABLE task_type_config ADD COLUMN {field} {col_type}"
-                        )
+                        self._conn.execute(f"ALTER TABLE task_type_config ADD COLUMN {field} {col_type}")
                         self._conn.commit()
                     except sqlite3.OperationalError as exc:
                         # Web, worker, and maintenance may start together. A
@@ -127,7 +123,9 @@ class ManageDatabase:
         """Return all task type config rows."""
         cols = ("tool",) + _ALL_TASK_TYPE_FIELDS
         with self._lock:
-            rows = self._conn.execute(f"SELECT {', '.join(cols)} FROM task_type_config ORDER BY tool").fetchall()
+            rows = self._conn.execute(  # skipcq: BAN-B608 — cols are module-level field constants, values bound below
+                f"SELECT {', '.join(cols)} FROM task_type_config ORDER BY tool"
+            ).fetchall()
             result: list[dict] = []
             for r in rows:
                 row = {"tool": r[0]}
@@ -144,8 +142,9 @@ class ManageDatabase:
         """Return one task type config row, or None."""
         cols = ("tool",) + _ALL_TASK_TYPE_FIELDS
         with self._lock:
+            # BAN-B608: cols are module-level field constants; the value is bound via ?
             row = self._conn.execute(
-                f"SELECT {', '.join(cols)} FROM task_type_config WHERE tool = ?",
+                f"SELECT {', '.join(cols)} FROM task_type_config WHERE tool = ?",  # skipcq: BAN-B608
                 (tool,),
             ).fetchone()
             if row is None:
@@ -162,11 +161,7 @@ class ManageDatabase:
     def task_type_upsert(self, tool: str, **fields) -> None:
         """Insert or update one task type config row."""
         allowed = set(_ALL_TASK_TYPE_FIELDS)
-        updates = {
-            key: normalize_resource_value(key, value)
-            for key, value in fields.items()
-            if key in allowed
-        }
+        updates = {key: normalize_resource_value(key, value) for key, value in fields.items() if key in allowed}
         if not updates:
             return
         # Convert bool → int for boolean columns
@@ -179,8 +174,9 @@ class ManageDatabase:
         values = list(updates.values())
 
         with self._lock:
+            # BAN-B608: keys are allowlisted against _ALL_TASK_TYPE_FIELDS; values bound via ?
             self._conn.execute(
-                f"INSERT INTO task_type_config (tool, {columns}) "
+                f"INSERT INTO task_type_config (tool, {columns}) "  # skipcq: BAN-B608
                 f"VALUES (?, {placeholders}) "
                 f"ON CONFLICT(tool) DO UPDATE SET " + ", ".join(f"{c}=excluded.{c}" for c in updates),
                 [tool] + values,
@@ -262,8 +258,10 @@ class ManageDatabase:
                         continue
                     columns = ", ".join(updates)
                     placeholders = ", ".join("?" for _ in updates)
+                    # BAN-B608: keys are allowlisted against _ALL_TASK_TYPE_FIELDS; values bound via ?
                     self._conn.execute(
-                        f"INSERT INTO task_type_config (tool, {columns}) VALUES (?, {placeholders}) "
+                        f"INSERT INTO task_type_config (tool, {columns}) "  # skipcq: BAN-B608
+                        f"VALUES (?, {placeholders}) "
                         f"ON CONFLICT(tool) DO UPDATE SET "
                         + ", ".join(f"{column}=excluded.{column}" for column in updates),
                         [tool, *updates.values()],

@@ -70,12 +70,9 @@
 
 <aside class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></aside>
 
-<script>
-  window.__DASHBOARD_TASKS__ = {{ sorted_task_statuses | tojson }};
-  window.__DASHBOARD_IS_ADMIN__ = {{ is_admin_user | tojson }};
-  window.__DASHBOARD_USER__ = {{ current_username | tojson }};
-</script>
+<script type="application/json" id="dashboard-task-data">{{ {"tasks": sorted_task_statuses, "is_admin": is_admin_user, "user": current_username} | tojson }}</script>
 <script src="/static/js/auth-api.js"></script>
+<script src="/static/js/py2dmol-preview.js"></script>
 <script src="/static/js/dashboard.js"></script>
 </body>
 </html>

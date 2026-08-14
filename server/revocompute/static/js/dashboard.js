@@ -5,8 +5,9 @@
   var A = window.REvoDesignAuth;
   var T = window.REvoDesignTheme;
 
-  var allTasks = window.__DASHBOARD_TASKS__;
-  var isAdmin = window.__DASHBOARD_IS_ADMIN__;
+  var boot = JSON.parse(document.getElementById("dashboard-task-data").textContent);
+  var allTasks = boot.tasks;
+  var isAdmin = boot.is_admin;
 
   var state = {
     query: "",
@@ -215,13 +216,41 @@
           '<div class="meta-box"><p class="meta-label">Finished</p><p class="meta-value">' + escapeHtml(task.finished_time || "-") + '</p></div>' +
           '<div class="meta-box"><p class="meta-label">Wall Time</p><p class="meta-value">' + escapeHtml(String(task.walltime ?? "-")) + '</p></div>' +
         '</div>' +
-        '<details class="sequence"><summary>Sequence Snapshot</summary><pre>' + escapeHtml(task.sequence || "-") + '</pre></details>' +
+        (task.structure_input
+          ? '<details class="structure" data-lazy-structure data-input-url="' + escapeHtml(task.input_url || "") + '" data-format="' + escapeHtml(task.structure_format || "pdb") + '"><summary>Structure Snapshot</summary><div class="structure-preview"><p class="structure-loading">Loading structure…</p></div></details>'
+          : '<details class="sequence"><summary>Sequence Snapshot</summary><pre>' + escapeHtml(task.sequence || "-") + (task.sequence_truncated ? "…" : "") + '</pre></details>') +
         '<div class="actions">' +
           (hasResults ? '<button class="task-btn download" data-action="results" data-md5="' + escapeHtml(task.md5) + '">Browse Results</button>' : "") +
           (hasResults ? downloadButtonHtml(task, task.status === "failed" ? "download-failed" : "download") : "") +
           (canCancel ? '<button class="task-btn cancel" data-action="cancel" data-md5="' + escapeHtml(task.md5) + '">Cancel</button>' : "") +
           (canDelete ? '<button class="task-btn delete" data-action="delete" data-md5="' + escapeHtml(task.md5) + '">Delete</button>' : "") +
         '</div>';
+      if (task.structure_input) {
+        var structureDetails = card.querySelector("details.structure");
+        structureDetails.addEventListener("toggle", function () {
+          if (!structureDetails.open || structureDetails.dataset.loaded) return;
+          structureDetails.dataset.loaded = "true";
+          var box = structureDetails.querySelector(".structure-preview");
+          A.authFetch(structureDetails.dataset.inputUrl)
+            .then(function (response) {
+              if (!response.ok) throw new Error("HTTP " + response.status);
+              return response.text();
+            })
+            .then(function (text) {
+              box.textContent = "";
+              return window.REvoDesignPy2Dmol.renderAlphaTrace(
+                box,
+                text,
+                structureDetails.dataset.format || "pdb",
+                task.fasta_fn || "structure",
+                [Math.max(320, Math.min(card.clientWidth - 48, 720)), 420]
+              );
+            })
+            .catch(function (error) {
+              box.textContent = "Unable to load structure: " + error.message;
+            });
+        });
+      }
       list.appendChild(card);
     });
   }

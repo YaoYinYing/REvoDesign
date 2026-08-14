@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import mimetypes
 import os
 import re
 import shutil
@@ -50,7 +51,6 @@ from revocompute.app import (
     _is_admin_user,
     _is_binary_file,
     _is_deleted_status,
-    _is_fasta_content,
     _request_metadata,
     _revoke_celery_task,
     _task_access_allowed,
@@ -79,12 +79,9 @@ from revocompute.auth import (
     validate_email_token,
     validate_reset_token,
 )
+from revocompute.input_validation import validate_input_file
 from revocompute.ratelimit import rate_limit
-from revocompute.resource_policy import (
-    GLOBAL_RESOURCE_KEYS,
-    ResourceValidationError,
-    normalize_resource_value,
-)
+from revocompute.resource_policy import GLOBAL_RESOURCE_KEYS, ResourceValidationError, normalize_resource_value
 from revocompute.schemas import (
     AdminCreateUserRequest,
     AdminUpdateUserRequest,
@@ -99,17 +96,18 @@ from revocompute.schemas import (
 )
 from revocompute.task_runtime import (
     _build_running_trace,
+    _finalize_failed_results,
     _get_task_type,
     _local_user_identity,
     _normalize_task_id,
-    _finalize_failed_results,
+    _path_is_within,
     _safe_join,
     _sanitize_task_error,
     _task_zip_path,
     _virtual_upload_path,
+    build_results_archive,
     format_times,
     format_walltime,
-    build_results_archive,
     run_compute_task,
     task_store,
 )
@@ -288,22 +286,16 @@ def task_type_form(name: str):
         if enabled is False:
             return jsonify({"error": f"Task type {name!r} is disabled"}), 404
 
-    resource_summary = None
     if manage_db is not None:
+        # Fail the form early on a broken policy, but do not expose the
+        # resolved resource usage to users — resource review is not part of
+        # the submission flow.  The real enforcement happens at submission.
         try:
-            resolved = manage_db.resolve_task_resources(
+            manage_db.resolve_task_resources(
                 tt.name,
                 requires_gpu=tt.gpus,
                 default_timeout_seconds=runner.max_runtime_seconds,
             )
-            resource_summary = {
-                "cpus": resolved.cpus,
-                "memory": resolved.memory,
-                "max_runtime_seconds": resolved.max_runtime_seconds,
-                "partition": resolved.partition,
-                "gres": resolved.gres,
-                "requires_gpu": resolved.requires_gpu,
-            }
         except ResourceValidationError as exc:
             return jsonify({"error": f"Task resource policy is invalid: {exc}"}), 503
 
@@ -341,7 +333,6 @@ def task_type_form(name: str):
             ],
             "show_sequence_editor": tt.input_extension == ".fasta",
             "input_workspace": _input_workspace_payload(tt),
-            "resources": resource_summary,
         }
     )
 
@@ -402,9 +393,7 @@ def _validate_input_uploads(task_type: str = "gremlin"):
         return None, (jsonify({"error": f"At most {tt.max_input_files} input files are allowed"}), 400)
     submitted_paths = request.form.getlist("input_paths")
     accepted = tuple(extension.lower() for extension in (tt.input_extensions or (tt.input_extension,)))
-    primary_accepted = tuple(
-        extension.lower() for extension in (tt.primary_input_extensions or (tt.input_extension,))
-    )
+    primary_accepted = tuple(extension.lower() for extension in (tt.primary_input_extensions or (tt.input_extension,)))
     validated: list[tuple[Any, str]] = []
     seen_paths: set[str] = set()
     for index, uploaded in enumerate(uploads):
@@ -436,7 +425,7 @@ def _save_uploaded_inputs(
         uploaded.save(temp_path)
         hasher = hashlib.sha256()
         with open(temp_path, "rb") as handle:
-            for chunk in iter(lambda: handle.read(65536), b""):
+            while chunk := handle.read(65536):
                 hasher.update(chunk)
         blob_hash = hasher.hexdigest()
         blob_path = _safe_join(app.config["UPLOAD_FOLDER"], f"{blob_hash}.upload")
@@ -533,20 +522,30 @@ def _prepare_task_record(
     }
 
 
-def _reject_invalid_input(md5sum: str, base_record: dict[str, Any], task_type: str = "gremlin"):
+def _reject_invalid_input(
+    md5sum: str, base_record: dict[str, Any], saved_inputs: list[dict[str, Any]], task_type: str = "gremlin"
+):
     """Reject uploads whose content doesn't match the expected format.
 
-    Only FASTA task types are validated for FASTA content — PDB and other
-    binary/structured formats are validated by the runner at execution time.
+    Every uploaded file — primary and auxiliary alike — passes the
+    4096-byte binary sniff and is then content-validated by extension
+    (FASTA/A3M/PDB/mmCIF/JSON) with generous DoS caps (see
+    revocompute.input_validation), so third-party parsers never see
+    pathological content from any input of a multi-file task.
     """
-    upload_path = base_record["file_path"]
-    if base_record["is_binary"]:
-        error_message = "Binary file uploads are not supported."
-        response_message = "Uploaded file contains binary content"
-    elif task_type == "gremlin" and not _is_fasta_content(upload_path):
-        error_message = "Uploaded file does not appear to be a valid FASTA file."
-        response_message = "Uploaded file does not appear to be a valid FASTA file"
-    else:
+    error_message = None
+    response_message = ""
+    for item in saved_inputs:
+        blob_path = item["blob_path"]
+        if _is_binary_file(blob_path):
+            error_message = f"Binary file uploads are not supported: {item['relative_path']}"
+            response_message = "Uploaded file contains binary content"
+            break
+        error_message = validate_input_file(blob_path, item["relative_path"] or "")
+        if error_message is not None:
+            response_message = error_message
+            break
+    if error_message is None:
         return None
 
     failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
@@ -685,7 +684,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         task_type=task_type,
         input_form=input_form,
     )
-    if invalid_response := _reject_invalid_input(md5sum, base_record, task_type):
+    if invalid_response := _reject_invalid_input(md5sum, base_record, saved_inputs, task_type):
         return invalid_response
 
     task_store.upsert_task(
@@ -800,7 +799,8 @@ def _result_artifact(task: dict[str, Any], relative_path: str) -> tuple[str, dic
     if not normalized or any(part in {"", ".", ".."} for part in normalized.split("/")):
         return None
     try:
-        with open(_safe_join(task["result_dir"], "manifest.json"), encoding="utf-8") as handle:
+        # PTC-W6004: task["result_dir"] is server-owned; the requested path is validated above
+        with open(_safe_join(task["result_dir"], "manifest.json"), encoding="utf-8") as handle:  # skipcq: PTC-W6004
             manifest = json.load(handle)
     except (OSError, json.JSONDecodeError):
         return None
@@ -828,7 +828,10 @@ def get_result_artifact(md5sum: str, relative_path: str):
     if resolved is None:
         return jsonify({"error": "Artifact not found"}), 404
     path, artifact = resolved
-    as_attachment = request.args.get("download", "0") in {"1", "true", "yes"}
+    # Artifacts are untrusted runner output — default to attachment so they
+    # are never rendered same-origin.  `?download=1` still forces a download
+    # and `?download=0` explicitly opts back into inline rendering.
+    as_attachment = request.args.get("download", "1") in {"1", "true", "yes"}
     if app.config["RESULT_DOWNLOAD_MODE"] == "nginx":
         internal_path = quote(f"{md5sum}/{artifact['path']}", safe="/")
         response = Response(status=200, mimetype=artifact.get("media_type") or "application/octet-stream")
@@ -840,13 +843,18 @@ def get_result_artifact(md5sum: str, relative_path: str):
         )
         response.headers["Cache-Control"] = "private, no-store"
         return response
-    return send_from_directory(
+    response = send_from_directory(
         task["result_dir"],
         artifact["path"],
         as_attachment=as_attachment,
         download_name=os.path.basename(path),
         mimetype=artifact.get("media_type") or None,
     )
+    # Defense in depth: even an explicitly-inline artifact runs no scripts.
+    # (In nginx mode the served body comes from the internal location, which
+    # sets the same header in docker/nginx/default.conf.template.)
+    response.headers["Content-Security-Policy"] = "sandbox"
+    return response
 
 
 @app.route("/compute/api/results/<md5sum>/archive", methods=["POST"])
@@ -946,19 +954,27 @@ def cancel_task(md5sum):
 
     slurm_job_id = task.get("slurm_job_id")
     if slurm_job_id:
-        try:
-            subprocess.run(["scancel", str(slurm_job_id)], timeout=10, check=True)
-            logging.info("Cancelled SLURM job %s for task %s", slurm_job_id, md5sum)
-        except Exception as exc:  # pylint: disable=broad-except
-            logging.warning("Failed to scancel SLURM job %s: %s", slurm_job_id, exc)
+        scancel = shutil.which("scancel")
+        if not scancel:
+            logging.warning("scancel not found; cannot cancel SLURM job %s", slurm_job_id)
+        else:
+            try:
+                subprocess.run([scancel, str(slurm_job_id)], timeout=10, check=True)
+                logging.info("Cancelled SLURM job %s for task %s", slurm_job_id, md5sum)
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.warning("Failed to scancel SLURM job %s: %s", slurm_job_id, exc)
 
     container_id = task.get("container_id")
     if container_id:
-        try:
-            subprocess.run(["docker", "stop", str(container_id)], timeout=15, check=True)
-            logging.info("Stopped Docker container %s for task %s", container_id, md5sum)
-        except Exception as exc:  # pylint: disable=broad-except
-            logging.warning("Failed to stop container %s: %s", container_id, exc)
+        docker = shutil.which("docker")
+        if not docker:
+            logging.warning("docker not found; cannot stop container %s", container_id)
+        else:
+            try:
+                subprocess.run([docker, "stop", str(container_id)], timeout=15, check=True)
+                logging.info("Stopped Docker container %s for task %s", container_id, md5sum)
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.warning("Failed to stop container %s: %s", container_id, exc)
 
     celery_id = task.get("celery_task_id")
     if celery_id:
@@ -983,15 +999,43 @@ def cancel_task(md5sum):
     return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
 
 
+# ponytail: bounded per-task read for the dashboard — a full file read per
+# task turns N listed tasks into N x 16 MiB page loads. The full snapshot
+# lives on the task's own results page.
+_DASHBOARD_SEQUENCE_PREVIEW_BYTES = 4096
+
+
 def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, is_admin: bool) -> dict[str, Any]:
     submitted_time = task.get("uploaded_at")
     finished_time = task.get("finished_at")
-    if task.get("is_binary"):
+    task_type_name = task.get("task_type", "gremlin")
+    structure_input = False
+    structure_format = "pdb"
+    try:
+        tt_obj, _ = _get_task_type(task_type_name)
+    except KeyError:
+        tt_obj = None
+    if tt_obj is not None:
+        extensions = set(tt_obj.input_extensions or (tt_obj.input_extension,))
+        if extensions & {".pdb", ".cif", ".mmcif"}:
+            structure_input = True
+            # The parser depends on the UPLOADED file, not on the type's
+            # accepted extensions — a type accepting both PDB and mmCIF
+            # receives .pdb files too.
+            filename_lower = str(task.get("filename") or "").lower()
+            structure_format = "mmcif" if filename_lower.endswith((".cif", ".mmcif")) else "pdb"
+    sequence_truncated = False
+    if structure_input:
+        # Structure tasks render a py2Dmol snapshot instead of sequence text;
+        # skip the per-task file read entirely.
+        fasta_seq = ""
+    elif task.get("is_binary"):
         fasta_seq = "Binary file rejected"
     else:
         try:
             with open(task["file_path"]) as handle:
-                fasta_seq = handle.read().strip()
+                fasta_seq = handle.read(_DASHBOARD_SEQUENCE_PREVIEW_BYTES).strip()
+                sequence_truncated = handle.read(1) != ""
         except (OSError, UnicodeDecodeError) as exc:
             reason = "file not found" if isinstance(exc, FileNotFoundError) else "file unavailable"
             fasta_seq = (
@@ -1009,6 +1053,10 @@ def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, 
         "walltime": format_walltime(task.get("walltime")),
         "submitted_timestamp": submitted_time or 0,
         "sequence": fasta_seq,
+        "sequence_truncated": sequence_truncated,
+        "structure_input": structure_input,
+        "structure_format": structure_format,
+        "input_url": f"/compute/api/tasks/{task['md5sum']}/input" if structure_input else None,
         "owner": task.get("username") or "-",
         "can_delete": (is_admin or task.get("username") == current_user)
         and task["status"] not in task_store.CLEANUP_CLAIM_STATUSES,
@@ -1054,6 +1102,41 @@ def task_results_page(md5sum):
     return render_template(
         "task_results.html",
         task=_dashboard_task_status(task, 0, _current_username() or "", _is_admin_user()),
+    )
+
+
+@app.route("/compute/api/tasks/<md5sum>/input", methods=["GET"])
+@login_required
+def task_input_file(md5sum):
+    """Stream a task's uploaded input file (dashboard structure previews).
+
+    The path comes from the server-owned task row, not from the request;
+    access is restricted to the task owner (or an admin).
+    """
+    normalized = _normalize_task_id(md5sum)
+    if normalized is None:
+        abort(404)
+    task = task_store.get_task(normalized)
+    if task is None:
+        abort(404)
+    if not _task_access_allowed(task):
+        return _task_access_denied(normalized)
+    file_path = str(task.get("file_path") or "")
+    if not file_path or not os.path.isfile(file_path):
+        return jsonify({"error": "Input file not found"}), 404
+    # The row is server-written, but containment is cheap insurance: serve
+    # only files that live inside one of the server-owned folders.
+    if not (
+        _path_is_within(app.config["UPLOAD_FOLDER"], file_path)
+        or _path_is_within(app.config["WORKSPACE_FOLDER"], file_path)
+        or _path_is_within(app.config["RESULTS_FOLDER"], file_path)
+    ):
+        return jsonify({"error": "Input file not found"}), 404
+    return send_from_directory(
+        os.path.dirname(file_path) or ".",
+        os.path.basename(file_path),
+        mimetype=mimetypes.guess_type(task.get("filename") or "")[0] or "application/octet-stream",
+        conditional=True,
     )
 
 
@@ -1374,7 +1457,7 @@ def auth_login():
         path="/",
         httponly=True,
         samesite="Lax",
-        secure=request.is_secure,
+        secure=request.is_secure or current_app.config.get("AUTH_COOKIE_SECURE", False),
     )
     return response
 
@@ -1444,7 +1527,15 @@ def auth_logout():
         db = _get_user_db()
         db.increment_token_version(user["id"])
     response = jsonify({"status": "logged_out"})
-    response.set_cookie("auth_token", "", max_age=0, path="/", httponly=True, samesite="Lax", secure=request.is_secure)
+    response.set_cookie(
+        "auth_token",
+        "",
+        max_age=0,
+        path="/",
+        httponly=True,
+        samesite="Lax",
+        secure=request.is_secure or current_app.config.get("AUTH_COOKIE_SECURE", False),
+    )
     return response
 
 
@@ -1684,7 +1775,7 @@ def auth_api_key_status():
         return _blocked
     db = _get_user_db()
     user = db.get_user(g.current_user["id"])
-    has_key = bool(user and user.get("api_key_hash"))
+    has_key = bool(user and user.get("api_key_digest"))
     return jsonify({"has_api_key": has_key}), 200
 
 
@@ -1992,9 +2083,7 @@ def admin_get_config():
     return jsonify(
         {
             "task_types": task_configs,
-            "resources": {
-                key: value for key, value in stored_resources.items() if key in GLOBAL_RESOURCE_KEYS
-            },
+            "resources": {key: value for key, value in stored_resources.items() if key in GLOBAL_RESOURCE_KEYS},
             "ignored_resource_keys": sorted(set(stored_resources) - GLOBAL_RESOURCE_KEYS),
             "slurm": {
                 "enabled": manage_db.slurm_enabled(),
@@ -2070,14 +2159,8 @@ def admin_set_config():
             seen_tools.add(tool)
             unknown_fields = set(entry) - {"tool", *_tt_fields}
             if unknown_fields:
-                raise ResourceValidationError(
-                    f"Unknown resource fields for {tool}: {sorted(unknown_fields)}"
-                )
-            fields = {
-                field: normalize_resource_value(field, entry[field])
-                for field in _tt_fields
-                if field in entry
-            }
+                raise ResourceValidationError(f"Unknown resource fields for {tool}: {sorted(unknown_fields)}")
+            fields = {field: normalize_resource_value(field, entry[field]) for field in _tt_fields if field in entry}
             if "enabled" in fields and fields["enabled"] is None:
                 raise ResourceValidationError("enabled cannot be empty")
             task_type = type_map.get(tool)
@@ -2102,9 +2185,7 @@ def admin_set_config():
             if unknown_slurm:
                 raise ResourceValidationError(f"Unknown SLURM fields: {sorted(unknown_slurm)}")
             if "enabled" in slurm:
-                pending_resources.append(
-                    ("slurm_enabled", normalize_resource_value("slurm_enabled", slurm["enabled"]))
-                )
+                pending_resources.append(("slurm_enabled", normalize_resource_value("slurm_enabled", slurm["enabled"])))
             if "allowed_queues" in slurm:
                 pending_resources.append(
                     (
@@ -2116,21 +2197,13 @@ def admin_set_config():
         proposed_globals = {key: value for key, value in pending_resources}
         if len(proposed_globals) != len(pending_resources):
             raise ResourceValidationError("A global resource key was provided more than once")
-        allowed_queues = proposed_globals.get(
-            "slurm_allowed_queues", tuple(manage_db.slurm_allowed_queues())
-        )
-        global_partition = proposed_globals.get(
-            "slurm_partition", manage_db.resource_get("slurm_partition")
-        )
+        allowed_queues = proposed_globals.get("slurm_allowed_queues", tuple(manage_db.slurm_allowed_queues()))
+        global_partition = proposed_globals.get("slurm_partition", manage_db.resource_get("slurm_partition"))
         if allowed_queues and global_partition and global_partition not in allowed_queues:
-            raise ResourceValidationError(
-                f"Global partition {global_partition!r} is not in allowed_queues"
-            )
+            raise ResourceValidationError(f"Global partition {global_partition!r} is not in allowed_queues")
         proposed_tasks = {tool: fields for tool, fields in pending_task_updates}
         for config in manage_db.task_type_all():
-            partition = proposed_tasks.get(config["tool"], {}).get(
-                "slurm_partition", config.get("slurm_partition")
-            )
+            partition = proposed_tasks.get(config["tool"], {}).get("slurm_partition", config.get("slurm_partition"))
             if allowed_queues and partition and partition not in allowed_queues:
                 raise ResourceValidationError(
                     f"Partition {partition!r} for {config['tool']!r} is not in allowed_queues"

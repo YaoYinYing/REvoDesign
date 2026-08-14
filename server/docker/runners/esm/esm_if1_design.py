@@ -2,7 +2,6 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-#!/usr/bin/env python3
 # REvoDesign ESM-IF1 runner — inverse folding (sequence design from backbone).
 #
 # Adapted from esm2/examples/inverse_folding/sample_sequences.py. Samples
@@ -19,11 +18,10 @@ import os
 import sys
 from pathlib import Path
 
-import numpy as np
-import torch
-
 import esm2
 import esm2.inverse_folding  # noqa: F401  (registers esm2.inverse_folding.util)
+import numpy as np
+import torch
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
