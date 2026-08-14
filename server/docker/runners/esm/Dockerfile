@@ -25,12 +25,16 @@ RUN pip install --no-cache-dir torch==2.2.0+cu121 \
       "pandas==2.2.3" \
       "pytorch-lightning==1.9.5" \
       "scipy==1.12.0" \
+      "torch-geometric==2.5.3" \
       "torchmetrics==0.11.4"
 
-# ESM-IF1 (esm2.inverse_folding) imports scipy.spatial.transform; the fork's
-# setup.py declares scipy, but the image pins dependencies explicitly rather
-# than trusting transitive resolution. The smoke import covers the full
-# inverse-folding import chain so a dependency gap fails at image build.
+# ESM-IF1 (esm2.inverse_folding) imports scipy.spatial.transform and
+# torch_geometric (via gvp_modules).  The fork's setup.py declares scipy but
+# not torch-geometric; the image pins dependencies explicitly rather than
+# trusting transitive resolution.  torch-geometric ships a pure-python wheel
+# on PyPI (no matrix index needed; MessagePassing uses native torch ops).
+# The smoke import covers the full inverse-folding import chain so a
+# dependency gap fails at image build.
 ARG ESM_REPO=https://github.com/YaoYinYing/esm2.git
 ARG ESM_REF=efcdb2265b180238a30b99ba19cced447eba6b76
 RUN git init /opt/esm2 && git -C /opt/esm2 remote add origin ${ESM_REPO} && \
