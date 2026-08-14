@@ -701,10 +701,6 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
             if e["type"] == "file"
         ],
     }
-    manifest_path = _safe_join(snapshot_root, "task.json")
-    with open(manifest_path, "w", encoding="utf-8") as handle:
-        json.dump(task_manifest, handle, indent=2, sort_keys=True)
-
     base_record = _prepare_task_record(
         md5sum,
         saved_inputs,
@@ -712,6 +708,11 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         task_type=task_type,
         input_form=input_form,
     )
+    # The manifest lands inside the snapshot AFTER _prepare_task_record has
+    # created it (and copied the input files into it).
+    manifest_path = _safe_join(snapshot_root, "task.json")
+    with open(manifest_path, "w", encoding="utf-8") as handle:
+        json.dump(task_manifest, handle, indent=2, sort_keys=True)
     if invalid_response := _reject_invalid_input(md5sum, base_record, saved_inputs, task_type):
         return invalid_response
 
