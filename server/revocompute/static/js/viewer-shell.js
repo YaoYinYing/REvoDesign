@@ -21,10 +21,21 @@
   var viewer = null;
   var viewerId = null;
 
+  // Surface any boot error in the shell UI instead of leaving the
+  // "Waiting for structure data…" placeholder frozen forever.
+  window.addEventListener("error", function (event) {
+    stateNode.hidden = false;
+    stateNode.textContent = "Shell error: " + (event.message || "unknown error");
+  });
+
+  function parentOrigin() {
+    try { return window.parent.origin; } catch (e) { return "*"; }
+  }
+
   function report(payload) {
     // The sandboxed frame has an opaque origin ("null") — target the
     // parent's real origin, never location.origin.
-    window.parent.postMessage(payload, window.parent.origin);
+    window.parent.postMessage(payload, parentOrigin());
   }
 
   function fail(message) {
