@@ -407,13 +407,6 @@ html[data-theme="dark"] {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--rail-amber) 28%, transparent);
 }
 
-.rail-bond {
-  width: 1.1rem;
-  height: 1px;
-  background: var(--line);
-  flex: none;
-}
-
 .rail-group {
   position: relative;
   display: flex;
@@ -643,21 +636,25 @@ html[data-theme="dark"] {
 /* -- responsive: tablet and mobile -------------------------------------------- */
 
 @media (max-width: 900px) {
-  .category-rail {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 0.4rem;
-    -webkit-overflow-scrolling: touch;
-  }
   .rail-label { display: none; }
-  .rail-node { flex: none; }
   .rail-panel { left: 0; }
 }
 
+/* Mobile: the rail becomes a vertical accordion — panels expand inline
+   under their own label, so nothing is clipped by a scroll container. */
 @media (max-width: 640px) {
+  .category-rail { flex-direction: column; align-items: stretch; }
+  .rail-group { flex-direction: column; align-items: stretch; width: 100%; }
+  .rail-node { width: 100%; padding: 0.36rem 0.58rem; font-size: 0.76rem; }
+  .rail-panel {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    box-shadow: none;
+    margin-top: 0.3rem;
+  }
   .mode-row { justify-content: space-between; }
   .submit-row .btn { flex: 1; }
-  .rail-node { padding: 0.36rem 0.58rem; font-size: 0.76rem; }
   .active-task-line { flex-direction: column; gap: 0.15rem; }
 }
 

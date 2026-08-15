@@ -657,9 +657,7 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
     for fe in [e for e in entities if e["type"] == "file"]:
         upload_file = os.path.join(CONFIG.upload_folder, f"{fe['hash']}.upload")
         if not os.path.lexists(upload_file):
-            error_message = f"Uploaded input file not found: {upload_file}"
-            _finalize_failed_results(task, error_message)
-            task_store.update_task(md5sum, status="failed", error=error_message, finished_at=time.time())
+            _record_failure(md5sum, task, time.time(), "", f"Uploaded input file not found: {upload_file}")
             logging.error("Uploaded file missing for task %s: %s", md5sum, upload_file)
             return
         snapshot_path = str(fe.get("snapshot_path") or "")
@@ -670,9 +668,13 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
             or not os.path.isfile(snapshot_path)
             or _sha256_file(snapshot_path) != fe["hash"]
         ):
-            error_message = f"Immutable input snapshot is missing or changed: {fe.get('relative_path', 'unknown')}"
-            _finalize_failed_results(task, error_message)
-            task_store.update_task(md5sum, status="failed", error=error_message, finished_at=time.time())
+            _record_failure(
+                md5sum,
+                task,
+                time.time(),
+                "",
+                f"Immutable input snapshot is missing or changed: {fe.get('relative_path', 'unknown')}",
+            )
             logging.error("Input snapshot verification failed for task %s", md5sum)
             return
 

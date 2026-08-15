@@ -14,13 +14,9 @@ the first error reported wins, matching fail-fast upload behaviour.
 from __future__ import annotations
 
 import os
-from typing import Callable
+from collections.abc import Callable
 
 from revocompute.input_validators import fasta, json_file, mmcif, pdb
-from revocompute.input_validators.fasta import validate_a3m, validate_fasta  # noqa: F401 — public API
-from revocompute.input_validators.json_file import validate_json  # noqa: F401
-from revocompute.input_validators.mmcif import validate_mmcif  # noqa: F401
-from revocompute.input_validators.pdb import validate_pdb  # noqa: F401
 from revocompute.input_validators.common import (  # noqa: F401 — re-exported for tests/tools
     CIF_SNIFF_LINES,
     MAX_CIF_ATOMS,
@@ -35,6 +31,10 @@ from revocompute.input_validators.common import (  # noqa: F401 — re-exported 
     PDB_SNIFF_LINES,
     _read_text,
 )
+from revocompute.input_validators.fasta import validate_a3m, validate_fasta  # noqa: F401 — public API
+from revocompute.input_validators.json_file import validate_json  # noqa: F401
+from revocompute.input_validators.mmcif import validate_mmcif  # noqa: F401
+from revocompute.input_validators.pdb import validate_pdb  # noqa: F401
 
 # Built-in validators, keyed by lowercase file extension.
 _VALIDATORS: dict[str, Callable[[str], str | None]] = {}

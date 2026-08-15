@@ -243,7 +243,7 @@
                 text,
                 structureDetails.dataset.format || "pdb",
                 task.fasta_fn || "structure",
-                [Math.max(320, Math.min(card.clientWidth - 48, 720)), 420]
+                [Math.max(280, Math.min(box.clientWidth - 24, 720)), 400]
               );
             })
             .catch(function (error) {

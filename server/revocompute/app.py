@@ -60,11 +60,13 @@ def _add_security_headers(response):
         "default-src 'self'; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com; "
-        # No 'unsafe-inline' in script-src: all page data is injected via
-        # inert <script type="application/json"> blocks (or fetched), and the
-        # py2Dmol fallback viewer (task-results.js, loaded from jsdelivr) was
-        # verified not to emit inline scripts or eval — see
-        # security-audit-tracking.md §11.
+        # No 'unsafe-inline' and no 'unsafe-eval' in script-src: all page data
+        # is injected via inert <script type="application/json"> blocks (or
+        # fetched). The py2Dmol viewer (pinned with SRI, loaded from
+        # jsdelivr) was verified not to emit inline scripts or eval — see
+        # security-audit-tracking.md §11. Mol* needs eval, so it runs inside
+        # the isolated /compute/viewer-shell iframe, which carries its own
+        # eval-scoped CSP (routes.viewer_shell).
         "script-src 'self' https://cdn.jsdelivr.net; " "img-src 'self' data: blob:; " "worker-src 'self' blob:",
     )
     # Authenticated HTML and API responses can contain user task data.  In

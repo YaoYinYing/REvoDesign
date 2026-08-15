@@ -294,8 +294,7 @@ class SlurmJob(Job):
         # Runner protocol v2: task.json lives in the immutable input snapshot;
         # the environment carries only its backslash-free path.
         lines.append(
-            "export APPTAINERENV_TASK_MANIFEST="
-            + _sh_quote(self.virtual_workspace_root + "/inputs/task.json")
+            "export APPTAINERENV_TASK_MANIFEST=" + _sh_quote(self.virtual_workspace_root + "/inputs/task.json")
         )
         gpu_flag = " --nv" if self.tt.gpus else ""
         # --containall: private /dev,/proc,/sys and fresh tmpfs for /tmp and

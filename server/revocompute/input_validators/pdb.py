@@ -8,16 +8,10 @@ from __future__ import annotations
 
 import io
 from itertools import product
-from typing import Any
 
 import numpy as np
+from revocompute.input_validators.common import MAX_PDB_LINES, MAX_PDB_RECORD_LENGTH, PDB_SNIFF_LINES, _read_text
 
-from revocompute.input_validators.common import (
-    MAX_PDB_LINES,
-    MAX_PDB_RECORD_LENGTH,
-    PDB_SNIFF_LINES,
-    _read_text,
-)
 
 def validate_pdb(path: str) -> str | None:
     """Return an error message if *path* is not a plausible PDB file.
@@ -58,6 +52,7 @@ _PDB_DUPLICATE_CUTOFF = 0.5  # angstrom — same-element atoms closer than this 
 # false-positive here.
 _MAX_VALENCE = {"C": 3, "N": 3, "O": 2, "S": 2}
 _PDB_HEAVY_ELEMENTS = set(_MAX_VALENCE)
+
 
 def _check_pdb_geometry(lines: list[str]) -> str | None:
     """Delegate geometry checking to the biotite-based backend."""
@@ -128,7 +123,7 @@ def _check_pdb_geometry_biotite(lines: list[str]) -> str | None:
     counts = [0] * len(sub)
     for index in range(len(sub)):
         x, y, z = coords[index]
-        element = elements[index]
+        elements[index]
         cx, cy, cz = int(x // 4), int(y // 4), int(z // 4)
         for dx, dy, dz in product((-1, 0, 1), repeat=3):
             for other in grid.get((cx + dx, cy + dy, cz + dz), ()):
@@ -161,5 +156,3 @@ def _check_pdb_geometry_biotite(lines: list[str]) -> str | None:
                 f"{_PDB_BOND_CUTOFF} Å — RDKit-based tools will reject it: {detail}"
             )
     return None
-
-

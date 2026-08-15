@@ -42,7 +42,6 @@ def test_runner_script_executes_pipeline_commands_as_arrays():
     assert '"${cmd[@]}"' in script
 
 
-
 def _run_with_manifest(script, input_file, output_dir, env, params=None):
     """Run a runner script under the v2 protocol: write task.json next to
     the input, point -i at it, and set TASK_MANIFEST + TASK_CONTEXT_SRC."""
@@ -392,8 +391,6 @@ def _write_fake_prime_model(tmp_path, auto_map=True) -> Path:
     return model_dir
 
 
-
-
 def test_manifest_param_escaping_round_trip(tmp_path):
     """The v2 protocol must preserve param values byte-for-byte: backslash
     runs, quotes, shell metacharacters, newlines, and unicode all survive
@@ -413,7 +410,14 @@ def test_manifest_param_escaping_round_trip(tmp_path):
                 "task_id": "t",
                 "task_type": "test",
                 "params": values,
-                "files": [{"name": "primary", "path": str(tmp_path / "input.fasta"), "relative_path": "input.fasta", "hash": "x"}],
+                "files": [
+                    {
+                        "name": "primary",
+                        "path": str(tmp_path / "input.fasta"),
+                        "relative_path": "input.fasta",
+                        "hash": "x",
+                    }
+                ],
             }
         ),
         encoding="utf-8",
@@ -440,7 +444,6 @@ def test_manifest_param_escaping_round_trip(tmp_path):
     assert completed.stdout == values["smiles"]
 
 
-
 def test_prime_runner_fails_closed_without_vendored_model_code(tmp_path):
     model_dir = _write_fake_prime_model(tmp_path)
     input_file = tmp_path / "input.fasta"
@@ -449,7 +452,12 @@ def test_prime_runner_fails_closed_without_vendored_model_code(tmp_path):
 
     manifest_path = input_file.parent / "task.json"
     manifest_path.write_text(
-        json.dumps({"params": {}, "files": [{"name": "primary", "path": str(input_file), "relative_path": "input.fasta", "hash": "x"}]}),
+        json.dumps(
+            {
+                "params": {},
+                "files": [{"name": "primary", "path": str(input_file), "relative_path": "input.fasta", "hash": "x"}],
+            }
+        ),
         encoding="utf-8",
     )
     env = os.environ.copy()
@@ -486,7 +494,15 @@ def test_prime_runner_rejects_weights_manifest_mismatch(tmp_path):
     )
 
     manifest_path = input_file.parent / "task.json"
-    manifest_path.write_text(json.dumps({"params": {}, "files": [{"name": "primary", "path": str(input_file), "relative_path": "input.fasta", "hash": "x"}]}), encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "params": {},
+                "files": [{"name": "primary", "path": str(input_file), "relative_path": "input.fasta", "hash": "x"}],
+            }
+        ),
+        encoding="utf-8",
+    )
     env = os.environ.copy()
     env["TASK_MANIFEST"] = str(manifest_path)
     env["TASK_CONTEXT_SRC"] = str(SERVER_ROOT / "docker" / "runners" / "common" / "task_context.sh")

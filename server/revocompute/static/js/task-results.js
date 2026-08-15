@@ -8,15 +8,14 @@
   var task = JSON.parse(document.getElementById("result-task-data").textContent);
   var artifacts = [];
   var activeArtifact = null;
-  var molstarAssetsPromise = null;
   var activeMolstar = null;
   var thumbnailUrls = [];
   var previewRegistry = null;
   var previewHost = null;
-  var MOLSTAR_VERSION = "5.10.0";
-  var MOLSTAR_BASE = "https://cdn.jsdelivr.net/npm/molstar@" + MOLSTAR_VERSION + "/build/viewer/";
-  var MOLSTAR_SCRIPT_INTEGRITY = "sha384-wBsrlRYNnkOyq4/N6JHjLcT71I5Ig8DhryHsQpwXE91zRmy3XK6KhkxqixmT1S0n";
-  var MOLSTAR_STYLE_INTEGRITY = "sha384-RIontCdJN53gEl2fmiHN+4bscIBvaUaOiCeeGktXqmFqdEBF+COnSdt9O4IKFSvq";
+  var MOLSTAR_THEME_COOKIE = "revodesign-molstar-theme";
+  // Mol* runs inside the isolated /compute/viewer-shell iframe (its bundle
+  // needs new Function, which only that shell's CSP permits). All constants
+  // and the asset loader live in viewer-shell.js.;
 
   function formatBytes(value) {
     var bytes = Number(value || 0);
@@ -34,37 +33,43 @@
     setTimeout(function () { node.remove(); }, 3600);
   }
 
-  function disposeActiveViewer() {
-    if (activeMolstar && activeMolstar.plugin) activeMolstar.plugin.dispose();
-    activeMolstar = null;
+  // The shell iframe is sandboxed without allow-same-origin, so its origin
+  // is opaque ("null") — postMessages must target the frame's own serialized
+  // origin, never the parent's.
+  function postToShell(frame, payload) {
+    var targetOrigin = "*";
+    try { targetOrigin = frame.contentWindow.origin || "*"; } catch (e) { /* frame gone */ }
+    frame.contentWindow.postMessage(payload, targetOrigin);
   }
 
-  function ensureMolstarAssets() {
-    if (window.molstar && window.molstar.Viewer) return Promise.resolve(window.molstar);
-    if (molstarAssetsPromise) return molstarAssetsPromise;
-    molstarAssetsPromise = new Promise(function (resolve, reject) {
-      if (!document.querySelector("link[data-molstar-style]")) {
-        var style = document.createElement("link");
-        style.rel = "stylesheet";
-        style.href = MOLSTAR_BASE + "molstar.css";
-        style.integrity = MOLSTAR_STYLE_INTEGRITY;
-        style.crossOrigin = "anonymous";
-        style.dataset.molstarStyle = MOLSTAR_VERSION;
-        document.head.appendChild(style);
-      }
-      var script = document.createElement("script");
-      script.src = MOLSTAR_BASE + "molstar.js";
-      script.integrity = MOLSTAR_SCRIPT_INTEGRITY;
-      script.crossOrigin = "anonymous";
-      script.dataset.molstarScript = MOLSTAR_VERSION;
-      script.addEventListener("load", function () {
-        if (window.molstar && window.molstar.Viewer) resolve(window.molstar);
-        else reject(new Error("Mol* did not initialize"));
-      }, { once: true });
-      script.addEventListener("error", function () { reject(new Error("Mol* could not be loaded")); }, { once: true });
-      document.head.appendChild(script);
-    }).catch(function (error) { molstarAssetsPromise = null; throw error; });
-    return molstarAssetsPromise;
+  function readMolstarTheme() {
+    var prefix = MOLSTAR_THEME_COOKIE + "=";
+    var value = document.cookie.split(";").map(function (part) { return part.trim(); }).find(function (part) {
+      return part.startsWith(prefix);
+    });
+    return value && value.slice(prefix.length) === "dark" ? "dark" : "light";
+  }
+
+  function setMolstarTheme(theme) {
+    var resolved = theme === "dark" ? "dark" : "light";
+    var secure = location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = MOLSTAR_THEME_COOKIE + "=" + resolved + "; Path=/; Max-Age=31536000; SameSite=Lax" + secure;
+    var frame = activeMolstar ? activeMolstar.frame : document.querySelector("iframe.artifact-molstar-preview");
+    if (frame) postToShell(frame, { type: "theme", theme: resolved });
+    document.querySelectorAll(".molstar-theme-toggle").forEach(function (button) {
+      button.textContent = resolved === "dark" ? "☾" : "☀";
+      button.setAttribute("aria-label", resolved === "dark" ? "Use light Mol* theme" : "Use dark Mol* theme");
+      button.title = button.getAttribute("aria-label");
+      button.setAttribute("aria-pressed", resolved === "dark" ? "true" : "false");
+    });
+  }
+
+  function disposeActiveViewer() {
+    if (activeMolstar) {
+      try { postToShell(activeMolstar.frame, { type: "dispose" }); } catch (e) { /* frame gone */ }
+      activeMolstar.frame.remove();
+      activeMolstar = null;
+    }
   }
 
   function structureFormat(path) {
@@ -72,16 +77,28 @@
     return lower.endsWith(".cif") || lower.endsWith(".mmcif") ? "mmcif" : "pdb";
   }
 
-  async function renderPy2DmolFallback(structureText, artifact, stage, molstarError) {
+  // Single-flight guard: every async render captures the host generation at
+  // start and re-checks it after each await. A viewer toggle, artifact
+  // switch, or destroy bumps the generation, so a stale Mol*/py2Dmol
+  // continuation can never mount or load a file after its surface is gone —
+  // the two viewers are never in flight for the same stage simultaneously.
+  function isStale(generation) {
+    return previewHost && previewHost.generation !== generation;
+  }
+
+  async function renderPy2DmolFallback(structureText, artifact, stage, generation, molstarError) {
     try {
       await window.REvoDesignPy2Dmol.renderAlphaTrace(
         stage,
         structureText,
         structureFormat(artifact.path),
         artifact.path,
-        [Math.max(320, Math.min(stage.clientWidth - 220, 900)), 560]
+        [Math.max(320, Math.min(stage.clientWidth - 220, 900)), 560],
+        function () { return isStale(generation); }
       );
+      if (isStale(generation)) return;
     } catch (error) {
+      if (isStale(generation)) return;
       throw molstarError;
     }
     var note = document.createElement("p");
@@ -98,13 +115,9 @@
 
   function setStructureColor(mode) {
     activeColorMode = mode;
-    // Mol* backend
-    if (activeMolstar && activeMolstar.plugin) {
-      try {
-        var themes = { plddt: "b-factor", chain: "chain-id", rainbow: "residue-index" };
-        var component = activeMolstar.plugin.managers.structure.component;
-        component.updateRepresentationsTheme({ color: { name: themes[mode] || mode, params: {} } });
-      } catch (e) { /* Mol* handles this via its own panel too */ }
+    // Mol* backend — forward the mode into the isolated viewer shell
+    if (activeMolstar) {
+      try { postToShell(activeMolstar.frame, { type: "color", mode: mode }); } catch (e) { /* frame gone */ }
     }
     // py2Dmol backend — drive the existing color select in its right panel
     var colorSelect = document.querySelector(".py2dmol-fallback #colorSelect");
@@ -115,66 +128,121 @@
     // Highlight active color toggle
     document.querySelectorAll(".color-toggle").forEach(function (btn) {
       btn.classList.toggle("active", btn.dataset.mode === mode);
+      btn.setAttribute("aria-pressed", btn.dataset.mode === mode ? "true" : "false");
     });
   }
 
   function structureViewerBar(artifact) {
     var bar = document.createElement("div");
     bar.className = "structure-viewer-bar";
+    bar.setAttribute("role", "toolbar");
+    bar.setAttribute("aria-label", "Structure viewer controls");
     var makeBtn = function (label, viewer) {
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "viewer-toggle" + (structureViewer === viewer ? " active" : "");
       btn.textContent = label;
+      btn.setAttribute("aria-pressed", structureViewer === viewer ? "true" : "false");
       btn.addEventListener("click", function () { structureViewer = viewer; previewArtifact(artifact); });
       return btn;
     };
     bar.append(makeBtn("Mol* (full)", "molstar"), makeBtn("py2Dmol (alpha)", "py2dmol"));
     var colorBar = document.createElement("div");
     colorBar.className = "structure-color-bar";
+    colorBar.setAttribute("role", "group");
+    colorBar.setAttribute("aria-label", "Structure color theme");
     [{ mode: "plddt", label: "pLDDT" }, { mode: "chain", label: "Chain" }, { mode: "rainbow", label: "Rainbow" }].forEach(function (c) {
       var btn = document.createElement("button");
       btn.type = "button"; btn.className = "color-toggle"; btn.textContent = c.label; btn.dataset.mode = c.mode;
       if (activeColorMode === c.mode) btn.classList.add("active");
+      btn.setAttribute("aria-pressed", activeColorMode === c.mode ? "true" : "false");
       btn.addEventListener("click", function () { setStructureColor(c.mode); });
-      colorBar.appendChild(btn);
+    colorBar.appendChild(btn);
     });
     bar.appendChild(colorBar);
+    var themeButton = document.createElement("button");
+    themeButton.type = "button";
+    themeButton.className = "molstar-theme-toggle";
+    themeButton.addEventListener("click", function () {
+      setMolstarTheme(readMolstarTheme() === "dark" ? "light" : "dark");
+    });
+    bar.appendChild(themeButton);
+    setTimeout(function () { setMolstarTheme(readMolstarTheme()); }, 0);
     return bar;
   }
 
-  async function renderMolstar(structureText, artifact, stage) {
-    var molstar = await ensureMolstarAssets();
-    var target = document.createElement("div");
-    target.className = "artifact-molstar-preview";
-    target.id = "molstar-result-" + Math.random().toString(36).slice(2);
-    stage.appendChild(target);
-    activeMolstar = await molstar.Viewer.create(target.id, {
-      layoutIsExpanded: false,
-      layoutShowControls: true,
-      layoutShowRemoteState: false,
-      layoutShowSequence: true,
-      layoutShowLog: false,
-      layoutShowLeftPanel: false,
-      viewportShowExpand: true,
-      viewportShowSelectionMode: true,
-      viewportShowAnimation: true
+  async function renderMolstar(structureText, artifact, stage, generation) {
+    var requestId = "mol-" + Math.random().toString(36).slice(2);
+    var frame = document.createElement("iframe");
+    frame.className = "artifact-molstar-preview";
+    frame.sandbox = "allow-scripts";
+    frame.title = "Mol* structure viewer";
+    // Register the handshake listener before the iframe starts loading so
+    // the shell's "shell-ready" can never be missed.
+    var handshake = new Promise(function (resolve, reject) {
+      var settled = false;
+      var timer = setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener("message", onMessage);
+        reject(new Error("Mol* timed out"));
+      }, 45000);
+      function onMessage(event) {
+        // The sandboxed shell has an opaque origin, so its messages carry
+        // origin "null" — the source check against our own frame is the
+        // real gate.
+        if ((event.origin !== location.origin && event.origin !== "null") || event.source !== frame.contentWindow || !event.data) return;
+        if (event.data.type === "shell-ready") {
+          postToShell(frame, {
+            type: "structure",
+            text: structureText,
+            format: structureFormat(artifact.path),
+            label: artifact.path,
+            requestId: requestId,
+            theme: readMolstarTheme(),
+            colorMode: activeColorMode
+          });
+        } else if (event.data.type === "ready" && event.data.requestId === requestId) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          window.removeEventListener("message", onMessage);
+          resolve(frame);
+        } else if (event.data.type === "error" && event.data.requestId === requestId) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          window.removeEventListener("message", onMessage);
+          reject(new Error(event.data.message));
+        }
+      }
+      window.addEventListener("message", onMessage);
     });
-    await activeMolstar.loadStructureFromData(structureText, structureFormat(artifact.path), { label: artifact.path });
+    stage.appendChild(frame);
+    frame.src = "/compute/viewer-shell";
+    if (isStale(generation)) { frame.remove(); return; }
+    await handshake;
+    if (isStale(generation)) { frame.remove(); return; }
+    activeMolstar = { frame: frame };
   }
 
   async function previewStructure(artifact, stage) {
+    var generation = previewHost.generation;
     var response = await A.authFetch(artifact.url);
+    if (isStale(generation)) return;
     if (!response.ok) throw new Error("Structure download failed (HTTP " + response.status + ")");
     var structureText = await response.text();
+    if (isStale(generation)) return;
     stage.appendChild(structureViewerBar(artifact));
 
     if (structureViewer === "py2dmol") {
       try {
-        await renderPy2DmolFallback(structureText, artifact, stage, new Error("User selected alpha-trace viewer"));
-        setTimeout(function () { setStructureColor(activeColorMode); }, 100);
+        await renderPy2DmolFallback(structureText, artifact, stage, generation, new Error("User selected alpha-trace viewer"));
+        if (isStale(generation)) return;
+        setTimeout(function () { if (!isStale(generation)) setStructureColor(activeColorMode); }, 100);
       }
       catch (e) {
+        if (isStale(generation)) return;
         var unavailableMsg = document.createElement("p");
         unavailableMsg.className = "preview-message";
         unavailableMsg.textContent = "py2Dmol unavailable. Download the structure file to inspect it locally.";
@@ -183,8 +251,9 @@
       return;
     }
 
-    try { await renderMolstar(structureText, artifact, stage); }
+    try { await renderMolstar(structureText, artifact, stage, generation); }
     catch (error) {
+      if (isStale(generation)) return;
       stage.replaceChildren();
       stage.appendChild(structureViewerBar(artifact));
       var msg = document.createElement("p");
@@ -376,12 +445,54 @@
     return button;
   }
 
+  function artifactFolder(directory, children) {
+    var folder = document.createElement("details");
+    folder.className = "artifact-folder";
+    folder.open = true;
+    var summary = document.createElement("summary");
+    summary.className = "artifact-folder-name";
+    summary.textContent = directory + "/";
+    folder.appendChild(summary);
+    var inner = document.createElement("div");
+    inner.className = "artifact-folder-children";
+    children.forEach(function (child) { inner.appendChild(child); });
+    folder.appendChild(inner);
+    return folder;
+  }
+
+  function buildArtifactTree() {
+    var root = { folders: {}, files: [] };
+    artifacts.forEach(function (artifact) {
+      var node = root;
+      artifact.path.split("/").slice(0, -1).forEach(function (segment) {
+        node.folders[segment] = node.folders[segment] || { folders: {}, files: [] };
+        node = node.folders[segment];
+      });
+      node.files.push(artifact);
+    });
+    function renderNode(node) {
+      var entries = [];
+      Object.keys(node.folders).sort().forEach(function (name) {
+        entries.push(artifactFolder(name, renderNode(node.folders[name])));
+      });
+      node.files.slice().sort(function (a, b) { return a.path < b.path ? -1 : 1; })
+        .forEach(function (artifact) { entries.push(artifactButton(artifact)); });
+      return entries;
+    }
+    return renderNode(root);
+  }
+
   function renderArtifacts(query) {
     var normalized = String(query || "").trim().toLowerCase();
     var list = document.getElementById("artifactList");
     list.replaceChildren();
-    artifacts.filter(function (artifact) { return !normalized || artifact.path.toLowerCase().includes(normalized); })
-      .forEach(function (artifact) { list.appendChild(artifactButton(artifact)); });
+    if (normalized) {
+      // Search shows a flat result list — a collapsed tree would hide matches.
+      artifacts.filter(function (artifact) { return artifact.path.toLowerCase().includes(normalized); })
+        .forEach(function (artifact) { list.appendChild(artifactButton(artifact)); });
+      return;
+    }
+    buildArtifactTree().forEach(function (node) { list.appendChild(node); });
   }
 
   async function loadImageThumbnail(artifact, frame) {

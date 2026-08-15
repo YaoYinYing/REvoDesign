@@ -190,7 +190,13 @@
     (parameters || []).forEach(function (parameter) {
       var control = document.getElementById("param_" + parameter.name);
       var message = document.getElementById("param_error_" + parameter.name);
-      if (!control || control.checkValidity()) return;
+      if (!control) return;
+      if (control.checkValidity()) {
+        // Clear stale inline error state from a previous validation pass.
+        control.removeAttribute("aria-invalid");
+        if (message) { message.hidden = true; message.textContent = ""; }
+        return;
+      }
       control.setAttribute("aria-invalid", "true");
       if (message) { message.textContent = control.validationMessage || "Check this value."; message.hidden = false; }
       errors.push((parameter.label || parameter.name) + ": " + (control.validationMessage || "invalid value"));

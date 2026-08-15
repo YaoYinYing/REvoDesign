@@ -2,9 +2,9 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 
 /* Lazy py2Dmol asset loading and alpha-trace rendering, shared by the
-   dashboard task cards (structure input snapshot) and the results page
-   (Mol* fallback).  The viewer library is loaded once per page on first
-   use, from a pinned commit with SRI. */
+   dashboard task cards (structure input snapshot) and the results page.
+   The viewer library is loaded once per page on first use, from a pinned
+   CDN commit with SRI. */
 
 (function () {
   "use strict";
@@ -113,8 +113,11 @@
       '<label><input type="checkbox" id="rotationCheckbox"> Rotate</label><button id="saveSvgButton">Save SVG</button></div>';
   }
 
-  async function renderAlphaTrace(container, structureText, format, label, size) {
+  async function renderAlphaTrace(container, structureText, format, label, size, isStale) {
     await ensureAssets();
+    // A render can go stale while the CDN asset loads (artifact/viewer
+    // switch): bail before any DOM work or viewer state is created.
+    if (isStale && isStale()) return;
     var frame = format === "mmcif" ? parseCifAlphaCarbons(structureText) : parsePdbAlphaCarbons(structureText);
     if (frame.coords.length < 2) throw new Error("Structure has fewer than two C-alpha atoms");
     var viewerId = "py2dmol-" + Math.random().toString(36).slice(2);

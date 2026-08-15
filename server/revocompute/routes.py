@@ -33,6 +33,7 @@ from flask import (
     current_app,
     g,
     jsonify,
+    make_response,
     redirect,
     render_template,
     request,
@@ -96,6 +97,7 @@ from revocompute.schemas import (
 )
 from revocompute.task_runtime import (
     _build_running_trace,
+    _cleanup_task_workspace,
     _finalize_failed_results,
     _get_task_type,
     _local_user_identity,
@@ -125,6 +127,31 @@ from werkzeug.utils import secure_filename
 def health():
     """Liveness probe — unauthenticated, empty 200 when the process answers."""
     return "", 200
+
+
+@app.route("/compute/viewer-shell", methods=["GET"])
+def viewer_shell():
+    """Sandboxed shell that hosts the Mol* viewer in isolation.
+
+    Mol*'s bundle calls ``new Function`` at load, which the main app's
+    strict CSP (no ``'unsafe-eval'``) forbids. This shell page carries its
+    own CSP scoped to itself — eval is permitted here and nowhere else —
+    and receives all structure data from the authenticated parent page via
+    postMessage, so no data, auth, or server fetch ever lives in the shell.
+    """
+    response: Response = make_response(render_template("viewer_shell.html"))
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; "
+        "script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; "
+        "style-src 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "img-src data: blob:; "
+        "font-src data:; "
+        "worker-src blob:; "
+        "connect-src 'none'"
+    )
+    # The whole point is embedding — the global DENY must not apply here.
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    return response
 
 
 @app.route("/compute/login", methods=["GET"])
@@ -561,6 +588,7 @@ def _reject_invalid_input(
     failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
     task_store.upsert_task(md5sum, **base_record, status="failed", error=error_message)
     _finalize_failed_results(failed_task, error_message)
+    _cleanup_task_workspace(failed_task)
     return jsonify({"error": response_message}), 400
 
 
@@ -734,6 +762,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         error_message = "Task queue unavailable — please try again later"
         failed_task = task_store.get_task(md5sum) or dict(md5sum=md5sum, **base_record)
         _finalize_failed_results(failed_task, error_message)
+        _cleanup_task_workspace(failed_task)
         task_store.update_task(
             md5sum,
             status="failed",

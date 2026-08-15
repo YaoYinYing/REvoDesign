@@ -29,5 +29,5 @@ elif command == "primary":
 elif command == "files":
     print(json.dumps(manifest["files"]))
 else:
-    sys.stderr.write("task_context.py: unknown command %r\n" % (command,))
+    sys.stderr.write("task_context.py: unknown command {!r}\n".format(command))
     sys.exit(2)

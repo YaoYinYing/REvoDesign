@@ -35,8 +35,6 @@ def _preserve_registry():
         task_types._container_runtime = container_snapshot
 
 
-
-
 def test_task_types_carry_categories():
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
     task_types = registry["task_types"]

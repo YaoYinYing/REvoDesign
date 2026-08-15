@@ -114,13 +114,33 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert 'A.authFetch("/compute/api/results/"' in script
     assert "Main Results" in template
     assert "Scientific previews" not in template
-    assert 'MOLSTAR_VERSION = "5.10.0"' in script
-    assert "MOLSTAR_SCRIPT_INTEGRITY" in script
-    assert "RIontCdJN53gEl2f" in script
+    assert '"/compute/viewer-shell"' in script
+    assert "shell-ready" in script
+    assert "postMessage" in script
     assert "A.authFetch(artifact.url)" in script
-    assert "loadStructureFromData" in script
-    assert "loadStructureFromUrl" not in script
     assert "renderPy2DmolFallback" in script
+    assert "isStale" in script
+    viewer_shell = (SERVER_PACKAGE / "static" / "js" / "viewer-shell.js").read_text(encoding="utf-8")
+    assert 'MOLSTAR_VERSION = "5.11.0"' in viewer_shell
+    assert "MOLSTAR_SCRIPT_INTEGRITY" in viewer_shell
+    assert "MOLSTAR_DARK_STYLE_INTEGRITY" in viewer_shell
+    assert "MOLSTAR_CANVAS_COLORS" in viewer_shell
+    assert "canvas3d.setProps" in viewer_shell
+    assert 'plddt: "plddt-confidence"' in viewer_shell
+    assert 'rainbow: "sequence-id"' in viewer_shell
+    assert "currentComponentGroups" in viewer_shell
+    assert "LDnli0hRX1wCV3Hr" in viewer_shell
+    assert "RIontCdJN53gEl2f" in viewer_shell
+    assert "waitForGlobal" in viewer_shell
+    assert "loadStructureFromData" in viewer_shell
+    assert 'type: "theme"' in script
+    assert 'MOLSTAR_THEME_COOKIE = "revodesign-molstar-theme"' in script
+    assert "Max-Age=31536000; SameSite=Lax" in script
+    assert 'return value && value.slice(prefix.length) === "dark" ? "dark" : "light"' in script
+    assert "molstar-theme-toggle" in script
+    assert "colorMode: activeColorMode" in script
+    assert "__shellLog" not in viewer_shell
+    assert "__posted" not in script
     py2dmol_preview = (SERVER_PACKAGE / "static" / "js" / "py2dmol-preview.js").read_text(encoding="utf-8")
     assert 'PY2DMOL_COMMIT = "8c95fd9efae6007e124e143cd276244d89228c66"' in py2dmol_preview
     assert "PY2DMOL_SCRIPT_INTEGRITY" in py2dmol_preview
@@ -134,6 +154,10 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert "PluginRegistry.prototype.register" in plugin_host
     assert ".artifact-table-preview" in styles
     assert ".artifact-molstar-preview" in styles
+    assert "border: 0" in styles
+    assert "Structure viewer controls" in script
+    assert ".artifact-folder-name" in styles
+    assert "buildArtifactTree" in script
 
 
 def test_execution_logs_are_diagnostic_text_artifacts_not_main_results():
@@ -212,8 +236,6 @@ def test_submission_manifest_carries_params(monkeypatch, tmp_path):
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["params"]["iter"] == 100
     assert manifest["files"][0]["relative_path"] == "2KL8.fasta"
-
-
 
 
 def test_create_task_page_has_categorized_rail_and_validation_panel():
@@ -620,7 +642,37 @@ def test_page_csp_forbids_inline_scripts(monkeypatch, tmp_path):
         csp = response.headers["Content-Security-Policy"]
         script_src = next(part.strip() for part in csp.split(";") if part.strip().startswith("script-src"))
         assert "'unsafe-inline'" not in script_src
+        assert "'unsafe-eval'" not in script_src
         assert "<script>" not in response.get_data(as_text=True)
+
+
+def test_viewer_shell_isolates_molstar_eval_csp(monkeypatch, tmp_path):
+    """The Mol* shell page carries its own eval-scoped CSP and is embeddable,
+    while the main pages never gain 'unsafe-eval'."""
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+
+    response = client.get("/compute/viewer-shell")
+    assert response.status_code == 200
+    assert response.headers["X-Frame-Options"] == "SAMEORIGIN"
+    csp = response.headers["Content-Security-Policy"]
+    script_src = next(part.strip() for part in csp.split(";") if part.strip().startswith("script-src"))
+    assert "'unsafe-eval'" in script_src
+    assert "https://cdn.jsdelivr.net" in script_src
+    connect_src = next(part.strip() for part in csp.split(";") if part.strip().startswith("connect-src"))
+    assert connect_src == "connect-src 'none'"
+    html = response.get_data(as_text=True)
+    assert 'src="/static/js/viewer-shell.js"' in html
+    # The shell caches these nodes as soon as its script executes. Keep the
+    # script after the DOM so a structure message cannot dereference null.
+    assert html.index('id="shellState"') < html.index('src="/static/js/viewer-shell.js"')
+    assert html.index('id="viewerHost"') < html.index('src="/static/js/viewer-shell.js"')
+    assert 'data-state="waiting"' in html
+    assert "<script>" not in html
 
 
 def test_archive_endpoint_queues_only_on_explicit_request(monkeypatch, tmp_path):
