@@ -53,7 +53,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Test-case-driven fixes**: For live/integration issues, first encode the observed behavior as the smallest test case or skip guard, then make the smallest production/test change, run the focused keyword gate (for example `make kw-test PYTEST_KW=openkinetics`), and update `CHANGELOG.md`. Treat environment-dependent live API responses such as expected HTTP `4xx`/`5xx` as explicit skips, while keeping non-HTTP client errors failing.
 - **PR babysitting workflow** — after opening a PR, own it through the squash-merge marker:
   1. Work on a fix branch off `main`; conventional commit messages; never push to `main` directly.
-  2. Babysit CI until green, then read every bot review comment (codex, coderabbit, codacy, deepsource) and decide per comment: fix or debate — reply with evidence (file:line) when the code already handles it.
+  2. Babysit CI until green, then read every bot review comment from codex and
+     coderabbit and decide per comment: fix or debate — reply with evidence
+     (file:line) when the code already handles it. **DeepSource and Codacy are
+     ignored** — their check statuses and comments are noise (stylistic lint
+     profiles configured opposite to project conventions): don't fix, don't
+     debate, don't treat them as blocking. No branch protection gates on them.
   3. **Server PRs** (`server/` — REvoCompute): deploy to the live SLURM server with `REVODESIGN_SERVER_ENV=/repo/REvoDesign/server/.env.production.v7-slurm bash server/run/restart.sh restart --use-proxy` (absolute env path, exactly ONE restart running at a time), then live-verify the affected pages on `https://revocompute.yaoyy.moe` and `https://revocompute-direct.yaoyy.moe` (auth-walled pages via guest login `group_users` through `/compute/api/auth/login`). Disk-full recovery: `docker buildx prune`, apptainer cache clean, remove obsolete SIFs under `/mnt/data/srv/revodesign/server-slurm/images/`. Submit living tests with real data files from `tests/data` when behavior changed. Check the fixed page behaves as designed in incognito (cache-free), not just that the served static files contain the change.
   4. **Main program PRs** (PyMOL plugin): CI and review comments only — no server deploy. Run the relevant gates (`make kw-test PYTEST_KW='<keyword>'`); cross-Qt checks exist in `REvoDesignTestFlight` (PyQt5) and `REvoDesignTestFlightQt6`.
   5. When CI is green and every comment is fixed or debated, push a final empty marker commit `chore: Done fixing — <what was live/CI verified>` as the branch head (the plain `Done fixing` prefix is an intentional exception to the conventional-commit rule, matching the squash-merge habit); the user squash-merges from there.

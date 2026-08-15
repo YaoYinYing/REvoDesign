@@ -139,9 +139,12 @@ def detect_macos_command_line_tools() -> bool:
     """
     if sys.platform != "darwin":
         return True
+    xcode_select = shutil.which("xcode-select")
+    if xcode_select is None:
+        return False
     try:
         subprocess.run(
-            ["xcode-select", "-p"],
+            [xcode_select, "-p"],
             check=True,
             capture_output=True,
             timeout=10,
