@@ -248,6 +248,67 @@ def test_json_rejects_invalid_json(tmp_path):
     assert "not appear to be valid JSON" in validate_json(str(path))
 
 
+
+
+# -- PDB geometry sanity -------------------------------------------------------
+
+
+def _pdb_line(serial, name, res, chain, seq, x, y, z, element, altloc=" "):
+    return (
+        f"ATOM  {serial:5d} {name:>4s}{altloc}{res:>3s} {chain}{seq:4d}    "
+        f"{x:8.3f}{y:8.3f}{z:8.3f}  1.00  0.00          {element:>2s}"
+    )
+
+
+def _write_pdb(tmp_path, name, atoms):
+    path = tmp_path / name
+    path.write_text("\n".join(atoms) + "\nTER\nEND\n", encoding="utf-8")
+    return path
+
+
+def test_pdb_geometry_rejects_misplaced_terminal_oxygen(tmp_path):
+    # A carbonyl carbon with its own O plus a colliding OXT from another
+    # residue — the exact failure class of real-world tophit PDBs that
+    # RDKit rejects with "Explicit valence ... greater than permitted".
+    atoms = [
+        _pdb_line(1, "N", "ALA", "A", 1, 1.5, 0.0, 0.0, "N"),
+        _pdb_line(2, "CA", "ALA", "A", 1, 2.5, 0.0, 0.0, "C"),
+        _pdb_line(3, "C", "ALA", "A", 1, 3.5, 0.0, 0.0, "C"),
+        _pdb_line(4, "O", "ALA", "A", 1, 3.9, -1.0, 0.0, "O"),
+        # OXT nominally belongs to a distant residue but collides with C
+        _pdb_line(5, "OXT", "GLY", "A", 9, 3.9, 1.0, 0.0, "O"),
+        # neighbor to complete the C's environment
+        _pdb_line(6, "N", "GLY", "A", 9, 4.4, 0.0, 0.0, "N"),
+    ]
+    path = _write_pdb(tmp_path, "bad_oxt.pdb", atoms)
+    error = validate_pdb(str(path))
+    assert error is not None and "ALA1 C" in error and "OXT" in error
+
+
+def test_pdb_geometry_rejects_duplicate_atoms(tmp_path):
+    atoms = [
+        _pdb_line(1, "N", "ALA", "A", 1, 1.5, 0.0, 0.0, "N"),
+        _pdb_line(2, "CA", "ALA", "A", 1, 2.5, 0.0, 0.0, "C"),
+        _pdb_line(3, "CB", "ALA", "A", 1, 2.5, 0.0, 0.0, "C"),  # same coords
+    ]
+    path = _write_pdb(tmp_path, "dup.pdb", atoms)
+    error = validate_pdb(str(path))
+    assert error is not None and "overlapping" in error
+
+
+def test_pdb_geometry_accepts_altloc_records(tmp_path):
+    atoms = [
+        _pdb_line(1, "N", "SER", "A", 1, 1.5, 0.0, 0.0, "N"),
+        _pdb_line(2, "CA", "SER", "A", 1, 2.5, 0.0, 0.0, "C"),
+        _pdb_line(3, "CB", "SER", "A", 1, 2.5, 1.0, 0.0, "C"),
+        _pdb_line(4, "OG", "SER", "A", 1, 2.5, 1.9, 0.0, "O"),
+    ]
+    # duplicate the OG with an alternate location indicator (col 17 = 'B')
+    alt = _pdb_line(4, "OG", "SER", "A", 1, 2.6, 1.9, 0.0, "O", altloc="B")
+    path = _write_pdb(tmp_path, "altloc.pdb", atoms + [alt])
+    assert validate_pdb(str(path)) is None
+
+
 def test_json_rejects_oversized_input_before_parsing(tmp_path):
     # A flat list of MAX_JSON_NODES + 1 elements is well-formed JSON but
     # exceeds the pre-parse byte ceiling, which rejects it before the full

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+from itertools import product
 from pathlib import Path
 from typing import Any
 
@@ -135,6 +136,115 @@ def validate_pdb(path: str) -> str | None:
         return f"PDB file contains a line longer than {MAX_PDB_RECORD_LENGTH} characters"
     if not any(line.strip().startswith(("ATOM", "HETATM", "END")) for line in lines[:PDB_SNIFF_LINES]):
         return "PDB file must contain ATOM, HETATM, or END records near the start"
+    return _check_pdb_geometry(lines)
+
+
+# Geometry sanity check — downstream tools (RDKit via torchdrug) infer bonds
+# from inter-atomic distances and reject atoms whose valence exceeds what the
+# element permits.  A single misplaced atom (e.g. a terminal OXT colliding
+# with another residue's carbonyl) makes the whole upload fail minutes into a
+# compute job with a cryptic library error.  Reject such files at upload with
+# a message naming the offending atoms.
+_PDB_BOND_CUTOFF = 1.9  # angstrom — heavy-atom covalent bonds live below this
+_PDB_DUPLICATE_CUTOFF = 0.5  # angstrom — same-element atoms closer than this are duplicates
+# Heavy-neighbor ceilings for standard protein atoms: a normal carbonyl C has
+# 3 (CA, O, next-residue N), so 4+ means a collision like a misplaced
+# terminal OXT.  HETATM records are excluded, so metal coordination cannot
+# false-positive here.
+_MAX_VALENCE = {"C": 3, "N": 3, "O": 2, "S": 2}
+_PDB_HEAVY_ELEMENTS = set(_MAX_VALENCE)
+
+
+def _parse_pdb_atoms(lines: list[str]) -> tuple[list[tuple[float, float, float, int, str, str]], dict[tuple[int, int, int], list[int]]]:
+    """Parse heavy ATOM records into ``(x, y, z, serial, element, label)`` tuples
+    plus a 4 Å spatial grid mapping cells to atom indices.
+
+    Alternate-location records are skipped (they overlap by design); records
+    without a parseable element or coordinates are ignored.
+    """
+    atoms: list[tuple[float, float, float, int, str, str]] = []
+    grid: dict[tuple[int, int, int], list[int]] = {}
+    for line in lines:
+        if not line.startswith(("ATOM  ", "ATOM ")):
+            continue
+        if len(line) < 54 or line[16:17] not in (" ", "A"):
+            continue
+        element = line[76:78].strip().upper() if len(line) >= 78 else ""
+        if not element:
+            element = (line[12:16].strip() or "?")[0]
+        if element not in _PDB_HEAVY_ELEMENTS:
+            continue
+        try:
+            x = float(line[30:38])
+            y = float(line[38:46])
+            z = float(line[46:54])
+        except ValueError:
+            continue
+        serial = int(line[6:11].strip() or 0)
+        label = f"{line[17:20].strip()}{line[22:26].strip()} {line[12:16].strip()} (serial {serial})"
+        index = len(atoms)
+        atoms.append((x, y, z, serial, element, label))
+        cell = (int(x // 4), int(y // 4), int(z // 4))
+        grid.setdefault(cell, []).append(index)
+    return atoms, grid
+
+
+def _neighbors_near(
+    atoms: list[tuple[float, float, float, int, str, str]],
+    grid: dict[tuple[int, int, int], list[int]],
+    index: int,
+    cutoff: float,
+) -> list[tuple[float, str]]:
+    """Return ``(distance, label)`` pairs within *cutoff* angstroms of
+    ``atoms[index]``, found through the spatial grid."""
+    x, y, z, _serial, _element, _label = atoms[index]
+    cx, cy, cz = int(x // 4), int(y // 4), int(z // 4)
+    found: list[tuple[float, str]] = []
+    for dx, dy, dz in product((-1, 0, 1), repeat=3):
+        for other in grid.get((cx + dx, cy + dy, cz + dz), ()):
+            if other == index:
+                continue
+            ox, oy, oz, _oser, _oelem, olabel = atoms[other]
+            dist = ((x - ox) ** 2 + (y - oy) ** 2 + (z - oz) ** 2) ** 0.5
+            if dist < cutoff:
+                found.append((dist, olabel))
+    return found
+
+
+def _check_pdb_geometry(lines: list[str]) -> str | None:
+    """Reject PDBs whose geometry downstream parsers (RDKit via torchdrug)
+    cannot accept: duplicate-position atoms and over-valence atoms caused by
+    collisions such as a misplaced terminal OXT.  Each rejection names the
+    offending atoms instead of letting the job fail later with a cryptic
+    library error."""
+    atoms, grid = _parse_pdb_atoms(lines)
+
+    # Symmetric counting over unique pairs (other > index): each pair is
+    # credited to BOTH atoms, so an earlier atom's pass cannot hide a later
+    # atom's over-valence.  The same pass rejects duplicate positions.
+    counts = [0] * len(atoms)
+    for index, atom in enumerate(atoms):
+        x, y, z, _serial, element, label = atom
+        cx, cy, cz = int(x // 4), int(y // 4), int(z // 4)
+        for dx, dy, dz in product((-1, 0, 1), repeat=3):
+            for other in grid.get((cx + dx, cy + dy, cz + dz), ()):
+                if other <= index:
+                    continue
+                ox, oy, oz, _oser, oelem, olabel = atoms[other]
+                dist = ((x - ox) ** 2 + (y - oy) ** 2 + (z - oz) ** 2) ** 0.5
+                if dist < _PDB_DUPLICATE_CUTOFF and oelem == element:
+                    return f"PDB contains overlapping atoms {label} and {olabel} ({dist:.2f} Å apart)"
+                if dist < _PDB_BOND_CUTOFF:
+                    counts[index] += 1
+                    counts[other] += 1
+
+    for index, (count, (_x, _y, _z, _serial, element, label)) in enumerate(zip(counts, atoms)):
+        if count > _MAX_VALENCE[element]:
+            detail = ", ".join(f"{d:.2f} Å to {n}" for d, n in sorted(_neighbors_near(atoms, grid, index, _PDB_BOND_CUTOFF))[:5])
+            return (
+                f"PDB atom {label} ({element}) has {count} neighbors within "
+                f"{_PDB_BOND_CUTOFF} Å — RDKit-based tools will reject it: {detail}"
+            )
     return None
 
 
