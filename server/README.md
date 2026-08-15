@@ -851,9 +851,9 @@ banned users, and login throttling are maintained in
 ### Uploaded scientific inputs
 
 Uploaded files pass a modular validator tree before any runner sees them —
-`revocompute/input_validators/`, one module per format (`common`, `fasta`,
-`pdb`, `mmcif`, `json_file`) plus a registry `__init__` that dispatches by
-file extension. Adding a format means adding a module that calls
+`revocompute/input_validators/`, a shared `common` module plus one
+validator module per format (`fasta`, `pdb`, `mmcif`, `json_file`), and a
+registry `__init__` that dispatches by file extension. Adding a format means adding a module that calls
 `register(".ext", validator)`.
 
 - Each validator returns `None` (accept) or a human-readable error string;

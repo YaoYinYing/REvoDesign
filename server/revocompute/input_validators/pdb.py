@@ -38,7 +38,7 @@ def validate_pdb(path: str) -> str | None:
         return "PDB file must contain ATOM, HETATM, or END records near the start"
     from revocompute.input_validators import run_plugins
 
-    plugin_error = run_plugins("pdb", path)
+    plugin_error = run_plugins(".pdb", path)
     if plugin_error is not None:
         return plugin_error
     return _check_pdb_geometry(lines)
@@ -99,7 +99,7 @@ def _check_pdb_geometry_biotite(lines: list[str]) -> str | None:
     seen: set[tuple[str, str, str]] = set()
     keep: list[int] = []
     for index in range(len(sub)):
-        key = (sub.chain_id[index], str(sub.res_id[index]), sub.atom_name[index])
+        key = (sub.chain_id[index], str(sub.res_id[index]), sub.ins_code[index], sub.atom_name[index])
         if key in seen:
             continue
         seen.add(key)
@@ -136,7 +136,7 @@ def _check_pdb_geometry_biotite(lines: list[str]) -> str | None:
                     continue
                 ox, oy, oz = coords[other]
                 dist = ((x - ox) ** 2 + (y - oy) ** 2 + (z - oz) ** 2) ** 0.5
-                if dist < _PDB_DUPLICATE_CUTOFF and elements[other] == element:
+                if dist < _PDB_DUPLICATE_CUTOFF:
                     return f"PDB contains overlapping atoms {labels[index]} and {labels[other]} ({dist:.2f} Å apart)"
                 if dist < _PDB_BOND_CUTOFF:
                     counts[index] += 1

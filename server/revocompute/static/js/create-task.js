@@ -100,8 +100,9 @@
     taskTypes.forEach(function (taskType) {
       (groups[taskType.category] = groups[taskType.category] || []).push(taskType);
     });
-    var categories = CATEGORY_ORDER.filter(function (category) { return groups[category]; });
-    categories.concat(Object.keys(groups).filter(function (category) { return CATEGORY_ORDER.indexOf(category) === -1; }));
+    var categories = CATEGORY_ORDER
+      .filter(function (category) { return groups[category]; })
+      .concat(Object.keys(groups).filter(function (category) { return CATEGORY_ORDER.indexOf(category) === -1; }));
     var first = true;
     categories.forEach(function (category) {
       if (!first) {
@@ -111,26 +112,27 @@
         categoryRail.appendChild(bond);
       }
       first = false;
+      // Each category lives in its own relative group so its dropdown opens
+      // under its own node, not under the first column.
+      var group = document.createElement("div");
+      group.className = "rail-group";
       var node = document.createElement("button");
       node.type = "button";
       node.className = "rail-node";
       node.dataset.category = category;
       node.setAttribute("aria-expanded", "false");
       node.textContent = labelFor(category);
-      node.addEventListener("click", function (event) {
-        event.stopPropagation();
-        var panel = categoryRail.querySelector('.rail-panel[data-category="' + category + '"]');
-        var opening = panel && panel.hidden;
-        closeRailPanels(null);
-        if (panel) panel.hidden = !opening;
-        node.setAttribute("aria-expanded", opening ? "true" : "false");
-      });
-      categoryRail.appendChild(node);
-
       var panel = document.createElement("div");
       panel.className = "rail-panel";
       panel.dataset.category = category;
       panel.hidden = true;
+      node.addEventListener("click", function (event) {
+        event.stopPropagation();
+        var opening = panel.hidden;
+        closeRailPanels(null);
+        panel.hidden = !opening;
+        node.setAttribute("aria-expanded", opening ? "true" : "false");
+      });
       groups[category].forEach(function (taskType) {
         var item = document.createElement("button");
         item.type = "button";
@@ -148,7 +150,9 @@
         });
         panel.appendChild(item);
       });
-      categoryRail.appendChild(panel);
+      group.appendChild(node);
+      group.appendChild(panel);
+      categoryRail.appendChild(group);
     });
   }
 
@@ -247,6 +251,13 @@
 
     if (files.length > currentForm.file_input.max_files) {
       rows.push(validationRow("error", "At most " + currentForm.file_input.max_files + " files are allowed"));
+      problems += 1;
+    }
+
+    var totalBytes = files.reduce(function (sum, file) { return sum + file.size; }, 0);
+    if (sequence) totalBytes += new Blob([sequence]).size;
+    if (totalBytes > MAX_UPLOAD_BYTES) {
+      rows.push(validationRow("error", "Combined inputs exceed the 16 MiB request limit (" + Math.ceil(totalBytes / (1024 * 1024)) + " MiB)"));
       problems += 1;
     }
 

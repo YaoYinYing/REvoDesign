@@ -351,7 +351,7 @@ html[data-theme="dark"] .workspace-help-popover {
   --rail-danger: #c94f4f;     /* invalid */
   --rail-info: #5b87b8;
   --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
-  --font-data: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-data: "JetBrains Mono", ui-monospace, sfmono-regular, menlo, monospace;
 }
 
 html[data-theme="dark"] {
@@ -409,6 +409,12 @@ html[data-theme="dark"] {
   height: 1px;
   background: var(--line);
   flex: none;
+}
+
+.rail-group {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .rail-panel {

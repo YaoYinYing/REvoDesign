@@ -79,6 +79,41 @@ def test_plugin_backends_run_before_builtin(tmp_path, monkeypatch):
     assert calls == [str(path)]
 
 
+def test_pdb_geometry_rejects_cross_element_overlap(tmp_path):
+    """A carbon and an oxygen at the same position are a broken structure
+    regardless of element — the overlap check must not require same elements."""
+    atoms = [
+        _pdb_line(1, "CA", "ALA", "A", 1, 2.5, 0.0, 0.0, "C"),
+        _pdb_line(2, "N", "ALA", "A", 1, 2.5, 0.0, 0.0, "N"),
+    ]
+    path = _write_pdb(tmp_path, "cross.pdb", atoms)
+    error = validate_pdb(str(path))
+    assert error is not None and "overlapping" in error
+
+
+def test_pdb_plugin_backends_run_with_dotted_kind(tmp_path, monkeypatch):
+    """register_plugin('.pdb', ...) must run inside validate_pdb (kind parity
+    with the registry keys)."""
+    from revocompute.input_validators import register_plugin
+
+    calls = []
+
+    def fake_backend(path):
+        calls.append(path)
+        return "plugin rejected this PDB"
+
+    register_plugin(".pdb", fake_backend)
+    path = tmp_path / "x.pdb"
+    path.write_text("ATOM      1  CA  ALA A   1       2.500   0.000   0.000  1.00  0.00           C\nEND\n", encoding="utf-8")
+    try:
+        assert validate_pdb(str(path)) == "plugin rejected this PDB"
+    finally:
+        from revocompute.input_validators import _PLUGINS
+
+        _PLUGINS.pop(".pdb", None)
+    assert calls == [str(path)]
+
+
 @pytest.mark.parametrize(
     "relative",
     [
@@ -93,6 +128,8 @@ def test_plugin_backends_run_before_builtin(tmp_path, monkeypatch):
         "tests/data/lig/lig.cen_conformers.pdb",
     ],
 )
+
+
 
 
 def test_real_pdb_fixtures_pass(relative):
