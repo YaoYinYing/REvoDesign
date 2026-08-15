@@ -13,9 +13,9 @@
   var thumbnailUrls = [];
   var previewRegistry = null;
   var previewHost = null;
-  var MOLSTAR_VERSION = "5.10.0";
+  var MOLSTAR_VERSION = "5.11.0";
   var MOLSTAR_BASE = "https://cdn.jsdelivr.net/npm/molstar@" + MOLSTAR_VERSION + "/build/viewer/";
-  var MOLSTAR_SCRIPT_INTEGRITY = "sha384-wBsrlRYNnkOyq4/N6JHjLcT71I5Ig8DhryHsQpwXE91zRmy3XK6KhkxqixmT1S0n";
+  var MOLSTAR_SCRIPT_INTEGRITY = "sha384-5Mfx4eL50NkWPky+mcH//qY0sbml4il0CLFFmrMp8uv/saB3Z6uZMHn2dUpAnH92";
   var MOLSTAR_STYLE_INTEGRITY = "sha384-RIontCdJN53gEl2fmiHN+4bscIBvaUaOiCeeGktXqmFqdEBF+COnSdt9O4IKFSvq";
 
   function formatBytes(value) {
@@ -52,17 +52,36 @@
         style.dataset.molstarStyle = MOLSTAR_VERSION;
         document.head.appendChild(style);
       }
-      var script = document.createElement("script");
-      script.src = MOLSTAR_BASE + "molstar.js";
-      script.integrity = MOLSTAR_SCRIPT_INTEGRITY;
-      script.crossOrigin = "anonymous";
-      script.dataset.molstarScript = MOLSTAR_VERSION;
-      script.addEventListener("load", function () {
-        if (window.molstar && window.molstar.Viewer) resolve(window.molstar);
-        else reject(new Error("Mol* did not initialize"));
-      }, { once: true });
-      script.addEventListener("error", function () { reject(new Error("Mol* could not be loaded")); }, { once: true });
-      document.head.appendChild(script);
+      // Mol* is a ~5 MB bundle: be patient instead of refusing it. After the
+      // script's load event, poll for the global (deferred init or a slow
+      // tab) for up to 15 s, and retry the fetch once before ever falling
+      // back — the preview shows "Loading preview…" the whole time.
+      var settled = false;
+
+      function waitForGlobal(start) {
+        if (settled) return;
+        if (window.molstar && window.molstar.Viewer) { settled = true; resolve(window.molstar); return; }
+        if (Date.now() - start > 15000) { settled = true; reject(new Error("Mol* did not initialize")); return; }
+        setTimeout(function () { waitForGlobal(start); }, 500);
+      }
+
+      var attempts = 0;
+      function loadScript() {
+        attempts += 1;
+        var script = document.createElement("script");
+        script.src = MOLSTAR_BASE + "molstar.js";
+        script.integrity = MOLSTAR_SCRIPT_INTEGRITY;
+        script.crossOrigin = "anonymous";
+        script.dataset.molstarScript = MOLSTAR_VERSION;
+        script.addEventListener("load", function () { waitForGlobal(Date.now()); }, { once: true });
+        script.addEventListener("error", function () {
+          if (attempts < 2) { loadScript(); return; }
+          settled = true;
+          reject(new Error("Mol* could not be loaded"));
+        }, { once: true });
+        document.head.appendChild(script);
+      }
+      loadScript();
     }).catch(function (error) { molstarAssetsPromise = null; throw error; });
     return molstarAssetsPromise;
   }

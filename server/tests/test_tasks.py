@@ -114,9 +114,10 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert 'A.authFetch("/compute/api/results/"' in script
     assert "Main Results" in template
     assert "Scientific previews" not in template
-    assert 'MOLSTAR_VERSION = "5.10.0"' in script
+    assert 'MOLSTAR_VERSION = "5.11.0"' in script
     assert "MOLSTAR_SCRIPT_INTEGRITY" in script
     assert "RIontCdJN53gEl2f" in script
+    assert "waitForGlobal" in script
     assert "A.authFetch(artifact.url)" in script
     assert "loadStructureFromData" in script
     assert "loadStructureFromUrl" not in script
