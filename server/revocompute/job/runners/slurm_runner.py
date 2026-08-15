@@ -12,7 +12,6 @@ Apptainer.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
@@ -292,22 +291,12 @@ class SlurmJob(Job):
             ]
         )
 
-        params = {e["name"]: e["verified_value"] for e in self.param_entities}
-        params_json = json.dumps(params, separators=(",", ":"), sort_keys=True)
-        lines.append(f"export APPTAINERENV_TASK_PARAMS={_sh_quote(params_json)}")
-        inputs_json = json.dumps(
-            [
-                {
-                    "name": entity["name"],
-                    "path": entity["mounted"],
-                    "relative_path": entity["relative_path"],
-                }
-                for entity in self.file_entities
-            ],
-            separators=(",", ":"),
-            sort_keys=True,
+        # Runner protocol v2: task.json lives in the immutable input snapshot;
+        # the environment carries only its backslash-free path.
+        lines.append(
+            "export APPTAINERENV_TASK_MANIFEST="
+            + _sh_quote(self.virtual_workspace_root + "/inputs/task.json")
         )
-        lines.append(f"export APPTAINERENV_TASK_INPUTS={_sh_quote(inputs_json)}")
         gpu_flag = " --nv" if self.tt.gpus else ""
         # --containall: private /dev,/proc,/sys and fresh tmpfs for /tmp and
         # $HOME — no host HOME, shared filesystems, or credentials visible.
@@ -321,8 +310,7 @@ class SlurmJob(Job):
             # GREMLIN/PSSM consumes its worker count from -j; environment
             # thread caps alone do not constrain its BLAST/HH-suite flags.
             cmd += ' -j "${allocated_cpus}"'
-        if self.file_entities:
-            cmd += f" -i {_sh_quote(self.file_entities[0]['mounted'])}"
+        cmd += f" -i {_sh_quote(self.virtual_workspace_root + '/inputs/task.json')}"
         cmd += f" -o {_sh_quote(self.virtual_workspace_root + '/outputs')}"
         lines.append(cmd)
 

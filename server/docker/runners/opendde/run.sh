@@ -9,6 +9,8 @@
 #   5. Exits 0 on success
 
 set -euo pipefail
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 
 REVODESIGN_RUNSCRIPT_PATH=$(readlink -f "$(dirname "$0")")
 
@@ -16,7 +18,7 @@ usage() {
     echo ""
     echo "Usage: $0 <OPTIONS>"
     echo "Required Parameters:"
-    echo "      -i  <json>        Input JSON file (OpenDDE job spec)"
+    echo "      -i  <task.json>    Task manifest (job spec resolved from files[0])"
     echo "      -o  <output_dir>  Output directory"
     echo ""
     exit 1
@@ -31,7 +33,7 @@ while getopts ":i:o:" opt; do
 done
 
 if [[ -z "${input_file:-}" ]]; then
-    echo "Missing required option: -i <json>"
+    echo "Missing required option: -i <task.json>"
     usage
 fi
 
@@ -41,6 +43,8 @@ if [[ -z "${output_dir:-}" ]]; then
 fi
 
 input_file=$(readlink -f "$input_file")
+input_file=$(primary_input)
+
 output_dir=$(readlink -f "$output_dir")
 
 if [[ ! -f "$input_file" ]]; then
@@ -108,7 +112,6 @@ fi
 export OPENDDE_ROOT_DIR="$writable_opendde_root"
 
 # Parse TASK_PARAMS JSON into env vars.
-_parse_param() { python3 -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
 : "${MODEL_NAME:=$(_parse_param model_name)}"
 : "${MODEL_NAME:=opendde_v1}"
 : "${NUM_SAMPLES:=$(_parse_param num_samples)}"

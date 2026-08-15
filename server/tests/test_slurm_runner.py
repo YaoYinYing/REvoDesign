@@ -218,9 +218,8 @@ def test_render_apptainer_binds_and_env(tmp_path):
     assert "/mnt/revocompute/tester/outputs" in script
     assert "export APPTAINERENV_TASK_ID=" in script
     assert "export APPTAINERENV_TASK_TYPE=" in script
-    assert "export APPTAINERENV_TASK_PARAMS=" in script
-    assert "export APPTAINERENV_TASK_INPUTS=" in script
-    assert '{"iter":"100"}' in script
+    assert "export APPTAINERENV_TASK_MANIFEST=" in script
+    assert "-i '/mnt/revocompute/tester/inputs/task.json'" in script
     assert "/opt/images/gremlin_v1.sif" in script
 
 
@@ -235,8 +234,32 @@ def test_render_apptainer_keeps_parameters_in_typed_json_env(tmp_path):
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
     script = job._render_wrapper()
     assert "-r 100" not in script
-    assert "export APPTAINERENV_TASK_PARAMS=" in script
-    assert '"iter":"100"' in script
+    assert "export APPTAINERENV_TASK_MANIFEST=" in script
+    assert "-i '/mnt/revocompute/tester/inputs/task.json'" in script
+
+
+def test_render_apptainer_ships_params_via_manifest(tmp_path):
+    """APPTAINERENV_* forwarding collapses backslash runs (2, 4, and 8 all
+    arrive as 1) — user-shaped data never travels through the environment.
+    The wrapper exports only the backslash-free manifest path; params with
+    backslashes live in the snapshot's task.json."""
+    entities = _make_entities() + [
+        {
+            "name": "reaction_smiles",
+            "type": "param",
+            "value": "C=C(" + chr(92) + "C)",
+            "verified_value": "C=C(" + chr(92) + "C)",
+        }
+    ]
+    job = SlurmJob("task-1", _make_task_type(), _make_runner(), entities, str(tmp_path / "out"))
+    script = job._render_wrapper()
+    assert "export APPTAINERENV_TASK_MANIFEST=" in script
+    assert "export APPTAINERENV_TASK_PARAMS=" not in script
+    assert "export APPTAINERENV_TASK_PARAMS_FILE=" not in script
+    assert "-i '/mnt/revocompute/tester/inputs/task.json'" in script
+    # No param content (and no backslashes) anywhere in the wrapper.
+    assert "reaction_smiles" not in script
+    assert "C=C" not in script
 
 
 def test_render_apptainer_passes_runtime_subcommand(tmp_path):

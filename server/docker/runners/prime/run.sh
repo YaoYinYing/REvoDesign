@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 
-usage() { echo "Usage: $0 [ogt|dms] -i <fasta> -o <output_dir>"; exit 1; }
+usage() { echo "Usage: $0 [ogt|dms] -i <task.json> -o <output_dir>"; exit 1; }
 mode=ogt
 if [[ "${1:-}" == "ogt" || "${1:-}" == "dms" ]]; then
     mode=$1
@@ -10,6 +12,8 @@ fi
 while getopts ":i:o:" opt; do case "${opt}" in i) input_file=$OPTARG ;; o) output_dir=$OPTARG ;; ?) usage ;; esac; done
 [[ -z "${input_file:-}" || -z "${output_dir:-}" ]] && usage
 input_file=$(readlink -f "$input_file")
+input_file=$(primary_input)
+
 output_dir=$(readlink -f "$output_dir")
 [[ ! -f "$input_file" ]] && { echo "Input not found: $input_file"; exit 1; }
 mkdir -p "$output_dir"
@@ -240,7 +244,7 @@ model_dir = Path(os.environ["PRIME_DMS_MODEL_DIR"])
 if not (model_dir / "config.json").is_file():
     raise FileNotFoundError(f"Pinned PRIME mutation model snapshot not found: {model_dir}")
 
-task_inputs = json.loads(os.environ.get("TASK_INPUTS", "[]"))
+task_inputs = json.load(open(os.environ["TASK_MANIFEST"]))["files"]
 input_paths = [Path(item["path"]).resolve() for item in task_inputs]
 if input_fasta.resolve() not in input_paths:
     input_paths.insert(0, input_fasta)

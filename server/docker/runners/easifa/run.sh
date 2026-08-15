@@ -1,12 +1,16 @@
 #!/bin/bash
 set -euo pipefail
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 
-usage() { echo "Usage: $0 -i <enzyme.pdb> -o <output_dir>"; exit 1; }
+usage() { echo "Usage: $0 -i <task.json> -o <output_dir>"; exit 1; }
 while getopts ":i:o:" opt; do
   case "${opt}" in i) input_file=$OPTARG ;; o) output_dir=$OPTARG ;; ?) usage ;; esac
 done
 [[ -z "${input_file:-}" || -z "${output_dir:-}" ]] && usage
 input_file=$(readlink -f "$input_file")
+input_file=$(primary_input)
+
 output_dir=$(readlink -f "$output_dir")
 [[ ! -f "$input_file" ]] && { echo "Input not found: $input_file" >&2; exit 1; }
 mkdir -p "$output_dir"
@@ -20,10 +24,6 @@ trap 'rm -rf -- "$easifa_tmp"' EXIT
 export TORCH_EXTENSIONS_DIR="$easifa_tmp/torch-extensions"
 export MPLCONFIGDIR="$easifa_tmp/matplotlib"
 mkdir -p "$TORCH_EXTENSIONS_DIR" "$MPLCONFIGDIR"
-
-_parse_param() {
-  python3 -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"
-}
 
 reaction_smiles=$(_parse_param reaction_smiles)
 max_length=$(_parse_param max_length); : "${max_length:=1000}"

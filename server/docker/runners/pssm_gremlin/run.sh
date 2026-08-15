@@ -1,4 +1,6 @@
 #!/bin/bash
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 #SBATCH --job-name=run_GREMLIN_PSSM
 #SBATCH --output=%x.o%j
 #SBATCH --error=%x.e%j
@@ -50,7 +52,7 @@ usage() {
     echo ""
     echo "Usage: $0 <OPTIONS>"
     echo "Optional Parameters:"
-    echo "      -i                  <fasta> input fasta file"
+    echo "      -i                  <task.json> task manifest (fasta resolved from files[0])"
     echo "      -j                  <nproc> Number of threads used in this run. All processors will be used by default."
     echo "      -o                  <output_dir>   Output directory."
     echo "      -r                  <gremlin_iter> Iteration of GREMLIN, 100 by default"
@@ -77,7 +79,7 @@ while getopts ":i:o:j:r:U:u:B:h:" opt; do
     esac
 done
 
-_parse_param() { python -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
+fasta=$(primary_input)
 if [[ -z "${gremlin_iter:-}" ]]; then
   gremlin_iter=$(_parse_param iter)
 fi

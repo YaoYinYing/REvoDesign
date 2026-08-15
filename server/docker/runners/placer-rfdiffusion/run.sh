@@ -2,11 +2,12 @@
 # Dispatcher for PLACER / RFdiffusion shared runner.
 # $1 = tool name (set in task_types.yaml command field).
 set -e
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 
-_parse_param() { python3 -c "import json,os; v=json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''); print(str(v).lower() if isinstance(v,bool) else v)"; }
 
 _run_placer() {
-  usage() { echo "Usage: $0 -i <input_pdb> -o <output_dir>"; exit 1; }
+  usage() { echo "Usage: $0 -i <task.json> -o <output_dir>"; exit 1; }
   while getopts ":i:o:" opt; do case "${opt}" in i) input_file=$OPTARG ;; o) output_dir=$OPTARG ;; ?) usage ;; esac; done
   [[ -z "${input_file:-}" || -z "${output_dir:-}" ]] && usage
   input_file=$(readlink -f "$input_file"); output_dir=$(readlink -f "$output_dir")
@@ -15,6 +16,9 @@ _run_placer() {
     */inputs/*) input_root="${input_file%%/inputs/*}/inputs" ;;
     *) input_root=$(dirname "$input_file") ;;
   esac
+  # input_root above derives from the manifest path; the real primary file
+  # comes from the manifest itself.
+  input_file=$(primary_input)
   mkdir -p "$output_dir"
 
   : "${NUM_SAMPLES:=$(_parse_param num_samples)}"; : "${NUM_SAMPLES:=50}"

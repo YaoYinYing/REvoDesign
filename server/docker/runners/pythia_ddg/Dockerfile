@@ -45,7 +45,7 @@ RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revoc
     ln -s /opt/pythia/pythia-c.pt /app/revocompute/pythia-c.pt && \
     ln -s /opt/pythia/pythia-p.pt /app/revocompute/pythia-p.pt
 
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/pythia_ddg/run.sh /app/revocompute/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/pythia_ddg/run.sh ./docker/runners/common/task_context.sh ./docker/runners/common/task_context.py /app/revocompute/
 
 WORKDIR /app/revocompute/
 

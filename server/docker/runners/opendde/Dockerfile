@@ -36,6 +36,7 @@ RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revoc
 
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} \
     ./docker/runners/opendde/run.sh \
+    docker/runners/common/task_context.sh docker/runners/common/task_context.py \
     /app/revocompute/
 
 WORKDIR /app/revocompute/

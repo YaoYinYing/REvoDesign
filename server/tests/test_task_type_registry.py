@@ -213,7 +213,7 @@ def test_lasermpnn_uses_pinned_source_checkpoints_and_cpu_runtime():
     assert "--device cpu" in run_script
     assert "--ignore_key_mismatch" not in run_script
     assert 'item.get("path", "")' in run_script
-    assert 'json.loads(os.environ.get("TASK_INPUTS", "[]"))' in run_script
+    assert 'json.load(open(os.environ["TASK_MANIFEST"]))["files"]' in run_script
     assert "mktemp --suffix=.txt" in run_script
     task = registry["task_types"]["lasermpnn"]
     assert task["runtime_family"] == "mpnn"

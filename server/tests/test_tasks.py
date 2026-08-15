@@ -25,6 +25,21 @@ SERVER_PACKAGE = Path(__file__).resolve().parents[1] / "revocompute"
 # ==================================================================
 
 
+def test_health_endpoint_returns_empty_200_without_auth(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+        },
+    )
+    client = module.app.test_client()
+    resp = client.get("/compute/health")
+    assert resp.status_code == 200
+    assert resp.data == b""
+
+
 def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -157,6 +172,46 @@ def test_full_stack_smoke_uses_manifest_first_result_contract():
     assert '"PSSM GREMLIN Task Dashboard"' not in script
     assert '"Create PSSM GREMLIN Task"' not in script
     assert "results.status_code == 302" not in script
+
+
+def test_submission_manifest_carries_params(monkeypatch, tmp_path):
+    """The snapshot's task.json must include param entities — param entities
+    carry type=param.type (e.g. 'str'), never the literal 'param' (this bit
+    the easifa reaction path: an empty manifest params dict silently
+    selected the wo_reactions model)."""
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ENABLED_TASKRUNNERS": "gremlin",
+        },
+    )
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+
+    class _DummyAsyncResult:
+        id = "celery-test-id"
+
+    monkeypatch.setattr(module.run_compute_task, "apply_async", lambda *a, **kw: _DummyAsyncResult())
+    with open(Path(__file__).resolve().parents[2] / "tests/data/msa/2KL8.fasta", "rb") as fh:
+        resp = client.post(
+            "/compute/api/post",
+            headers=auth_header,
+            data={
+                "task_type": "gremlin",
+                "params[iter]": "100",
+                "file": (fh, "2KL8.fasta"),
+            },
+            content_type="multipart/form-data",
+        )
+    assert resp.status_code == 302, resp.get_data(as_text=True)[:300]
+    md5sum = resp.headers["Location"].rstrip("/").rsplit("/", 1)[-1]
+    manifest_path = Path(module.task_runtime.CONFIG.workspace_folder) / "tester" / md5sum / "inputs" / "task.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["params"]["iter"] == 100
+    assert manifest["files"][0]["relative_path"] == "2KL8.fasta"
 
 
 def test_dashboard_serves_structure_preview_for_pdb_tasks(monkeypatch, tmp_path):

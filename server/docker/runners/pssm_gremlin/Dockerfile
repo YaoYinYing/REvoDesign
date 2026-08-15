@@ -29,7 +29,7 @@ RUN mkdir -p /app/revocompute
 RUN chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
 
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/pssm_gremlin/scripts/ /app/revocompute/scripts/
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/pssm_gremlin/run.sh /app/revocompute/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/pssm_gremlin/run.sh ./docker/runners/common/task_context.sh ./docker/runners/common/task_context.py /app/revocompute/
 
 WORKDIR /app/revocompute/
 

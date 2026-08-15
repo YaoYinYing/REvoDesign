@@ -75,6 +75,7 @@ RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revoc
 
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} \
     docker/runners/esm/run.sh \
+    docker/runners/common/task_context.sh docker/runners/common/task_context.py \
     docker/runners/esm/esm1v_score.py \
     docker/runners/esm/esm_if1_design.py \
     docker/runners/esm/msa1b_score.py \

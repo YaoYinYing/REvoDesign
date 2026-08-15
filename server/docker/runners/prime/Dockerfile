@@ -23,7 +23,7 @@ RUN python -m pip install --no-cache-dir uv && \
 
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
 
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/prime/run.sh /app/revocompute/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/prime/run.sh ./docker/runners/common/task_context.sh ./docker/runners/common/task_context.py /app/revocompute/
 
 # Vendored model code for the pinned Prime snapshots (see vendor/README.md).
 # The model-dir code is never executed with trust_remote_code; it must be

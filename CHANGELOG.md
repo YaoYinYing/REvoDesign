@@ -272,6 +272,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   endpoint. The py2Dmol loading/parsing helpers moved to a shared
   `static/js/py2dmol-preview.js` used by both the dashboard and the results
   page's Mol* fallback.
+- **Server: deployable gateway interface**: `GATEWAY_BIND` (default
+  `127.0.0.1`) lets deployments whose entry proxy terminates on an
+  interface IP — e.g. a Cloudflare Tunnel origin — publish the gateway on
+  all interfaces without weakening the shipped default.
+- **Server: liveness probe**: unauthenticated `GET /compute/health`
+  returns an empty 200.
+- **Runner protocol v2 — single task manifest**: every runner now receives
+  `-i <inputs>/task.json -o <outputs>`; the immutable input snapshot
+  carries `task.json` (task id, task type, params, and files with
+  in-container paths), written at submission. Environment variables carry
+  nothing user-shaped anymore — only `TASK_MANIFEST`, a backslash-free
+  path. This retires the `APPTAINERENV_*` channel, whose forwarding was
+  measured on-host to collapse backslash runs (2, 4, and 8 all arrive as
+  1) and broke JSON params such as SMILES reaction strings. A shared
+  `docker/runners/common/task_context.{sh,py}` (sourced by all nine
+  `run.sh` files, `TASK_CONTEXT_SRC`-overridable for tests) replaces nine
+  copies of the param-parsing one-liner; a byte-for-byte escaping
+  round-trip test covers backslash runs, quotes, shell metacharacters,
+  newlines, and unicode.
+- **Runner image builds — pip index pool + uv**: runner Dockerfiles switched
+  from exclusive `--index-url` pytorch wheelhouses to `--extra-index-url`
+  (PyPI stays resolvable for sdist build dependencies), and all pip
+  installs moved to `uv pip install` (venv images target
+  `--python <venv>/bin/python`; extra-index installs pass
+  `--index-strategy unsafe-best-match` so `+cu121`/`+cu128`/`+cpu` wheels
+  win by local version). ESM additionally pins `torch-geometric==2.5.3`
+  and `biotite==0.41.0` — the `esm2.inverse_folding` chain imports both and
+  the fork declares neither.
+- **EASIFA image portability**: the TorchDrug shim is compiled on a bullseye
+  builder (glibc 2.31, matching the oldest compute nodes) with its C++
+  runtime linked statically (`-static-libstdc++ -static-libgcc`, static
+  libgomp), so the packed conda env keeps its own
+  older-glibc-compatible libstdc++ — SLURM nodes no longer hit
+  `GLIBC_2.38 not found` on dlopen.
 
 ### Fixed
 - **PRIME runner `trust_remote_code` removal**: the pinned Pro-Prime OGT/DMS

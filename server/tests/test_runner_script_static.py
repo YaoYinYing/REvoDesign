@@ -42,6 +42,40 @@ def test_runner_script_executes_pipeline_commands_as_arrays():
     assert '"${cmd[@]}"' in script
 
 
+
+def _run_with_manifest(script, input_file, output_dir, env, params=None):
+    """Run a runner script under the v2 protocol: write task.json next to
+    the input, point -i at it, and set TASK_MANIFEST + TASK_CONTEXT_SRC."""
+    manifest_path = input_file.parent / "task.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "task_id": "testtask",
+                "task_type": "test",
+                "params": params or {},
+                "files": [
+                    {
+                        "name": "primary",
+                        "path": str(input_file),
+                        "relative_path": input_file.name,
+                        "hash": "abc",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    env["TASK_MANIFEST"] = str(manifest_path)
+    env["TASK_CONTEXT_SRC"] = str(SERVER_ROOT / "docker" / "runners" / "common" / "task_context.sh")
+    return subprocess.run(
+        ["bash", str(script), "-i", str(manifest_path), "-o", str(output_dir)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
 def test_opendde_runner_uses_writable_snapshot_copy_and_checks_outputs():
     script = OPENDDE_RUNNER_SCRIPT.read_text()
 
@@ -105,14 +139,7 @@ def test_opendde_runner_preserves_read_only_nested_snapshot(tmp_path):
 
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}:{env['PATH']}"
-    env["TASK_PARAMS"] = "{}"
-    completed = subprocess.run(
-        ["bash", str(OPENDDE_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    completed = _run_with_manifest(OPENDDE_RUNNER_SCRIPT, input_file, output_dir, env)
 
     assert completed.returncode == 0, completed.stderr
     assert (output_dir / "model.cif").read_text() == "data_model\n"
@@ -142,16 +169,9 @@ def test_opendde_runner_uses_task_private_template_cache(tmp_path):
 
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}:{env['PATH']}"
-    env["TASK_PARAMS"] = "{}"
     env["OPENDDE_ROOT_DIR"] = str(database_root)
     env["FAKE_OPENDDE_CHECK_RUNTIME_ROOT"] = "yes"
-    completed = subprocess.run(
-        ["bash", str(OPENDDE_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    completed = _run_with_manifest(OPENDDE_RUNNER_SCRIPT, input_file, output_dir, env)
 
     assert completed.returncode == 0, completed.stderr
     assert not (source_cache / "fetched.cif").exists()
@@ -174,15 +194,8 @@ def test_opendde_runner_rejects_zero_exit_without_results(tmp_path):
 
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}:{env['PATH']}"
-    env["TASK_PARAMS"] = "{}"
     env["FAKE_OPENDDE_RESULT"] = "no"
-    completed = subprocess.run(
-        ["bash", str(OPENDDE_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    completed = _run_with_manifest(OPENDDE_RUNNER_SCRIPT, input_file, output_dir, env)
 
     assert completed.returncode != 0
     assert "without producing a structure artifact" in completed.stderr
@@ -205,15 +218,8 @@ def test_opendde_runner_rejects_error_and_msa_intermediates(tmp_path):
 
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}:{env['PATH']}"
-    env["TASK_PARAMS"] = "{}"
     env["FAKE_OPENDDE_RESULT"] = "error"
-    completed = subprocess.run(
-        ["bash", str(OPENDDE_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    completed = _run_with_manifest(OPENDDE_RUNNER_SCRIPT, input_file, output_dir, env)
 
     assert completed.returncode != 0
     assert "reported an internal inference error" in completed.stderr
@@ -240,17 +246,16 @@ def test_ligandmpnn_runner_omits_blank_optional_cli_values(tmp_path):
     env.update(
         {
             "TASK_TYPE": "ligandmpnn",
-            "TASK_PARAMS": json.dumps({"seed": "", "batch_size": 2, "verbose": 0, "chains_to_design": ""}),
             "LIGANDMPNN_PATH": str(ligand_root),
             "CAPTURE_ARGV": str(capture),
         }
     )
-    completed = subprocess.run(
-        ["bash", str(MPNN_RUNNER_SCRIPT), "-i", str(input_file), "-o", str(output_dir)],
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
+    completed = _run_with_manifest(
+        MPNN_RUNNER_SCRIPT,
+        input_file,
+        output_dir,
+        env,
+        params={"seed": "", "batch_size": 2, "verbose": 0, "chains_to_design": ""},
     )
 
     assert completed.returncode == 0, completed.stderr
@@ -387,17 +392,73 @@ def _write_fake_prime_model(tmp_path, auto_map=True) -> Path:
     return model_dir
 
 
+
+
+def test_manifest_param_escaping_round_trip(tmp_path):
+    """The v2 protocol must preserve param values byte-for-byte: backslash
+    runs, quotes, shell metacharacters, newlines, and unicode all survive
+    manifest -> task_context.py -> stdout."""
+    values = {
+        "smiles": "C=C(" + chr(92) + "C)" + chr(92) * 3 + "N",
+        "quote": "it's 'quoted' \"double\"",
+        "shell": "$(id) `whoami` ${HOME} && ; | > <",
+        "newline": "line1" + chr(10) + "line2",
+        "unicode": "β-转角-残基-序列",
+        "backslash_run": chr(92) * 8,
+    }
+    manifest_path = tmp_path / "task.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "task_id": "t",
+                "task_type": "test",
+                "params": values,
+                "files": [{"name": "primary", "path": str(tmp_path / "input.fasta"), "relative_path": "input.fasta", "hash": "x"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env["TASK_MANIFEST"] = str(manifest_path)
+    context_py = SERVER_ROOT / "docker" / "runners" / "common" / "task_context.py"
+    for key, expected in values.items():
+        completed = subprocess.run(
+            ["python3", str(context_py), "param", key],
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert completed.returncode == 0, completed.stderr
+        assert completed.stdout == expected + chr(10), f"{key!r} did not round-trip: {completed.stdout!r}"
+
+    # the bash wrapper path: one nasty value through _parse_param
+    env["TASK_CONTEXT_SRC"] = str(SERVER_ROOT / "docker" / "runners" / "common" / "task_context.sh")
+    bash_script = 'source "$TASK_CONTEXT_SRC"\nprintf "%s" "$(_parse_param smiles)"'
+    completed = subprocess.run(["bash", "-c", bash_script], env=env, check=False, capture_output=True, text=True)
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout == values["smiles"]
+
+
+
 def test_prime_runner_fails_closed_without_vendored_model_code(tmp_path):
     model_dir = _write_fake_prime_model(tmp_path)
     input_file = tmp_path / "input.fasta"
     input_file.write_text(">test\nACDEFGHIK\n", encoding="utf-8")
     output_dir = tmp_path / "outputs"
 
+    manifest_path = input_file.parent / "task.json"
+    manifest_path.write_text(
+        json.dumps({"params": {}, "files": [{"name": "primary", "path": str(input_file), "relative_path": "input.fasta", "hash": "x"}]}),
+        encoding="utf-8",
+    )
     env = os.environ.copy()
+    env["TASK_MANIFEST"] = str(manifest_path)
+    env["TASK_CONTEXT_SRC"] = str(SERVER_ROOT / "docker" / "runners" / "common" / "task_context.sh")
     env["PRIME_MODEL_DIR"] = str(model_dir)
     env["PRIME_VENDOR_DIR"] = str(tmp_path / "vendor")
     completed = subprocess.run(
-        ["bash", str(PRIME_DIR / "run.sh"), "ogt", "-i", str(input_file), "-o", str(output_dir)],
+        ["bash", str(PRIME_DIR / "run.sh"), "ogt", "-i", str(manifest_path), "-o", str(output_dir)],
         env=env,
         check=False,
         capture_output=True,
@@ -424,11 +485,15 @@ def test_prime_runner_rejects_weights_manifest_mismatch(tmp_path):
         encoding="utf-8",
     )
 
+    manifest_path = input_file.parent / "task.json"
+    manifest_path.write_text(json.dumps({"params": {}, "files": [{"name": "primary", "path": str(input_file), "relative_path": "input.fasta", "hash": "x"}]}), encoding="utf-8")
     env = os.environ.copy()
+    env["TASK_MANIFEST"] = str(manifest_path)
+    env["TASK_CONTEXT_SRC"] = str(SERVER_ROOT / "docker" / "runners" / "common" / "task_context.sh")
     env["PRIME_MODEL_DIR"] = str(model_dir)
     env["PRIME_VENDOR_DIR"] = str(vendor_dir)
     completed = subprocess.run(
-        ["bash", str(PRIME_DIR / "run.sh"), "ogt", "-i", str(input_file), "-o", str(output_dir)],
+        ["bash", str(PRIME_DIR / "run.sh"), "ogt", "-i", str(manifest_path), "-o", str(output_dir)],
         env=env,
         check=False,
         capture_output=True,

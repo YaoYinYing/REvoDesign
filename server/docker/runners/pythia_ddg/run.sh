@@ -5,10 +5,12 @@
 #   1. Reads input PDB from /workspace/inputs/
 #   2. Writes output to /workspace/outputs/
 #   3. Emits REVODESIGN_STAGE:<marker> on stdout
-#   4. Accepts -i <input_pdb> -o <output_dir>
+#   4. Accepts -i <task.json> -o <output_dir>
 #   5. Exits 0 on success
 
 set -e
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 
 REVODESIGN_RUNSCRIPT_PATH=$(readlink -f "$(dirname "$0")")
 
@@ -16,7 +18,7 @@ usage() {
     echo ""
     echo "Usage: $0 <OPTIONS>"
     echo "Required Parameters:"
-    echo "      -i  <pdb>         Input PDB structure file"
+    echo "      -i  <task.json>   Task manifest (PDB resolved from files[0])"
     echo "      -o  <output_dir>  Output directory"
     echo ""
     exit 1
@@ -35,6 +37,8 @@ if [[ -z "${input_pdb:-}" ]]; then
     usage
 fi
 
+input_pdb=$(primary_input)
+input_pdb=$(primary_input)
 if [[ -z "${output_dir:-}" ]]; then
     echo "Missing required option: -o <output_dir>"
     usage
