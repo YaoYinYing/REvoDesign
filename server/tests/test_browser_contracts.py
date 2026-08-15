@@ -30,6 +30,22 @@ def test_plugin_host_registry_lifecycle_and_isolation() -> None:
     )
 
 
+def test_viewer_shell_message_contract() -> None:
+    """A posted structure mounts and acknowledges through the shell protocol."""
+    tests_js = Path(__file__).resolve().parent / "js" / "test_viewer_shell.js"
+    result = subprocess.run(
+        ["node", str(tests_js)],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, (
+        f"Viewer shell contract failed (exit {result.returncode}):\n"
+        f"STDOUT:\n{result.stdout}\n"
+        f"STDERR:\n{result.stderr}"
+    )
+
+
 def test_js_modules_load_in_correct_order() -> None:
     """plugin-host.js must load before result-preview-plugins.js and input-workspace.js."""
     js_dir = Path(__file__).resolve().parents[1] / "revocompute" / "static" / "js"
@@ -40,7 +56,7 @@ def test_js_modules_load_in_correct_order() -> None:
         timeout=10,
     )
     assert check.returncode == 0, f"plugin-host.js syntax: {check.stderr}"
-    for filename in ("result-preview-plugins.js", "input-workspace.js"):
+    for filename in ("result-preview-plugins.js", "input-workspace.js", "viewer-shell.js", "task-results.js"):
         result = subprocess.run(
             ["node", "--check", str(js_dir / filename)],
             capture_output=True,

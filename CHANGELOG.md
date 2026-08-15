@@ -67,6 +67,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   problems, with private routing for security vulnerabilities.
 
 ### Changed
+- **Integrated Mol* result workspace**: the isolated structure viewer is now
+  borderless within the result card and uses the app's responsive pill controls
+  and intentional loading/error states. A dedicated sun/moon control stores the
+  user's Mol* preference in a cookie (light by default) and updates both controls
+  and WebGL canvas through the existing postMessage boundary. Dark Mol* styling
+  remains pinned to version 5.11.0 with SRI.
 - **Create-task category rail**: removed the chain-connector bonds between
   category labels (they implied a pipeline), and removed GPU badges from
   method items. On mobile the rail is a vertical accordion — panels expand
@@ -335,6 +341,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `GLIBC_2.38 not found` on dlopen.
 
 ### Fixed
+- **Mol* shell message dispatch**: load the isolated viewer shell script after
+  its status and host elements exist. Previously the shell received structure
+  messages but rejected before loading Mol* because its cached DOM nodes were
+  `null`, leaving the placeholder frozen until the parent timed out.
+- **Mol* result color controls**: pLDDT, Chain, and Rainbow now pass the loaded
+  component refs and valid Mol* 5.11.0 theme IDs to the representation manager.
+  Previously all three calls used the wrong API shape, two used invalid theme
+  names, and the initially selected pLDDT mode was never applied.
+- **Mol\* viewer now loads under the strict CSP**: Mol\*'s bundle calls
+  `new Function` at load, which the app-wide `script-src` (no
+  `'unsafe-eval'`) blocked in every browser — the viewer silently died
+  with "did not initialize". Mol\* now runs inside an isolated
+  `/compute/viewer-shell` iframe whose own CSP scopes `'unsafe-eval'` to
+  that page alone; structure data reaches it via postMessage from the
+  authenticated parent, and `connect-src 'none'` keeps the shell from
+  fetching anything. The main app CSP is unchanged.
+- **Workspace cleanup leak on pre-execution failures**: tasks rejected by
+  upload-content validation or failed by an unavailable task queue now
+  remove their immutable input workspace immediately, matching the
+  execution-time terminal paths. Previously only run-time failures cleaned
+  the workspace, leaving duplicate input snapshots on disk until retention
+  cleanup.
 - **PRIME runner `trust_remote_code` removal**: the pinned Pro-Prime OGT/DMS
   snapshots ship custom transformers code inside their weights dirs, which the
   runner previously imported and executed from the mounted model directory at
@@ -451,22 +479,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workflow guidance.
 - **Painted matrix compatibility widgets**: removed hidden per-cell buttons
   and switched tests and callers to the matrix selection API.
-
-### Fixed
-- **Mol\* viewer now loads under the strict CSP**: Mol\*'s bundle calls
-  `new Function` at load, which the app-wide `script-src` (no
-  `'unsafe-eval'`) blocked in every browser — the viewer silently died
-  with "did not initialize". Mol\* now runs inside an isolated
-  `/compute/viewer-shell` iframe whose own CSP scopes `'unsafe-eval'` to
-  that page alone; structure data reaches it via postMessage from the
-  authenticated parent, and `connect-src 'none'` keeps the shell from
-  fetching anything. The main app CSP is unchanged.
-- **Workspace cleanup leak on pre-execution failures**: tasks rejected by
-  upload-content validation or failed by an unavailable task queue now
-  remove their immutable input workspace immediately, matching the
-  execution-time terminal paths. Previously only run-time failures cleaned
-  the workspace, leaving duplicate input snapshots on disk until retention
-  cleanup.
 
 ## [1.9.1] - 2026-07-28
 ### Added

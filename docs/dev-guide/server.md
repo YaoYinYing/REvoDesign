@@ -146,10 +146,16 @@ writes `manifest.json` after inventorying the uncompressed output tree.
 The dedicated result page treats the manifest as the source of truth. It lists
 metadata and supports authenticated individual download, suitable HTTP ranges,
 and bounded text, table, image, and structure previews. Structure preview uses
-the pinned Mol* bundle and falls back safely when the asset, WebGL, or file size
-is unsuitable. A ZIP is requested explicitly and built asynchronously from the
-manifest-approved set plus `manifest.json`; it is not required for display or
-task completion.
+the pinned Mol* bundle inside a sandboxed, opaque-origin iframe. The shell's
+isolated CSP permits the bundle's required dynamic evaluation without weakening
+the parent page, and the shell script runs only after its viewer DOM exists. The
+parent owns a dedicated sun/moon preference in the
+`revodesign-molstar-theme` cookie (light by default) and sends it across the
+message boundary, so the opaque shell can use the matching pinned Mol* theme
+without gaining storage or same-origin access.
+The preview falls back safely when the asset, WebGL, or file size is unsuitable.
+A ZIP is requested explicitly and built asynchronously from the manifest-approved
+set plus `manifest.json`; it is not required for display or task completion.
 
 Cleanup independently targets the selected task's result tree, optional ZIP,
 and workspace snapshot. Another task from the same user must remain untouched.

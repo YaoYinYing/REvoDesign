@@ -12,6 +12,7 @@
   var thumbnailUrls = [];
   var previewRegistry = null;
   var previewHost = null;
+  var MOLSTAR_THEME_COOKIE = "revodesign-molstar-theme";
   // Mol* runs inside the isolated /compute/viewer-shell iframe (its bundle
   // needs new Function, which only that shell's CSP permits). All constants
   // and the asset loader live in viewer-shell.js.;
@@ -38,11 +39,29 @@
   function postToShell(frame, payload) {
     var targetOrigin = "*";
     try { targetOrigin = frame.contentWindow.origin || "*"; } catch (e) { /* frame gone */ }
-    try {
-      window.__posted = window.__posted || [];
-      window.__posted.push({ type: payload.type, targetOrigin: targetOrigin });
-    } catch (e) { /* debug aid */ }
     frame.contentWindow.postMessage(payload, targetOrigin);
+  }
+
+  function readMolstarTheme() {
+    var prefix = MOLSTAR_THEME_COOKIE + "=";
+    var value = document.cookie.split(";").map(function (part) { return part.trim(); }).find(function (part) {
+      return part.startsWith(prefix);
+    });
+    return value && value.slice(prefix.length) === "dark" ? "dark" : "light";
+  }
+
+  function setMolstarTheme(theme) {
+    var resolved = theme === "dark" ? "dark" : "light";
+    var secure = location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = MOLSTAR_THEME_COOKIE + "=" + resolved + "; Path=/; Max-Age=31536000; SameSite=Lax" + secure;
+    var frame = activeMolstar ? activeMolstar.frame : document.querySelector("iframe.artifact-molstar-preview");
+    if (frame) postToShell(frame, { type: "theme", theme: resolved });
+    document.querySelectorAll(".molstar-theme-toggle").forEach(function (button) {
+      button.textContent = resolved === "dark" ? "☾" : "☀";
+      button.setAttribute("aria-label", resolved === "dark" ? "Use light Mol* theme" : "Use dark Mol* theme");
+      button.title = button.getAttribute("aria-label");
+      button.setAttribute("aria-pressed", resolved === "dark" ? "true" : "false");
+    });
   }
 
   function disposeActiveViewer() {
@@ -109,31 +128,46 @@
     // Highlight active color toggle
     document.querySelectorAll(".color-toggle").forEach(function (btn) {
       btn.classList.toggle("active", btn.dataset.mode === mode);
+      btn.setAttribute("aria-pressed", btn.dataset.mode === mode ? "true" : "false");
     });
   }
 
   function structureViewerBar(artifact) {
     var bar = document.createElement("div");
     bar.className = "structure-viewer-bar";
+    bar.setAttribute("role", "toolbar");
+    bar.setAttribute("aria-label", "Structure viewer controls");
     var makeBtn = function (label, viewer) {
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "viewer-toggle" + (structureViewer === viewer ? " active" : "");
       btn.textContent = label;
+      btn.setAttribute("aria-pressed", structureViewer === viewer ? "true" : "false");
       btn.addEventListener("click", function () { structureViewer = viewer; previewArtifact(artifact); });
       return btn;
     };
     bar.append(makeBtn("Mol* (full)", "molstar"), makeBtn("py2Dmol (alpha)", "py2dmol"));
     var colorBar = document.createElement("div");
     colorBar.className = "structure-color-bar";
+    colorBar.setAttribute("role", "group");
+    colorBar.setAttribute("aria-label", "Structure color theme");
     [{ mode: "plddt", label: "pLDDT" }, { mode: "chain", label: "Chain" }, { mode: "rainbow", label: "Rainbow" }].forEach(function (c) {
       var btn = document.createElement("button");
       btn.type = "button"; btn.className = "color-toggle"; btn.textContent = c.label; btn.dataset.mode = c.mode;
       if (activeColorMode === c.mode) btn.classList.add("active");
+      btn.setAttribute("aria-pressed", activeColorMode === c.mode ? "true" : "false");
       btn.addEventListener("click", function () { setStructureColor(c.mode); });
-      colorBar.appendChild(btn);
+    colorBar.appendChild(btn);
     });
     bar.appendChild(colorBar);
+    var themeButton = document.createElement("button");
+    themeButton.type = "button";
+    themeButton.className = "molstar-theme-toggle";
+    themeButton.addEventListener("click", function () {
+      setMolstarTheme(readMolstarTheme() === "dark" ? "light" : "dark");
+    });
+    bar.appendChild(themeButton);
+    setTimeout(function () { setMolstarTheme(readMolstarTheme()); }, 0);
     return bar;
   }
 
@@ -164,7 +198,9 @@
             text: structureText,
             format: structureFormat(artifact.path),
             label: artifact.path,
-            requestId: requestId
+            requestId: requestId,
+            theme: readMolstarTheme(),
+            colorMode: activeColorMode
           });
         } else if (event.data.type === "ready" && event.data.requestId === requestId) {
           if (settled) return;

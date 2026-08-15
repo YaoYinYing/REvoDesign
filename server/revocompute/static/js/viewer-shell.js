@@ -13,18 +13,22 @@
   var MOLSTAR_BASE = "https://cdn.jsdelivr.net/npm/molstar@" + MOLSTAR_VERSION + "/build/viewer/";
   var MOLSTAR_SCRIPT_INTEGRITY = "sha384-5Mfx4eL50NkWPky+mcH//qY0sbml4il0CLFFmrMp8uv/saB3Z6uZMHn2dUpAnH92";
   var MOLSTAR_STYLE_INTEGRITY = "sha384-RIontCdJN53gEl2fmiHN+4bscIBvaUaOiCeeGktXqmFqdEBF+COnSdt9O4IKFSvq";
-  var MOLSTAR_COLORS = { plddt: "b-factor", chain: "chain-id", rainbow: "residue-index" };
+  var MOLSTAR_DARK_STYLE_INTEGRITY = "sha384-LDnli0hRX1wCV3HrFyNGSy145zkcGA8P6EZPC8VyLVS6+TJO3jgsncYeD+cZuLjO";
+  var MOLSTAR_COLORS = { plddt: "plddt-confidence", chain: "chain-id", rainbow: "sequence-id" };
+  var MOLSTAR_CANVAS_COLORS = { light: 0xf8faf7, dark: 0x111318 };
 
   var stateNode = document.getElementById("shellState");
   var host = document.getElementById("viewerHost");
   var assetsPromise = null;
   var viewer = null;
   var viewerId = null;
+  var activeTheme = "light";
 
   // Surface any boot error in the shell UI instead of leaving the
   // "Waiting for structure data…" placeholder frozen forever.
   window.addEventListener("error", function (event) {
     stateNode.hidden = false;
+    stateNode.dataset.state = "error";
     stateNode.textContent = "Shell error: " + (event.message || "unknown error");
   });
 
@@ -40,23 +44,49 @@
 
   function fail(message) {
     stateNode.hidden = false;
+    stateNode.dataset.state = "error";
     host.hidden = true;
     stateNode.textContent = "Mol* could not be loaded: " + message;
+  }
+
+  function ensureMolstarStyle() {
+    if (document.querySelector("link[data-molstar-style]")) return;
+    var style = document.createElement("link");
+    style.rel = "stylesheet";
+    style.href = MOLSTAR_BASE + "molstar.css";
+    style.integrity = MOLSTAR_STYLE_INTEGRITY;
+    style.crossOrigin = "anonymous";
+    style.dataset.molstarStyle = MOLSTAR_VERSION;
+    document.head.appendChild(style);
+  }
+
+  function applyTheme(theme) {
+    var resolved = theme === "dark" ? "dark" : "light";
+    activeTheme = resolved;
+    document.documentElement.dataset.theme = resolved;
+    ensureMolstarStyle();
+    var darkStyle = document.querySelector("link[data-molstar-dark-style]");
+    if (resolved === "dark" && !darkStyle) {
+      darkStyle = document.createElement("link");
+      darkStyle.rel = "stylesheet";
+      darkStyle.href = MOLSTAR_BASE + "theme/dark.css";
+      darkStyle.integrity = MOLSTAR_DARK_STYLE_INTEGRITY;
+      darkStyle.crossOrigin = "anonymous";
+      darkStyle.dataset.molstarDarkStyle = MOLSTAR_VERSION;
+      document.head.appendChild(darkStyle);
+    } else if (resolved === "light" && darkStyle) {
+      darkStyle.remove();
+    }
+    if (viewer && viewer.plugin.canvas3d) {
+      viewer.plugin.canvas3d.setProps({ renderer: { backgroundColor: MOLSTAR_CANVAS_COLORS[resolved] } });
+    }
   }
 
   function ensureMolstarAssets() {
     if (window.molstar && window.molstar.Viewer) return Promise.resolve(window.molstar);
     if (assetsPromise) return assetsPromise;
     assetsPromise = new Promise(function (resolve, reject) {
-      if (!document.querySelector("link[data-molstar-style]")) {
-        var style = document.createElement("link");
-        style.rel = "stylesheet";
-        style.href = MOLSTAR_BASE + "molstar.css";
-        style.integrity = MOLSTAR_STYLE_INTEGRITY;
-        style.crossOrigin = "anonymous";
-        style.dataset.molstarStyle = MOLSTAR_VERSION;
-        document.head.appendChild(style);
-      }
+      ensureMolstarStyle();
       // Mol* is a ~5 MB bundle: poll for the global (deferred init) for up
       // to 15 s and retry the fetch once before giving up.
       var settled = false;
@@ -90,9 +120,11 @@
   }
 
   async function mountStructure(message) {
+    applyTheme(message.theme);
     stateNode.hidden = false;
     host.hidden = true;
-    stateNode.textContent = "Loading Mol*…";
+    stateNode.dataset.state = "loading";
+    stateNode.textContent = "Preparing interactive structure…";
     try {
       await ensureMolstarAssets();
       if (viewer) { viewer.plugin.dispose(); host.replaceChildren(); }
@@ -111,8 +143,10 @@
         viewportShowSelectionMode: true,
         viewportShowAnimation: true
       });
+      viewer.plugin.canvas3d.setProps({ renderer: { backgroundColor: MOLSTAR_CANVAS_COLORS[activeTheme] } });
       var format = message.format === "mmcif" ? "mmcif" : "pdb";
       await viewer.loadStructureFromData(message.text, format, { label: message.label || "structure" });
+      await updateStructureColor(message.colorMode || "plddt");
       stateNode.hidden = true;
       host.hidden = false;
       report({ type: "ready", requestId: message.requestId });
@@ -122,23 +156,23 @@
     }
   }
 
+  async function updateStructureColor(mode) {
+    if (!viewer || !viewer.plugin) return;
+    var name = MOLSTAR_COLORS[mode] || mode;
+    var groups = viewer.plugin.managers.structure.hierarchy.currentComponentGroups;
+    var components = [].concat.apply([], groups);
+    try {
+      await viewer.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: name });
+    } catch (e) { /* Keep the current Mol* theme when a theme is not applicable. */ }
+  }
+
   window.addEventListener("message", function (event) {
-    window.__shellLog = window.__shellLog || [];
-    window.__shellLog.push({
-      type: event.data && event.data.type,
-      origin: event.origin,
-      sourceIsParent: event.source === window.parent,
-      parentOrigin: (function () { try { return window.parent.origin; } catch (e) { return "ERR:" + e.name; } })(),
-    });
     if (event.source !== window.parent) return;
     if (!event.data || typeof event.data !== "object") return;
     if (event.data.type === "structure") mountStructure(event.data);
-    else if (event.data.type === "color" && viewer && viewer.plugin) {
-      var name = MOLSTAR_COLORS[event.data.mode] || event.data.mode;
-      try {
-        viewer.plugin.managers.structure.component.updateRepresentationsTheme({ color: { name: name, params: {} } });
-      } catch (e) { /* Mol* handles this via its own panel too */ }
-    } else if (event.data.type === "dispose") {
+    else if (event.data.type === "theme") applyTheme(event.data.theme);
+    else if (event.data.type === "color") updateStructureColor(event.data.mode);
+    else if (event.data.type === "dispose") {
       if (viewer) viewer.plugin.dispose();
       viewer = null;
       host.replaceChildren();

@@ -34,13 +34,17 @@
 .result-plugin-surface { min-height: inherit; }
 .result-plugin-surface > pre { margin: 0; padding: 1rem; white-space: pre; font-size: 0.78rem; }
 .empty-result, .preview-message { margin: 0; padding: 2rem; color: var(--muted); text-align: center; }
-.structure-viewer-bar { display: flex; gap: 0.35rem; align-items: center; padding: 0.45rem 0.65rem; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-.viewer-toggle { padding: 0.3rem 0.55rem; border: 1px solid var(--line); border-radius: 0.4rem; background: var(--paper); color: var(--muted); font-size: 0.72rem; cursor: pointer; }
-.viewer-toggle.active { border-color: var(--accent); background: color-mix(in srgb, var(--paper) 85%, var(--accent) 15%); color: var(--accent); font-weight: 600; }
-.structure-color-bar { display: flex; gap: 0.25rem; margin-left: 0.5rem; padding-left: 0.5rem; border-left: 1px solid var(--line); }
-.color-toggle { padding: 0.25rem 0.45rem; border: 1px solid transparent; border-radius: 0.35rem; background: transparent; color: var(--muted); font-size: 0.68rem; cursor: pointer; }
+.structure-viewer-bar { display: flex; gap: 0.4rem; align-items: center; min-height: 3rem; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 94%, var(--accent) 6%); flex-wrap: wrap; }
+.viewer-toggle { padding: 0.34rem 0.62rem; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--muted); font: 600 0.72rem/1.25 "IBM Plex Sans", sans-serif; cursor: pointer; transition: border-color 140ms ease, background 140ms ease, color 140ms ease; }
+.viewer-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.viewer-toggle.active { border-color: var(--accent); background: var(--accent); color: var(--paper); }
+.structure-color-bar { display: flex; gap: 0.2rem; margin-left: auto; padding-left: 0.55rem; border-left: 1px solid var(--line); }
+.color-toggle { padding: 0.28rem 0.5rem; border: 1px solid transparent; border-radius: 999px; background: transparent; color: var(--muted); font: 500 0.68rem/1.25 "IBM Plex Sans", sans-serif; cursor: pointer; }
 .color-toggle:hover { border-color: var(--line); background: color-mix(in srgb, var(--paper) 90%, var(--accent) 10%); color: var(--accent); }
 .color-toggle.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.molstar-theme-toggle { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--paper); color: var(--accent); font-size: 0.88rem; cursor: pointer; transition: border-color 140ms ease, background 140ms ease, transform 140ms ease; }
+.molstar-theme-toggle:hover { border-color: var(--accent); background: color-mix(in srgb, var(--paper) 88%, var(--accent) 12%); transform: rotate(8deg); }
+.viewer-toggle:focus-visible, .color-toggle:focus-visible, .molstar-theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .preview-message .btn-soft { margin-left: 0.5rem; vertical-align: middle; }
 .msa-viewer { max-height: 70vh; overflow: auto; padding: 0.75rem; }
 .msa-block { font: 0.78rem/ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.55; white-space: pre; }
@@ -48,7 +52,7 @@
 .msa-header:first-child { margin-top: 0; }
 .msa-sequence { display: block; }
 .artifact-image-preview { display: block; max-width: 100%; max-height: 72vh; margin: auto; padding: 0.75rem; }
-.artifact-molstar-preview { width: 100%; height: 70vh; min-height: 34rem; }
+.artifact-molstar-preview { display: block; width: 100%; height: clamp(34rem, 70vh, 48rem); border: 0; background: var(--paper); }
 .artifact-table-wrap { max-height: 70vh; overflow: auto; }
 .artifact-table-preview { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 0.76rem; }
 .artifact-table-preview th, .artifact-table-preview td { max-width: 28rem; padding: 0.42rem 0.55rem; overflow: hidden; border: 1px solid var(--line); text-align: left; text-overflow: ellipsis; white-space: nowrap; }
@@ -58,10 +62,11 @@
   .result-layout { grid-template-columns: 1fr; }
   .artifact-sidebar { position: static; max-height: none; }
   .artifact-preview-stage { min-height: 24rem; }
-  .artifact-molstar-preview { height: 58vh; min-height: 24rem; }
+  .artifact-molstar-preview { height: clamp(26rem, 62svh, 38rem); }
 }
 @media (max-width: 560px) {
   .result-hero { display: grid; }
   .result-summary-grid { grid-template-columns: 1fr 1fr; }
   .main-results { grid-template-columns: 1fr; }
+  .structure-color-bar { flex: 1 1 calc(100% - 2.4rem); margin-left: 0; padding-top: 0.4rem; padding-left: 0; border-top: 1px solid var(--line); border-left: 0; }
 }
