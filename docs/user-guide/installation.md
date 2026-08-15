@@ -70,9 +70,7 @@ If you already have a working PyMOL installation (2.5+), skip this step.
 - **Xcode Command Line Tools** are required to compile dependencies that have
   no prebuilt wheel. If they are missing, install them once:
 
-    ```bash
     xcode-select --install
-    ```
 
     then relaunch PyMOL. The Package Manager detects missing Command Line
     Tools and shows guidance without blocking plugin registration, and prefers

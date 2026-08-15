@@ -11,6 +11,8 @@ without importing package_manager (which requires pymol.Qt and therefore
 cannot load in a pure-PyQt6 environment).
 """
 
+from __future__ import annotations
+
 import ast
 import importlib.util
 import subprocess
