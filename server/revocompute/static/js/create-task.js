@@ -257,9 +257,10 @@
     }
 
     // Param errors are only shown once an input exists — without one they
-    // just repeat the missing-input complaint above.
-    var paramErrors = hasInput ? workspace.validate() : [];
-    if (paramErrors.length) {
+    // just repeat the missing-input complaint above. validate() still runs
+    // so stale inline error state on the controls gets cleared.
+    var paramErrors = workspace.validate();
+    if (hasInput && paramErrors.length) {
       paramErrors.forEach(function (error) {
         rows.push(validationRow("error", error));
         problems += 1;

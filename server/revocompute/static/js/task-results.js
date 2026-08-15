@@ -194,7 +194,7 @@
       try {
         await renderPy2DmolFallback(structureText, artifact, stage, generation, new Error("User selected alpha-trace viewer"));
         if (isStale(generation)) return;
-        setTimeout(function () { setStructureColor(activeColorMode); }, 100);
+        setTimeout(function () { if (!isStale(generation)) setStructureColor(activeColorMode); }, 100);
       }
       catch (e) {
         if (isStale(generation)) return;
