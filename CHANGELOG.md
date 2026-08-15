@@ -67,6 +67,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   problems, with private routing for security vulnerabilities.
 
 ### Changed
+- **Create-task category rail**: removed the chain-connector bonds between
+  category labels (they implied a pipeline), and removed GPU badges from
+  method items. On mobile the rail is a vertical accordion — panels expand
+  inline under their own label instead of being clipped inside the
+  horizontal scroll container.
+- **Validation panel dedup**: without an input the panel reports a single
+  "Add an input file or paste a sequence" issue instead of repeating the
+  workspace's own missing-input messages; parameter errors appear once an
+  input exists. The panel skips DOM rebuilds while nothing changed.
+- **Dashboard snapshot cards**: Structure Snapshot and Sequence Snapshot
+  share one card style (borders, summary, dark theme), and the structure
+  viewer sizes itself to the card instead of leaving oversized empty
+  containers. Shared py2Dmol viewer styles moved from the results-page
+  stylesheet into `base.css`.
+- **Single-flight structure previews**: result-page renders capture the
+  preview host generation and re-check it after every await, so switching
+  artifacts or viewers mid-load cancels the stale render — Mol* and
+  py2Dmol can never race on the same stage.
 - **ESMFold v1 removed**: the `esmfold_3B_v1` checkpoint is built against
   the 2022 openfold whose kernels no longer compile on a supported
   toolchain, and whose IPA internals changed in openfold v2.x — the
@@ -433,6 +451,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workflow guidance.
 - **Painted matrix compatibility widgets**: removed hidden per-cell buttons
   and switched tests and callers to the matrix selection API.
+
+### Fixed
+- **Workspace cleanup leak on pre-execution failures**: tasks rejected by
+  upload-content validation or failed by an unavailable task queue now
+  remove their immutable input workspace immediately, matching the
+  execution-time terminal paths. Previously only run-time failures cleaned
+  the workspace, leaving duplicate input snapshots on disk until retention
+  cleanup.
 
 ## [1.9.1] - 2026-07-28
 ### Added

@@ -7,11 +7,11 @@
 from __future__ import annotations
 
 from revocompute.input_validators.common import (
-    MAX_FASTA_SEQUENCES,
-    MAX_FASTA_TOTAL_RESIDUES,
     _A3M_ALPHABET,
     _FASTA_ALPHABET,
     _FASTA_WHITESPACE,
+    MAX_FASTA_SEQUENCES,
+    MAX_FASTA_TOTAL_RESIDUES,
     _read_text,
 )
 

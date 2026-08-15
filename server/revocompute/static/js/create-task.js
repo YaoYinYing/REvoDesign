@@ -103,15 +103,7 @@
     var categories = CATEGORY_ORDER
       .filter(function (category) { return groups[category]; })
       .concat(Object.keys(groups).filter(function (category) { return CATEGORY_ORDER.indexOf(category) === -1; }));
-    var first = true;
     categories.forEach(function (category) {
-      if (!first) {
-        var bond = document.createElement("span");
-        bond.className = "rail-bond";
-        bond.setAttribute("aria-hidden", "true");
-        categoryRail.appendChild(bond);
-      }
-      first = false;
       // Each category lives in its own relative group so its dropdown opens
       // under its own node, not under the first column.
       var group = document.createElement("div");
@@ -206,21 +198,30 @@
     return row;
   }
 
+  var lastValidationSignature = null;
+
   function refreshValidation() {
-    validationChecks.replaceChildren();
-    if (!currentForm) {
-      validationChecks.appendChild(validationRow("error", "Choose a method from the rail above."));
-      validationSummary.textContent = "Waiting for a method";
-      return;
-    }
     var rows = [];
     var problems = 0;
+
+    if (!currentForm) {
+      rows.push(validationRow("error", "Choose a method from the rail above."));
+      var waitingSummary = "Waiting for a method";
+      if (lastValidationSignature === waitingSummary) return;
+      lastValidationSignature = waitingSummary;
+      validationChecks.replaceChildren();
+      rows.forEach(function (row) { validationChecks.appendChild(row); });
+      validationSummary.textContent = waitingSummary;
+      validationSummary.className = "validation-summary";
+      return;
+    }
 
     rows.push(validationRow("ok", "Method selected: " + currentForm.display_name));
 
     var files = workspace.files();
     var sequence = workspace.sequence();
-    if (!files.length && !sequence) {
+    var hasInput = Boolean(files.length || sequence);
+    if (!hasInput) {
       rows.push(validationRow("error", "Add an input file or paste a sequence."));
       problems += 1;
     } else {
@@ -255,20 +256,27 @@
       problems += 1;
     }
 
-    var paramErrors = workspace.validate();
+    // Param errors are only shown once an input exists — without one they
+    // just repeat the missing-input complaint above.
+    var paramErrors = hasInput ? workspace.validate() : [];
     if (paramErrors.length) {
       paramErrors.forEach(function (error) {
         rows.push(validationRow("error", error));
         problems += 1;
       });
-    } else {
+    } else if (hasInput) {
       rows.push(validationRow("ok", "Parameters valid"));
     }
 
     rows.push(validationRow("info", "Structure geometry is checked on the server before queuing"));
 
+    var summary = problems ? problems + " issue(s) to fix" : "Ready to submit";
+    var signature = rows.map(function (row) { return row.className + ":" + row.textContent; }).join("|") + "|" + summary;
+    if (signature === lastValidationSignature) return;
+    lastValidationSignature = signature;
+    validationChecks.replaceChildren();
     rows.forEach(function (row) { validationChecks.appendChild(row); });
-    validationSummary.textContent = problems ? problems + " issue(s) to fix" : "Ready to submit";
+    validationSummary.textContent = summary;
     validationSummary.className = "validation-summary" + (problems ? " has-issues" : "");
   }
 

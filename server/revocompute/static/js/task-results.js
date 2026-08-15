@@ -72,7 +72,16 @@
     return lower.endsWith(".cif") || lower.endsWith(".mmcif") ? "mmcif" : "pdb";
   }
 
-  async function renderPy2DmolFallback(structureText, artifact, stage, molstarError) {
+  // Single-flight guard: every async render captures the host generation at
+  // start and re-checks it after each await. A viewer toggle, artifact
+  // switch, or destroy bumps the generation, so a stale Mol*/py2Dmol
+  // continuation can never mount or load a file after its surface is gone —
+  // the two viewers are never in flight for the same stage simultaneously.
+  function isStale(generation) {
+    return previewHost && previewHost.generation !== generation;
+  }
+
+  async function renderPy2DmolFallback(structureText, artifact, stage, generation, molstarError) {
     try {
       await window.REvoDesignPy2Dmol.renderAlphaTrace(
         stage,
@@ -81,7 +90,9 @@
         artifact.path,
         [Math.max(320, Math.min(stage.clientWidth - 220, 900)), 560]
       );
+      if (isStale(generation)) return;
     } catch (error) {
+      if (isStale(generation)) return;
       throw molstarError;
     }
     var note = document.createElement("p");
@@ -143,13 +154,14 @@
     return bar;
   }
 
-  async function renderMolstar(structureText, artifact, stage) {
+  async function renderMolstar(structureText, artifact, stage, generation) {
     var molstar = await ensureMolstarAssets();
+    if (isStale(generation)) return;
     var target = document.createElement("div");
     target.className = "artifact-molstar-preview";
     target.id = "molstar-result-" + Math.random().toString(36).slice(2);
     stage.appendChild(target);
-    activeMolstar = await molstar.Viewer.create(target.id, {
+    var viewer = await molstar.Viewer.create(target.id, {
       layoutIsExpanded: false,
       layoutShowControls: true,
       layoutShowRemoteState: false,
@@ -160,21 +172,31 @@
       viewportShowSelectionMode: true,
       viewportShowAnimation: true
     });
-    await activeMolstar.loadStructureFromData(structureText, structureFormat(artifact.path), { label: artifact.path });
+    if (isStale(generation)) {
+      if (viewer && viewer.plugin) viewer.plugin.dispose();
+      return;
+    }
+    activeMolstar = viewer;
+    await viewer.loadStructureFromData(structureText, structureFormat(artifact.path), { label: artifact.path });
   }
 
   async function previewStructure(artifact, stage) {
+    var generation = previewHost.generation;
     var response = await A.authFetch(artifact.url);
+    if (isStale(generation)) return;
     if (!response.ok) throw new Error("Structure download failed (HTTP " + response.status + ")");
     var structureText = await response.text();
+    if (isStale(generation)) return;
     stage.appendChild(structureViewerBar(artifact));
 
     if (structureViewer === "py2dmol") {
       try {
-        await renderPy2DmolFallback(structureText, artifact, stage, new Error("User selected alpha-trace viewer"));
+        await renderPy2DmolFallback(structureText, artifact, stage, generation, new Error("User selected alpha-trace viewer"));
+        if (isStale(generation)) return;
         setTimeout(function () { setStructureColor(activeColorMode); }, 100);
       }
       catch (e) {
+        if (isStale(generation)) return;
         var unavailableMsg = document.createElement("p");
         unavailableMsg.className = "preview-message";
         unavailableMsg.textContent = "py2Dmol unavailable. Download the structure file to inspect it locally.";
@@ -183,8 +205,9 @@
       return;
     }
 
-    try { await renderMolstar(structureText, artifact, stage); }
+    try { await renderMolstar(structureText, artifact, stage, generation); }
     catch (error) {
+      if (isStale(generation)) return;
       stage.replaceChildren();
       stage.appendChild(structureViewerBar(artifact));
       var msg = document.createElement("p");

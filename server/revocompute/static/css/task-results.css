@@ -43,17 +43,6 @@
 .msa-sequence { display: block; }
 .artifact-image-preview { display: block; max-width: 100%; max-height: 72vh; margin: auto; padding: 0.75rem; }
 .artifact-molstar-preview { width: 100%; height: 70vh; min-height: 34rem; }
-.py2dmol-fallback { display: flex; align-items: flex-start; gap: 0.6rem; min-width: 0; padding: 0.75rem; overflow: auto; }
-.py2dmol-fallback #viewerWrapper { display: flex; flex: 0 0 auto; flex-direction: column; gap: 0.4rem; }
-.py2dmol-fallback #canvasContainer { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 0.7rem; background: #fff; resize: both; }
-.py2dmol-fallback #canvas { display: block; cursor: grab; touch-action: none; }
-.py2dmol-fallback #controlsContainer { display: flex; align-items: center; gap: 0.25rem; overflow-x: auto; }
-.py2dmol-fallback button, .py2dmol-fallback select { min-height: 1.8rem; border: 1px solid var(--line); border-radius: 0.35rem; background: var(--paper); color: var(--ink); }
-.py2dmol-fallback #frameSlider { min-width: 7rem; }
-.py2dmol-fallback #paeContainer, .py2dmol-fallback #scatterContainer { display: none; }
-.py2dmol-fallback #rightPanelContainer { display: grid; flex: 0 0 11rem; gap: 0.5rem; padding: 0.65rem; border: 1px solid var(--line); border-radius: 0.7rem; }
-.py2dmol-fallback #rightPanelContainer label { display: grid; gap: 0.2rem; color: var(--muted); font-size: 0.7rem; }
-.py2dmol-note { padding-top: 0.5rem; }
 .artifact-table-wrap { max-height: 70vh; overflow: auto; }
 .artifact-table-preview { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 0.76rem; }
 .artifact-table-preview th, .artifact-table-preview td { max-width: 28rem; padding: 0.42rem 0.55rem; overflow: hidden; border: 1px solid var(--line); text-align: left; text-overflow: ellipsis; white-space: nowrap; }

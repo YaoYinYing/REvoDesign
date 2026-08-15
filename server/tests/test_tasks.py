@@ -121,6 +121,7 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert "loadStructureFromData" in script
     assert "loadStructureFromUrl" not in script
     assert "renderPy2DmolFallback" in script
+    assert "isStale" in script
     py2dmol_preview = (SERVER_PACKAGE / "static" / "js" / "py2dmol-preview.js").read_text(encoding="utf-8")
     assert 'PY2DMOL_COMMIT = "8c95fd9efae6007e124e143cd276244d89228c66"' in py2dmol_preview
     assert "PY2DMOL_SCRIPT_INTEGRITY" in py2dmol_preview
@@ -212,8 +213,6 @@ def test_submission_manifest_carries_params(monkeypatch, tmp_path):
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["params"]["iter"] == 100
     assert manifest["files"][0]["relative_path"] == "2KL8.fasta"
-
-
 
 
 def test_create_task_page_has_categorized_rail_and_validation_panel():

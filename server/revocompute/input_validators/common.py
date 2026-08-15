@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 # Uploads are capped at 16 MiB by app.MAX_CONTENT_LENGTH, so a file on disk is

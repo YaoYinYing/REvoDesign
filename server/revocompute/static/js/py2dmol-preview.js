@@ -2,9 +2,9 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 
 /* Lazy py2Dmol asset loading and alpha-trace rendering, shared by the
-   dashboard task cards (structure input snapshot) and the results page
-   (Mol* fallback).  The viewer library is loaded once per page on first
-   use, from a pinned commit with SRI. */
+   dashboard task cards (structure input snapshot) and the results page.
+   The viewer library is loaded once per page on first use, from a pinned
+   CDN commit with SRI. */
 
 (function () {
   "use strict";

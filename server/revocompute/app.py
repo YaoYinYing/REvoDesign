@@ -62,8 +62,8 @@ def _add_security_headers(response):
         "font-src 'self' https://fonts.gstatic.com; "
         # No 'unsafe-inline' in script-src: all page data is injected via
         # inert <script type="application/json"> blocks (or fetched), and the
-        # py2Dmol fallback viewer (task-results.js, loaded from jsdelivr) was
-        # verified not to emit inline scripts or eval — see
+        # structure viewers (Mol*, py2Dmol — pinned with SRI, loaded from
+        # jsdelivr) were verified not to emit inline scripts or eval — see
         # security-audit-tracking.md §11.
         "script-src 'self' https://cdn.jsdelivr.net; " "img-src 'self' data: blob:; " "worker-src 'self' blob:",
     )

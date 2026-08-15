@@ -17,9 +17,8 @@ from pathlib import Path
 
 import pytest
 from conftest import _load_pssm_module, _test_client_auth
-from revocompute.input_validators import (  # noqa: F401
-
-    MAX_CIF_ATOMS,
+from revocompute.input_validators import (
+    MAX_CIF_ATOMS,  # noqa: F401
     MAX_CIF_RECORD_LENGTH,
     MAX_FASTA_SEQUENCES,
     MAX_FASTA_TOTAL_RESIDUES,
@@ -104,7 +103,9 @@ def test_pdb_plugin_backends_run_with_dotted_kind(tmp_path, monkeypatch):
 
     register_plugin(".pdb", fake_backend)
     path = tmp_path / "x.pdb"
-    path.write_text("ATOM      1  CA  ALA A   1       2.500   0.000   0.000  1.00  0.00           C\nEND\n", encoding="utf-8")
+    path.write_text(
+        "ATOM      1  CA  ALA A   1       2.500   0.000   0.000  1.00  0.00           C\nEND\n", encoding="utf-8"
+    )
     try:
         assert validate_pdb(str(path)) == "plugin rejected this PDB"
     finally:
@@ -128,10 +129,6 @@ def test_pdb_plugin_backends_run_with_dotted_kind(tmp_path, monkeypatch):
         "tests/data/lig/lig.cen_conformers.pdb",
     ],
 )
-
-
-
-
 def test_real_pdb_fixtures_pass(relative):
     assert validate_pdb(str(REPO_ROOT / relative)) is None
 
@@ -309,8 +306,6 @@ def test_json_accepts_valid_documents(tmp_path):
 def test_json_rejects_invalid_json(tmp_path):
     path = _write(tmp_path, b'{"contigs": ["A1-10", }')
     assert "not appear to be valid JSON" in validate_json(str(path))
-
-
 
 
 # -- PDB geometry sanity -------------------------------------------------------

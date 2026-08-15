@@ -439,6 +439,7 @@
   color: var(--ink);
 }
 
+details.structure,
 details.sequence {
   margin-top: 0.7rem;
   border: 1px solid #dde5e0;
@@ -447,6 +448,7 @@ details.sequence {
   overflow: hidden;
 }
 
+details.structure summary,
 details.sequence summary {
   list-style: none;
   cursor: pointer;
@@ -456,7 +458,20 @@ details.sequence summary {
   color: #304048;
 }
 
+details.structure summary::-webkit-details-marker,
 details.sequence summary::-webkit-details-marker { display: none; }
+
+.structure-preview {
+  border-top: 1px solid #d8e1dc;
+  background: #fbfdfb;
+  padding: 0.55rem 0.65rem 0.7rem;
+}
+
+.structure-loading {
+  margin: 0;
+  font-size: 0.74rem;
+  color: #64757b;
+}
 
 .sequence pre {
   margin: 0;
@@ -641,8 +656,12 @@ html[data-theme="dark"] .error-copy-btn:focus-visible { background: #5a2b26; bor
 html[data-theme="dark"] .error-copy-btn.copied { background: #67302a; color: #ffe1dd; }
 
 html[data-theme="dark"] .meta-box { background: #16242b; border-color: #30444f; }
+html[data-theme="dark"] details.structure,
 html[data-theme="dark"] details.sequence { border-color: #30444f; background: #152329; }
+html[data-theme="dark"] details.structure summary,
 html[data-theme="dark"] details.sequence summary { color: #bacbd2; }
+html[data-theme="dark"] .structure-preview { border-top-color: #2b3f49; background: #122028; }
+html[data-theme="dark"] .structure-loading { color: #8ba2ac; }
 html[data-theme="dark"] .sequence pre { border-top-color: #2b3f49; color: #c6d5db; background: #122028; }
 html[data-theme="dark"] .task-btn.cancel { color: #f5c9c3; }
 html[data-theme="dark"] .task-btn.delete { color: #ffd1ca; border-color: #7f413a; }

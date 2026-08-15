@@ -96,6 +96,7 @@ from revocompute.schemas import (
 )
 from revocompute.task_runtime import (
     _build_running_trace,
+    _cleanup_task_workspace,
     _finalize_failed_results,
     _get_task_type,
     _local_user_identity,
@@ -561,6 +562,7 @@ def _reject_invalid_input(
     failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
     task_store.upsert_task(md5sum, **base_record, status="failed", error=error_message)
     _finalize_failed_results(failed_task, error_message)
+    _cleanup_task_workspace(failed_task)
     return jsonify({"error": response_message}), 400
 
 
@@ -734,6 +736,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         error_message = "Task queue unavailable — please try again later"
         failed_task = task_store.get_task(md5sum) or dict(md5sum=md5sum, **base_record)
         _finalize_failed_results(failed_task, error_message)
+        _cleanup_task_workspace(failed_task)
         task_store.update_task(
             md5sum,
             status="failed",
