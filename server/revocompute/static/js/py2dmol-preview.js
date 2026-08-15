@@ -113,8 +113,11 @@
       '<label><input type="checkbox" id="rotationCheckbox"> Rotate</label><button id="saveSvgButton">Save SVG</button></div>';
   }
 
-  async function renderAlphaTrace(container, structureText, format, label, size) {
+  async function renderAlphaTrace(container, structureText, format, label, size, isStale) {
     await ensureAssets();
+    // A render can go stale while the CDN asset loads (artifact/viewer
+    // switch): bail before any DOM work or viewer state is created.
+    if (isStale && isStale()) return;
     var frame = format === "mmcif" ? parseCifAlphaCarbons(structureText) : parsePdbAlphaCarbons(structureText);
     if (frame.coords.length < 2) throw new Error("Structure has fewer than two C-alpha atoms");
     var viewerId = "py2dmol-" + Math.random().toString(36).slice(2);

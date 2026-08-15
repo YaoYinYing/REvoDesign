@@ -88,7 +88,8 @@
         structureText,
         structureFormat(artifact.path),
         artifact.path,
-        [Math.max(320, Math.min(stage.clientWidth - 220, 900)), 560]
+        [Math.max(320, Math.min(stage.clientWidth - 220, 900)), 560],
+        function () { return isStale(generation); }
       );
       if (isStale(generation)) return;
     } catch (error) {
