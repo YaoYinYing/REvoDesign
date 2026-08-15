@@ -276,7 +276,7 @@ task_types:
 
   hypermpnn:
     display_name: "HyperMPNN"
-    category: design
+    category: inverse_folding
     intro: "ProteinMPNN sequence design for the given backbone."
     runtime_family: "mpnn"
     input_extension: ".pdb"
@@ -310,7 +310,7 @@ task_types:
 
   proteinmpnn:
     display_name: "ProteinMPNN"
-    category: design
+    category: inverse_folding
     intro: "ProteinMPNN sequence design for the given backbone."
     runtime_family: "mpnn"
     input_extension: ".pdb"
@@ -338,7 +338,7 @@ task_types:
 
   solublempnn:
     display_name: "SolubleMPNN"
-    category: design
+    category: inverse_folding
     intro: "Solubility-aware ProteinMPNN sequence design."
     runtime_family: "mpnn"
     input_extension: ".pdb"
@@ -365,7 +365,7 @@ task_types:
 
   ligandmpnn:
     display_name: "LigandMPNN"
-    category: design
+    category: inverse_folding
     intro: "Ligand-aware sequence design (LigandMPNN)."
     runtime_family: "mpnn"
     input_extension: ".pdb"
@@ -414,7 +414,7 @@ task_types:
 
   lasermpnn:
     display_name: "LASErMPNN"
-    category: design
+    category: inverse_folding
     intro: "Structure-conditioned sequence design (LASErMPNN)."
     runtime_family: "mpnn"
     input_extension: ".pdb"
@@ -456,7 +456,7 @@ task_types:
 
   thermompnn:
     display_name: "ThermoMPNN-D"
-    category: design
+    category: inverse_folding
     intro: "Thermostability-tuned sequence design (ThermoMPNN-D)."
     runtime_family: "mpnn"
     input_extension: ".pdb"

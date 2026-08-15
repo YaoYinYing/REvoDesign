@@ -46,7 +46,7 @@ def test_task_types_carry_categories():
         "bioemu": "structure",
         "esm_if1": "inverse_folding",
         "pythia_ddg": "fitness",
-        "ligandmpnn": "design",
+        "ligandmpnn": "inverse_folding",
     }
     for name, category in expected.items():
         assert name in task_types, name
