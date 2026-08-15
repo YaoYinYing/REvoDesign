@@ -7,7 +7,7 @@
 <link rel="icon" href="/favicon.ico" sizes="any"/>
 <link rel="icon" type="image/svg+xml" href="/compute/logo.svg"/>
 <link rel="mask-icon" href="/compute/logo.svg" color="#000000"/>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/base.css">
 <link rel="stylesheet" href="/static/css/create-task.css">
 <script src="/static/js/theme.js"></script>
@@ -18,7 +18,7 @@
     <div class="hero-top">
       <div>
         <h1 class="headline">Create Compute Task</h1>
-        <p class="subline">Upload an input file and queue a secured compute job.</p>
+        <p class="subline">Pick a method, feed it inputs, check the validation panel, and queue a secured compute job.</p>
       </div>
       <div class="hero-actions">
         <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
@@ -29,17 +29,36 @@
   </section>
 
   <section class="panel card">
+    <nav class="category-rail" id="categoryRail" aria-label="Compute categories">
+      <span class="rail-label">Methods</span>
+    </nav>
+
+    <div class="mode-row">
+      <span class="mode-label">Step-by-step wizard</span>
+      <button class="mode-switch" type="button" id="wizardToggle" role="switch" aria-checked="true">
+        <span class="mode-knob" aria-hidden="true"></span>
+      </button>
+    </div>
+
     <div class="grid">
       <div class="input-zone">
-        <p class="field-label">Task Type</p>
-        <select class="text-input" id="taskTypeSelect"></select>
+        <div class="active-task-line" id="activeTaskLine">
+          <span class="active-task-category" id="activeTaskCategory"></span>
+          <span class="active-task-name" id="activeTaskName">Choose a method above</span>
+        </div>
 
         <form id="uploadForm" enctype="multipart/form-data">
           <input type="file" name="file" id="fileInput" class="sr-only">
           <div class="input-workspace" id="inputWorkspace" aria-live="polite"></div>
 
-          <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
-            <button class="btn btn-primary" id="uploadButton" type="submit">Submit Task</button>
+          <div class="wizard-nav" id="wizardNav" hidden>
+            <button class="btn btn-soft" type="button" id="wizardPrev" disabled>← Back</button>
+            <div class="wizard-progress" id="wizardProgress" role="progressbar" aria-valuemin="1" aria-valuemax="1" aria-valuenow="1"></div>
+            <button class="btn btn-soft" type="button" id="wizardNext">Next →</button>
+          </div>
+
+          <div class="submit-row" id="submitRowTop">
+            <button class="btn btn-primary" id="uploadButton" type="submit">Run analysis</button>
             <button class="btn btn-soft" type="button" id="clearButton">Clear</button>
           </div>
         </form>
@@ -61,6 +80,17 @@
         </div>
       </div>
     </div>
+
+    <section class="validation-panel" id="validationPanel" aria-label="Live validation" aria-live="polite">
+      <div class="validation-head">
+        <h2 class="validation-title"><span class="live-dot" aria-hidden="true"></span> Validation</h2>
+        <span class="validation-summary" id="validationSummary">Waiting for inputs</span>
+      </div>
+      <ul class="validation-checks" id="validationChecks"></ul>
+      <div class="submit-row" id="submitRowBottom">
+        <button class="btn btn-primary" id="validationSubmit" type="button">Run analysis</button>
+      </div>
+    </section>
   </section>
 </main>
 

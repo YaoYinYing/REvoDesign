@@ -74,6 +74,7 @@ task_types:
 
   gremlin:
     display_name: "PSSM-GREMLIN"
+    category: evolution
     runtime_family: "gremlin"
     input_extension: ".fasta"
     input_label: "FASTA file"
@@ -139,6 +140,7 @@ task_types:
 
   pythia_ddg:
     display_name: "Pythia-ddG"
+    category: fitness
     runtime_family: "pythia_ddg"
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -148,6 +150,7 @@ task_types:
 
   esm_msa:
     display_name: "ESM-MSA-1b Variant Effect"
+    category: evolution
     runtime_family: "esm"
     gpus: true
     input_extension: ".a3m"
@@ -165,6 +168,7 @@ task_types:
 
   esm_extract:
     display_name: "ESM-2 Embedding"
+    category: evolution
     runtime_family: "esm"
     gpus: true
     input_extension: ".fasta"
@@ -186,6 +190,7 @@ task_types:
 
   esm_1v:
     display_name: "ESM-1v Scoring"
+    category: fitness
     runtime_family: "esm"
     gpus: true
     input_extension: ".fasta"
@@ -196,6 +201,7 @@ task_types:
 
   esm_if1:
     display_name: "ESM-IF1 Design"
+    category: inverse_folding
     runtime_family: "esm"
     gpus: true
     input_extension: ".pdb"
@@ -219,6 +225,7 @@ task_types:
 
   opendde:
     display_name: "OpenDDE"
+    category: structure
     runtime_family: "opendde"
     gpus: true
     input_extension: ".json"
@@ -262,6 +269,7 @@ task_types:
 
   hypermpnn:
     display_name: "HyperMPNN"
+    category: design
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -294,6 +302,7 @@ task_types:
 
   proteinmpnn:
     display_name: "ProteinMPNN"
+    category: design
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "Protein backbone (PDB)"
@@ -320,6 +329,7 @@ task_types:
 
   solublempnn:
     display_name: "SolubleMPNN"
+    category: design
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "Soluble protein backbone (PDB)"
@@ -345,6 +355,7 @@ task_types:
 
   ligandmpnn:
     display_name: "LigandMPNN"
+    category: design
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -392,6 +403,7 @@ task_types:
 
   lasermpnn:
     display_name: "LASErMPNN"
+    category: design
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_extensions: [".pdb", ".cif", ".mmcif"]
@@ -432,6 +444,7 @@ task_types:
 
   thermompnn:
     display_name: "ThermoMPNN-D"
+    category: design
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -454,6 +467,7 @@ task_types:
 
   prime:
     display_name: "Pro-Prime"
+    category: function
     runtime_family: "prime"
     runner_args: ["ogt"]
     gpus: true
@@ -465,6 +479,7 @@ task_types:
 
   prime_dms:
     display_name: "PRIME DMS"
+    category: fitness
     runtime_family: "prime"
     runner_args: ["dms"]
     gpus: true
@@ -480,6 +495,7 @@ task_types:
 
   rfdiffusion:
     display_name: "RFdiffusion"
+    category: design
     runtime_family: "placer-rfdiffusion"
     runner_args: ["rfdiffusion"]
     gpus: true
@@ -552,6 +568,7 @@ task_types:
 
   placer:
     display_name: "PLACER"
+    category: structure
     runtime_family: "placer-rfdiffusion"
     runner_args: ["placer"]
     gpus: true
@@ -598,6 +615,7 @@ task_types:
 
   bioemu:
     display_name: "BioEmu"
+    category: structure
     runtime_family: "bioemu"
     gpus: true
     input_extension: ".fasta"
@@ -618,6 +636,7 @@ task_types:
 
   easifa:
     display_name: "EasIFA2 Active Sites"
+    category: function
     runtime_family: "easifa"
     gpus: true
     input_extension: ".pdb"

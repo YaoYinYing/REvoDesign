@@ -95,6 +95,8 @@ class TaskType:
     stage_markers: dict[str, str] = field(default_factory=dict)
     params: tuple[TaskParam, ...] = ()
     input_workspace: tuple[InputCapability, ...] = ()
+    # Classification for the create-task category rail (data, not behaviour).
+    category: str = "other"
 
 
 @dataclass(frozen=True)
@@ -388,6 +390,7 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             gpus=entry.get("gpus", False),
             input_extension=entry["input_extension"],
             input_label=entry["input_label"],
+            category=entry.get("category", "other"),
             input_extensions=input_extensions,
             primary_input_extensions=primary_input_extensions,
             allow_multiple_inputs=allow_multiple_inputs,
