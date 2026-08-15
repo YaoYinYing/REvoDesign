@@ -848,6 +848,30 @@ banned users, and login throttling are maintained in
 - Task IDs are validated against `[a-f0-9]{32}` before any filesystem access.
 - File paths are validated with `_safe_join` / `_path_is_within` to prevent directory traversal.
 
+### Uploaded scientific inputs
+
+Uploaded files pass a modular validator tree before any runner sees them —
+`revocompute/input_validators/`, a shared `common` module plus one
+validator module per format (`fasta`, `pdb`, `mmcif`, `json_file`), and a
+registry `__init__` that dispatches by file extension. Adding a format means adding a module that calls
+`register(".ext", validator)`.
+
+- Each validator returns `None` (accept) or a human-readable error string;
+  the design target is DoS/complexity caps, not format policing — a
+  plausible real file must never be rejected.
+- `register_plugin(kind, func)` prepends a plugin backend that runs before
+  the built-in validator; the first error reported wins. Plugins and their
+  dependencies live with the server package.
+- The PDB validator parses with **biotite** (declared dependency, already
+  pinned for the ESM runner image) and runs a geometry sanity pass: heavy
+  atoms with more neighbors than their element permits (e.g. a misplaced
+  terminal OXT colliding with another residue's carbonyl) and
+  duplicate-position atoms are rejected with messages naming the offending
+  atoms — such files would otherwise fail minutes into a compute job inside
+  RDKit-based tools with a cryptic library error. First-alternate-location
+  records are deduplicated; ligand-only (all-HETATM) files pass.
+- JSON inputs carry a 1 MiB pre-parse byte ceiling plus node/depth caps.
+
 ## 11. Operations Notes
 
 - Restrict Docker socket access to trusted operators only.

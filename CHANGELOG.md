@@ -278,6 +278,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   all interfaces without weakening the shipped default.
 - **Server: liveness probe**: unauthenticated `GET /compute/health`
   returns an empty 200.
+- **Modular input-validator tree with pluggable backends**: uploaded files
+  now pass through `revocompute/input_validators/` — one module per format
+  (`common`, `fasta`, `pdb`, `mmcif`, `json_file`) plus a registry that
+  dispatches by extension; `register_plugin` lets deployments prepend their
+  own backends (first error wins). The PDB validator parses with biotite and
+  rejects geometry-broken files at upload with atom-level messages (e.g. a
+  misplaced terminal OXT colliding with a carbonyl, which RDKit-based tools
+  fail on only after the job starts). biotite and numpy are declared server
+  dependencies.
 - **Runner protocol v2 — single task manifest**: every runner now receives
   `-i <inputs>/task.json -o <outputs>`; the immutable input snapshot
   carries `task.json` (task id, task type, params, and files with

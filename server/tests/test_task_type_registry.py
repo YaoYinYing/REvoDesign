@@ -35,6 +35,24 @@ def _preserve_registry():
         task_types._container_runtime = container_snapshot
 
 
+
+
+def test_task_types_carry_categories():
+    registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
+    task_types = registry["task_types"]
+    expected = {
+        "gremlin": "evolution",
+        "easifa": "function",
+        "bioemu": "structure",
+        "esm_if1": "inverse_folding",
+        "pythia_ddg": "fitness",
+        "ligandmpnn": "inverse_folding",
+    }
+    for name, category in expected.items():
+        assert name in task_types, name
+        assert task_types[name].get("category") == category, (name, task_types[name])
+
+
 def test_shared_tasks_resolve_one_runtime_and_runner_config():
     enabled = {"esm", "mpnn", "placer-rfdiffusion"}
     with _preserve_registry():

@@ -214,6 +214,27 @@ def test_submission_manifest_carries_params(monkeypatch, tmp_path):
     assert manifest["files"][0]["relative_path"] == "2KL8.fasta"
 
 
+
+
+def test_create_task_page_has_categorized_rail_and_validation_panel():
+    template = (SERVER_PACKAGE / "templates" / "create_task.html").read_text(encoding="utf-8")
+    for marker in (
+        'id="categoryRail"',
+        'id="wizardToggle"',
+        'role="switch"',
+        'id="validationPanel"',
+        'id="validationChecks"',
+        'id="validationSubmit"',
+        'id="uploadButton"',
+        'id="taskIntro"',
+    ):
+        assert marker in template
+    script = (SERVER_PACKAGE / "static" / "js" / "create-task.js").read_text(encoding="utf-8")
+    assert "CATEGORY_ORDER" in script
+    assert "revocompute_wizard_mode" in script
+    assert "refreshValidation" in script
+
+
 def test_dashboard_serves_structure_preview_for_pdb_tasks(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
