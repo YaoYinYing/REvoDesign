@@ -79,7 +79,7 @@ from revocompute.auth import (
     validate_email_token,
     validate_reset_token,
 )
-from revocompute.input_validation import validate_input_file
+from revocompute.input_validators import validate_input_file
 from revocompute.ratelimit import rate_limit
 from revocompute.resource_policy import GLOBAL_RESOURCE_KEYS, ResourceValidationError, normalize_resource_value
 from revocompute.schemas import (
@@ -536,7 +536,7 @@ def _reject_invalid_input(
     Every uploaded file — primary and auxiliary alike — passes the
     4096-byte binary sniff and is then content-validated by extension
     (FASTA/A3M/PDB/mmCIF/JSON) with generous DoS caps (see
-    revocompute.input_validation), so third-party parsers never see
+    revocompute.input_validators), so third-party parsers never see
     pathological content from any input of a multi-file task.
     """
     error_message = None

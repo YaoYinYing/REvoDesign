@@ -17,7 +17,8 @@ from pathlib import Path
 
 import pytest
 from conftest import _load_pssm_module, _test_client_auth
-from revocompute.input_validation import (
+from revocompute.input_validators import (  # noqa: F401
+
     MAX_CIF_ATOMS,
     MAX_CIF_RECORD_LENGTH,
     MAX_FASTA_SEQUENCES,
@@ -55,6 +56,29 @@ def test_real_fasta_fixtures_pass():
         assert validate_fasta(str(path)) is None, path
 
 
+def test_plugin_backends_run_before_builtin(tmp_path, monkeypatch):
+    """register_plugin prepends a backend; its error wins over the built-in
+    validator, proving the pluggable contract."""
+    from revocompute.input_validators import register_plugin, validate_input_file
+
+    calls = []
+
+    def fake_backend(path):
+        calls.append(path)
+        return "plugin rejected this file"
+
+    register_plugin(".fasta", fake_backend)
+    path = tmp_path / "x.fasta"
+    path.write_text(">t\nACDE\n", encoding="utf-8")
+    try:
+        assert validate_input_file(str(path), "x.fasta") == "plugin rejected this file"
+    finally:
+        from revocompute.input_validators import _PLUGINS
+
+        _PLUGINS.pop(".fasta", None)
+    assert calls == [str(path)]
+
+
 @pytest.mark.parametrize(
     "relative",
     [
@@ -69,6 +93,8 @@ def test_real_fasta_fixtures_pass():
         "tests/data/lig/lig.cen_conformers.pdb",
     ],
 )
+
+
 def test_real_pdb_fixtures_pass(relative):
     assert validate_pdb(str(REPO_ROOT / relative)) is None
 
