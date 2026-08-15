@@ -456,7 +456,7 @@ task_types:
 
   thermompnn:
     display_name: "ThermoMPNN-D"
-    category: inverse_folding
+    category: fitness
     intro: "Thermostability-tuned sequence design (ThermoMPNN-D)."
     runtime_family: "mpnn"
     input_extension: ".pdb"
