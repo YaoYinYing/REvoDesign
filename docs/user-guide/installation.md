@@ -60,6 +60,24 @@ pymol
 
 If you already have a working PyMOL installation (2.5+), skip this step.
 
+### macOS notes
+
+- Use **PyMOL Open-Source on native Apple Silicon**. The conda-forge build
+  above installs the `osx-arm64` binary automatically on Apple Silicon — no
+  Rosetta required. The official **PyMOL bundle runs under Rosetta x86_64
+  emulation and is not recommended**; REvoDesign is tested against the native
+  conda-forge build, not the emulated bundle.
+- **Xcode Command Line Tools** are required to compile dependencies that have
+  no prebuilt wheel. If they are missing, install them once:
+
+    ```bash
+    xcode-select --install
+    ```
+
+    then relaunch PyMOL. The Package Manager detects missing Command Line
+    Tools and shows guidance without blocking plugin registration, and prefers
+    prebuilt wheels before falling back to source builds.
+
 ## Install REvoDesign Package Manager
 
 1. Open PyMOL.
