@@ -158,3 +158,6 @@ playground/config
 /server/security-audit-tracking.md
 server/manage.sqlite
 server/revocompute.sqlite3
+
+# audit scratch (user-provided structures)
+/tmp/
