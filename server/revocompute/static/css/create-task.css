@@ -672,3 +672,20 @@ html[data-theme="dark"] {
   color: var(--muted);
   max-width: 46rem;
 }
+
+/* -- scroll reveal (big-cookies-inspired, reduced-motion safe) ---------------- */
+
+.workspace-card {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.workspace-card.revealed,
+.no-reveal .workspace-card {
+  opacity: 1;
+  transform: none;
+}
+
+/* keyboard hint for the rail */
+.rail-node::first-letter { }

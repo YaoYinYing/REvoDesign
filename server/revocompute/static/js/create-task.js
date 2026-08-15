@@ -405,6 +405,37 @@
 
   T.initToggle(document.getElementById("themeToggle"));
 
+  // Keyboard shortcuts: 1–6 select a category (mirrors the rail order).
+  document.addEventListener("keydown", function (event) {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+    var digit = parseInt(event.key, 10);
+    if (!digit) return;
+    var nodes = categoryRail.querySelectorAll(".rail-node");
+    var node = nodes[digit - 1];
+    if (node) { node.click(); node.scrollIntoView({ block: "nearest", inline: "center" }); }
+  });
+
+  // Subtle scroll reveal for workspace cards (respects reduced motion).
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    workspaceRoot.classList.add("no-reveal");
+  } else {
+    var revealObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("revealed");
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    var revealWatch = new MutationObserver(function () {
+      workspaceRoot.querySelectorAll(".workspace-card:not(.revealed)").forEach(function (card) {
+        revealObserver.observe(card);
+      });
+    });
+    revealWatch.observe(workspaceRoot, { childList: true, subtree: true });
+  }
+
   var helpBtn = document.getElementById("workspaceHelpBtn");
   var helpPopover = document.getElementById("workspaceHelpPopover");
   helpBtn.addEventListener("click", function (event) {
