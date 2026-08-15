@@ -75,7 +75,7 @@ task_types:
   gremlin:
     display_name: "PSSM-GREMLIN"
     category: evolution
-    intro: "Co-evolutionary contact and coupling prediction from a multiple sequence alignment (PSSM + GREMLIN)."
+    intro: "Sequence conservation (PSI-BLAST PSSM) and co-evolutionary couplings (GREMLIN) for a protein sequence."
     runtime_family: "gremlin"
     input_extension: ".fasta"
     input_label: "FASTA file"
@@ -232,7 +232,7 @@ task_types:
   opendde:
     display_name: "OpenDDE"
     category: structure
-    intro: "OpenDDE structure prediction with MSA-based guidance."
+    intro: "All-atom structure prediction with MSA and template guidance (OpenDDE)."
     runtime_family: "opendde"
     gpus: true
     input_extension: ".json"
@@ -277,7 +277,7 @@ task_types:
   hypermpnn:
     display_name: "HyperMPNN"
     category: inverse_folding
-    intro: "ProteinMPNN sequence design for the given backbone."
+    intro: "Thermostable sequence design using hyperthermophile-trained ProteinMPNN weights (HyperMPNN)."
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -415,7 +415,7 @@ task_types:
   lasermpnn:
     display_name: "LASErMPNN"
     category: inverse_folding
-    intro: "Structure-conditioned sequence design (LASErMPNN)."
+    intro: "Ligand-conditioned sequence design and sidechain packing for protonated (all-atom) structures (LASErMPNN)."
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_extensions: [".pdb", ".cif", ".mmcif"]
@@ -457,7 +457,7 @@ task_types:
   thermompnn:
     display_name: "ThermoMPNN-D"
     category: fitness
-    intro: "Thermostability-tuned sequence design (ThermoMPNN-D)."
+    intro: "Stability change (ΔΔG) prediction for single and double mutants (ThermoMPNN-D)."
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -480,8 +480,8 @@ task_types:
 
   prime:
     display_name: "Pro-Prime"
-    category: function
-    intro: "Enzyme function (EC number) prediction from a sequence (Pro-Prime)."
+    category: fitness
+    intro: "Optimal growth temperature (OGT) prediction from a protein sequence (Pro-Prime)."
     runtime_family: "prime"
     runner_args: ["ogt"]
     gpus: true
@@ -585,7 +585,7 @@ task_types:
   placer:
     display_name: "PLACER"
     category: structure
-    intro: "Structure prediction with PLACER."
+    intro: "All-atom modeling of protein-ligand complexes from an input structure (PLACER)."
     runtime_family: "placer-rfdiffusion"
     runner_args: ["placer"]
     gpus: true

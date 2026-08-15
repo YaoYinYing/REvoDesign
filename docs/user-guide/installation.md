@@ -41,9 +41,6 @@ Supported operating systems:
     REvoDesign continues to test the default Simplified-Chinese Windows
     CP936/GBK path. This setting is a recommended interoperability workaround,
     not a prerequisite or a substitute for reporting encoding problems.
-    When the Package Manager detects CP936 during PyMOL startup, it displays
-    this procedure as a reminder. The reminder appears once per PyMOL session
-    and does not block the plugin from loading.
 
 ## Install PyMOL
 
@@ -59,6 +56,18 @@ pymol
 ```
 
 If you already have a working PyMOL installation (2.5+), skip this step.
+
+### macOS notes
+
+- Use **PyMOL Open-Source on native Apple Silicon**. The conda-forge build
+  above installs the `osx-arm64` binary automatically on Apple Silicon — no
+  Rosetta required. The official **PyMOL bundle runs under Rosetta x86_64
+  emulation and is not recommended**; REvoDesign is tested against the native
+  conda-forge build, not the emulated bundle.
+- **Xcode Command Line Tools** are required to compile dependencies that have
+  no prebuilt wheel. Install them once before the first installation:
+
+    xcode-select --install
 
 ## Install REvoDesign Package Manager
 

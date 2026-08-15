@@ -341,6 +341,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `GLIBC_2.38 not found` on dlopen.
 
 ### Fixed
+- **Task-type descriptions audited against the runner repos**: GREMLIN now
+  says sequence conservation (PSSM) plus co-evolutionary couplings (input is
+  a sequence; the MSA is an internal HHblits step, and no contact map is
+  produced). Pro-Prime is now
+  described as optimal growth temperature (OGT) prediction and moved from
+  `function` to `fitness`; ThermoMPNN-D is ΔΔG prediction for single/double
+  mutants (not sequence design); HyperMPNN is thermostable design from
+  hyperthermophile-trained weights; LASErMPNN is all-atom ligand-conditioned
+  design with sidechain packing for protonated structures; PLACER models
+  protein-ligand complexes from
+  an input structure (not structure prediction from sequence); OpenDDE is
+  all-atom prediction with MSA and template guidance.
+- **Standalone manager Qt6 enum bridge**: the package manager's Qt5/Qt6 compat
+  layer no longer allowlists the enum members it happens to use. It now
+  mirrors every scoped-enum member of every QtCore/QtGui/QtWidgets class onto
+  the owning class at import, so any Qt5-style unscoped access
+  (`QMessageBox.Ok`, `QFileDialog.DontResolveSymlinks`, ...) resolves on Qt6
+  without per-API bookkeeping. Previously unmapped members raised
+  AttributeError on Qt6 PyMOL builds (e.g. macOS).
 - **Mol* shell message dispatch**: load the isolated viewer shell script after
   its status and host elements exist. Previously the shell received structure
   messages but rejected before loading Mol* because its cached DOM nodes were

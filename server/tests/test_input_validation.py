@@ -17,8 +17,8 @@ from pathlib import Path
 
 import pytest
 from conftest import _load_pssm_module, _test_client_auth
+from revocompute.input_validators import MAX_CIF_ATOMS  # noqa: F401
 from revocompute.input_validators import (
-    MAX_CIF_ATOMS,  # noqa: F401
     MAX_CIF_RECORD_LENGTH,
     MAX_FASTA_SEQUENCES,
     MAX_FASTA_TOTAL_RESIDUES,
