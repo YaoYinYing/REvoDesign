@@ -138,12 +138,6 @@
         item.type = "button";
         item.className = "rail-item";
         item.textContent = taskType.display_name;
-        if (taskType.gpus) {
-          var badge = document.createElement("span");
-          badge.className = "rail-item-gpu";
-          badge.textContent = "GPU";
-          item.appendChild(badge);
-        }
         item.addEventListener("click", function () {
           closeRailPanels(null);
           fetchFormDefinition(taskType.name);

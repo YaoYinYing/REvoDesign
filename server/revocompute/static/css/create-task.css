@@ -451,15 +451,6 @@ html[data-theme="dark"] {
   background: color-mix(in srgb, var(--paper) 88%, var(--rail-amber) 12%);
 }
 
-.rail-item-gpu {
-  font: 700 0.6rem/1 var(--font-display);
-  letter-spacing: 0.08em;
-  color: var(--rail-amber);
-  border: 1px solid color-mix(in srgb, var(--rail-amber) 55%, transparent);
-  border-radius: 999px;
-  padding: 0.16rem 0.4rem;
-}
-
 /* -- mode toggle ------------------------------------------------------------ */
 
 .mode-row {
