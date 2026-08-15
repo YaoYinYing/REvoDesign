@@ -120,7 +120,7 @@ Two conda environments exist for cross-Qt testing:
 
 All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 directly. The `check_qt_binding_imports.py` pre-commit hook enforces this.
 
-- `qt_wrapper.py` — detects the Qt backend from `pymol.Qt.PYQT_NAME` at import time. Exposes `QtCore`, `QtGui`, `QtWidgets`, `QT_BACKEND`, `QT_MAJOR`, plus `install_qt6_aliases()` for backward-compatible enum/class locations.
+- `qt_wrapper.py` — detects the Qt backend from `pymol.Qt.PYQT_NAME` at import time. Exposes `QtCore`, `QtGui`, `QtWidgets`, `QT_BACKEND`, `QT_MAJOR`, plus `install_qt6_aliases()` (scoped enum containers on Qt5) and the generic `_install_unscoped_enum_bridge()` (mirrors every scoped-enum member onto its owning class so Qt5-style flat access works on Qt6 with no per-API bookkeeping). The standalone package manager ships the same bridge as `_install_qt_enum_bridge()` in `package_manager.py`; regression coverage is `tests/tools/test_qt_enum_bridge.py` (runs against real PyQt6 in the CI qt6 job).
 - `ui_runtime_loader.py` — loads `.ui` files at runtime via PyQt `uic.loadUiType` or `QtUiTools.QUiLoader`. The `RuntimeUiProxy` exposes named Qt objects as attributes (mimicking the old generated-UI pattern) and provides `retranslateUi()`. `refresh_bindings()` re-scans the widget tree after retranslation while preserving internal attributes (`_*`).
 - `Ui_REvoDesign.py` is **deprecated** — the pre-commit hook `reject_generated_main_ui.py` prevents it from being re-introduced.
 
