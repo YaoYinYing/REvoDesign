@@ -8,7 +8,6 @@
 # pylint: disable=unused-argument
 from __future__ import annotations
 
-import ctypes
 import difflib
 import hmac
 import importlib
@@ -51,76 +50,6 @@ from pymol.Qt.utils import loadUi
 
 LOGGER_LEVEL = 0
 _WORKER_CONTEXT = threading.local()
-WINDOWS_GBK_CODE_PAGE = 936
-_WINDOWS_GBK_WARNING_SCHEDULED = False
-
-
-_WINDOWS_GBK_WARNING_MESSAGE = """Windows is using Simplified Chinese code page 936 (GBK).
-
-For reliable non-English output in CMD, Windows PowerShell, and installer tools:
-
-1. Press Win+R, enter intl.cpl, and press Enter.
-2. Open the Administrative tab.
-3. Select Change system locale...
-4. Check Beta: Use Unicode UTF-8 for worldwide language support.
-5. Select OK and restart Windows.
-6. Run chcp and confirm that it reports 65001.
-
-See the REvoDesign installation guide for details."""
-
-
-def detect_windows_code_pages() -> dict[str, int] | None:
-    """Return active Windows ANSI, OEM, and console-output code pages."""
-
-    if sys.platform != "win32":
-        return None
-
-    try:
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        return {
-            "ansi": int(kernel32.GetACP()),
-            "oem": int(kernel32.GetOEMCP()),
-            "console_output": int(kernel32.GetConsoleOutputCP()),
-        }
-    except (AttributeError, OSError, TypeError, ValueError):
-        logging.warning("Could not inspect active Windows code pages.", exc_info=True)
-        return None
-
-
-def schedule_windows_gbk_warning() -> bool:
-    """Schedule one non-blocking UTF-8 guidance dialog when CP936 is active."""
-
-    global _WINDOWS_GBK_WARNING_SCHEDULED
-
-    if _WINDOWS_GBK_WARNING_SCHEDULED:
-        return False
-
-    code_pages = detect_windows_code_pages()
-    if code_pages is None or WINDOWS_GBK_CODE_PAGE not in code_pages.values():
-        return False
-
-    details = (
-        f"Detected code pages: ANSI={code_pages['ansi']}, OEM={code_pages['oem']}, "
-        f"console output={code_pages['console_output']}.\n"
-        "Documentation: https://YaoYinYing.github.io/REvoDesign/user-guide/installation/"
-    )
-    _WINDOWS_GBK_WARNING_SCHEDULED = True
-    try:
-        QtCore.QTimer.singleShot(
-            0,
-            lambda: notify_box(
-                _WINDOWS_GBK_WARNING_MESSAGE,
-                RuntimeWarning,
-                details=details,
-            ),
-        )
-    except (AttributeError, RuntimeError, TypeError, ValueError):
-        _WINDOWS_GBK_WARNING_SCHEDULED = False
-        logging.warning("Could not schedule the Windows code-page guidance dialog.", exc_info=True)
-        return False
-    return True
-
-
 def _qt_exec(obj, *args, **kwargs):
     """Execute a Qt object on both Qt5 and Qt6 bindings."""
 
@@ -3642,7 +3571,6 @@ def __init_plugin__(app=None):
     Add an entry to the PyMOL "Plugin" menu
     """
     logging.info("REvoDesign entrypoint is located at %s", os.path.dirname(__file__))
-    schedule_windows_gbk_warning()
 
     manager_plugin: REvoDesignPackageManager | None = None
 
