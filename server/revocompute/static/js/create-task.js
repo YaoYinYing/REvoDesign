@@ -405,17 +405,6 @@
 
   T.initToggle(document.getElementById("themeToggle"));
 
-  // Keyboard shortcuts: 1–6 select a category (mirrors the rail order).
-  document.addEventListener("keydown", function (event) {
-    if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
-    var digit = parseInt(event.key, 10);
-    if (!digit) return;
-    var nodes = categoryRail.querySelectorAll(".rail-node");
-    var node = nodes[digit - 1];
-    if (node) { node.click(); node.scrollIntoView({ block: "nearest", inline: "center" }); }
-  });
-
   // Subtle scroll reveal for workspace cards (respects reduced motion).
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     workspaceRoot.classList.add("no-reveal");
