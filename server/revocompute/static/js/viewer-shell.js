@@ -123,6 +123,13 @@
   }
 
   window.addEventListener("message", function (event) {
+    window.__shellLog = window.__shellLog || [];
+    window.__shellLog.push({
+      type: event.data && event.data.type,
+      origin: event.origin,
+      sourceIsParent: event.source === window.parent,
+      parentOrigin: (function () { try { return window.parent.origin; } catch (e) { return "ERR:" + e.name; } })(),
+    });
     if (event.source !== window.parent) return;
     if (!event.data || typeof event.data !== "object") return;
     if (event.data.type === "structure") mountStructure(event.data);

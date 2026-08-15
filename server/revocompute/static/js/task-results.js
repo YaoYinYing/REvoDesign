@@ -38,6 +38,10 @@
   function postToShell(frame, payload) {
     var targetOrigin = "*";
     try { targetOrigin = frame.contentWindow.origin || "*"; } catch (e) { /* frame gone */ }
+    try {
+      window.__posted = window.__posted || [];
+      window.__posted.push({ type: payload.type, targetOrigin: targetOrigin });
+    } catch (e) { /* debug aid */ }
     frame.contentWindow.postMessage(payload, targetOrigin);
   }
 
