@@ -453,6 +453,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and switched tests and callers to the matrix selection API.
 
 ### Fixed
+- **Mol\* viewer now loads under the strict CSP**: Mol\*'s bundle calls
+  `new Function` at load, which the app-wide `script-src` (no
+  `'unsafe-eval'`) blocked in every browser — the viewer silently died
+  with "did not initialize". Mol\* now runs inside an isolated
+  `/compute/viewer-shell` iframe whose own CSP scopes `'unsafe-eval'` to
+  that page alone; structure data reaches it via postMessage from the
+  authenticated parent, and `connect-src 'none'` keeps the shell from
+  fetching anything. The main app CSP is unchanged.
 - **Workspace cleanup leak on pre-execution failures**: tasks rejected by
   upload-content validation or failed by an unavailable task queue now
   remove their immutable input workspace immediately, matching the

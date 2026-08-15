@@ -1,0 +1,20 @@
+/* REvoCompute — Mol* viewer shell (iframe-hosted, isolated CSP) */
+/* SPDX-License-Identifier: GPL-3.0-only */
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #fff;
+}
+
+#shellState {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #64757b;
+  font: 500 0.8rem ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+#viewerHost {
+  height: 100%;
+}
