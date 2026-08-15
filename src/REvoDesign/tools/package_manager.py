@@ -54,16 +54,6 @@ _WORKER_CONTEXT = threading.local()
 WINDOWS_GBK_CODE_PAGE = 936
 _WINDOWS_GBK_WARNING_SCHEDULED = False
 
-_MACOS_CLT_GUIDANCE_SCHEDULED = False
-_MACOS_CLT_GUIDANCE_MESSAGE = """Xcode Command Line Tools are missing on this Mac.
-
-Some REvoDesign dependencies have no prebuilt wheel for this Python and must be
-compiled from source, which requires the Command Line Tools:
-
-1. Open Terminal (Applications -> Utilities).
-2. Run: xcode-select --install
-3. Follow the installer window, then relaunch PyMOL."""
-
 
 _WINDOWS_GBK_WARNING_MESSAGE = """Windows is using Simplified Chinese code page 936 (GBK).
 
@@ -127,62 +117,6 @@ def schedule_windows_gbk_warning() -> bool:
     except (AttributeError, RuntimeError, TypeError, ValueError):
         _WINDOWS_GBK_WARNING_SCHEDULED = False
         logging.warning("Could not schedule the Windows code-page guidance dialog.", exc_info=True)
-        return False
-    return True
-
-
-def detect_macos_command_line_tools() -> bool:
-    """True when Xcode Command Line Tools are usable on this macOS host.
-
-    Non-macOS hosts always return True -- the CLT gate only applies on
-    Darwin, where ``xcode-select -p`` is the canonical probe.
-    """
-    if sys.platform != "darwin":
-        return True
-    xcode_select = shutil.which("xcode-select")
-    if xcode_select is None:
-        return False
-    try:
-        subprocess.run(
-            [xcode_select, "-p"],
-            check=True,
-            capture_output=True,
-            timeout=10,
-        )
-        return True
-    except (OSError, subprocess.SubprocessError):
-        return False
-
-
-def schedule_macos_clt_guidance() -> bool:
-    """Schedule one non-blocking Command Line Tools guidance dialog on macOS.
-
-    Mirrors ``schedule_windows_gbk_warning``: a single deferred Qt dialog
-    explains the xcode-select requirement without blocking plugin
-    registration.
-    """
-
-    global _MACOS_CLT_GUIDANCE_SCHEDULED
-
-    if _MACOS_CLT_GUIDANCE_SCHEDULED or sys.platform != "darwin":
-        return False
-
-    if detect_macos_command_line_tools():
-        return False
-
-    _MACOS_CLT_GUIDANCE_SCHEDULED = True
-    try:
-        QtCore.QTimer.singleShot(
-            0,
-            lambda: notify_box(
-                _MACOS_CLT_GUIDANCE_MESSAGE,
-                RuntimeWarning,
-                details="Documentation: https://YaoYinYing.github.io/REvoDesign/user-guide/installation/",
-            ),
-        )
-    except (AttributeError, RuntimeError, TypeError, ValueError):
-        _MACOS_CLT_GUIDANCE_SCHEDULED = False
-        logging.warning("Could not schedule the macOS Command Line Tools guidance dialog.", exc_info=True)
         return False
     return True
 
@@ -1260,16 +1194,6 @@ class PIPInstaller:
             pip_cmd.append(f"-{'v' * verbose_level}")
 
         logging.debug("Using verbose level %s", verbose_level)
-
-        if sys.platform == "darwin" and package_name != "REvoDesign" and not detect_macos_command_line_tools():
-            # Prefer prebuilt wheels when Command Line Tools are missing --
-            # a source build would silently stall on the xcode-select
-            # prompt. Fall back to the plain command when no wheel exists.
-            binary_cmd = pip_cmd + ["--only-binary", ":all:"]
-            result = run_command(binary_cmd, verbose=self.verbose_level > -1, env=env or self.env)
-            if not result.returncode:
-                return result
-            logging.warning("Binary-only install failed, retrying with source builds: %s", result.stderr)
 
         result = run_command(pip_cmd, verbose=self.verbose_level > -1, env=env or self.env)
         return result
@@ -3719,7 +3643,6 @@ def __init_plugin__(app=None):
     """
     logging.info("REvoDesign entrypoint is located at %s", os.path.dirname(__file__))
     schedule_windows_gbk_warning()
-    schedule_macos_clt_guidance()
 
     manager_plugin: REvoDesignPackageManager | None = None
 
