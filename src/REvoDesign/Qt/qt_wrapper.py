@@ -106,17 +106,6 @@ def _install_scoped_alias(
         setattr(container, member_name, getattr(owner, legacy_name))
 
 
-def _install_flat_alias(owner: object, container_name: str, member_name: str, alias_name: str | None = None) -> None:
-    """Install a flat Qt5-style alias from a scoped Qt6 enum member when missing."""
-
-    flat_name = alias_name or member_name
-    if hasattr(owner, flat_name):
-        return
-    container = getattr(owner, container_name, None)
-    if container is not None and hasattr(container, member_name):
-        setattr(owner, flat_name, getattr(container, member_name))
-
-
 def _qt_enum(owner: Any, enum_name: str, member_name: str) -> Any:
     """Return a Qt enum member using Qt6 scoped lookup with Qt5 fallback."""
 
@@ -178,60 +167,8 @@ def _install_qtcore_scoped_aliases() -> None:
         for member_name in member_names:
             _install_scoped_alias(qt_namespace, container_name, member_name)
 
-    flat_aliases = (
-        ("WidgetAttribute", "WA_DeleteOnClose"),
-        ("WidgetAttribute", "WA_Hover"),
-        ("WidgetAttribute", "WA_ShowWithoutActivating"),
-        ("WidgetAttribute", "WA_TransparentForMouseEvents"),
-        ("WidgetAttribute", "WA_TranslucentBackground"),
-        ("ContextMenuPolicy", "CustomContextMenu"),
-        ("TextFormat", "RichText"),
-        ("TextFormat", "PlainText"),
-        ("CheckState", "Checked"),
-        ("CheckState", "Unchecked"),
-        ("CheckState", "PartiallyChecked"),
-        ("ItemFlag", "ItemIsUserCheckable"),
-        ("ItemFlag", "ItemIsEnabled"),
-        ("Orientation", "Horizontal"),
-        ("Orientation", "Vertical"),
-        ("ScrollBarPolicy", "ScrollBarAsNeeded"),
-        ("ScrollBarPolicy", "ScrollBarAlwaysOff"),
-        ("ScrollBarPolicy", "ScrollBarAlwaysOn"),
-        ("GlobalColor", "yellow"),
-        ("GlobalColor", "blue"),
-        ("GlobalColor", "red"),
-        ("GlobalColor", "green"),
-        ("GlobalColor", "black"),
-        ("GlobalColor", "white"),
-        ("FocusPolicy", "NoFocus"),
-        ("CursorShape", "PointingHandCursor"),
-        ("WindowType", "Tool"),
-        ("WindowType", "FramelessWindowHint"),
-        ("WindowType", "WindowStaysOnTopHint"),
-        ("WindowType", "WindowDoesNotAcceptFocus"),
-        ("WindowType", "SplashScreen"),
-        ("AlignmentFlag", "AlignLeft"),
-        ("AlignmentFlag", "AlignRight"),
-        ("AlignmentFlag", "AlignHCenter"),
-        ("AlignmentFlag", "AlignJustify"),
-        ("AlignmentFlag", "AlignTop"),
-        ("AlignmentFlag", "AlignBottom"),
-        ("AlignmentFlag", "AlignVCenter"),
-        ("AlignmentFlag", "AlignCenter"),
-        ("AlignmentFlag", "AlignLeading"),
-        ("AlignmentFlag", "AlignTrailing"),
-        ("BrushStyle", "NoBrush"),
-        ("DropAction", "CopyAction"),
-        ("DropAction", "MoveAction"),
-        ("DropAction", "LinkAction"),
-        ("DropAction", "IgnoreAction"),
-    )
-    for container_name, member_name in flat_aliases:
-        _install_flat_alias(qt_namespace, container_name, member_name)
-
     for member_name in ("Linear", "InQuad", "OutQuad", "InOutQuad"):
         _install_scoped_alias(QtCore.QEasingCurve, "Type", member_name)
-        _install_flat_alias(QtCore.QEasingCurve, "Type", member_name)
 
 
 def _install_qtwidgets_scoped_aliases() -> None:
@@ -319,12 +256,8 @@ def _install_qtwidgets_scoped_aliases() -> None:
         for member_name in member_names:
             _install_scoped_alias(owner, container_name, member_name)
 
-    # QStackedLayout.StackingMode: scoped enum in Qt6 (StackAll, StackOne).
-    # Provide flat aliases (Qt5-style) so that code referencing
-    # QtWidgets.QStackedLayout.StackAll continues to work under Qt6.
     for member_name in ("StackAll", "StackOne"):
         _install_scoped_alias(getattr(QtWidgets, "QStackedLayout", None), "StackingMode", member_name)
-        _install_flat_alias(getattr(QtWidgets, "QStackedLayout", None), "StackingMode", member_name)
 
 
 def _install_qtgui_scoped_aliases() -> None:
@@ -359,7 +292,6 @@ def _install_qtgui_scoped_aliases() -> None:
             _install_scoped_alias(qpalette, "ColorRole", member_name)
     if qpainter is not None:
         _install_scoped_alias(qpainter, "RenderHint", "Antialiasing")
-        _install_flat_alias(qpainter, "RenderHint", "Antialiasing")
 
 
 def _install_qtnetwork_scoped_aliases() -> None:
@@ -388,6 +320,36 @@ def _install_moved_class_aliases() -> None:
             setattr(QtGui, attr_name, fallback)
 
 
+def _install_unscoped_enum_bridge() -> None:
+    """Alias every scoped-enum member onto its owning Qt class.
+
+    On Qt6 bindings enum members live under per-class enum types
+    (``QMessageBox.StandardButton.Ok``), so Qt5-style unscoped access
+    (``QMessageBox.Ok``) raises AttributeError.  Mirror every member of
+    every enum type of every class in the loaded Qt modules onto the
+    class itself, skipping names that already exist, so any flat access
+    resolves on both Qt5 and Qt6 without per-API bookkeeping.  On Qt5
+    and PySide bindings the flat names already resolve, so the bridge
+    aliases nothing and is a no-op.
+    """
+
+    def _is_enum_type(value) -> bool:
+        return isinstance(value, type) and hasattr(value, "__members__")
+
+    for _qt_module in (QtCore, QtGui, QtWidgets, QtNetwork, QtWebSockets, QtSvg, QtUiTools):
+        if _qt_module is None:
+            continue
+        for _cls in list(vars(_qt_module).values()):
+            if not (isinstance(_cls, type) and getattr(_cls, "__module__", "") == _qt_module.__name__):
+                continue
+            for _enum_type in list(vars(_cls).values()):
+                if not _is_enum_type(_enum_type):
+                    continue
+                for _member_name, _member in _enum_type.__members__.items():
+                    if not hasattr(_cls, _member_name):
+                        setattr(_cls, _member_name, _member)
+
+
 _ALIAS_STATE = {"installed": False}
 
 
@@ -403,6 +365,7 @@ def install_qt6_aliases() -> None:
     _install_qtgui_scoped_aliases()
     _install_qtnetwork_scoped_aliases()
     _install_qtwebsockets_scoped_aliases()
+    _install_unscoped_enum_bridge()
     _ALIAS_STATE["installed"] = True
 
 
