@@ -334,32 +334,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Server:
-  - task-type intro audit: intros and categories corrected against the
-    runner repos. GREMLIN is sequence conservation (PSSM) plus
-    co-evolutionary couplings (input is a sequence; the MSA is an internal
-    HHblits step; no contact map is produced). Pro-Prime is optimal growth
-    temperature (OGT) prediction and moves from `function` to `fitness`;
-    ThermoMPNN-D is ΔΔG prediction for single/double mutants; HyperMPNN is
-    thermostable design from hyperthermophile-trained weights; LASErMPNN is
-    ligand-conditioned design with sidechain packing for protonated
-    structures; PLACER models protein-ligand complexes from an input
-    structure; OpenDDE is all-atom prediction with MSA and template
-    guidance.
-  - auth hardening: API keys are stored as indexed sha256 digests
-    (`api_key_digest`) with single-lookup validation; legacy KDF hashes
-    migrate over with existing keys invalidated by design. CAPTCHA nonces
-    and rate-limit counters are Redis-first with per-process in-memory
-    fallback when Redis is down — login/register/captcha endpoints never
-    break on a Redis outage. The rate limiter no longer re-executes the
-    endpoint when a Redis call fails mid-request.
+  - task-type intro audit: intros/categories corrected against the runner
+    docs (Pro-Prime = OGT prediction → `fitness`; ThermoMPNN-D = ΔΔG
+    prediction; PLACER = all-atom ligand modeling; GREMLIN = conservation +
+    couplings; HyperMPNN/LASErMPNN/OpenDDE reworded).
+  - auth hardening: API keys stored as indexed sha256 digests; CAPTCHA
+    nonces and rate-limit counters are Redis-first with per-process
+    fallback.
 - Qt:
-  - Qt5/Qt6 enum bridge: `qt_wrapper.py` and the standalone package manager
-    no longer allowlist the enum members they happen to use. Each mirrors
-    every scoped-enum member of every class in the loaded Qt modules onto
-    the owning class at import, so any Qt5-style unscoped access
-    (`QMessageBox.Ok`, `QFileDialog.DontResolveSymlinks`, ...) resolves on
-    Qt6 without per-API bookkeeping. Previously unmapped members raised
-    AttributeError on Qt6 PyMOL builds (e.g. macOS).
+  - Qt5/Qt6 enum bridge: every scoped-enum member of every loaded Qt class
+    is mirrored onto the owning class at import — no per-API alias
+    allowlist; unmapped members previously crashed on Qt6 PyMOL builds.
 - **Mol* shell message dispatch**: load the isolated viewer shell script after
   its status and host elements exist. Previously the shell received structure
   messages but rejected before loading Mol* because its cached DOM nodes were
