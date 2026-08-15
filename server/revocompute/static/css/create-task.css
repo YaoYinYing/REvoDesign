@@ -1,6 +1,10 @@
 /* REvoCompute — Create Task page styles */
 /* SPDX-License-Identifier: GPL-3.0-only */
 
+/* Author display rules override the UA [hidden] style, so pin it for every
+   hidden-toggled element on this page (rail panels, wizard nav, cards). */
+[hidden] { display: none !important; }
+
 .hero { padding: 1.2rem; }
 
 .card {
@@ -234,7 +238,6 @@
   background: var(--paper); padding: 0.85rem;
   box-shadow: 0 6px 24px rgba(0,0,0,0.10);
 }
-.workspace-help-popover[hidden] { display: none; }
 
 .info-title { margin: 0; font-size: 0.95rem; font-weight: 700; }
 .info-list {
@@ -548,10 +551,6 @@ html[data-theme="dark"] {
 
 .wizard-dot.done {
   background: var(--rail-ok);
-}
-
-.workspace-card[hidden] {
-  display: none;
 }
 
 /* -- submit rows -------------------------------------------------------------- */
