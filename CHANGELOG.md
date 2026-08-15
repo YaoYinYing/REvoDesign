@@ -333,30 +333,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `GLIBC_2.38 not found` on dlopen.
 
 ### Fixed
-- **Server: auth hardening**: API keys are stored as indexed sha256 digests
-  (`api_key_digest`) with single-lookup validation; legacy KDF hashes migrate
-  over with existing keys invalidated by design. CAPTCHA nonces and
-  rate-limit counters are Redis-first with per-process in-memory fallback
-  when Redis is down — login/register/captcha endpoints never break on a
-  Redis outage. The rate limiter no longer re-executes the endpoint when a
-  Redis call fails mid-request.
-- **Server: task-type intro audit**: task intros and categories corrected
-  against the runner repos. GREMLIN is sequence conservation (PSSM) plus
-  co-evolutionary couplings (input is a sequence; the MSA is an internal
-  HHblits step; no contact map is produced). Pro-Prime is optimal growth
-  temperature (OGT) prediction and moves from `function` to `fitness`;
-  ThermoMPNN-D is ΔΔG prediction for single/double mutants; HyperMPNN is
-  thermostable design from hyperthermophile-trained weights; LASErMPNN is
-  ligand-conditioned design with sidechain packing for protonated
-  structures; PLACER models protein-ligand complexes from an input
-  structure; OpenDDE is all-atom prediction with MSA and template guidance.
-- **Plugin: unbreakable Qt5/Qt6 enum bridge**: the package manager's and
-  `REvoDesign.Qt`'s compat layers no longer allowlist the enum members they
-  happen to use. Each now mirrors every scoped-enum member of every class in
-  the loaded Qt modules onto the owning class at import, so any Qt5-style
-  unscoped access (`QMessageBox.Ok`, `QFileDialog.DontResolveSymlinks`, ...)
-  resolves on Qt6 without per-API bookkeeping. Previously unmapped members
-  raised AttributeError on Qt6 PyMOL builds (e.g. macOS).
+- Server:
+  - task-type intro audit: intros and categories corrected against the
+    runner repos. GREMLIN is sequence conservation (PSSM) plus
+    co-evolutionary couplings (input is a sequence; the MSA is an internal
+    HHblits step; no contact map is produced). Pro-Prime is optimal growth
+    temperature (OGT) prediction and moves from `function` to `fitness`;
+    ThermoMPNN-D is ΔΔG prediction for single/double mutants; HyperMPNN is
+    thermostable design from hyperthermophile-trained weights; LASErMPNN is
+    ligand-conditioned design with sidechain packing for protonated
+    structures; PLACER models protein-ligand complexes from an input
+    structure; OpenDDE is all-atom prediction with MSA and template
+    guidance.
+  - auth hardening: API keys are stored as indexed sha256 digests
+    (`api_key_digest`) with single-lookup validation; legacy KDF hashes
+    migrate over with existing keys invalidated by design. CAPTCHA nonces
+    and rate-limit counters are Redis-first with per-process in-memory
+    fallback when Redis is down — login/register/captcha endpoints never
+    break on a Redis outage. The rate limiter no longer re-executes the
+    endpoint when a Redis call fails mid-request.
+- Qt:
+  - Qt5/Qt6 enum bridge: `qt_wrapper.py` and the standalone package manager
+    no longer allowlist the enum members they happen to use. Each mirrors
+    every scoped-enum member of every class in the loaded Qt modules onto
+    the owning class at import, so any Qt5-style unscoped access
+    (`QMessageBox.Ok`, `QFileDialog.DontResolveSymlinks`, ...) resolves on
+    Qt6 without per-API bookkeeping. Previously unmapped members raised
+    AttributeError on Qt6 PyMOL builds (e.g. macOS).
 - **Mol* shell message dispatch**: load the isolated viewer shell script after
   its status and host elements exist. Previously the shell received structure
   messages but rejected before loading Mol* because its cached DOM nodes were
