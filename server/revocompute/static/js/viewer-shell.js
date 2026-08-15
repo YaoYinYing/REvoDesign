@@ -22,7 +22,9 @@
   var viewerId = null;
 
   function report(payload) {
-    window.parent.postMessage(payload, location.origin);
+    // The sandboxed frame has an opaque origin ("null") — target the
+    // parent's real origin, never location.origin.
+    window.parent.postMessage(payload, window.parent.origin);
   }
 
   function fail(message) {

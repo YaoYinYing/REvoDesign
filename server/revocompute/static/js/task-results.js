@@ -32,9 +32,18 @@
     setTimeout(function () { node.remove(); }, 3600);
   }
 
+  // The shell iframe is sandboxed without allow-same-origin, so its origin
+  // is opaque ("null") — postMessages must target the frame's own serialized
+  // origin, never the parent's.
+  function postToShell(frame, payload) {
+    var targetOrigin = "*";
+    try { targetOrigin = frame.contentWindow.origin || "*"; } catch (e) { /* frame gone */ }
+    frame.contentWindow.postMessage(payload, targetOrigin);
+  }
+
   function disposeActiveViewer() {
     if (activeMolstar) {
-      try { activeMolstar.frame.contentWindow.postMessage({ type: "dispose" }, location.origin); } catch (e) { /* frame gone */ }
+      try { postToShell(activeMolstar.frame, { type: "dispose" }); } catch (e) { /* frame gone */ }
       activeMolstar.frame.remove();
       activeMolstar = null;
     }
@@ -85,9 +94,7 @@
     activeColorMode = mode;
     // Mol* backend — forward the mode into the isolated viewer shell
     if (activeMolstar) {
-      try {
-        activeMolstar.frame.contentWindow.postMessage({ type: "color", mode: mode }, location.origin);
-      } catch (e) { /* frame gone */ }
+      try { postToShell(activeMolstar.frame, { type: "color", mode: mode }); } catch (e) { /* frame gone */ }
     }
     // py2Dmol backend — drive the existing color select in its right panel
     var colorSelect = document.querySelector(".py2dmol-fallback #colorSelect");
@@ -143,15 +150,18 @@
         reject(new Error("Mol* timed out"));
       }, 45000);
       function onMessage(event) {
-        if (event.origin !== location.origin || event.source !== frame.contentWindow || !event.data) return;
+        // The sandboxed shell has an opaque origin, so its messages carry
+        // origin "null" — the source check against our own frame is the
+        // real gate.
+        if ((event.origin !== location.origin && event.origin !== "null") || event.source !== frame.contentWindow || !event.data) return;
         if (event.data.type === "shell-ready") {
-          frame.contentWindow.postMessage({
+          postToShell(frame, {
             type: "structure",
             text: structureText,
             format: structureFormat(artifact.path),
             label: artifact.path,
             requestId: requestId
-          }, location.origin);
+          });
         } else if (event.data.type === "ready" && event.data.requestId === requestId) {
           if (settled) return;
           settled = true;
