@@ -16,6 +16,12 @@
 .artifact-row:hover, .artifact-row.active { border-color: var(--line); background: color-mix(in srgb, var(--paper) 82%, var(--accent) 18%); }
 .artifact-row-name { min-width: 0; overflow-wrap: anywhere; font: 600 0.76rem ui-monospace, SFMono-Regular, Menlo, monospace; }
 .artifact-row-size { color: var(--muted); font-size: 0.68rem; white-space: nowrap; }
+.artifact-folder-name { display: flex; align-items: center; gap: 0.35rem; padding: 0.32rem 0.45rem; border-radius: 0.45rem; color: var(--muted); font: 600 0.72rem ui-monospace, SFMono-Regular, Menlo, monospace; cursor: pointer; list-style: none; }
+.artifact-folder-name::-webkit-details-marker { display: none; }
+.artifact-folder-name::before { content: "▸"; transition: transform 120ms ease; }
+.artifact-folder[open] > .artifact-folder-name::before { transform: rotate(90deg); }
+.artifact-folder-children { margin-left: 0.9rem; padding-left: 0.55rem; border-left: 1px solid var(--line); display: grid; gap: 0.22rem; }
+.artifact-folder:hover > .artifact-folder-name { color: var(--accent); }
 .preview-workspace { min-width: 0; padding: 1rem; }
 .main-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0.65rem; margin: 0.9rem 0; }
 .main-result-card { display: grid; grid-template-rows: 7rem auto auto; min-width: 0; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 0.7rem; background: var(--paper); color: var(--ink); text-align: left; cursor: pointer; transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease; }

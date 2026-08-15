@@ -419,12 +419,54 @@
     return button;
   }
 
+  function artifactFolder(directory, children) {
+    var folder = document.createElement("details");
+    folder.className = "artifact-folder";
+    folder.open = true;
+    var summary = document.createElement("summary");
+    summary.className = "artifact-folder-name";
+    summary.textContent = directory + "/";
+    folder.appendChild(summary);
+    var inner = document.createElement("div");
+    inner.className = "artifact-folder-children";
+    children.forEach(function (child) { inner.appendChild(child); });
+    folder.appendChild(inner);
+    return folder;
+  }
+
+  function buildArtifactTree() {
+    var root = { folders: {}, files: [] };
+    artifacts.forEach(function (artifact) {
+      var node = root;
+      artifact.path.split("/").slice(0, -1).forEach(function (segment) {
+        node.folders[segment] = node.folders[segment] || { folders: {}, files: [] };
+        node = node.folders[segment];
+      });
+      node.files.push(artifact);
+    });
+    function renderNode(node) {
+      var entries = [];
+      Object.keys(node.folders).sort().forEach(function (name) {
+        entries.push(artifactFolder(name, renderNode(node.folders[name])));
+      });
+      node.files.slice().sort(function (a, b) { return a.path < b.path ? -1 : 1; })
+        .forEach(function (artifact) { entries.push(artifactButton(artifact)); });
+      return entries;
+    }
+    return renderNode(root);
+  }
+
   function renderArtifacts(query) {
     var normalized = String(query || "").trim().toLowerCase();
     var list = document.getElementById("artifactList");
     list.replaceChildren();
-    artifacts.filter(function (artifact) { return !normalized || artifact.path.toLowerCase().includes(normalized); })
-      .forEach(function (artifact) { list.appendChild(artifactButton(artifact)); });
+    if (normalized) {
+      // Search shows a flat result list — a collapsed tree would hide matches.
+      artifacts.filter(function (artifact) { return artifact.path.toLowerCase().includes(normalized); })
+        .forEach(function (artifact) { list.appendChild(artifactButton(artifact)); });
+      return;
+    }
+    buildArtifactTree().forEach(function (node) { list.appendChild(node); });
   }
 
   async function loadImageThumbnail(artifact, frame) {

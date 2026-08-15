@@ -136,6 +136,8 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert "PluginRegistry.prototype.register" in plugin_host
     assert ".artifact-table-preview" in styles
     assert ".artifact-molstar-preview" in styles
+    assert ".artifact-folder-name" in styles
+    assert "buildArtifactTree" in script
 
 
 def test_execution_logs_are_diagnostic_text_artifacts_not_main_results():
