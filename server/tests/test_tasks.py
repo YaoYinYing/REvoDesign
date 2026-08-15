@@ -226,6 +226,7 @@ def test_create_task_page_has_categorized_rail_and_validation_panel():
         'id="validationChecks"',
         'id="validationSubmit"',
         'id="uploadButton"',
+        'id="taskIntro"',
     ):
         assert marker in template
     script = (SERVER_PACKAGE / "static" / "js" / "create-task.js").read_text(encoding="utf-8")

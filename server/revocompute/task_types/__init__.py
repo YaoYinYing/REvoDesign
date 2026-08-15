@@ -97,6 +97,8 @@ class TaskType:
     input_workspace: tuple[InputCapability, ...] = ()
     # Classification for the create-task category rail (data, not behaviour).
     category: str = "other"
+    # One-paragraph method intro shown on the submission page.
+    intro: str = ""
 
 
 @dataclass(frozen=True)
@@ -391,6 +393,7 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             input_extension=entry["input_extension"],
             input_label=entry["input_label"],
             category=entry.get("category", "other"),
+            intro=entry.get("intro", ""),
             input_extensions=input_extensions,
             primary_input_extensions=primary_input_extensions,
             allow_multiple_inputs=allow_multiple_inputs,

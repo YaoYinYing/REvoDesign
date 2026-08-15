@@ -21,6 +21,7 @@
   var wizardProgress = document.getElementById("wizardProgress");
   var activeTaskCategory = document.getElementById("activeTaskCategory");
   var activeTaskName = document.getElementById("activeTaskName");
+  var taskIntro = document.getElementById("taskIntro");
   var validationChecks = document.getElementById("validationChecks");
   var validationSummary = document.getElementById("validationSummary");
   var currentForm = null;
@@ -278,6 +279,7 @@
     stepIndex = 0;
     activeTaskCategory.textContent = labelFor(definition.category);
     activeTaskName.textContent = definition.display_name;
+    taskIntro.textContent = definition.intro || "";
     setStatus("Ready to prepare " + definition.display_name + ".");
     applyMode();
   }

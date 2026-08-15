@@ -229,6 +229,7 @@ def task_types_list():
                 "name": tt.name,
                 "display_name": tt.display_name,
                 "category": tt.category,
+                "intro": tt.intro,
                 "runtime_family": tt.runtime.name,
                 "gpus": tt.gpus,
                 "input_extension": tt.input_extension,
@@ -311,6 +312,7 @@ def task_type_form(name: str):
             "name": tt.name,
             "display_name": tt.display_name,
             "category": tt.category,
+            "intro": tt.intro,
             "runtime_family": tt.runtime.name,
             "gpus": tt.gpus,
             "file_input": {

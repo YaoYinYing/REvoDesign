@@ -664,3 +664,11 @@ html[data-theme="dark"] {
   .rail-node { padding: 0.36rem 0.58rem; font-size: 0.76rem; }
   .active-task-line { flex-direction: column; gap: 0.15rem; }
 }
+
+
+.task-intro {
+  margin: 0 0 0.9rem;
+  font: 400 0.84rem/1.5 var(--font-data);
+  color: var(--muted);
+  max-width: 46rem;
+}
