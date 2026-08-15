@@ -24,7 +24,7 @@ import pytest
 QT6_PROBE = """
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-{bridge}
+%s
 
 _install_qt_enum_bridge()
 # Members the old allowlist covered, plus the ones it missed
@@ -59,7 +59,7 @@ def test_qt_enum_bridge_resolves_unscoped_qt5_style_access_on_pyqt6():
         pytest.skip("PyQt6 not installed")
     bridge = _shipped_function_source("tools/package_manager.py", "_install_qt_enum_bridge")
     result = subprocess.run(
-        [sys.executable, "-c", QT6_PROBE.format(bridge=bridge)],
+        [sys.executable, "-c", QT6_PROBE % bridge],
         capture_output=True,
         text=True,
         timeout=120,
@@ -79,7 +79,7 @@ for _name in ("QtWebSockets", "QtUiTools"):
     except ImportError:
         globals()[_name] = None
 
-{bridge}
+%s
 
 _install_unscoped_enum_bridge()
 QtWidgets.QMessageBox.Ok
@@ -95,7 +95,7 @@ def test_qt_wrapper_enum_bridge_resolves_unscoped_access_on_pyqt6():
         pytest.skip("PyQt6 not installed")
     bridge = _shipped_function_source("Qt/qt_wrapper.py", "_install_unscoped_enum_bridge")
     result = subprocess.run(
-        [sys.executable, "-c", QT6_WRAPPER_PROBE.format(bridge=bridge)],
+        [sys.executable, "-c", QT6_WRAPPER_PROBE % bridge],
         capture_output=True,
         text=True,
         timeout=120,
