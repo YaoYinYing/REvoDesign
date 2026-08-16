@@ -286,9 +286,16 @@
       target.append(status, frame, chains, residues);
       var generation = 0;
       var reader = null; var requestId = null;
+      var shellReady = false; var pendingStructure = null;
       context.selectedResidues = [];
       function receive(event) {
-        if (event.source !== frame.contentWindow || !event.data || event.data.requestId !== requestId) return;
+        if (event.source !== frame.contentWindow || !event.data) return;
+        if (event.data.type === "shell-ready") {
+          shellReady = true;
+          if (pendingStructure) { frame.contentWindow.postMessage(pendingStructure, "*"); pendingStructure = null; }
+          return;
+        }
+        if (event.data.requestId !== requestId) return;
         if (event.data.type === "selection" && Array.isArray(event.data.residues)) {
           context.selectedResidues = event.data.residues; context.changed();
         }
@@ -307,9 +314,13 @@
         reader.addEventListener("load", function () {
           if (current !== generation) return;
           requestId = "input-" + current + "-" + Date.now(); frame.hidden = false;
-          frame.contentWindow.postMessage({ type: "structure", requestId: requestId, text: reader.result,
+          var message = { type: "structure", requestId: requestId, text: reader.result,
             format: lowerName(file).endsWith(".pdb") ? "pdb" : "mmcif", label: pathFor(file),
-            selectionEnabled: true, showControls: true }, "*");
+            selectionEnabled: true, showControls: true };
+          // The shell's message listener may not be installed yet (slow first
+          // load): queue until the iframe reports shell-ready, mirroring the
+          // result viewer's handshake so the post can never be dropped.
+          if (shellReady) frame.contentWindow.postMessage(message, "*"); else pendingStructure = message;
           status.textContent = pathFor(file) + " · use the 3D viewer to select residues";
         });
         reader.addEventListener("error", function () { status.textContent = "This structure could not be read locally."; });
@@ -319,7 +330,7 @@
       context.structureChains = function () { return Array.from(chains.querySelectorAll("input:checked")).map(function (input) { return input.value; }); };
       residues.addEventListener("change", context.changed);
       return { refresh: refresh, readValue: function () { return { selected_residues: context.structureSelections() }; }, destroy: function () {
-        generation += 1; if (reader) reader.abort(); window.removeEventListener("message", receive);
+        generation += 1; pendingStructure = null; if (reader) reader.abort(); window.removeEventListener("message", receive);
         if (frame.contentWindow) frame.contentWindow.postMessage({ type: "dispose" }, "*");
       } };
     }

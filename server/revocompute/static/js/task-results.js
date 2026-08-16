@@ -426,6 +426,7 @@
 
   async function renderResidueTableStructure(view) {
     activeArtifact = null; previewHost.destroy(); disposeActiveViewer();
+    var generation = previewHost.generation;
     document.getElementById("previewTitle").textContent = view.title;
     document.getElementById("artifactDownload").hidden = true;
     var tableArtifact = artifacts.find(function (item) { return item.path === view.artifacts.table; });
@@ -435,8 +436,10 @@
       A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5) + "/tables/" + view.artifacts.table.split("/").map(encodeURIComponent).join("/") + "?limit=100"),
       A.authFetch(structureArtifact.url)
     ]);
+    if (generation !== previewHost.generation) return;
     if (!responses[0].ok || !responses[1].ok) throw new Error("Linked result data could not be loaded");
     var page = await responses[0].json(); var structureText = await responses[1].text();
+    if (generation !== previewHost.generation) return;
     var stage = document.getElementById("artifactPreview"); stage.replaceChildren();
     var layout = document.createElement("div"); layout.className = "linked-result-layout";
     var tableWrap = document.createElement("div"); tableWrap.className = "artifact-table-wrap linked-result-table";
@@ -463,8 +466,8 @@
     tableWrap.appendChild(table);
     var viewerStage = document.createElement("div"); viewerStage.className = "linked-result-structure";
     layout.append(tableWrap, viewerStage); stage.appendChild(layout);
-    try { await renderMolstar(structureText, structureArtifact, viewerStage, previewHost.generation); }
-    catch (error) { var message = document.createElement("p"); message.className = "preview-message"; message.textContent = "Structure linking unavailable: " + error.message; viewerStage.appendChild(message); }
+    try { await renderMolstar(structureText, structureArtifact, viewerStage, generation); }
+    catch (error) { if (generation === previewHost.generation) { var message = document.createElement("p"); message.className = "preview-message"; message.textContent = "Structure linking unavailable: " + error.message; viewerStage.appendChild(message); } }
   }
 
   viewRegistry.register({ id: "residue-table-structure", mount: function () {}, render: renderResidueTableStructure });

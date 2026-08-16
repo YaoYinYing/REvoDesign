@@ -62,7 +62,8 @@
       function useFixed() { fixed = selectedRanges(); context.changed(); normalize(); }
       function useHotspots() { hotspots = selections(); context.changed(); normalize(); }
       motif.addEventListener("click", useFixed); targetButton.addEventListener("click", useFixed); hotspot.addEventListener("click", useHotspots);
-      [mode, raw, minimum, maximum].forEach(function (node) { node.addEventListener("change", function () { context.changed(); normalize(); }); });
+      mode.addEventListener("change", function () { if (mode.value === "unconditional") hotspots = []; context.changed(); normalize(); });
+      [raw, minimum, maximum].forEach(function (node) { node.addEventListener("change", function () { context.changed(); normalize(); }); });
       return { readValue: value, validate: function () { return []; }, destroy: function () { if (controller) controller.abort(); } };
     }
   });

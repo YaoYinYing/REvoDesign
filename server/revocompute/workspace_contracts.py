@@ -117,6 +117,8 @@ def normalize_rfdiffusion(value: Any) -> dict[str, Any]:
             raise WorkspaceValidationError("Hotspots require a chain and integer residue")
         hotspots.append({"chain": str(item["chain"]), "residue": item["residue"]})
     kinds = [item["kind"] for item in segments]
+    if mode == "unconditional" and hotspots:
+        raise WorkspaceValidationError("Hotspots are not supported in unconditional mode")
     if mode == "unconditional" and kinds != ["generated"]:
         raise WorkspaceValidationError("Unconditional mode requires exactly one generated segment")
     if mode == "motif_scaffolding" and "fixed" not in kinds:

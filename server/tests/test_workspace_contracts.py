@@ -45,6 +45,17 @@ def test_binder_normalization_is_canonical():
     }
 
 
+def test_unconditional_rejects_hotspots():
+    with pytest.raises(WorkspaceValidationError, match="Hotspots"):
+        normalize_rfdiffusion(
+            {
+                "mode": "unconditional",
+                "segments": [{"kind": "generated", "min_length": 40, "max_length": 40}],
+                "hotspots": [{"chain": "A", "residue": 10}],
+            }
+        )
+
+
 def test_binder_requires_hotspots():
     with pytest.raises(WorkspaceValidationError, match="hotspots"):
         normalize_rfdiffusion(
