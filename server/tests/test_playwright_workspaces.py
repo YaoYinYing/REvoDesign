@@ -32,7 +32,8 @@ def test_native_browser_mounts_and_collects_rfdiffusion_workspace(page: Page) ->
           params: [
             {name: "design_mode", type: "str", default: "unconditional"},
             {name: "contig", type: "str", default: "100-100"},
-            {name: "hotspot_res", type: "str", default: ""}
+            {name: "hotspot_res", type: "str", default: ""},
+            {name: "diffuser_b_0", type: "float", default: 0.01, minimum: 0}
           ],
           input_workspace: {version: 2, capabilities: [
             {plugin: "files", id: "source_files", title: "Files", options: {primary_required: false}},
@@ -49,6 +50,9 @@ def test_native_browser_mounts_and_collects_rfdiffusion_workspace(page: Page) ->
     collected = page.evaluate("window.workspace.collect().design_regions")
     assert collected["mode"] == "unconditional"
     assert collected["segments"] == [{"kind": "generated", "min_length": 100, "max_length": 100}]
+    # Fractional float defaults must satisfy native constraint validation
+    # (a bare step=1 would flag 0.01 as a step mismatch).
+    assert page.evaluate("window.workspace.validate()") == []
 
 
 def test_structure_plugin_queues_structure_until_shell_ready(page: Page) -> None:

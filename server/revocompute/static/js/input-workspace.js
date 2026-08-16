@@ -118,6 +118,7 @@
       if (parameter.minimum != null) control.min = parameter.minimum;
       if (parameter.maximum != null) control.max = parameter.maximum;
       if (parameter.step != null) control.step = parameter.step;
+      else if (parameter.type === "float") control.step = "any";  // fractional defaults (0.01, 0.07) would otherwise fail step=1
       control.required = Boolean(parameter.required);
       control.id = "param_" + parameter.name;
       control.dataset.paramName = parameter.name;
