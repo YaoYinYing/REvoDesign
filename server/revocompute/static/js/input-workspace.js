@@ -278,12 +278,10 @@
     id: "structure",
     mount: function (target, definition, context) {
       var status = element("p", "structure-status", "Choose a PDB or mmCIF file to inspect it locally.");
-      var chains = element("div", "structure-chain-list");
-      var residues = element("select", "text-input structure-residue-select"); residues.multiple = true; residues.hidden = true;
       var frame = element("iframe", "structure-workbench-frame");
       frame.src = "/compute/viewer-shell"; frame.title = "Interactive structure selection";
       frame.hidden = true; frame.setAttribute("sandbox", "allow-scripts");
-      target.append(status, frame, chains, residues);
+      target.append(status, frame);
       var generation = 0;
       var reader = null; var requestId = null;
       var shellReady = false; var pendingStructure = null;
@@ -305,7 +303,7 @@
         generation += 1; var current = generation;
         if (reader) reader.abort();
         var file = context.primaryFile();
-        chains.replaceChildren(); residues.replaceChildren(); residues.hidden = true; context.structure = null; context.selectedResidues = [];
+        context.structure = null; context.selectedResidues = [];
         if (!file || !matchesExtension(file, [".pdb", ".cif", ".mmcif"])) {
           frame.hidden = true; status.textContent = "Choose a PDB or mmCIF primary file for structure-guided modes."; return;
         }
@@ -327,8 +325,6 @@
         reader.readAsText(file);
       }
       context.structureSelections = function () { return context.selectedResidues.slice(); };
-      context.structureChains = function () { return Array.from(chains.querySelectorAll("input:checked")).map(function (input) { return input.value; }); };
-      residues.addEventListener("change", context.changed);
       return { refresh: refresh, readValue: function () { return { selected_residues: context.structureSelections() }; }, destroy: function () {
         generation += 1; pendingStructure = null; if (reader) reader.abort(); window.removeEventListener("message", receive);
         if (frame.contentWindow) frame.contentWindow.postMessage({ type: "dispose" }, "*");

@@ -683,3 +683,13 @@ html[data-theme="dark"] {
 /* keyboard hint for the rail */
 .rail-node::first-letter { }
 .structure-workbench-frame { width: 100%; min-height: 32rem; border: 1px solid var(--line); border-radius: 0.65rem; background: var(--paper); }
+.rfd-mode-row { display: flex; align-items: center; gap: 0.6rem; }
+.rfd-intent { margin: 0.25rem 0 0.75rem; color: var(--muted); font-style: italic; }
+.rfd-step { margin: 0.5rem 0; padding-left: 0.75rem; border-left: 2px solid var(--line); }
+.rfd-step-title { margin: 0 0 0.25rem; font-weight: 600; }
+.rfd-apply-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.25rem 0; }
+.rfd-feedback { margin: 0.25rem 0; color: var(--muted); font-size: 0.85rem; }
+.rfd-feedback-error { color: #a02f24; }
+.rfd-length-fields { display: grid; grid-template-columns: auto 6rem auto 6rem; gap: 0.25rem 0.5rem; align-items: center; max-width: 26rem; }
+.rfd-status { margin: 0.75rem 0 0; color: var(--muted); font-size: 0.85rem; }
+.rfd-status-error { color: #a02f24; }

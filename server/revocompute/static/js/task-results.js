@@ -378,7 +378,14 @@
     var encoded = artifact.path.split("/").map(encodeURIComponent).join("/");
     var response = await A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5) + "/tables/" + encoded + "?limit=100");
     if (!response.ok) throw new Error("Table preview download failed");
-    renderTable(await response.json(), stage);
+    var page = await response.json();
+    renderTable(page, stage);
+    if (page.has_more) {
+      var note = document.createElement("p");
+      note.className = "preview-message";
+      note.textContent = "Showing the first 100 rows. Download the file for the complete table.";
+      stage.appendChild(note);
+    }
   }
 
   previewRegistry = window.REvoComputeResultPreviews.createRegistry({
@@ -450,13 +457,15 @@
     var chainIndex = page.columns.indexOf(view.mapping.chain_column);
     var residueIndex = page.columns.indexOf(view.mapping.residue_column);
     if (residueIndex < 0) throw new Error("Configured residue column is absent from the result table");
+    var viewerFrame = null;
     page.rows.forEach(function (row) {
       var tr = document.createElement("tr"); tr.tabIndex = 0; tr.setAttribute("aria-selected", "false");
       row.forEach(function (value) { var td = document.createElement("td"); td.textContent = value; tr.appendChild(td); });
       function select() {
         table.querySelectorAll("tr[aria-selected=true]").forEach(function (node) { node.setAttribute("aria-selected", "false"); });
         tr.setAttribute("aria-selected", "true");
-        if (activeMolstar) postToShell(activeMolstar.frame, { type: "select-residue", chain: chainIndex >= 0 ? row[chainIndex] : "",
+        if (!viewerFrame) return;
+        postToShell(viewerFrame, { type: "select-residue", chain: chainIndex >= 0 ? row[chainIndex] : "",
           residue: Number(row[residueIndex]), numbering: view.mapping.numbering });
       }
       tr.addEventListener("click", select); tr.addEventListener("keydown", function (event) {
@@ -464,9 +473,15 @@
       }); table.appendChild(tr);
     });
     tableWrap.appendChild(table);
+    if (page.has_more) {
+      var note = document.createElement("p");
+      note.className = "preview-message";
+      note.textContent = "Showing the first 100 rows. Download the file for the complete table.";
+      tableWrap.appendChild(note);
+    }
     var viewerStage = document.createElement("div"); viewerStage.className = "linked-result-structure";
     layout.append(tableWrap, viewerStage); stage.appendChild(layout);
-    try { await renderMolstar(structureText, structureArtifact, viewerStage, generation); }
+    try { viewerFrame = await renderMolstar(structureText, structureArtifact, viewerStage, generation); }
     catch (error) { if (generation === previewHost.generation) { var message = document.createElement("p"); message.className = "preview-message"; message.textContent = "Structure linking unavailable: " + error.message; viewerStage.appendChild(message); } }
   }
 

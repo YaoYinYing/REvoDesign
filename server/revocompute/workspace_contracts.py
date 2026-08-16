@@ -9,9 +9,9 @@ from __future__ import annotations
 import re
 from typing import Any
 
-_FIXED = re.compile(r"^([A-Za-z0-9])(-?\d+)-(-?\d+)$")
+_FIXED = re.compile(r"^([A-Za-z])(-?\d+)-(-?\d+)$")
 _GENERATED = re.compile(r"^(\d+)-(\d+)$")
-_HOTSPOT = re.compile(r"^([A-Za-z0-9])(-?\d+)$")
+_HOTSPOT = re.compile(r"^([A-Za-z])(-?\d+)$")
 _MODES = {"unconditional", "motif_scaffolding", "binder", "expert"}
 
 
@@ -37,10 +37,12 @@ def _segment(value: Any) -> dict[str, Any]:
         chain = str(value.get("chain") or "")
         start = value.get("start")
         end = value.get("end")
-        if len(chain) != 1 or not chain.isalnum() or not isinstance(start, int) or not isinstance(end, int):
-            raise WorkspaceValidationError("Fixed segments require a one-character chain and integer range")
+        if len(chain) != 1 or not chain.isalpha() or not isinstance(start, int) or not isinstance(end, int):
+            raise WorkspaceValidationError("Fixed segments require a one-letter chain and integer range")
         if end < start:
             raise WorkspaceValidationError("Fixed segment end must not precede its start")
+        if end - start + 1 > 10000:
+            raise WorkspaceValidationError("Fixed segment range must not exceed 10000 residues")
         return {"kind": "fixed", "chain": chain, "start": start, "end": end}
     raise WorkspaceValidationError(f"Unknown contig segment kind: {kind!r}")
 

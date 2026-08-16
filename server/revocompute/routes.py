@@ -1032,8 +1032,9 @@ def get_result_table(md5sum: str, relative_path: str):
                 if len(row) > 100 or any(len(cell) > 16384 for cell in row):
                     raise ValueError("Table row exceeds preview limits")
                 rows.append(row)
-    except (OSError, UnicodeError, csv.Error, ValueError) as exc:
-        return jsonify({"error": str(exc)}), 400
+    except (OSError, UnicodeError, csv.Error, ValueError):
+        logging.exception("Table preview failed for task %s artifact %s", md5sum, relative_path)
+        return jsonify({"error": "Table could not be previewed"}), 400
     has_more = len(rows) > limit
     return jsonify({"columns": columns, "rows": rows[:limit], "offset": offset, "limit": limit, "has_more": has_more})
 

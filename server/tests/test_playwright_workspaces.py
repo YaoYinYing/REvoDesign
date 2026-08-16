@@ -21,6 +21,7 @@ def test_native_browser_mounts_and_collects_rfdiffusion_workspace(page: Page) ->
         window.fetch = function () { return Promise.resolve({ok: true, json: function () {
           return Promise.resolve({summary: "normalized"});
         }}); };
+        window.REvoDesignAuth = { authFetch: function (url, options) { return window.fetch(url, options); } };
         window.workspace = new window.REvoComputeInputWorkspace.InputWorkspace(
           document.getElementById("root"),
           {fileInput: document.getElementById("files"), status: function () {}}

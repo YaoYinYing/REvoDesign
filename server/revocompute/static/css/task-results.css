@@ -59,7 +59,7 @@
 .artifact-table-preview th { position: sticky; top: 0; background: var(--paper); }
 .linked-result-layout { display: grid; grid-template-columns: minmax(18rem, 0.8fr) minmax(24rem, 1.2fr); gap: 1rem; }
 .linked-result-table { max-height: 46rem; overflow: auto; }
-.linked-result-table tr[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.linked-result-table tr[aria-selected="true"] { background: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .linked-result-table tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .linked-result-structure .artifact-molstar-preview { height: 46rem; }
 @media (max-width: 900px) {

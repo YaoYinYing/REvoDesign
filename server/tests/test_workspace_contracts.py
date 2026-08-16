@@ -45,6 +45,28 @@ def test_binder_normalization_is_canonical():
     }
 
 
+def test_fixed_segment_range_is_bounded():
+    with pytest.raises(WorkspaceValidationError, match="10000"):
+        normalize_rfdiffusion(
+            {
+                "mode": "motif_scaffolding",
+                "segments": [{"kind": "fixed", "chain": "A", "start": 1, "end": 20000}],
+                "hotspots": [],
+            }
+        )
+
+
+def test_numeric_chain_is_rejected():
+    with pytest.raises(WorkspaceValidationError, match="chain"):
+        normalize_rfdiffusion(
+            {
+                "mode": "motif_scaffolding",
+                "segments": [{"kind": "fixed", "chain": "1", "start": 2, "end": 20}],
+                "hotspots": [],
+            }
+        )
+
+
 def test_unconditional_rejects_hotspots():
     with pytest.raises(WorkspaceValidationError, match="Hotspots"):
         normalize_rfdiffusion(

@@ -59,7 +59,7 @@
     var prefix = message.numbering === "auth_seq_id" ? "auth" : "label";
     elements["beg_" + prefix + "_seq_id"] = Number(message.residue);
     elements["end_" + prefix + "_seq_id"] = Number(message.residue);
-    if (message.chain) elements.auth_asym_id = String(message.chain);
+    if (message.chain) elements[prefix + "_asym_id"] = String(message.chain);
     viewer.plugin.managers.interactivity.lociSelects.deselectAll();
     viewer.structureInteractivity({ elements: elements, action: "select" });
   }
