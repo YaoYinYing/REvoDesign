@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Server:
   - version-2 scientific workspaces: modular task-selected RFdiffusion modes, Mol* residue selection (with result controls hidden by default), declarative linked result views, bounded table pages, and EASIFA table-to-structure mapping. Breaking: every task type must declare `input_workspace` explicitly — startup fails closed when a custom registry omits it.
+  - runner: patch RFdiffusion's checkpoint-override parsing (`bool("false")` is True), so binder runs respect `preprocess.sidechain_input=false` instead of crashing in the broken upstream sidechain path.
   - multi-task architecture: YAML task-type registry with nine shared runtime families; one machine-local runner YAML per family (mounts, env, limits); missing registry files fail closed.
   - `GET /compute/api/types` (+ `/types/<name>`): public enabled task types with full param schemas; `TaskSubmissionRequest` pydantic model rejects unknown params/task types at the API boundary.
   - upload content validation per extension (FASTA/A3M/PDB/mmCIF/JSON) with DoS caps — third-party parsers never see pathological files.
