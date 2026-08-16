@@ -477,6 +477,61 @@ def test_shared_runner_gives_rfdiffusion_writable_runtime_directories():
     assert '"inference.output_prefix=${output_dir}/design"' in script
 
 
+def test_rfdiffusion_defaults_match_pinned_upstream_inference_config():
+    registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
+    params = {param["name"]: param.get("default") for param in registry["task_types"]["rfdiffusion"]["params"]}
+
+    # RosettaCommons/RFdiffusion@86507b6, config/inference/base.yaml.
+    expected = {
+        "num_designs": 10,
+        "design_startnum": 0,
+        "recenter": True,
+        "radius": 10.0,
+        "model_only_neighbors": False,
+        "write_trajectory": True,
+        "empty_cache_per_design": False,
+        "cautious": True,
+        "align_motif": True,
+        "symmetric_self_cond": True,
+        "final_step": 1,
+        "deterministic": False,
+        "cyclic": False,
+        "cyc_chains": "a",
+        "diffuser_T": 50,
+        "diffuser_b_0": 0.01,
+        "diffuser_b_T": 0.07,
+        "diffuser_schedule_type": "linear",
+        "noise_scale_ca": 1.0,
+        "final_noise_scale_ca": 1.0,
+        "ca_noise_schedule_type": "constant",
+        "noise_scale_frame": 1.0,
+        "final_noise_scale_frame": 1.0,
+        "frame_noise_schedule_type": "constant",
+        "guide_scale": 10.0,
+        "guide_decay": "constant",
+        "sidechain_input": False,
+        "motif_sidechain_input": True,
+    }
+    assert {name: params[name] for name in expected} == expected
+
+    # Empty UI strings are omitted by the runner and are Hydra-null equivalent.
+    nullable = {
+        "symmetry",
+        "inpaint_seq",
+        "inpaint_str",
+        "inpaint_str_helix",
+        "inpaint_str_strand",
+        "inpaint_str_loop",
+        "provide_seq",
+        "length",
+        "partial_T",
+        "hotspot_res",
+        "guiding_potentials",
+        "substrate",
+    }
+    assert all(params[name] in (None, "") for name in nullable)
+
+
 def test_submission_resolves_defaults_and_constraints():
     runtime = task_types.RuntimeFamily(
         name="test",

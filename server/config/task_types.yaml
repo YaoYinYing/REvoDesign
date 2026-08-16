@@ -598,6 +598,9 @@ task_types:
       - {name: "inpaint_str_loop", type: "str", default: "", description: "Hydra list of loop-masked positions", advanced: true}
       - {name: "provide_seq", type: "str", default: "", description: "Hydra list of sequence positions kept visible", advanced: true}
       - {name: "length", type: "str", default: "", description: "Optional contig length constraint", advanced: true}
+      # These checkpoint-sensitive defaults mirror the pinned RFdiffusion
+      # config/inference/base.yaml. The runner forwards them intentionally so
+      # checkpoint training metadata does not silently replace inference defaults.
       - {name: "diffuser_T", type: "int", default: 50, minimum: 1, description: "Number of diffusion timesteps", advanced: true}
       - {name: "diffuser_b_0", type: "float", default: 0.01, minimum: 0, description: "Initial translation variance", advanced: true}
       - {name: "diffuser_b_T", type: "float", default: 0.07, minimum: 0, description: "Final translation variance", advanced: true}
