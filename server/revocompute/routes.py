@@ -230,6 +230,28 @@ def favicon():
     return send_from_directory(TEMPLATE_IMAGE_DIR, "logo.ico", mimetype="image/vnd.microsoft.icon")
 
 
+# Workspace assets change on every deploy; the default static cache
+# (max-age=14400) would keep stale viewers and forms in browsers for hours
+# after a restart. These files revalidate on every load instead.
+_ITERATED_STATIC_JS = {
+    "viewer-shell.js",
+    "plugin-host.js",
+    "result-preview-plugins.js",
+    "input-workspace.js",
+    "input-workspace-rfdiffusion.js",
+    "create-task.js",
+    "task-results.js",
+}
+
+
+@app.route("/static/js/<path:filename>", methods=["GET"])
+def static_workspace_js(filename: str):
+    response = send_from_directory(os.path.join(current_app.static_folder, "js"), filename, conditional=True)
+    if filename in _ITERATED_STATIC_JS:
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 @app.route("/compute/logo.svg", methods=["GET"])
 def logo_svg():
     return send_from_directory(TEMPLATE_IMAGE_DIR, "logo.svg", mimetype="image/svg+xml")
