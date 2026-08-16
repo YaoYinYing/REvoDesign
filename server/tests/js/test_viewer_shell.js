@@ -44,6 +44,17 @@ var layoutShowControls = null;
     querySelector: function () { return null; },
     createElement: function (tag) { return fakeNode(tag); }
   };
+  var selectionChanged = [];
+  var selectedStructure = {
+    units: [
+      {
+        kind: 0,
+        chain: "A",
+        elements: [5],
+        residues: { 5: { auth: 163, label: 163 } }
+      }
+    ]
+  };
   var window = {
     parent: parentWindow,
     addEventListener: function (type, listener) { listeners[type] = listener; },
@@ -59,10 +70,21 @@ var layoutShowControls = null;
               },
               managers: {
                 structure: {
-                  hierarchy: { currentComponentGroups: [[componentA], [componentB]] },
+                  hierarchy: { currentComponentGroups: [[componentA], [componentB]], current: { structures: [selectedStructure] } },
                   component: {
                     updateRepresentationsTheme: async function (components, theme) {
                       colorUpdates.push({ components: components, theme: theme });
+                    }
+                  },
+                  selection: {
+                    events: {
+                      changed: {
+                        subscribe: function (handler) { selectionChanged.push(handler); return { unsubscribe: function () {} }; }
+                      }
+                    },
+                    getLoci: function (structure) {
+                      if (structure !== selectedStructure) return undefined;
+                      return { structure: selectedStructure, elements: [0] };
                     }
                   }
                 }
@@ -72,6 +94,27 @@ var layoutShowControls = null;
               loadedStructure = { text: text, format: format, options: options };
             }
           };
+        }
+      },
+      lib: {
+        structure: {
+          StructureElement: {
+            Location: {
+              create: function (_structure, unit, elementIndex) {
+                return { _chain: unit.chain, _residue: unit.residues[elementIndex] };
+              }
+            }
+          },
+          StructureProperties: {
+            chain: {
+              auth_asym_id: function (location) { return location._chain; },
+              label_asym_id: function () { return undefined; }
+            },
+            residue: {
+              auth_seq_id: function (location) { return location._residue.auth; },
+              label_seq_id: function (location) { return location._residue.label; }
+            }
+          }
         }
       }
     }
@@ -95,7 +138,8 @@ var layoutShowControls = null;
       label: "probe",
       requestId: "probe-1",
       theme: "dark",
-      colorMode: "plddt"
+      colorMode: "plddt",
+      selectionEnabled: true
     }
   });
   await new Promise(function (resolve) { setTimeout(resolve, 0); });
@@ -147,6 +191,19 @@ var layoutShowControls = null;
     return entry.payload.type === "ready" && entry.payload.requestId === "probe-1";
   })) {
     throw new Error("shell did not report structure readiness");
+  }
+  if (selectionChanged.length !== 1) {
+    throw new Error("shell did not subscribe to selection changes");
+  }
+  selectionChanged[0]();
+  await new Promise(function (resolve) { setTimeout(resolve, 0); });
+  var selectionReports = reports.filter(function (entry) { return entry.payload.type === "selection"; });
+  if (selectionReports.length !== 1) {
+    throw new Error("shell did not report the selection change");
+  }
+  var residues = selectionReports[0].payload.residues;
+  if (residues.length !== 1 || residues[0].chain !== "A" || residues[0].residue !== 163) {
+    throw new Error("shell reported wrong selected residues: " + JSON.stringify(residues));
   }
   console.log("viewer shell message contract passed");
 }
