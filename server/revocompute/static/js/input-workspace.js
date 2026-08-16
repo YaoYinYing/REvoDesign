@@ -322,7 +322,7 @@
           // load): queue until the iframe reports shell-ready, mirroring the
           // result viewer's handshake so the post can never be dropped.
           if (shellReady) frame.contentWindow.postMessage(message, "*"); else pendingStructure = message;
-          status.textContent = pathFor(file) + " · use the 3D viewer to select residues";
+          status.textContent = pathFor(file) + " · select residues in the 3D view or the sequence strip";
         });
         reader.addEventListener("error", function () { status.textContent = "This structure could not be read locally."; });
         reader.readAsText(file);

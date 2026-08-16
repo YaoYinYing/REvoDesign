@@ -35,7 +35,7 @@
       var apply = element("button", "btn btn-soft btn-small", "Use selection as motif"); apply.type = "button";
       var hotspot = element("button", "btn btn-soft btn-small", "Use selection as hotspots"); hotspot.type = "button";
       var feedback = element("p", "rfd-feedback");
-      var guidedHelp = element("p", "param-help", "1. Select residues in the 3D viewer, then apply them below.");
+      var guidedHelp = element("p", "param-help", "1. Select residues in the viewer — click in the 3D view or the sequence strip — then apply them below.");
       applyRow.append(apply, hotspot);
       guided.append(guidedHelp, applyRow, feedback);
 
@@ -123,7 +123,7 @@
       }
       function useFixed() {
         var ranges = selectedRanges();
-        if (!ranges.length) { feedback.textContent = "Select residues in the 3D viewer first."; feedback.className = "rfd-feedback rfd-feedback-error"; return; }
+        if (!ranges.length) { feedback.textContent = "Select residues in the viewer first."; feedback.className = "rfd-feedback rfd-feedback-error"; return; }
         fixed = ranges;
         feedback.textContent = (mode.value === "binder" ? "Target: " : "Motif: ") + describeRanges(ranges);
         feedback.className = "rfd-feedback";
@@ -131,7 +131,7 @@
       }
       function useHotspots() {
         var picked = selections();
-        if (!picked.length) { feedback.textContent = "Select residues in the 3D viewer first."; feedback.className = "rfd-feedback rfd-feedback-error"; return; }
+        if (!picked.length) { feedback.textContent = "Select residues in the viewer first."; feedback.className = "rfd-feedback rfd-feedback-error"; return; }
         hotspots = picked;
         feedback.textContent = "Hotspots: " + describeSelections(picked);
         feedback.className = "rfd-feedback";

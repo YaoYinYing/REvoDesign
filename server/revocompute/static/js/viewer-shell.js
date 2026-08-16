@@ -28,17 +28,25 @@
 
   function selectedResidues() {
     var residues = new Map();
-    if (!viewer || !viewer.plugin || !window.molstar.Structure || !window.molstar.StructureProperties) return [];
-    Array.from(viewer.plugin.managers.structure.selection.entries.values()).forEach(function (entry) {
-      if (!entry.structure) return;
-      window.molstar.Structure.eachAtomicHierarchyElement(entry.structure, {
-        residue: function (location) {
-          var props = window.molstar.StructureProperties;
-          var chain = String(props.chain.auth_asym_id(location) || props.chain.label_asym_id(location) || "_");
-          var auth = Number(props.residue.auth_seq_id(location));
-          var label = Number(props.residue.label_seq_id(location));
-          residues.set(chain + ":" + auth + ":" + label, { chain: chain, auth_seq_id: auth, label_seq_id: label, residue: auth });
-        }
+    var molstar = window.molstar;
+    if (!viewer || !viewer.plugin || !molstar.Loci || !molstar.StructureElement || !molstar.StructureProperties) return [];
+    // Picks from the 3D canvas AND the sequence panel both land in
+    // interactivity.lociSelects; structure.selection is a different manager
+    // that plain picking never populates.
+    var Loci = molstar.Loci;
+    var StructureElement = molstar.StructureElement;
+    var loci = Loci.removedIntersections(viewer.plugin.managers.interactivity.lociSelects);
+    if (Loci.isEmpty(loci)) return [];
+    loci.elements.forEach(function (unitIndex) {
+      var unit = loci.structure.units[unitIndex];
+      if (!unit || !StructureElement.Unit.isAtomic(unit)) return;
+      unit.elements.forEach(function (elementIndex) {
+        var location = StructureElement.Location.create(loci.structure, unit, elementIndex);
+        var props = molstar.StructureProperties;
+        var chain = String(props.chain.auth_asym_id(location) || props.chain.label_asym_id(location) || "_");
+        var auth = Number(props.residue.auth_seq_id(location));
+        var label = Number(props.residue.label_seq_id(location));
+        residues.set(chain + ":" + auth + ":" + label, { chain: chain, auth_seq_id: auth, label_seq_id: label, residue: auth });
       });
     });
     return Array.from(residues.values());
@@ -47,8 +55,10 @@
   function bindSelectionEvents(enabled) {
     if (selectionSubscription) selectionSubscription.unsubscribe();
     selectionSubscription = null;
-    if (!enabled || !viewer || !viewer.plugin.behaviors.interaction.click) return;
-    selectionSubscription = viewer.plugin.behaviors.interaction.click.subscribe(function () {
+    if (!enabled || !viewer || !viewer.plugin.managers.interactivity) return;
+    // Subscribe to the selection manager itself so canvas clicks, sequence
+    // panel clicks, and programmatic structureInteractivity all report.
+    selectionSubscription = viewer.plugin.managers.interactivity.lociSelects.events.changed.subscribe(function () {
       setTimeout(function () { report({ type: "selection", requestId: activeRequestId, residues: selectedResidues() }); }, 0);
     });
   }
