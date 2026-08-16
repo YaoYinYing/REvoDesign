@@ -25,7 +25,7 @@
         unconditional: "Generate a new backbone from scratch. No input structure needed.",
         motif_scaffolding: "Extend a motif: pick the motif residues in the structure, then grow the rest of the protein.",
         binder: "Design a binder: pick the target surface, then grow a binder chain against it.",
-        expert: "Write the RFdiffusion contig yourself — full grammar, no guardrails."
+        expert: "Write the RFdiffusion contig yourself."
       };
       var intent = element("p", "rfd-intent");
 

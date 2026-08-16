@@ -72,7 +72,14 @@ def test_structure_plugin_queues_structure_until_shell_ready(page: Page) -> None
             ),
         )
 
+    # The page needs a real origin so the iframe's relative /compute/viewer-shell
+    # resolves to a routable URL (about:blank cannot host relative iframe URLs).
+    page.route(
+        "https://revocompute.example/**",
+        lambda route: route.fulfill(content_type="text/html", body="<html><body></body></html>"),
+    )
     page.route("**/compute/viewer-shell", delayed_shell)
+    page.goto("https://revocompute.example/")
     page.set_content('<div id="root"></div><input id="files" type="file">')
     page.add_script_tag(path=STATIC_JS / "plugin-host.js")
     page.add_script_tag(path=STATIC_JS / "input-workspace.js")
