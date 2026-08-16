@@ -215,8 +215,18 @@ directly. The `check-qt-binding-imports` pre-commit hook (in `check_qt_binding_i
   imported lazily via `_import_optional_qt_module()`. Availability is checked
   with `has_qt_module(name)`.
 - **Enum compatibility**: `install_qt6_aliases()` installs scoped enum
-  containers on Qt5 backends (e.g. `Qt.WidgetAttribute.WA_DeleteOnClose`)
-  and flat aliases on Qt6 (e.g. `Qt.WA_DeleteOnClose`) so code works on both.
+  containers on Qt5 backends (e.g. `Qt.WidgetAttribute.WA_DeleteOnClose`) so
+  Qt6-style scoped access works on both. Flat Qt5-style access
+  (`Qt.WA_DeleteOnClose`, `QMessageBox.Ok`) is provided by the generic
+  `_install_unscoped_enum_bridge()`: it mirrors every scoped-enum member of
+  every class in the loaded Qt modules onto the owning class at import, so
+  any unscoped access resolves on Qt6 with no per-API alias bookkeeping. On
+  Qt5 and PySide bindings the names already resolve and the bridge is a
+  no-op. The standalone package manager ships the same bridge as
+  `_install_qt_enum_bridge()` in `package_manager.py` (it cannot import
+  `REvoDesign.Qt`). Regression coverage lives in
+  `tests/tools/test_qt_enum_bridge.py`, which runs against real PyQt6 in the
+  CI qt6 job.
 - **`QtCompat`**: A `_QtCompatNamespace` instance with commonly used enum
   values (message box buttons, alignment flags, check states).
 - **`qexec(obj)`**: Wraps `obj.exec()` / `obj.exec_()` for Qt5/Qt6
