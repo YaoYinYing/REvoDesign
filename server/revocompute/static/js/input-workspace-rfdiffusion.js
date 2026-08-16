@@ -111,8 +111,14 @@
         }).then(function (response) { return response.json().then(function (body) { return { ok: response.ok, body: body }; }); })
           .then(function (result) {
             normalizationError = result.ok ? null : result.body.error;
-            status.textContent = result.ok ? result.body.summary : result.body.error;
-            status.className = "rfd-status" + (result.ok ? "" : " rfd-status-error");
+            // A fresh binder mode shows the server's requirements before the
+            // user has had a chance to act: present it as guidance, not a
+            // failure. Submission is still blocked until the flow is done.
+            var needsWork = !result.ok && mode.value === "binder" && !fixed.length && !hotspots.length;
+            status.textContent = needsWork
+              ? "Binder design needs a target and hotspots — select residues in the viewer, then use the buttons below."
+              : (result.ok ? result.body.summary : result.body.error);
+            status.className = "rfd-status" + (!result.ok && !needsWork ? " rfd-status-error" : "");
             context.changed();
           })
           .catch(function (error) {

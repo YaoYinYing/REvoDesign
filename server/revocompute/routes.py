@@ -45,6 +45,7 @@ from pydantic import ValidationError
 from revocompute.app import (
     ENABLE_REGISTER,
     TEMPLATE_IMAGE_DIR,
+    _ITERATED_STATIC_JS,
     _client_country,
     _client_ip,
     _current_username,
@@ -228,20 +229,6 @@ def configuration_page():
 @app.route("/favicon.ico", methods=["GET"])
 def favicon():
     return send_from_directory(TEMPLATE_IMAGE_DIR, "logo.ico", mimetype="image/vnd.microsoft.icon")
-
-
-# Workspace assets change on every deploy; the default static cache
-# (max-age=14400) would keep stale viewers and forms in browsers for hours
-# after a restart. These files revalidate on every load instead.
-_ITERATED_STATIC_JS = {
-    "viewer-shell.js",
-    "plugin-host.js",
-    "result-preview-plugins.js",
-    "input-workspace.js",
-    "input-workspace-rfdiffusion.js",
-    "create-task.js",
-    "task-results.js",
-}
 
 
 @app.route("/static/js/<path:filename>", methods=["GET"])
