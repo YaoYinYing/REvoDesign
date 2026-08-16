@@ -16,1144 +16,255 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ```
+
 ## [Unreleased]
 
 ### Added
-- **Upload content validation**: uploaded inputs are now content-checked by
-  extension (FASTA/A3M/PDB/mmCIF/JSON) with generous DoS caps, so third-party
-  parsers never see pathological files. Previously only GREMLIN FASTA inputs
-  got a first-line `>` check; non-GREMLIN inputs were checked by extension and
-  a 4096-byte binary sniff alone. NUL bytes beyond the sniff window, gzip
-  streams disguised as PDB, degenerate record counts, and JSON bombs are all
-  rejected at upload time.
-- **ESM-MSA-1b variant-effect task** (`esm_msa`): masked-marginal
-  per-position profile over an uploaded a3m alignment, using
-  `esm_msa1b_t12_100M_UR50S`. Outputs `msa1b_profile.csv` and
-  `msa1b_summary.json`.
-- **Runner build-failure tolerance**: a failed Docker/SIF runner build
-  warns, drops the runner from `ENABLED_TASKRUNNERS`, and lets the
-  restart continue instead of aborting.
-- **Multi-task server architecture**: task-type-agnostic compute server with a
-  YAML-based registry. Portable task schemas select one of nine shared runtime
-  families, while one machine-local runner YAML per family supplies mounts,
-  environment, timeout, and deployment defaults. Missing registry files fail
-  closed; `gremlin` is always enabled and additional tasks are gated by
-  `ENABLED_TASKRUNNERS`.
-- **Server-driven dynamic form workflow**: the create-task page fetches form
-  schema from `GET /compute/api/types/<name>` and dynamically builds the file
-  input (accept extension, label), sequence editor visibility, and params form
-  (number/text inputs from `TaskParam` definitions). Adding a task type with
-  new params requires zero frontend changes.
-- **`TaskSubmissionRequest` pydantic model**: flat form data
-  (`params[key]=value`) is parsed into a nested dict, validated against the
-  task type registry, and forwarded to Celery. Unknown params or task types
-  are rejected at the API boundary.
-- **`GET /compute/api/types` and `GET /compute/api/types/<name>`**: public
-  endpoints listing all enabled task types with full param schemas.
-- **Runner config directory deployment**: `CONFIG_DIR` env var points to the
-  active `task_types.yaml` and `runners/` directory. Production can mount an
-  external machine-owned configuration read-only instead of baking host paths
-  into the server image.
-- **Structured issue reporting**: added GitHub Issue Forms for bugs,
-  installation and environment problems, feature requests, and documentation
-  problems, with private routing for security vulnerabilities.
+- Server:
+  - multi-task architecture: YAML task-type registry with nine shared runtime families; one machine-local runner YAML per family (mounts, env, limits); missing registry files fail closed.
+  - `GET /compute/api/types` (+ `/types/<name>`): public enabled task types with full param schemas; `TaskSubmissionRequest` pydantic model rejects unknown params/task types at the API boundary.
+  - upload content validation per extension (FASTA/A3M/PDB/mmCIF/JSON) with DoS caps — third-party parsers never see pathological files.
+  - `CONFIG_DIR` deployment: external machine-owned `task_types.yaml` + `runners/` mountable read-only.
+  - GitHub Issue Forms for bugs, install problems, features, docs, and private security reports.
 
 ### Changed
-- **Integrated Mol* result workspace**: the isolated structure viewer is now
-  borderless within the result card and uses the app's responsive pill controls
-  and intentional loading/error states. A dedicated sun/moon control stores the
-  user's Mol* preference in a cookie (light by default) and updates both controls
-  and WebGL canvas through the existing postMessage boundary. Dark Mol* styling
-  remains pinned to version 5.11.0 with SRI.
-- **Create-task category rail**: removed the chain-connector bonds between
-  category labels (they implied a pipeline), and removed GPU badges from
-  method items. On mobile the rail is a vertical accordion — panels expand
-  inline under their own label instead of being clipped inside the
-  horizontal scroll container.
-- **Validation panel dedup**: without an input the panel reports a single
-  "Add an input file or paste a sequence" issue instead of repeating the
-  workspace's own missing-input messages; parameter errors appear once an
-  input exists. The panel skips DOM rebuilds while nothing changed.
-- **Dashboard snapshot cards**: Structure Snapshot and Sequence Snapshot
-  share one card style (borders, summary, dark theme), and the structure
-  viewer sizes itself to the card instead of leaving oversized empty
-  containers. Shared py2Dmol viewer styles moved from the results-page
-  stylesheet into `base.css`.
-- **Single-flight structure previews**: result-page renders capture the
-  preview host generation and re-check it after every await, so switching
-  artifacts or viewers mid-load cancels the stale render — Mol* and
-  py2Dmol can never race on the same stage.
-- **ESMFold v1 removed**: the `esmfold_3B_v1` checkpoint is built against
-  the 2022 openfold whose kernels no longer compile on a supported
-  toolchain, and whose IPA internals changed in openfold v2.x — the
-  checkpoint cannot load. ESM-2 embedding, ESM-1v scoring, and ESM-IF1
-  design remain.
-- **`ENABLED_TASKRUNNERS` filters by runtime family** (esm, mpnn, …), not
-  task-type name — the submission page previously hid most task types.
-- ESM runner era-pinned dependency notes documented in its Dockerfile.
-- **Pluggable scientific input and result workspaces**: added a shared local
-  plugin registry and lifecycle host, a validated additive input-capability
-  schema, reusable file/sequence/structure/region/parameter/review components,
-  and a manifest preview host. Simple sequence tasks remain compact while
-  RFdiffusion, PLACER, and EASIFA compose richer guided workspaces without
-  granting YAML or browser code authority over server validation or runners.
-- **Canonical end-to-end resource policy**: added typed validation and a single
-  resolution path for CPU, memory, runtime, accelerator, and SLURM placement.
-  Accepted tasks snapshot their effective policy; Docker and SLURM consume the
-  same values, invalid settings fail closed, allowed partitions are enforced,
-  and CPU tasks cannot accidentally inherit GPU GRES.
-- **Create-task scientific workflow**: replaced page-specific form assembly
-  with capability composition, explicit primary/auxiliary file roles, nested
-  folder selection, local structure summaries and residue selection, grouped
-  region controls, and a normalized pre-submission review. Existing task and
-  upload APIs remain backward compatible and authoritative.
-- **Resource administration**: replaced overlapping `nproc`/`maxmem` and
-  SLURM CPU/memory controls with canonical per-task overrides and visible
-  effective values. Legacy database fields remain migration fallbacks, empty
-  overrides restore inheritance, and multi-field updates are transactional.
-- **Server deployment and adapter documentation**: reconciled the server
-  README and developer guides with the global executor/runtime model,
-  runtime-family sharing, immutable multi-file workspaces, manifest-first
-  results, prepared activation, versioned SIF promotion, offline model data,
-  proxy build semantics, and the current task/result APIs. The runbook now
-  explicitly distinguishes `build`, default dev restart, published-image prod
-  mode, and no-build/no-pull prepared activation.
-- **Runtime-family deployment model**: task types now select shared runtime
-  families which own one image, entrypoint, runner YAML, and SIF definition.
-  PLACER and RFdiffusion share one family; Docker and SLURM receive identical
-  resolved parameter/input manifests and missing family artifacts fail closed.
-- **Global execution configuration**: `task_types.yaml` now selects one
-  `job_executor` and `container_runtime` for the deployment, while each runtime
-  family declares its own `slurm_image`. Runner YAMLs contain only mounts,
-  environment, limits, and parameter defaults.
-- **Runner image reproducibility and size**: pinned all Git-sourced runner
-  repositories to audited commits and removed their `.git` data in the clone
-  layer. The CPU MPNN inference family no longer installs CUDA stub packages,
-  Triton, torchvision, or torchaudio; Pythia's small repository checkpoints
-  remain bundled intentionally.
-- **Server form schema**: task parameters now expose labels, choices, numeric
-  bounds, steps, units, and boolean controls; RFdiffusion and PLACER accept
-  bounded multi-file submissions.
-- **GREMLIN server: Nginx result offload**: made the Compose gateway own the
-  public port and stream authorized result artifacts or optional ZIPs from a
-  read-only mount via Flask-issued internal redirects. Gunicorn no longer
-  carries large download bodies or creates missing archives inside HTTP
-  requests; result downloads support byte ranges while internal file paths
-  remain unreachable directly.
-- **Server package rename**: `pssm_gremlin_server` → `revocompute`
-  (REvoCompute). All branding across templates, JS, CSS, and email headers
-  updated from "REvoDesign GREMLIN Server" to "REvoCompute".
-- **Runner Docker entrypoint**: simplified to `["bash", "/app/revocompute/run.sh"]`
-  (no `ldconfig` or `runuser`). The Celery worker overrides entrypoint at
-  container start and passes CLI args (`-i`, `-o`, `-r`) directly, so the
-  runner runs as the non-root `--user` without requiring root in the image.
-- **`POST /compute/api/post`**: accepts `task_type` and `params[...]` form
-  fields. Validates against the task type registry and passes params to
-  Celery. Generic `_validate_input_upload` replaces hardcoded `.fasta` check.
-- **Dashboard and create-task UI**: task type selector, dynamic file accept,
-  params form, task type badges on dashboard cards. Hardcoded GREMLIN trace
-  fallback and label regexes removed — stage labels come from the registry.
-- **Runner database/env config**: runtime-family database/model mounts and
-  runner-specific environment variables moved to one
-  `config/runners/<family>.yaml`. Global service settings remain in the
-  deployment environment; SLURM resources remain in the management database.
-- **Server reload operation**: added zero-downtime Gunicorn reload as a
-  subcommand of the main deployment helper.
-- **Experimental cluster visibility**: marked EvoCluster and KMeansCluster as
-  experimental metadata and hid them from the cluster-method selector unless
-  the new top-level `enable_experimental` main-config flag is enabled. Startup
-  mirrors the flag to `REVODESIGN_ENABLE_EXPERIMENTAL` for subprocesses and
-  integrations.
-- **DeepSource server cleanup**: resolved the current Bug Risk and Anti-pattern
-  findings by exposing stable public task-runtime compatibility names, removing
-  duplicate/unused imports, and decomposing upload, dashboard, task-deletion,
-  and admin-user routes below the configured complexity threshold.
-- **DeepSource repository cleanup**: removed every reproducible
-  `no-else-return` (`PYL-R1705`) and `no-else-continue` (`PYL-R1724`) finding
-  across the tracked Python tree.
-- **DeepSource audit workflow**: made the default-branch repository occurrence
-  inventory the cleanup source of truth and reserved analysis-run results for
-  per-changeset regression checks. Public-repository findings are read directly
-  from the browser-visible dashboard; API tokens remain optional automation
-  credentials.
-- **DeepSource security triage**: constrained bootstrap downloads to the
-  operating-system temporary directory, validated GREMLIN filename labels, and
-  documented intentional local-file and application-owned logging boundaries.
-- **CI: source-aware checks**: Bare Tests and Pylint now run only for desktop
-  application changes, while Server Tests run only for server implementation,
-  test, packaging, or deployment changes. Documentation-only and unrelated
-  pull requests avoid those matrices.
-- **GREMLIN server: canonical user roles**: authorization now uses `role` as
-  its sole authority. Fresh databases create the current schema directly, and
-  bootstrap and user-management APIs accept only `role`.
-- **GREMLIN server: explicit deployment configuration**: removed implicit
-  server/database path and bootstrap-admin defaults. `SERVER_DIR`,
-  `DB_UNIREF30`, `DB_UNIREF90`, and `ADMIN_USERS` are now mandatory; both
-  the restart script and direct server startup fail before touching the
-  database when any required setting is absent. The initial administrator
-  passwords are generated one-by-one and supplied transiently by the restart
-  script instead of being stored in the env file. Both `up` and `restart`
-  support first-start bootstrap; direct Compose startup with an empty user
-  database remains rejected.
-- **GREMLIN server: ephemeral signing key**: removed the configurable
-  `AUTH_SECRET_KEY`. Gunicorn generates one in memory per preloaded web launch;
-  restarting web intentionally invalidates active login, verification, and
-  password-reset tokens.
-- **GREMLIN server: automatic log rotation**: the maintenance scheduler can
-  ZIP and copy-truncate `LOG_DIR/*.log` after `ROTATE_LOG_MAX_LINENO` is
-  exceeded or on the `ROTATE_LOG_PERIOD` crontab schedule. Either unset trigger
-  is disabled; `MAX_LOG_SIZE` optionally caps active logs plus ZIP archives
-  using bytes or K/M/G/T suffixes and removes the oldest archives first.
-  Cron and threshold executions are serialized to protect ZIP/truncate
-  operations from overlap. Archives created in the current pass are protected
-  from immediate pruning so the only surviving copy is never discarded.
-  Leaving all three settings unset disables rotation.
-- **GREMLIN server: admin log viewer**: a standalone page linked from the
-  administrator dashboard lazily streams the four active Gunicorn access,
-  Gunicorn error, Celery worker, and maintenance logs through fixed-name
-  admin-only endpoints. Rotated ZIPs are grouped in a lazy file tree and can
-  be downloaded individually.
-- **Server: artifact responses default to attachment + sandbox CSP**: result
-  artifacts (untrusted runner output) are served with
-  `Content-Disposition: attachment` by default (`?download=0` opts back into
-  inline rendering) and every Flask-mode artifact response carries
-  `Content-Security-Policy: sandbox`, closing the stored-XSS path via inline
-  SVG/HTML/XML artifacts (nginx mode sets the same header in
-  `docker/nginx/default.conf.template`).
-- **Server: CSP no longer allows inline scripts**: all four inline
-  `<script>` blocks were removed — the three data bootstraps
-  (`__RESULT_TASK__`, `__DASHBOARD_*`, `__IS_ADMIN__`) became inert
-  `<script type="application/json">` blocks and the reset-password handler
-  moved to `static/js/reset-password.js`. `script-src` is now
-  `'self' https://cdn.jsdelivr.net`; the py2Dmol fallback viewer was
-  verified (code reading of the pinned `viewer-mol.js`) to emit no inline
-  scripts and never eval.
-- **Server: authenticated Redis and loopback-only publish**: `restart.sh
-  setup` generates `REDIS_PASSWORD` and persists it in the deployment env
-  file; the compose stack applies it to `redis-server --requirepass` and to
-  the Celery broker/backend URIs (defaults become
-  `redis://:<password>@...`). The gateway publishes `${PORT}` on
-  `127.0.0.1` only (the host TLS/Basic-Auth nginx is the entry point), and
-  the SLURM override publishes Redis on `127.0.0.1:6380` only — never on
-  non-loopback interfaces.
-- **Server: executor-scoped Docker socket**: the base worker is
-  executor-neutral and socket-free; a new `docker-compose.docker.yml`
-  override (merged by `restart.sh` when `job_executor: docker`) adds
-  `/var/run/docker.sock` + `DOCKER_GID`. Compose concatenates volume lists
-  across `-f` files, so SLURM-mode workers can no longer inherit
-  host-root-equivalent Docker access; `DOCKER_GID` is no longer required in
-  SLURM mode.
-- **Server: trusted HTTPS proxy chain**: the host nginx example forwards
-  `X-Forwarded-Proto $scheme`, gunicorn trusts forwarded headers only from
-  the compose gateway (`--forwarded-allow-ips 127.0.0.1,172.16.0.0/12`),
-  and `AUTH_COOKIE_SECURE=true` (default false, so plain-HTTP dev login
-  keeps working) force-sets the auth cookie's `Secure` flag on HTTPS-only
-  deployments.
-- **Server: scientific-runner sandboxes assumed hostile** — SLURM jobs run
-  under `apptainer --containall --cleanenv` (private `/dev`/`/proc`/`/sys`,
-  fresh tmpfs `/tmp` and `$HOME`, host env dropped; all required mounts are
-  the explicit `--bind` entries), and Docker jobs run with a read-only root
-  filesystem (`HOME=/tmp` on a tmpfs), `cap_drop=ALL`,
-  `no-new-privileges`, a 1024 PID ceiling, and no network — weights and
-  databases arrive only via declared mounts.
-- **Server: O(1) API-key validation**: API keys are stored as an indexed
-  sha256 digest (one lookup + constant-time compare) instead of a KDF hash
-  scanned across all users; existing KDF-hashed keys are not convertible and
-  become invalid by design (re-issue from the profile page). Rate limiting
-  and CAPTCHA nonces moved to Redis fixed-window / `SET NX EX` counters
-  shared across gunicorn workers, with a documented per-worker in-memory
-  fallback when Redis is down.
-- **Server: symlink-aware path containment**: `_safe_join` now re-checks
-  realpath-based containment after the lexical check, so symlinks planted
-  inside a trusted base (including dangling ones) cannot point the real
-  target outside it.
-- **Server: post-completion workspace cleanup**: the per-task input
-  workspace (immutable snapshot) is deleted when a job reaches a terminal
-  state — results, the manifest, and the audit row remain untouched.
-- **Server: debug capture of submissions**: every finalized task now stores
-  `debug/submission.json` (form params + file metadata) and
-  `debug/inputs/<user-facing paths>` (uploaded files under their original
-  names) inside the results directory before workspace cleanup, so failures
-  can be reproduced; the debug files are intentionally part of the result
-  manifest and ZIP.
-- **Dashboard performance**: the dashboard reads only a bounded 4 KiB
-  preview per task (full snapshot remains on the task's results page) and
-  marks truncated sequences in the UI; the create-task review step no longer
-  shows resolved resource usage (the types API still fails early on broken
-  resource policies).
-- **Dashboard structure snapshots**: structure-input tasks (`.pdb`/`.cif`/
-  `.mmcif`) render an interactive py2Dmol alpha-trace snapshot on the
-  dashboard card instead of the sequence block — lazy-loaded on first
-  expand from the new owner/admin-only `/compute/api/tasks/<md5>/input`
-  endpoint. The py2Dmol loading/parsing helpers moved to a shared
-  `static/js/py2dmol-preview.js` used by both the dashboard and the results
-  page's Mol* fallback.
-- **Server: deployable gateway interface**: `GATEWAY_BIND` (default
-  `127.0.0.1`) lets deployments whose entry proxy terminates on an
-  interface IP — e.g. a Cloudflare Tunnel origin — publish the gateway on
-  all interfaces without weakening the shipped default.
-- **Server: liveness probe**: unauthenticated `GET /compute/health`
-  returns an empty 200.
-- **Modular input-validator tree with pluggable backends**: uploaded files
-  now pass through `revocompute/input_validators/` — one module per format
-  (`common`, `fasta`, `pdb`, `mmcif`, `json_file`) plus a registry that
-  dispatches by extension; `register_plugin` lets deployments prepend their
-  own backends (first error wins). The PDB validator parses with biotite and
-  rejects geometry-broken files at upload with atom-level messages (e.g. a
-  misplaced terminal OXT colliding with a carbonyl, which RDKit-based tools
-  fail on only after the job starts). biotite and numpy are declared server
-  dependencies.
-- **Runner protocol v2 — single task manifest**: every runner now receives
-  `-i <inputs>/task.json -o <outputs>`; the immutable input snapshot
-  carries `task.json` (task id, task type, params, and files with
-  in-container paths), written at submission. Environment variables carry
-  nothing user-shaped anymore — only `TASK_MANIFEST`, a backslash-free
-  path. This retires the `APPTAINERENV_*` channel, whose forwarding was
-  measured on-host to collapse backslash runs (2, 4, and 8 all arrive as
-  1) and broke JSON params such as SMILES reaction strings. A shared
-  `docker/runners/common/task_context.{sh,py}` (sourced by all nine
-  `run.sh` files, `TASK_CONTEXT_SRC`-overridable for tests) replaces nine
-  copies of the param-parsing one-liner; a byte-for-byte escaping
-  round-trip test covers backslash runs, quotes, shell metacharacters,
-  newlines, and unicode.
-- **Runner image builds — pip index pool + uv**: runner Dockerfiles switched
-  from exclusive `--index-url` pytorch wheelhouses to `--extra-index-url`
-  (PyPI stays resolvable for sdist build dependencies), and all pip
-  installs moved to `uv pip install` (venv images target
-  `--python <venv>/bin/python`; extra-index installs pass
-  `--index-strategy unsafe-best-match` so `+cu121`/`+cu128`/`+cpu` wheels
-  win by local version). ESM additionally pins `torch-geometric==2.5.3`
-  and `biotite==0.41.0` — the `esm2.inverse_folding` chain imports both and
-  the fork declares neither.
-- **EASIFA image portability**: the TorchDrug shim is compiled on a bullseye
-  builder (glibc 2.31, matching the oldest compute nodes) with its C++
-  runtime linked statically (`-static-libstdc++ -static-libgcc`, static
-  libgomp), so the packed conda env keeps its own
-  older-glibc-compatible libstdc++ — SLURM nodes no longer hit
-  `GLIBC_2.38 not found` on dlopen.
+- Server:
+  - rename `pssm_gremlin_server` → `revocompute` (REvoCompute); templates, JS, CSS, email headers rebranded.
+  - runtime-family deployment: task types select shared families owning one image/entrypoint/runner YAML/SIF; PLACER + RFdiffusion share a family; Docker and SLURM consume identical resolved manifests.
+  - global execution config: `job_executor`/`container_runtime` select the backend; per-family `slurm_image`; runner YAMLs carry only mounts/env/limits/defaults.
+  - create-task: dynamic form from the types API, category rail without chain connectors or GPU badges, mobile vertical accordion; validation panel dedup; resource administration with canonical per-task overrides.
+  - pluggable input/result workspaces: plugin registry, additive input-capability schema, file/sequence/structure/region/parameter/review components, manifest preview.
+  - runner protocol v2: single `task.json` manifest (`-i`/`-o`), shared `task_context.{sh,py}`, retires the `APPTAINERENV_*` channel that collapsed backslash runs.
+  - runner images: pinned Git repos to audited commits, `uv pip install` with extra-index pool, CPU MPNN family sheds CUDA stubs/Triton/torchvision/torchaudio; EASIFA TorchDrug shim statically linked for glibc 2.31 nodes.
+  - runner entrypoint: `["bash", "/app/revocompute/run.sh"]`; non-root `--user` execution without root in the image.
+  - `POST /compute/api/post`: registry-validated `task_type` + `params[...]`; generic upload validation replaces hardcoded `.fasta`.
+  - security: artifact responses default to attachment + sandbox CSP; no inline scripts (`script-src 'self'` + jsdelivr); Mol* runs in an isolated `/compute/viewer-shell` iframe with its own CSP and postMessage protocol; authenticated Redis + loopback-only gateway; executor-scoped Docker socket; trusted HTTPS proxy chain; runners treated as hostile (apptainer `--containall`, Docker read-only root, cap-drop, no network); O(1) sha256-digest API keys; symlink-aware path containment; post-completion workspace cleanup; debug capture of submissions.
+  - ops: Nginx result offload via internal redirects with byte ranges; zero-downtime Gunicorn reload subcommand; `GATEWAY_BIND`; liveness probe `GET /compute/health`; modular input-validator tree with pluggable backends (biotite-based PDB checks).
+  - dashboard: bounded 4 KiB previews, py2Dmol structure snapshots, single-flight preview renders, snapshot card parity, `base.css` shared viewer styles.
+  - runner database/env config consolidated into `config/runners/<family>.yaml`.
+  - ESMFold v1 checkpoint removed (2022 openfold kernels no longer compile); ESM-2/1v/IF1 remain.
+  - `ENABLED_TASKRUNNERS` filters by runtime family.
+  - server docs/README reconciled with the executor/runtime model (runbook distinguishes build/dev/prod/prepared modes).
+- Package manager:
+  - CI: source-aware checks — Bare Tests/Pylint run only for desktop changes, Server Tests only for server changes.
+  - DeepSource cleanup: server + repository findings resolved (complexity decomposition, `no-else-return`/`no-else-continue` removal, bootstrap downloads constrained to OS tmp, GREMLIN label validation).
+  - experimental cluster visibility gated behind `enable_experimental` config flag.
 
 ### Fixed
 - Server:
-  - task-type intro audit: intros/categories corrected against the runner
-    docs (Pro-Prime = OGT prediction → `fitness`; ThermoMPNN-D = ΔΔG
-    prediction; PLACER = all-atom ligand modeling; GREMLIN = conservation +
-    couplings; HyperMPNN/LASErMPNN/OpenDDE reworded).
-  - auth hardening: API keys stored as indexed sha256 digests; CAPTCHA
-    nonces and rate-limit counters are Redis-first with per-process
-    fallback.
+  - task-type intro audit: intros/categories corrected against the runner docs (Pro-Prime = OGT prediction → `fitness`; ThermoMPNN-D = ΔΔG prediction; PLACER = all-atom ligand modeling; GREMLIN = conservation + couplings; HyperMPNN/LASErMPNN/OpenDDE reworded).
+  - auth hardening: API keys stored as indexed sha256 digests; CAPTCHA nonces and rate-limit counters are Redis-first with per-process fallback.
 - Qt:
-  - Qt5/Qt6 enum bridge: every scoped-enum member of every loaded Qt class
-    is mirrored onto the owning class at import — no per-API alias
-    allowlist; unmapped members previously crashed on Qt6 PyMOL builds.
-- **Mol* shell message dispatch**: load the isolated viewer shell script after
-  its status and host elements exist. Previously the shell received structure
-  messages but rejected before loading Mol* because its cached DOM nodes were
-  `null`, leaving the placeholder frozen until the parent timed out.
-- **Mol* result color controls**: pLDDT, Chain, and Rainbow now pass the loaded
-  component refs and valid Mol* 5.11.0 theme IDs to the representation manager.
-  Previously all three calls used the wrong API shape, two used invalid theme
-  names, and the initially selected pLDDT mode was never applied.
-- **Mol\* viewer now loads under the strict CSP**: Mol\*'s bundle calls
-  `new Function` at load, which the app-wide `script-src` (no
-  `'unsafe-eval'`) blocked in every browser — the viewer silently died
-  with "did not initialize". Mol\* now runs inside an isolated
-  `/compute/viewer-shell` iframe whose own CSP scopes `'unsafe-eval'` to
-  that page alone; structure data reaches it via postMessage from the
-  authenticated parent, and `connect-src 'none'` keeps the shell from
-  fetching anything. The main app CSP is unchanged.
-- **Workspace cleanup leak on pre-execution failures**: tasks rejected by
-  upload-content validation or failed by an unavailable task queue now
-  remove their immutable input workspace immediately, matching the
-  execution-time terminal paths. Previously only run-time failures cleaned
-  the workspace, leaving duplicate input snapshots on disk until retention
-  cleanup.
-- **PRIME runner `trust_remote_code` removal**: the pinned Pro-Prime OGT/DMS
-  snapshots ship custom transformers code inside their weights dirs, which the
-  runner previously imported and executed from the mounted model directory at
-  task time (`trust_remote_code=True`) — a supply-chain code-execution path.
-  The custom `modeling_*` / `tokenization_*` / `configuration_*` modules are
-  now vendored into the image at build time
-  (`docker/runners/prime/vendor/`), imported and registered with
-  `AutoConfig` / `AutoModel` / `AutoTokenizer`, and the weights load with
-  `trust_remote_code=False, local_files_only=True`. Missing or broken vendored
-  code fails the task loudly with remediation pointing at `vendor/README.md`;
-  an optional `manifest.sha256` pins the weights dir and is verified with
-  `sha256sum -c` before loading.
-- **ESM runner missing `scipy`**: the ESM image did not pin scipy, so
-  `esm_if1_design.py` crashed at import
-  (`esm2.inverse_folding.gvp_transformer` → `scipy.spatial.transform`,
-  `ModuleNotFoundError`) on the SLURM path. Pinned `scipy==1.12.0`
-  (matching the `prime` image) and extended the build-time smoke import to
-  cover the inverse-folding chain.
-- **SLURM execution diagnostics**: scheduler stdout/stderr are now stored under
-  explicit `execution/slurm-<username>-<task>-<task-id>.stdout.log` and
-  `.stderr.log` paths. They are
-  manifest-listed as diagnostic text artifacts, available through the text
-  previewer, and kept out of the Main Results gallery.
-- **SLURM CPU propagation**: the wrapper now forwards the allocated CPU count
-  to `NPROC`, GREMLIN, OpenMP, BLAS, NumExpr, and TensorFlow variables and
-  passes GREMLIN/PSSM's `-j` option, so scheduler allocation and scientific
-  thread counts remain consistent.
-- **MPNN SLURM resources and checkpoints**: MPNN design tasks now request an
-  explicit 16-CPU/16G allocation, propagate the allocated CPU count to threaded
-  numerical libraries, and validate LigandMPNN's mounted absolute checkpoint
-  path. The previous 2-CPU default and relative `./model_params` lookup could
-  overcommit or fail before inference.
-- **ThermoMPNN-D offline model data**: provisioned both the ThermoMPNN ensemble
-  and hidden vanilla ProteinMPNN backbone through a shared read-only data root.
-  The MPNN runner validates representative checkpoints and refuses runtime
-  downloads into a small compute-node home cache.
-- **GREMLIN Docker server tests**: made the Python 3.6 compatibility and
-  full-stack checks bounded, least-privileged, root-safe, and responsive to
-  unexpected HTTP failures while preserving accepted task polling and keeping
-  `tests/data/msa/2KL8.fasta` as the submitted query.
-- **PyMOL first-install encoding**: kept the standalone `REvoDesign_PyMOL.py`
-  bootstrapper ASCII-only and added GBK-transcoding and pre-commit regression
-  guards so locale-aware Windows downloads cannot become invalid UTF-8 source.
-  On Simplified-Chinese Windows, the Package Manager now detects active CP936
-  code pages and defers a one-per-session dialog with the system UTF-8 setup
-  procedure; CP65001 and detection failures remain silent.
-- **DeepSource return contracts**: made optional-result helpers return `None`
-  explicitly, kept UI callbacks consistently side-effect-only, and corrected
-  the abstract classmethod receiver name to clear all current `PYL-R1710` and
-  `PYL-C0202` findings across the repository.
-- **GUI test dependency safety**: run the pocket-session producer before the
-  PIPPack/ProteinMPNN case, release reusable cluster workers after each run,
-  and fail immediately if a `TestWorker` case unexpectedly opens a modal file
-  or notification dialog in headless CI.
-- **Editor server lifecycle**: mark an immediate or timed-out stop request as
-  not running and reject restarts while the previous server thread drains.
-- **Mutant session merge**: use the canonical `run_command(command=...)`
-  interface so visualization no longer raises an unexpected-keyword error.
-- **Repository-wide DeepSource audit**: reconcile bug-risk, anti-pattern,
-  security, and performance occurrences across server, desktop, tools, and
-  development scripts; fix reproducible findings and document narrow
-  suppressions for intentional compatibility and bootstrap patterns.
-- **DeepSource critical/major correctness**: reject incomplete OpenKinetics
-  result batches before merging cached scores, and remove duplicate UI type-map
-  entries and a redundant Qt import.
-- **GREMLIN server: position-label validation**: validate the residue and
-  positive numeric position components separately so valid labels such as
-  `A_1` no longer abort fresh GREMLIN runs.
-- **GREMLIN server: notification logging privacy**: failed administrator
-  approval and rejection notifications now log the target user ID instead of
-  the recipient email address.
-- **macOS deployment test compatibility**: guard iteration over the initially
-  empty administrator-deduplication array so Bash 3.2 with `set -u` can run the
-  bootstrap path and still reject duplicate `ADMIN_USERS` entries.
+  - Qt5/Qt6 enum bridge: every scoped-enum member of every loaded Qt class is mirrored onto the owning class at import — no per-API alias allowlist; unmapped members previously crashed on Qt6 PyMOL builds.
+- Server:
+  - Mol* shell message dispatch: load the shell script after its status/host elements exist (previously rejected messages with cached null DOM nodes).
+  - Mol* color controls: correct component refs and Mol* 5.11.0 theme IDs for pLDDT/Chain/Rainbow.
+  - Mol* loads under strict CSP via the viewer-shell iframe (`'unsafe-eval'` scoped to that page, `connect-src 'none'`).
+  - workspace cleanup for upload-validation rejects and queue-unavailable failures.
+  - PRIME runner: vendored model code replaces `trust_remote_code=True` (supply-chain code execution closed); optional weights `manifest.sha256`.
+  - ESM runner: pinned `scipy==1.12.0` — `esm_if1_design.py` crashed at import on SLURM.
+  - SLURM: stdout/stderr stored as manifest-listed diagnostic artifacts; allocated CPU count propagated to NPROC/OpenMP/BLAS/TensorFlow.
+  - MPNN: explicit 16-CPU/16G request, LigandMPNN absolute checkpoint validation; ThermoMPNN-D offline model data provisioned.
+  - GREMLIN server: position-label validation (`A_1` no longer aborts runs); notification logs target user IDs, not emails.
+  - macOS: Bash 3.2 `set -u` guard for empty admin-dedup arrays.
+  - Package manager: PyMOL first-install encoding — ASCII-only bootstrapper with GBK-transcode regression guards.
+  - tests: GUI dialog guard fails immediately on unexpected modal dialogs; editor server lifecycle rejects restarts while draining; mutant session merge uses canonical `run_command`.
+- DeepSource return contracts: optional-result helpers return `None` explicitly; UI callbacks side-effect-only; abstract classmethod receiver renamed.
 
 ### Removed
-- **Hardcoded GREMLIN frontend logic**: removed `runningTraceFallback` and
-  GREMLIN-specific label regexes from dashboard JS. Stage labels, file
-  extensions, param forms, and task type labels are now registry-driven.
-- **`DB_UNIREF30` / `DB_UNIREF90` from required `.env`**: database paths
-  are now in `config/runners/<name>.yaml`; the legacy `.env` variables are
-  no longer read by the multi-task launcher.
-- **Server deployment fallbacks**: removed the standalone `hot_fix.sh` helper
-  and legacy `server/.env` fallback; deployment defaults explicitly to
-  `.env.production` unless `REVODESIGN_SERVER_ENV` is set.
-- **Unused configuration switches**: removed inactive auto-save/save-on-exit
-  settings and the unexposed Cartesian-ddG legacy-mode option.
-- **Legacy Excel input**: removed `.xls` handling and the `xlrd` dependency;
-  mutant tables continue to support `.xlsx` through `openpyxl`.
-- **Plugin registry extension knobs**: removed unused discovery predicates,
-  custom installed attributes, package exclusion, and the delegate-only
-  `build_plugin_registry()` factory.
-- **Parameter-change collection wrapper**: removed the one-instance
-  `ParamChangeRegister` dataclass in favor of direct registry-item iteration.
-- **Duplicate cluster selector registration**: removed `CallableGroupValues`
-  method discovery and hardcoded registry fallbacks; `ClusterTabController`
-  now exclusively owns the selector.
-- **Server runtime dependency duplication**: removed runner-only scientific
-  libraries, unused `six` and `click`, and redundant direct `redis` from the
-  web package; `requests` now belongs to the test extra.
-- **Translator compatibility ownership**: removed `RuntimeUiProxy.trans`,
-  application-child scanning, and ConfigBus translator mirroring; the early
-  translator is passed directly to `LanguageSwitch`.
-- **Server task compatibility exports**: removed unused task-runtime aliases
-  from the web module and redundant public aliases in `task_runtime`.
-- **Shortcut progress-bar preference**: removed the inert
-  `DialogWrapperRegistry.use_progressbar` registration option.
-- **Qt alias compatibility name**: removed the unused public
-  `install_qt5_aliases()` alias; use `install_qt6_aliases()`.
-- **Dynamic singleton derivation**: removed the production-unused
-  `SingletonAbstract.derive()` API and its test-only documentation and cases.
-- **Agent guidance duplication**: removed the repository-local Loopkit
-  framework so root `CLAUDE.md` is the single source of engineering and
-  workflow guidance.
-- **Painted matrix compatibility widgets**: removed hidden per-cell buttons
-  and switched tests and callers to the matrix selection API.
+- Server:
+  - hardcoded GREMLIN frontend logic (trace fallback, label regexes) — registry-driven now.
+  - `DB_UNIREF30`/`DB_UNIREF90` from required `.env` (moved to runner YAMLs).
+  - `hot_fix.sh` and legacy `server/.env` fallback.
+  - runner-only scientific libs, `six`, `click`, and direct `redis` from the web package.
+- Plugin:
+  - unused config switches (auto-save/save-on-exit, legacy Cartesian-ddG).
+  - `.xls` input handling + `xlrd`.
+  - plugin-registry extension knobs, `ParamChangeRegister`, duplicate cluster selector registration.
+  - translator compatibility ownership (`RuntimeUiProxy.trans`, ConfigBus mirroring).
+  - `install_qt5_aliases()` alias, `SingletonAbstract.derive()`, painted matrix compatibility widgets.
+  - repository-local Loopkit framework (root CLAUDE.md is the single guidance source).
 
 ## [1.9.1] - 2026-07-28
+
 ### Added
-- **GREMLIN server: scheduled database backups**: added an opt-in
-  `database_backup_task` that uses SQLite's online backup API to create
-  integrity-checked snapshot sets containing both task and user databases.
-  `BACKUP_DB_CRON` controls the five-field cron schedule and is disabled when
-  unset; `BACKUP_DB_PATH` selects persistent snapshot storage; and
-  `MAX_DB_BACKUP` prunes complete snapshot sets while remaining unlimited when
-  unset. The documented daily/retention defaults are `0 0 * * *` and 30.
-- **GREMLIN server: result retention cleanup**: `RESULT_RETENTION_DAYS` now
-  removes result directories and archives for expired finished, failed, or
-  cancelled tasks during a daily maintenance job. Fractional days are accepted
-  (`0.1` = 2.4 hours). Task audit rows are retained, and leaving the setting
-  unset disables cleanup.
-- **GREMLIN server: registration profile details**: registration now requires
-  full name, affiliation, academic position (undergraduate, Master's, PhD,
-  postdoctoral, faculty, industry, etc.), and PI name. The same information is
-  shown on the user's profile page and in the admin user-control system, where
-  admins can also create or modify these fields.
-- **Server test coverage + security A/B tests**: 121 new server tests covering auth
-  endpoints (`/api/auth/me`, API key CRUD, CAPTCHA, password reset), UserDatabase
-  methods (`get_user_by_email`, `validate_api_key`, `user_count`, digest
-  notifications), rate limiter decorator, upload edge cases (task cap, content
-  dedup, per-user scoping), schema Pydantic validation, 15 adversarial
-  security tests (brute-force rate limiting, email enumeration prevention, CSRF
-  cookie-vs-bearer gate, token tampering, expired tokens, password policy, role
-  self-escalation prevention, guest API key rejection, batch operation access
-  control, duplicate user/email rejection), 29 attack/abuse tests (path
-  traversal, null-byte injection, SQL/XSS injection, rate-limit bypass,
-  CAPTCHA replay, double-extension spoofing, content-type confusion), 10 race
-  condition tests (TOCTOU cancel/delete, dedup races, worker-completion guards,
-  terminal-status protection), and 11 RCE tests (SSTI, command injection,
-  pickle/YAML deserialization, prototype pollution, email header injection).
-  Fixed conftest module-cache attribute name, missing `docker` import in
-  test_tasks.py, and removed duplicate helper definitions from test_docker.py.
-  Total server test count: 164 (up from 44).
-- **Admin registration digest**: periodic email to `ADMIN_NOTIFY_EMAIL` listing new
-  registrations that haven't been included in a prior digest. Each user appears
-  only once (`admin_notified` column). Interval set by `ADMIN_NEW_USER_INFORM`
-  (minutes, default `0` = disabled).
-- **FASTA content validation**: uploads must contain valid FASTA content (first
-  non-blank line starts with `>`). Catches renamed docx/jpg/exe files that pass
-  the binary-detection check.
-- **Per-user task quota**: each user limited to 5 concurrent pending/running
-  tasks, enforced before Celery enqueue (HTTP 429 when exceeded).
-- **Dev tooling**: `check_changelog_duplicates.py` validates CHANGELOG.md for duplicate `### Section` headers within a version block. Wired into pre-commit as `check-changelog-duplicates`.
-- **GREMLIN server: token-based authentication** (replaces HTTP Basic Auth):
-  - SQLite-backed user store (`users.sqlite3`) with hashed passwords (pbkdf2:sha256).
-  - Bearer-token auth via `itsdangerous.URLSafeTimedSerializer` (zero new dependencies).
-  - Self-registration workflow gated by `ENABLE_REGISTER` env var, with SMTP email verification.
-  - Admin user management endpoint (`POST /api/auth/admin/users`) for creating users without registration.
-  - Self-service password change (`PUT /api/auth/me`) with profile page at `/PSSM_GREMLIN/profile`.
-  - HTML email verification page at `/PSSM_GREMLIN/api/auth/verify-email`.
-  - Rate limiting on login (5/min/IP) and registration (3/hr/IP).
-  - Default admin bootstrap on first run (no seeding files needed).
-  - Long-lived API keys (`X-API-Key` header) with restricted privileges — manageable via Profile page and REST API.
-  - Email domain allowlisting (`ALLOWED_EMAIL_DOMAINS`) and plus-address normalisation (`user+tag@domain` → `user@domain`).
-- **GREMLIN server: admin user control panel** — `/PSSM_GREMLIN/user_control` page with two sub-tabs:
-  - Tab A: registration audit table (email, affiliation, registration status, user status) with per-row Approve/Reject/Ban/Modify actions and batch Enable/Disable/Delete.
-  - Tab B: manual add-user form with explicit username, email, password, and affiliation fields.
-  - Inline row editing: Modify button replaces row with editable form (email, affiliation, status dropdowns, optional password change).
-- **GREMLIN server: forgot/reset password flow** — login page includes "Forgot My Password" link; sends email with 1-hour reset token; dedicated `/PSSM_GREMLIN/reset_password` form.
-- **GREMLIN server: email verification** — 2-day expiry verification links at `/PSSM_GREMLIN/user_verify?c=`, with backward-compatible legacy route at `/PSSM_GREMLIN/api/auth/verify-email`.
-- **GREMLIN server: login accepts email** — the login field accepts either a username or email address, detected by `@` presence.
-- **GREMLIN server: static asset extraction** — JS and CSS extracted from HTML templates into standalone files under `static/`.
-- **GREMLIN server: role system** — `admin`, `user`, and `guest` roles with a `role` column in the user database. Guest accounts can only use cookie-based web login; Bearer tokens and API keys are rejected. Guests cannot change passwords or manage API keys. Admin user-control panel includes role selector and role badges.
-- **GREMLIN server: CAPTCHA on registration** — self-registration requires solving a server-generated math challenge (5-min expiry). Effectively blocks programmatic/bot registration. CAPTCHA reloads on failure.
-- **GREMLIN server: resend verification email** — after registration, a "Resend verification email" button appears with per-email backoff: first resend is immediate, then 10×n minutes between subsequent resends.
-- **GREMLIN server: admin notification emails** — users receive an email when an admin approves or rejects their registration. Bans are silent.
-- **GREMLIN server: email templates redesigned** — all four email types (verification, password reset, approval, rejection) share a consistent plain-text structure with clearer subject lines.
-- **GREMLIN server: verify-email page redesigned** — custom SVG status icons (checkmark for success, X for failure) with clear next-step messaging depending on whether admin approval is still pending.
-- **GREMLIN server: Terms of Service page** — dedicated `/PSSM_GREMLIN/terms` page linked from the registration form. Covers acceptable use, data privacy, service availability, account policies, and GPL-3.0 licensing.
-- Comprehensive API documentation site (46 pages) using MkDocs + Material for MkDocs + mkdocstrings:
-  - User Guide (3 pages): landing, cluster methods, OpenKinetics workflow.
-  - Developer Guide (18 pages): architecture, concepts, testing, CI/CD, PSSM/GREMLIN server, Monaco editor, Rosetta integration, translation (i18n), UI design, CGO graphics, Makefile reference, package manager, adding scorers/sidechain solvers, how-to guides (profile, config, shortcut), AI-assisted code quality fix playbooks (Codacy, DeepSource).
-  - API Reference (20 pages): auto-generated from Google-style docstrings for all public modules.
-- Translation entries for dynamic menu items: `Edit %1`, `Font Setting`, `Thread Pool Dashboard` (zh_CN + zh_TW).
-  - GitHub Pages deploy workflow (`.github/workflows/docs.yml`) with `actions/deploy-pages@v4`.
-  - `docs` optional-dependency group in `pyproject.toml` (mkdocs, mkdocs-material, mkdocstrings[python]).
-  - Updated `[project.urls] Documentation` to `https://YaoYinYing.github.io/REvoDesign`.
-- Launching page with bootstrap status indicator (`src/REvoDesign/UI/launching.ui`, `src/REvoDesign/application/launching.py`):
-  - "REvoDesign is launching" title with dynamic subtitle updated at each bootstrap step (e.g. "Ensuring configurations", "Registering plugins").
-  - Determinate progress bar tracking ~10 bootstrap steps.
-  - Dark theme by default; auto-switches to light via system palette luminance detection.
-  - Footer showing version · license (left) and user@host (right).
-  - `load_runtime_ui` relaxed from `QMainWindow` to `QWidget` so dialog-based `.ui` files load.
-  - `SplashScreen` added to `WindowType` enum aliases in Qt compat layer.
+- Server:
+  - token-based auth replacing HTTP Basic: SQLite user store (pbkdf2 hashes), Bearer tokens, self-registration with SMTP verification, admin user management, password change/reset flows, API keys, rate limits, email-domain allowlisting.
+  - roles (`admin`/`user`/`guest`): guests are cookie-login-only; role is the sole authority.
+  - CAPTCHA on registration (server-generated math challenge), resend-verification with per-email backoff, admin notification digests, approval/rejection emails.
+  - admin user-control panel (registration audit + manual add + inline editing); forgot/reset password flow; login accepts email; Terms of Service page.
+  - scheduled database backups (`BACKUP_DB_CRON`/`BACKUP_DB_PATH`/`MAX_DB_BACKUP`) and result retention cleanup (`RESULT_RETENTION_DAYS`).
+  - registration profile details (name, affiliation, academic position, PI).
+  - security headers on every response (CSP, XCTO, XFO, Referrer-Policy, Permissions-Policy); auth cookie `HttpOnly` + `SameSite=Lax` (+ `Secure` on https).
+  - test coverage: 164 server tests incl. adversarial security, attack/abuse, race-condition, and RCE suites.
+- Package manager:
+  - self-bootstrap into a writable runtime dir with bounded timeouts, retry/backoff, and HMAC-manifest verification; `fetch_tags` degrades silently offline.
+  - self-upgrade verifies downloads against the HMAC manifest (`make upload-gists` generates it).
+- Plugin:
+  - launching page with bootstrap status indicator, determinate progress bar, dark/light auto theme.
+  - translation entries for dynamic menu items (zh_CN + zh_TW).
+- Docs:
+  - MkDocs site (46 pages: user guide, developer guide, API reference) with GitHub Pages deploy and `docs` extra.
+  - `check_changelog_duplicates.py` pre-commit hook.
+- Dev tooling: `check-changelog-duplicates`.
 
 ### Changed
-- **GREMLIN server: cleanup and restart safety**: result retention now claims
-  unchanged expired rows before deleting artifacts, so concurrent resubmissions
-  cannot be removed. Automatic cleanup records use `cleaned:*` states, keeping
-  `deleted:*` states specific to user actions. Restart rollback copies now use
-  SQLite's backup API and include committed WAL data.
-- **GREMLIN server: private task isolation**: removed `PUBLIC_DASHBOARD`
-  because its former behavior exposed sequences and results and allowed
-  cross-user task cancellation. Existing environment entries are silently
-  ignored; task visibility and operations are always restricted to the owner
-  or an administrator.
-- **GREMLIN server: maintenance scheduler**: replaced the
-  two Gunicorn daemon loops with one dedicated APScheduler 3.x maintenance
-  service that has no HTTP port or Docker socket. Jobs are organized under
-  `maintenance/tasks/` as self-configuring `PeriodicTask` objects; the manager
-  only imports and registers them through a common interface. The service writes
-  to `${LOG_DIR}/maintenance.log` while retaining container console output.
-  Cleanup remains disabled when `RESULT_RETENTION_DAYS` is unset.
-- **GREMLIN server: Docker restart modes**: `restart` now defaults to
-  `--mode=dev`, which rebuilds local images with the host UID/GID.
-  `--mode=prod` instead pulls the configured published images and starts with
-  `--no-build`; it enforces the published-image identity contract of
-  `RUNNER_UID=1000` and `RUNNER_GID=1000`.
-- **GREMLIN server: Celery isolation**: the Celery worker can now launch without
-  user DB access. Web and maintenance receive `users.sqlite3` and their required
-  authentication/email settings; maintenance uses them only for scheduled email
-  and backup tasks, while the worker keeps task data, UniRef databases, and
-  Docker runner access. `AUTH_DIR` is documented as the host path and
-  `USER_DB_PATH` as the container path to the same database.
-- **GREMLIN server: pip package** — renamed from `pssm_gremlin` to `pssm_gremlin_server` with `pyproject.toml` for pip-installability. Server tests moved from `tests/server/` to `server/tests/` with dedicated CI workflow (`.github/workflows/server-test.yml`).
-- **GREMLIN server: Pydantic data models** — request/response validation hardened with typed Pydantic models at the API boundary (`schemas.py`), replacing ad-hoc `str(payload.get(...))` validation across all auth/admin route handlers.
-- **REvoDesign test suite** — removed server-only dependency pins from the root
-  `test` extra; server tests and Makefile targets are now self-contained under
-  `server/`. The server CI workflow now calls the server-owned coverage target
-  instead of duplicating pytest filters and dependencies, with pytest and
-  coverage configuration also moved under `server/`.
-- **GREMLIN server: module split** — `pssm_gremlin.py` refactored from ~1500 lines into `db.py` (TaskDatabase), `routes.py` (HTTP handlers), `ratelimit.py` (rate limiter), and slimmed-down main module.
-- **GREMLIN server: SMTP-gated registration** — self-registration and email verification now require SMTP to be configured.
-- Docker Compose: removed `group_add: "0"` (root group) from `x-docker-socket-access`.
-- **GREMLIN server UI**: redesigned login, profile, and register pages with
-  card-based layout, section headings, full-width buttons, and contextual
-  navigation.  Profile page gains a logout button and copy-to-clipboard for
-  API keys.  The developer curl snippet on the login page is now collapsed
-  behind a `<details>` element.
-- **GREMLIN server error pages**: HTTP error responses (4xx/5xx) render as
-  styled HTML pages for browser requests with contextual help text and
-  actions (e.g. 401 links to login).  API requests continue to receive JSON.
-- **Gunicorn `--preload`**: the WSGI app is loaded before forking workers,
-  ensuring consistent `AUTH_SECRET_KEY` across all workers and eliminating
-  cross-worker token validation failures.
-- **GREMLIN server UI**: auth pages (login, register, profile, user-control,
-  verify-email) redesigned with increased vertical rhythm — panel padding,
-  field spacing, and section gaps bumped 20-40% for a more breathable layout.
-- **GREMLIN server build**: `pyproject.toml` build backend changed from
-  `setuptools.backends._legacy` (removed in newer setuptools) to standard
-  `setuptools.build_meta`. Dockerfile uses `pip install "/app/server[resend]"`.
-- **GREMLIN server email**: optional Resend SDK (`pip install "server/[resend]"`)
-  as an alternative email backend. Takes priority over SMTP when
-  `RESEND_API_KEY` is set; SMTP (stdlib) remains the default fallback.
-- Refactored menu item registry to eliminate import-time filesystem scanning:
-  - `application/menu.py`: `config_edit_links()` and `menu_links()` are now builder functions called at binding time instead of module-level constants computed at import. Added `core_menu_links(app)` for the core application menu actions, and `static_menu_links()` combining tools + preferences + other links.
-  - `basic/menu_item.py`: extracted `bind_one()` and `_menu_section()` methods from `MenuCollection.bind()`; removed print-and-swallow error handling so binding failures propagate cleanly; added `MenuItem.separator()` classmethod.
-  - `REvoDesign.py`: core and deferred menu bindings now both route through `application.menu` builders — single ownership, no inline `MenuItem` construction.
-- Moved legacy `docs/` to `docs_old/` for archival; new docs are a fresh MkDocs site.
-- Moved menu-item translation responsibility from `MenuItem.bind_one()` to builder functions:
-  - `basic/menu_item.py`: removed `_translate()` wrapper — `bind_one()` now sets `action_text` directly.
-  - `application/menu.py`: `PREFERENCES_MENU_LINKS`/`OTHER_MENU_LINKS` converted to builder functions (`preferences_menu_links()`/`other_menu_links()`) with lazy `QCoreApplication.translate()` calls discoverable by `pylupdate5`.
-  - `tools/translate.sh`: removed deprecated `pyuic5` UI-to-Python step; switched from `lupdate` to `pylupdate5` to scan both `.ui` and `.py` sources.
-- Updated README links to point to new docs structure.
-- Renamed Simplified Chinese label from 中文 to 简体中文 in language registry (`language.json`).
+- Server:
+  - maintenance scheduler: one APScheduler service (no HTTP port/socket) under `maintenance/tasks/`; retention claims unchanged rows before deleting; restart rollback uses SQLite backup API.
+  - restart modes: `--mode=dev` rebuilds local images; `--mode=prod` pulls published images (1000:1000 identity contract).
+  - Celery isolation: worker runs without user-DB access; web/maintenance get `users.sqlite3`.
+  - pip package `pssm_gremlin_server` with self-contained `server/tests/` + dedicated CI workflow.
+  - Pydantic models at the API boundary (`schemas.py`).
+  - module split of the ~1500-line `pssm_gremlin.py` into `db.py`/`routes.py`/`ratelimit.py`.
+  - SMTP-gated registration; optional Resend SDK backend.
+  - UI redesign (login/profile/register/user-control/verify-email), styled error pages, `--preload` for consistent signing keys.
+  - `PUBLIC_DASHBOARD` removed — task visibility/operations always owner-or-admin.
+- Package manager:
+  - download registry integrity (reject hash-less entries, Monaco npm integrity, ESM MD5 checks).
+  - Monaco tokens no longer logged; `secrets.choice` for generated auth strings.
+  - FASTA uploads saved as `{owner_scoped_md5}.fasta` (cross-user filename collision fix).
+- Application:
+  - menu registry: builder functions replace import-time filesystem scanning; `bind_one()`/`_menu_section()` extracted; translation moved to builders (pylupdate5-discoverable).
+  - legacy `docs/` archived to `docs_old/`; README links updated; 中文 → 简体中文.
+  - uvicorn server on plain `threading.Thread` (QThread SIP-wrapper lifetime caused SIGABRT); uvicorn pin `>=0.12.0`.
+  - `Evalutator` → `Evaluator`, `flatten_archieve` → `flatten_archive` typos.
+- Docker Compose: removed root `group_add: "0"`; `${VAR:-}` empty strings treated as unset; WORKDIR/package-shadowing fixed.
 
 ### Fixed
-- **GREMLIN server deployment documentation**: aligned README, developer guide,
-  and `.env.example` with the dev/prod restart modes, published-image
-  `1000:1000` identity contract, registration profile fields, SMTP-or-Resend
-  email support, auth-storage boundary, and Docker socket authority. Removed
-  misleading `REDIS_PASSWORD` Compose guidance because the current stack does
-  not configure Redis authentication, and restored the documented
-  `RUNNER_HOST_ROOT` override to the worker environment.
-- **Package manager self-bootstrap**: manager UI and extras registry now
-  bootstrap into a writable runtime directory instead of writing into `src/` or
-  an installed package directory. Bootstrap fetches use bounded timeouts and
-  retry/backoff, and downloaded bootstrap assets must match the HMAC manifest
-  before they are written. The Refresh button remains the explicit
-  user-triggered network update path. `fetch_tags` degrades silently on network
-  failure instead of blocking startup with an error popup.
-- **Self-upgrade HMAC integrity**: the self-upgrade flow now verifies downloaded
-  assets against an HMAC-SHA256 manifest before applying changes. The HMAC key
-  is embedded in the plugin source and never leaves the client. `make upload-gists`
-  generates `manifest.json` automatically.
-- **Download registry integrity checks**: file registries now reject entries
-  without hashes, Monaco editor downloads verify npm tarball integrity metadata,
-  and remote ESM weight downloads verify configured MD5 hashes.
-- **Monaco editor token handling**: generated editor backend authentication
-  tokens are no longer written to application logs.
-- **Generated socket authentication keys**: `generate_strong_password()` now uses
-  `secrets.choice` instead of the default pseudo-random generator when creating
-  authentication/password strings.
-- **Uploaded FASTA filename collision**: two users uploading files with the same
-  name (e.g. `seqs.fasta`) would overwrite each other in the shared upload
-  directory. Files are now saved as `{owner_scoped_md5}.fasta` so on-disk names
-  are unique per user and content.
-- **DB backup permission denied on restart**: the restart script's host-side
-  `cp` failed when the host user lacked write permission to `SERVER_DIR`. The
-  backup now runs inside the web container via `docker compose run --entrypoint
-  /bin/cp` so file ownership matches.
-- **Unable to download failed-task artifacts**: failed tasks now create a
-  downloadable archive with the uploaded FASTA and a failure report; download
-  routes accept `failed` tasks and pack the result dir on-the-fly when needed.
-- **Failed-task runner log hidden**: dashboard task cards now show a `(?)`
-  indicator next to the status pill. It opens a fixed, scrollable "Runner log"
-  popover backed by the task `error` column, with a copy button for sharing the
-  runner output.
-- **GREMLIN server test suite**: removed dead `users.txt`/`USERS_FILE` code
-  leftover from Basic Auth era. Merged `_configure_pssm_env` into
-  `_load_pssm_module`. Fixed Docker test entry points (`_start_web`,
-  `_start_worker`) for the package-refactored module path. Renamed
-  `_module_bearer_headers` → `_test_client_auth` for clarity.
-- Cancelled tasks now clean up their result directories (previously leaked on disk).
-- **GREMLIN server**: `ALLOWED_EMAIL_DOMAINS` was defined in `.env.example` but
-  never passed through `docker-compose.yml`'s `x-common-env` block — the domain
-  allowlist would never activate. Added to the shared env block.
-- **GREMLIN server**: registration endpoint no longer returns the same success
-  message when email delivery fails. Frontend now shows whether the
-  verification email was actually sent.
-- **GREMLIN server**: resend-verification endpoint was incorrectly blocking
-  pending/unverified users via `_is_account_blocked`. Replaced with a narrower
-  gate that only rejects deleted and banned accounts.
-- **AUTH_SECRET_KEY duplication**: `auth.py` and `pssm_gremlin.py`
-  independently generated different random signing keys when
-  `AUTH_SECRET_KEY` was unset, breaking token validation across gunicorn
-  workers. Fixed by seeding `os.environ` before the auth import.
-- **Test module loading**: `spec_from_file_location` loader in server tests
-  now adds `server/` to `sys.path` so the refactored `pssm_gremlin` package
-  (with sibling imports from `db`, `auth`) is importable.
-- **Docker compose empty env vars**: `${VAR:-}` substitutions pass empty
-  strings when unset, which `os.environ.get()` returned as valid values,
-  bypassing defaults. `_env_str` now treats empty strings as unset, preventing
-  SQLite paths from resolving to CWD.
-- **Package shadowing on import**: when the Docker WORKDIR was inside
-  `pssm_gremlin/`, Python's `sys.path` entry `''` resolved to the package
-  directory, finding `pssm_gremlin.py` as a top-level module that shadowed
-  the `pssm_gremlin` package. Fixed by setting `WORKDIR /app/server` and
-  `working_dir: /app/server` in docker-compose.
-- **Browser auth after login**: page navigations (dashboard, profile) don't
-  carry the `Authorization` header. Login now sets an `HttpOnly` cookie and
-  `load_current_user` checks it, so browser pages authenticate without manual
-  token management.
-- **Logout**: JS cannot clear `HttpOnly` cookies. Added
-  `POST /api/auth/logout` server endpoint; profile page calls it to clear
-  the cookie.
-- **API key display race**: `refreshApiKeyStatus()` was hiding the
-  freshly-generated key before the user could copy it. Fixed to preserve the
-  display when a new key is visible.
-- **Admin password**: the bootstrap-generated admin password was logged to
-  gunicorn stderr (inaccessible to the operator). The restart script now
-  generates and displays it on the console before bringing services up.
-  - **Host header spoofing in email links**: `_public_base_url()` now always
-    uses the configured `SERVER_BASE_URL` for verification / password-reset
-    links, never the request `Host` header (which an attacker can spoof to
-    place valid tokens in links pointing to an attacker-controlled domain).
-  - **Cancelled tasks resurrected by late worker writes**: cancelled tasks are
-    now treated as terminal — the DB update guard prevents late `running`/
-    `finished` status writes from overwriting a `cancelled` task.
-  - **Admin digest silently drops users on email failure**: `_send_email()`
-    returns `False` on failure (doesn't raise), so the try/except never caught
-    transient errors. The digest loop now checks return values and unmarks users
-    as notified when all recipient deliveries fail.
-  - **Failed-task archives recreated after deletion**: the three exception
-    handlers in `run_gremlin_task` now guard `_pack_failed_results_archive`
-    with `_task_is_deleted()` so deleted tasks don't get artifacts recreated.
-  - **Celery submission failure leaves orphaned pending task**:
-    `apply_async` failures now mark the task as failed and return a 503,
-    preventing the pending task from consuming the user's quota forever.
-  - **Account enumeration via resend-verification**: the unauthenticated
-    endpoint now returns the same generic response for unknown, deleted, banned,
-    and already-verified accounts.
-  - **Batch-enable doesn't verify email**: batch-enable (`enable` action)
-    now also sets `email_verified = True` so admin-approved users can
-    immediately use features that require a verified email.
-  - **Rate limiter unbounded growth**: the in-memory rate-limit state dict
-    now periodically prunes expired IP entries, preventing unbounded memory
-    growth across the process lifetime.
-  - **Pydantic email validators crash on non-string input**:
-    `normalize_email()` now raises a clean `ValueError` instead of
-    `AttributeError`.
-  - **Test DB path targets wrong database**: `_inject_admin_password` now
-    writes to the user DB (`users.sqlite3`) instead of the task DB
-    (`pssm_gremlin_server.sqlite3`).
-  - **Missing columns in SQLAlchemy metadata**: `admin_notified`,
-    `verification_resend_count`, and `verification_resend_at` are now
-    declared in the `_users_table` Table definition.
-  - **Server test env now self-contained**: the server test suite no longer
-    imports from the root `tests/conftest.py`. The server conftest defines
-    `REPO_DIR` and `has_docker_daemon` locally, enabling a lightweight
-    `REvoDesignServerDev` conda env.
-  - **CI workflow fix**: replaced unresolvable `actions/setup-python` pinned
-    SHA with `@v6` in `server-test.yml`.
-
-
-- **Chrome file picker not opening**: native ``<input type="file">`` click
-  fails to open the file dialog in Chrome (works in Safari).  Added
-  drag-and-drop file upload as a browser-agnostic workaround — drop a
-  ``.fasta`` file anywhere on the input card.  Removed ``backdrop-filter``
-  from ``.panel`` (known Chrome hit-testing regression on replaced elements).
-- **Download button not triggering download**: the dashboard download
-  button used ``window.location.href`` (cookie-only page navigation) which
-  could silently redirect to login on auth failure.  Switched to
-  ``A.authFetch`` (Bearer token + cookie fallback) with blob download via
-  ``URL.createObjectURL``, matching the page's existing fetch-based auth
-  model.
-- **Login rate-limit feedback**: when login throttling returns HTTP 429 with
-  `retry_after_seconds`, the login page now disables the submit button and
-  displays a second-by-second retry countdown instead of a generic error.
-- **Fresh server setup**: default-admin bootstrap now tolerates concurrent
-  web/worker first-boot imports, avoiding a unique-constraint crash when both
-  processes see an empty user database.
-- **Docker socket setup**: `restart_pssm_flask.sh` now auto-detects and exports
-  `DOCKER_GID` at runtime instead of persisting host-specific socket groups in
-  env files.  On Docker Desktop/OrbStack for macOS it uses the
-  container-visible socket group (`0`), preventing runner launch failures with
-  `PermissionError(13, 'Permission denied')`.
-- Language menu actions disappearing when a non-English language was saved in config: language QActions were created orphan (no QObject parent) and lost after `retranslateUi` → `refresh_bindings()` rescanned the widget tree. Fixed by parenting each action to `menuLanguage`.
-- Switching back to English not reverting translated strings: `_ensure_translator()` checked the fresh `bus.ui.trans` before the early-installed translator from `install_translator_early()`, so `removeTranslator()` removed the wrong instance. Fixed by checking for an early-installed translator first.
-- Replaced `WorkerThread` (QThread subclass) with plain `threading.Thread` for uvicorn server lifecycle — uvicorn no longer runs inside a QThread, removing the SIP wrapper lifetime boundary that triggered `forgetObject` → `qFatal` → `SIGABRT` when cross-thread Qt signals were dispatched after QObject destruction. Loosened uvicorn pin to `>=0.12.0` (was `<0.50.0`).
-- Renamed `Evalutator` → `Evaluator` and `flatten_archieve` → `flatten_archive` (typo fixes, no backward-compat aliases).
-- ValueDialog YAML window-pop translation and retranslation:
-  - Moved title/banner translation from `shortcuts/utils.py` to `ValueDialog.__init__` and `retranslateUi` so English source strings are preserved for language-switch retranslation.
-  - Fixed `_retranslate_row` to handle direct `QPushButton` cell widgets (Browse, Pick Color) — `findChildren` missed the widget itself when the cell widget IS the button.
-  - Action button text and tooltips are now translated on initial creation in `_add_field_to_table`, not only on retranslation.
-  - Button labels made consistent with retranslation sources (e.g. "All" → "Select All").
-  - Action button source strings stored as dynamic Qt properties (`source_text`, `source_tooltip`) for dict-free retranslation.
-- Menu builder fixes (from PR #184 review):
-  - Sorted secondary config entries in `config_edit_links()` so section-based separator insertion is deterministic.
-  - `MenuCollection._menu_section` now uses `getattr(..., None)` so missing menu sections raise `InternalError` instead of raw `AttributeError`.
-  - Deferred `_bind_menu_links` callback wrapped in try/except with logging so filesystem or binding failures are user-visible.
-- Translation tooling fixes (from PR #185 review):
-  - `tools/translate.sh` now uses portable `sed -i.bak` + `rm -f` for cross-platform compatibility (BSD/macOS and GNU/Linux).
-  - `tools/translate.sh` now iterates over glob directly instead of `ls` output (SC2045).
-  - Removed redundant `action.setText()` in `MenuItem.bind_one` (constructor already sets the text).
-- Added 15 hand-maintained translation entries for ValueDialog action buttons (Browse, Pick Color, Select All, etc.) in zh_CN + zh_TW.
-- **GREMLIN server: guest task submission broken** — guest accounts were blocked from Bearer-token auth in `load_current_user`, forcing cookie-only auth which the CSRF gate (`require_bearer_auth`) rejects on state-changing endpoints. Removed the guest exclusion from the Bearer-token path (Bearer tokens are CSRF-safe by browser policy regardless of role). Added `_reject_guest()` guards to both delete endpoints so guests cannot delete tasks.
+- Server:
+  - deployment docs aligned with dev/prod modes and auth-storage boundary.
+  - admin password shown on console, never logged.
+  - `_public_base_url()` uses configured `SERVER_BASE_URL` (Host-header spoofing closed).
+  - cancelled tasks are terminal (late worker writes can't resurrect them).
+  - admin digest unmarks users when all deliveries fail; failed-task archives not recreated after deletion.
+  - Celery `apply_async` failures mark tasks failed (no orphaned quota consumption).
+  - resend-verification enumeration closed; batch-enable sets `email_verified`; rate-limiter state prunes expired entries; Pydantic email validator raises clean `ValueError`.
+  - `ALLOWED_EMAIL_DOMAINS` now actually passed through Compose env; registration endpoint reports email delivery truthfully.
+  - DB backup runs inside the web container (host permission fix); `_inject_admin_password` writes the user DB; SQLAlchemy metadata declares the new columns.
+  - failed tasks get downloadable archives; runner log popover from the `error` column.
+- Web:
+  - Chrome file-picker workaround: drag-and-drop upload; removed `backdrop-filter` (Chrome hit-testing regression).
+  - download button uses `A.authFetch` blob download (cookie-only navigation could redirect to login).
+  - login 429 shows a per-second retry countdown.
+- Application:
+  - language menu actions parented to `menuLanguage` (orphan actions lost after retranslate).
+  - switching back to English reverts translations (early-installed translator checked first).
+  - ValueDialog translation/retranslation fixes (title/banner move, direct-button cell widgets, action-button source strings as Qt properties).
+  - guest task submission: Bearer-token path no longer blocked for guests; delete endpoints reject guests explicitly.
+  - fresh-server bootstrap tolerates concurrent first-boot imports.
+  - `restart_pssm_flask.sh` auto-detects `DOCKER_GID` (Docker Desktop/OrbStack macOS fix).
+- CI: `actions/setup-python` pinned SHA → `@v6`; DockerStack retries on transient daemon failures.
 
 ### Security
-- SQL injection: all queries use SQLAlchemy ORM parameterized queries.
-- XSS: Jinja2 auto-escaping + `| tojson` filter for JSON + `escapeHtml()` in dashboard JS.
-- Auth cookie: `HttpOnly` + `SameSite=Lax`; inaccessible to JavaScript.
-- API keys: restricted privileges (task operations only); Bearer token
-  required for profile changes and admin actions.
-- Account-status enforcement: banned or deleted users cannot authenticate with
-  new logins, old Bearer tokens, or existing API keys.
-- Admin self-lockout protection: admins cannot ban/delete their own account;
-  batch Disable/Delete skips the acting admin while still applying to other
-  selected users.
-- Admin approval now implies email verification, and all active users must have
-  verified email before authentication.
-- Browser hardening: `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`,
-  `Referrer-Policy`, and `Permissions-Policy` headers on every response. CSP
-  allows Google Fonts (used by templates) and inline scripts/styles.
-- Auth cookie: `Secure` flag set when `SERVER_BASE_URL` uses `https://`, skipped
-  for plain-http dev environments to avoid silently broken cookies.
-- Upload rate limiting: `@rate_limit(max_requests=30, window_seconds=3600)` on
-  the file-upload endpoint (per-IP, in addition to per-user task cap).
-- Runner image hardening: removed setuid `ldconfig.real`; entrypoint starts as
-  root, runs `ldconfig`, then drops privileges via `runuser`. Removed `user=`
-  overrides from Docker API call, docker-compose runner service, and test harness.
-- Path traversal: `_safe_join()` / `_path_is_within()` guard all filesystem paths.
-- Task IDs: validated against `[a-f0-9]{32}` regex before filesystem access.
-- CSRF: all state-changing routes require Bearer token or API-key auth as
-  appropriate; cookie-only writes are rejected.
-- Docker: Docker socket access is documented as host-root-equivalent; A/B
-  attack-test guidance covers socket exposure, low-privilege API probes, and
-  task-submission boundaries.
-- Removed HTTP Basic Auth dependency (`flask_httpauth`) and `users.txt` file.
+- SQLAlchemy parameterized queries; Jinja2 auto-escaping + `| tojson`; `escapeHtml()` in dashboard JS.
+- account-status enforcement for banned/deleted users; admin self-lockout protection; approval implies email verification.
+- upload rate limiting (30/hr/IP) plus per-user task cap.
+- `_safe_join()`/`_path_is_within()` guards; task IDs validated against `[a-f0-9]{32}`; CSRF via Bearer/API-key requirement.
+- runner image hardening: no setuid `ldconfig.real`; entrypoint drops privileges after `ldconfig`.
 
 ### Removed
-- **GREMLIN server database migrations**: removed setup-time task/user column
-  upgrades, legacy auth-database relocation, and the migration-only restart
-  backup. New deployments create only the current schemas; scheduled database
-  backups remain available for normal operations.
-- `flask_httpauth` dependency and `USERS_FILE` / `users.txt` credential storage.
+- Server:
+  - database migrations (new deployments create current schemas only).
+  - `flask_httpauth` and `USERS_FILE`/`users.txt` credential storage.
+  - dead `users.txt`/`USERS_FILE` test code.
 
 ## [1.9.0] - 2026-07-03
+
 ### Added
-- Runtime UI loading:
-  - Added `src/REvoDesign/Qt/ui_runtime_loader.py` with `RuntimeUiProxy` and `load_runtime_ui()` — loads `.ui` at runtime instead of relying on a generated `Ui_REvoDesign.py`.
-  - Added `dev/tools/generate_ui_typing.py` to generate `src/REvoDesign/UI/types.py` (`REvoDesignUiProtocol`) from `REvoDesign.ui` for static typing and IDE completion only.
-  - Added pre-commit hooks: `generate-ui-typing`, `check-ui-typing`, `validate-ui-i18n`, `reject-generated-main-ui`, `check-qt-binding-imports`.
-  - Added dev tools: `dev/tools/check_qt_binding_imports.py`, `dev/tools/reject_generated_main_ui.py`, `dev/tools/validate_ui_i18n.py`, `dev/tools/validate_package_data.py`.
-- Qt cross-compatibility layer (`src/REvoDesign/Qt/`):
-  - Added `QtCompat` namespace that resolves enum members and methods across PyQt5 and PyQt6.
-  - Added `qexec()` for safe `exec`/`exec_` dispatch.
-  - Added `has_qt_module()` for probing optional Qt modules from the active backend.
-  - Added scoped-enum aliases (`Qt.WidgetAttribute`, `Qt.AlignmentFlag`, `Qt.CheckState`, `Qt.WindowType`, etc.) automatically installed for Qt5 backends.
-  - Added `Qt/__init__.py` with public exports.
+- Qt:
+  - runtime UI loading (`ui_runtime_loader.py`: `RuntimeUiProxy`, `load_runtime_ui()`); `.ui` is the single source of truth.
+  - `generate_ui_typing.py` → `types.py` (`REvoDesignUiProtocol`) for static typing; pre-commit hooks (`generate-ui-typing`, `check-ui-typing`, `validate-ui-i18n`, `reject-generated-main-ui`, `check-qt-binding-imports`).
+  - `QtCompat` namespace, `qexec()`, `has_qt_module()`, scoped-enum aliases for Qt5 backends.
 - Cluster:
-  - Added `ClusterInputSpec` and `ClusterMethodSpec` frozen dataclasses for declarative method metadata.
-  - Added `ClusterTabController` (`application/cluster_tab.py`) for runtime cluster-method selection, tooltip installation, and page switching.
-  - Added `cluster.method.random_seed` and `cluster.method.rosetta.override_representatives` config keys.
-  - `ClusterRunner`: added worker-count sanitisation, variant counting, input-PDB generation, representative-policy introspection, and `confirm_cluster_run()` for legacy method guard.
-- Package manager (`tools/package_manager.py`):
-  - Added thread worker management: `ThreadExecutionManager`, `ThreadPoolEntry`, `ThreadDashboard`, `ThreadPoolRegistry`, `RunningProcessRegistry`, `AbortButtonOverlay`.
-  - Added `_GuiThreadInvoker` / `execute_on_main_thread` for marshalling Qt operations from worker threads.
-  - Added `_install_qt5_aliases_for_manager()` for its own Qt5/Qt6 surface.
-- Rosetta:
-  - Added `_resolve_local_rosetta_database()` to discover an existing local Rosetta DB from `ROSETTA3_DB`/`ROSETTA_BIN` before falling back to a partial clone.
-- Tests:
-  - Added `tests/dev_tools/test_qt_compat_tools.py` covering Qt alias installation, `qexec`, `RuntimeUiProxy`, typing contract generation, and import guards.
-  - Added `tests/application/test_cluster_tab.py` covering page switching, rosetta-override state sync, and proxy attribute exposure.
-- Docs:
-  - Added runtime UI loading, i18n, and type-checking guidance in `dev/README.md`.
-  - Added Qt versioning environments to `AGENTS.md`.
-- Universal plugin registry:
-  - Added `REvoDesign.basic.plugin_registry.PluginRegistry` and `build_plugin_registry` for package-based plugin discovery.
-  - Added cluster method discovery namespace `REvoDesign.clusters.methods` for file-based method extension.
-  - Added tests:
-    - `tests/basic/test_plugin_registry.py`
-    - `tests/basic/test_plugin_registry_integration.py`
-- docs:
-  - Added `docs/cluster_methods_guide.md` with detailed guidance on cluster method tradeoffs, method selection, and how to implement/register custom methods.
-- ci:
-  - PyPI publish workflow now also supports `push` tag trigger `v*` for release-by-tag publishing.
-  - TestPyPI branch-testing trigger: push any branch commit with `[testpypi]` in commit message to run a TestPyPI upload flow.
-- sidechain:
-  - added `DLPackerPytorch_worker` at `src/REvoDesign/sidechain/mutate_runner/DLPackerPytorch.py`.
-  - added detailed config at `src/REvoDesign/config/sidechain-solver/dlpacker_pytorch.yaml` (device, rotamer policy, optional weights prefix).
-  - exposed `DLPackerPytorch` via sidechain solver registry/export wiring.
-  - added `DiffPack_worker` at `src/REvoDesign/sidechain/mutate_runner/DiffPack.py`.
-  - added detailed config at `src/REvoDesign/config/sidechain-solver/diffpack.yaml` (backend/device/cache and runtime toggles).
-  - exposed `DiffPack` via sidechain solver registry/export wiring.
-- installer/extras:
-  - added `dlpacker_pytorch` optional dependency in `pyproject.toml` using GitHub URL on `DLPacker` `pytorch` branch.
-  - added `DLPacker (PyTorch)` entry in `jsons/REvoDesignExtrasTableRich.json`.
-  - added `diffpack` optional dependency in `pyproject.toml` using GitHub URL.
-  - added `DiffPack` entry in `jsons/REvoDesignExtrasTableRich.json`.
-- tests:
-  - added sidechain config/wiring test `tests/sidechain/test_dlpacker_pytorch_runner_config.py`.
-  - added `DLPackerPytorch_worker` into sidechain solver mutate test matrix.
-  - added sidechain config/wiring test `tests/sidechain/test_diffpack_runner_config.py`.
-  - added `DiffPack_worker` into sidechain solver mutate test matrix.
-- docs:
-  - added modular integration guide `docs/modular/add_new_sidechain_solver.md` for adding and validating new sidechain solvers.
-- launch:
-  - added splash label ("Loading REvoDesign…") shown immediately when the plugin is launched from PyMOL, giving instant feedback while the main window constructs.
-- UI:
-  - Added `button_matrix.hover_crosshair.color` and `button_matrix.hover_crosshair.width` to `appearence.yaml` for profile/GREMLIN matrix hover styling.
+  - `ClusterInputSpec`/`ClusterMethodSpec` frozen dataclasses; `ClusterTabController` for runtime method selection; `random_seed`/`override_representatives` config keys.
+  - `ClusterRunner` worker-count sanitisation, variant counting, representative-policy introspection, legacy guard.
+- Package manager:
+  - thread worker management (`ThreadExecutionManager`, `ThreadDashboard`, `ThreadPoolRegistry`, `RunningProcessRegistry`, `AbortButtonOverlay`); `execute_on_main_thread`; own Qt5/Qt6 alias surface.
+- Plugin registry:
+  - `PluginRegistry`/`build_plugin_registry` package-based discovery; cluster method namespace; sidechain solver + magician designer auto-discovery registries.
+- Sidechain:
+  - `DLPackerPytorch_worker` and `DiffPack_worker` with detailed configs and registry wiring.
+- Rosetta: local DB discovery from `ROSETTA3_DB`/`ROSETTA_BIN` before partial clone.
+- CI: tag-triggered PyPI publish; TestPyPI branch trigger via `[testpypi]`; in-repo publish steps replace external workflow.
+- UI: splash label at launch; button-matrix hover crosshair config.
+- Docs: runtime UI/i18n guidance, cluster methods guide, sidechain solver guide.
+- Tests: `test_qt_compat_tools.py`, `test_cluster_tab.py`, plugin-registry tests, sidechain config/wiring tests, OpenKinetics live + transport tests.
 
 ### Changed
-- OpenKinetics (`magician/designers/openkinetics/`):
-  - `_request()` default per-request timeout reduced to 30s (was 600s); `submit()` passes the full `timeout_seconds` explicitly.
-  - `poll_until_complete()` logs rich status on every ~30s elapsed: status, queue/compute seconds, queue position, and molecule/prediction progress counts.
-  - `submit()` resolves the substrate column name dynamically from the method's `requiredColumns` instead of hardcoding `"Substrate"`.
-  - `submit()` checks service health before posting the job.
-  - `get_result()` retries with backoff on 409 (result not yet ready) and transient network errors.
-  - `score_variants()` logs daily quota after fetching results and passes remaining timeout budget to `get_result()`.
-  - Removed hardcoded `cache_dir` from `openkinetics_api.yaml`; scorer now derives it from `set_cache_dir()`.
-  - Added `health` and `quota` endpoints to `OPENKINETICS_ENDPOINTS`.
-- Runtime UI loading:
-  - `REvoDesignPlugin.make_window()` now uses `load_runtime_ui()` instead of the generated `Ui_REvoDesignPyMOL_UI.setupUi()`.  The `.ui` file is the single source of truth; `RuntimeUiProxy` exposes named children as attributes.
-  - All business code continues to use `self.ui.<objectName>` — no interface change.
-- Qt imports:
-  - Migrated every module that previously imported `PyQt5`/`PyQt6` directly to use `REvoDesign.Qt` (`QtCompat`, `qexec`, `has_qt_module`, etc.).
-    - `REvoDesign.py`, `QtSocketConnector.py`, `customized_widgets.py`, `bootstrap/set_config.py`, `font_manager.py`, `shortcuts/tools/vina_tools.py`, `shortcuts/tools/rosetta_tasks.py`, `sidechain/mutate_runner/RosettaMutateRelax.py`.
-- Package `__init__.py`:
-  - `REvoDesignPlugin` and `all_shortcuts` are now lazy-imported via `__getattr__` to reduce startup import cost.
-- Cluster:
-  - `ClusterMethodAbstract`: added `get_method_spec()`, `method_report` dict, `random_seed` attr.
-  - `ClusterRunner`: refactored with input validation, representative-policy introspection, and `LegacyCluster` confirmation guard wired through `ClusterTabController`.
-  - `REvoDesignPlugin.run_clustering()` checks `cluster_tab_controller.confirm_cluster_run()` before execution.
-- Designer:
-  - `ExternalDesignerAbstract.parallel_scorer()`: `nproc=1` now uses a serial loop instead of `joblib.Parallel`; added `PermissionError` fallback for restricted process environments.
-- Rosetta:
-  - Refactored `rosetta_tasks.py` and `RosettaMutateRelax.py` to import `rosetta_utils` as a module instead of destructuring individual symbols.
-- Package manager:
-  - Hardened archive extraction (`extract_archive`) with member-path traversal rejection.
-  - `GitSolver` now detects Linux/BSD package managers and conditionally prefixes `sudo`.
-- Tests:
-  - `conftest.py`: `PYTEST_QT_API` is now auto-detected from PyMOL's Qt backend instead of hardcoded to `pyqt5`.
-  - Memory reporting in `TestWorker.print_all_mem()` now catches `PermissionError`.
-  - Added `has_docker_daemon()` helper for docker-dependent test guards.
-- Plugins/registries:
-  - Sidechain solvers now use scoped auto-discovery registry in `sidechain_solver.py` while keeping compatibility symbols (`ALL_RUNNER_CLASSES`, `IMPLEMENTED_RUNNER`) and manager API.
-  - `PyMOL_mutate` (Dunbrack Rotamer Library) now derives the molecule name from the input PDB basename instead of receiving it as a constructor argument. Removed `molecule` field from `SidechainSolverConfig` — `SidechainSolver.setup()` reads the molecule directly from the config bus for `make_temperal_input_pdb()`.
-  - Magician designers now use scoped auto-discovery registry in `magician/__init__.py` while keeping compatibility symbols (`ALL_DESIGNER_CLASSES`, `IMPLEMENTED_DESIGNERS`) and assistant API.
-  - Cluster methods now use scoped auto-discovery registry in `cluster_sequence.py` while keeping compatibility symbols (`ALL_CLUSTER_METHOD_CLASSES`, `IMPLEMENTED_CLUSTER_METHOD`) and `ClusterMethodManager` API.
-- clusters:
-  - Moved concrete cluster method implementations out of `cluster_sequence.py` into per-method modules under `src/REvoDesign/clusters/methods/` (`legacy.py`, `agglomerative.py`, `kmeans.py`, `evo.py`), while preserving public compatibility exports from `cluster_sequence.py`.
-- docs:
-  - Linked the cluster methods guide from `README.md` for easier user discovery.
-- ci:
-  - Replaced external reusable publish workflow with in-repo publish steps (`build` + `twine check` + upload), making release behavior explicit and auditable in this repository.
-  - Manual `workflow_dispatch` publish now supports target selection (`pypi` or `testpypi`).
-- sidechain:
-  - DiffPack default backend is now `torchdrug` for better paper-level reproducibility alignment.
-- installer/extras:
-  - REvoDesign `diffpack` extra now installs `diffpack[torchdrug]` from GitHub URL.
-- launch performance:
-  - `FontSetter` (`application/font/font_manager.py`): system font-family enumeration via `QFontDatabase` is now lazy (cached `@property`) instead of running at `__init__` time (~300ms saved on macOS where the OS type is not in the flavored-font table).
-  - `LanguageSwitch` (`application/i18n/language_settings.py`): `restore_from_config()` now skips the `retranslateUi` tree walk when the restored language is English and no translator has been installed yet.
-  - `Widget2ConfigMapper` (`driver/ui_driver.py`): `get_widget_from_id()` and `get_button_from_id()` now use `getattr(ui, name)` fast path before falling back to the linear `find_child()` search — `RuntimeUiProxy` already exposes all named children as attributes.
-  - `ClusterTabController` (`application/cluster_tab.py`): `_available_methods()` result is now cached so the heavy cluster-module import (`scipy`, `sklearn`) runs only once per controller lifetime.
-  - config-edit / recent-experiment menu links: the second `MenuCollection` (which imports `application/menu.py` and triggers config-directory scanning + `os.path.getmtime()` on every experiment file) is now deferred via `QTimer.singleShot(0, ...)` so the window appears before the filesystem I/O begins.
-  - plan: added `plan/launch_optimization.md` with full startup profiling and implementation notes.
-- gremlin (`phylogenetics/evo_mutator.py`):
-  - `plot_coevolved_pair_in_pymol()`: replaced `cmd.create()` (full-atom copy) with `cmd.pseudoatom()` — lightweight pseudo atoms at CA coordinates only, avoiding per-atom property duplication.
-  - CA coordinate pre-caching: all unique `(chain, resi)` coordinates queried once via `cmd.get_coords()` before the pair loop, eliminating redundant selection-string parses.
-  - wrapped the entire batch-creation body inside `cmd.set("suspend_updates", 1)` / `finally: cmd.set("suspend_updates", 0)` so PyMOL defers visual rebuilds until all pairs are created — no per-`cmd.bond()` redraws, no UI freeze.
-  - initial `stick_color`/`stick_transparency` are now set inline during pair creation, removing two full `mark_pair_state()` iterations over every pair.
-  - `in_design` (focused) pair: `stick_transparency` changed from `0.1` to `0.0` (fully opaque).
-  - `i_out_of_range`/`discarded` membership test in the post-filter switched from O(N²) `in list` to O(1) `id()`-based `set` lookup.
-  - added `from __future__ import annotations` per repo header contract.
-  - added empty-collection guard after discarding out-of-range pairs so `load_co_evolving_pairs()` cannot dereference `current_item` on an empty `IterableLoop`.
-  - `run_gremlin_tool()`: added matching empty guard after `plot_coevolved_pair_in_pymol()` to skip button wiring when no pairs survive filtering.
-- OpenKinetics (`src/REvoDesign/magician/designers/openkinetics/`):
-  - Added retry logic (3 attempts with 1s backoff) to `_request()` for transient network failures; all transport errors now raise `OpenKineticsAPIError`.
-  - Added `parallel_scorer()` method on `OpenKineticsScorerAbstract` for batch submission in a single API call instead of one-per-mutant.
-  - Added configurable chain selection (`chain` parameter) and auto substrate SMILES resolution from PDB metadata on `initialize()`.
-  - Plumbed `pdb_path` from `VisualizingWorker` through to scorer initialization.
-  - `prefer_lower` is now a class attribute on each generated scorer class instead of an instance attribute (Km scorers: `True`; kcat and kcat/Km scorers: `False`).
-  - Added self-service API key generation via `/api/api-key/generate/` when no local `OPENKINETICS_API_KEY` is available.
-  - Added immediate API key persistence to `environ.yaml` and current-process environment registration so downstream scoring can continue without manual reload.
-  - Added info/debug logging for key source selection, key-generation requests, HTTP status, persistence path, and conflict handling while redacting secret values.
-  - Live-test gating now skips with an explicit warning when `REVODESIGN_RUN_OPENKINETICS_LIVE=1` is set without `OPENKINETICS_API_KEY`.
-  - Live OpenKinetics submit smoke now skips environment-dependent HTTP `4xx`/`5xx` service responses, such as bad VPS/IP `502` failures.
-- ci:
-  - Added `REVODESIGN_RUN_OPENKINETICS_LIVE=1` and `OPENKINETICS_API_KEY` secret wiring to tagged full unit tests for live OpenKinetics coverage when CI secrets are present.
-- Registries: Removed redundant explicit class-name import/re-export blocks from `magician/__init__.py`, `designers/__init__.py`, `openkinetics/__init__.py`, and `sidechain/sidechain_solver.py`. The auto-discovery registry is the sole source of truth; class re-exports use a dynamic `globals()` loop keyed off the registry.
-- `__all__` lists simplified to static literals only — dynamically-generated class names no longer appear in `__all__`, resolving Pylance/Pyright type-checking errors on unpacked tuples.
-- Docs: Merged `AGENTS.md` into `CLAUDE.md` — single canonical project instruction file. Added PR/commit guidelines, headless CI setup, and DGL install steps.
-- Docs: Added CLAUDE.md guidance for test-case-driven live/integration fixes: encode the smallest test or skip guard first, run the focused keyword gate, and changelog the result.
-- Tooling: Restricted black to `--target-version py310` so it does not emit PEP 701 multi-line f-strings (Python 3.12+ only). Added pre-commit hook `check-multiline-fstring` as defense in depth.
-- Tests:
-  - Added live OpenKinetics integration test `test_visualize_openkinetics_catapro_live_submit` (guarded by `REVODESIGN_RUN_OPENKINETICS_LIVE=1` and `OPENKINETICS_API_KEY` env var, no hardcoded paths).
-  - Added `test_openkinetics_client_wraps_transport_errors`, `test_openkinetics_parallel_scorer_batches_variants`, `test_openkinetics_sequence_selection_uses_configured_chain`.
-  - Added OpenKinetics API key auto-registration tests covering self-service generation, immediate `environ.yaml` persistence, active-key conflict handling, and redacted debug logging.
+- Qt imports: every module migrated from direct `PyQt5`/`PyQt6` to `REvoDesign.Qt`.
+- Plugin:
+  - lazy imports via `__getattr__` (`REvoDesignPlugin`, `all_shortcuts`).
+  - cluster implementations moved to `clusters/methods/` with compatibility exports.
+  - `PyMOL_mutate` derives molecule name from PDB basename; `molecule` field removed from solver config.
+  - `__all__` static literals only; black `--target-version py310` + multiline-fstring guard.
+- OpenKinetics:
+  - 30s request timeout, 3-attempt retry, 409 backoff, health check before submit, quota logging.
+  - `parallel_scorer()` batch submission; configurable chain selection; dynamic substrate column; auto API-key registration.
+  - live tests skip environment-dependent HTTP 4xx/5xx.
+- Launch performance: lazy `QFontDatabase` enumeration, English no-op retranslate skip, `getattr` fast path in `Widget2ConfigMapper`, cached cluster methods, deferred config menu scans.
+- GREMLIN plotting: pseudoatoms instead of `cmd.create()`, CA pre-caching, suspended updates, inline stick styling, O(1) set lookups, empty-collection guards.
+- Registries: dynamic `globals()` re-export loop keyed off the registry.
+- Docs: `AGENTS.md` merged into `CLAUDE.md`.
 
 ### Fixed
-- OpenKinetics: `poll_until_complete()` followed by `get_result()` could fail with 409 when the API reported `status=Completed` before the result file was materialized. `get_result()` now retries on 409 with exponential backoff bounded by the remaining timeout.
-- UI:
-  - Restored profile-design matrix layout after the painted `QButtonMatrix` refactor:
-    - profile matrices now stay horizontally scrollable instead of being squeezed into the dialog viewport.
-    - bottom residue-position labels are visible, centered, and no longer covered by the horizontal scrollbar.
-    - profile WT cells show the one-letter wild residue while GREMLIN matrices keep the `WT` label.
-    - hover crosshair is thicker and green by default for clearer row/column tracking.
-- Fixed 7 multi-line f-strings (PEP 701, Python 3.12+ only) across `package_manager.py`, `represents.py`, `citation_manager.py`, `menu_item.py`, and `test_rfd.py` that caused `SyntaxError` on Python 3.10/3.11. Replaced with implicit string concatenation.
-- packaging:
-  - `pyproject.toml` sdist now explicitly includes `REvoDesign.ui` and `language/*.qm`/`.ts` so source distributions contain the runtime UI and translation binaries.
-- ci:
-  - Twine uploads now use `--skip-existing` for both PyPI and TestPyPI to avoid hard failures on reruns of the same version artifacts.
-  - Removed legacy `pypirc` file from repository to prevent confusion with CI-secret based publishing.
-- server/dependencies:
-  - bumped `Flask-HTTPAuth` from `4.8.0` to `4.8.1` across test/runtime env definitions to close dependabot alert `#10` (`GHSA-p44q-vqpr-4xmg` / `CVE-2026-34531`).
-  - bumped runtime `requests` from `2.32.5` to `2.33.0` and raised the base dependency floor to `>=2.33.0` to close dependabot alert `#9` (`GHSA-gc5v-m9x4-r6x2` / `CVE-2026-25645`).
-- tests:
-  - `DockerServerStack.start()` now retries web container creation up to 3 times with a 5-second delay between attempts to mitigate transient Docker daemon failures on CI.
-- sidechain:
-  - fixed DLPacker radius-based reconstruct target selection in
-    `src/REvoDesign/sidechain/mutate_runner/DLPacker.py` to prevent rename-only mutate outputs:
-    - radius path now queries neighborhood with WT residue label.
-    - mutated center target is always included for guaranteed rebuild.
-    - `reconstruct_area` dedup and radius<=0 behavior stay unchanged.
-  - DiffPack runner now guarantees:
-    - pre-repack cache auto-prepare on cache miss/invalid.
-    - output rename safety to REvoDesign pattern `<short_mutant_id>.pdb`.
-    - one-mutant-one-core parallel cap to avoid CPU over-commit.
+- OpenKinetics: 409 retry when result materializes after `Completed`.
+- UI: profile matrix layout after painted `QButtonMatrix` refactor (scroll, labels, WT cells, crosshair).
+- 7 multi-line f-strings (PEP 701) replaced with implicit concatenation for Python 3.10/3.11.
+- Packaging: sdist includes `REvoDesign.ui` and translation binaries.
+- CI: `twine --skip-existing`; legacy `pypirc` removed.
+- Server deps: `Flask-HTTPAuth 4.8.1`, `requests>=2.33.0` (dependabot alerts #9/#10).
+- Sidechain: DLPacker radius-based target selection (WT-labeled neighborhood query, center always rebuilt); DiffPack cache prep, output rename safety, one-mutant-one-core cap.
 
 ### Removed
-- server:
-  - removed legacy/manual server deployment artifacts (`server/README.legacy.md`, `server/env/REvoDesign.yml`) now that the maintained server path is Docker-only.
-- UI:
-  - removed generated `src/REvoDesign/UI/Ui_REvoDesign.py` (2992 lines).  The `.ui` file is now loaded at runtime via `RuntimeUiProxy`; static typing uses the auto-generated `types.py` (`REvoDesignUiProtocol`).
+- Server: legacy manual deployment artifacts (`README.legacy.md`, `env/REvoDesign.yml`) — Docker-only now.
+- UI: generated `Ui_REvoDesign.py` (2992 lines) — runtime loading replaces it.
 
 ## [1.8.6] - 2026-04-17
 
 ### Added
-- Thread Pool Dashboard can be launched from `Runtime → Thread Pool Dashboard`, making it easy to inspect live worker threads and kill stuck installers/jobs without digging through logs.
 - Package manager:
-  - `_GuiThreadInvoker` and `execute_on_main_thread` for running Qt operations from worker threads to main thread.
-  - Thread management: now track worker instances, expose a dashboard context menu Kill action, and default to the shared notifier so abort overlays and notifications stay in sync across workers.
-    - `ThreadPoolEntry`: for tracking worker instances
-    - `ThreadDashboard`: for visualizing worker threads
-    - `ThreadPoolRegistry`: for registering worker instances to the registry
-    - `RunningProcessRegistry`: for tracking running processes
-    - `AbortButtonOverlay`: for showing abort buttons upon mouse cursor hover.
-    - `ThreadExecutionManager`: for managing worker threads
-  - Thread Dashboard can be opened by double clicking the header banner.
-- docs: Thread management
-- UI: Edit -> Runtime -> Thread Pool Dashboard for living thread views and controls
-
-- Shared `run_worker_thread_in_pool` helper now backs Monaco bootstrap, EvoMutator, cluster runner, Qt socket client, and PyMOL plugin actions so every long-running workflow inherits the same cancellation/UI wiring.
-- `tests/tools/test_package_manager.py` gained regression coverage for the new worker helpers, subprocess execution, and gist download utilities.
-- Translation: Traditional Chinese (zh-tw)
-- Server (PSSM_GREMLIN):
-  - Task lifecycle state `packing results` between `running` and `finished`.
-  - Immediate result packing after successful runs, with zip artifacts generated before `finished`.
-  - Task deletion APIs:
-    - single-task delete for owner/admin.
-    - admin batch delete for multi-selection workflows.
-  - Dashboard UX updates for task management:
-    - delete actions, admin multiselect controls, owner labels, and status filters including `packing results`.
-  - Create-task UX updates:
-    - optional sequence editor that formats raw sequence input into FASTA with live preview.
-  - Security/audit metadata in server task records:
-    - `local user` (`username:groupname-uid:gid`).
-    - sanitized full request-header capture.
-  - Environment-driven admin controls with `ADMIN_USERS`.
-  - Server env-file isolation support via `REVODESIGN_SERVER_ENV` in restart/hot-fix scripts.
-  - Test env split: `server/.env.test` for test-only server runs.
+  - thread pool dashboard (Runtime → Thread Pool Dashboard) with live worker views and kill actions; double-click header opens it.
+  - `_GuiThreadInvoker`/`execute_on_main_thread`; worker tracking (`ThreadPoolEntry`, `ThreadDashboard`, `ThreadPoolRegistry`, `RunningProcessRegistry`, `AbortButtonOverlay`, `ThreadExecutionManager`).
+  - shared `run_worker_thread_in_pool` backing Monaco bootstrap, EvoMutator, cluster runner, socket client, and plugin actions.
+- Server:
+  - `packing results` lifecycle state; immediate result packing with ZIPs before `finished`.
+  - task deletion APIs (single + admin batch); dashboard delete/multiselect/owner/status UX.
+  - create-task sequence editor with FASTA live preview.
+  - security/audit metadata in task records (local user, sanitized request headers); `ADMIN_USERS` env control; `REVODESIGN_SERVER_ENV` isolation; `server/.env.test`.
+- Translation: Traditional Chinese (zh-tw).
+- Docs: thread management.
 
 ### Changed
-- Multi-mutagenesis buttons and other UI triggers switched from the progress-bar specific helper to the shared thread-pool utility, preventing UI freezes while keeping abort buttons responsive.
-- `run_worker_thread_with_progress` -> `run_worker_thread_in_pool`, w/ dropped progressbar uses for indicating running task status.
-- Editor:
-  - logger control of uvicorn server. can be completely silenced.
-  - Server: logs now printed as debug messages.
-- Language switch: logs now printed as debug messages.
-- Tests:
-  - refactored tabs-case dependency flow to `pytest-dependency`:
-    - `TestREvoDesignPlugin` -> `TestREvoDesignPlugin_TabPrepare` -> downstream tab/action case classes.
-  - dropped active `pytest.mark.order` coupling in tabs bootstrap cases and enabled dependency-aware ordering with `--order-dependencies`.
-- Test env/bootstrap:
-  - test dependencies and `make prepare-test` now include `pytest-dependency`.
-- Server (PSSM_GREMLIN):
-  - Public/private dashboard behavior is now configurable with `PUBLIC_DASHBOARD` (`false` by default).
-  - Task visibility and API access are scoped to the authenticated upload owner when `PUBLIC_DASHBOARD=false`.
-  - Running-stage tracking now uses sqlite-backed `run_stage` persistence (single task stage tracker), replacing dashboard refresh reconstruction from file-based traces.
-  - Dashboard theme toggle icon now uses a gradient transition animation when cycling auto/dark/light modes.
-  - Dashboard logout now redirects to a dedicated server endpoint (`/PSSM_GREMLIN/logout`) that forces a new auth challenge.
-  - Create-task page theme toggle now matches dashboard gradient icon animation for dark/light/auto mode switching.
-  - Docker Compose `runner` image selection now uses `RUNNER_IMAGE` consistently with shared env wiring.
-  - Docker socket access defaults were tightened by removing unconditional root group (`group_add: ["0"]`).
-  - `server/.env.test` now uses portable repo-relative placeholders with guidance to keep machine-local absolute paths in `.env.local`.
-  - Runner memory tuning now supports `MAXMEM` from env files and forwards it into runner containers/scripts.
-  - Runner execution flow now enforces non-root container user/group configuration and composes docker permissions from env.
-  - Restart controls now provide explicit lifecycle subcommands:
-    - `setup`, `build`, `up`, `down`, `restart` (default).
-  - Env selection defaults updated for production-first use:
-    - prefer `server/.env.production`, fallback to `server/.env`.
-  - Server docs were rewritten as production-first Docker deployment instructions.
-- Shortcuts:
-  - `find_all_small_molecules_in_protein` now preserves empty-list results instead of coercing `[]` to `None`.
+- Package manager: multi-mutagenesis and UI triggers use the shared thread-pool utility (`run_worker_thread_with_progress` → `run_worker_thread_in_pool`).
+- Editor: uvicorn logger control (silenceable); server logs as debug.
+- Tests: `pytest-dependency` flow for tabs bootstrap; `make serial-test` includes dependency roots.
+- Server:
+  - `PUBLIC_DASHBOARD` config (owner-scoped visibility when false); sqlite-backed `run_stage` persistence.
+  - dashboard/create-task theme toggle gradient animation; dedicated logout endpoint.
+  - `RUNNER_IMAGE` selection, tightened socket defaults, `MAXMEM` forwarding, non-root runner enforcement.
+  - restart lifecycle subcommands (`setup`/`build`/`up`/`down`/`restart`); production-first env selection.
+  - production-first Docker deployment docs.
+- Shortcuts: `find_all_small_molecules_in_protein` preserves empty lists.
 
 ### Fixed
-- Abort overlays now disappear when the cursor leaves their trigger areas and cleanup runs even when PyMOL cannot service interrupts, removing stuck abort buttons.
-- Killing a worker tears down registered subprocesses and forcibly terminates straggling threads, so the dashboard accurately reflects running tasks.
-- notify box and decide box now works under subthreads.
-- Tests:
-  - `test_pm_dialog_extras_panel_expand_collapse` now waites for the dialog to fully expand before asserting.
-  - `test_utils` archive extraction now covers zip/tar path traversal rejection.
-  - tab bootstrap dependencies are now session-scoped and `test_pick_design_from_profile` now depends on `tabs_prepare_pocket_session`, so CI runs pocket-session preparation before shortcut profile-picking tests.
-  - `make serial-test` now includes dependency-root `bootstrap` cases so dependency-selected child tests do not emit unresolved-marker warnings when roots were excluded by marker filters.
-  - GREMLIN server-image readiness checks now use a public liveness probe plus explicit Basic auth headers, reducing CI flakes where valid credentials were repeatedly treated as unauthorized during startup.
-- Security hardening:
-  - archive extraction in `tools.utils.extract_archive` now validates member paths and rejects traversal entries before writing files.
-  - Monaco editor tarball setup now reuses the hardened archive extractor instead of raw `tar.extractall`.
-- Tooling:
-  - `tools/release_tag.sh` now escapes dotted versions before passing them to regex-based `sed` range extraction.
-  - `tools/copyright.js` fixed shell pipeline redirection syntax for `spawnSync("bash", ["-lc", ...])`.
-- Server (PSSM_GREMLIN):
-  - task-id/content digest md5 calls now explicitly use `usedforsecurity=False` because they are non-cryptographic identifiers.
-- Server (PSSM_GREMLIN):
-  - server image Dockerfile now uses `exec gunicorn ...` so Gunicorn is PID 1 and receives shutdown signals directly.
-  - dashboard running-trace badge popover text contrast/readability under dark mode.
-  - runner script now validates required `-i` input before invoking `readlink -f` under `set -e`.
-  - task artifact deletion now skips directories outside configured `RESULTS_FOLDER` instead of deleting them by default.
-  - dashboard logout button binding now guards missing DOM nodes to avoid runtime errors.
-  - deleted task states are now terminal in sqlite update flow, preventing late worker writes (`packing results` / `finished`) from resurrecting tasks after user deletion.
-  - background GREMLIN runner now skips result packing/finalization when a task is deleted mid-execution, avoiding inconsistent post-delete artifacts/state.
-  - Docker daemon permission failure handling for non-root runtime users in server/worker execution paths.
-  - `run_stage` ORM/schema mismatch that caused sqlite update/compile failures and prevented task execution in server-image integration tests.
-  - Real-server missing result artifacts by packing outputs at job completion rather than delaying zip creation until download request.
-  - UniRef90 mount/prefix mismatch that caused runner exits like `/tmp/uniref90_db.fasta not found`.
-  - Host absolute path leakage in dashboard/API error messages by masking to virtual server paths (`/srv/REvoDesign/PSSM_GREMLIN/upload/<filename>`).
-  - Cross-user data exposure/unauthorized access paths on dashboard and task APIs when private mode is enabled.
-  - command execution hardening in `REvoDesign_PSSM_GREMLIN.sh`: replaced `eval`-based hhblits/hhfilter/remove-inserts/GREMLIN/psiblast invocations with array-based execution and preserved stdout/stderr log routing.
+- Package manager:
+  - abort overlays disappear on cursor leave; cleanup runs without PyMOL interrupts.
+  - killing a worker tears down subprocesses and threads.
+  - notify/decide boxes work under subthreads.
+  - archive extraction rejects path traversal (utils + Monaco tarball setup).
+- Tests: dialog-expand wait, archive traversal coverage, pocket-session preparation ordering, server-image readiness via liveness probe.
+- Server:
+  - md5 digests use `usedforsecurity=False`; gunicorn as PID 1 via `exec`.
+  - dark-mode popover contrast; `-i` input validation under `set -e`; artifact deletion bounded to `RESULTS_FOLDER`; logout button DOM guard.
+  - deleted states terminal; background runner skips packing for deleted tasks; `run_stage` ORM/schema mismatch fixed.
+  - result packing at job completion; UniRef90 mount/prefix mismatch; host-path leakage masked to virtual paths; private-mode cross-user exposure closed.
+  - `REvoDesign_PSSM_GREMLIN.sh`: array-based execution replaces `eval` chains.
+- Tooling: `release_tag.sh` dotted-version escaping; `copyright.js` pipeline syntax.
 
 ### Removed
-- Server (PSSM_GREMLIN):
-  - Backward-compatibility states from older releases.
-  - Legacy native/manual setup guidance from server deployment docs.
-
-
+- Server:
+  - backward-compatibility states from older releases.
+  - legacy native/manual setup guidance from deployment docs.
 
 ## [1.8.5] - 2026-01-14
 ### Added
