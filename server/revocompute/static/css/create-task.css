@@ -682,3 +682,4 @@ html[data-theme="dark"] {
 
 /* keyboard hint for the rail */
 .rail-node::first-letter { }
+.structure-workbench-frame { width: 100%; min-height: 32rem; border: 1px solid var(--line); border-radius: 0.65rem; background: var(--paper); }

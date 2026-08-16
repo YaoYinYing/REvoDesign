@@ -52,13 +52,14 @@ _run_placer() {
 }
 
 _run_rfdiffusion() {
-  usage() { echo "Usage: $0 -i <input_pdb> -o <output_dir>"; exit 1; }
+  usage() { echo "Usage: $0 -i <task.json> -o <output_dir>"; exit 1; }
   while getopts ":i:o:" opt; do case "${opt}" in i) input_file=$OPTARG ;; o) output_dir=$OPTARG ;; ?) usage ;; esac; done
   [[ -z "${input_file:-}" || -z "${output_dir:-}" ]] && usage
   input_file=$(readlink -f "$input_file"); output_dir=$(readlink -f "$output_dir")
-  [[ ! -f "$input_file" ]] && { echo "Input not found: $input_file"; exit 1; }
+  [[ ! -f "$input_file" ]] && { echo "Task manifest not found: $input_file"; exit 1; }
   mkdir -p "$output_dir"
 
+  : "${DESIGN_MODE:=$(_parse_param design_mode)}"; : "${DESIGN_MODE:=unconditional}"
   : "${CONTIG:=$(_parse_param contig)}"; : "${CONTIG:=100-100}"
   : "${NUM_DESIGNS:=$(_parse_param num_designs)}"; : "${NUM_DESIGNS:=10}"
 
@@ -66,9 +67,12 @@ _run_rfdiffusion() {
   cd "${RFDIFFUSION_PATH}"
   local -a rf_args=(
     "contigmap.contigs=[${CONTIG}]" \
-    "inference.input_pdb=${input_file}" \
     "inference.output_prefix=${output_dir}/design" \
     "inference.num_designs=${NUM_DESIGNS}")
+  if [[ "$DESIGN_MODE" != "unconditional" ]]; then
+    input_file=$(primary_input)
+    rf_args+=("inference.input_pdb=${input_file}")
+  fi
   local mapping key hydra_key value
   for mapping in \
     design_startnum:inference.design_startnum symmetry:inference.symmetry recenter:inference.recenter \

@@ -49,7 +49,9 @@ The create-task page builds a scientific input workspace from
 sequences, structure inspection, residue/region controls, typed parameters,
 and a final review. A simple FASTA task therefore stays small, while
 RFdiffusion or PLACER can expose a guided multi-file structure workflow without
-adding task-name conditionals to the page.
+adding task-name conditionals to the page. Specialized varieties, such as the
+RFdiffusion region/contig builder, live in separate statically loaded plugin
+modules and are selected by task-type capability IDs.
 
 Capability YAML selects only plugin IDs shipped by the server. Unknown plugins,
 unknown options, executable snippets, and remote plugin URLs are rejected at
@@ -742,7 +744,7 @@ The dedicated result page presents previewable artifacts under **Main Results**.
 Its lifecycle-aware local plugin host resolves viewers from manifest `preview`
 metadata and preserves individual download as the universal fallback. Images,
 bounded CSV/TSV tables, and text use local preview plugins. PDB/mmCIF files use
-the pinned Mol* Viewer 5.10.0 bundle with subresource-integrity verification;
+the pinned Mol* Viewer 5.11.0 bundle with subresource-integrity verification;
 if that asset or WebGL is unavailable, the page falls back to a local
 alpha-carbon trace. A generation-token guard keeps viewer renders
 single-flight: switching artifacts or viewers mid-load cancels the stale

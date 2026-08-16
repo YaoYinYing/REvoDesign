@@ -23,6 +23,46 @@
   var viewer = null;
   var viewerId = null;
   var activeTheme = "light";
+  var selectionSubscription = null;
+  var activeRequestId = null;
+
+  function selectedResidues() {
+    var residues = new Map();
+    if (!viewer || !viewer.plugin || !window.molstar.Structure || !window.molstar.StructureProperties) return [];
+    Array.from(viewer.plugin.managers.structure.selection.entries.values()).forEach(function (entry) {
+      if (!entry.structure) return;
+      window.molstar.Structure.eachAtomicHierarchyElement(entry.structure, {
+        residue: function (location) {
+          var props = window.molstar.StructureProperties;
+          var chain = String(props.chain.auth_asym_id(location) || props.chain.label_asym_id(location) || "_");
+          var auth = Number(props.residue.auth_seq_id(location));
+          var label = Number(props.residue.label_seq_id(location));
+          residues.set(chain + ":" + auth + ":" + label, { chain: chain, auth_seq_id: auth, label_seq_id: label, residue: auth });
+        }
+      });
+    });
+    return Array.from(residues.values());
+  }
+
+  function bindSelectionEvents(enabled) {
+    if (selectionSubscription) selectionSubscription.unsubscribe();
+    selectionSubscription = null;
+    if (!enabled || !viewer || !viewer.plugin.behaviors.interaction.click) return;
+    selectionSubscription = viewer.plugin.behaviors.interaction.click.subscribe(function () {
+      setTimeout(function () { report({ type: "selection", requestId: activeRequestId, residues: selectedResidues() }); }, 0);
+    });
+  }
+
+  function selectResidue(message) {
+    if (!viewer || typeof viewer.structureInteractivity !== "function") return;
+    var elements = {};
+    var prefix = message.numbering === "auth_seq_id" ? "auth" : "label";
+    elements["beg_" + prefix + "_seq_id"] = Number(message.residue);
+    elements["end_" + prefix + "_seq_id"] = Number(message.residue);
+    if (message.chain) elements.auth_asym_id = String(message.chain);
+    viewer.plugin.managers.interactivity.lociSelects.deselectAll();
+    viewer.structureInteractivity({ elements: elements, action: "select" });
+  }
 
   // Surface any boot error in the shell UI instead of leaving the
   // "Waiting for structure data…" placeholder frozen forever.
@@ -120,6 +160,7 @@
   }
 
   async function mountStructure(message) {
+    activeRequestId = message.requestId;
     applyTheme(message.theme);
     stateNode.hidden = false;
     host.hidden = true;
@@ -134,7 +175,7 @@
       host.appendChild(target);
       viewer = await window.molstar.Viewer.create(target.id, {
         layoutIsExpanded: false,
-        layoutShowControls: true,
+        layoutShowControls: Boolean(message.showControls),
         layoutShowRemoteState: false,
         layoutShowSequence: true,
         layoutShowLog: false,
@@ -147,6 +188,7 @@
       var format = message.format === "mmcif" ? "mmcif" : "pdb";
       await viewer.loadStructureFromData(message.text, format, { label: message.label || "structure" });
       await updateStructureColor(message.colorMode || "plddt");
+      bindSelectionEvents(Boolean(message.selectionEnabled));
       stateNode.hidden = true;
       host.hidden = false;
       report({ type: "ready", requestId: message.requestId });
@@ -172,7 +214,10 @@
     if (event.data.type === "structure") mountStructure(event.data);
     else if (event.data.type === "theme") applyTheme(event.data.theme);
     else if (event.data.type === "color") updateStructureColor(event.data.mode);
+    else if (event.data.type === "select-residue") selectResidue(event.data);
     else if (event.data.type === "dispose") {
+      if (selectionSubscription) selectionSubscription.unsubscribe();
+      selectionSubscription = null;
       if (viewer) viewer.plugin.dispose();
       viewer = null;
       host.replaceChildren();

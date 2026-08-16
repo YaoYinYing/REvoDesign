@@ -34,6 +34,7 @@ test = [
     "pytest-mock>=3.14",
     "pytest-cov>=6",
     "requests>=2.33",
+    "pytest-playwright>=0.7,<1",
 ]
 
 [tool.setuptools.packages.find]

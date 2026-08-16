@@ -112,12 +112,15 @@ def test_input_workspace_capabilities_cover_simple_and_complex_tasks():
         assert [cap.plugin for cap in rfdiffusion.input_workspace] == [
             "files",
             "structure",
-            "regions",
+            "rfdiffusion-regions",
             "parameters",
             "review",
         ]
-        region_options = next(cap.options for cap in rfdiffusion.input_workspace if cap.plugin == "regions")
-        assert {"contig", "hotspot_res", "inpaint_seq"}.issubset(region_options["fields"])
+        region_options = next(cap.options for cap in rfdiffusion.input_workspace if cap.plugin == "rfdiffusion-regions")
+        assert {"design_mode", "contig", "hotspot_res"}.issubset(region_options["fields"])
+        assert region_options["modes"] == ["unconditional", "motif_scaffolding", "binder", "expert"]
+        assert rfdiffusion.min_input_files == 0
+        assert easifa.result_workspace[0].plugin == "residue-table-structure"
         assert [cap.plugin for cap in easifa.input_workspace] == [
             "files",
             "structure",

@@ -51,6 +51,7 @@ echo "REVODESIGN_STAGE:easifa"
 python3 -c 'import torch; assert torch.cuda.is_available(), "EasIFA requires an allocated CUDA GPU"'
 easifa-predict "${easifa_args[@]}"
 [[ -s "$result_json" ]] || { echo "EasIFA did not produce a result JSON" >&2; exit 1; }
+cp "$input_file" "${output_dir}/enzyme_structure.pdb"
 
 # Publish a table alongside the full upstream JSON so residue predictions are
 # directly previewable and downloadable through the manifest-first result UI.

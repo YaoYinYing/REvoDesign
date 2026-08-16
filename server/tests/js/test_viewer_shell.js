@@ -28,7 +28,8 @@ async function main() {
   var reports = [];
   var listeners = {};
   var loadedStructure = null;
-  var canvasBackground = null;
+var canvasBackground = null;
+var layoutShowControls = null;
   var colorUpdates = [];
   var componentA = { id: "component-a" };
   var componentB = { id: "component-b" };
@@ -48,7 +49,8 @@ async function main() {
     addEventListener: function (type, listener) { listeners[type] = listener; },
     molstar: {
       Viewer: {
-        create: async function () {
+        create: async function (_id, options) {
+          layoutShowControls = options.layoutShowControls;
           return {
             plugin: {
               dispose: function () {},
@@ -115,6 +117,9 @@ async function main() {
   }
   if (colorUpdates[0].components[0] !== componentA || colorUpdates[0].components[1] !== componentB) {
     throw new Error("shell did not pass flattened structure components to Mol*");
+  }
+  if (layoutShowControls !== false) {
+    throw new Error("result viewer must hide the right-side controls by default");
   }
   listeners.message({
     source: parentWindow,

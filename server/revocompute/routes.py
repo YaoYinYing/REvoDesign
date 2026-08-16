@@ -12,6 +12,7 @@ already-initialised application.
 
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
 import logging
@@ -114,6 +115,11 @@ from revocompute.task_runtime import (
     task_store,
 )
 from revocompute.task_types import list_types
+from revocompute.workspace_contracts import (
+    WorkspaceValidationError,
+    normalize_capability,
+    validate_rfdiffusion_structure,
+)
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -289,7 +295,7 @@ def task_types_list():
 def _input_workspace_payload(tt) -> dict:
     """Serialize the declarative, non-executable input workspace contract."""
     return {
-        "version": 1,
+        "version": 2,
         "capabilities": [
             {
                 "plugin": capability.plugin,
@@ -347,7 +353,7 @@ def task_type_form(name: str):
                 "extensions": list(tt.input_extensions or (tt.input_extension,)),
                 "primary_extensions": list(tt.primary_input_extensions or (tt.input_extension,)),
                 "label": tt.input_label,
-                "required": True,
+                "required": tt.min_input_files > 0,
                 "multiple": tt.allow_multiple_inputs,
                 "max_files": tt.max_input_files,
             },
@@ -372,6 +378,25 @@ def task_type_form(name: str):
             "input_workspace": _input_workspace_payload(tt),
         }
     )
+
+
+@app.route("/compute/api/types/<name>/workspace/normalize", methods=["POST"])
+@login_required
+def normalize_workspace(name: str):
+    """Normalize one stateful capability through its server-owned adapter."""
+    try:
+        tt, _ = _get_task_type(name)
+    except KeyError:
+        return jsonify({"error": f"Unknown task type: {name!r}"}), 404
+    payload = request.get_json(silent=True) or {}
+    capability = next((item for item in tt.input_workspace if item.id == payload.get("capability_id")), None)
+    if capability is None or not capability.plugin.endswith("regions"):
+        return jsonify({"error": "Unknown normalizable workspace capability"}), 400
+    try:
+        result = normalize_capability(tt.name, str(capability.options.get("syntax") or ""), payload.get("value"))
+    except WorkspaceValidationError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(result)
 
 
 @app.route("/compute/api/types/<name>/help", methods=["GET"])
@@ -419,10 +444,12 @@ def _validate_input_uploads(task_type: str = "gremlin"):
     except KeyError:
         return None, (jsonify({"error": f"Unknown task type: {task_type}"}), 400)
     if "files" not in request.files and "file" not in request.files:
+        if tt.min_input_files == 0:
+            return [], None
         return None, (jsonify({"error": "No file part"}), 400)
     uploads = request.files.getlist("files") or request.files.getlist("file")
     uploads = [uploaded for uploaded in uploads if uploaded.filename]
-    if not uploads:
+    if len(uploads) < tt.min_input_files:
         return None, (jsonify({"error": "No selected file"}), 400)
     if not tt.allow_multiple_inputs and len(uploads) != 1:
         return None, (jsonify({"error": f"{tt.display_name} accepts exactly one input file"}), 400)
@@ -537,16 +564,16 @@ def _prepare_task_record(
     if os.path.exists(zip_path):
         os.remove(zip_path)
 
-    primary = saved_inputs[0]
+    primary = saved_inputs[0] if saved_inputs else None
     return {
-        "filename": primary["relative_path"],
-        "file_path": primary["blob_path"],
+        "filename": primary["relative_path"] if primary else "Generated structure",
+        "file_path": primary["blob_path"] if primary else "",
         "result_dir": result_dir,
         "uploaded_at": time.time(),
         "started_at": None,
         "finished_at": None,
         "walltime": None,
-        "is_binary": int(_is_binary_file(primary["blob_path"])),
+        "is_binary": int(_is_binary_file(primary["blob_path"])) if primary else 0,
         "source_ip": metadata["ip"],
         "user_agent": metadata["user_agent"],
         "username": metadata["username"],
@@ -611,6 +638,16 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     if nested_params:
         form_data["params"] = nested_params
 
+    workspace_payload: dict[str, Any] = {}
+    raw_workspace = form_data.pop("workspace", None)
+    if raw_workspace is not None:
+        try:
+            workspace_payload = json.loads(raw_workspace)
+        except (TypeError, json.JSONDecodeError):
+            return jsonify({"error": "Workspace must be valid JSON"}), 400
+        if not isinstance(workspace_payload, dict) or workspace_payload.get("version") != 2:
+            return jsonify({"error": "Unsupported workspace document"}), 400
+
     try:
         submission = TaskSubmissionRequest.model_validate(form_data)
     except ValidationError as exc:
@@ -618,6 +655,33 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         return jsonify({"error": "Validation failed", "details": errors}), 400
 
     task_type = submission.task_type
+    try:
+        tt, runner = _get_task_type(task_type)
+    except KeyError:
+        return jsonify({"error": f"Unknown task type: {task_type}"}), 400
+    normalized_regions = None
+    capability_values = workspace_payload.get("capabilities", {})
+    if not isinstance(capability_values, dict):
+        return jsonify({"error": "Workspace capabilities must be an object"}), 400
+    known_capability_ids = {item.id for item in tt.input_workspace}
+    if set(capability_values) - known_capability_ids:
+        return jsonify({"error": "Workspace contains an unknown capability"}), 400
+    region_capability = next((item for item in tt.input_workspace if item.plugin.endswith("regions")), None)
+    if region_capability is not None and region_capability.options.get("syntax") == "rfdiffusion":
+        if region_capability.id not in capability_values:
+            return jsonify({"error": "Workspace is missing region state"}), 400
+        try:
+            normalized_regions = normalize_capability(
+                tt.name,
+                str(region_capability.options.get("syntax") or ""),
+                capability_values[region_capability.id],
+            )
+        except WorkspaceValidationError as exc:
+            return jsonify({"error": str(exc)}), 400
+        owned_fields = set(region_capability.options.get("fields", []))
+        if owned_fields & set(submission.params):
+            return jsonify({"error": "Region-owned parameters must be submitted through workspace state"}), 400
+        submission.params.update(normalized_regions["params"])
     coerced_params = submission.coerce_params()
 
     managedb = current_app.config.get("manage_db")
@@ -626,7 +690,6 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         if enabled is False:
             return jsonify({"error": f"Task type {task_type!r} is currently disabled"}), 400
 
-    tt, runner = _get_task_type(task_type)
     # Reject GPU-ineligible users and invalid scheduler configuration before
     # writing uploads or creating a task record.
     if tt.gpus and not g.current_user.get("allow_gpu_use"):
@@ -647,6 +710,14 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     if upload_error is not None:
         return upload_error
     md5sum, saved_inputs, metadata = _save_uploaded_inputs(uploaded_inputs, task_type, coerced_params)
+    if normalized_regions is not None:
+        try:
+            validate_rfdiffusion_structure(
+                normalized_regions,
+                saved_inputs[0]["blob_path"] if saved_inputs else None,
+            )
+        except WorkspaceValidationError as exc:
+            return jsonify({"error": str(exc)}), 400
     workspace_key = str(metadata["username"])
     if not _WORKSPACE_KEY_PATTERN.fullmatch(workspace_key):
         return jsonify({"error": "Username cannot be represented safely in a workspace path"}), 400
@@ -713,6 +784,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         "submitted_at": datetime.now(tz=timezone.utc).isoformat(),
         "entities": entities,
         "resource_policy": resource_policy.public_dict() if resource_policy is not None else None,
+        "workspace": workspace_payload,
     }
 
     # Runner protocol v2: the immutable snapshot carries task.json — the
@@ -919,6 +991,53 @@ def get_result_artifact(md5sum: str, relative_path: str):
     return response
 
 
+@app.route("/compute/api/results/<md5sum>/tables/<path:relative_path>", methods=["GET"])
+@login_required
+def get_result_table(md5sum: str, relative_path: str):
+    """Return a bounded, correctly parsed page from a manifest table artifact."""
+    md5sum = _normalize_task_id(md5sum)
+    if md5sum is None:
+        return jsonify({"error": "Invalid task id"}), 400
+    task = task_store.get_task(md5sum)
+    if task is None:
+        return jsonify({"error": "Task not found"}), 404
+    if not _task_access_allowed(task):
+        return _task_access_denied(md5sum)
+    resolved = _result_artifact(task, relative_path)
+    if resolved is None:
+        return jsonify({"error": "Table artifact not found"}), 404
+    path, artifact = resolved
+    if artifact.get("preview") != "table":
+        return jsonify({"error": "Artifact is not a table"}), 400
+    try:
+        offset = int(request.args.get("offset", 0))
+        limit = int(request.args.get("limit", 100))
+    except ValueError:
+        return jsonify({"error": "Invalid table page"}), 400
+    if offset < 0 or offset > 10000 or limit < 1 or limit > 500:
+        return jsonify({"error": "Table page is outside allowed bounds"}), 400
+    delimiter = "\t" if relative_path.lower().endswith(".tsv") else ","
+    try:
+        with open(path, newline="", encoding="utf-8") as handle:
+            reader = csv.reader(handle, delimiter=delimiter)
+            columns = next(reader, [])
+            if len(columns) > 100 or any(len(cell) > 16384 for cell in columns):
+                raise ValueError("Table header exceeds preview limits")
+            rows = []
+            for index, row in enumerate(reader):
+                if index < offset:
+                    continue
+                if len(rows) > limit:
+                    break
+                if len(row) > 100 or any(len(cell) > 16384 for cell in row):
+                    raise ValueError("Table row exceeds preview limits")
+                rows.append(row)
+    except (OSError, UnicodeError, csv.Error, ValueError) as exc:
+        return jsonify({"error": str(exc)}), 400
+    has_more = len(rows) > limit
+    return jsonify({"columns": columns, "rows": rows[:limit], "offset": offset, "limit": limit, "has_more": has_more})
+
+
 @app.route("/compute/api/results/<md5sum>/archive", methods=["POST"])
 @login_required
 def request_results_archive(md5sum: str):
@@ -1079,12 +1198,12 @@ def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, 
         tt_obj = None
     if tt_obj is not None:
         extensions = set(tt_obj.input_extensions or (tt_obj.input_extension,))
-        if extensions & {".pdb", ".cif", ".mmcif"}:
+        filename_lower = str(task.get("filename") or "").lower()
+        if extensions & {".pdb", ".cif", ".mmcif"} and filename_lower.endswith((".pdb", ".cif", ".mmcif")):
             structure_input = True
             # The parser depends on the UPLOADED file, not on the type's
             # accepted extensions — a type accepting both PDB and mmCIF
             # receives .pdb files too.
-            filename_lower = str(task.get("filename") or "").lower()
             structure_format = "mmcif" if filename_lower.endswith((".cif", ".mmcif")) else "pdb"
     sequence_truncated = False
     if structure_input:

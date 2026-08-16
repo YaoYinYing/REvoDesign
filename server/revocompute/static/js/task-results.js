@@ -12,6 +12,8 @@
   var thumbnailUrls = [];
   var previewRegistry = null;
   var previewHost = null;
+  var resultViews = [];
+  var viewRegistry = new window.REvoComputePlugins.PluginRegistry("result view");
   var MOLSTAR_THEME_COOKIE = "revodesign-molstar-theme";
   // Mol* runs inside the isolated /compute/viewer-shell iframe (its bundle
   // needs new Function, which only that shell's CSP permits). All constants
@@ -272,17 +274,9 @@
     }
   }
 
-  function parseDelimited(text, delimiter) {
-    var rows = [];
-    String(text).split(/\r?\n/).slice(0, 101).forEach(function (line) {
-      if (line) rows.push(line.split(delimiter).slice(0, 50));
-    });
-    return rows;
-  }
-
-  function renderTable(text, artifact, stage) {
-    var rows = parseDelimited(text, artifact.path.toLowerCase().endsWith(".tsv") ? "\t" : ",");
-    if (!rows.length) { stage.innerHTML = '<p class="preview-message">This table is empty.</p>'; return; }
+  function renderTable(page, stage) {
+    var rows = [page.columns].concat(page.rows || []);
+    if (!page.columns || !page.columns.length) { stage.innerHTML = '<p class="preview-message">This table is empty.</p>'; return; }
     var wrap = document.createElement("div");
     wrap.className = "artifact-table-wrap";
     var table = document.createElement("table");
@@ -381,9 +375,10 @@
   }
 
   async function previewTable(artifact, stage) {
-    var response = await A.authFetch(artifact.url, { headers: { Range: "bytes=0-262143" } });
-    if (!response.ok && response.status !== 206) throw new Error("Table preview download failed");
-    renderTable(await response.text(), artifact, stage);
+    var encoded = artifact.path.split("/").map(encodeURIComponent).join("/");
+    var response = await A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5) + "/tables/" + encoded + "?limit=100");
+    if (!response.ok) throw new Error("Table preview download failed");
+    renderTable(await response.json(), stage);
   }
 
   previewRegistry = window.REvoComputeResultPreviews.createRegistry({
@@ -427,6 +422,57 @@
       stage.innerHTML = '<p class="preview-message"></p>';
       stage.firstChild.textContent = error.message || "Preview unavailable";
     }
+  }
+
+  async function renderResidueTableStructure(view) {
+    activeArtifact = null; previewHost.destroy(); disposeActiveViewer();
+    document.getElementById("previewTitle").textContent = view.title;
+    document.getElementById("artifactDownload").hidden = true;
+    var tableArtifact = artifacts.find(function (item) { return item.path === view.artifacts.table; });
+    var structureArtifact = artifacts.find(function (item) { return item.path === view.artifacts.structure; });
+    if (!tableArtifact || !structureArtifact) throw new Error("Linked result artifacts are unavailable");
+    var responses = await Promise.all([
+      A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5) + "/tables/" + view.artifacts.table.split("/").map(encodeURIComponent).join("/") + "?limit=100"),
+      A.authFetch(structureArtifact.url)
+    ]);
+    if (!responses[0].ok || !responses[1].ok) throw new Error("Linked result data could not be loaded");
+    var page = await responses[0].json(); var structureText = await responses[1].text();
+    var stage = document.getElementById("artifactPreview"); stage.replaceChildren();
+    var layout = document.createElement("div"); layout.className = "linked-result-layout";
+    var tableWrap = document.createElement("div"); tableWrap.className = "artifact-table-wrap linked-result-table";
+    var table = document.createElement("table"); table.className = "artifact-table-preview";
+    var heading = document.createElement("tr");
+    page.columns.forEach(function (column) { var th = document.createElement("th"); th.textContent = column; heading.appendChild(th); });
+    table.appendChild(heading);
+    var chainIndex = page.columns.indexOf(view.mapping.chain_column);
+    var residueIndex = page.columns.indexOf(view.mapping.residue_column);
+    if (residueIndex < 0) throw new Error("Configured residue column is absent from the result table");
+    page.rows.forEach(function (row) {
+      var tr = document.createElement("tr"); tr.tabIndex = 0; tr.setAttribute("aria-selected", "false");
+      row.forEach(function (value) { var td = document.createElement("td"); td.textContent = value; tr.appendChild(td); });
+      function select() {
+        table.querySelectorAll("tr[aria-selected=true]").forEach(function (node) { node.setAttribute("aria-selected", "false"); });
+        tr.setAttribute("aria-selected", "true");
+        if (activeMolstar) postToShell(activeMolstar.frame, { type: "select-residue", chain: chainIndex >= 0 ? row[chainIndex] : "",
+          residue: Number(row[residueIndex]), numbering: view.mapping.numbering });
+      }
+      tr.addEventListener("click", select); tr.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(); }
+      }); table.appendChild(tr);
+    });
+    tableWrap.appendChild(table);
+    var viewerStage = document.createElement("div"); viewerStage.className = "linked-result-structure";
+    layout.append(tableWrap, viewerStage); stage.appendChild(layout);
+    try { await renderMolstar(structureText, structureArtifact, viewerStage, previewHost.generation); }
+    catch (error) { var message = document.createElement("p"); message.className = "preview-message"; message.textContent = "Structure linking unavailable: " + error.message; viewerStage.appendChild(message); }
+  }
+
+  viewRegistry.register({ id: "residue-table-structure", mount: function () {}, render: renderResidueTableStructure });
+
+  function previewView(view) {
+    var plugin = viewRegistry.resolve(view);
+    if (!plugin) return showToast("Unsupported linked result view", "error");
+    plugin.render(view).catch(function (error) { showToast(error.message || "Linked view unavailable", "error"); });
   }
 
   function artifactButton(artifact) {
@@ -520,6 +566,12 @@
     thumbnailUrls.forEach(function (url) { URL.revokeObjectURL(url); });
     thumbnailUrls = [];
     main.replaceChildren();
+    resultViews.forEach(function (view) {
+      var card = document.createElement("button"); card.type = "button"; card.className = "main-result-card main-result-linked";
+      var name = document.createElement("strong"); name.textContent = view.title;
+      card.append(document.createTextNode("LINKED "), name);
+      card.addEventListener("click", function () { previewView(view); }); main.appendChild(card);
+    });
     artifacts.filter(function (artifact) {
       return Boolean(artifact.preview) && artifact.role !== "diagnostic";
     }).forEach(function (artifact) {
@@ -550,6 +602,7 @@
       throw new Error(payload.message || "Results are not available yet");
     }
     artifacts = payload.artifacts;
+    resultViews = Array.isArray(payload.views) ? payload.views : [];
     document.getElementById("resultFileCount").textContent = artifacts.length;
     document.getElementById("resultTotalSize").textContent = formatBytes(payload.total_size);
     var archiveButton = document.getElementById("archiveButton");

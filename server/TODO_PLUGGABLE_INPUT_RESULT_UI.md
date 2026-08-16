@@ -1,11 +1,11 @@
 # TODO: Pluggable Scientific Input and Result Workspaces
 
-Status: implementation started on `feat/multi-task-server`. The additive
-capability schema, common plugin host, reusable input components, RFdiffusion /
-PLACER / EASIFA compositions, and result preview host are implemented. Browser
-contract testing, richer structure interaction, linked scientific results, and
-production smoke testing remain. This document is not an activation checklist
-and does not authorize production changes.
+Status: implementation complete for the version-2 workspace contract,
+server-normalized RFdiffusion modes, Mol* residue selection, declarative
+task-type result mappings, EASIFA linked table/structure views, bounded table
+fetching, and native Chromium contracts. Production SLURM/Apptainer living tests
+and deployment verification remain operational release gates. This document is
+not an activation checklist and does not authorize production changes.
 
 ## Why this work exists
 
@@ -114,7 +114,9 @@ extension/MIME inference as a compatibility fallback:
 
 ## Proposed plugin contracts
 
-The first implementation should use local, statically registered ES modules.
+The implementation uses local, statically registered plugin modules. Specialized
+workspace varieties such as `rfdiffusion-regions` remain separate from the
+shared input host and are selected by task-type configuration.
 Do not introduce runtime-downloaded third-party plugins.
 
 ```javascript
@@ -241,7 +243,9 @@ The result host should support:
 
 Mol* should remain the full structure viewer. A lightweight alpha-carbon trace
 may remain a local fallback, but it must be presented as a degraded structure
-view rather than silently falling back to raw coordinate text.
+view rather than silently falling back to raw coordinate text. Result viewers
+hide Mol*'s right-side controls by default to prioritize the structure, while
+input workbenches explicitly enable them for selection-oriented work.
 
 ## Delivery plan
 
@@ -363,19 +367,18 @@ view rather than silently falling back to raw coordinate text.
 - No removal of the generic form or download fallback until all supported tasks
   have equivalent tested behavior.
 
-## Open decisions for the design session
+## Design decisions
 
-- Whether capability composition belongs directly in `task_types.yaml` or in a
-  versioned server-generated form document derived from it.
-- Whether linked result associations need a general graph or whether named
-  groups are sufficient for the first release.
-- Which DOM test environment best exercises native modules, Mol*, cancellation,
-  and accessibility without duplicating browser behavior.
-- Whether drafts should remain browser-local initially or become authenticated,
-  server-stored records with explicit retention and ownership rules.
-- Which RFdiffusion guided modes are stable enough to expose before the raw
-  expert contig editor.
+- Capability and result-view composition live declaratively in
+  `task_types.yaml`; the server validates and serializes versioned documents.
+- Linked results use named, plugin-owned views and groups rather than a general
+  association graph.
+- Node lifecycle contracts are complemented by native Chromium tests through
+  Playwright.
+- RFdiffusion exposes unconditional, motif-scaffolding, binder, and expert
+  modes; Python normalization remains the syntax authority.
+- Input workspace varieties are independently registered modules selected by
+  task type; shared host code does not branch on task names.
 
-Before implementation starts, review these decisions against real production
-task schemas and result manifests. Update this document when decisions are made,
-then split each delivery phase into small, independently testable checkpoints.
+Draft persistence remains outside this cycle. Production activation still
+requires the smoke and accessibility gates listed above.
