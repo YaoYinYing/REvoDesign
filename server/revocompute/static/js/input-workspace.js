@@ -36,7 +36,9 @@
     var section = element("section", "workspace-card");
     section.dataset.capabilityId = definition.id;
     var heading = element("div", "workspace-card-heading");
-    heading.appendChild(element("span", "workspace-plugin-badge", definition.plugin));
+    // Specialized plugin ids (e.g. rfdiffusion-regions) are developer-facing
+    // names; only generic capability ids read naturally as user-facing badges.
+    if (definition.plugin.indexOf("-") < 0) heading.appendChild(element("span", "workspace-plugin-badge", definition.plugin));
     heading.appendChild(element("h2", "workspace-card-title", definition.title || definition.id));
     section.appendChild(heading);
     if (definition.description) section.appendChild(element("p", "workspace-card-description", definition.description));
