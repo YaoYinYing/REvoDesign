@@ -28,7 +28,8 @@ def test_native_browser_mounts_and_collects_rfdiffusion_workspace(page: Page) ->
         );
         window.workspace.mount({
           name: "rfdiffusion", display_name: "RFdiffusion", runtime_family: "placer-rfdiffusion",
-          file_input: {accept: ".pdb", extensions: [".pdb"], primary_extensions: [".pdb"], multiple: true, max_files: 64},
+          file_input: {accept: ".pdb", extensions: [".pdb"],
+            primary_extensions: [".pdb"], multiple: true, max_files: 64},
           params: [
             {name: "design_mode", type: "str", default: "unconditional"},
             {name: "contig", type: "str", default: "100-100"},
@@ -62,16 +63,15 @@ def test_structure_plugin_queues_structure_until_shell_ready(page: Page) -> None
     first — without the shell-ready handshake the structure postMessage lands
     before the shell installs its listener and is dropped.
     """
-    import time
 
     def delayed_shell(route):
-        time.sleep(0.8)
         route.fulfill(
             content_type="text/html",
             body=(
                 "<script>"
-                "parent.postMessage({type: 'shell-ready'}, '*');"
-                "window.addEventListener('message', function (e) { parent.postMessage({type: 'echo', payload: e.data}, '*'); });"
+                "window.addEventListener('message', function (e) { "
+                "parent.postMessage({type: 'echo', payload: e.data}, '*'); });"
+                "setTimeout(function () { parent.postMessage({type: 'shell-ready'}, '*'); }, 800);"
                 "</script>"
             ),
         )
@@ -79,18 +79,21 @@ def test_structure_plugin_queues_structure_until_shell_ready(page: Page) -> None
     # The page needs a real origin so the iframe's relative /compute/viewer-shell
     # resolves to a routable URL (about:blank cannot host relative iframe URLs).
     page.route(
-        "https://revocompute.example/**",
-        lambda route: route.fulfill(content_type="text/html", body="<html><body></body></html>"),
+        "https://revocompute.example/",
+        lambda route: route.fulfill(
+            content_type="text/html", body='<div id="root"></div><input id="files" type="file">'
+        ),
     )
     page.route("**/compute/viewer-shell", delayed_shell)
     page.goto("https://revocompute.example/")
-    page.set_content('<div id="root"></div><input id="files" type="file">')
     page.add_script_tag(path=STATIC_JS / "plugin-host.js")
     page.add_script_tag(path=STATIC_JS / "input-workspace.js")
     page.evaluate(
         """
         window.__echoes = [];
+        window.__shellReady = false;
         window.addEventListener("message", function (event) {
+          if (event.data && event.data.type === "shell-ready") window.__shellReady = true;
           if (event.data && event.data.type === "echo") window.__echoes.push(event.data.payload);
         });
         window.workspace = new window.REvoComputeInputWorkspace.InputWorkspace(
@@ -98,8 +101,10 @@ def test_structure_plugin_queues_structure_until_shell_ready(page: Page) -> None
           {fileInput: document.getElementById("files"), status: function () {}}
         );
         window.workspace.mount({
-          name: "rfdiffusion", display_name: "RFdiffusion", runtime_family: "placer-rfdiffusion",
-          file_input: {accept: ".pdb", extensions: [".pdb"], primary_extensions: [".pdb"], multiple: true, max_files: 64},
+          name: "rfdiffusion", display_name: "RFdiffusion",
+          runtime_family: "placer-rfdiffusion",
+          file_input: {accept: ".pdb", extensions: [".pdb"],
+            primary_extensions: [".pdb"], multiple: true, max_files: 64},
           params: [],
           input_workspace: {version: 2, capabilities: [
             {plugin: "files", id: "source_files", title: "Files", options: {primary_required: true}},
@@ -117,12 +122,72 @@ def test_structure_plugin_queues_structure_until_shell_ready(page: Page) -> None
             "buffer": b"ATOM      1  CA  GLY A   1      10.000  10.000  10.000  1.00 20.00           C\nEND\n",
         },
     )
+    # Yield through the synthetic shell's deliberate delay. Playwright's sync
+    # route callbacks are dispatched during this browser wait.
+    page.wait_for_timeout(1_000)
+    assert page.evaluate("window.__shellReady") is True
     page.wait_for_function("window.__echoes.length > 0", timeout=10000)
     echoes = page.evaluate("window.__echoes")
     assert any(
         item.get("type") == "structure" and item.get("format") == "pdb" and item.get("selectionEnabled") is True
         for item in echoes
     )
+
+
+def test_real_molstar_sequence_strip_reports_selected_residue(page: Page) -> None:
+    """The pinned Mol* bundle selects sequence residues in input-workbench mode."""
+    shell_source = (STATIC_JS / "viewer-shell.js").read_text(encoding="utf-8")
+    shell_html = """<!doctype html><html><body>
+      <div id="shellState">Waiting</div><div id="viewerHost" hidden></div>
+      <script src="/static/js/viewer-shell.js"></script>
+    </body></html>"""
+    page.route(
+        "https://revocompute.example/static/js/viewer-shell.js*",
+        lambda route: route.fulfill(content_type="application/javascript", body=shell_source),
+    )
+    page.route(
+        "https://revocompute.example/compute/viewer-shell*",
+        lambda route: route.fulfill(content_type="text/html", body=shell_html),
+    )
+    page.goto("https://revocompute.example/compute/viewer-shell")
+    page.evaluate(
+        """
+        window.__reports = [];
+        window.addEventListener("message", function (event) {
+          if (event.data && typeof event.data === "object") window.__reports.push(event.data);
+        });
+        """
+    )
+    pdb = (Path(__file__).resolve().parents[2] / "tests/data/pdb/2KL8.pdb").read_text(encoding="utf-8")
+    page.evaluate(
+        """
+        text => window.postMessage({
+          type: "structure", requestId: "sequence-probe", text: text,
+          format: "pdb", label: "probe.pdb", selectionEnabled: true,
+          showControls: true
+        }, "*")
+        """,
+        pdb,
+    )
+    page.wait_for_function(
+        'window.__reports.some(function (item) { return item.type === "ready"; })',
+        timeout=90_000,
+    )
+
+    # Selection mode is enabled by the shell, so clicking residue 5 in the
+    # sequence strip must update structure.selection and report it upstream.
+    assert "msp-btn-link-toggle-on" in (page.get_by_title("Toggle Selection Mode").get_attribute("class") or "")
+    page.locator(".msp-sequence-present").nth(4).click()
+    page.wait_for_function(
+        """
+        window.__reports.some(function (item) {
+          return item.type === "selection" && item.residues && item.residues.length > 0;
+        })
+        """,
+        timeout=10_000,
+    )
+    selection = page.evaluate('window.__reports.filter(function (item) { return item.type === "selection"; }).at(-1)')
+    assert selection["residues"] == [{"chain": "A", "auth_seq_id": 5, "label_seq_id": 5, "residue": 5}]
 
 
 def test_linked_result_layout_collapses_at_mobile_width(page: Page) -> None:

@@ -226,6 +226,7 @@
     await handshake;
     if (isStale(generation)) { frame.remove(); return; }
     activeMolstar = { frame: frame };
+    return frame;
   }
 
   async function previewStructure(artifact, stage) {

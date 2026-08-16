@@ -282,9 +282,8 @@
     mount: function (target, definition, context) {
       var status = element("p", "structure-status", "Choose a PDB or mmCIF file to inspect it locally.");
       var frame = element("iframe", "structure-workbench-frame");
-      frame.src = "/compute/viewer-shell"; frame.title = "Interactive structure selection";
+      frame.title = "Interactive structure selection";
       frame.hidden = true; frame.setAttribute("sandbox", "allow-scripts");
-      target.append(status, frame);
       var generation = 0;
       var reader = null; var requestId = null;
       var shellReady = false; var pendingStructure = null;
@@ -299,9 +298,15 @@
         if (event.data.requestId !== requestId) return;
         if (event.data.type === "selection" && Array.isArray(event.data.residues)) {
           context.selectedResidues = event.data.residues; context.changed();
+        } else if (event.data.type === "selection-error") {
+          status.textContent = "Structure selection could not be read: " + (event.data.message || "unknown error");
         }
       }
       window.addEventListener("message", receive);
+      // Install the handshake listener before appending the iframe: a cached
+      // shell can otherwise report readiness between append and registration.
+      frame.src = "/compute/viewer-shell";
+      target.append(status, frame);
       function refresh() {
         generation += 1; var current = generation;
         if (reader) reader.abort();

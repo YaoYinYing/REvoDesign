@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Server:
+  - Mol* input workbenches: sequence-strip and canvas selections now report canonical residues; cached viewer-shell handshakes no longer race listener setup.
   - task-type intro audit: intros/categories corrected against the runner docs (Pro-Prime = OGT prediction → `fitness`; ThermoMPNN-D = ΔΔG prediction; PLACER = all-atom ligand modeling; GREMLIN = conservation + couplings; HyperMPNN/LASErMPNN/OpenDDE reworded).
   - auth hardening: API keys stored as indexed sha256 digests; CAPTCHA nonces and rate-limit counters are Redis-first with per-process fallback.
 - Qt:

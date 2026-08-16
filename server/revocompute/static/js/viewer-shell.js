@@ -38,22 +38,28 @@
     if (!selection || !structures || !StructureElement || !StructureProperties) return [];
     // Canvas picks, sequence-panel clicks, and structureInteractivity all
     // funnel into structure.selection (lociSelects.sel IS this manager).
-    structures.forEach(function (structure) {
+    structures.forEach(function (structureRef) {
+      var structure = structureRef && structureRef.cell && structureRef.cell.obj && structureRef.cell.obj.data;
+      if (!structure) return;
       var loci = selection.getLoci(structure);
       if (!loci || !loci.elements) return;
-      loci.elements.forEach(function (unitIndex) {
-        var unit = loci.structure.units[unitIndex];
-        if (!unit || unit.kind !== 0) return;  // kind 0 = atomic units only
-        unit.elements.forEach(function (elementIndex) {
-          var location = StructureElement.Location.create(loci.structure, unit, elementIndex);
-          var chain = String(StructureProperties.chain.auth_asym_id(location) || StructureProperties.chain.label_asym_id(location) || "_");
-          var auth = Number(StructureProperties.residue.auth_seq_id(location));
-          var label = Number(StructureProperties.residue.label_seq_id(location));
-          residues.set(chain + ":" + auth + ":" + label, { chain: chain, auth_seq_id: auth, label_seq_id: label, residue: auth });
-        });
+      StructureElement.Loci.forEachLocation(loci, function (location) {
+        if (!location.unit || location.unit.kind !== 0) return;  // kind 0 = atomic units only
+        var chain = String(StructureProperties.chain.auth_asym_id(location) || StructureProperties.chain.label_asym_id(location) || "_");
+        var auth = Number(StructureProperties.residue.auth_seq_id(location));
+        var label = Number(StructureProperties.residue.label_seq_id(location));
+        residues.set(chain + ":" + auth + ":" + label, { chain: chain, auth_seq_id: auth, label_seq_id: label, residue: auth });
       });
     });
     return Array.from(residues.values());
+  }
+
+  function reportSelection() {
+    try {
+      report({ type: "selection", requestId: activeRequestId, residues: selectedResidues() });
+    } catch (error) {
+      report({ type: "selection-error", requestId: activeRequestId, message: error.message || String(error) });
+    }
   }
 
   function bindSelectionEvents(enabled) {
@@ -63,7 +69,7 @@
     var selection = viewer.plugin.managers.structure.selection;
     if (!selection || !selection.events || !selection.events.changed) return;
     selectionSubscription = selection.events.changed.subscribe(function () {
-      setTimeout(function () { report({ type: "selection", requestId: activeRequestId, residues: selectedResidues() }); }, 0);
+      setTimeout(reportSelection, 0);
     });
   }
 
@@ -198,6 +204,10 @@
         viewportShowSelectionMode: true,
         viewportShowAnimation: true
       });
+      // Sequence-strip and canvas clicks select only while Mol* selection mode
+      // is active. Input workbenches request selection explicitly; result
+      // viewers retain Mol*'s ordinary focus-oriented default.
+      viewer.plugin.selectionMode = Boolean(message.selectionEnabled);
       viewer.plugin.canvas3d.setProps({ renderer: { backgroundColor: MOLSTAR_CANVAS_COLORS[activeTheme] } });
       var format = message.format === "mmcif" ? "mmcif" : "pdb";
       await viewer.loadStructureFromData(message.text, format, { label: message.label || "structure" });

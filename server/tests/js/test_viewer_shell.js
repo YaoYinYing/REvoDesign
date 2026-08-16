@@ -28,8 +28,9 @@ async function main() {
   var reports = [];
   var listeners = {};
   var loadedStructure = null;
-var canvasBackground = null;
-var layoutShowControls = null;
+  var canvasBackground = null;
+  var layoutShowControls = null;
+  var viewerPlugin = null;
   var colorUpdates = [];
   var componentA = { id: "component-a" };
   var componentB = { id: "component-b" };
@@ -62,34 +63,43 @@ var layoutShowControls = null;
       Viewer: {
         create: async function (_id, options) {
           layoutShowControls = options.layoutShowControls;
-          return {
-            plugin: {
-              dispose: function () {},
-              canvas3d: {
-                setProps: function (props) { canvasBackground = props.renderer.backgroundColor; }
-              },
-              managers: {
-                structure: {
-                  hierarchy: { currentComponentGroups: [[componentA], [componentB]], current: { structures: [selectedStructure] } },
-                  component: {
-                    updateRepresentationsTheme: async function (components, theme) {
-                      colorUpdates.push({ components: components, theme: theme });
+          viewerPlugin = {
+            dispose: function () {},
+            canvas3d: {
+              setProps: function (props) { canvasBackground = props.renderer.backgroundColor; }
+            },
+            managers: {
+              structure: {
+                hierarchy: {
+                  currentComponentGroups: [[componentA], [componentB]],
+                  current: {
+                    structures: [{ cell: { obj: { data: selectedStructure } } }]
+                  }
+                },
+                component: {
+                  updateRepresentationsTheme: async function (components, theme) {
+                    colorUpdates.push({ components: components, theme: theme });
+                  }
+                },
+                selection: {
+                  events: {
+                    changed: {
+                      subscribe: function (handler) { selectionChanged.push(handler); return { unsubscribe: function () {} }; }
                     }
                   },
-                  selection: {
-                    events: {
-                      changed: {
-                        subscribe: function (handler) { selectionChanged.push(handler); return { unsubscribe: function () {} }; }
-                      }
-                    },
-                    getLoci: function (structure) {
-                      if (structure !== selectedStructure) return undefined;
-                      return { structure: selectedStructure, elements: [0] };
-                    }
+                  getLoci: function (structure) {
+                    if (structure !== selectedStructure) return undefined;
+                    return {
+                      structure: selectedStructure,
+                      elements: [{ unit: selectedStructure.units[0], indices: [0] }]
+                    };
                   }
                 }
               }
-            },
+            }
+          };
+          return {
+            plugin: viewerPlugin,
             loadStructureFromData: async function (text, format, options) {
               loadedStructure = { text: text, format: format, options: options };
             }
@@ -99,6 +109,19 @@ var layoutShowControls = null;
       lib: {
         structure: {
           StructureElement: {
+            Loci: {
+              forEachLocation: function (loci, callback) {
+                loci.elements.forEach(function (group) {
+                  group.indices.forEach(function (index) {
+                    callback({
+                      _chain: group.unit.chain,
+                      _residue: group.unit.residues[group.unit.elements[index]],
+                      unit: group.unit
+                    });
+                  });
+                });
+              }
+            },
             Location: {
               create: function (_structure, unit, elementIndex) {
                 return { _chain: unit.chain, _residue: unit.residues[elementIndex] };
@@ -164,6 +187,9 @@ var layoutShowControls = null;
   }
   if (layoutShowControls !== false) {
     throw new Error("result viewer must hide the right-side controls by default");
+  }
+  if (!viewerPlugin.selectionMode) {
+    throw new Error("selection-enabled viewer must enter Mol* selection mode");
   }
   listeners.message({
     source: parentWindow,

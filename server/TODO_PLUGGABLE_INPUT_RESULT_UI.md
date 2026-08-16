@@ -245,7 +245,9 @@ Mol* should remain the full structure viewer. A lightweight alpha-carbon trace
 may remain a local fallback, but it must be presented as a degraded structure
 view rather than silently falling back to raw coordinate text. Result viewers
 hide Mol*'s right-side controls by default to prioritize the structure, while
-input workbenches explicitly enable them for selection-oriented work.
+input workbenches explicitly enable them for selection-oriented work. A
+selection-enabled workbench also enters Mol* selection mode automatically and
+reports canonical residue locations from the structure-selection manager.
 
 ## Delivery plan
 
