@@ -66,6 +66,8 @@ _run_rfdiffusion() {
   echo "REVODESIGN_STAGE:rfdiffusion"
   cd "${RFDIFFUSION_PATH}"
   local -a rf_args=(
+    "hydra.run.dir=/tmp/rfdiffusion-hydra" \
+    "hydra.output_subdir=null" \
     "contigmap.contigs=[${CONTIG}]" \
     "inference.output_prefix=${output_dir}/design" \
     "inference.num_designs=${NUM_DESIGNS}")

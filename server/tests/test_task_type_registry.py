@@ -469,6 +469,13 @@ def test_shared_runner_passes_full_snapshot_root_to_placer():
     assert 'run_PLACER.py" "${placer_args[@]}"' in script
 
 
+def test_shared_runner_gives_rfdiffusion_a_writable_hydra_directory():
+    script = (SERVER_ROOT / "docker" / "runners" / "placer-rfdiffusion" / "run.sh").read_text(encoding="utf-8")
+    assert '"hydra.run.dir=/tmp/rfdiffusion-hydra"' in script
+    assert '"hydra.output_subdir=null"' in script
+    assert '"inference.output_prefix=${output_dir}/design"' in script
+
+
 def test_submission_resolves_defaults_and_constraints():
     runtime = task_types.RuntimeFamily(
         name="test",
