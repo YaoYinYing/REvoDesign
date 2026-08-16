@@ -147,6 +147,7 @@ def viewer_shell():
     postMessage, so no data, auth, or server fetch ever lives in the shell.
     """
     response: Response = make_response(render_template("viewer_shell.html"))
+    response.headers["Cache-Control"] = "no-cache"
     response.headers["Content-Security-Policy"] = (
         "default-src 'none'; "
         "script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; "
@@ -190,7 +191,9 @@ def register_page():
 @app.route("/compute/create_task", methods=["GET"])
 @login_required
 def create_task():
-    return render_template("create_task.html")
+    response = make_response(render_template("create_task.html"))
+    response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.route("/compute/profile", methods=["GET"])
@@ -1290,10 +1293,14 @@ def task_results_page(md5sum):
         abort(404)
     if not _task_access_allowed(task):
         return _task_access_denied(normalized)
-    return render_template(
-        "task_results.html",
-        task=_dashboard_task_status(task, 0, _current_username() or "", _is_admin_user()),
+    response = make_response(
+        render_template(
+            "task_results.html",
+            task=_dashboard_task_status(task, 0, _current_username() or "", _is_admin_user()),
+        )
     )
+    response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.route("/compute/api/tasks/<md5sum>/input", methods=["GET"])
