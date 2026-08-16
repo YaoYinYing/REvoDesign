@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Server:
-  - RFdiffusion runner: redirect Hydra bookkeeping to the per-job writable `/tmp` filesystem under read-only container execution.
+  - RFdiffusion runner: redirect Hydra bookkeeping and generated schedule caches to the per-job writable `/tmp` filesystem under read-only container execution.
   - Mol* input workbenches: sequence-strip and canvas selections now report canonical residues; cached viewer-shell handshakes no longer race listener setup.
   - task-type intro audit: intros/categories corrected against the runner docs (Pro-Prime = OGT prediction → `fitness`; ThermoMPNN-D = ΔΔG prediction; PLACER = all-atom ligand modeling; GREMLIN = conservation + couplings; HyperMPNN/LASErMPNN/OpenDDE reworded).
   - auth hardening: API keys stored as indexed sha256 digests; CAPTCHA nonces and rate-limit counters are Redis-first with per-process fallback.

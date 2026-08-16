@@ -68,6 +68,7 @@ _run_rfdiffusion() {
   local -a rf_args=(
     "hydra.run.dir=/tmp/rfdiffusion-hydra" \
     "hydra.output_subdir=null" \
+    "inference.schedule_directory_path=/tmp/rfdiffusion-schedules" \
     "contigmap.contigs=[${CONTIG}]" \
     "inference.output_prefix=${output_dir}/design" \
     "inference.num_designs=${NUM_DESIGNS}")
