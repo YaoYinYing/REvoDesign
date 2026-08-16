@@ -67,10 +67,10 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     assert 'href="/compute/logo.svg"' in html
     assert 'class="btn btn-soft theme-toggle mode-auto"' in html
     assert 'class="theme-icon" aria-hidden="true">◐</span>' in html
-    assert 'src="/static/js/theme.js"' in html
+    assert 'src="/static/js/theme.js?v=' in html
     assert 'type="file" name="file" id="fileInput" class="sr-only"' in html
     assert 'id="inputWorkspace"' in html
-    assert 'src="/static/js/input-workspace.js"' in html
+    assert 'src="/static/js/input-workspace.js?v=' in html
     assert "file-input-offscreen" not in html
 
 
@@ -174,9 +174,9 @@ def test_create_task_uses_capability_plugins_with_safe_fallbacks():
     orchestrator = (SERVER_PACKAGE / "static" / "js" / "create-task.js").read_text(encoding="utf-8")
 
     assert 'id="inputWorkspace"' in template
-    assert 'src="/static/js/plugin-host.js"' in template
-    assert 'src="/static/js/input-workspace.js"' in template
-    assert 'src="/static/js/input-workspace-rfdiffusion.js"' in template
+    assert 'src="/static/js/plugin-host.js?v={{ static_version }}"' in template
+    assert 'src="/static/js/input-workspace.js?v={{ static_version }}"' in template
+    assert 'src="/static/js/input-workspace-rfdiffusion.js?v={{ static_version }}"' in template
     for plugin_id in ("files", "sequence", "structure", "regions", "parameters", "review"):
         assert f'id: "{plugin_id}"' in workspace
     rfdiffusion_workspace = (SERVER_PACKAGE / "static" / "js" / "input-workspace-rfdiffusion.js").read_text(
@@ -762,11 +762,12 @@ def test_viewer_shell_isolates_molstar_eval_csp(monkeypatch, tmp_path):
     connect_src = next(part.strip() for part in csp.split(";") if part.strip().startswith("connect-src"))
     assert connect_src == "connect-src 'none'"
     html = response.get_data(as_text=True)
-    assert 'src="/static/js/viewer-shell.js"' in html
+    viewer_script = 'src="/static/js/viewer-shell.js?v='
+    assert viewer_script in html
     # The shell caches these nodes as soon as its script executes. Keep the
     # script after the DOM so a structure message cannot dereference null.
-    assert html.index('id="shellState"') < html.index('src="/static/js/viewer-shell.js"')
-    assert html.index('id="viewerHost"') < html.index('src="/static/js/viewer-shell.js"')
+    assert html.index('id="shellState"') < html.index(viewer_script)
+    assert html.index('id="viewerHost"') < html.index(viewer_script)
     assert 'data-state="waiting"' in html
     assert "<script>" not in html
 
