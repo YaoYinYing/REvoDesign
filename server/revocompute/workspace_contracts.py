@@ -127,9 +127,14 @@ def normalize_rfdiffusion(value: Any) -> dict[str, Any]:
         raise WorkspaceValidationError("Motif scaffolding requires at least one fixed segment")
     if mode == "binder":
         if "fixed" not in kinds or "chain_break" not in kinds or "generated" not in kinds or not hotspots:
-            raise WorkspaceValidationError(
-                "Binder mode requires target residues, a chain break, binder length, and hotspots"
-            )
+            missing = []
+            if "fixed" not in kinds:
+                missing.append("target residues — select them in the viewer and press \"Use selection as target\"")
+            if not hotspots:
+                missing.append("hotspot residues — select them in the viewer and press \"Use selection as hotspots\"")
+            if "chain_break" not in kinds or "generated" not in kinds:
+                missing.append("a binder length")
+            raise WorkspaceValidationError("Binder design needs " + " and ".join(missing))
     contig = serialize_contig(segments)
     return {
         "state": {
