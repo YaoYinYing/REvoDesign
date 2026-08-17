@@ -28,6 +28,8 @@ async function main() {
   var reports = [];
   var listeners = {};
   var loadedStructure = null;
+  var loadedStructureCount = 0;
+  var viewerCreateCount = 0;
   var canvasBackground = null;
   var layoutShowControls = null;
   var viewerPlugin = null;
@@ -62,8 +64,10 @@ async function main() {
     molstar: {
       Viewer: {
         create: async function (_id, options) {
+          viewerCreateCount += 1;
           layoutShowControls = options.layoutShowControls;
           viewerPlugin = {
+            clear: async function () {},
             dispose: function () {},
             canvas3d: {
               setProps: function (props) { canvasBackground = props.renderer.backgroundColor; }
@@ -101,6 +105,7 @@ async function main() {
           return {
             plugin: viewerPlugin,
             loadStructureFromData: async function (text, format, options) {
+              loadedStructureCount += 1;
               loadedStructure = { text: text, format: format, options: options };
             }
           };
@@ -230,6 +235,32 @@ async function main() {
   var residues = selectionReports[0].payload.residues;
   if (residues.length !== 1 || residues[0].chain !== "A" || residues[0].residue !== 163) {
     throw new Error("shell reported wrong selected residues: " + JSON.stringify(residues));
+  }
+  // Warm reuse: a second structure message must reuse the booted plugin —
+  // Viewer.create exactly once, loadStructureFromData twice.
+  listeners.message({
+    source: parentWindow,
+    origin: "https://revocompute.example",
+    data: {
+      type: "structure",
+      text: "ATOM2",
+      format: "pdb",
+      label: "probe-2",
+      requestId: "probe-2",
+      theme: "dark",
+      colorMode: "plddt",
+      selectionEnabled: false
+    }
+  });
+  await new Promise(function (resolve) { setTimeout(resolve, 0); });
+  if (loadedStructureCount !== 2 || loadedStructure.text !== "ATOM2") {
+    throw new Error("warm shell did not load the second structure");
+  }
+  if (viewerCreateCount !== 1) {
+    throw new Error("warm shell recreated the viewer instead of reusing it");
+  }
+  if (!reports.some(function (entry) { return entry.payload.type === "ready" && entry.payload.requestId === "probe-2"; })) {
+    throw new Error("warm shell did not report readiness for the second structure");
   }
   console.log("viewer shell message contract passed");
 }

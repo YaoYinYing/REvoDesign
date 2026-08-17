@@ -179,6 +179,15 @@
     return assetsPromise;
   }
 
+  // Serialize mounts: a warm shell receiving structure N+1 while N is still
+  // loading must not interleave plugin.clear()/load calls on the shared
+  // viewer. mountStructure never rejects (errors report per requestId), so
+  // the chain stays unbroken.
+  var mountChain = Promise.resolve();
+  function queueMount(message) {
+    mountChain = mountChain.then(function () { return mountStructure(message); });
+  }
+
   async function mountStructure(message) {
     activeRequestId = message.requestId;
     applyTheme(message.theme);
@@ -188,22 +197,28 @@
     stateNode.textContent = "Preparing interactive structure…";
     try {
       await ensureMolstarAssets();
-      if (viewer) { viewer.plugin.dispose(); host.replaceChildren(); }
-      viewerId = "molstar-shell-" + Math.random().toString(36).slice(2);
-      var target = document.createElement("div");
-      target.id = viewerId;
-      host.appendChild(target);
-      viewer = await window.molstar.Viewer.create(target.id, {
-        layoutIsExpanded: false,
-        layoutShowControls: Boolean(message.showControls),
-        layoutShowRemoteState: false,
-        layoutShowSequence: true,
-        layoutShowLog: false,
-        layoutShowLeftPanel: false,
-        viewportShowExpand: true,
-        viewportShowSelectionMode: true,
-        viewportShowAnimation: true
-      });
+      if (viewer) {
+        // Warm path: reuse the booted plugin — clear the previous state and
+        // load the next structure into the same canvas. Disposing and
+        // recreating the Viewer re-initializes the whole bundle.
+        await viewer.plugin.clear();
+      } else {
+        viewerId = "molstar-shell-" + Math.random().toString(36).slice(2);
+        var target = document.createElement("div");
+        target.id = viewerId;
+        host.appendChild(target);
+        viewer = await window.molstar.Viewer.create(target.id, {
+          layoutIsExpanded: false,
+          layoutShowControls: Boolean(message.showControls),
+          layoutShowRemoteState: false,
+          layoutShowSequence: true,
+          layoutShowLog: false,
+          layoutShowLeftPanel: false,
+          viewportShowExpand: true,
+          viewportShowSelectionMode: true,
+          viewportShowAnimation: true
+        });
+      }
       // Sequence-strip and canvas clicks select only while Mol* selection mode
       // is active. Input workbenches request selection explicitly; result
       // viewers retain Mol*'s ordinary focus-oriented default.
@@ -235,7 +250,7 @@
   window.addEventListener("message", function (event) {
     if (event.source !== window.parent) return;
     if (!event.data || typeof event.data !== "object") return;
-    if (event.data.type === "structure") mountStructure(event.data);
+    if (event.data.type === "structure") queueMount(event.data);
     else if (event.data.type === "theme") applyTheme(event.data.theme);
     else if (event.data.type === "color") updateStructureColor(event.data.mode);
     else if (event.data.type === "select-residue") selectResidue(event.data);

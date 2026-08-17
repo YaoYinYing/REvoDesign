@@ -13,6 +13,15 @@
   var previewRegistry = null;
   var previewHost = null;
   var resultViews = [];
+  // Warm Mol* viewer: one shell iframe and one plugin instance stay alive
+  // across structure previews. The frame lives in a persistent holder that
+  // is never reparented (reparenting reloads an iframe), so switching
+  // between PDB/mmCIF artifacts reuses the booted viewer instead of
+  // re-downloading and re-initializing the bundle on every click.
+  var warmMolstar = null;
+  var structureHolder = null;
+  var warmPending = {};
+  var warmListenerInstalled = false;
   var viewRegistry = new window.REvoComputePlugins.PluginRegistry("result view");
   var MOLSTAR_THEME_COOKIE = "revodesign-molstar-theme";
   // Mol* runs inside the isolated /compute/viewer-shell iframe (its bundle
@@ -67,11 +76,40 @@
   }
 
   function disposeActiveViewer() {
-    if (activeMolstar) {
-      try { postToShell(activeMolstar.frame, { type: "dispose" }); } catch (e) { /* frame gone */ }
-      activeMolstar.frame.remove();
-      activeMolstar = null;
+    if (warmMolstar) {
+      try { postToShell(warmMolstar.frame, { type: "dispose" }); } catch (e) { /* frame gone */ }
+      warmMolstar.frame.remove();
+      warmMolstar = null;
     }
+    if (activeMolstar) activeMolstar = null;
+    Object.keys(warmPending).forEach(function (key) {
+      var pending = warmPending[key];
+      clearTimeout(pending.timer);
+      if (pending.reject) { try { pending.reject(new Error("Viewer disposed")); } catch (e) { /* already settled */ } }
+      delete warmPending[key];
+    });
+  }
+
+  // One shared message listener for the warm shell: resolves the pending
+  // handshake for the given requestId, and flushes the first structure
+  // message when the shell reports ready.
+  function installWarmListener() {
+    if (warmListenerInstalled) return;
+    warmListenerInstalled = true;
+    window.addEventListener("message", function (event) {
+      if (!warmMolstar || event.source !== warmMolstar.frame.contentWindow || !event.data) return;
+      if (event.data.type === "shell-ready") {
+        var ready = warmPending["__shell_ready__"];
+        if (ready) { delete warmPending["__shell_ready__"]; ready(); }
+        return;
+      }
+      var pending = warmPending[event.data.requestId];
+      if (!pending) return;
+      delete warmPending[event.data.requestId];
+      clearTimeout(pending.timer);
+      if (event.data.type === "ready") pending.resolve(warmMolstar.frame);
+      else if (event.data.type === "error") pending.reject(new Error(event.data.message));
+    });
   }
 
   function structureFormat(path) {
@@ -173,60 +211,80 @@
     return bar;
   }
 
-  async function renderMolstar(structureText, artifact, stage, generation) {
+  async function renderMolstar(structureText, artifact, stage, generation, fresh) {
     var requestId = "mol-" + Math.random().toString(36).slice(2);
-    var frame = document.createElement("iframe");
-    frame.className = "artifact-molstar-preview";
-    frame.sandbox = "allow-scripts";
-    frame.title = "Mol* structure viewer";
-    // Register the handshake listener before the iframe starts loading so
-    // the shell's "shell-ready" can never be missed.
-    var handshake = new Promise(function (resolve, reject) {
-      var settled = false;
-      var timer = setTimeout(function () {
-        if (settled) return;
-        settled = true;
-        window.removeEventListener("message", onMessage);
-        reject(new Error("Mol* timed out"));
-      }, 45000);
-      function onMessage(event) {
-        // The sandboxed shell has an opaque origin, so its messages carry
-        // origin "null" — the source check against our own frame is the
-        // real gate.
-        if ((event.origin !== location.origin && event.origin !== "null") || event.source !== frame.contentWindow || !event.data) return;
-        if (event.data.type === "shell-ready") {
-          postToShell(frame, {
-            type: "structure",
-            text: structureText,
-            format: structureFormat(artifact.path),
-            label: artifact.path,
-            requestId: requestId,
-            theme: readMolstarTheme(),
-            colorMode: activeColorMode
-          });
-        } else if (event.data.type === "ready" && event.data.requestId === requestId) {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          window.removeEventListener("message", onMessage);
-          resolve(frame);
-        } else if (event.data.type === "error" && event.data.requestId === requestId) {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          window.removeEventListener("message", onMessage);
-          reject(new Error(event.data.message));
+    var message = {
+      type: "structure",
+      text: structureText,
+      format: structureFormat(artifact.path),
+      label: artifact.path,
+      requestId: requestId,
+      theme: readMolstarTheme(),
+      colorMode: activeColorMode
+    };
+    if (!fresh && warmMolstar) {
+      // Warm path: the shell is already booted; post the new structure and
+      // await the ready report for this requestId. No iframe work at all.
+      await new Promise(function (resolve, reject) {
+        var timer = setTimeout(function () { delete warmPending[requestId]; reject(new Error("Mol* timed out")); }, 45000);
+        warmPending[requestId] = { resolve: resolve, reject: reject, timer: timer };
+        postToShell(warmMolstar.frame, message);
+      });
+      if (isStale(generation)) return warmMolstar.frame;
+      activeMolstar = warmMolstar;
+      return warmMolstar.frame;
+    }
+    if (fresh) {
+      // Cold path for the linked table/structure view: a dedicated frame in
+      // the caller's stage with its own one-shot handshake.
+      var frame = document.createElement("iframe");
+      frame.className = "artifact-molstar-preview";
+      frame.sandbox = "allow-scripts";
+      frame.title = "Mol* structure viewer";
+      var handshake = new Promise(function (resolve, reject) {
+        var settled = false;
+        var timer = setTimeout(function () { if (settled) return; settled = true; window.removeEventListener("message", onMessage); reject(new Error("Mol* timed out")); }, 45000);
+        function onMessage(event) {
+          if ((event.origin !== location.origin && event.origin !== "null") || event.source !== frame.contentWindow || !event.data) return;
+          if (event.data.type === "shell-ready") postToShell(frame, message);
+          else if (event.data.type === "ready" && event.data.requestId === requestId) {
+            if (settled) return; settled = true; clearTimeout(timer); window.removeEventListener("message", onMessage); resolve(frame);
+          } else if (event.data.type === "error" && event.data.requestId === requestId) {
+            if (settled) return; settled = true; clearTimeout(timer); window.removeEventListener("message", onMessage); reject(new Error(event.data.message));
+          }
         }
-      }
-      window.addEventListener("message", onMessage);
+        window.addEventListener("message", onMessage);
+      });
+      stage.appendChild(frame);
+      frame.src = "/compute/viewer-shell";
+      if (isStale(generation)) { frame.remove(); return; }
+      await handshake;
+      if (isStale(generation)) { frame.remove(); return; }
+      return frame;
+    }
+    // First warm mount: one frame in the persistent holder, never reparented.
+    var warmFrame = document.createElement("iframe");
+    warmFrame.className = "artifact-molstar-preview";
+    warmFrame.sandbox = "allow-scripts";
+    warmFrame.title = "Mol* structure viewer";
+    warmMolstar = { frame: warmFrame };
+    installWarmListener();
+    structureHolder.replaceChildren();
+    structureHolder.appendChild(warmFrame);
+    warmFrame.src = "/compute/viewer-shell";
+    await new Promise(function (resolve, reject) {
+      var settled = false;
+      var timer = setTimeout(function () { if (settled) return; settled = true; reject(new Error("Mol* timed out")); }, 45000);
+      warmPending["__shell_ready__"] = function () {
+        if (settled) return;
+        postToShell(warmFrame, message);
+        var reqTimer = setTimeout(function () { if (settled) return; settled = true; delete warmPending[requestId]; reject(new Error("Mol* timed out")); }, 45000);
+        warmPending[requestId] = { resolve: function (frame) { if (settled) return; settled = true; clearTimeout(timer); resolve(frame); }, reject: function (error) { if (settled) return; settled = true; clearTimeout(timer); reject(error); }, timer: reqTimer };
+      };
     });
-    stage.appendChild(frame);
-    frame.src = "/compute/viewer-shell";
-    if (isStale(generation)) { frame.remove(); return; }
-    await handshake;
-    if (isStale(generation)) { frame.remove(); return; }
-    activeMolstar = { frame: frame };
-    return frame;
+    if (isStale(generation)) return warmFrame;
+    activeMolstar = warmMolstar;
+    return warmFrame;
   }
 
   async function previewStructure(artifact, stage) {
@@ -236,9 +294,13 @@
     if (!response.ok) throw new Error("Structure download failed (HTTP " + response.status + ")");
     var structureText = await response.text();
     if (isStale(generation)) return;
-    stage.appendChild(structureViewerBar(artifact));
+    var surface = structureHolder || stage;
+    surface.replaceChildren();
+    surface.appendChild(structureViewerBar(artifact));
 
     if (structureViewer === "py2dmol") {
+      stage.hidden = false;
+      if (structureHolder) structureHolder.hidden = true;
       try {
         await renderPy2DmolFallback(structureText, artifact, stage, generation, new Error("User selected alpha-trace viewer"));
         if (isStale(generation)) return;
@@ -254,11 +316,11 @@
       return;
     }
 
-    try { await renderMolstar(structureText, artifact, stage, generation); }
+    try { await renderMolstar(structureText, artifact, surface, generation); }
     catch (error) {
       if (isStale(generation)) return;
-      stage.replaceChildren();
-      stage.appendChild(structureViewerBar(artifact));
+      surface.replaceChildren();
+      surface.appendChild(structureViewerBar(artifact));
       var msg = document.createElement("p");
       msg.className = "preview-message";
       msg.textContent = "Mol* could not be loaded: " + (error.message || error);
@@ -270,7 +332,7 @@
       retry.type = "button";
       retry.addEventListener("click", function () { structureViewer = "py2dmol"; previewArtifact(artifact); });
       msg.append(br, retry);
-      stage.appendChild(msg);
+      surface.appendChild(msg);
       console.warn("Mol* error:", error);
     }
   }
@@ -397,9 +459,15 @@
   });
   previewHost = new window.REvoComputeResultPreviews.ResultPreviewHost(
     previewRegistry,
-    document.getElementById("artifactPreview"),
-    { beforeClear: disposeActiveViewer }
+    document.getElementById("artifactPreview")
   );
+  // Persistent holder for the warm Mol* frame — a sibling of the preview
+  // stage that is never cleared or reparented, so the shell survives
+  // artifact switches. Non-structure previews use the stage as before.
+  structureHolder = document.createElement("div");
+  structureHolder.className = "artifact-preview-stage";
+  structureHolder.hidden = true;
+  document.getElementById("artifactPreview").parentNode.appendChild(structureHolder);
 
   async function previewArtifact(artifact) {
     activeArtifact = artifact;
@@ -414,6 +482,8 @@
     });
     var stage = document.getElementById("artifactPreview");
     var plugin = previewRegistry.resolve(artifact);
+    stage.hidden = false;
+    if (structureHolder) structureHolder.hidden = true;
     if (!plugin) {
       stage.innerHTML = '<p class="preview-message">No inline preview is available for this file type. Download the artifact instead.</p>';
       return;
@@ -421,6 +491,10 @@
     if (plugin.maxBytes && artifact.size > plugin.maxBytes) {
       stage.innerHTML = '<p class="preview-message">This file exceeds the safe inline preview limit. Download it instead.</p>';
       return;
+    }
+    if (plugin.id === "structure" && structureHolder) {
+      stage.hidden = true;
+      structureHolder.hidden = false;
     }
     stage.innerHTML = '<p class="preview-message">Loading preview…</p>';
     try {
@@ -433,8 +507,11 @@
   }
 
   async function renderResidueTableStructure(view) {
-    activeArtifact = null; previewHost.destroy(); disposeActiveViewer();
+    activeArtifact = null; previewHost.destroy();
     var generation = previewHost.generation;
+    var stage = document.getElementById("artifactPreview");
+    stage.hidden = false;
+    if (structureHolder) structureHolder.hidden = true;
     document.getElementById("previewTitle").textContent = view.title;
     document.getElementById("artifactDownload").hidden = true;
     var tableArtifact = artifacts.find(function (item) { return item.path === view.artifacts.table; });
@@ -448,7 +525,7 @@
     if (!responses[0].ok || !responses[1].ok) throw new Error("Linked result data could not be loaded");
     var page = await responses[0].json(); var structureText = await responses[1].text();
     if (generation !== previewHost.generation) return;
-    var stage = document.getElementById("artifactPreview"); stage.replaceChildren();
+    stage.replaceChildren();
     var layout = document.createElement("div"); layout.className = "linked-result-layout";
     var tableWrap = document.createElement("div"); tableWrap.className = "artifact-table-wrap linked-result-table";
     var table = document.createElement("table"); table.className = "artifact-table-preview";
@@ -482,7 +559,7 @@
     }
     var viewerStage = document.createElement("div"); viewerStage.className = "linked-result-structure";
     layout.append(tableWrap, viewerStage); stage.appendChild(layout);
-    try { viewerFrame = await renderMolstar(structureText, structureArtifact, viewerStage, generation); }
+    try { viewerFrame = await renderMolstar(structureText, structureArtifact, viewerStage, generation, true); }
     catch (error) { if (generation === previewHost.generation) { var message = document.createElement("p"); message.className = "preview-message"; message.textContent = "Structure linking unavailable: " + error.message; viewerStage.appendChild(message); } }
   }
 
@@ -614,6 +691,8 @@
   }
 
   async function loadResults() {
+    disposeActiveViewer();
+    if (structureHolder) structureHolder.hidden = true;
     var response = await A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5));
     var payload = await response.json().catch(function () { return {}; });
     document.getElementById("resultStatus").textContent = payload.status || task.status;
