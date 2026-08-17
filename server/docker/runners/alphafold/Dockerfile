@@ -12,15 +12,14 @@ FROM --platform=linux/amd64 python:3.11-slim
 
 ARG RUNNER_UID ARG RUNNER_GID ARG RUNNER_USERNAME ARG RUNNER_GROUP
 
-# hh-suite (hhblits/hhsearch) from source + hmmer (jackhmmer) + kalign.
-# v3.3.0 predates gcc 12: a3m_compress.h needs <cstdint> on bookworm.
+# hh-suite (hhblits/hhsearch) official precompiled AVX2 release — no source
+# compile (v3.3.0 does not build on gcc 12) — plus hmmer (jackhmmer) + kalign.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git cmake g++ make kalign hmmer wget ca-certificates && \
-    git clone --branch v3.3.0 --single-branch https://github.com/soedinglab/hh-suite.git /tmp/hh-suite && \
-    sed -i '1s/^/#include <cstdint>\n/' /tmp/hh-suite/src/a3m_compress.h && \
-    mkdir -p /tmp/hh-suite/build && cd /tmp/hh-suite/build && cmake -DCMAKE_INSTALL_PREFIX=/opt/hhsuite .. && \
-    make -j"$(nproc)" && make install && cd / && rm -rf /tmp/hh-suite && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends kalign hmmer wget ca-certificates && \
+    wget -q -O /tmp/hhsuite.tar.gz \
+      https://github.com/soedinglab/hh-suite/releases/download/v3.3.0/hhsuite-3.3.0-AVX2-Linux.tar.gz && \
+    mkdir -p /opt/hhsuite && tar -xzf /tmp/hhsuite.tar.gz -C /opt/hhsuite --strip-components=1 && \
+    rm /tmp/hhsuite.tar.gz && rm -rf /var/lib/apt/lists/*
 
 COPY --from=alphafold-source /opt/alphafold /opt/alphafold
 WORKDIR /opt/alphafold
