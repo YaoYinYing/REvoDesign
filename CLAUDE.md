@@ -190,6 +190,24 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 - The `_run_server_and_mark_stopped` pattern wraps `server.run()` in a `try/finally` that clears `is_running`, so a thread exit (clean or crash) syncs state without Qt signals.
 - Mocking `threading.Thread` in tests: `MagicMock()` with `is_alive.return_value = False` — no `spec=WorkerThread` since `is_alive` is a `threading.Thread` API.
 
+## Adapting a new scientific runner — intake
+
+When asked "adapt \<tool\> to revocompute", the deliverable is a task-type
+registry entry + one runner YAML + `Dockerfile`/`run.sh`/`.def` + contract
+tests + a living SLURM test, following `server/OPERATIONS_AND_TASK_ADAPTER_GUIDE.md`.
+To do it in one precise pass, provide:
+
+- **Tool**: name, repo URL, full commit hash to pin, CLI entrypoint, license.
+- **Hardware**: GPU or CPU; CUDA/torch versions it needs; typical per-run memory and walltime.
+- **Inputs**: accepted file extensions; which is the primary input; multiple/nested inputs needed?
+- **Parameters**: the user-facing knobs — name, type, default, min/max/choices, description — and the CLI flag each maps to.
+- **Outputs**: files produced (extensions); the success signal (completion marker, required outputs, exit codes) and how to detect a silently failed run.
+- **Dependencies**: Python/torch/framework versions; model weights (URL, size, license, offline staging path); runtime network or cache needs.
+- **Minimal run**: one working command line on a tiny input, plus a sample input file or a pointer to `tests/data`.
+
+If the minimal run, weights, or hardware constraints are missing, ask for
+them before building anything — the pin and the smoke case are the contract.
+
 ## Commit and PR guidelines
 
 - **Commit messages**: Follow conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`). Use `[skip ci]` to skip CI for non-code changes.
