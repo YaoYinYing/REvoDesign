@@ -26,10 +26,11 @@ from pathlib import Path
 
 REGISTRY = Path(__file__).resolve().parents[1] / "config" / "task_types.yaml"
 DOI_RE = re.compile(r"10\.\d{4,9}/[^\s\"]+")
-# One citation_dois map plus an optional following citation_bibtex block,
+ENTRY_RE = re.compile(r"\{num: (\d+), doi: \"([^\"]+)\", title: \"([^\"]+)\"\}")
+# One citation_dois list plus an optional following citation_bibtex block,
 # inside one task-type entry.
 BLOCK_RE = re.compile(
-    r"(?m)^(    citation_dois:\n(?:      \d+: \"[^\"]+\"\n)+)"
+    r"(?m)^(    citation_dois:\n(?:      - \{num: \d+, doi: \"[^\"]+\", title: \"[^\"]+\"\}\n)+)"
     r"(    citation_bibtex: \|\n(?:      .*\n)*)?"
 )
 
@@ -43,6 +44,15 @@ def fetch_bibtex(doi: str) -> str:
         if not response.headers.get_content_type().startswith("application/x-bibtex"):
             raise RuntimeError(f"doi.org did not return BibTeX for {doi}")
         return response.read().decode("utf-8").strip()
+
+
+def _normalize(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip().lower()
+
+
+def _bibtex_title(bibtex: str) -> str:
+    match = re.search(r"title=\{([^}]*)\}", bibtex)
+    return _normalize(match.group(1)) if match else ""
 
 
 def search_doi(title: str) -> list[tuple[str, str]]:
@@ -64,16 +74,23 @@ def search_doi(title: str) -> list[tuple[str, str]]:
 
 
 def resolve_block(block: str, existing: str | None) -> str | None:
-    dois = DOI_RE.findall(block)
-    if not dois:
+    entries = ENTRY_RE.findall(block)
+    if not entries:
         return None
-    entries = []
-    for doi in dois:
+    resolved = []
+    for num, doi, title in entries:
         bibtex = fetch_bibtex(doi)
         if not bibtex:
             raise RuntimeError(f"empty BibTeX for {doi}")
-        entries.append(bibtex)
-    merged = "\n\n".join(entries)
+        fetched_title = _bibtex_title(bibtex)
+        if fetched_title and _normalize(title) not in fetched_title:
+            # Human check: the fetched record disagrees with the declared
+            # title — do not write it into the registry.
+            raise RuntimeError(
+                f"title mismatch for {doi}: declared {title!r} vs fetched {fetched_title!r}"
+            )
+        resolved.append(bibtex)
+    merged = "\n\n".join(resolved)
     if existing and merged in existing:
         return None
     indented = "".join("      " + line + "\n" for line in merged.splitlines())

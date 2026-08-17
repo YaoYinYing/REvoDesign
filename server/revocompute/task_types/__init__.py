@@ -176,21 +176,33 @@ _INPUT_CAPABILITY_OPTION_KEYS = {
 _DOI_PATTERN = re.compile(r"^10\.\d{4,9}/[^\s]+$")
 
 
-def _load_citation_dois(raw: Any, name: str) -> tuple[tuple[int, str], ...]:
-    """Validate the ordered citation_dois map; the BibTeX itself is resolved
-    from the DOIs by tools/resolve_citations.py and checked in — never
-    hand-guessed."""
+def _load_citation_dois(raw: Any, name: str) -> tuple[tuple[int, str, str], ...]:
+    """Validate the ordered citation_dois list. Each entry is
+    {num, doi, title}: the DOI identifies the paper and the declared title
+    enables human checks (the resolver verifies it against the fetched
+    BibTeX). BibTeX is resolved from the DOIs by
+    tools/resolve_citations.py — never hand-guessed."""
     if raw is None:
         return ()
-    if not isinstance(raw, dict):
-        raise ValueError(f"Task type {name!r} citation_dois must be a map of position -> DOI")
-    ordered: list[tuple[int, str]] = []
-    for position in sorted(int(key) for key in raw):
-        doi = raw[position]
+    if not isinstance(raw, list):
+        raise ValueError(f"Task type {name!r} citation_dois must be a list of {{num, doi, title}}")
+    ordered: list[tuple[int, str, str]] = []
+    seen: set[int] = set()
+    for entry in raw:
+        if not isinstance(entry, dict) or set(entry) != {"num", "doi", "title"}:
+            raise ValueError(f"Task type {name!r} citation entries must be exactly {{num, doi, title}}")
+        num = entry["num"]
+        if not isinstance(num, int) or isinstance(num, bool) or num in seen:
+            raise ValueError(f"Task type {name!r} has an invalid citation num: {num!r}")
+        seen.add(num)
+        doi = entry["doi"]
+        title = entry.get("title", "")
         if not isinstance(doi, str) or not _DOI_PATTERN.fullmatch(doi.strip()):
             raise ValueError(f"Task type {name!r} has an invalid citation DOI: {doi!r}")
-        ordered.append((position, doi.strip()))
-    return tuple(ordered)
+        if not isinstance(title, str) or not title.strip():
+            raise ValueError(f"Task type {name!r} citation {num} must declare the paper title")
+        ordered.append((num, doi.strip(), title.strip()))
+    return tuple(sorted(ordered))
 
 
 _RESULT_VIEW_PLUGINS = {"residue-table-structure"}
