@@ -161,7 +161,7 @@ input_workspace:
     - plugin: structure
       id: structure_builder
       options: {source: source_files, select_chains: true, select_residues: true}
-    - plugin: regions
+    - plugin: rfdiffusion-regions
       id: design_regions
       options: {source: structure_builder, fields: [contig, hotspot_res], syntax: rfdiffusion}
     - plugin: parameters
@@ -170,16 +170,26 @@ input_workspace:
       id: submission_review
 ```
 
-Only built-in plugin IDs and their allowlisted options are accepted. This
-composition affects presentation, not validation or execution authority. When
-the block is absent, the server derives a backward-compatible workspace from
-the input extensions and typed parameters. The first capability must collect
+Only built-in plugin IDs and their allowlisted options are accepted. Every task
+type declares the composition explicitly; startup fails closed for missing,
+unknown, or remotely supplied components. The first capability must collect
 files or sequences and the last must be `review`.
 
 Simple FASTA tasks normally compose files, sequence, parameters, and review.
 Structure tasks add structure inspection, while complex tools may add region
-controls. The browser submits the same `files`, `input_paths`, `task_type`, and
-`params[...]` fields as before.
+controls. Each specialized workspace variety is a separate, statically shipped
+plugin module selected by its task-type declaration; the shared host contains
+no task-name branches. Stateful components submit a version-2 `workspace` JSON document
+alongside files and ordinary parameters. RFdiffusion contigs and hotspots are
+normalized and checked by the server, so browser state cannot broaden runner
+parameters.
+
+Task types may also declare `result_workspace.views`. Each view selects an
+allowlisted local plugin and exact manifest artifacts. The
+`residue-table-structure` view maps configured table columns to Mol\* residue
+numbering without task-name conditionals in the result page. Result structure
+views start with Mol\*'s right-side controls hidden so the structure remains the
+visual focus; interactive input workspaces opt into those controls explicitly.
 
 The API validates task type, files, relative paths, and params before it creates
 the task. Each task receives an immutable host snapshot:

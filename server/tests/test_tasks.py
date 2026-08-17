@@ -67,10 +67,10 @@ def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     assert 'href="/compute/logo.svg"' in html
     assert 'class="btn btn-soft theme-toggle mode-auto"' in html
     assert 'class="theme-icon" aria-hidden="true">◐</span>' in html
-    assert 'src="/static/js/theme.js"' in html
+    assert 'src="/static/js/theme.js?v=' in html
     assert 'type="file" name="file" id="fileInput" class="sr-only"' in html
     assert 'id="inputWorkspace"' in html
-    assert 'src="/static/js/input-workspace.js"' in html
+    assert 'src="/static/js/input-workspace.js?v=' in html
     assert "file-input-offscreen" not in html
 
 
@@ -99,7 +99,7 @@ def test_task_type_api_exposes_runtime_family_and_gpu_contract(monkeypatch, tmp_
     assert form["gpus"] is False
     # Resource usage is not part of the user-facing submission review.
     assert "resources" not in form
-    assert form["input_workspace"]["version"] == 1
+    assert form["input_workspace"]["version"] == 2
     assert form["input_workspace"]["capabilities"][0]["plugin"] == "files"
     assert form["input_workspace"]["capabilities"][-1]["plugin"] == "review"
 
@@ -174,10 +174,15 @@ def test_create_task_uses_capability_plugins_with_safe_fallbacks():
     orchestrator = (SERVER_PACKAGE / "static" / "js" / "create-task.js").read_text(encoding="utf-8")
 
     assert 'id="inputWorkspace"' in template
-    assert 'src="/static/js/plugin-host.js"' in template
-    assert 'src="/static/js/input-workspace.js"' in template
+    assert 'src="/static/js/plugin-host.js?v={{ static_version }}"' in template
+    assert 'src="/static/js/input-workspace.js?v={{ static_version }}"' in template
+    assert 'src="/static/js/input-workspace-rfdiffusion.js?v={{ static_version }}"' in template
     for plugin_id in ("files", "sequence", "structure", "regions", "parameters", "review"):
         assert f'id: "{plugin_id}"' in workspace
+    rfdiffusion_workspace = (SERVER_PACKAGE / "static" / "js" / "input-workspace-rfdiffusion.js").read_text(
+        encoding="utf-8"
+    )
+    assert 'id: "rfdiffusion-regions"' in rfdiffusion_workspace
     assert "workspace.validate()" in orchestrator
     assert 'formData.append("input_paths"' in orchestrator
     assert 'formData.append("params[" + name + "]"' in orchestrator
@@ -622,6 +627,97 @@ def test_result_manifest_allows_only_published_artifacts(monkeypatch, tmp_path):
     assert unpublished.status_code == 404
 
 
+def test_task_configured_linked_result_and_bounded_table_api(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLED_TASKRUNNERS": "easifa"},
+    )
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "linked_results"
+    result_dir.mkdir()
+    (result_dir / "active_sites.csv").write_text(
+        'chain,residue_index,residue,probabilities\nA,28,G,"[0.1,0.9]"\n', encoding="utf-8"
+    )
+    (result_dir / "enzyme_structure.pdb").write_text(
+        "ATOM      1  CA  GLY A  28      10.000  10.000  10.000  1.00 20.00           C\nEND\n",
+        encoding="utf-8",
+    )
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="enzyme.pdb",
+        file_path=result_dir / "enzyme_structure.pdb",
+        result_dir=result_dir,
+        username="tester",
+    )
+    module.task_store.update_task(md5sum, task_type="easifa")
+    module.task_runtime._finalize_results_manifest(module.task_store.get_task(md5sum))
+
+    manifest = client.get(f"/compute/api/results/{md5sum}", headers=auth_header).get_json()
+    table = client.get(f"/compute/api/results/{md5sum}/tables/active_sites.csv?limit=1", headers=auth_header)
+
+    assert manifest["schema_version"] == 2
+    assert manifest["views"][0]["plugin"] == "residue-table-structure"
+    assert manifest["views"][0]["mapping"]["numbering"] == "label_seq_id"
+    assert table.status_code == 200
+    assert table.get_json()["rows"] == [["A", "28", "G", "[0.1,0.9]"]]
+
+
+def test_rfdiffusion_workspace_normalization_and_structure_free_submission(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={
+            "RUNNER_UID": "1234",
+            "RUNNER_GID": "5678",
+            "ENABLED_TASKRUNNERS": "placer-rfdiffusion",
+        },
+    )
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+    user = module.app.config["user_db"].get_user_by_username("tester")
+    module.app.config["user_db"].update_user(user["id"], allow_gpu_use=True)
+    state = {
+        "mode": "unconditional",
+        "segments": [{"kind": "generated", "min_length": 40, "max_length": 40}],
+        "hotspots": [],
+    }
+    normalized = client.post(
+        "/compute/api/types/rfdiffusion/workspace/normalize",
+        json={"capability_id": "design_regions", "value": state},
+        headers=auth_header,
+    )
+
+    class _Queued:
+        id = "queued-rfdiffusion"
+
+    monkeypatch.setattr(module.run_compute_task, "apply_async", lambda *args, **kwargs: _Queued())
+    submitted = client.post(
+        "/compute/api/post",
+        data={
+            "task_type": "rfdiffusion",
+            "workspace": json.dumps({"version": 2, "capabilities": {"design_regions": state}}),
+        },
+        headers=auth_header,
+    )
+
+    assert normalized.status_code == 200
+    assert normalized.get_json()["params"]["contig"] == "40-40"
+    assert submitted.status_code == 302, submitted.get_json()
+    task = module.task_store.get_task(submitted.headers["Location"].rsplit("/", 1)[-1])
+    manifest = json.loads(
+        (Path(module.app.config["WORKSPACE_FOLDER"]) / "tester" / task["md5sum"] / "inputs" / "task.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert manifest["files"] == []
+    assert manifest["params"]["design_mode"] == "unconditional"
+    assert manifest["params"]["contig"] == "40-40"
+
+
 def test_page_csp_forbids_inline_scripts(monkeypatch, tmp_path):
     """Main app CSP must not allow inline scripts; page bootstraps are inert
     JSON blocks (see security-audit-tracking.md §11)."""
@@ -666,11 +762,12 @@ def test_viewer_shell_isolates_molstar_eval_csp(monkeypatch, tmp_path):
     connect_src = next(part.strip() for part in csp.split(";") if part.strip().startswith("connect-src"))
     assert connect_src == "connect-src 'none'"
     html = response.get_data(as_text=True)
-    assert 'src="/static/js/viewer-shell.js"' in html
+    viewer_script = 'src="/static/js/viewer-shell.js?v='
+    assert viewer_script in html
     # The shell caches these nodes as soon as its script executes. Keep the
     # script after the DOM so a structure message cannot dereference null.
-    assert html.index('id="shellState"') < html.index('src="/static/js/viewer-shell.js"')
-    assert html.index('id="viewerHost"') < html.index('src="/static/js/viewer-shell.js"')
+    assert html.index('id="shellState"') < html.index(viewer_script)
+    assert html.index('id="viewerHost"') < html.index(viewer_script)
     assert 'data-state="waiting"' in html
     assert "<script>" not in html
 

@@ -23,6 +23,66 @@
   var viewer = null;
   var viewerId = null;
   var activeTheme = "light";
+  var selectionSubscription = null;
+  var activeRequestId = null;
+
+  function selectedResidues() {
+    var residues = new Map();
+    if (!viewer || !viewer.plugin || !viewer.plugin.managers.structure) return [];
+    // The viewer bundle only exposes the library under window.molstar.lib.
+    var lib = window.molstar.lib;
+    var selection = viewer.plugin.managers.structure.selection;
+    var structures = viewer.plugin.managers.structure.hierarchy.current.structures;
+    var StructureElement = lib.structure.StructureElement;
+    var StructureProperties = lib.structure.StructureProperties;
+    if (!selection || !structures || !StructureElement || !StructureProperties) return [];
+    // Canvas picks, sequence-panel clicks, and structureInteractivity all
+    // funnel into structure.selection (lociSelects.sel IS this manager).
+    structures.forEach(function (structureRef) {
+      var structure = structureRef && structureRef.cell && structureRef.cell.obj && structureRef.cell.obj.data;
+      if (!structure) return;
+      var loci = selection.getLoci(structure);
+      if (!loci || !loci.elements) return;
+      StructureElement.Loci.forEachLocation(loci, function (location) {
+        if (!location.unit || location.unit.kind !== 0) return;  // kind 0 = atomic units only
+        var chain = String(StructureProperties.chain.auth_asym_id(location) || StructureProperties.chain.label_asym_id(location) || "_");
+        var auth = Number(StructureProperties.residue.auth_seq_id(location));
+        var label = Number(StructureProperties.residue.label_seq_id(location));
+        residues.set(chain + ":" + auth + ":" + label, { chain: chain, auth_seq_id: auth, label_seq_id: label, residue: auth });
+      });
+    });
+    return Array.from(residues.values());
+  }
+
+  function reportSelection() {
+    try {
+      report({ type: "selection", requestId: activeRequestId, residues: selectedResidues() });
+    } catch (error) {
+      report({ type: "selection-error", requestId: activeRequestId, message: error.message || String(error) });
+    }
+  }
+
+  function bindSelectionEvents(enabled) {
+    if (selectionSubscription) selectionSubscription.unsubscribe();
+    selectionSubscription = null;
+    if (!enabled || !viewer || !viewer.plugin || !viewer.plugin.managers.structure) return;
+    var selection = viewer.plugin.managers.structure.selection;
+    if (!selection || !selection.events || !selection.events.changed) return;
+    selectionSubscription = selection.events.changed.subscribe(function () {
+      setTimeout(reportSelection, 0);
+    });
+  }
+
+  function selectResidue(message) {
+    if (!viewer || typeof viewer.structureInteractivity !== "function") return;
+    var elements = {};
+    var prefix = message.numbering === "auth_seq_id" ? "auth" : "label";
+    elements["beg_" + prefix + "_seq_id"] = Number(message.residue);
+    elements["end_" + prefix + "_seq_id"] = Number(message.residue);
+    if (message.chain) elements[prefix + "_asym_id"] = String(message.chain);
+    viewer.plugin.managers.interactivity.lociSelects.deselectAll();
+    viewer.structureInteractivity({ elements: elements, action: "select" });
+  }
 
   // Surface any boot error in the shell UI instead of leaving the
   // "Waiting for structure data…" placeholder frozen forever.
@@ -119,7 +179,17 @@
     return assetsPromise;
   }
 
+  // Serialize mounts: a warm shell receiving structure N+1 while N is still
+  // loading must not interleave plugin.clear()/load calls on the shared
+  // viewer. mountStructure never rejects (errors report per requestId), so
+  // the chain stays unbroken.
+  var mountChain = Promise.resolve();
+  function queueMount(message) {
+    mountChain = mountChain.then(function () { return mountStructure(message); });
+  }
+
   async function mountStructure(message) {
+    activeRequestId = message.requestId;
     applyTheme(message.theme);
     stateNode.hidden = false;
     host.hidden = true;
@@ -127,26 +197,37 @@
     stateNode.textContent = "Preparing interactive structure…";
     try {
       await ensureMolstarAssets();
-      if (viewer) { viewer.plugin.dispose(); host.replaceChildren(); }
-      viewerId = "molstar-shell-" + Math.random().toString(36).slice(2);
-      var target = document.createElement("div");
-      target.id = viewerId;
-      host.appendChild(target);
-      viewer = await window.molstar.Viewer.create(target.id, {
-        layoutIsExpanded: false,
-        layoutShowControls: true,
-        layoutShowRemoteState: false,
-        layoutShowSequence: true,
-        layoutShowLog: false,
-        layoutShowLeftPanel: false,
-        viewportShowExpand: true,
-        viewportShowSelectionMode: true,
-        viewportShowAnimation: true
-      });
+      if (viewer) {
+        // Warm path: reuse the booted plugin — clear the previous state and
+        // load the next structure into the same canvas. Disposing and
+        // recreating the Viewer re-initializes the whole bundle.
+        await viewer.plugin.clear();
+      } else {
+        viewerId = "molstar-shell-" + Math.random().toString(36).slice(2);
+        var target = document.createElement("div");
+        target.id = viewerId;
+        host.appendChild(target);
+        viewer = await window.molstar.Viewer.create(target.id, {
+          layoutIsExpanded: false,
+          layoutShowControls: Boolean(message.showControls),
+          layoutShowRemoteState: false,
+          layoutShowSequence: true,
+          layoutShowLog: false,
+          layoutShowLeftPanel: false,
+          viewportShowExpand: true,
+          viewportShowSelectionMode: true,
+          viewportShowAnimation: true
+        });
+      }
+      // Sequence-strip and canvas clicks select only while Mol* selection mode
+      // is active. Input workbenches request selection explicitly; result
+      // viewers retain Mol*'s ordinary focus-oriented default.
+      viewer.plugin.selectionMode = Boolean(message.selectionEnabled);
       viewer.plugin.canvas3d.setProps({ renderer: { backgroundColor: MOLSTAR_CANVAS_COLORS[activeTheme] } });
       var format = message.format === "mmcif" ? "mmcif" : "pdb";
       await viewer.loadStructureFromData(message.text, format, { label: message.label || "structure" });
       await updateStructureColor(message.colorMode || "plddt");
+      bindSelectionEvents(Boolean(message.selectionEnabled));
       stateNode.hidden = true;
       host.hidden = false;
       report({ type: "ready", requestId: message.requestId });
@@ -169,10 +250,13 @@
   window.addEventListener("message", function (event) {
     if (event.source !== window.parent) return;
     if (!event.data || typeof event.data !== "object") return;
-    if (event.data.type === "structure") mountStructure(event.data);
+    if (event.data.type === "structure") queueMount(event.data);
     else if (event.data.type === "theme") applyTheme(event.data.theme);
     else if (event.data.type === "color") updateStructureColor(event.data.mode);
+    else if (event.data.type === "select-residue") selectResidue(event.data);
     else if (event.data.type === "dispose") {
+      if (selectionSubscription) selectionSubscription.unsubscribe();
+      selectionSubscription = null;
       if (viewer) viewer.plugin.dispose();
       viewer = null;
       host.replaceChildren();

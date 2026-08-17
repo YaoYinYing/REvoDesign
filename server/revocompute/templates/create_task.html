@@ -8,9 +8,9 @@
 <link rel="icon" type="image/svg+xml" href="/compute/logo.svg"/>
 <link rel="mask-icon" href="/compute/logo.svg" color="#000000"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/base.css">
-<link rel="stylesheet" href="/static/css/create-task.css">
-<script src="/static/js/theme.js"></script>
+<link rel="stylesheet" href="/static/css/base.css?v={{ static_version }}">
+<link rel="stylesheet" href="/static/css/create-task.css?v={{ static_version }}">
+<script src="/static/js/theme.js?v={{ static_version }}"></script>
 </head>
 <body>
 <main class="page">
@@ -95,9 +95,10 @@
   </section>
 </main>
 
-<script src="/static/js/auth-api.js"></script>
-<script src="/static/js/plugin-host.js"></script>
-<script src="/static/js/input-workspace.js"></script>
-<script src="/static/js/create-task.js"></script>
+<script src="/static/js/auth-api.js?v={{ static_version }}"></script>
+<script src="/static/js/plugin-host.js?v={{ static_version }}"></script>
+<script src="/static/js/input-workspace.js?v={{ static_version }}"></script>
+<script src="/static/js/input-workspace-rfdiffusion.js?v={{ static_version }}"></script>
+<script src="/static/js/create-task.js?v={{ static_version }}"></script>
 </body>
 </html>

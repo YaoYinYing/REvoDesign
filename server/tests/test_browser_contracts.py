@@ -56,7 +56,13 @@ def test_js_modules_load_in_correct_order() -> None:
         timeout=10,
     )
     assert check.returncode == 0, f"plugin-host.js syntax: {check.stderr}"
-    for filename in ("result-preview-plugins.js", "input-workspace.js", "viewer-shell.js", "task-results.js"):
+    for filename in (
+        "result-preview-plugins.js",
+        "input-workspace.js",
+        "input-workspace-rfdiffusion.js",
+        "viewer-shell.js",
+        "task-results.js",
+    ):
         result = subprocess.run(
             ["node", "--check", str(js_dir / filename)],
             capture_output=True,

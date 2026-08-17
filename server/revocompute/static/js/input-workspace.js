@@ -32,40 +32,13 @@
     return groups.join(" ") + "\n" + sequence.length + " residues";
   }
 
-  function parsePdb(text) {
-    var chains = new Set(); var residues = new Map(); var atoms = 0; var heteroAtoms = 0;
-    String(text).split(/\r?\n/).forEach(function (line) {
-      if (!line.startsWith("ATOM  ") && !line.startsWith("HETATM")) return;
-      if (line.startsWith("ATOM  ")) atoms += 1; else heteroAtoms += 1;
-      var chain = line.slice(21, 22).trim() || "_";
-      var number = line.slice(22, 27).trim();
-      var name = line.slice(17, 20).trim() || "UNK";
-      chains.add(chain);
-      if (number) residues.set(chain + number, { id: chain + number, chain: chain, name: name, number: number });
-    });
-    return { atoms: atoms, heteroAtoms: heteroAtoms, chains: Array.from(chains), residues: Array.from(residues.values()) };
-  }
-
-  function parseCif(text) {
-    var chains = new Set(); var residues = new Map(); var atoms = 0;
-    String(text).split(/\r?\n/).forEach(function (line) {
-      var fields = line.trim().split(/\s+/);
-      if (fields[0] !== "ATOM" && fields[0] !== "HETATM") return;
-      atoms += 1;
-      var name = fields[5] || "UNK";
-      var chain = fields[6] || "_";
-      var number = fields[8] || fields[7] || String(atoms);
-      chains.add(chain);
-      residues.set(chain + number, { id: chain + number, chain: chain, name: name, number: number });
-    });
-    return { atoms: atoms, heteroAtoms: 0, chains: Array.from(chains), residues: Array.from(residues.values()) };
-  }
-
   function workspaceCard(definition) {
     var section = element("section", "workspace-card");
     section.dataset.capabilityId = definition.id;
     var heading = element("div", "workspace-card-heading");
-    heading.appendChild(element("span", "workspace-plugin-badge", definition.plugin));
+    // Specialized plugin ids (e.g. rfdiffusion-regions) are developer-facing
+    // names; only generic capability ids read naturally as user-facing badges.
+    if (definition.plugin.indexOf("-") < 0) heading.appendChild(element("span", "workspace-plugin-badge", definition.plugin));
     heading.appendChild(element("h2", "workspace-card-title", definition.title || definition.id));
     section.appendChild(heading);
     if (definition.description) section.appendChild(element("p", "workspace-card-description", definition.description));
@@ -145,6 +118,7 @@
       if (parameter.minimum != null) control.min = parameter.minimum;
       if (parameter.maximum != null) control.max = parameter.maximum;
       if (parameter.step != null) control.step = parameter.step;
+      else if (parameter.type === "float") control.step = "any";  // fractional defaults (0.01, 0.07) would otherwise fail step=1
       control.required = Boolean(parameter.required);
       control.id = "param_" + parameter.name;
       control.dataset.paramName = parameter.name;
@@ -262,7 +236,7 @@
         validate: function () {
           var files = context.files(); var errors = [];
           fileError.hidden = true; fileError.textContent = "";
-          if (!files.length && !context.sequence()) errors.push("Choose an input file or provide a sequence.");
+          if (!files.length && !context.sequence() && (!definition.options || definition.options.primary_required !== false)) errors.push("Choose an input file or provide a sequence.");
           if (files.length > context.form.file_input.max_files) errors.push("Too many input files selected.");
           if (files.some(function (file) { return !matchesExtension(file, context.form.file_input.extensions); })) errors.push("One or more files has an unsupported extension.");
           if (files.length && !matchesExtension(files[context.primaryIndex], context.form.file_input.primary_extensions)) errors.push("Choose a supported primary input.");
@@ -307,50 +281,62 @@
     id: "structure",
     mount: function (target, definition, context) {
       var status = element("p", "structure-status", "Choose a PDB or mmCIF file to inspect it locally.");
-      var chains = element("div", "structure-chain-list");
-      var residues = element("select", "text-input structure-residue-select"); residues.multiple = true; residues.hidden = true;
-      target.append(status, chains, residues);
+      var frame = element("iframe", "structure-workbench-frame");
+      frame.title = "Interactive structure selection";
+      frame.hidden = true; frame.setAttribute("sandbox", "allow-scripts");
       var generation = 0;
-      // ponytail: generation guard prevents stale DOM writes but doesn't
-      // cancel in-flight file.text() reads. If large local files (>50 MiB)
-      // cause noticeable UI jank during rapid primary switches, upgrade to
-      // AbortController.
+      var reader = null; var requestId = null;
+      var shellReady = false; var pendingStructure = null;
+      context.selectedResidues = [];
+      function receive(event) {
+        if (event.source !== frame.contentWindow || !event.data) return;
+        if (event.data.type === "shell-ready") {
+          shellReady = true;
+          if (pendingStructure) { frame.contentWindow.postMessage(pendingStructure, "*"); pendingStructure = null; }
+          return;
+        }
+        if (event.data.requestId !== requestId) return;
+        if (event.data.type === "selection" && Array.isArray(event.data.residues)) {
+          context.selectedResidues = event.data.residues; context.changed();
+        } else if (event.data.type === "selection-error") {
+          status.textContent = "Structure selection could not be read: " + (event.data.message || "unknown error");
+        }
+      }
+      window.addEventListener("message", receive);
+      // Install the handshake listener before appending the iframe: a cached
+      // shell can otherwise report readiness between append and registration.
+      frame.src = "/compute/viewer-shell";
+      target.append(status, frame);
       function refresh() {
         generation += 1; var current = generation;
+        if (reader) reader.abort();
         var file = context.primaryFile();
-        chains.replaceChildren(); residues.replaceChildren(); residues.hidden = true; context.structure = null;
+        context.structure = null; context.selectedResidues = [];
         if (!file || !matchesExtension(file, [".pdb", ".cif", ".mmcif"])) {
-          status.textContent = "Choose a PDB or mmCIF primary file to inspect it locally."; return;
+          frame.hidden = true; status.textContent = "Choose a PDB or mmCIF primary file for structure-guided modes."; return;
         }
         status.textContent = "Reading " + pathFor(file) + "…";
-        file.text().then(function (text) {
+        reader = new FileReader();
+        reader.addEventListener("load", function () {
           if (current !== generation) return;
-          var parsed = lowerName(file).endsWith(".pdb") ? parsePdb(text) : parseCif(text);
-          context.structure = parsed;
-          status.textContent = pathFor(file) + " · " + parsed.atoms + " coordinate records · " + parsed.residues.length + " residues";
-          parsed.chains.forEach(function (chain) {
-            if (definition.options && definition.options.select_chains) {
-              var label = element("label", "structure-chain");
-              var checkbox = element("input"); checkbox.type = "checkbox"; checkbox.value = chain;
-              checkbox.addEventListener("change", context.changed);
-              label.append(checkbox, document.createTextNode(" Chain " + chain)); chains.appendChild(label);
-            } else {
-              chains.appendChild(element("span", "structure-chain", "Chain " + chain));
-            }
-          });
-          if (definition.options && definition.options.select_residues && parsed.residues.length) {
-            parsed.residues.slice(0, 5000).forEach(function (residue) {
-              var option = element("option", "", residue.id + " · " + residue.name); option.value = residue.id; residues.appendChild(option);
-            });
-            residues.hidden = false;
-          }
-          context.changed();
-        }).catch(function () { status.textContent = "This structure could not be read locally; the runner will validate it."; });
+          requestId = "input-" + current + "-" + Date.now(); frame.hidden = false;
+          var message = { type: "structure", requestId: requestId, text: reader.result,
+            format: lowerName(file).endsWith(".pdb") ? "pdb" : "mmcif", label: pathFor(file),
+            selectionEnabled: true, showControls: true };
+          // The shell's message listener may not be installed yet (slow first
+          // load): queue until the iframe reports shell-ready, mirroring the
+          // result viewer's handshake so the post can never be dropped.
+          if (shellReady) frame.contentWindow.postMessage(message, "*"); else pendingStructure = message;
+          status.textContent = pathFor(file) + " · select residues in the 3D view or the sequence strip";
+        });
+        reader.addEventListener("error", function () { status.textContent = "This structure could not be read locally."; });
+        reader.readAsText(file);
       }
-      context.structureSelections = function () { return Array.from(residues.selectedOptions || []).map(function (option) { return option.value; }); };
-      context.structureChains = function () { return Array.from(chains.querySelectorAll("input:checked")).map(function (input) { return input.value; }); };
-      residues.addEventListener("change", context.changed);
-      return { refresh: refresh, readValue: function () { return { selected_chains: context.structureChains(), selected_residues: context.structureSelections() }; }, destroy: function () { generation += 1; } };
+      context.structureSelections = function () { return context.selectedResidues.slice(); };
+      return { refresh: refresh, readValue: function () { return { selected_residues: context.structureSelections() }; }, destroy: function () {
+        generation += 1; pendingStructure = null; if (reader) reader.abort(); window.removeEventListener("message", receive);
+        if (frame.contentWindow) frame.contentWindow.postMessage({ type: "dispose" }, "*");
+      } };
     }
   });
 
@@ -384,7 +370,7 @@
     mount: function (target, definition, context) {
       var regionFields = new Set();
       context.capabilities.forEach(function (capability) {
-        if (capability.plugin === "regions") ((capability.options && capability.options.fields) || []).forEach(function (name) { regionFields.add(name); });
+        if (capability.plugin.endsWith("regions")) ((capability.options && capability.options.fields) || []).forEach(function (name) { regionFields.add(name); });
       });
       var params = context.form.params.filter(function (parameter) { return !regionFields.has(parameter.name); });
       var basic = params.filter(function (parameter) { return !parameter.advanced; });
@@ -486,6 +472,7 @@
   InputWorkspace.prototype.sequence = function () { return this.context ? this.context.sequence() : ""; };
   InputWorkspace.prototype.sequenceName = function () { return this.context && this.context.sequenceNameInput ? this.context.sequenceNameInput.value : ""; };
   InputWorkspace.prototype.paramValues = function () { return this.context ? this.context.paramValues() : {}; };
+  InputWorkspace.prototype.collect = function () { return this.host.collect(); };
   InputWorkspace.prototype.validate = function () { return this.host.validate(); };
   InputWorkspace.prototype.refresh = function () { this.host.refresh(); };
   InputWorkspace.prototype.destroy = function () { this.host.destroy(); this.context = null; };

@@ -112,12 +112,15 @@ def test_input_workspace_capabilities_cover_simple_and_complex_tasks():
         assert [cap.plugin for cap in rfdiffusion.input_workspace] == [
             "files",
             "structure",
-            "regions",
+            "rfdiffusion-regions",
             "parameters",
             "review",
         ]
-        region_options = next(cap.options for cap in rfdiffusion.input_workspace if cap.plugin == "regions")
-        assert {"contig", "hotspot_res", "inpaint_seq"}.issubset(region_options["fields"])
+        region_options = next(cap.options for cap in rfdiffusion.input_workspace if cap.plugin == "rfdiffusion-regions")
+        assert {"design_mode", "contig", "hotspot_res"}.issubset(region_options["fields"])
+        assert region_options["modes"] == ["unconditional", "motif_scaffolding", "binder", "expert"]
+        assert rfdiffusion.min_input_files == 0
+        assert easifa.result_workspace[0].plugin == "residue-table-structure"
         assert [cap.plugin for cap in easifa.input_workspace] == [
             "files",
             "structure",
@@ -464,6 +467,69 @@ def test_shared_runner_passes_full_snapshot_root_to_placer():
     assert 'input_root="${input_file%%/inputs/*}/inputs"' in script
     assert 'placer_args=(-i "$input_root" -o "$output_dir" -n "$NUM_SAMPLES")' in script
     assert 'run_PLACER.py" "${placer_args[@]}"' in script
+
+
+def test_shared_runner_gives_rfdiffusion_writable_runtime_directories():
+    script = (SERVER_ROOT / "docker" / "runners" / "placer-rfdiffusion" / "run.sh").read_text(encoding="utf-8")
+    assert '"hydra.run.dir=/tmp/rfdiffusion-hydra"' in script
+    assert '"hydra.output_subdir=null"' in script
+    assert '"inference.schedule_directory_path=/tmp/rfdiffusion-schedules"' in script
+    assert '"inference.output_prefix=${output_dir}/design"' in script
+
+
+def test_rfdiffusion_defaults_match_pinned_upstream_inference_config():
+    registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
+    params = {param["name"]: param.get("default") for param in registry["task_types"]["rfdiffusion"]["params"]}
+
+    # RosettaCommons/RFdiffusion@86507b6, config/inference/base.yaml.
+    expected = {
+        "num_designs": 10,
+        "design_startnum": 0,
+        "recenter": True,
+        "radius": 10.0,
+        "model_only_neighbors": False,
+        "write_trajectory": True,
+        "empty_cache_per_design": False,
+        "cautious": True,
+        "align_motif": True,
+        "symmetric_self_cond": True,
+        "final_step": 1,
+        "deterministic": False,
+        "cyclic": False,
+        "cyc_chains": "a",
+        "diffuser_T": 50,
+        "diffuser_b_0": 0.01,
+        "diffuser_b_T": 0.07,
+        "diffuser_schedule_type": "linear",
+        "noise_scale_ca": 1.0,
+        "final_noise_scale_ca": 1.0,
+        "ca_noise_schedule_type": "constant",
+        "noise_scale_frame": 1.0,
+        "final_noise_scale_frame": 1.0,
+        "frame_noise_schedule_type": "constant",
+        "guide_scale": 10.0,
+        "guide_decay": "constant",
+        "sidechain_input": False,
+        "motif_sidechain_input": True,
+    }
+    assert {name: params[name] for name in expected} == expected
+
+    # Empty UI strings are omitted by the runner and are Hydra-null equivalent.
+    nullable = {
+        "symmetry",
+        "inpaint_seq",
+        "inpaint_str",
+        "inpaint_str_helix",
+        "inpaint_str_strand",
+        "inpaint_str_loop",
+        "provide_seq",
+        "length",
+        "partial_T",
+        "hotspot_res",
+        "guiding_potentials",
+        "substrate",
+    }
+    assert all(params[name] in (None, "") for name in nullable)
 
 
 def test_submission_resolves_defaults_and_constraints():

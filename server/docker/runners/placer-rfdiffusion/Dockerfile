@@ -32,13 +32,20 @@ RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
     echo "Etc/UTC" > /etc/timezone && \
     echo 'Acquire::Queue-Mode "access"; Acquire::Retries "3";' > /etc/apt/apt.conf.d/99-speed.conf && \
     DEBIAN_FRONTEND=noninteractive apt-get update && \
-    apt-get install -y --no-install-recommends python3.10 python3.10-distutils python3-pip python3-openbabel && \
+    apt-get install -y --no-install-recommends python3.10 python3.10-distutils python3-pip python3-openbabel patch && \
     rm -rf /var/lib/apt/lists/* && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
 # Copy both pinned source trees without retaining source-control tooling.
 COPY --from=placer-source /opt/PLACER /opt/PLACER
 COPY --from=rfdiffusion-source /opt/RFdiffusion /opt/RFdiffusion
+
+# Upstream bool-override bug: bool("false") is True, so boolean hydra
+# overrides that differ from the checkpoint (e.g. preprocess.sidechain_input
+# for the binder checkpoint) are silently flipped on — landing in a code
+# path broken upstream. See rfdiffusion-bool-override.patch.
+COPY ./docker/runners/placer-rfdiffusion/rfdiffusion-bool-override.patch /tmp/
+RUN patch -d /opt/RFdiffusion -p1 < /tmp/rfdiffusion-bool-override.patch && rm /tmp/rfdiffusion-bool-override.patch
 
 # All pip deps in one RUN. PLACER's pinned environment is the version
 # authority: Torch 2.3.1, DGL 2.4.0, and e3nn 0.5.4 on CUDA 12.1.

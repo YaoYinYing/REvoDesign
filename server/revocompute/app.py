@@ -45,6 +45,31 @@ THIS_DIR = os.path.dirname(THIS_FILE)
 TEMPLATE_IMAGE_DIR = os.path.join(THIS_DIR, "templates", "images")
 
 app = Flask(__name__, template_folder="./templates")
+
+# Workspace assets that change on every deploy. They are served with
+# Cache-Control: no-cache (see routes.py) and cache-busted in the page
+# templates by file mtime so CDN and browser caches key on the URL.
+_ITERATED_STATIC_JS = {
+    "viewer-shell.js",
+    "plugin-host.js",
+    "result-preview-plugins.js",
+    "input-workspace.js",
+    "input-workspace-rfdiffusion.js",
+    "create-task.js",
+    "task-results.js",
+}
+
+
+@app.context_processor
+def inject_static_version() -> dict[str, int]:
+    """Per-deploy version token for cache-busted static asset URLs."""
+    try:
+        newest = max(
+            os.path.getmtime(os.path.join(app.static_folder, "js", name)) for name in _ITERATED_STATIC_JS
+        )
+    except OSError:
+        newest = 0
+    return {"static_version": int(newest)}
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MiB upload limit
 
 

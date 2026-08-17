@@ -221,7 +221,7 @@
     var files = workspace.files();
     var sequence = workspace.sequence();
     var hasInput = Boolean(files.length || sequence);
-    if (!hasInput) {
+    if (!hasInput && currentForm.file_input.required) {
       rows.push(validationRow("error", "Add an input file or paste a sequence."));
       problems += 1;
     } else {
@@ -374,6 +374,7 @@
       formData.append("input_paths", file.webkitRelativePath || file.name);
     });
     formData.append("task_type", currentForm.name);
+    formData.append("workspace", JSON.stringify({ version: 2, capabilities: workspace.collect() }));
     var params = workspace.paramValues();
     Object.keys(params).forEach(function (name) { formData.append("params[" + name + "]", params[name]); });
 

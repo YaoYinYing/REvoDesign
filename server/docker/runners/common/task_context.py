@@ -8,8 +8,8 @@ Usage: task_context.py param <name> [default]   # prints one param value
        task_context.py primary                  # prints files[0]["path"]
        task_context.py files                    # prints the files list as JSON
 
-Kept Python 2/3 compatible: the GREMLIN runner's conda environment
-predates Python 3, so no annotations, f-strings, or py3-only syntax here.
+Kept old-Python compatible: the GREMLIN runner's conda environment is
+Python 3.6, so no annotations, f-strings, or newer py3 syntax here.
 """
 
 import json

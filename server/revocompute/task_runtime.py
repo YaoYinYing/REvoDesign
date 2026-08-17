@@ -339,6 +339,15 @@ def _finalize_results_manifest(task: dict) -> dict[str, Any]:
     """Atomically publish the immutable result-tree inventory for a task."""
     result_dir = os.path.abspath(task["result_dir"])
     os.makedirs(result_dir, exist_ok=True)
+    # Method citation: every result dir carries the task type's BibTeX
+    # (resolved from its DOI, never hand-guessed) as citations.bib.
+    try:
+        citation_tt, _ = _get_task_type(task.get("task_type", "gremlin"))
+    except KeyError:
+        citation_tt = None
+    if citation_tt is not None and citation_tt.citation_bibtex:
+        with open(os.path.join(result_dir, "citations.bib"), "w", encoding="utf-8") as handle:
+            handle.write(citation_tt.citation_bibtex.strip() + "\n")
     artifacts: list[dict[str, Any]] = []
     for root, dirs, files in os.walk(result_dir, followlinks=False):
         dirs[:] = sorted(d for d in dirs if not os.path.islink(os.path.join(root, d)))
@@ -358,12 +367,42 @@ def _finalize_results_manifest(task: dict) -> dict[str, Any]:
             if relative_path.startswith("execution/slurm-") and relative_path.endswith((".stdout.log", ".stderr.log")):
                 artifact["role"] = "diagnostic"
             artifacts.append(artifact)
+    artifact_by_path = {item["path"]: item for item in artifacts}
+    views: list[dict[str, Any]] = []
+    try:
+        task_type, _ = _get_task_type(task.get("task_type", "gremlin"))
+    except KeyError:
+        task_type = None
+    if task_type is not None:
+        for definition in task_type.result_workspace:
+            table_path = str(definition.options["table_path"])
+            structure_path = str(definition.options["structure_path"])
+            if table_path not in artifact_by_path or structure_path not in artifact_by_path:
+                logging.warning("Skipping result view %s: declared artifacts are missing", definition.id)
+                continue
+            group = str(definition.options.get("group") or definition.id)
+            artifact_by_path[table_path].update({"role": "primary", "group": group, "preview": "table"})
+            artifact_by_path[structure_path].update({"role": "primary", "group": group, "preview": "structure"})
+            views.append(
+                {
+                    "id": definition.id,
+                    "plugin": definition.plugin,
+                    "title": definition.title,
+                    "artifacts": {"table": table_path, "structure": structure_path},
+                    "mapping": {
+                        "chain_column": definition.options["chain_column"],
+                        "residue_column": definition.options["residue_column"],
+                        "numbering": definition.options["numbering"],
+                    },
+                }
+            )
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "task_id": task["md5sum"],
         "task_type": task.get("task_type", "gremlin"),
         "created_at": datetime.now().astimezone().isoformat(),
         "artifacts": artifacts,
+        "views": views,
         "total_size": sum(item["size"] for item in artifacts),
     }
     temporary = _safe_join(result_dir, ".manifest.json.tmp")

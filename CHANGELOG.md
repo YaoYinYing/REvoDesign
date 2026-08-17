@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Server:
+  - version-2 scientific workspaces: modular task-selected RFdiffusion modes, Mol* residue selection (with result controls hidden by default), declarative linked result views, bounded table pages, and EASIFA table-to-structure mapping. Breaking: every task type must declare `input_workspace` explicitly — startup fails closed when a custom registry omits it.
+  - runner: patch RFdiffusion's checkpoint-override parsing (`bool("false")` is True), so binder runs respect `preprocess.sidechain_input=false` instead of crashing in the broken upstream sidechain path.
+  - runner: new alphafold family (official google-deepmind/alphafold @ c77e5d2a) — monomer/pTM/multimer presets, full_dbs MSA, Amber relaxation (best by default); DBs and the 2022-12-06 params release ro-mounted from /mnt/db.
   - multi-task architecture: YAML task-type registry with nine shared runtime families; one machine-local runner YAML per family (mounts, env, limits); missing registry files fail closed.
   - `GET /compute/api/types` (+ `/types/<name>`): public enabled task types with full param schemas; `TaskSubmissionRequest` pydantic model rejects unknown params/task types at the API boundary.
   - upload content validation per extension (FASTA/A3M/PDB/mmCIF/JSON) with DoS caps — third-party parsers never see pathological files.
@@ -52,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Server:
+  - RFdiffusion runner: redirect Hydra bookkeeping and generated schedule caches to the per-job writable `/tmp` filesystem under read-only container execution; lock task defaults to the pinned upstream inference configuration.
+  - Mol* input workbenches: sequence-strip and canvas selections now report canonical residues; cached viewer-shell handshakes no longer race listener setup.
   - task-type intro audit: intros/categories corrected against the runner docs (Pro-Prime = OGT prediction → `fitness`; ThermoMPNN-D = ΔΔG prediction; PLACER = all-atom ligand modeling; GREMLIN = conservation + couplings; HyperMPNN/LASErMPNN/OpenDDE reworded).
   - auth hardening: API keys stored as indexed sha256 digests; CAPTCHA nonces and rate-limit counters are Redis-first with per-process fallback.
 - Qt:

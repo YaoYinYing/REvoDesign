@@ -7,9 +7,9 @@
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="/compute/logo.svg">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/base.css">
-<link rel="stylesheet" href="/static/css/task-results.css">
-<script src="/static/js/theme.js"></script>
+<link rel="stylesheet" href="/static/css/base.css?v={{ static_version }}">
+<link rel="stylesheet" href="/static/css/task-results.css?v={{ static_version }}">
+<script src="/static/js/theme.js?v={{ static_version }}"></script>
 </head>
 <body>
 <main class="page result-page">
@@ -62,10 +62,10 @@
 
 <aside class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></aside>
 <script type="application/json" id="result-task-data">{{ task | tojson }}</script>
-<script src="/static/js/auth-api.js"></script>
+<script src="/static/js/auth-api.js?v={{ static_version }}"></script>
 <script src="/static/js/py2dmol-preview.js"></script>
-<script src="/static/js/plugin-host.js"></script>
-<script src="/static/js/result-preview-plugins.js"></script>
-<script src="/static/js/task-results.js"></script>
+<script src="/static/js/plugin-host.js?v={{ static_version }}"></script>
+<script src="/static/js/result-preview-plugins.js?v={{ static_version }}"></script>
+<script src="/static/js/task-results.js?v={{ static_version }}"></script>
 </body>
 </html>

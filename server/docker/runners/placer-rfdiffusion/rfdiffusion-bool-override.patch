@@ -1,0 +1,38 @@
+Fix upstream bool-override parsing in check_and_refine_config (RFdiffusion
+86507b6538f51fce57b5a72477165f03999ed7ae).
+
+The checkpoint config is copied over the hydra overrides and then the
+overrides are re-applied with `mytype(value_string)`. For booleans that
+means bool("false") which is True, so `preprocess.sidechain_input=false`
+silently becomes True for the binder checkpoint (trained with
+sidechain_input=True) — and that code path is broken upstream (seq == 21
+on a one-hot (L,22) tensor raises "too many indices for tensor of
+dimension 3"). Parse boolean strings explicitly so the override lands and
+the well-tested sidechain-free path runs.
+
+--- a/rfdiffusion/inference/model_runners.py
++++ b/rfdiffusion/inference/model_runners.py
+@@ -240,14 +240,15 @@
+                 print(
+                     f'WARNING: You are changing {override.split("=")[0]} from the value this model was trained with. Are you sure you know what you are doing?'
+                 )
+-                mytype = type(
+-                    self._conf[override.split(".")[0]][
+-                        override.split(".")[1].split("=")[0]
+-                    ]
+-                )
+-                self._conf[override.split(".")[0]][
+-                    override.split(".")[1].split("=")[0]
+-                ] = mytype(override.split("=")[1])
++                key = override.split(".")[1].split("=")[0]
++                value = override.split("=")[1]
++                mytype = type(self._conf[override.split(".")[0]][key])
++                if mytype is bool:
++                    # bool("false") is True in Python — parse boolean strings explicitly.
++                    parsed = value.lower() == "true"
++                else:
++                    parsed = mytype(value)
++                self._conf[override.split(".")[0]][key] = parsed
+
+     def load_model(self):
+         """Create RosettaFold model from preloaded checkpoint."""

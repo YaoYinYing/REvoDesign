@@ -28,7 +28,11 @@ async function main() {
   var reports = [];
   var listeners = {};
   var loadedStructure = null;
+  var loadedStructureCount = 0;
+  var viewerCreateCount = 0;
   var canvasBackground = null;
+  var layoutShowControls = null;
+  var viewerPlugin = null;
   var colorUpdates = [];
   var componentA = { id: "component-a" };
   var componentB = { id: "component-b" };
@@ -43,33 +47,102 @@ async function main() {
     querySelector: function () { return null; },
     createElement: function (tag) { return fakeNode(tag); }
   };
+  var selectionChanged = [];
+  var selectedStructure = {
+    units: [
+      {
+        kind: 0,
+        chain: "A",
+        elements: [5],
+        residues: { 5: { auth: 163, label: 163 } }
+      }
+    ]
+  };
   var window = {
     parent: parentWindow,
     addEventListener: function (type, listener) { listeners[type] = listener; },
     molstar: {
       Viewer: {
-        create: async function () {
-          return {
-            plugin: {
-              dispose: function () {},
-              canvas3d: {
-                setProps: function (props) { canvasBackground = props.renderer.backgroundColor; }
-              },
-              managers: {
-                structure: {
-                  hierarchy: { currentComponentGroups: [[componentA], [componentB]] },
-                  component: {
-                    updateRepresentationsTheme: async function (components, theme) {
-                      colorUpdates.push({ components: components, theme: theme });
+        create: async function (_id, options) {
+          viewerCreateCount += 1;
+          layoutShowControls = options.layoutShowControls;
+          viewerPlugin = {
+            clear: async function () {},
+            dispose: function () {},
+            canvas3d: {
+              setProps: function (props) { canvasBackground = props.renderer.backgroundColor; }
+            },
+            managers: {
+              structure: {
+                hierarchy: {
+                  currentComponentGroups: [[componentA], [componentB]],
+                  current: {
+                    structures: [{ cell: { obj: { data: selectedStructure } } }]
+                  }
+                },
+                component: {
+                  updateRepresentationsTheme: async function (components, theme) {
+                    colorUpdates.push({ components: components, theme: theme });
+                  }
+                },
+                selection: {
+                  events: {
+                    changed: {
+                      subscribe: function (handler) { selectionChanged.push(handler); return { unsubscribe: function () {} }; }
                     }
+                  },
+                  getLoci: function (structure) {
+                    if (structure !== selectedStructure) return undefined;
+                    return {
+                      structure: selectedStructure,
+                      elements: [{ unit: selectedStructure.units[0], indices: [0] }]
+                    };
                   }
                 }
               }
-            },
+            }
+          };
+          return {
+            plugin: viewerPlugin,
             loadStructureFromData: async function (text, format, options) {
+              loadedStructureCount += 1;
               loadedStructure = { text: text, format: format, options: options };
             }
           };
+        }
+      },
+      lib: {
+        structure: {
+          StructureElement: {
+            Loci: {
+              forEachLocation: function (loci, callback) {
+                loci.elements.forEach(function (group) {
+                  group.indices.forEach(function (index) {
+                    callback({
+                      _chain: group.unit.chain,
+                      _residue: group.unit.residues[group.unit.elements[index]],
+                      unit: group.unit
+                    });
+                  });
+                });
+              }
+            },
+            Location: {
+              create: function (_structure, unit, elementIndex) {
+                return { _chain: unit.chain, _residue: unit.residues[elementIndex] };
+              }
+            }
+          },
+          StructureProperties: {
+            chain: {
+              auth_asym_id: function (location) { return location._chain; },
+              label_asym_id: function () { return undefined; }
+            },
+            residue: {
+              auth_seq_id: function (location) { return location._residue.auth; },
+              label_seq_id: function (location) { return location._residue.label; }
+            }
+          }
         }
       }
     }
@@ -93,7 +166,8 @@ async function main() {
       label: "probe",
       requestId: "probe-1",
       theme: "dark",
-      colorMode: "plddt"
+      colorMode: "plddt",
+      selectionEnabled: true
     }
   });
   await new Promise(function (resolve) { setTimeout(resolve, 0); });
@@ -115,6 +189,12 @@ async function main() {
   }
   if (colorUpdates[0].components[0] !== componentA || colorUpdates[0].components[1] !== componentB) {
     throw new Error("shell did not pass flattened structure components to Mol*");
+  }
+  if (layoutShowControls !== false) {
+    throw new Error("result viewer must hide the right-side controls by default");
+  }
+  if (!viewerPlugin.selectionMode) {
+    throw new Error("selection-enabled viewer must enter Mol* selection mode");
   }
   listeners.message({
     source: parentWindow,
@@ -142,6 +222,45 @@ async function main() {
     return entry.payload.type === "ready" && entry.payload.requestId === "probe-1";
   })) {
     throw new Error("shell did not report structure readiness");
+  }
+  if (selectionChanged.length !== 1) {
+    throw new Error("shell did not subscribe to selection changes");
+  }
+  selectionChanged[0]();
+  await new Promise(function (resolve) { setTimeout(resolve, 0); });
+  var selectionReports = reports.filter(function (entry) { return entry.payload.type === "selection"; });
+  if (selectionReports.length !== 1) {
+    throw new Error("shell did not report the selection change");
+  }
+  var residues = selectionReports[0].payload.residues;
+  if (residues.length !== 1 || residues[0].chain !== "A" || residues[0].residue !== 163) {
+    throw new Error("shell reported wrong selected residues: " + JSON.stringify(residues));
+  }
+  // Warm reuse: a second structure message must reuse the booted plugin —
+  // Viewer.create exactly once, loadStructureFromData twice.
+  listeners.message({
+    source: parentWindow,
+    origin: "https://revocompute.example",
+    data: {
+      type: "structure",
+      text: "ATOM2",
+      format: "pdb",
+      label: "probe-2",
+      requestId: "probe-2",
+      theme: "dark",
+      colorMode: "plddt",
+      selectionEnabled: false
+    }
+  });
+  await new Promise(function (resolve) { setTimeout(resolve, 0); });
+  if (loadedStructureCount !== 2 || loadedStructure.text !== "ATOM2") {
+    throw new Error("warm shell did not load the second structure");
+  }
+  if (viewerCreateCount !== 1) {
+    throw new Error("warm shell recreated the viewer instead of reusing it");
+  }
+  if (!reports.some(function (entry) { return entry.payload.type === "ready" && entry.payload.requestId === "probe-2"; })) {
+    throw new Error("warm shell did not report readiness for the second structure");
   }
   console.log("viewer shell message contract passed");
 }
