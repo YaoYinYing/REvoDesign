@@ -287,6 +287,19 @@
     return warmFrame;
   }
 
+  // The warm Mol* iframe lives inside the holder and must survive surface
+  // clears: clearing it detaches the frame, whose contentWindow then reads
+  // null on the next postMessage ("Cannot read properties of null").
+  function clearSurfacePreservingWarm(surface) {
+    if (!warmMolstar || warmMolstar.frame.parentNode !== surface) {
+      surface.replaceChildren();
+      return;
+    }
+    Array.from(surface.children).forEach(function (child) {
+      if (child !== warmMolstar.frame) child.remove();
+    });
+  }
+
   async function previewStructure(artifact, stage) {
     var generation = previewHost.generation;
     var response = await A.authFetch(artifact.url);
@@ -295,7 +308,7 @@
     var structureText = await response.text();
     if (isStale(generation)) return;
     var surface = structureHolder || stage;
-    surface.replaceChildren();
+    clearSurfacePreservingWarm(surface);
     surface.appendChild(structureViewerBar(artifact));
 
     if (structureViewer === "py2dmol") {
@@ -319,6 +332,9 @@
     try { await renderMolstar(structureText, artifact, surface, generation); }
     catch (error) {
       if (isStale(generation)) return;
+      // A dead warm frame must not poison the next pick: dispose it so the
+      // retry cold-starts a fresh shell.
+      disposeActiveViewer();
       surface.replaceChildren();
       surface.appendChild(structureViewerBar(artifact));
       var msg = document.createElement("p");
