@@ -8,8 +8,9 @@ environment file and external configuration directory.
 
 The short version of the production rule is: build and validate everything
 while the healthy stack is still running, then use `--mode=prepared` for the
-small activation window. Do not use `restart --mode=dev --build-sif` on a
-healthy production system because that path stops the stack before building.
+small activation window. SIF rebuilds are the exception: delete the old SIF
+and run `restart --use-proxy --build-sif` — that path stops the stack while
+it builds, so batch runner changes and expect a brief outage.
 
 ## 1. System model
 
@@ -165,6 +166,13 @@ defaults:
   samples: 1
 ```
 
+The portable registry in `${CONFIG_DIR}/task_types.yaml` is machine-owned
+and `restart.sh` does not sync it. After any change to the checked-in
+`server/config/task_types.yaml`, back up the host copy, copy the repo file
+over it, and re-apply the two machine lines (`job_executor: slurm`,
+`container_runtime: apptainer`) before the next restart. Verify with
+`GET /compute/api/types` after activation.
+
 GPU requests belong to task types (`gpus: true`) and per-task SLURM resources
 are managed through the admin UI and are not placed in runner YAML.
 
@@ -280,73 +288,79 @@ All Git sources must be pinned to full commit hashes. Build tools belong in a
 discarded builder stage. Removing a compiler in a later layer does not remove
 its bytes from image history.
 
-Validate a candidate with networking disabled and isolated inputs/outputs:
+Validate a candidate with networking disabled and isolated inputs/outputs.
+Runner protocol v2 passes a task manifest, not environment variables: the
+runner reads `TASK_MANIFEST` (path to `task.json`) and receives `-i` as
+that same manifest path; `run.sh` derives parameters and the primary
+input from it via the shared `task_context.sh` helpers. Add `--gpus all`
+and the real weights mount for GPU tasks.
 
 ```bash
 smoke_dir=$(mktemp -d /tmp/revocompute-example-smoke.XXXXXX)
 chmod 0777 "${smoke_dir}"
+cat > "${smoke_dir}/task.json" <<'EOF'
+{
+  "task_type": "example",
+  "params": {"samples": 1},
+  "files": [{"name": "input.pdb", "path": "/mnt/revocompute/test/inputs/input.pdb", "relative_path": "nested/input.pdb"}]
+}
+EOF
 docker run --rm --network none \
-  -e TASK_TYPE=example \
-  -e 'TASK_PARAMS={"samples":1}' \
-  -e 'TASK_INPUTS=[{"name":"input.pdb","path":"/mnt/revocompute/test/inputs/input.pdb","relative_path":"nested/input.pdb"}]' \
+  -e TASK_MANIFEST=/mnt/revocompute/test/task.json \
+  -v "${smoke_dir}/task.json":/mnt/revocompute/test/task.json:ro \
   -v /path/to/approved/input.pdb:/mnt/revocompute/test/inputs/input.pdb:ro \
   -v "${smoke_dir}":/mnt/revocompute/test/outputs:rw \
   revodesign-revocompute-runner-example:candidate \
-  -i /mnt/revocompute/test/inputs/input.pdb \
+  -i /mnt/revocompute/test/task.json \
   -o /mnt/revocompute/test/outputs
 ```
 
-## 8. Build versioned SIFs without stopping production
+## 8. Rebuild SIFs from current images
 
-Do not use `restart --build-sif` for a production upgrade. Build each family
-manually from its exact registry `definition` after the corresponding Docker
-candidate is complete.
-
-```text
-Dockerfile + pinned source
-          |
-          v
-candidate Docker image ---- offline runner smoke
-          |
-          v
-Apptainer definition
-          |
-          v
-versioned .sif.partial ---- inspect/checksum/smoke
-          |
-          v
-atomic rename to versioned .sif
-          |
-          v
-external registry update
-```
-
-Example:
+SIFs are rebuilt by deleting the old file for the family and running the
+restart with `--build-sif`; it rebuilds every family SIF from the current
+Docker images and then activates the stack:
 
 ```bash
-version=20260811_01
-partial="/absolute/image-dir/example_${version}.sif.partial"
-final="/absolute/image-dir/example_${version}.sif"
+rm -f "/absolute/image-dir/example_v1.sif"
+REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
+  bash server/run/restart.sh restart --use-proxy --build-sif
+```
 
-apptainer build --fakeroot "${partial}" \
+No `.sif.partial` staging or per-family versioning — one SIF per family at
+the registry path. `--build-sif` is incompatible with `--mode=prepared`.
+For a focused single-family iteration, the manual build from the exact
+registry `definition` remains available:
+
+```bash
+apptainer build --fakeroot "/absolute/image-dir/example_v1.sif" \
   server/docker/runners/example/example.def
-apptainer inspect "${partial}"
-sha256sum "${partial}"
-mv "${partial}" "${final}"
 ```
 
 Adjust `--fakeroot` only to the host's established Apptainer privilege model.
-Do not weaken system security or run the deployment script as root. A failed
-build leaves the old SIF and active registry untouched.
+Do not weaken system security or run the deployment script as root. If disk
+space runs out, recover before retrying: `docker buildx prune`, clean the
+Apptainer cache with `APPTAINER_CACHEDIR=/home/yinying/.apptainer/ apptainer
+cache clean --type all`, and remove obsolete SIFs under
+`/mnt/data/srv/revodesign/server-slurm/images/`.
 
-Smoke the SIF through the same `run.sh` contract before registry promotion:
+Smoke the SIF through the same `run.sh` contract (protocol v2: `-i` is the
+task manifest path, `TASK_MANIFEST` points at it):
 
 ```bash
-apptainer run --cleanenv \
+smoke_dir=$(mktemp -d /tmp/revocompute-example-smoke.XXXXXX)
+chmod 0777 "${smoke_dir}"
+cat > "${smoke_dir}/task.json" <<'EOF'
+{"task_type": "example", "params": {"samples": 1},
+ "files": [{"name": "input.pdb", "path": "/mnt/revocompute/test/inputs/input.pdb", "relative_path": "input.pdb"}]}
+EOF
+apptainer run --cleanenv --containall \
+  -e TASK_MANIFEST=/mnt/revocompute/test/task.json \
+  --bind "${smoke_dir}/task.json":/mnt/revocompute/test/task.json:ro \
   --bind /path/to/input.pdb:/mnt/revocompute/test/inputs/input.pdb:ro \
-  --bind /path/to/output:/mnt/revocompute/test/outputs:rw \
-  "${final}" \
-  -i /mnt/revocompute/test/inputs/input.pdb \
+  --bind "${smoke_dir}":/mnt/revocompute/test/outputs:rw \
+  "/absolute/image-dir/example_v1.sif" \
+  -i /mnt/revocompute/test/task.json \
   -o /mnt/revocompute/test/outputs
 ```
 
@@ -494,22 +508,28 @@ Add the task name to `ENABLED_TASKRUNNERS` in the deployment environment. The
 frontend form is generated from this schema; do not create a second hard-coded
 parameter list in JavaScript.
 
-### 11.2 Implement the runner contract
+### 11.2 Implement the runner contract (protocol v2)
 
 The family `run.sh` receives:
 
-- `TASK_TYPE`: selected task type;
-- `TASK_PARAMS`: JSON object of verified schema values;
-- `TASK_INPUTS`: JSON array with `name`, mounted `path`, and `relative_path`;
-- `-i`: primary mounted input path;
+- `TASK_MANIFEST`: absolute path to the immutable `task.json` manifest;
+- `-i`: that same manifest path;
 - `-o`: task-owned output directory;
 - optional `runner_args` before `-i`/`-o`.
+
+The manifest carries `params` (verified schema values) and `files` (each with
+`name`, mounted `path`, and `relative_path`). The shared `task_context.sh`
+helpers read it: `_parse_param <name> [default]` and `primary_input` (the
+first file's mounted path). There are no `TASK_PARAMS`/`TASK_INPUTS`
+environment variables.
 
 Example skeleton:
 
 ```bash
 #!/bin/bash
 set -euo pipefail
+task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
+[[ -f "$task_context_src" ]] && source "$task_context_src"
 
 while getopts ':i:o:' opt; do
   case "${opt}" in
@@ -519,12 +539,9 @@ while getopts ':i:o:' opt; do
   esac
 done
 
-[[ -f "${input_file}" ]] || { echo 'Primary input is missing' >&2; exit 1; }
+[[ -f "${input_file}" ]] || { echo 'Task manifest not found' >&2; exit 1; }
 mkdir -p "${output_dir}"
-
-param() {
-  python3 -c "import json,os; print(json.loads(os.environ.get('TASK_PARAMS','{}')).get('$1',''))"
-}
+input_file=$(primary_input)
 
 echo 'REVODESIGN_STAGE:parse'
 # Read inputs only. Write temporary/generated files under output_dir or /tmp.
@@ -533,7 +550,7 @@ echo 'REVODESIGN_STAGE:score'
 python3 /opt/example/run.py \
   --input "${input_file}" \
   --output "${output_dir}" \
-  --samples "$(param samples)"
+  --samples "$(_parse_param samples 1)"
 
 # Create the completion marker only after the scientific command exits zero.
 touch "${output_dir}/task_finished"
@@ -545,9 +562,9 @@ paths to `outputs/` or `/tmp`. Do not mask an internal per-input failure merely
 because the upstream process exits zero—validate required outputs and fail the
 runner when the scientific result failed.
 
-For multiple inputs, parse `TASK_INPUTS` rather than scanning a username-wide
-host directory. Preserve `relative_path`, reject unsupported types, and pass
-only task-snapshot mounted paths to the tool.
+For multiple inputs, parse the manifest's `files` list rather than scanning a
+username-wide host directory. Preserve `relative_path`, reject unsupported
+types, and pass only task-snapshot mounted paths to the tool.
 
 ### 11.3 Pin and build dependencies
 
@@ -574,6 +591,14 @@ ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
     http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
 ```
 
+If the pinned upstream needs code changes, vendor a minimal build-time patch
+file in `docker/runners/<family>/` and apply it in the Dockerfile — never fork
+the whole repository. Verify the tool does not silently override CLI flags
+from model checkpoints: RFdiffusion copies each checkpoint's training config
+over the hydra overrides and re-applied them with `bool("false")` (which is
+True), flipping `preprocess.sidechain_input` back on for the binder model.
+See `docker/runners/placer-rfdiffusion/rfdiffusion-bool-override.patch`.
+
 ### 11.4 Test the adapter
 
 At minimum, add tests that prove:
@@ -583,12 +608,17 @@ At minimum, add tests that prove:
 3. every declared parameter is consumed by `run.sh`;
 4. actual upstream CLI flags match the pinned version's `--help`;
 5. CPU images omit unintended NVIDIA/Triton/torchvision/torchaudio packages;
-6. nested input paths reach the tool through `TASK_INPUTS`;
+6. nested input paths reach the tool through the manifest `files` list;
 7. inputs remain read-only and outputs are task-local;
 8. success creates manifestable artifacts and failure does not report complete.
 
 Run an isolated Docker smoke and, before production activation, an actual
-server-to-worker-to-SLURM-to-Apptainer smoke with minimum safe parameters.
+server-to-worker-to-SLURM-to-Apptainer smoke with minimum safe parameters —
+submit it through the real API with the group test account using a data file
+from `tests/data`, then monitor the local SLURM job and read the result logs
+from the API (status `GET /compute/api/running/<md5>`, manifest
+`GET /compute/api/results/<md5>`, logs `GET /compute/api/results/<md5>/artifacts/<path>`).
+The full flow lives in the root CLAUDE.md server live-test workflow.
 
 ## 12. Add a new runtime family
 
@@ -644,7 +674,10 @@ username.
 - Non-container tests and focused adapter tests pass.
 - Candidate Docker image built while production stays up.
 - Candidate imports and real minimum inference pass offline.
-- Versioned SIF built through `.partial`, inspected, checksummed, and smoked.
+- Production `CONFIG_DIR` registry synced from the repo copy (backup made,
+  machine lines re-applied).
+- Old SIFs removed and rebuilt via `restart --use-proxy --build-sif`;
+  each SIF smoked through the `run.sh` contract.
 - External config backed up outside the active directory.
 - Registry/runner/Compose/prepared-image/SIF preflight passes.
 - `restart --mode=prepared` activates with no build or pull.
