@@ -13,9 +13,11 @@ FROM --platform=linux/amd64 python:3.11-slim
 ARG RUNNER_UID ARG RUNNER_GID ARG RUNNER_USERNAME ARG RUNNER_GROUP
 
 # hh-suite (hhblits/hhsearch) from source + hmmer (jackhmmer) + kalign.
+# v3.3.0 predates gcc 12: a3m_compress.h needs <cstdint> on bookworm.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git cmake g++ make kalign hmmer wget ca-certificates && \
     git clone --branch v3.3.0 --single-branch https://github.com/soedinglab/hh-suite.git /tmp/hh-suite && \
+    sed -i '1s/^/#include <cstdint>\n/' /tmp/hh-suite/src/a3m_compress.h && \
     mkdir -p /tmp/hh-suite/build && cd /tmp/hh-suite/build && cmake -DCMAKE_INSTALL_PREFIX=/opt/hhsuite .. && \
     make -j"$(nproc)" && make install && cd / && rm -rf /tmp/hh-suite && \
     rm -rf /var/lib/apt/lists/*
