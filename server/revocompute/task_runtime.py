@@ -339,6 +339,15 @@ def _finalize_results_manifest(task: dict) -> dict[str, Any]:
     """Atomically publish the immutable result-tree inventory for a task."""
     result_dir = os.path.abspath(task["result_dir"])
     os.makedirs(result_dir, exist_ok=True)
+    # Method citation: every result dir carries the task type's BibTeX
+    # (resolved from its DOI, never hand-guessed) as citations.bib.
+    try:
+        citation_tt, _ = _get_task_type(task.get("task_type", "gremlin"))
+    except KeyError:
+        citation_tt = None
+    if citation_tt is not None and citation_tt.citation_bibtex:
+        with open(os.path.join(result_dir, "citations.bib"), "w", encoding="utf-8") as handle:
+            handle.write(citation_tt.citation_bibtex.strip() + "\n")
     artifacts: list[dict[str, Any]] = []
     for root, dirs, files in os.walk(result_dir, followlinks=False):
         dirs[:] = sorted(d for d in dirs if not os.path.islink(os.path.join(root, d)))

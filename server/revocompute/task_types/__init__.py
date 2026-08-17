@@ -13,6 +13,7 @@ configuration.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -107,6 +108,13 @@ class TaskType:
     params: tuple[TaskParam, ...] = ()
     input_workspace: tuple[InputCapability, ...] = ()
     result_workspace: tuple[ResultView, ...] = ()
+    # Method citations: citation_dois is an ordered map (position -> DOI) —
+    # projects with multiple papers (AF2, ColabFold, ESM) list them all. The
+    # BibTeX is resolved from the DOIs by tools/resolve_citations.py (never
+    # hand-guessed) and checked in as citation_bibtex. The server writes it
+    # into every result dir as citations.bib at finalize.
+    citation_dois: tuple[tuple[int, str], ...] = ()
+    citation_bibtex: str = ""
     # Classification for the create-task category rail (data, not behaviour).
     category: str = "other"
     # One-paragraph method intro shown on the submission page.
@@ -164,6 +172,26 @@ _INPUT_CAPABILITY_OPTION_KEYS = {
     "parameters": {"groups"},
     "review": {"show_resources", "show_paths"},
 }
+
+_DOI_PATTERN = re.compile(r"^10\.\d{4,9}/[^\s]+$")
+
+
+def _load_citation_dois(raw: Any, name: str) -> tuple[tuple[int, str], ...]:
+    """Validate the ordered citation_dois map; the BibTeX itself is resolved
+    from the DOIs by tools/resolve_citations.py and checked in — never
+    hand-guessed."""
+    if raw is None:
+        return ()
+    if not isinstance(raw, dict):
+        raise ValueError(f"Task type {name!r} citation_dois must be a map of position -> DOI")
+    ordered: list[tuple[int, str]] = []
+    for position in sorted(int(key) for key in raw):
+        doi = raw[position]
+        if not isinstance(doi, str) or not _DOI_PATTERN.fullmatch(doi.strip()):
+            raise ValueError(f"Task type {name!r} has an invalid citation DOI: {doi!r}")
+        ordered.append((position, doi.strip()))
+    return tuple(ordered)
+
 
 _RESULT_VIEW_PLUGINS = {"residue-table-structure"}
 _RESULT_VIEW_OPTION_KEYS = {
@@ -418,6 +446,8 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             params=params,
             input_workspace=_load_input_workspace(entry.get("input_workspace")),
             result_workspace=_load_result_workspace(entry.get("result_workspace")),
+            citation_dois=_load_citation_dois(entry.get("citation_dois"), name),
+            citation_bibtex=entry.get("citation_bibtex", ""),
         )
 
         register(tt, runner_configs[runtime_name])
