@@ -756,7 +756,7 @@ task_types:
         description: "Maximum template release date (YYYY-MM-DD)"
       - {name: "num_ensemble", type: "int", default: 1, minimum: 1, maximum: 8, description: "Ensembles per model", advanced: true}
       - {name: "num_multimer_predictions_per_model", type: "int", default: 1, minimum: 1, maximum: 20, description: "Multimer predictions per model (different seeds)", advanced: true}
-      - {name: "db_preset", type: "str", default: "full_dbs", choices: ["full_dbs", "reduced_dbs"], description: "Sequence database preset", advanced: true}
+      - {name: "db_preset", type: "str", default: "full_dbs", choices: ["full_dbs"], description: "Sequence database preset (full_dbs)", advanced: true}
       - {name: "models_to_relax", type: "str", default: "best", choices: ["none", "best", "all"], description: "Amber relaxation of the final models", advanced: true}
       - {name: "model_names", type: "str", default: "", description: "Comma-separated model names to run; empty runs the preset's models", advanced: true}
       - {name: "benchmark", type: "bool", default: false, description: "Time the JAX model evaluations", advanced: true}

@@ -39,41 +39,23 @@ local -a af_args=(
   "--use_gpu=true"
   "--models_to_relax=${MODELS_TO_RELAX}"
   "--benchmark=${BENCHMARK}"
+  "--bfd_database_path=${DB}/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt"
   "--mgnify_database_path=${DB}/mgnify/mgy_clusters.fa"
   "--template_mmcif_dir=${DB}/pdb_mmcif/mmcif_files"
   "--obsolete_pdbs_path=${DB}/pdb_mmcif/obsolete.dat"
+  "--uniref90_database_path=${DB}/uniref90/uniref90.fasta"
 )
-if [[ "$DB_PRESET" == "reduced_dbs" ]]; then
-  af_args+=("--small_bfd_database_path=${DB}/reduced_bfd/bfd-first_non_consensus_sequences.fasta")
-  if [[ "$MODEL_PRESET" == "multimer" ]]; then
-    af_args+=(
-      "--uniprot_database_path=${DB}/uniprot/uniprot.fasta"
-      "--pdb_seqres_database_path=${DB}/pdb_seqres/pdb_seqres.txt"
-      "--num_multimer_predictions_per_model=${NUM_MULTIMER}"
-    )
-  else
-    af_args+=(
-      "--pdb70_database_path=${DB}/pdb70/pdb70"
-      "--uniref90_database_path=${DB}/uniref90_uc30/uniref90_uc30.fasta"
-    )
-  fi
+if [[ "$MODEL_PRESET" == "multimer" ]]; then
+  af_args+=(
+    "--uniprot_database_path=${DB}/uniprot/uniprot.fasta"
+    "--pdb_seqres_database_path=${DB}/pdb_seqres/pdb_seqres.txt"
+    "--num_multimer_predictions_per_model=${NUM_MULTIMER}"
+  )
 else
   af_args+=(
-    "--bfd_database_path=${DB}/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt"
-    "--uniref90_database_path=${DB}/uniref90/uniref90.fasta"
+    "--pdb70_database_path=${DB}/pdb70/pdb70"
+    "--uniref30_database_path=${DB}/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02"
   )
-  if [[ "$MODEL_PRESET" == "multimer" ]]; then
-    af_args+=(
-      "--uniprot_database_path=${DB}/uniprot/uniprot.fasta"
-      "--pdb_seqres_database_path=${DB}/pdb_seqres/pdb_seqres.txt"
-      "--num_multimer_predictions_per_model=${NUM_MULTIMER}"
-    )
-  else
-    af_args+=(
-      "--pdb70_database_path=${DB}/pdb70/pdb70"
-      "--uniref30_database_path=${DB}/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02"
-    )
-  fi
 fi
 if [[ -n "$MODEL_NAMES" ]]; then af_args+=("--model_names=${MODEL_NAMES}"); fi
 
