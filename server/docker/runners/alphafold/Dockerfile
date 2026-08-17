@@ -62,7 +62,7 @@ COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/alphafold/run.sh ./doc
 WORKDIR /app/revocompute/
 ENV RUNNER_USERNAME=${RUNNER_USERNAME} \
     ALPHAFOLD_PATH=/opt/alphafold \
-    PATH="/opt/hhsuite/bin:${PATH}"
+    PATH="/opt/hhsuite:${PATH}"
 ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
     http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
 ENTRYPOINT ["bash", "/app/revocompute/run.sh"]
