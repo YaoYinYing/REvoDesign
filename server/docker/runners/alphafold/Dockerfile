@@ -29,15 +29,14 @@ WORKDIR /opt/alphafold
 RUN wget -q -P /opt/alphafold/alphafold/common/ \
       https://git.scicore.unibas.ch/schwede/openstructure/-/raw/7102c63615b64735c4941278d92b554ec94415f8/modules/mol/alg/src/stereo_chemical_props.txt
 
-# JAX + CUDA 12 wheels from the official jax releases index, then the official
-# pinned requirements (jax==0.4.26, dm-haiku==0.0.12, tensorflow-cpu==2.16.1,
-# openmm[cuda12]==8.2.0 + pdbfixer for Amber relaxation, ...).
+# Official pinned requirements (dm-haiku==0.0.12, tensorflow-cpu==2.16.1,
+# openmm[cuda12]==8.2.0 + pdbfixer for Amber relaxation, ...), then JAX
+# overridden to the last 0.4.x release: jaxlib <=0.4.28 CUDA wheels segfault
+# with host drivers >=570 (this host runs 570.124.06), fixed in 0.4.31+.
+# jax[cuda12] on PyPI bundles its own CUDA libs.
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir \
-      jax==0.4.26 \
-      jaxlib==0.4.26+cuda12.cudnn89 \
-      -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html && \
-    pip install --no-cache-dir -r /opt/alphafold/requirements.txt
+    pip install --no-cache-dir -r /opt/alphafold/requirements.txt && \
+    pip install --no-cache-dir "jax[cuda12]==0.4.38"
 
 # Non-root user and runner workspace.
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
