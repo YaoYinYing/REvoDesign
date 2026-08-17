@@ -28,7 +28,7 @@ export XLA_PYTHON_CLIENT_MEM_FRACTION=4.0
 DB=/mnt/alphafold/db
 PARAMS_ROOT=/mnt/alphafold/params_root
 
-local -a af_args=(
+af_args=(
   "--fasta_paths=${fasta_path}"
   "--output_dir=${output_dir}"
   "--data_dir=${PARAMS_ROOT}"
