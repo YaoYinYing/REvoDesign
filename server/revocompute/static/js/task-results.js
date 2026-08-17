@@ -779,6 +779,23 @@
     }
     artifacts = payload.artifacts;
     resultViews = Array.isArray(payload.views) ? payload.views : [];
+    // Status is set once at load; poll while the task is pending so a
+    // queued/running page updates itself and reloads when results land.
+    if (window.__revocomputeStatusPoll) clearInterval(window.__revocomputeStatusPoll);
+    window.__revocomputeStatusPoll = setInterval(async function () {
+      try {
+        var pollResponse = await A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5));
+        var pollPayload = await pollResponse.json().catch(function () { return {}; });
+        if (!pollResponse.ok) return;
+        var statusEl = document.getElementById("resultStatus");
+        if (statusEl && pollPayload.status) statusEl.textContent = pollPayload.status;
+        if (pollPayload.status === "finished" || pollPayload.status === "failed" ||
+            pollPayload.status === "cancelled" || pollPayload.status === "deleted") {
+          clearInterval(window.__revocomputeStatusPoll);
+          window.location.reload();
+        }
+      } catch (error) { /* transient network hiccup — retry next tick */ }
+    }, 15000);
     document.getElementById("resultFileCount").textContent = artifacts.length;
     document.getElementById("resultTotalSize").textContent = formatBytes(payload.total_size);
     var archiveButton = document.getElementById("archiveButton");
