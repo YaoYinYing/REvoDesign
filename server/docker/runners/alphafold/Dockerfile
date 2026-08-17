@@ -38,6 +38,19 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r /opt/alphafold/requirements.txt && \
     pip install --no-cache-dir "jax[cuda12]==0.4.35"
 
+# jax 0.4.35 + nvidia-cuda-nvcc-cu12: the namespace package has __file__ None,
+# which crashes jax._src.lib._cuda_path at import (fixed upstream only in
+# 0.4.36, which dm-haiku 0.0.12 cannot use). Guard the attribute access.
+RUN python3 - <<'PY'
+import pathlib
+p = pathlib.Path("/usr/local/lib/python3.11/site-packages/jax/_src/lib/__init__.py")
+text = p.read_text()
+old = "cuda_nvcc_path = pathlib.Path(cuda_nvcc.__file__).parent"
+new = "cuda_nvcc_path = pathlib.Path(cuda_nvcc.__file__).parent if cuda_nvcc.__file__ is not None else None"
+assert old in text, "jax lib layout changed — re-verify the guard"
+p.write_text(text.replace(old, new, 1))
+PY
+
 # Non-root user and runner workspace.
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     (id -u ${RUNNER_USERNAME} >/dev/null 2>&1 && usermod -u ${RUNNER_UID} -g ${RUNNER_GID} ${RUNNER_USERNAME}) || \
