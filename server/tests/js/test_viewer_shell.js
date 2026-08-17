@@ -262,6 +262,17 @@ async function main() {
   if (!reports.some(function (entry) { return entry.payload.type === "ready" && entry.payload.requestId === "probe-2"; })) {
     throw new Error("warm shell did not report readiness for the second structure");
   }
+  // Disposal acknowledgment: the shell must report "disposed" after teardown
+  // so the parent can detach the iframe only once cleanup completed.
+  listeners.message({
+    source: parentWindow,
+    origin: "https://revocompute.example",
+    data: { type: "dispose" }
+  });
+  await new Promise(function (resolve) { setTimeout(resolve, 0); });
+  if (!reports.some(function (entry) { return entry.payload.type === "disposed"; })) {
+    throw new Error("shell did not acknowledge disposal");
+  }
   console.log("viewer shell message contract passed");
 }
 

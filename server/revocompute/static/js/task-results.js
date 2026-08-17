@@ -22,6 +22,13 @@
   var structureHolder = null;
   var warmPending = {};
   var warmListenerInstalled = false;
+  // Downloaded structure texts, keyed by artifact path, so switching back to
+  // an already-viewed structure skips the network fetch entirely. Bounded:
+  // at most 3 files and 60 MB total.
+  var structureTextCache = new Map();
+  var structureTextCacheBytes = 0;
+  var STRUCTURE_CACHE_MAX_FILES = 3;
+  var STRUCTURE_CACHE_MAX_BYTES = 60 * 1024 * 1024;
   var viewRegistry = new window.REvoComputePlugins.PluginRegistry("result view");
   var MOLSTAR_THEME_COOKIE = "revodesign-molstar-theme";
   // Mol* runs inside the isolated /compute/viewer-shell iframe (its bundle
@@ -76,11 +83,8 @@
   }
 
   function disposeActiveViewer() {
-    if (warmMolstar) {
-      try { postToShell(warmMolstar.frame, { type: "dispose" }); } catch (e) { /* frame gone */ }
-      warmMolstar.frame.remove();
-      warmMolstar = null;
-    }
+    var frame = warmMolstar ? warmMolstar.frame : null;
+    warmMolstar = null;
     if (activeMolstar) activeMolstar = null;
     Object.keys(warmPending).forEach(function (key) {
       var pending = warmPending[key];
@@ -88,6 +92,23 @@
       if (pending.reject) { try { pending.reject(new Error("Viewer disposed")); } catch (e) { /* already settled */ } }
       delete warmPending[key];
     });
+    if (!frame) return;
+    // Give the shell a moment to run its own teardown (selection unsubscribe
+    // + plugin.dispose) before the iframe is detached; the shell acknowledges
+    // with a "disposed" message, and a 2s timeout guarantees the frame never
+    // lingers when the shell is already gone.
+    var removed = false;
+    var timer = setTimeout(function () { if (!removed) { removed = true; frame.remove(); } }, 2000);
+    window.addEventListener("message", function onDisposed(event) {
+      if (removed || event.source !== frame.contentWindow || !event.data || event.data.type !== "disposed") return;
+      removed = true;
+      clearTimeout(timer);
+      frame.remove();
+      window.removeEventListener("message", onDisposed);
+    });
+    try { postToShell(frame, { type: "dispose" }); } catch (e) {
+      if (!removed) { removed = true; clearTimeout(timer); frame.remove(); }
+    }
   }
 
   // One shared message listener for the warm shell: resolves the pending
@@ -300,16 +321,49 @@
     });
   }
 
+  function showLoading(surface, label) {
+    var box = document.createElement("div");
+    box.className = "preview-loading";
+    box.setAttribute("role", "status");
+    box.setAttribute("aria-live", "polite");
+    var bars = document.createElement("div");
+    bars.className = "preview-loading-bars";
+    for (var index = 0; index < 3; index += 1) bars.appendChild(document.createElement("span"));
+    var text = document.createElement("p");
+    text.className = "preview-loading-label";
+    text.textContent = label || "Loading preview…";
+    box.append(bars, text);
+    if (warmMolstar && warmMolstar.frame.parentNode === surface) surface.insertBefore(box, warmMolstar.frame);
+    else surface.appendChild(box);
+    return box;
+  }
+
   async function previewStructure(artifact, stage) {
     var generation = previewHost.generation;
-    var response = await A.authFetch(artifact.url);
-    if (isStale(generation)) return;
-    if (!response.ok) throw new Error("Structure download failed (HTTP " + response.status + ")");
-    var structureText = await response.text();
-    if (isStale(generation)) return;
+    var cached = structureTextCache.get(artifact.path);
+    var structureText = cached || null;
+    if (!structureText) {
+      var response = await A.authFetch(artifact.url);
+      if (isStale(generation)) return;
+      if (!response.ok) throw new Error("Structure download failed (HTTP " + response.status + ")");
+      structureText = await response.text();
+      if (isStale(generation)) return;
+      // Bounded cache: evict oldest first while over the file or byte budget.
+      structureTextCache.set(artifact.path, structureText);
+      structureTextCacheBytes += structureText.length;
+      while (structureTextCache.size > STRUCTURE_CACHE_MAX_FILES || structureTextCacheBytes > STRUCTURE_CACHE_MAX_BYTES) {
+        var oldest = structureTextCache.keys().next().value;
+        structureTextCacheBytes -= structureTextCache.get(oldest).length;
+        structureTextCache.delete(oldest);
+      }
+    }
     var surface = structureHolder || stage;
     clearSurfacePreservingWarm(surface);
-    surface.appendChild(structureViewerBar(artifact));
+    var bar = structureViewerBar(artifact);
+    // Keep the toolbar above the preserved warm iframe (appending would push
+    // the controls below the 34–48rem-tall canvas).
+    if (warmMolstar && warmMolstar.frame.parentNode === surface) surface.insertBefore(bar, warmMolstar.frame);
+    else surface.appendChild(bar);
 
     if (structureViewer === "py2dmol") {
       stage.hidden = false;
@@ -329,8 +383,13 @@
       return;
     }
 
-    try { await renderMolstar(structureText, artifact, surface, generation); }
+    var loading = showLoading(surface, "Loading structure…");
+    try {
+      await renderMolstar(structureText, artifact, surface, generation);
+      if (loading.parentNode) loading.remove();
+    }
     catch (error) {
+      if (loading.parentNode) loading.remove();
       if (isStale(generation)) return;
       // A dead warm frame must not poison the next pick: dispose it so the
       // retry cold-starts a fresh shell.
@@ -512,7 +571,7 @@
       stage.hidden = true;
       structureHolder.hidden = false;
     }
-    stage.innerHTML = '<p class="preview-message">Loading preview…</p>';
+    showLoading(stage, "Loading preview…");
     try {
       stage.replaceChildren();
       await previewHost.render(artifact);
@@ -708,6 +767,8 @@
 
   async function loadResults() {
     disposeActiveViewer();
+    structureTextCache.clear();
+    structureTextCacheBytes = 0;
     if (structureHolder) structureHolder.hidden = true;
     var response = await A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5));
     var payload = await response.json().catch(function () { return {}; });

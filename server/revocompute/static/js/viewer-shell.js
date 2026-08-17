@@ -260,6 +260,9 @@
       if (viewer) viewer.plugin.dispose();
       viewer = null;
       host.replaceChildren();
+      // Acknowledge teardown so the parent can remove the iframe only after
+      // this shell's resources (subscriptions, plugin, WebGL context) are gone.
+      report({ type: "disposed" });
     }
   });
 

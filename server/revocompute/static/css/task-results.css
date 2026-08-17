@@ -76,3 +76,15 @@
   .main-results { grid-template-columns: 1fr; }
   .structure-color-bar { flex: 1 1 calc(100% - 2.4rem); margin-left: 0; padding-top: 0.4rem; padding-left: 0; border-top: 1px solid var(--line); border-left: 0; }
 }
+
+/* Structure preview loading state — quiet pulse, reduced-motion aware. */
+.preview-loading { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 3rem 1rem; }
+.preview-loading-bars { display: flex; gap: 0.4rem; }
+.preview-loading-bars span { width: 0.45rem; height: 1.6rem; border-radius: 999px; background: color-mix(in srgb, var(--accent) 35%, var(--paper)); animation: preview-loading-pulse 1.1s ease-in-out infinite; }
+.preview-loading-bars span:nth-child(2) { animation-delay: 0.15s; }
+.preview-loading-bars span:nth-child(3) { animation-delay: 0.3s; }
+.preview-loading-label { margin: 0; color: var(--muted); font-size: 0.82rem; }
+@keyframes preview-loading-pulse { 0%, 100% { transform: scaleY(0.55); opacity: 0.45; } 50% { transform: scaleY(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .preview-loading-bars span { animation: none; opacity: 0.7; }
+}
