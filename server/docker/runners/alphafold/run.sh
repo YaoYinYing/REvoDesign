@@ -14,10 +14,8 @@ mkdir -p "$output_dir"
 MODEL_PRESET=$(_parse_param model_preset monomer)
 MAX_TEMPLATE_DATE=$(_parse_param max_template_date 2021-11-01)
 DB_PRESET=$(_parse_param db_preset full_dbs)
-NUM_ENSEMBLE=$(_parse_param num_ensemble 1)
 NUM_MULTIMER=$(_parse_param num_multimer_predictions_per_model 1)
 MODELS_TO_RELAX=$(_parse_param models_to_relax best)
-MODEL_NAMES=$(_parse_param model_names "")
 BENCHMARK=$(_parse_param benchmark false)
 fasta_path=$(primary_input)
 
@@ -35,7 +33,6 @@ af_args=(
   "--max_template_date=${MAX_TEMPLATE_DATE}"
   "--db_preset=${DB_PRESET}"
   "--model_preset=${MODEL_PRESET}"
-  "--num_ensemble=${NUM_ENSEMBLE}"
   "--use_gpu=true"
   "--models_to_relax=${MODELS_TO_RELAX}"
   "--benchmark=${BENCHMARK}"
@@ -57,7 +54,6 @@ else
     "--uniref30_database_path=${DB}/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02"
   )
 fi
-if [[ -n "$MODEL_NAMES" ]]; then af_args+=("--model_names=${MODEL_NAMES}"); fi
 
 echo "REVODESIGN_STAGE:alphafold"
 cd "${ALPHAFOLD_PATH:-/opt/alphafold}"
