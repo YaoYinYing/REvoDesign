@@ -69,6 +69,12 @@ runtime_families:
     dockerfile: "docker/runners/easifa/Dockerfile"
     definition: "docker/runners/easifa/easifa.def"
     slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/easifa_v1.sif"
+  alphafold:
+    docker_image: "revodesign-revocompute-runner-alphafold"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/alphafold/Dockerfile"
+    definition: "docker/runners/alphafold/alphafold.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/alphafold_v1.sif"
 
 workspace_templates:
   file: &file_workspace
@@ -724,3 +730,33 @@ task_types:
       - {name: "max_length", type: "int", default: 1000, minimum: 1, description: "Maximum enzyme sequence length", advanced: true}
       - {name: "pretty", type: "bool", default: true, description: "Pretty-print the full JSON result", advanced: true}
       - {name: "verbose", type: "bool", default: false, description: "Include detailed upstream inference progress", advanced: true}
+
+  alphafold:
+    display_name: "AlphaFold2"
+    category: structure
+    intro: "DeepMind AlphaFold2 structure prediction (JAX, multimer-capable)."
+    runtime_family: "alphafold"
+    gpus: true
+    input_extension: ".fasta"
+    input_extensions: [".fasta", ".fa", ".faa"]
+    primary_input_extensions: [".fasta", ".fa", ".faa"]
+    input_label: "Protein sequence (FASTA)"
+    input_workspace: *fasta_workspace
+    stage_markers:
+      alphafold: "AlphaFold2 structure prediction"
+    params:
+      - name: "model_preset"
+        type: "str"
+        default: "monomer"
+        choices: ["monomer", "monomer_casp14", "monomer_ptm", "multimer"]
+        description: "Monomer, monomer with pTM head, extra-ensembling monomer, or multimer"
+      - name: "max_template_date"
+        type: "str"
+        default: "2021-11-01"
+        description: "Maximum template release date (YYYY-MM-DD)"
+      - {name: "num_ensemble", type: "int", default: 1, minimum: 1, maximum: 8, description: "Ensembles per model", advanced: true}
+      - {name: "num_multimer_predictions_per_model", type: "int", default: 1, minimum: 1, maximum: 20, description: "Multimer predictions per model (different seeds)", advanced: true}
+      - {name: "db_preset", type: "str", default: "full_dbs", choices: ["full_dbs"], description: "Sequence database preset (full_dbs)", advanced: true}
+      - {name: "models_to_relax", type: "str", default: "best", choices: ["none", "best", "all"], description: "Amber relaxation of the final models", advanced: true}
+      - {name: "model_names", type: "str", default: "", description: "Comma-separated model names to run; empty runs the preset's models", advanced: true}
+      - {name: "benchmark", type: "bool", default: false, description: "Time the JAX model evaluations", advanced: true}
