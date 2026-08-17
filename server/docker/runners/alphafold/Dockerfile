@@ -31,12 +31,13 @@ RUN wget -q -P /opt/alphafold/alphafold/common/ \
 
 # Official pinned requirements (dm-haiku==0.0.12, tensorflow-cpu==2.16.1,
 # openmm[cuda12]==8.2.0 + pdbfixer for Amber relaxation, ...), then JAX
-# overridden to the last 0.4.x release: jaxlib <=0.4.28 CUDA wheels segfault
-# with host drivers >=570 (this host runs 570.124.06), fixed in 0.4.31+.
+# overridden into the compatible window: >=0.4.31 (jaxlib <=0.4.30 CUDA
+# wheels segfault with host drivers >=570 — this host runs 570.124.06) and
+# <0.4.36 (haiku 0.0.12 uses jax.interpreters.xla.xe, removed in 0.4.36).
 # jax[cuda12] on PyPI bundles its own CUDA libs.
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r /opt/alphafold/requirements.txt && \
-    pip install --no-cache-dir "jax[cuda12]==0.4.38"
+    pip install --no-cache-dir "jax[cuda12]==0.4.35"
 
 # Non-root user and runner workspace.
 RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
