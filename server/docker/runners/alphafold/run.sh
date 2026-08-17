@@ -57,7 +57,11 @@ fi
 
 echo "REVODESIGN_STAGE:alphafold"
 cd "${ALPHAFOLD_PATH:-/opt/alphafold}"
-python3 run_alphafold.py "${af_args[@]}"
+# AlphaFold logs its phases to stderr (absl logging); the shared translator
+# rewrites the stable ones into the stdout stage protocol while passing the
+# original lines through to the stderr log unchanged.
+python3 run_alphafold.py "${af_args[@]}" 2> >(awk -f /app/revocompute/stage_translate.awk \
+  -v PATTERNS=/app/revocompute/alphafold.stages >&1)
 
 [[ -n "$(ls "${output_dir}"/*/ranked_0.pdb 2>/dev/null || true)" ]] || {
   echo "AlphaFold produced no ranked_0.pdb" >&2; exit 1; }
