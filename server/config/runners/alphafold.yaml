@@ -29,6 +29,12 @@ mounts:
   - host_path: "/mnt/db/pdb_seqres"
     container_path: "/mnt/alphafold/db/pdb_seqres"
     mode: "ro"
+  - host_path: "/mnt/db/reduced_bfd"
+    container_path: "/mnt/alphafold/db/reduced_bfd"
+    mode: "ro"
+  - host_path: "/mnt/db/uniref90_uc30"
+    container_path: "/mnt/alphafold/db/uniref90_uc30"
+    mode: "ro"
 env: {}
 max_runtime_seconds: 14400
 defaults: {}
