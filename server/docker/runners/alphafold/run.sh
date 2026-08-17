@@ -33,7 +33,6 @@ af_args=(
   "--max_template_date=${MAX_TEMPLATE_DATE}"
   "--db_preset=${DB_PRESET}"
   "--model_preset=${MODEL_PRESET}"
-  "--use_gpu=true"
   "--models_to_relax=${MODELS_TO_RELAX}"
   "--benchmark=${BENCHMARK}"
   "--bfd_database_path=${DB}/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt"
