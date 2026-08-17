@@ -383,13 +383,14 @@
       return;
     }
 
-    var loading = showLoading(surface, "Loading structure…");
+    // Cached swaps resolve almost instantly; a loading box would only flash.
+    var loading = cached ? null : showLoading(surface, "Loading structure…");
     try {
       await renderMolstar(structureText, artifact, surface, generation);
-      if (loading.parentNode) loading.remove();
+      if (loading) loading.remove();
     }
     catch (error) {
-      if (loading.parentNode) loading.remove();
+      if (loading) loading.remove();
       if (isStale(generation)) return;
       // A dead warm frame must not poison the next pick: dispose it so the
       // retry cold-starts a fresh shell.

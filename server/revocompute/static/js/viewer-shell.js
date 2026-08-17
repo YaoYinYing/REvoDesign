@@ -191,10 +191,15 @@
   async function mountStructure(message) {
     activeRequestId = message.requestId;
     applyTheme(message.theme);
-    stateNode.hidden = false;
-    host.hidden = true;
-    stateNode.dataset.state = "loading";
-    stateNode.textContent = "Preparing interactive structure…";
+    // Warm remounts keep the current structure visible while the next one
+    // loads — showing the "Preparing…" state on every swap flashes for the
+    // short (cached/warm) awaits and reads as a refresh.
+    if (!viewer) {
+      stateNode.hidden = false;
+      host.hidden = true;
+      stateNode.dataset.state = "loading";
+      stateNode.textContent = "Preparing interactive structure…";
+    }
     try {
       await ensureMolstarAssets();
       if (viewer) {
