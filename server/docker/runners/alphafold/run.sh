@@ -34,6 +34,7 @@ af_args=(
   "--db_preset=${DB_PRESET}"
   "--model_preset=${MODEL_PRESET}"
   "--models_to_relax=${MODELS_TO_RELAX}"
+  "--use_gpu_relax=true"
   "--benchmark=${BENCHMARK}"
   "--bfd_database_path=${DB}/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt"
   "--mgnify_database_path=${DB}/mgnify/mgy_clusters.fa"
