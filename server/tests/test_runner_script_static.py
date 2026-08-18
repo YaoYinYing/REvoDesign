@@ -20,7 +20,7 @@ def test_prepared_activation_audits_resources_before_stopping_services():
     steps_source = (SERVER_ROOT / "run" / "revocompute_ctl" / "steps.py").read_text(encoding="utf-8")
     preflight = steps_source.split("def _prepared_preflight", 1)[1].split("\ndef ", 1)[0]
     assert "validate_resource_policies" in preflight
-    assert "--no-build --entrypoint python worker" in steps_source
+    assert "--no-deps --entrypoint python worker" in steps_source
     assert "-m revocompute.resource_audit" in steps_source
 
 

@@ -41,8 +41,10 @@ from revocompute_ctl.storage import (
 )
 
 # The resource-policy audit argv, kept as one literal so the static test
-# assertion stays a one-liner.
-RESOURCE_AUDIT_CMD = "run --rm --no-deps --no-build --entrypoint python worker -m revocompute.resource_audit"
+# assertion stays a one-liner.  No --no-build: `docker compose run` rejects
+# it (the worker image already exists — the prepared preflight proves that
+# first), and the image check precedes this call.
+RESOURCE_AUDIT_CMD = "run --rm --no-deps --entrypoint python worker -m revocompute.resource_audit"
 
 
 @dataclass
