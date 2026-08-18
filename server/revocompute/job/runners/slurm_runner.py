@@ -31,10 +31,11 @@ class SlurmJob(Job):
     """A compute job submitted via SLURM + Apptainer.
 
     ``submit()`` launches ``srun`` via ``subprocess.Popen`` and returns
-    the real SLURM job id (captured from srun's stderr banner), falling
-    back to a pid-based id if the banner never arrives.  ``poll()`` waits
-    for the process to exit and returns ``COMPLETED`` or ``FAILED`` based
-    on the exit code.
+    the real SLURM job id, captured from the allocation wrapper's first
+    stdout line or an ``srun`` stderr banner, and temporarily falls back to
+    a pid-based id if neither arrives during submission. ``poll()`` waits for
+    the process to exit and returns ``COMPLETED`` or ``FAILED`` based on the
+    exit code.
     """
 
     def __init__(
@@ -114,9 +115,9 @@ class SlurmJob(Job):
         self._stdout_thread.start()
         self._stderr_thread.start()
 
-        # srun prints "srun: job NNNN queued and waiting for resources" on
-        # stderr right after submitting — grab the real job id so scancel
-        # works.  Fall back to the pid-based id if the banner never arrives.
+        # Capture the real id from the allocation wrapper's first stdout line
+        # or srun's stderr banner. Fall back to the pid-based id if neither
+        # arrives during submission.
         self._job_id_event.wait(timeout=5.0)
         if self._slurm_job_id:
             self._job_id = self._slurm_job_id
@@ -327,6 +328,17 @@ class SlurmJob(Job):
         stream = self._process.stdout
         last_stage: str | None = None
         markers = self.tt.stage_markers
+
+        def emit_stage(stage: str) -> None:
+            nonlocal last_stage
+            if stage == last_stage:
+                return
+            last_stage = stage
+            try:
+                self.stage_callback(stage)
+            except Exception as exc:  # surface, never mask status updates
+                logging.error("Stage callback failed for task %s: %s", self.task_id, exc)
+
         for line in iter(stream.readline, ""):
             self._stdout_lines.append(line)
             if line.startswith("REVODESIGN_JOB_ID=") and self._slurm_job_id is None:
@@ -334,14 +346,16 @@ class SlurmJob(Job):
                 if candidate.isdigit():
                     self._slurm_job_id = candidate
                     self._job_id_event.set()
+                    if markers and self.stage_callback:
+                        # The allocation is live before the scientific tool
+                        # prints its first marker.  Emit the first declared
+                        # stage as a liveness signal so queued tasks become
+                        # running as soon as the wrapper starts.
+                        emit_stage(next(iter(markers)))
             if markers and self.stage_callback:
                 stage = extract_stage_from_log_line(line, markers)
-                if stage and stage != last_stage:
-                    last_stage = stage
-                    try:
-                        self.stage_callback(stage)
-                    except Exception as exc:  # surface, never mask status updates
-                        logging.error("Stage callback failed for task %s: %s", self.task_id, exc)
+                if stage:
+                    emit_stage(stage)
         stream.close()
 
     def _read_stderr(self) -> None:

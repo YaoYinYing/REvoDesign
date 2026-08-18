@@ -126,8 +126,9 @@ failures, and create `task_finished` only after real success.
 Docker and SLURM runners share this contract. SLURM starts a job in a valid
 existing working directory, stores the actual SLURM job ID, polls queue/account
 state, and maps cancellation to `scancel`. A task changes from queued to running
-when SLURM reports execution or a stage marker arrives; it is not inferred only
-from local `srun` process state.
+when the allocation wrapper publishes its numeric job ID; the first declared
+stage is emitted once as a liveness signal, and later stage markers advance
+progress. Execution is not inferred only from local `srun` process state.
 
 GPU task types require user GPU permission and configured GPU resources.
 Apptainer receives `--nv` only for GPU tasks. CPU task families must not inherit
