@@ -239,7 +239,15 @@ class SlurmJob(Job):
         return path
 
     def _render_wrapper(self) -> str:
-        lines = ["#!/bin/bash", "set -euo pipefail", ""]
+        lines = [
+            "#!/bin/bash",
+            "set -euo pipefail",
+            "",
+            # The allocation carries the authoritative job id; publish it on
+            # stdout first so the runner never depends on srun's stderr
+            # banner (which SLURM 19.05 does not always print in time).
+            'echo "REVODESIGN_JOB_ID=${SLURM_JOB_ID}"',
+        ]
         self._render_input_staging(lines)
         lines.append("")
         self._render_apptainer_invocation(lines)
@@ -321,14 +329,19 @@ class SlurmJob(Job):
         markers = self.tt.stage_markers
         for line in iter(stream.readline, ""):
             self._stdout_lines.append(line)
+            if line.startswith("REVODESIGN_JOB_ID=") and self._slurm_job_id is None:
+                candidate = line.split("=", 1)[1].strip()
+                if candidate.isdigit():
+                    self._slurm_job_id = candidate
+                    self._job_id_event.set()
             if markers and self.stage_callback:
                 stage = extract_stage_from_log_line(line, markers)
                 if stage and stage != last_stage:
                     last_stage = stage
                     try:
                         self.stage_callback(stage)
-                    except Exception:
-                        pass
+                    except Exception as exc:  # surface, never mask status updates
+                        logging.error("Stage callback failed for task %s: %s", self.task_id, exc)
         stream.close()
 
     def _read_stderr(self) -> None:

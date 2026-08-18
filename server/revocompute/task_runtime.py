@@ -822,11 +822,18 @@ def _recover_orphaned_tasks() -> int:
     """
     recovered = 0
     for task in task_store.list_tasks():
-        if task.get("status") != "running":
+        if task.get("status") not in {"running", "queued"}:
             continue
         container_id = str(task.get("container_id") or "")
         slurm_job_id = str(task.get("slurm_job_id") or "")
         if not container_id and not slurm_job_id:
+            continue
+        if slurm_job_id and not slurm_job_id.isdigit():
+            # A pid-based fallback ("srun-12") survived into the record: the
+            # real job handle is lost, so the task can never be reconnected.
+            logging.warning("Recovery: task %s has a non-SLURM job handle %r; marking failed", task["md5sum"], slurm_job_id)
+            _record_failure(task["md5sum"], task, task.get("started_at") or time.time(), "", "SLURM job handle was lost during a server restart")
+            recovered += 1
             continue
         md5sum = task["md5sum"]
         task_type = task.get("task_type", "gremlin")
@@ -928,9 +935,14 @@ try:
 
         @worker_ready.connect
         def _on_worker_ready(sender, **kwargs):
-            count = _recover_orphaned_tasks()
-            if count:
-                logging.info("Recovered %d orphaned task(s)", count)
+            try:
+                count = _recover_orphaned_tasks()
+                if count:
+                    logging.info("Recovered %d orphaned task(s)", count)
+                else:
+                    logging.info("Recovery: no orphaned tasks found")
+            except Exception as exc:  # boot-time recovery must never die silently
+                logging.error("Recovery pass failed: %s", exc)
 
 except ImportError:
     pass  # celery.signals not available in all environments
