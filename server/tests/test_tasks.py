@@ -160,6 +160,22 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert "buildArtifactTree" in script
 
 
+def test_result_status_polling_handles_terminal_and_pending_responses():
+    dashboard = (SERVER_PACKAGE / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
+    results = (SERVER_PACKAGE / "static" / "js" / "task-results.js").read_text(encoding="utf-8")
+    terminal_statuses = '["finished", "failed", "cancelled", "deleted", "deleted:finshed", "deleted:cancel"]'
+
+    assert terminal_statuses in dashboard
+    assert terminal_statuses in results
+    assert "if (statusPollInFlight) return;" in dashboard
+    assert "if (!response.ok && !isTerminal) continue;" in dashboard
+    assert 'A.authFetch("/compute/api/running/"' in results
+    assert "if (!pollResponse.ok && !isTerminal) return;" in results
+    assert results.index("window.__revocomputeStatusPoll = setInterval") < results.index(
+        "if (!response.ok || !Array.isArray(payload.artifacts))"
+    )
+
+
 def test_execution_logs_are_diagnostic_text_artifacts_not_main_results():
     runtime = (SERVER_PACKAGE / "task_runtime.py").read_text(encoding="utf-8")
     results = (SERVER_PACKAGE / "static" / "js" / "task-results.js").read_text(encoding="utf-8")

@@ -304,7 +304,7 @@ def test_job_id_capture_emits_first_stage_as_liveness_signal(tmp_path):
         str(tmp_path / "out"),
         stage_callback=stages_seen.append,
     )
-    stdout = StringIO("REVODESIGN_JOB_ID=4154\n" "REVODESIGN_STAGE:hhblits\n" "REVODESIGN_STAGE:gremlin\n")
+    stdout = StringIO("REVODESIGN_JOB_ID=4154\n" "REVODESIGN_STAGE:gremlin\n")
     job._process = SimpleNamespace(stdout=stdout)
 
     job._read_stdout()

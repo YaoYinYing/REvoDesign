@@ -899,8 +899,8 @@ try:
                 logging.info("Recovered %d orphaned task(s)", count)
             else:
                 logging.info("Recovery: no orphaned tasks found")
-        except Exception as exc:  # boot-time recovery must never die silently
-            logging.error("Recovery pass failed: %s", exc)
+        except Exception:  # boot-time recovery must never die silently
+            logging.exception("Recovery pass failed")
 
 except ImportError:
     pass  # celery.signals not available in all environments

@@ -58,9 +58,30 @@ fi
 cd "${ALPHAFOLD_PATH:-/opt/alphafold}"
 # AlphaFold logs its phases to stderr (absl logging); the shared translator
 # rewrites the stable ones into the stdout stage protocol while passing the
-# original lines through to the stderr log unchanged.
-python3 run_alphafold.py "${af_args[@]}" 2> >(awk -f /app/revocompute/stage_translate.awk \
-  -v PATTERNS=/app/revocompute/alphafold.stages >&1)
+# original lines through to the stderr log unchanged.  A FIFO makes the
+# translator an ordinary child that can be drained before the wrapper exits.
+stage_tmp=$(mktemp -d "${TMPDIR:-/tmp}/revodesign-alphafold-stage.XXXXXX")
+stage_fifo="${stage_tmp}/stderr"
+mkfifo "${stage_fifo}"
+cleanup_stage_pipe() { rm -rf -- "${stage_tmp}"; }
+trap cleanup_stage_pipe EXIT
+awk -f "${ALPHAFOLD_STAGE_TRANSLATOR:-/app/revocompute/stage_translate.awk}" \
+  -v PATTERNS="${ALPHAFOLD_STAGE_PATTERNS:-/app/revocompute/alphafold.stages}" \
+  < "${stage_fifo}" >&1 &
+translator_pid=$!
+set +e
+"${ALPHAFOLD_PYTHON:-python3}" run_alphafold.py "${af_args[@]}" 2> "${stage_fifo}"
+alphafold_status=$?
+wait "${translator_pid}"
+translator_status=$?
+set -e
+cleanup_stage_pipe
+trap - EXIT
+if [[ ${alphafold_status} -ne 0 || ${translator_status} -ne 0 ]]; then
+  echo "AlphaFold exited ${alphafold_status}; stage translator exited ${translator_status}" >&2
+  [[ ${alphafold_status} -ne 0 ]] && exit "${alphafold_status}"
+  exit "${translator_status}"
+fi
 
 [[ -n "$(ls "${output_dir}"/*/ranked_0.pdb 2>/dev/null || true)" ]] || {
   echo "AlphaFold produced no ranked_0.pdb" >&2; exit 1; }

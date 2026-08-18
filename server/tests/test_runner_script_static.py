@@ -12,6 +12,9 @@ from pathlib import Path
 RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin" / "run.sh"
 OPENDDE_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "opendde" / "run.sh"
 MPNN_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "mpnn" / "run.sh"
+ALPHAFOLD_RUNNER_SCRIPT = (
+    Path(__file__).resolve().parents[1] / "docker" / "runners" / "alphafold" / "run.sh"
+)
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -65,7 +68,10 @@ def _run_with_manifest(script, input_file, output_dir, env, params=None):
         encoding="utf-8",
     )
     env["TASK_MANIFEST"] = str(manifest_path)
-    env["TASK_CONTEXT_SRC"] = str(SERVER_ROOT / "docker" / "runners" / "common" / "task_context.sh")
+    env.setdefault(
+        "TASK_CONTEXT_SRC",
+        str(SERVER_ROOT / "docker" / "runners" / "common" / "task_context.sh"),
+    )
     return subprocess.run(
         ["bash", str(script), "-i", str(manifest_path), "-o", str(output_dir)],
         env=env,
@@ -73,6 +79,57 @@ def _run_with_manifest(script, input_file, output_dir, env, params=None):
         capture_output=True,
         text=True,
     )
+
+
+def test_alphafold_runner_drains_final_stage_before_exit(tmp_path):
+    input_file = tmp_path / "input.fasta"
+    output_dir = tmp_path / "outputs"
+    alphafold_root = tmp_path / "alphafold"
+    fake_context = tmp_path / "task_context.sh"
+    fake_python = tmp_path / "fake-python"
+    delayed_translator = tmp_path / "delayed-stage.awk"
+    patterns = tmp_path / "alphafold.stages"
+    input_file.write_text(">test\nAAAA\n", encoding="utf-8")
+    output_dir.mkdir()
+    alphafold_root.mkdir()
+    fake_context.write_text(
+        '_parse_param() { printf "%s\\n" "$2"; }\n'
+        'primary_input() { printf "%s\\n" "$FAKE_PRIMARY_INPUT"; }\n',
+        encoding="utf-8",
+    )
+    fake_python.write_text(
+        "#!/bin/bash\n"
+        "set -e\n"
+        'for arg in "$@"; do case "$arg" in --output_dir=*) output_dir=${arg#*=} ;; esac; done\n'
+        'printf "Running model model_1\\n" >&2\n'
+        'mkdir -p "$output_dir/model"\n'
+        'printf "MODEL\\n" > "$output_dir/model/ranked_0.pdb"\n',
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    delayed_translator.write_text(
+        '{ print > "/dev/stderr"; system("sleep 0.2"); print "REVODESIGN_STAGE:modeling"; fflush() }\n',
+        encoding="utf-8",
+    )
+    patterns.write_text("modeling:Running model model_\n", encoding="utf-8")
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "ALPHAFOLD_PATH": str(alphafold_root),
+            "ALPHAFOLD_PYTHON": str(fake_python),
+            "ALPHAFOLD_STAGE_TRANSLATOR": str(delayed_translator),
+            "ALPHAFOLD_STAGE_PATTERNS": str(patterns),
+            "FAKE_PRIMARY_INPUT": str(input_file),
+            "TASK_CONTEXT_SRC": str(fake_context),
+            "TMPDIR": str(tmp_path),
+        }
+    )
+    completed = _run_with_manifest(ALPHAFOLD_RUNNER_SCRIPT, input_file, output_dir, env)
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.index("REVODESIGN_STAGE:modeling") < completed.stdout.index("AlphaFold complete.")
+    assert (output_dir / "task_finished").is_file()
 
 
 def test_opendde_runner_uses_writable_snapshot_copy_and_checks_outputs():

@@ -307,8 +307,8 @@ class SlurmJob(Job):
             last_stage = stage
             try:
                 self.stage_callback(stage)
-            except Exception as exc:  # surface, never mask status updates
-                logging.error("Stage callback failed for task %s: %s", self.task_id, exc)
+            except Exception:  # surface, never mask status updates
+                logging.exception("Stage callback failed for task %s", self.task_id)
 
         for line in iter(stream.readline, ""):
             self._stdout_lines.append(line)

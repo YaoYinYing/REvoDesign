@@ -258,26 +258,33 @@
   // Status pills are rendered once at load; poll the non-terminal ones so a
   // queued/running badge updates itself, and reload when a task finishes so
   // the results buttons and traces appear without a manual refresh.
+  var terminalStatuses = ["finished", "failed", "cancelled", "deleted", "deleted:finshed", "deleted:cancel"];
+  var statusPollInFlight = false;
   async function pollStatuses() {
+    if (statusPollInFlight) return;
+    statusPollInFlight = true;
     var pills = document.querySelectorAll(".status-pill[data-task-status]");
-    for (var index = 0; index < pills.length; index += 1) {
-      var pill = pills[index];
-      var status = pill.dataset.taskStatus;
-      if (status === "finished" || status === "failed" || status === "cancelled" || status === "deleted") continue;
-      try {
+    try {
+      for (var index = 0; index < pills.length; index += 1) {
+        var pill = pills[index];
+        var status = pill.dataset.taskStatus;
+        if (terminalStatuses.indexOf(status) !== -1) continue;
         var response = await A.authFetch("/compute/api/running/" + encodeURIComponent(pill.dataset.md5));
         var payload = await response.json().catch(function () { return {}; });
-        if (!response.ok || !payload.status || payload.status === status) continue;
+        if (!payload.status || payload.status === status) continue;
+        var isTerminal = terminalStatuses.indexOf(payload.status) !== -1;
+        if (!response.ok && !isTerminal) continue;
         var meta = getStatusMeta(payload.status);
         pill.textContent = meta.label;
         pill.className = "status-pill " + meta.css;
         pill.dataset.taskStatus = payload.status;
-        if (payload.status === "finished" || payload.status === "failed" || payload.status === "cancelled" || payload.status === "deleted") {
+        if (isTerminal) {
           window.location.reload();
           return;
         }
-      } catch (error) { /* transient — retry next tick */ }
-    }
+      }
+    } catch (error) { /* transient — retry next tick */ }
+    finally { statusPollInFlight = false; }
   }
   setInterval(pollStatuses, 15000);
 
