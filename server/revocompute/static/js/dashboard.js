@@ -207,7 +207,7 @@
             '</div>' +
           '</div>' +
           '<div class="task-status-tools">' +
-            '<span class="status-pill ' + meta.css + ' ' + traceClass + '"' + traceAttr + '>' + escapeHtml(meta.label) + tracePopover + '</span>' +
+            '<span class="status-pill ' + meta.css + ' ' + traceClass + '"' + traceAttr + ' data-md5="' + escapeHtml(task.md5) + '" data-task-status="' + escapeHtml(task.status) + '">' + escapeHtml(meta.label) + tracePopover + '</span>' +
             errorHelp +
           '</div>' +
         '</header>' +
@@ -254,6 +254,32 @@
       list.appendChild(card);
     });
   }
+
+  // Status pills are rendered once at load; poll the non-terminal ones so a
+  // queued/running badge updates itself, and reload when a task finishes so
+  // the results buttons and traces appear without a manual refresh.
+  async function pollStatuses() {
+    var pills = document.querySelectorAll(".status-pill[data-task-status]");
+    for (var index = 0; index < pills.length; index += 1) {
+      var pill = pills[index];
+      var status = pill.dataset.taskStatus;
+      if (status === "finished" || status === "failed" || status === "cancelled" || status === "deleted") continue;
+      try {
+        var response = await A.authFetch("/compute/api/running/" + encodeURIComponent(pill.dataset.md5));
+        var payload = await response.json().catch(function () { return {}; });
+        if (!response.ok || !payload.status || payload.status === status) continue;
+        var meta = getStatusMeta(payload.status);
+        pill.textContent = meta.label;
+        pill.className = "status-pill " + meta.css;
+        pill.dataset.taskStatus = payload.status;
+        if (payload.status === "finished" || payload.status === "failed" || payload.status === "cancelled" || payload.status === "deleted") {
+          window.location.reload();
+          return;
+        }
+      } catch (error) { /* transient — retry next tick */ }
+    }
+  }
+  setInterval(pollStatuses, 15000);
 
   function setActiveFilter(nextFilter) {
     state.filter = nextFilter;
