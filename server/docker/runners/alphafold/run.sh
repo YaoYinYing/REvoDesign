@@ -60,6 +60,8 @@ cd "${ALPHAFOLD_PATH:-/opt/alphafold}"
 # rewrites the stable ones into the stdout stage protocol while passing the
 # original lines through to the stderr log unchanged.  A FIFO makes the
 # translator an ordinary child that can be drained before the wrapper exits.
+# Python <3.9 block-buffers stderr into a pipe, so force unbuffered output to
+# publish each stage while AlphaFold is still running.
 stage_tmp=$(mktemp -d "${TMPDIR:-/tmp}/revodesign-alphafold-stage.XXXXXX")
 stage_fifo="${stage_tmp}/stderr"
 mkfifo "${stage_fifo}"
@@ -70,7 +72,7 @@ awk -f "${ALPHAFOLD_STAGE_TRANSLATOR:-/app/revocompute/stage_translate.awk}" \
   < "${stage_fifo}" >&1 &
 translator_pid=$!
 set +e
-"${ALPHAFOLD_PYTHON:-python3}" run_alphafold.py "${af_args[@]}" 2> "${stage_fifo}"
+PYTHONUNBUFFERED=1 "${ALPHAFOLD_PYTHON:-python3}" run_alphafold.py "${af_args[@]}" 2> "${stage_fifo}"
 alphafold_status=$?
 wait "${translator_pid}"
 translator_status=$?

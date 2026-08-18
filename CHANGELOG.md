@@ -58,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Server:
   - Result polling/viewers: terminal task states reload once without overlapping polls; pending result pages keep polling; Mol* teardown completes before iframe removal, stale teardown continuations cannot replace newer previews, and preview loaders remain visible.
   - AlphaFold stages: drain the stderr translator before wrapper exit and preserve both process statuses so final stage markers cannot be lost.
-  - SLURM stages: `srun -u` streams wrapper output live (the glibc-buffered pipe delivered stage markers only at job exit, so `run_stage` never recorded intermediates — and killed jobs lost them entirely).
+  - SLURM stages: `srun -u` and unbuffered AlphaFold stderr stream wrapper phases live, so `run_stage` records intermediates before job exit.
   - SLURM status: move allocated tasks from queued to running as soon as the wrapper publishes the real job ID, without waiting for scientific stage output.
   - Compute recovery: restarts preserve unstarted queued work, cancel only deployment-owned SLURM allocations, fully finalize orphans, and poll reconnected Docker jobs without blocking worker readiness.
   - RFdiffusion runner: redirect Hydra bookkeeping and generated schedule caches to the per-job writable `/tmp` filesystem under read-only container execution; lock task defaults to the pinned upstream inference configuration.
