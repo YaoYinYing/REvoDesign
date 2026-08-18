@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import sys
 
-from revocompute_ctl import PRIMARY_ENV_FILE, SERVER_ROOT
+from revocompute_ctl import PRIMARY_ENV_FILE
 from revocompute_ctl.compose import detect_compose_cmd
 from revocompute_ctl.env import EnvState
 from revocompute_ctl.steps import (
@@ -125,13 +125,13 @@ def resolve_env_file() -> str:
     return str(PRIMARY_ENV_FILE)
 
 
-def detect_executor(state: EnvState, env_file_exists: bool) -> tuple[bool, str]:
+def detect_executor(state: EnvState) -> tuple[bool, str]:
     """job_executor from the registry selects USE_SLURM (and the compose
-    override)."""
+    override).  config_dir() replicates the shell's CONFIG_DIR resolution —
+    env file, then the outer environment, then the checkout config."""
     from revocompute_ctl.registry import resolve_job_executor
 
-    config_root = state.config_dir() if env_file_exists else os.path.join(str(SERVER_ROOT), "config")
-    registry_file = os.path.join(config_root, "task_types.yaml")
+    registry_file = os.path.join(state.config_dir(), "task_types.yaml")
     executor = resolve_job_executor(registry_file)
     if executor == "slurm":
         state.runtime["SLURM_ENABLED"] = "true"
@@ -155,14 +155,15 @@ def main() -> None:
             file=sys.stderr,
         )
         raise SystemExit(1)
-    if flags.rollback and (flags.build_sif or flags.use_proxy or flags.use_proxy_from_env or flags.drain_minutes):
+    if flags.rollback and (
+        flags.build_sif or flags.use_proxy or flags.use_proxy_from_env or flags.drain_minutes or flags.dry_run
+    ):
         print("--rollback cannot be combined with --build-sif, --use-proxy, --drain, or --dry-run.", file=sys.stderr)
         raise SystemExit(1)
 
     env_file = resolve_env_file()
-    env_file_exists = os.path.isfile(env_file)
-    state = EnvState(env_file) if env_file_exists else EnvState(env_file, values={})
-    use_slurm, registry_file = detect_executor(state, env_file_exists)
+    state = EnvState(env_file) if os.path.isfile(env_file) else EnvState(env_file, values={})
+    use_slurm, registry_file = detect_executor(state)
     if not use_slurm and (flags.build_sif or os.environ.get("SLURM_ALLOWED_QUEUES")):
         print(f"SLURM flags require job_executor: slurm in {registry_file}", file=sys.stderr)
         raise SystemExit(1)
