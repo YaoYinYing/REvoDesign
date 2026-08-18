@@ -18,6 +18,8 @@ import mimetypes
 import os
 import re
 import shutil
+import subprocess
+import threading
 import time
 import zipfile
 from datetime import datetime
@@ -741,8 +743,10 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         if _task_is_terminal(md5sum):
             return
         stage_changed = stage != stage_state["current"]
+        is_first = stage_state.get("first")
+        logging.info("Stage callback for task %s: stage=%s changed=%s first=%s", md5sum, stage, stage_changed, is_first)
         stage_state["current"] = stage
-        if stage_state.get("first"):
+        if is_first:
             stage_state["first"] = False
             task_store.update_task(md5sum, status="running", run_stage=stage)
         elif stage_changed:
@@ -810,85 +814,96 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
 
 
 # ---------------------------------------------------------------------------
-# Orphaned-task recovery after server restart
+# Orphaned compute-resource recovery after worker restart
+#
+# A managed stack shutdown sweeps SLURM jobs before stopping the worker, but
+# an OOM, crash, or direct container restart bypasses that hook.  On worker
+# startup, fail those orphaned records and best-effort cancel their allocation.
+# Docker containers survive a worker restart and are reconnected instead.
 # ---------------------------------------------------------------------------
 
 
 def _recover_orphaned_tasks() -> int:
-    """Scan for running tasks whose Celery task was lost (e.g. Redis restart).
-
-    Docker containers are reconnected and polled inline.  SLURM jobs are
-    re-queued as lightweight polling tasks.
-    """
-    recovered = 0
+    """Resolve compute records whose owning Celery worker disappeared."""
+    handled = 0
     for task in task_store.list_tasks():
-        if task.get("status") != "running":
-            continue
-        container_id = str(task.get("container_id") or "")
-        slurm_job_id = str(task.get("slurm_job_id") or "")
-        if not container_id and not slurm_job_id:
+        if task.get("status") not in {"running", "queued"}:
             continue
         md5sum = task["md5sum"]
+        slurm_job_id = str(task.get("slurm_job_id") or "").strip()
+        container_id = str(task.get("container_id") or "")
+        if slurm_job_id:
+            cancellation_error = ""
+            scancel = shutil.which("scancel")
+            if scancel and slurm_job_id.isdigit():
+                try:
+                    subprocess.run([scancel, slurm_job_id], timeout=10, check=True)
+                except (OSError, subprocess.SubprocessError) as exc:
+                    cancellation_error = f"; scheduler cancellation could not be confirmed: {exc}"
+                    logging.warning("Recovery could not cancel SLURM job %s for %s: %s", slurm_job_id, md5sum, exc)
+            else:
+                cancellation_error = "; scheduler cancellation could not be attempted"
+            _record_failure(
+                md5sum,
+                task,
+                task.get("started_at") or time.time(),
+                str(task.get("run_stage") or ""),
+                f"SLURM task lost its worker{cancellation_error}",
+            )
+            handled += 1
+            continue
+        if not container_id and task.get("status") == "running":
+            _record_failure(
+                md5sum,
+                task,
+                task.get("started_at") or time.time(),
+                str(task.get("run_stage") or ""),
+                "Compute task lost its worker before recording a resource handle",
+            )
+            handled += 1
+            continue
+        if not container_id:
+            continue
         task_type = task.get("task_type", "gremlin")
         logging.info("Recovery: checking orphaned task %s", md5sum)
+        try:
+            from revocompute.job.runners.docker_runner import DockerJob
+            from revocompute.task_types import get as _gt
 
-        from revocompute.task_types import get as _gt
+            tt, runner = _gt(task_type)
+            job = DockerJob(md5sum, tt, runner, [], task["result_dir"])
+            if job.reconnect(container_id):
+                logging.info("Recovery: reconnected Docker %s for %s", container_id, md5sum)
+                threading.Thread(
+                    target=_poll_recovered_docker_job,
+                    args=(md5sum, task, tt, job),
+                    name=f"recover-{md5sum[:12]}",
+                    daemon=True,
+                ).start()
+                handled += 1
+            else:
+                _record_failure(
+                    md5sum,
+                    task,
+                    task.get("started_at") or time.time(),
+                    "",
+                    "Docker container not found after server restart",
+                )
+                handled += 1
+        except Exception as exc:  # pylint: disable=broad-except
+            logging.error("Recovery failed for Docker task %s: %s", md5sum, exc)
+            _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
+            handled += 1
+    return handled
 
-        if container_id:
-            try:
-                from revocompute.job.runners.docker_runner import DockerJob
 
-                tt, runner = _gt(task_type)
-                job = DockerJob(md5sum, tt, runner, [], task["result_dir"])
-                if job.reconnect(container_id):
-                    logging.info("Recovery: reconnected Docker %s for %s", container_id, md5sum)
-                    state = job.poll()
-                    _finalize_after_poll(md5sum, task, tt, state)
-                    recovered += 1
-                else:
-                    _record_failure(
-                        md5sum,
-                        task,
-                        task.get("started_at") or time.time(),
-                        "",
-                        "Docker container not found after server restart",
-                    )
-            except Exception as exc:
-                logging.error("Recovery failed for Docker task %s: %s", md5sum, exc)
-                _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
-
-        elif slurm_job_id:
-            try:
-                from revocompute.job.runners.slurm_runner import SlurmJob
-
-                tt, runner = _gt(task_type)
-                job = SlurmJob(md5sum, tt, runner, [], task["result_dir"])
-                slurm_state = job.reconnect(slurm_job_id)
-                if slurm_state is True:
-                    logging.info("Recovery: SLURM job %s still running for %s, re-queuing poll", slurm_job_id, md5sum)
-                    run_compute_task.apply_async(
-                        args=[md5sum], kwargs={"task_type": task_type, "recover_slurm": slurm_job_id}
-                    )
-                    recovered += 1
-                elif slurm_state is None:
-                    # Unknown state (sacct missing or query failed): the job
-                    # may still be running on the cluster.  Leave the task
-                    # running — do not record a failure and do not clean up
-                    # its input workspace under a live job.
-                    logging.warning(
-                        "Recovery: SLURM job %s state unknown for %s; leaving task running", slurm_job_id, md5sum
-                    )
-                else:
-                    _record_failure(
-                        md5sum,
-                        task,
-                        task.get("started_at") or time.time(),
-                        "",
-                        "SLURM job not found after server restart",
-                    )
-            except Exception as exc:
-                logging.error("Recovery failed for SLURM task %s: %s", md5sum, exc)
-    return recovered
+def _poll_recovered_docker_job(md5sum, task, tt, job) -> None:
+    """Poll and finalize a reconnected container without delaying worker readiness."""
+    try:
+        _finalize_after_poll(md5sum, task, tt, job.poll())
+    except Exception as exc:  # pylint: disable=broad-except
+        logging.exception("Recovery polling failed for Docker task %s", md5sum)
+        _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
 
 
 def _finalize_after_poll(md5sum, task, tt, state):
@@ -921,16 +936,18 @@ def _finalize_after_poll(md5sum, task, tt, state):
 
 
 try:
+    from celery.signals import worker_ready
 
-    @celery.on_after_configure.connect
-    def _setup_recovery_signal(sender, **kwargs):  # noqa: F811
-        from celery.signals import worker_ready
-
-        @worker_ready.connect
-        def _on_worker_ready(sender, **kwargs):
+    @worker_ready.connect
+    def _on_worker_ready(sender, **kwargs):
+        try:
             count = _recover_orphaned_tasks()
             if count:
-                logging.info("Recovered %d orphaned task(s)", count)
+                logging.info("Handled %d orphaned task(s)", count)
+            else:
+                logging.info("Recovery: no orphaned tasks found")
+        except Exception:  # boot-time recovery must never die silently
+            logging.exception("Recovery pass failed")
 
 except ImportError:
     pass  # celery.signals not available in all environments
@@ -945,6 +962,33 @@ except ImportError:
 def run_compute_task(self, md5sum: str, task_type: str = "gremlin", params: dict | None = None):
     """Compute task — dispatched by task_type."""
     return _execute_compute_task(md5sum, task_type, params)
+
+
+@celery.task(name="cancel_compute_resources", bind=True, max_retries=0)
+def cancel_compute_resources(self, slurm_job_id: str | None = None, container_id: str | None = None):
+    """Kill a task's compute resources from the worker, which is the only
+    container with SLURM tooling (and the Docker socket) mounted.  The web
+    process cannot scancel or docker-stop directly."""
+    if slurm_job_id:
+        scancel = shutil.which("scancel")
+        if not scancel:
+            logging.warning("scancel not found; cannot cancel SLURM job %s", slurm_job_id)
+        else:
+            try:
+                subprocess.run([scancel, str(slurm_job_id)], timeout=10, check=True)
+                logging.info("Cancelled SLURM job %s", slurm_job_id)
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.warning("Failed to scancel SLURM job %s: %s", slurm_job_id, exc)
+    if container_id:
+        docker_executable = shutil.which("docker")
+        if not docker_executable:
+            logging.warning("docker not found; cannot stop container %s", container_id)
+        else:
+            try:
+                subprocess.run([docker_executable, "stop", str(container_id)], timeout=15, check=True)
+                logging.info("Stopped Docker container %s", container_id)
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.warning("Failed to stop Docker container %s: %s", container_id, exc)
 
 
 @celery.task(name="build_results_archive", bind=True, max_retries=0)

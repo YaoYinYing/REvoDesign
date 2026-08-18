@@ -57,7 +57,7 @@ RUN groupadd -f -r ${RUNNER_GROUP} -g ${RUNNER_GID} 2>/dev/null || true && \
     (id -u ${RUNNER_USERNAME} >/dev/null 2>&1 && usermod -u ${RUNNER_UID} -g ${RUNNER_GID} ${RUNNER_USERNAME}) || \
     useradd -o -r -g ${RUNNER_GROUP} -u ${RUNNER_UID} ${RUNNER_USERNAME}
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute /opt/alphafold
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/alphafold/run.sh ./docker/runners/common/task_context.sh ./docker/runners/common/task_context.py /app/revocompute/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/alphafold/run.sh ./docker/runners/alphafold/alphafold.stages ./docker/runners/common/task_context.sh ./docker/runners/common/task_context.py ./docker/runners/common/stage_translate.awk /app/revocompute/
 
 WORKDIR /app/revocompute/
 ENV RUNNER_USERNAME=${RUNNER_USERNAME} \

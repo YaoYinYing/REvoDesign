@@ -31,6 +31,7 @@ html, body {
 }
 
 #shellState {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -42,6 +43,29 @@ html, body {
   font: 600 0.82rem/1.4 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0.01em;
   text-align: center;
+}
+
+/* Ambient breathing glow behind the ring — the first-load signature. */
+#shellState[data-state="loading"]::after {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 14rem;
+  height: 14rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--shell-accent) 16%, transparent) 0%, transparent 68%);
+  content: "";
+  transform: translate(-50%, -50%);
+  animation: shell-breathe 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes shell-breathe {
+  0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.92); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #shellState[data-state="loading"]::after { animation: none; opacity: 0.7; }
 }
 
 #shellState::before {

@@ -9,6 +9,8 @@ from __future__ import annotations
 import shutil
 import subprocess
 from dataclasses import replace
+from io import StringIO
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -176,27 +178,6 @@ def test_build_srun_args_gpu_task_uses_configured_gres(tmp_path):
 # -- apptainer invocation -----------------------------------------------------
 
 
-def test_reconnect_returns_none_when_sacct_missing(monkeypatch, tmp_path):
-    """Unknown SLURM job state is tri-state — missing sacct must not read as
-    'job finished' (recovery keeps the task running and its workspace)."""
-    from revocompute.job.runners.slurm_runner import SlurmJob
-
-    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
-    monkeypatch.setattr(shutil, "which", lambda _name: None)
-    assert job.reconnect("12345") is None
-
-
-def test_reconnect_returns_none_when_sacct_fails(monkeypatch, tmp_path):
-    from revocompute.job.runners.slurm_runner import SlurmJob
-
-    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
-    monkeypatch.setattr(shutil, "which", lambda _name: "/usr/bin/sacct")
-    monkeypatch.setattr(
-        subprocess,
-        "run",
-        lambda *a, **kw: type("R", (), {"returncode": 1, "stdout": ""})(),
-    )
-    assert job.reconnect("12345") is None
 
 
 def test_render_apptainer_binds_and_env(tmp_path):
@@ -311,6 +292,27 @@ def test_submit_launches_srun(tmp_path):
         assert jid == "srun-12345"
         args = mock_popen.call_args[0][0]
         assert args[0] == "srun"
+
+
+def test_job_id_capture_emits_first_stage_as_liveness_signal(tmp_path):
+    stages_seen = []
+    job = SlurmJob(
+        "task-1",
+        _make_task_type(),
+        _make_runner(),
+        _make_entities(),
+        str(tmp_path / "out"),
+        stage_callback=stages_seen.append,
+    )
+    stdout = StringIO("REVODESIGN_JOB_ID=4154\n" "REVODESIGN_STAGE:gremlin\n")
+    job._process = SimpleNamespace(stdout=stdout)
+
+    job._read_stdout()
+
+    assert job._slurm_job_id == "4154"
+    assert job._job_id_event.is_set()
+    assert stages_seen == ["hhblits", "gremlin"]
+    assert stdout.closed
 
 
 def test_poll_returns_completed_on_exit_zero(tmp_path):

@@ -31,10 +31,11 @@ class SlurmJob(Job):
     """A compute job submitted via SLURM + Apptainer.
 
     ``submit()`` launches ``srun`` via ``subprocess.Popen`` and returns
-    the real SLURM job id (captured from srun's stderr banner), falling
-    back to a pid-based id if the banner never arrives.  ``poll()`` waits
-    for the process to exit and returns ``COMPLETED`` or ``FAILED`` based
-    on the exit code.
+    the real SLURM job id, captured from the allocation wrapper's first
+    stdout line or an ``srun`` stderr banner, and temporarily falls back to
+    a pid-based id if neither arrives during submission. ``poll()`` waits for
+    the process to exit and returns ``COMPLETED`` or ``FAILED`` based on the
+    exit code.
     """
 
     def __init__(
@@ -62,35 +63,6 @@ class SlurmJob(Job):
         self._job_id_event = threading.Event()
         self._resolved_resource_policy = resource_policy
 
-    def reconnect(self, slurm_job_id: str) -> bool | None:
-        """Check whether a SLURM job is still alive after a server restart.
-
-        We cannot re-attach the srun subprocess, but we can query sacct.
-        Returns ``True`` when the job is still active, ``False`` when sacct
-        says it is no longer active, and ``None`` when the state cannot be
-        determined (sacct missing, query failed, or timed out).  Callers must
-        treat ``None`` as unknown — not as failure — because the job may
-        still be running on the cluster.
-        """
-        self._slurm_job_id = slurm_job_id
-        self._job_id_event.set()
-        sacct = shutil.which("sacct")
-        if not sacct:
-            return None
-        try:
-            result = subprocess.run(
-                [sacct, "-j", slurm_job_id, "--noheader", "-o", "State", "-P"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            if result.returncode != 0:
-                return None
-            state = (result.stdout or "").strip().split("\n")[0].strip()
-            return state in ("RUNNING", "PENDING", "CONFIGURING")
-        except Exception:
-            return None
-
     # -- Job ABC -------------------------------------------------------------
 
     def submit(self) -> str:
@@ -114,9 +86,9 @@ class SlurmJob(Job):
         self._stdout_thread.start()
         self._stderr_thread.start()
 
-        # srun prints "srun: job NNNN queued and waiting for resources" on
-        # stderr right after submitting — grab the real job id so scancel
-        # works.  Fall back to the pid-based id if the banner never arrives.
+        # Capture the real id from the allocation wrapper's first stdout line
+        # or srun's stderr banner. Fall back to the pid-based id if neither
+        # arrives during submission.
         self._job_id_event.wait(timeout=5.0)
         if self._slurm_job_id:
             self._job_id = self._slurm_job_id
@@ -239,7 +211,15 @@ class SlurmJob(Job):
         return path
 
     def _render_wrapper(self) -> str:
-        lines = ["#!/bin/bash", "set -euo pipefail", ""]
+        lines = [
+            "#!/bin/bash",
+            "set -euo pipefail",
+            "",
+            # The allocation carries the authoritative job id; publish it on
+            # stdout first so the runner never depends on srun's stderr
+            # banner (which SLURM 19.05 does not always print in time).
+            'echo "REVODESIGN_JOB_ID=${SLURM_JOB_ID}"',
+        ]
         self._render_input_staging(lines)
         lines.append("")
         self._render_apptainer_invocation(lines)
@@ -319,16 +299,34 @@ class SlurmJob(Job):
         stream = self._process.stdout
         last_stage: str | None = None
         markers = self.tt.stage_markers
+
+        def emit_stage(stage: str) -> None:
+            nonlocal last_stage
+            if stage == last_stage:
+                return
+            last_stage = stage
+            try:
+                self.stage_callback(stage)
+            except Exception:  # surface, never mask status updates
+                logging.exception("Stage callback failed for task %s", self.task_id)
+
         for line in iter(stream.readline, ""):
             self._stdout_lines.append(line)
+            if line.startswith("REVODESIGN_JOB_ID=") and self._slurm_job_id is None:
+                candidate = line.split("=", 1)[1].strip()
+                if candidate.isdigit():
+                    self._slurm_job_id = candidate
+                    self._job_id_event.set()
+                    if markers and self.stage_callback:
+                        # The allocation is live before the scientific tool
+                        # prints its first marker.  Emit the first declared
+                        # stage as a liveness signal so queued tasks become
+                        # running as soon as the wrapper starts.
+                        emit_stage(next(iter(markers)))
             if markers and self.stage_callback:
                 stage = extract_stage_from_log_line(line, markers)
-                if stage and stage != last_stage:
-                    last_stage = stage
-                    try:
-                        self.stage_callback(stage)
-                    except Exception:
-                        pass
+                if stage:
+                    emit_stage(stage)
         stream.close()
 
     def _read_stderr(self) -> None:

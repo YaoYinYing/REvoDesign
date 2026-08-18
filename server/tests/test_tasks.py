@@ -160,6 +160,28 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert "buildArtifactTree" in script
 
 
+def test_result_status_polling_handles_terminal_and_pending_responses():
+    dashboard = (SERVER_PACKAGE / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
+    results = (SERVER_PACKAGE / "static" / "js" / "task-results.js").read_text(encoding="utf-8")
+    terminal_statuses = '["finished", "failed", "cancelled", "deleted", "deleted:finshed", "deleted:cancel"]'
+
+    assert terminal_statuses in dashboard
+    assert terminal_statuses in results
+    assert "if (statusPollInFlight) return;" in dashboard
+    assert "if (!response.ok && !isTerminal) continue;" in dashboard
+    assert 'A.authFetch("/compute/api/running/"' in results
+    assert "if (!pollResponse.ok && !isTerminal) return;" in results
+    assert results.index("window.__revocomputeStatusPoll = setInterval") < results.index(
+        "if (!response.ok || !Array.isArray(payload.artifacts))"
+    )
+    disposal = results.index("await disposeActiveViewer();")
+    assert disposal < results.index("if (isStale(generation)) return;", disposal)
+    py2dmol = results.index('if (structureViewer === "py2dmol")')
+    py2dmol_render = results.index("await renderPy2DmolFallback", py2dmol)
+    assert py2dmol < results.index("stage.replaceChildren();", py2dmol) < py2dmol_render
+    assert py2dmol < results.index("stage.appendChild(structureViewerBar(artifact));", py2dmol) < py2dmol_render
+
+
 def test_execution_logs_are_diagnostic_text_artifacts_not_main_results():
     runtime = (SERVER_PACKAGE / "task_runtime.py").read_text(encoding="utf-8")
     results = (SERVER_PACKAGE / "static" / "js" / "task-results.js").read_text(encoding="utf-8")
@@ -476,6 +498,94 @@ def test_single_stage_slurm_task_transitions_from_queued_to_running(monkeypatch,
     module.run_compute_task(md5sum, "opendde", {})
 
     assert observed_statuses == ["queued", "running", "finished"]
+
+
+def test_worker_recovery_cancels_slurm_orphans_and_preserves_unstarted_queue(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    runtime = module.task_runtime
+    tasks = [
+        {
+            "md5sum": "a" * 32,
+            "status": "running",
+            "slurm_job_id": "4154",
+            "run_stage": "design",
+            "started_at": 123.0,
+        },
+        {"md5sum": "b" * 32, "status": "running", "started_at": 456.0},
+        {"md5sum": "c" * 32, "status": "queued"},
+        {"md5sum": "d" * 32, "status": "pending"},
+    ]
+    failures = []
+    cancellations = []
+
+    monkeypatch.setattr(runtime.task_store, "list_tasks", lambda: tasks)
+    monkeypatch.setattr(runtime.shutil, "which", lambda command: f"/usr/bin/{command}")
+    monkeypatch.setattr(runtime.subprocess, "run", lambda args, **kwargs: cancellations.append((args, kwargs)))
+    monkeypatch.setattr(runtime, "_record_failure", lambda *args: failures.append(args))
+
+    assert runtime._recover_orphaned_tasks() == 2
+    assert cancellations == [(["/usr/bin/scancel", "4154"], {"timeout": 10, "check": True})]
+    assert [failure[0] for failure in failures] == ["a" * 32, "b" * 32]
+    assert failures[0][3:] == ("design", "SLURM task lost its worker")
+    assert failures[1][3:] == ("", "Compute task lost its worker before recording a resource handle")
+
+
+def test_worker_recovery_polls_reconnected_docker_outside_startup(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    runtime = module.task_runtime
+    from revocompute import task_types
+    from revocompute.job.runners import docker_runner
+
+    task = {
+        "md5sum": "e" * 32,
+        "status": "running",
+        "container_id": "container-1",
+        "task_type": "gremlin",
+        "result_dir": str(tmp_path / "result"),
+    }
+    started_threads = []
+    poll_calls = []
+
+    class FakeDockerJob:
+        def __init__(self, *args):
+            del args
+
+        def reconnect(self, container_id):
+            return container_id == "container-1"
+
+        def poll(self):
+            poll_calls.append(True)
+            return runtime.JobState.COMPLETED
+
+    class FakeThread:
+        def __init__(self, *, target, args, name, daemon):
+            self.target = target
+            self.args = args
+            self.name = name
+            self.daemon = daemon
+
+        def start(self):
+            started_threads.append(self)
+
+    monkeypatch.setattr(runtime.task_store, "list_tasks", lambda: [task])
+    monkeypatch.setattr(task_types, "get", lambda task_type: (object(), object()))
+    monkeypatch.setattr(docker_runner, "DockerJob", FakeDockerJob)
+    monkeypatch.setattr(runtime.threading, "Thread", FakeThread)
+
+    assert runtime._recover_orphaned_tasks() == 1
+    assert poll_calls == []
+    assert len(started_threads) == 1
+    assert started_threads[0].target is runtime._poll_recovered_docker_job
+    assert started_threads[0].name == "recover-eeeeeeeeeeee"
+    assert started_threads[0].daemon is True
 
 
 def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, tmp_path):

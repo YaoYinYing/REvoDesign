@@ -110,6 +110,7 @@ from revocompute.task_runtime import (
     _task_zip_path,
     _virtual_upload_path,
     build_results_archive,
+    cancel_compute_resources,
     format_times,
     format_walltime,
     run_compute_task,
@@ -1146,29 +1147,13 @@ def cancel_task(md5sum):
             400,
         )
 
-    slurm_job_id = task.get("slurm_job_id")
-    if slurm_job_id:
-        scancel = shutil.which("scancel")
-        if not scancel:
-            logging.warning("scancel not found; cannot cancel SLURM job %s", slurm_job_id)
-        else:
-            try:
-                subprocess.run([scancel, str(slurm_job_id)], timeout=10, check=True)
-                logging.info("Cancelled SLURM job %s for task %s", slurm_job_id, md5sum)
-            except Exception as exc:  # pylint: disable=broad-except
-                logging.warning("Failed to scancel SLURM job %s: %s", slurm_job_id, exc)
-
-    container_id = task.get("container_id")
-    if container_id:
-        docker = shutil.which("docker")
-        if not docker:
-            logging.warning("docker not found; cannot stop container %s", container_id)
-        else:
-            try:
-                subprocess.run([docker, "stop", str(container_id)], timeout=15, check=True)
-                logging.info("Stopped Docker container %s for task %s", container_id, md5sum)
-            except Exception as exc:  # pylint: disable=broad-except
-                logging.warning("Failed to stop container %s: %s", container_id, exc)
+    # SLURM tooling and the Docker socket live only in the worker container;
+    # the web process delegates the kill there.  The task record flips to
+    # cancelled immediately either way.
+    cancel_compute_resources.delay(
+        slurm_job_id=str(task["slurm_job_id"]) if task.get("slurm_job_id") else None,
+        container_id=str(task["container_id"]) if task.get("container_id") else None,
+    )
 
     celery_id = task.get("celery_task_id")
     if celery_id:

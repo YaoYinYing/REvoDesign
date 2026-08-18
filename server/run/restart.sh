@@ -1010,10 +1010,53 @@ cmd_up() {
   print_admin_logins
 }
 
+# Kill and mark every in-flight SLURM task before the worker dies.  The
+# worker owns the task database and mounted SLURM clients, so stopping it
+# without this sweep can leave allocations and task records orphaned.
+pre_stop_sweep_slurm() {
+  if [[ "${USE_SLURM}" != "1" ]]; then return 0; fi
+  # Read only this deployment's persisted allocation IDs, then cancel and
+  # finalize through the worker, which owns the task DB and SLURM clients.
+  local jobs=()
+  # shellcheck disable=SC2046
+  mapfile -t jobs < <("${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec -T worker python3 - <<'PY'
+from revocompute.task_runtime import task_store
+for task in task_store.list_tasks():
+    job_id = str(task.get("slurm_job_id") or "").strip()
+    if task.get("status") in {"queued", "running"} and job_id.isdigit():
+        print(job_id)
+PY
+)
+  if (( ${#jobs[@]} )); then
+    echo "Cancelling this deployment's in-flight SLURM jobs: ${jobs[*]}"
+    # shellcheck disable=SC2046
+    "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec -T worker scancel "${jobs[@]}" || true
+  fi
+  echo "Marking in-flight tasks failed before stopping the stack..."
+  # shellcheck disable=SC2046
+  "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec -T worker python3 - <<'PY' || true
+import time
+from revocompute.task_runtime import _record_failure, task_store
+for task in task_store.list_tasks():
+    if task.get("status") in {"queued", "running"}:
+        _record_failure(
+            task["md5sum"],
+            task,
+            task.get("started_at") or time.time(),
+            str(task.get("run_stage") or ""),
+            "Cancelled by server restart",
+        )
+PY
+}
+
 cmd_down() {
   require_env_file
+  set -a
+  source "${ENV_FILE}"
+  set +a
   ensure_docker_gid
   resolve_runner_identity
+  pre_stop_sweep_slurm
   echo "Stopping services via docker compose..."
   "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" down
 }

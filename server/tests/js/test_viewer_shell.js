@@ -26,6 +26,7 @@ async function main() {
   var host = fakeNode("div");
   host.hidden = true;
   var reports = [];
+  var teardownEvents = [];
   var listeners = {};
   var loadedStructure = null;
   var loadedStructureCount = 0;
@@ -38,7 +39,10 @@ async function main() {
   var componentB = { id: "component-b" };
   var parentWindow = {
     origin: "https://revocompute.example",
-    postMessage: function (payload, targetOrigin) { reports.push({ payload: payload, targetOrigin: targetOrigin }); }
+    postMessage: function (payload, targetOrigin) {
+      reports.push({ payload: payload, targetOrigin: targetOrigin });
+      if (payload.type === "disposed") teardownEvents.push("reported");
+    }
   };
   var document = {
     head: fakeNode("head"),
@@ -68,7 +72,7 @@ async function main() {
           layoutShowControls = options.layoutShowControls;
           viewerPlugin = {
             clear: async function () {},
-            dispose: function () {},
+            dispose: function () { teardownEvents.push("disposed"); },
             canvas3d: {
               setProps: function (props) { canvasBackground = props.renderer.backgroundColor; }
             },
@@ -88,7 +92,10 @@ async function main() {
                 selection: {
                   events: {
                     changed: {
-                      subscribe: function (handler) { selectionChanged.push(handler); return { unsubscribe: function () {} }; }
+                      subscribe: function (handler) {
+                        selectionChanged.push(handler);
+                        return { unsubscribe: function () { teardownEvents.push("unsubscribed"); } };
+                      }
                     }
                   },
                   getLoci: function (structure) {
@@ -261,6 +268,20 @@ async function main() {
   }
   if (!reports.some(function (entry) { return entry.payload.type === "ready" && entry.payload.requestId === "probe-2"; })) {
     throw new Error("warm shell did not report readiness for the second structure");
+  }
+  // Disposal acknowledgment: the shell must report "disposed" after teardown
+  // so the parent can detach the iframe only once cleanup completed.
+  listeners.message({
+    source: parentWindow,
+    origin: "https://revocompute.example",
+    data: { type: "dispose" }
+  });
+  await new Promise(function (resolve) { setTimeout(resolve, 0); });
+  if (!reports.some(function (entry) { return entry.payload.type === "disposed"; })) {
+    throw new Error("shell did not acknowledge disposal");
+  }
+  if (teardownEvents.join(",") !== "unsubscribed,disposed,reported") {
+    throw new Error("shell reported disposal before teardown: " + teardownEvents.join(","));
   }
   console.log("viewer shell message contract passed");
 }

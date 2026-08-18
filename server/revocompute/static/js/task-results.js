@@ -22,6 +22,13 @@
   var structureHolder = null;
   var warmPending = {};
   var warmListenerInstalled = false;
+  // Downloaded structure texts, keyed by artifact path, so switching back to
+  // an already-viewed structure skips the network fetch entirely. Bounded:
+  // at most 3 files and 60 MB total.
+  var structureTextCache = new Map();
+  var structureTextCacheBytes = 0;
+  var STRUCTURE_CACHE_MAX_FILES = 3;
+  var STRUCTURE_CACHE_MAX_BYTES = 60 * 1024 * 1024;
   var viewRegistry = new window.REvoComputePlugins.PluginRegistry("result view");
   var MOLSTAR_THEME_COOKIE = "revodesign-molstar-theme";
   // Mol* runs inside the isolated /compute/viewer-shell iframe (its bundle
@@ -76,17 +83,38 @@
   }
 
   function disposeActiveViewer() {
-    if (warmMolstar) {
-      try { postToShell(warmMolstar.frame, { type: "dispose" }); } catch (e) { /* frame gone */ }
-      warmMolstar.frame.remove();
-      warmMolstar = null;
-    }
+    var frame = warmMolstar ? warmMolstar.frame : null;
+    warmMolstar = null;
     if (activeMolstar) activeMolstar = null;
     Object.keys(warmPending).forEach(function (key) {
       var pending = warmPending[key];
       clearTimeout(pending.timer);
       if (pending.reject) { try { pending.reject(new Error("Viewer disposed")); } catch (e) { /* already settled */ } }
       delete warmPending[key];
+    });
+    if (!frame) return Promise.resolve();
+    // Give the shell a moment to run its own teardown (selection unsubscribe
+    // + plugin.dispose) before the iframe is detached; the shell acknowledges
+    // with a "disposed" message, and a 2s timeout guarantees the frame never
+    // lingers when the shell is already gone.
+    return new Promise(function (resolve) {
+      var removed = false;
+      var timer = null;
+      var removeFrame = function () {
+        if (removed) return;
+        removed = true;
+        clearTimeout(timer);
+        window.removeEventListener("message", onDisposed);
+        frame.remove();
+        resolve();
+      };
+      var onDisposed = function (event) {
+        if (removed || event.source !== frame.contentWindow || !event.data || event.data.type !== "disposed") return;
+        removeFrame();
+      };
+      timer = setTimeout(removeFrame, 2000);
+      window.addEventListener("message", onDisposed);
+      try { postToShell(frame, { type: "dispose" }); } catch (e) { removeFrame(); }
     });
   }
 
@@ -287,20 +315,68 @@
     return warmFrame;
   }
 
+  // The warm Mol* iframe lives inside the holder and must survive surface
+  // clears: clearing it detaches the frame, whose contentWindow then reads
+  // null on the next postMessage ("Cannot read properties of null").
+  function clearSurfacePreservingWarm(surface) {
+    if (!warmMolstar || warmMolstar.frame.parentNode !== surface) {
+      surface.replaceChildren();
+      return;
+    }
+    Array.from(surface.children).forEach(function (child) {
+      if (child !== warmMolstar.frame) child.remove();
+    });
+  }
+
+  function showLoading(surface, label) {
+    var box = document.createElement("div");
+    box.className = "preview-loading";
+    box.setAttribute("role", "status");
+    box.setAttribute("aria-live", "polite");
+    var bars = document.createElement("div");
+    bars.className = "preview-loading-bars";
+    for (var index = 0; index < 3; index += 1) bars.appendChild(document.createElement("span"));
+    var text = document.createElement("p");
+    text.className = "preview-loading-label";
+    text.textContent = label || "Loading preview…";
+    box.append(bars, text);
+    if (warmMolstar && warmMolstar.frame.parentNode === surface) surface.insertBefore(box, warmMolstar.frame);
+    else surface.appendChild(box);
+    return box;
+  }
+
   async function previewStructure(artifact, stage) {
     var generation = previewHost.generation;
-    var response = await A.authFetch(artifact.url);
-    if (isStale(generation)) return;
-    if (!response.ok) throw new Error("Structure download failed (HTTP " + response.status + ")");
-    var structureText = await response.text();
-    if (isStale(generation)) return;
+    var cached = structureTextCache.get(artifact.path);
+    var structureText = cached || null;
+    if (!structureText) {
+      var response = await A.authFetch(artifact.url);
+      if (isStale(generation)) return;
+      if (!response.ok) throw new Error("Structure download failed (HTTP " + response.status + ")");
+      structureText = await response.text();
+      if (isStale(generation)) return;
+      // Bounded cache: evict oldest first while over the file or byte budget.
+      structureTextCache.set(artifact.path, structureText);
+      structureTextCacheBytes += structureText.length;
+      while (structureTextCache.size > STRUCTURE_CACHE_MAX_FILES || structureTextCacheBytes > STRUCTURE_CACHE_MAX_BYTES) {
+        var oldest = structureTextCache.keys().next().value;
+        structureTextCacheBytes -= structureTextCache.get(oldest).length;
+        structureTextCache.delete(oldest);
+      }
+    }
     var surface = structureHolder || stage;
-    surface.replaceChildren();
-    surface.appendChild(structureViewerBar(artifact));
+    clearSurfacePreservingWarm(surface);
+    var bar = structureViewerBar(artifact);
+    // Keep the toolbar above the preserved warm iframe (appending would push
+    // the controls below the 34–48rem-tall canvas).
+    if (warmMolstar && warmMolstar.frame.parentNode === surface) surface.insertBefore(bar, warmMolstar.frame);
+    else surface.appendChild(bar);
 
     if (structureViewer === "py2dmol") {
       stage.hidden = false;
       if (structureHolder) structureHolder.hidden = true;
+      stage.replaceChildren();
+      stage.appendChild(structureViewerBar(artifact));
       try {
         await renderPy2DmolFallback(structureText, artifact, stage, generation, new Error("User selected alpha-trace viewer"));
         if (isStale(generation)) return;
@@ -316,8 +392,18 @@
       return;
     }
 
-    try { await renderMolstar(structureText, artifact, surface, generation); }
+    // Cached swaps resolve almost instantly; a loading box would only flash.
+    var loading = cached ? null : showLoading(surface, "Loading structure…");
+    try {
+      await renderMolstar(structureText, artifact, surface, generation);
+      if (loading) loading.remove();
+    }
     catch (error) {
+      if (loading) loading.remove();
+      if (isStale(generation)) return;
+      // A dead warm frame must not poison the next pick: dispose it so the
+      // retry cold-starts a fresh shell.
+      await disposeActiveViewer();
       if (isStale(generation)) return;
       surface.replaceChildren();
       surface.appendChild(structureViewerBar(artifact));
@@ -496,9 +582,9 @@
       stage.hidden = true;
       structureHolder.hidden = false;
     }
-    stage.innerHTML = '<p class="preview-message">Loading preview…</p>';
     try {
       stage.replaceChildren();
+      showLoading(stage, "Loading preview…");
       await previewHost.render(artifact);
     } catch (error) {
       stage.innerHTML = '<p class="preview-message"></p>';
@@ -691,12 +777,40 @@
   }
 
   async function loadResults() {
-    disposeActiveViewer();
+    await disposeActiveViewer();
+    structureTextCache.clear();
+    structureTextCacheBytes = 0;
     if (structureHolder) structureHolder.hidden = true;
     var response = await A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5));
     var payload = await response.json().catch(function () { return {}; });
     document.getElementById("resultStatus").textContent = payload.status || task.status;
+    // Status is set once at load; poll while the task is pending so a
+    // queued/running page updates itself and reloads when results land.
+    if (window.__revocomputeStatusPoll) clearInterval(window.__revocomputeStatusPoll);
+    var initialStatus = payload.status || task.status;
+    var terminalStatuses = ["finished", "failed", "cancelled", "deleted", "deleted:finshed", "deleted:cancel"];
+    var statusPollInFlight = false;
+    if (terminalStatuses.indexOf(initialStatus) === -1) {
+      window.__revocomputeStatusPoll = setInterval(async function () {
+        if (statusPollInFlight) return;
+        statusPollInFlight = true;
+        try {
+          var pollResponse = await A.authFetch("/compute/api/running/" + encodeURIComponent(task.md5));
+          var pollPayload = await pollResponse.json().catch(function () { return {}; });
+          var isTerminal = terminalStatuses.indexOf(pollPayload.status) !== -1;
+          if (!pollResponse.ok && !isTerminal) return;
+          var statusEl = document.getElementById("resultStatus");
+          if (statusEl && pollPayload.status) statusEl.textContent = pollPayload.status;
+          if (isTerminal) {
+            clearInterval(window.__revocomputeStatusPoll);
+            window.location.reload();
+          }
+        } catch (error) { /* transient network hiccup — retry next tick */ }
+        finally { statusPollInFlight = false; }
+      }, 15000);
+    }
     if (!response.ok || !Array.isArray(payload.artifacts)) {
+      if (response.ok && terminalStatuses.indexOf(initialStatus) === -1) return;
       throw new Error(payload.message || "Results are not available yet");
     }
     artifacts = payload.artifacts;

@@ -1170,9 +1170,10 @@ job is enqueued.
 
 ### 13.7 slurm_job_id Persistence
 
-The SLURM job ID (`srun-<pid>`) is stored in the `slurm_job_id` column of
-the tasks table.  When a user cancels a running SLURM task, the web process
-calls `scancel` with this ID before terminating the `srun` process.
+The allocation wrapper writes `REVODESIGN_JOB_ID=<numeric-id>` as its first
+stdout line. The worker stores that real SLURM ID in the `slurm_job_id` column
+of the tasks table so cancellation and restart recovery can address the
+allocation directly.
 
 ### 13.8 Live Output
 
@@ -1184,12 +1185,14 @@ Docker runner's live progress behaviour.
 ### 13.9 Task States
 
 SLURM tasks use an additional `queued` status:
-- **`queued`** — `srun` is waiting for a SLURM allocation (resource contention)
-- **`running`** — first `REVODESIGN_STAGE:` marker received, job is executing
 
-This transition happens via the stage callback: when the first
-`REVODESIGN_STAGE:` line appears on stdout, the status moves from `queued`
-to `running`.
+- **`queued`** — `srun` is waiting for a SLURM allocation (resource contention)
+- **`running`** — the allocation wrapper has started on a compute node
+
+When the worker captures the wrapper's numeric job-ID line, it invokes the
+stage callback with the first declared stage as a liveness signal. Later
+`REVODESIGN_STAGE:` lines advance progress normally; a repeated first marker
+is deduplicated.
 
 ## 14. Troubleshooting
 

@@ -26,6 +26,11 @@
   var selectionSubscription = null;
   var activeRequestId = null;
 
+  function setLoadingPhase(text) {
+    stateNode.dataset.state = "loading";
+    stateNode.textContent = text;
+  }
+
   function selectedResidues() {
     var residues = new Map();
     if (!viewer || !viewer.plugin || !viewer.plugin.managers.structure) return [];
@@ -191,10 +196,14 @@
   async function mountStructure(message) {
     activeRequestId = message.requestId;
     applyTheme(message.theme);
-    stateNode.hidden = false;
-    host.hidden = true;
-    stateNode.dataset.state = "loading";
-    stateNode.textContent = "Preparing interactive structure…";
+    // Warm remounts keep the current structure visible while the next one
+    // loads — showing the loading state on every swap flashes for the
+    // short (cached/warm) awaits and reads as a refresh.
+    if (!viewer) {
+      stateNode.hidden = false;
+      host.hidden = true;
+      setLoadingPhase("Downloading the Mol* viewer…");
+    }
     try {
       await ensureMolstarAssets();
       if (viewer) {
@@ -203,6 +212,7 @@
         // recreating the Viewer re-initializes the whole bundle.
         await viewer.plugin.clear();
       } else {
+        setLoadingPhase("Preparing the interactive structure…");
         viewerId = "molstar-shell-" + Math.random().toString(36).slice(2);
         var target = document.createElement("div");
         target.id = viewerId;
@@ -260,6 +270,9 @@
       if (viewer) viewer.plugin.dispose();
       viewer = null;
       host.replaceChildren();
+      // Acknowledge teardown so the parent can remove the iframe only after
+      // this shell's resources (subscriptions, plugin, WebGL context) are gone.
+      report({ type: "disposed" });
     }
   });
 
