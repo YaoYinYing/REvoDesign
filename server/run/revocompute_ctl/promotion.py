@@ -16,7 +16,6 @@ down, saving the current SIF as ``<sif>.previous``.
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 from revocompute_ctl.compose import image_id, run_cmd
 from revocompute_ctl.registry import RuntimeFamily, runner_enabled

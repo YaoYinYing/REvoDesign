@@ -17,7 +17,6 @@ from pathlib import Path
 
 import yaml
 from revocompute_ctl.compose import run_cmd
-from revocompute_ctl.ui import MSG_MISSING_SIF
 
 _SAFE_FAMILY_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 

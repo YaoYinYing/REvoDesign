@@ -22,7 +22,6 @@ from typing import Callable
 
 from revocompute_ctl.compose import compose_args, ensure_docker_gid, run_cmd
 from revocompute_ctl.registry import (
-    RegistryError,
     build_slurm_images,
     load_registry,
     runner_enabled,

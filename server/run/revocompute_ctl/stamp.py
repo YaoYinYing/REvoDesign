@@ -16,11 +16,10 @@ import datetime
 import hashlib
 import json
 import os
-import shutil
 from pathlib import Path
 
 from revocompute_ctl.compose import container_fs, image_id, run_cmd
-from revocompute_ctl.registry import RuntimeFamily, runner_enabled
+from revocompute_ctl.registry import RuntimeFamily
 
 STAMP_FILENAME = ".deploy-stamp"
 
