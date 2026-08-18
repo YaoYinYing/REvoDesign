@@ -55,7 +55,6 @@ else
   )
 fi
 
-echo "REVODESIGN_STAGE:alphafold"
 cd "${ALPHAFOLD_PATH:-/opt/alphafold}"
 # AlphaFold logs its phases to stderr (absl logging); the shared translator
 # rewrites the stable ones into the stdout stage protocol while passing the

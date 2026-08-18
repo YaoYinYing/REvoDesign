@@ -750,7 +750,6 @@ task_types:
     input_label: "Protein sequence (FASTA)"
     input_workspace: *fasta_workspace
     stage_markers:
-      alphafold: "AlphaFold2 structure prediction"
       msa_searching: "MSA searching"
       featuring: "Building features"
       modeling: "Folding models"
