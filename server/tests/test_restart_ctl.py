@@ -272,6 +272,18 @@ def test_promotion_prod_unchanged_retags_nothing(tmp_path, monkeypatch):
     assert _mutating_commands(log) == []
 
 
+def test_promotion_dev_retags_previous_from_baseline_for_nextless_images(tmp_path, monkeypatch):
+    """The server image has no :next (compose build replaces latest in
+    place) — dev promotion must tag previous from the pre-build baseline id
+    so rollback can restore it."""
+    bin_dir = _write_shims(tmp_path)
+    state, log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {"revodesign-server:latest": "sha256:new"})
+    promotion.promote_docker(
+        state, {"server": "revodesign-server"}, {"server": {"latest": "sha256:old", "next": ""}}, "dev"
+    )
+    assert _mutating_commands(log) == ["tag sha256:old revodesign-server:previous"]
+
+
 def test_sif_staging_builds_missing_skips_unchanged(tmp_path, monkeypatch):
     bin_dir = _write_shims(tmp_path)
     sif_dir = tmp_path / "sifs"

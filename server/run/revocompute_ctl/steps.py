@@ -344,9 +344,23 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
 
     images = promotion.taggable_images(state, families)
     baseline = promotion.capture_baseline_digests(state, images)
-    changed = promotion.changed_image_names(state, images, baseline, flags.mode)
-    changed_sifs = changed | {family.name for family in families if not os.path.isfile(family.slurm_image)}
     backup_path_holder: list[str] = [""]
+
+    def changed_now() -> set[str]:
+        """Per-family change set computed at the moment it is needed: after
+        build/pull for the SIF staging, after up for the stamp."""
+        return promotion.changed_image_names(state, images, baseline, flags.mode)
+
+    def changed_sifs_now() -> set[str]:
+        return changed_now() | {family.name for family in families if not os.path.isfile(family.slurm_image)}
+
+    def final_changed() -> set[str]:
+        """Post-up truth: baseline digest vs. the digest now under latest."""
+        return {
+            name
+            for name, entry in baseline.items()
+            if promotion.image_id(state, f"{images[name]}:latest") != entry.get("latest", "")
+        }
 
     steps: list[Step] = [
         Step("backup-config", lambda: backup_path_holder.__setitem__(0, backup_config(state))),
@@ -370,15 +384,16 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     else:
         steps.append(Step("activate", lambda: print("Activating validated prepared images without builds or pulls.")))
     if state.use_slurm():
-        steps.append(Step("build-sif", lambda: slurm_block(state, families, flags.build_sif, changed)))
+        steps.append(Step("build-sif", lambda: slurm_block(state, families, flags.build_sif, changed_now())))
     steps.append(Step("promote", lambda: promotion.promote_docker(state, images, baseline, flags.mode)))
-    steps.append(Step("promote-sifs", lambda: promotion.promote_sifs(state, families, changed_sifs)))
+    steps.append(Step("promote-sifs", lambda: promotion.promote_sifs(state, families, changed_sifs_now())))
     steps.append(Step("up", lambda: cmd_up(state, compose_cmd, extra=["--no-build"])))
     if flags.mode == "prepared":
         steps.append(Step("readiness", lambda: wait_for_services(state, compose_cmd)))
     steps.append(Step("prune", lambda: promotion.prune_dangling(state)))
 
     def finalize(timings: dict[str, float]) -> None:
+        changed = final_changed()
         # A deployment stamp belongs wherever rollback matters: any
         # non-dev mode, or a dev restart against an explicitly configured
         # deployment CONFIG_DIR.  Local dev with the checkout-config
@@ -402,14 +417,15 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
             end_drain(state)
         finish_restart(state)
 
+    predicted = changed_now()
     report_lines = [
         "Planned restart walk:",
         *(f"  {step.name}" for step in steps),
         "  stamp",
-        f"Image changes: changed={', '.join(sorted(changed)) or '-'}, "
-        f"unchanged={', '.join(sorted(set(images) - changed)) or '-'}",
-        f"SIF changes: changed={', '.join(sorted(changed_sifs)) or '-'}, "
-        f"unchanged={', '.join(sorted({family.name for family in families} - changed_sifs)) or '-'}",
+        f"Image changes: changed={', '.join(sorted(predicted)) or '-'}, "
+        f"unchanged={', '.join(sorted(set(images) - predicted)) or '-'}",
+        "SIF changes: predicted post-build from the image change set"
+        + (f": {', '.join(sorted(predicted)) or '-'}" if predicted else ": none"),
     ]
     return RestartPlan(steps, finalize, report_lines)
 

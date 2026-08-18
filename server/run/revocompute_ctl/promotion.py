@@ -83,7 +83,16 @@ def promote_docker(state, images: dict[str, str], baseline: dict[str, dict[str, 
                 print(f"Tagging previous {image} from the pre-pull image ({baseline_latest[:12]})")
                 run_cmd(["docker", "tag", baseline_latest, previous_tag], env=state.exported())
             continue
-        if mode == "prepared" or not next_id:
+        if mode == "prepared":
+            continue
+        if not next_id:
+            # No :next staging — the image was replaced in place (the server
+            # image via `compose build`).  Retag previous from the pre-down
+            # baseline id so rollback can restore it.
+            baseline_latest = (baseline.get(name) or {}).get("latest", "")
+            if baseline_latest and latest_id and baseline_latest != latest_id:
+                print(f"Tagging previous {image} from the pre-build image ({baseline_latest[:12]})")
+                run_cmd(["docker", "tag", baseline_latest, previous_tag], env=state.exported())
             continue
         if not latest_id:
             print(f"Promoting {next_tag} → {latest_tag} (first deploy)")

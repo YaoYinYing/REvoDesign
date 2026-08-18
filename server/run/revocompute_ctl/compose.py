@@ -148,7 +148,9 @@ def container_fs(
         argv += ["-v", f"{host}:{target}"]
     argv += [image, "-c", script]
     # Close stdin unless the script feeds from it — never inherit the caller's.
-    return run_cmd(argv, env=state.exported(), stdin=stdin_data if stdin_data is not None else "", capture=capture, check=check)
+    return run_cmd(
+        argv, env=state.exported(), stdin=stdin_data if stdin_data is not None else "", capture=capture, check=check
+    )
 
 
 def image_id(state, image: str) -> str:
