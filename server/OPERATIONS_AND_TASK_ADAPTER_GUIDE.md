@@ -333,15 +333,19 @@ REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
   bash server/run/restart.sh restart --use-proxy --build-sif
 ```
 
-`restart --build-sif` compares each family's Docker image against its
-pre-down digest and stages `<sif>.next` only for missing-or-changed
-families; unchanged families are skipped. After `down`, promotion moves the
-staged file into place with `os.replace`, saving the current SIF as
-`<sif>.previous` for `restart --rollback`. Stale `.next` files from an
-aborted run are dropped for unchanged families. One SIF per family at the
-registry path; no `.sif.partial` versioning. `--build-sif` is incompatible
-with `--mode=prepared`. For a focused single-family iteration, the manual
-build from the exact registry `definition` remains available:
+`restart --build-sif` stages `<sif>.next` for every family whose SIF is
+missing or **older than the family's docker image** — image updates that
+were deployed without a SIF rebuild (in any earlier restart) are caught
+automatically. Limit a catch-up build to one family with
+`--enabled-runners=<name>` when the full set would be too costly. After
+`down`, promotion moves the staged file into place with `os.replace`,
+saving the current SIF as `<sif>.previous` for `restart --rollback`.
+Staging is atomic (built to `<sif>.next.build`, renamed on success), so a
+killed build can never leave a corrupt `.next`. One SIF per family at the
+registry path; no versioned `.sif.partial` files. `--build-sif` is
+incompatible with `--mode=prepared`. For a focused single-family
+iteration, the manual build from the exact registry `definition` remains
+available:
 
 ```bash
 apptainer build --fakeroot "/absolute/image-dir/example_v1.sif" \
