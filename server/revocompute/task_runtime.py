@@ -656,7 +656,7 @@ def _capture_debug_submission(task: dict[str, Any], entities: list[dict], params
 # ---------------------------------------------------------------------------
 
 
-def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict | None = None):
+def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict | None = None, recover_slurm: str | None = None):
     """Core task logic — shared by legacy and generic Celery task wrappers.
 
     Reads entities from the task's ``input_form`` column.  The ``params``
@@ -668,6 +668,10 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         logging.error("Task %s missing from database", md5sum)
         return
     if task["status"] not in {"pending", "queued", "running"}:
+        return
+
+    if recover_slurm:
+        _recover_slurm_task(md5sum, task, recover_slurm)
         return
 
     try:
@@ -971,9 +975,40 @@ except ImportError:
 
 
 @celery.task(name="run_compute_task", bind=True, max_retries=0)
-def run_compute_task(self, md5sum: str, task_type: str = "gremlin", params: dict | None = None):
-    """Compute task — dispatched by task_type."""
-    return _execute_compute_task(md5sum, task_type, params)
+def run_compute_task(self, md5sum: str, task_type: str = "gremlin", params: dict | None = None, recover_slurm: str | None = None):
+    """Compute task — dispatched by task_type.
+
+    ``recover_slurm`` attaches to an already-running SLURM job after a
+    server restart instead of submitting a new one.
+    """
+    return _execute_compute_task(md5sum, task_type, params, recover_slurm)
+
+
+@celery.task(name="cancel_compute_resources", bind=True, max_retries=0)
+def cancel_compute_resources(self, slurm_job_id: str | None = None, container_id: str | None = None):
+    """Kill a task's compute resources from the worker, which is the only
+    container with SLURM tooling (and the Docker socket) mounted.  The web
+    process cannot scancel or docker-stop directly."""
+    if slurm_job_id:
+        scancel = shutil.which("scancel")
+        if not scancel:
+            logging.warning("scancel not found; cannot cancel SLURM job %s", slurm_job_id)
+        else:
+            try:
+                subprocess.run([scancel, str(slurm_job_id)], timeout=10, check=True)
+                logging.info("Cancelled SLURM job %s", slurm_job_id)
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.warning("Failed to scancel SLURM job %s: %s", slurm_job_id, exc)
+    if container_id:
+        docker = shutil.which("docker")
+        if not docker:
+            logging.warning("docker not found; cannot stop container %s", container_id)
+        else:
+            try:
+                subprocess.run([docker, "stop", str(container_id)], timeout=15, check=True)
+                logging.info("Stopped Docker container %s", container_id)
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.warning("Failed to stop Docker container %s: %s", container_id, exc)
 
 
 @celery.task(name="build_results_archive", bind=True, max_retries=0)
