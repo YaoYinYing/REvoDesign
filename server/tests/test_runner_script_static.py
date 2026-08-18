@@ -17,12 +17,11 @@ SERVER_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_prepared_activation_audits_resources_before_stopping_services():
-    script = (SERVER_ROOT / "run" / "restart.sh").read_text(encoding="utf-8")
-    prepared = script.split('if [[ "${MODE}" == "prepared" ]]', 1)[1]
-    preflight = prepared.split("\n  cmd_down", 1)[0]
+    steps_source = (SERVER_ROOT / "run" / "revocompute_ctl" / "steps.py").read_text(encoding="utf-8")
+    preflight = steps_source.split("def _prepared_preflight", 1)[1].split("\ndef ", 1)[0]
     assert "validate_resource_policies" in preflight
-    assert "--no-build --entrypoint python worker" in script
-    assert "-m revocompute.resource_audit" in script
+    assert "--no-build --entrypoint python worker" in steps_source
+    assert "-m revocompute.resource_audit" in steps_source
 
 
 def test_slurm_pre_stop_sweep_preserves_pending_and_finalizes_started_tasks():

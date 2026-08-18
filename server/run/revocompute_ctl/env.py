@@ -1,0 +1,156 @@
+# Copyright (c) 2026 The REvoDesign Developers.
+# Distributed under the terms of the GNU General Public License v3.0.
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""Environment-file state.
+
+Replicates the shell's ``set +u; set -a; source ENV_FILE; set +a; set -u``
+leak: every env-file variable becomes part of the subprocess environment
+(compose interpolation depends on it), merged with os.environ and the
+runtime exports (DOCKER_GID, RUNNER_UID/GID, ADMIN_BOOTSTRAP_CREDENTIALS,
+SLURM_ENABLED, ENABLED_TASKRUNNERS).
+
+The env file contains credentials — never print its contents.  Use the
+allowlist getters (server_dir, log_dir, ...) for anything human-visible.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+import secrets
+from pathlib import Path
+
+from revocompute_ctl.ui import MSG_GENERATED_REDIS_PASSWORD
+
+_LEGACY_REDIS_URIS = ("redis://redis:6379/0", "redis://127.0.0.1:6380/0")
+
+
+def parse_env_file(path: str | os.PathLike[str]) -> dict[str, str]:
+    """Parse a shell-style env file: comments, blanks, optional ``export ``
+    prefix, surrounding quotes; values are literal (no expansion)."""
+    values: dict[str, str] = {}
+    for raw_line in Path(path).read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        values[key] = value
+    return values
+
+
+class EnvState:
+    """One loaded snapshot of the deployment env file."""
+
+    def __init__(self, env_file: str | os.PathLike[str], values: dict[str, str] | None = None):
+        self.env_file = str(env_file)
+        self.values = values if values is not None else parse_env_file(self.env_file)
+        # Runtime exports — merged into every subprocess env like the shell's
+        # global `export` mutations.
+        self.runtime: dict[str, str] = {}
+
+    # -- getters ------------------------------------------------------------
+
+    def get(self, key: str, default: str = "") -> str:
+        # Shell precedence: runtime exports (the shell's later `export`
+        # mutations) > env-file values (sourced once at load) > process
+        # environment > built-in default.
+        return self.runtime.get(key) or self.values.get(key) or os.environ.get(key, default)
+
+    def get_int(self, key: str, default: int) -> int:
+        try:
+            return int(self.values.get(key, ""))
+        except (TypeError, ValueError):
+            return default
+
+    def get_csv(self, key: str) -> list[str]:
+        return [item for item in self.get(key).split(",") if item]
+
+    def server_dir(self) -> str:
+        return self.get("SERVER_DIR")
+
+    def server_root(self) -> str:
+        """The server checkout directory (compose/build root)."""
+        from revocompute_ctl import SERVER_ROOT
+
+        return str(SERVER_ROOT)
+
+    def config_dir(self) -> str:
+        # Shell default: ${CONFIG_DIR:-${SERVER_ROOT}/config} — the checkout
+        # copy, not SERVER_DIR.
+        return self.get("CONFIG_DIR") or os.path.join(self.server_root(), "config")
+
+    def log_dir(self) -> str:
+        return self.get("LOG_DIR")
+
+    def use_slurm(self) -> bool:
+        return self.get("USE_SLURM") == "1" or self.runtime.get("SLURM_ENABLED") == "true"
+
+    def compose_args(self) -> list[str]:
+        """Port of compose_files(): -f base plus the executor override."""
+        from revocompute_ctl.compose import compose_args
+
+        return compose_args(self)
+
+    # -- subprocess environment ---------------------------------------------
+
+    def exported(self) -> dict[str, str]:
+        """os.environ + env-file values + runtime exports (the shell leak)."""
+        merged = dict(os.environ)
+        merged.update(self.values)
+        merged.update(self.runtime)
+        return merged
+
+    # -- redis password (ported from ensure_redis_password) -----------------
+
+    def ensure_redis_password(self, write: bool = True) -> str:
+        """Reuse a persisted password; generate and append one if absent.
+        write=False (--dry-run) only reads — nothing is appended."""
+        existing = self.get("REDIS_PASSWORD")
+        if existing:
+            return existing
+        persisted = self._persisted_password()
+        if persisted:
+            self.values["REDIS_PASSWORD"] = persisted
+            self.runtime["REDIS_PASSWORD"] = persisted
+            return persisted
+        if not write:
+            return ""
+        password = secrets.token_hex(24)
+        with open(self.env_file, "a", encoding="utf-8") as handle:
+            handle.write(f"\n# Generated by restart.sh — Redis requirepass secret.\nREDIS_PASSWORD={password}\n")
+        self._rewrite_legacy_redis_uris(password)
+        self.values["REDIS_PASSWORD"] = password
+        self.runtime["REDIS_PASSWORD"] = password
+        print(MSG_GENERATED_REDIS_PASSWORD.format(self.env_file))
+        return password
+
+    def _persisted_password(self) -> str:
+        try:
+            for line in Path(self.env_file).read_text(encoding="utf-8").splitlines():
+                if line.startswith("REDIS_PASSWORD="):
+                    return line.split("=", 1)[1].strip()
+        except OSError:
+            pass
+        return ""
+
+    def _rewrite_legacy_redis_uris(self, password: str) -> None:
+        path = Path(self.env_file)
+        text = path.read_text(encoding="utf-8")
+        for legacy in _LEGACY_REDIS_URIS:
+            suffix = legacy[len("redis://") :]
+            text = re.sub(
+                rf"^((?:REDIS_URL|BROKER_URL|RESULT_BACKEND))={re.escape(legacy)}",
+                rf"\1=redis://:{password}@{suffix}",
+                text,
+                flags=re.M,
+            )
+        path.write_text(text, encoding="utf-8")
