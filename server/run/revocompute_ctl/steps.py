@@ -328,6 +328,10 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     families = validate_runtime_files(state)
     if flags.mode == "prod":
         require_production_identity(state)
+    else:
+        # The drain sentinel and config backup run inside a throwaway
+        # container as the runner identity — resolve it before the walk.
+        resolve_runner_identity(state)
     prepare_admin_bootstrap(state)
 
     if state.use_slurm() and not flags.build_sif:
@@ -426,6 +430,7 @@ def build_rollback_plan(state, compose_cmd: tuple[str, ...]) -> RestartPlan:
     require_env_file(state)
     validate_required_settings(state)
     families = validate_runtime_files(state)
+    resolve_runner_identity(state)  # load_stamp's container_fs runs as this
     stamp = load_stamp(state)
     stamp_commit = stamp.get("commit", "unknown")
     images = promotion.taggable_images(state, families)
