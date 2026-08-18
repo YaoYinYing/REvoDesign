@@ -928,21 +928,18 @@ def _finalize_after_poll(md5sum, task, tt, state):
 
 
 try:
+    from celery.signals import worker_ready
 
-    @celery.on_after_configure.connect
-    def _setup_recovery_signal(sender, **kwargs):  # noqa: F811
-        from celery.signals import worker_ready
-
-        @worker_ready.connect
-        def _on_worker_ready(sender, **kwargs):
-            try:
-                count = _recover_orphaned_tasks()
-                if count:
-                    logging.info("Recovered %d orphaned task(s)", count)
-                else:
-                    logging.info("Recovery: no orphaned tasks found")
-            except Exception as exc:  # boot-time recovery must never die silently
-                logging.error("Recovery pass failed: %s", exc)
+    @worker_ready.connect
+    def _on_worker_ready(sender, **kwargs):
+        try:
+            count = _recover_orphaned_tasks()
+            if count:
+                logging.info("Recovered %d orphaned task(s)", count)
+            else:
+                logging.info("Recovery: no orphaned tasks found")
+        except Exception as exc:  # boot-time recovery must never die silently
+            logging.error("Recovery pass failed: %s", exc)
 
 except ImportError:
     pass  # celery.signals not available in all environments
