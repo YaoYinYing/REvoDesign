@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - runner database/env config consolidated into `config/runners/<family>.yaml`.
   - ESMFold v1 checkpoint removed (2022 openfold kernels no longer compile); ESM-2/1v/IF1 remain.
   - `ENABLED_TASKRUNNERS` filters by runtime family.
+  - deployment control: `restart.sh` is a thin wrapper over the Python control module (`server/run/revocompute_ctl/`); restart walks run as named steps with a deploy stamp (commit, digests, changed families, SIF sha256s, config backup), `:next`→`:latest`→`:previous` promotion with changed-only churn and post-deploy prune, staged `<sif>.next` builds, `--dry-run`, `--drain=<minutes>` (maintenance sentinel + 503 submission gate), and `--rollback`; deployment-state file mutations run inside a throwaway container as the runner identity.
   - server docs/README reconciled with the executor/runtime model (runbook distinguishes build/dev/prod/prepared modes).
 - Package manager:
   - CI: source-aware checks — Bare Tests/Pylint run only for desktop changes, Server Tests only for server changes.
@@ -57,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Server:
   - Result polling/viewers: terminal task states reload once without overlapping polls; pending result pages keep polling; Mol* teardown completes before iframe removal, stale teardown continuations cannot replace newer previews, and preview loaders remain visible.
   - AlphaFold stages: drain the stderr translator before wrapper exit and preserve both process statuses so final stage markers cannot be lost.
+  - SLURM stages: `srun -u`, unbuffered AlphaFold stderr, and a Python translator stream wrapper phases live, so `run_stage` records intermediates before job exit.
   - SLURM status: move allocated tasks from queued to running as soon as the wrapper publishes the real job ID, without waiting for scientific stage output.
   - Compute recovery: restarts preserve unstarted queued work, cancel only deployment-owned SLURM allocations, fully finalize orphans, and poll reconnected Docker jobs without blocking worker readiness.
   - RFdiffusion runner: redirect Hydra bookkeeping and generated schedule caches to the per-job writable `/tmp` filesystem under read-only container execution; lock task defaults to the pinned upstream inference configuration.

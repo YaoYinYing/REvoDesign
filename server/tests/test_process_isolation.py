@@ -209,8 +209,8 @@ def test_prepared_restart_validates_before_down_without_build_or_pull(tmp_path):
     assert any("up --no-build -d redis web gateway maintenance worker" in command for command in commands)
     assert "All prepared deployment services are running." in result.stdout
 
-    script = (Path(REPO_DIR) / "server" / "run" / "restart.sh").read_text(encoding="utf-8")
-    prepared = script.split('if [[ "${MODE}" == "prepared" ]]; then', 1)[1].split("  cmd_down", 1)[0]
+    steps_source = (Path(REPO_DIR) / "server" / "run" / "revocompute_ctl" / "steps.py").read_text(encoding="utf-8")
+    prepared = steps_source.split("def _prepared_preflight", 1)[1].split("\ndef ", 1)[0]
     assert prepared.index("ensure_docker_gid") < prepared.index("validate_compose_model")
 
 
@@ -315,8 +315,8 @@ def test_up_does_not_mutate_startup_storage_permissions(tmp_path):
     assert "sudo" not in result.stderr
     assert any("up -d redis web gateway maintenance worker" in command for command in commands)
 
-    script = (Path(REPO_DIR) / "server" / "run" / "restart.sh").read_text(encoding="utf-8")
-    startup_storage = script.split("prepare_auth_storage()", 1)[1].split("validate_result_storage()", 1)[0]
+    storage_source = (Path(REPO_DIR) / "server" / "run" / "revocompute_ctl" / "storage.py").read_text(encoding="utf-8")
+    startup_storage = storage_source.split("def prepare_auth_storage", 1)[1].split("def validate_result_storage", 1)[0]
     assert "chmod " not in startup_storage
     assert "chown " not in startup_storage
     assert "sudo " not in startup_storage

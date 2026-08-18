@@ -84,9 +84,23 @@ therefore rebuild all runtime families.
 Image builds install Python packages with `uv pip install` (bootstrapped from
 its PyPI wheel) and keep PyPI in the index pool via `--extra-index-url`
 alongside the pytorch wheelhouses; `run.sh` edits invalidate only the final
-COPY layers. NOTE: `restart --build-sif` skips SIFs that already exist — after
-changing any runner `run.sh`, delete the corresponding `*.sif` files under the
-deployment images dir so the SIFs rebuild from the updated images.
+COPY layers. Runner images build to `:next` and are promoted to `:latest`
+after the stack is down; `:previous` always survives for rollback.
+`restart --build-sif` stages changed SIFs as `<sif>.next` and promotes them
+in place after `down` — unchanged families are skipped automatically, no
+manual SIF deletion needed.
+
+Deploy safety flags (all `restart`-only):
+
+| Flag | Effect |
+|------|--------|
+| `--dry-run` | Prints the planned step walk and per-family changed/unchanged predictions; executes and writes nothing |
+| `--drain=<minutes>` | Blocks new submissions through the `SERVER_DIR/.maintenance` sentinel (API answers 503) and waits for in-flight SLURM jobs; the sweep cancels the remainder at timeout |
+| `--rollback` | Restores the previous image/SIF set from the deploy stamp, restoring the config backup when the registry drifted; refuses when the stamped previous set is missing |
+
+A successful prepared/prod restart writes `${CONFIG_DIR}/.deploy-stamp` with
+the commit, digests, changed families, SIF sha256s, registry sha256, and the
+config-backup path.
 
 ## Overview
 

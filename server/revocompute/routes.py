@@ -43,9 +43,10 @@ from flask import (
 )
 from pydantic import ValidationError
 from revocompute.app import (
+    _ITERATED_STATIC_JS,
+    CONFIG,
     ENABLE_REGISTER,
     TEMPLATE_IMAGE_DIR,
-    _ITERATED_STATIC_JS,
     _client_country,
     _client_ip,
     _current_username,
@@ -84,7 +85,11 @@ from revocompute.auth import (
 )
 from revocompute.input_validators import validate_input_file
 from revocompute.ratelimit import rate_limit
-from revocompute.resource_policy import GLOBAL_RESOURCE_KEYS, ResourceValidationError, normalize_resource_value
+from revocompute.resource_policy import (
+    GLOBAL_RESOURCE_KEYS,
+    ResourceValidationError,
+    normalize_resource_value,
+)
 from revocompute.schemas import (
     AdminCreateUserRequest,
     AdminUpdateUserRequest,
@@ -638,6 +643,11 @@ def _reject_invalid_input(
 def upload_file():  # skipcq: PY-R1000 -- route validation branches form one transactional request boundary.
     if _blocked := require_bearer_auth():
         return _blocked
+
+    # Deployment maintenance sentinel (restart.sh --drain): SERVER_DIR is
+    # bind-mounted into the web container, so the host-side file is visible.
+    if os.path.exists(os.path.join(CONFIG.server_dir, ".maintenance")):
+        return jsonify({"error": "Server is in maintenance; submissions are paused"}), 503
 
     # Parse flat form data ("params[key]=value") into nested dict
     raw_form = request.form.to_dict(flat=True)

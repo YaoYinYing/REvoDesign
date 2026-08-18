@@ -178,8 +178,6 @@ def test_build_srun_args_gpu_task_uses_configured_gres(tmp_path):
 # -- apptainer invocation -----------------------------------------------------
 
 
-
-
 def test_render_apptainer_binds_and_env(tmp_path):
     job = SlurmJob(
         "task-1",
@@ -292,6 +290,9 @@ def test_submit_launches_srun(tmp_path):
         assert jid == "srun-12345"
         args = mock_popen.call_args[0][0]
         assert args[0] == "srun"
+        # Stage markers must reach the worker live, not at job exit: the
+        # wrapper's stdout is a glibc-buffered pipe without this flag.
+        assert "-u" in args
 
 
 def test_job_id_capture_emits_first_stage_as_liveness_signal(tmp_path):

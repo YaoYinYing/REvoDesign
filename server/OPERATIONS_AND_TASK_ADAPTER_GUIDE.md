@@ -147,8 +147,10 @@ runtime_families:
     slurm_image: /absolute/versioned/path/example_20260811.sif
 ```
 
-Every production `slurm_image` must be absolute and versioned. Never overwrite
-a working SIF in place. Runner YAML files must not contain `runner`,
+Every production `slurm_image` must be absolute and versioned. The control
+module never overwrites a working SIF in place: restarts stage rebuilds as
+`<sif>.next` and promote them after `down`, saving the previous file as
+`<sif>.previous` (see §8). Runner YAML files must not contain `runner`,
 `job_executor`, `container_runtime`, or `slurm_image`.
 
 One active runner file exists per runtime family:
@@ -261,15 +263,21 @@ Docker runner images need rebuilding only to produce a replacement SIF or test
 Docker execution.
 
 The build loop creates one image per runtime family and then the server image.
-Before rebuilding a production tag, preserve its current image ID with a
-timestamped rollback tag:
+The deployment tag scheme is `next` → `latest` → `previous`, managed
+automatically:
 
-```bash
-stamp=$(date -u +%Y%m%dT%H%M%SZ)
-docker image inspect revodesign-revocompute-runner-example:latest --format '{{.Id}}'
-docker tag revodesign-revocompute-runner-example:latest \
-  "revodesign-rollback/example-${stamp}:latest"
-```
+- `build` tags every runner family as `<image>:next` and leaves the running
+  deployment untouched. A candidate can be validated as `:next` (or a
+  hand-built `:candidate`) without changing `latest`.
+- A `restart` captures the pre-down digests, stops the stack, then promotes:
+  changed families advance `latest` → `previous` → `:next` → `latest`;
+  unchanged families see zero churn (the redundant `:next` tag is dropped).
+  `previous` always survives the post-deploy prune, so the last deployment
+  is one `restart --rollback` away.
+- `--mode=prod` pulls `latest` directly; the pre-pull image id becomes
+  `previous`.
+- `--mode=prepared` promotes nothing — it activates images that a prior
+  `build` left at `:next` (or a pull left at `latest`).
 
 For focused development, build a candidate tag first and validate it without
 changing `latest`:
@@ -317,20 +325,27 @@ docker run --rm --network none \
 
 ## 8. Rebuild SIFs from current images
 
-SIFs are rebuilt by deleting the old file for the family and running the
-restart with `--build-sif`; it rebuilds every family SIF from the current
-Docker images and then activates the stack:
+SIFs rebuild through staged `.next` files — the running SIF is never touched
+in place and no manual delete is needed:
 
 ```bash
-rm -f "/absolute/image-dir/example_v1.sif"
 REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
   bash server/run/restart.sh restart --use-proxy --build-sif
 ```
 
-No `.sif.partial` staging or per-family versioning — one SIF per family at
-the registry path. `--build-sif` is incompatible with `--mode=prepared`.
-For a focused single-family iteration, the manual build from the exact
-registry `definition` remains available:
+`restart --build-sif` stages `<sif>.next` for every family whose SIF is
+missing or **older than the family's docker image** — image updates that
+were deployed without a SIF rebuild (in any earlier restart) are caught
+automatically. Limit a catch-up build to one family with
+`--enabled-runners=<name>` when the full set would be too costly. After
+`down`, promotion moves the staged file into place with `os.replace`,
+saving the current SIF as `<sif>.previous` for `restart --rollback`.
+Staging is atomic (built to `<sif>.next.build`, renamed on success), so a
+killed build can never leave a corrupt `.next`. One SIF per family at the
+registry path; no versioned `.sif.partial` files. `--build-sif` is
+incompatible with `--mode=prepared`. For a focused single-family
+iteration, the manual build from the exact registry `definition` remains
+available:
 
 ```bash
 apptainer build --fakeroot "/absolute/image-dir/example_v1.sif" \
@@ -367,16 +382,30 @@ apptainer run --cleanenv --containall \
 For a GPU task add `--nv` and prove SLURM allocated a GPU. CPU tasks must not
 receive `--nv`.
 
-## 9. Back up and promote external configuration
+## 9. Deploy stamp and external configuration backup
 
-Back up configuration outside the active config directory, preserving modes:
+Every prepared/prod `restart` automates the backup and writes a deploy stamp:
 
-```bash
-stamp=$(date -u +%Y%m%dT%H%M%SZ)
-backup_root="${SERVER_DIR}/backups/config-${stamp}"
-mkdir -p "${backup_root}"
-cp -a "${CONFIG_DIR}/." "${backup_root}/"
-```
+- **Config backup** — before `down`, `${CONFIG_DIR}` is copied (as the
+  runner identity, inside a throwaway container) to
+  `${SERVER_DIR}/backups/config-<timestamp>`. Older backups are never
+  deleted. For a manual, standalone backup the same result is:
+
+  ```bash
+  stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  backup_root="${SERVER_DIR}/backups/config-${stamp}"
+  mkdir -p "${backup_root}"
+  cp -a "${CONFIG_DIR}/." "${backup_root}/"
+  ```
+
+- **Deploy stamp** — after a successful `up`, `${CONFIG_DIR}/.deploy-stamp`
+  records the commit sha and dirty flag, mode, per-step timings,
+  changed/unchanged families, `latest`/`previous`/`next` digests, SIF
+  sha256s for changed families, the registry sha256, and the config-backup
+  path. `restart --rollback` consumes it: it verifies the `previous` image
+  tags and SIFs exist, restores the config backup when the registry sha256
+  has drifted, retags `previous` → `latest` for the changed set, and sweeps
+  down/up to readiness — never touching tasks, results, or the user database.
 
 Do not delete older backups. Move obsolete runner files to a timestamped
 directory outside `${CONFIG_DIR}/runners`; one active YAML must remain per
@@ -420,13 +449,20 @@ must likewise use operator-provisioned shared weight mounts rather than
 The safe activation sequence is:
 
 ```text
-validate registry/runners/images/SIFs/Compose
+plan: --dry-run prints the walk + per-family change predictions
+                    |
+drain (optional): --drain=N blocks submissions, waits for SLURM jobs
+                    |
+            validate registry/runners/images/SIFs/Compose
                     |
              any failure? ---- yes ---> keep current stack running
                     |
                     no
                     v
-                  down
+       config backup + digest baseline + down (sweep kills stragglers)
+                    |
+                    v
+        promote: :next -> :latest, latest -> previous, SIF .next in place
                     |
                     v
           up --no-build (no pull)
@@ -436,24 +472,47 @@ validate registry/runners/images/SIFs/Compose
               |           |
             pass        failure
               |           |
-            smoke      restore config,
-                       tags and old SIF paths
+       prune + deploy    restart --rollback (stamp-verified previous set,
+       stamp written      config restored on registry drift)
+              |
+            smoke
 ```
 
-Activate only after rollback tags, old SIFs, config backups, free-space checks,
-and smoke inputs are ready:
+Dry-run first — it reads only and predicts exactly which families will
+change:
 
 ```bash
 REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
-  bash server/run/restart.sh restart --mode=prepared
+  bash server/run/restart.sh restart --mode=prepared --dry-run
 ```
+
+Activate only after the dry-run prediction matches the prepared artifacts:
+
+```bash
+REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
+  bash server/run/restart.sh restart --mode=prepared --drain=15
+```
+
+`--drain=15` blocks new submissions through the web-visible
+`${SERVER_DIR}/.maintenance` sentinel (the API answers 503 "submissions are
+paused") and waits up to 15 minutes for in-flight SLURM jobs to finish; the
+pre-stop sweep cancels the remainder. The sentinel is removed after a
+successful restart and on failure.
 
 Prepared mode performs all artifact/config/Compose checks before `down`, then
 starts with existing images and no build or pull. Verify Compose services,
 nginx routing, login, task schema, worker/maintenance/Redis health, and fresh
-logs. If readiness fails, do not loop restarts: restore the config backup,
-restore rollback image tags and old SIF paths, start the previous deployment,
-and verify the gateway.
+logs. If readiness fails, do not loop restarts — the deployment is one
+command away from the previous state:
+
+```bash
+REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
+  bash server/run/restart.sh restart --rollback
+```
+
+`--rollback` refuses when no deploy stamp exists, or when any stamped
+`previous` image/SIF is missing, naming the stamped commit. It never touches
+tasks, results, or the user database.
 
 `--mode=prod` is for genuinely published, pullable images. Do not use it for
 local-only runtime tags because it performs pulls after stopping the stack.

@@ -17,28 +17,26 @@ SERVER_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_prepared_activation_audits_resources_before_stopping_services():
-    script = (SERVER_ROOT / "run" / "restart.sh").read_text(encoding="utf-8")
-    prepared = script.split('if [[ "${MODE}" == "prepared" ]]', 1)[1]
-    preflight = prepared.split("\n  cmd_down", 1)[0]
+    steps_source = (SERVER_ROOT / "run" / "revocompute_ctl" / "steps.py").read_text(encoding="utf-8")
+    preflight = steps_source.split("def _prepared_preflight", 1)[1].split("\ndef ", 1)[0]
     assert "validate_resource_policies" in preflight
-    assert "--no-build --entrypoint python worker" in script
-    assert "-m revocompute.resource_audit" in script
+    assert "--no-deps --entrypoint python worker" in steps_source
+    assert "-m revocompute.resource_audit" in steps_source
 
 
 def test_slurm_pre_stop_sweep_preserves_pending_and_finalizes_started_tasks():
-    script = (SERVER_ROOT / "run" / "restart.sh").read_text(encoding="utf-8")
-    sweep = script.split("pre_stop_sweep_slurm() {", 1)[1].split("\n}\n\ncmd_down()", 1)[0]
-    down = script.split("cmd_down() {", 1)[1].split("\n}", 1)[0]
+    sweep = (SERVER_ROOT / "run" / "revocompute_ctl" / "sweep.py").read_text(encoding="utf-8")
+    down = (SERVER_ROOT / "run" / "revocompute_ctl" / "steps.py").read_text(encoding="utf-8")
 
     assert "squeue" not in sweep
     assert 'task.get("slurm_job_id")' in sweep
     assert 'task.get("status") in {"queued", "running"}' in sweep
-    assert 'scancel "${jobs[@]}"' in sweep
+    assert '"scancel"' in sweep
     assert 'if task.get("status") in {"queued", "running"}:' in sweep
     assert '"pending"' not in sweep
     assert "from revocompute.task_runtime import _record_failure, task_store" in sweep
     assert "_record_failure(" in sweep
-    assert 'source "${ENV_FILE}"' in down
+    assert "pre_stop_sweep_slurm" in down
 
 
 def test_runner_script_does_not_eval_user_controlled_commands():

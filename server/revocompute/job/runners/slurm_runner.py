@@ -72,7 +72,12 @@ class SlurmJob(Job):
         script_path = self._build_wrapper_script()
         os.makedirs(self.output_dir, exist_ok=True)
 
-        cmd = ["srun"] + self._build_srun_args() + ["bash", script_path]
+        # -u: the wrapper's stdout is a glibc-buffered pipe between the
+        # allocation and slurmstepd; without it, stage markers (and the
+        # REVODESIGN_JOB_ID line) sit in the buffer until job exit — or are
+        # lost entirely when the job is killed, so run_stage never records
+        # intermediates.  ntasks=1, so the task-zero caveat does not apply.
+        cmd = ["srun", "-u"] + self._build_srun_args() + ["bash", script_path]
         logging.info("srun command: %s", " ".join(cmd))
 
         self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
