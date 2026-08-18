@@ -878,13 +878,32 @@ def _recover_orphaned_tasks() -> int:
                     )
                     recovered += 1
                 elif slurm_state is None:
-                    # Unknown state (sacct missing or query failed): the job
-                    # may still be running on the cluster.  Leave the task
-                    # running — do not record a failure and do not clean up
-                    # its input workspace under a live job.
-                    logging.warning(
-                        "Recovery: SLURM job %s state unknown for %s; leaving task running", slurm_job_id, md5sum
+                    # Unknown sacct state: consult the live queue. A job in
+                    # neither sacct nor squeue was cancelled out from under
+                    # the worker (e.g. the srun client died at a restart).
+                    probe = subprocess.run(
+                        ["squeue", "-h", "-j", slurm_job_id, "-o", "%T"],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
                     )
+                    if probe.returncode == 0 and probe.stdout.strip():
+                        logging.warning(
+                            "Recovery: SLURM job %s alive in queue for %s; re-queuing poll", slurm_job_id, md5sum
+                        )
+                        run_compute_task.apply_async(
+                            args=[md5sum], kwargs={"task_type": task_type, "recover_slurm": slurm_job_id}
+                        )
+                        recovered += 1
+                    else:
+                        _record_failure(
+                            md5sum,
+                            task,
+                            task.get("started_at") or time.time(),
+                            "",
+                            "SLURM job was cancelled during a server restart",
+                        )
+                        recovered += 1
                 else:
                     _record_failure(
                         md5sum,
