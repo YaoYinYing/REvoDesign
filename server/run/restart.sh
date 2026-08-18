@@ -1016,36 +1016,29 @@ cmd_up() {
 # boot-time recovery machinery is needed.
 pre_stop_sweep_slurm() {
   if [[ "${USE_SLURM}" != "1" ]]; then return 0; fi
-  if ! command -v squeue >/dev/null 2>&1 || ! command -v scancel >/dev/null 2>&1; then
-    echo "WARNING: squeue/scancel not found; skipping pre-stop SLURM sweep" >&2
-    return 0
-  fi
+  # The worker container owns the srun clients, runs as the SLURM user, and
+  # holds write access to the task DB — the host account has none of the
+  # three, so the whole sweep runs inside the containers before down.
   local jobs
   jobs=$(squeue -h -u "${RUNNER_USERNAME}" -o '%i' 2>/dev/null || true)
   if [[ -n "${jobs}" ]]; then
     echo "Cancelling in-flight SLURM jobs before stopping the stack: ${jobs}"
     # shellcheck disable=SC2086
-    scancel ${jobs}
+    "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec -T worker scancel ${jobs} || true
   fi
-  # Mark the affected task records failed so the dashboard never shows ghosts.
-  local task_db="${SERVER_DIR}/revocompute.sqlite3"
-  if [[ -f "${task_db}" ]] && command -v python3 >/dev/null 2>&1; then
-    python3 - "${task_db}" <<'PY'
-import sqlite3, sys, time
-db = sqlite3.connect(sys.argv[1], timeout=15)
-try:
-    db.execute(
-        "UPDATE tasks SET status='failed', error='Cancelled by server restart', "
-        "finished_at=? WHERE status IN ('pending','queued','running')",
-        (time.time(),),
-    )
-    db.commit()
-except sqlite3.Error as exc:
-    print(f"WARNING: pre-stop task sweep failed: {exc}", file=sys.stderr)
-finally:
-    db.close()
+  echo "Marking in-flight tasks failed before stopping the stack..."
+  "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec -T worker python3 - <<'PY' || true
+import time
+from revocompute.task_runtime import task_store
+for task in task_store.list_tasks():
+    if task.get("status") in {"pending", "queued", "running"}:
+        task_store.update_task(
+            task["md5sum"],
+            status="failed",
+            error="Cancelled by server restart",
+            finished_at=time.time(),
+        )
 PY
-  fi
 }
 
 cmd_down() {
