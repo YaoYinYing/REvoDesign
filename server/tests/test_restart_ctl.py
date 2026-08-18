@@ -346,6 +346,22 @@ def test_stamp_round_trip_and_config_backup(tmp_path, monkeypatch):
     assert stamp_path.is_file()
     assert stamp_mod.load_stamp(state) == {"commit": "abc", "mode": "prepared"}
 
+    # The payload's git reads must find the checkout (glued `-C/path` broke
+    # this on the live drill) and record a real commit.
+    payload = stamp_mod.stamp_payload(
+        state,
+        mode="prepared",
+        timings={},
+        changed=[],
+        unchanged=[],
+        images={},
+        baseline={},
+        families=[],
+        backup_path="",
+    )
+    assert payload["commit"]
+    assert isinstance(payload["dirty"], bool)
+
 
 def test_drain_sentinel_lifecycle(tmp_path, monkeypatch):
     bin_dir = _write_shims(tmp_path)
