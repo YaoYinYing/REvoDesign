@@ -10,6 +10,7 @@ The server owns the registry schema; this module only reads it.
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -211,8 +212,32 @@ def validate_slurm_images(state, families: list[RuntimeFamily]) -> None:
         raise RegistryError
 
 
-def build_slurm_images(state, families: list[RuntimeFamily], changed_families: set[str]) -> int:
-    """Stage SIFs as ``<sif>.next`` for missing or changed families only;
+def sif_stale(state, family: RuntimeFamily) -> bool:
+    """True when the deployed SIF needs a rebuild: it is missing, or the
+    family's docker image was created after the SIF (covers image updates
+    promoted in an earlier restart — the image digest itself may be
+    unchanged while the SIF still predates it)."""
+    if not Path(family.slurm_image).is_file():
+        return True
+    image = family.docker_image
+    tag = f"{image}:latest" if ":" not in image and "@" not in image else image
+    created = run_cmd(
+        ["docker", "image", "inspect", "--format", "{{.Created}}", tag],
+        env=state.exported(),
+        check=False,
+        capture=True,
+    ).stdout.strip()
+    try:
+        import datetime
+
+        image_ts = datetime.datetime.fromisoformat(created.replace("Z", "+00:00")).timestamp()
+    except (ValueError, AttributeError):
+        image_ts = 0.0
+    return image_ts > os.path.getmtime(family.slurm_image)
+
+
+def build_slurm_images(state, families: list[RuntimeFamily]) -> int:
+    """Stage SIFs as ``<sif>.next`` for missing or stale families only;
     promotion (promotion.py) moves them into place after down.  Returns the
     number of SIFs built."""
     import shutil
@@ -234,7 +259,7 @@ def build_slurm_images(state, families: list[RuntimeFamily], changed_families: s
         staged = f"{family.slurm_image}.next"
         if Path(staged).is_file():
             continue
-        if Path(family.slurm_image).is_file() and family.name not in changed_families:
+        if not sif_stale(state, family):
             print(f"[SLURM] SIF image unchanged: {family.slurm_image} — skipping.")
             continue
         print(f"[SLURM] Building {staged} from {def_file}...")

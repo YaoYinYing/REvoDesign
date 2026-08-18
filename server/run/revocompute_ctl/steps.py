@@ -298,10 +298,10 @@ def pull_production_images(state, compose_cmd: tuple[str, ...], families) -> Non
         run_cmd(["docker", "pull", family.docker_image], env=state.exported())
 
 
-def slurm_block(state, families, build_sif: bool, changed: set[str]) -> None:
+def slurm_block(state, families, build_sif: bool) -> None:
     print("[SLURM] SLURM+Apptainer runner enabled.")
     if build_sif:
-        build_slurm_images(state, families, changed)
+        build_slurm_images(state, families)
         validate_slurm_images(state, families)
 
 
@@ -350,11 +350,15 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
 
     def changed_now() -> set[str]:
         """Per-family change set computed at the moment it is needed: after
-        build/pull for the SIF staging, after up for the stamp."""
+        build/pull for the dry-run prediction, after up for the stamp."""
         return promotion.changed_image_names(state, images, baseline, flags.mode)
 
-    def changed_sifs_now() -> set[str]:
-        return changed_now() | {family.name for family in families if not os.path.isfile(family.slurm_image)}
+    def stale_sifs_now() -> set[str]:
+        """SIF staging set: missing or image-stale families (computed at
+        build time — the image may be promoted in an earlier restart)."""
+        from revocompute_ctl.registry import sif_stale
+
+        return {family.name for family in families if sif_stale(state, family)}
 
     def final_changed() -> set[str]:
         """Post-up truth: baseline digest vs. the digest now under latest."""
@@ -386,9 +390,9 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     else:
         steps.append(Step("activate", lambda: print("Activating validated prepared images without builds or pulls.")))
     if state.use_slurm():
-        steps.append(Step("build-sif", lambda: slurm_block(state, families, flags.build_sif, changed_now())))
+        steps.append(Step("build-sif", lambda: slurm_block(state, families, flags.build_sif)))
     steps.append(Step("promote", lambda: promotion.promote_docker(state, images, baseline, flags.mode)))
-    steps.append(Step("promote-sifs", lambda: promotion.promote_sifs(state, families, changed_sifs_now())))
+    steps.append(Step("promote-sifs", lambda: promotion.promote_sifs(state, families)))
     steps.append(Step("up", lambda: cmd_up(state, compose_cmd, extra=["--no-build"])))
     if flags.mode == "prepared":
         steps.append(Step("readiness", lambda: wait_for_services(state, compose_cmd)))
@@ -420,14 +424,14 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
         finish_restart(state)
 
     predicted = changed_now()
+    sif_predict = stale_sifs_now() if state.use_slurm() else set()
     report_lines = [
         "Planned restart walk:",
         *(f"  {step.name}" for step in steps),
         "  stamp",
         f"Image changes: changed={', '.join(sorted(predicted)) or '-'}, "
         f"unchanged={', '.join(sorted(set(images) - predicted)) or '-'}",
-        "SIF changes: predicted post-build from the image change set"
-        + (f": {', '.join(sorted(predicted)) or '-'}" if predicted else ": none"),
+        f"SIF changes: changed={', '.join(sorted(sif_predict)) or '-'}",
     ]
     return RestartPlan(steps, finalize, report_lines)
 

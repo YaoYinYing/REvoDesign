@@ -107,18 +107,15 @@ def promote_docker(state, images: dict[str, str], baseline: dict[str, dict[str, 
             run_cmd(["docker", "rmi", next_tag], env=state.exported())
 
 
-def promote_sifs(state, families: list[RuntimeFamily], changed_families: set[str]) -> None:
-    """Move staged ``.next`` SIFs into place; drop stale ``.next`` files for
-    unchanged families."""
+def promote_sifs(state, families: list[RuntimeFamily]) -> None:
+    """Move any staged ``<sif>.next`` into place, saving the current SIF as
+    ``<sif>.previous``.  The staging set itself decides what to promote —
+    only stale or missing families ever have a ``.next``."""
     for family in families:
         if not runner_enabled(state, family.name):
             continue
         sif = family.slurm_image
         staged = f"{sif}.next"
-        if family.name not in changed_families:
-            if os.path.isfile(staged):
-                os.remove(staged)  # stale staging from an aborted run
-            continue
         if os.path.isfile(staged):
             if os.path.isfile(sif):
                 os.replace(sif, f"{sif}.previous")

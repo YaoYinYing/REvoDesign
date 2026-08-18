@@ -48,8 +48,12 @@ _DOCKER_SHIM = textwrap.dedent(
       exit 0
     fi
     if [[ "$1" == "image" && "$2" == "inspect" && "$3" == "--format" ]]; then
-      img="${@: -1}"
-      grep -F "${img}=" "${SHIM_IDS}" 2>/dev/null | head -1 | cut -d= -f2- || true
+      if [[ "$4" == "{{.Created}}" ]]; then
+        printf '%s\\n' "${SHIM_CREATED:-2020-01-01T00:00:00Z}"
+      else
+        img="${@: -1}"
+        grep -F "${img}=" "${SHIM_IDS}" 2>/dev/null | head -1 | cut -d= -f2- || true
+      fi
       exit 0
     fi
     if [[ "$1" == "run" ]]; then
@@ -296,15 +300,16 @@ def test_sif_staging_builds_missing_skips_unchanged(tmp_path, monkeypatch):
         str(sif_dir / "gremlin.sif"),
     )
     state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
-    build_slurm_images(state, [family], set())  # missing SIF → stage .next
+    build_slurm_images(state, [family])  # missing SIF → stage .next
     assert (sif_dir / "gremlin.sif.next").is_file()
 
     (sif_dir / "gremlin.sif.next").unlink()
     (sif_dir / "gremlin.sif").touch()
-    build_slurm_images(state, [family], set())  # unchanged → skip
+    build_slurm_images(state, [family])  # image older than SIF → skip
     assert not (sif_dir / "gremlin.sif.next").exists()
 
-    build_slurm_images(state, [family], {"gremlin"})  # changed → stage
+    monkeypatch.setenv("SHIM_CREATED", "2030-01-01T00:00:00Z")  # image newer → stage
+    build_slurm_images(state, [family])
     assert (sif_dir / "gremlin.sif.next").is_file()
 
 
@@ -321,7 +326,7 @@ def test_sif_staging_drops_failed_runner_from_enabled_list(tmp_path, monkeypatch
         str(sif_dir / "gremlin.sif"),
     )
     state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
-    build_slurm_images(state, [family], set())
+    build_slurm_images(state, [family])
     assert state.get("ENABLED_TASKRUNNERS") == ""  # dropped for the run
 
 
