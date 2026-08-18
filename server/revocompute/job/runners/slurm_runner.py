@@ -63,35 +63,6 @@ class SlurmJob(Job):
         self._job_id_event = threading.Event()
         self._resolved_resource_policy = resource_policy
 
-    def reconnect(self, slurm_job_id: str) -> bool | None:
-        """Check whether a SLURM job is still alive after a server restart.
-
-        We cannot re-attach the srun subprocess, but we can query sacct.
-        Returns ``True`` when the job is still active, ``False`` when sacct
-        says it is no longer active, and ``None`` when the state cannot be
-        determined (sacct missing, query failed, or timed out).  Callers must
-        treat ``None`` as unknown — not as failure — because the job may
-        still be running on the cluster.
-        """
-        self._slurm_job_id = slurm_job_id
-        self._job_id_event.set()
-        sacct = shutil.which("sacct")
-        if not sacct:
-            return None
-        try:
-            result = subprocess.run(
-                [sacct, "-j", slurm_job_id, "--noheader", "-o", "State", "-P"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            if result.returncode != 0:
-                return None
-            state = (result.stdout or "").strip().split("\n")[0].strip()
-            return state in ("RUNNING", "PENDING", "CONFIGURING")
-        except Exception:
-            return None
-
     # -- Job ABC -------------------------------------------------------------
 
     def submit(self) -> str:

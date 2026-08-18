@@ -178,27 +178,6 @@ def test_build_srun_args_gpu_task_uses_configured_gres(tmp_path):
 # -- apptainer invocation -----------------------------------------------------
 
 
-def test_reconnect_returns_none_when_sacct_missing(monkeypatch, tmp_path):
-    """Unknown SLURM job state is tri-state — missing sacct must not read as
-    'job finished' (recovery keeps the task running and its workspace)."""
-    from revocompute.job.runners.slurm_runner import SlurmJob
-
-    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
-    monkeypatch.setattr(shutil, "which", lambda _name: None)
-    assert job.reconnect("12345") is None
-
-
-def test_reconnect_returns_none_when_sacct_fails(monkeypatch, tmp_path):
-    from revocompute.job.runners.slurm_runner import SlurmJob
-
-    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
-    monkeypatch.setattr(shutil, "which", lambda _name: "/usr/bin/sacct")
-    monkeypatch.setattr(
-        subprocess,
-        "run",
-        lambda *a, **kw: type("R", (), {"returncode": 1, "stdout": ""})(),
-    )
-    assert job.reconnect("12345") is None
 
 
 def test_render_apptainer_binds_and_env(tmp_path):

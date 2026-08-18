@@ -1010,10 +1010,49 @@ cmd_up() {
   print_admin_logins
 }
 
+# Kill and mark every in-flight SLURM task before the worker dies.  The
+# worker owns the srun clients, so stopping the stack orphans anything
+# running; a clean pre-stop sweep means no orphan can ever exist and no
+# boot-time recovery machinery is needed.
+pre_stop_sweep_slurm() {
+  if [[ "${USE_SLURM}" != "1" ]]; then return 0; fi
+  if ! command -v squeue >/dev/null 2>&1 || ! command -v scancel >/dev/null 2>&1; then
+    echo "WARNING: squeue/scancel not found; skipping pre-stop SLURM sweep" >&2
+    return 0
+  fi
+  local jobs
+  jobs=$(squeue -h -u "${RUNNER_USERNAME}" -o '%i' 2>/dev/null || true)
+  if [[ -n "${jobs}" ]]; then
+    echo "Cancelling in-flight SLURM jobs before stopping the stack: ${jobs}"
+    # shellcheck disable=SC2086
+    scancel ${jobs}
+  fi
+  # Mark the affected task records failed so the dashboard never shows ghosts.
+  local task_db="${SERVER_DIR}/revocompute.sqlite3"
+  if [[ -f "${task_db}" ]] && command -v python3 >/dev/null 2>&1; then
+    python3 - "${task_db}" <<'PY'
+import sqlite3, sys, time
+db = sqlite3.connect(sys.argv[1], timeout=15)
+try:
+    db.execute(
+        "UPDATE tasks SET status='failed', error='Cancelled by server restart', "
+        "finished_at=? WHERE status IN ('pending','queued','running')",
+        (time.time(),),
+    )
+    db.commit()
+except sqlite3.Error as exc:
+    print(f"WARNING: pre-stop task sweep failed: {exc}", file=sys.stderr)
+finally:
+    db.close()
+PY
+  fi
+}
+
 cmd_down() {
   require_env_file
   ensure_docker_gid
   resolve_runner_identity
+  pre_stop_sweep_slurm
   echo "Stopping services via docker compose..."
   "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" down
 }

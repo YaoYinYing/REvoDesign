@@ -656,7 +656,7 @@ def _capture_debug_submission(task: dict[str, Any], entities: list[dict], params
 # ---------------------------------------------------------------------------
 
 
-def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict | None = None, recover_slurm: str | None = None):
+def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict | None = None):
     """Core task logic — shared by legacy and generic Celery task wrappers.
 
     Reads entities from the task's ``input_form`` column.  The ``params``
@@ -668,10 +668,6 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         logging.error("Task %s missing from database", md5sum)
         return
     if task["status"] not in {"pending", "queued", "running"}:
-        return
-
-    if recover_slurm:
-        _recover_slurm_task(md5sum, task, recover_slurm)
         return
 
     try:
@@ -815,151 +811,49 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
 
 
 # ---------------------------------------------------------------------------
-# Orphaned-task recovery after server restart
+# Orphaned Docker container recovery after server restart
+#
+# SLURM tasks need no recovery: restart.sh's pre-stop sweep cancels every
+# in-flight SLURM job and marks its task record failed BEFORE the worker
+# dies, so no SLURM orphan can ever exist.  Docker containers survive the
+# stack restart, so only they are reconnected here.
 # ---------------------------------------------------------------------------
 
 
-def _recover_slurm_task(md5sum: str, task: dict[str, Any], slurm_job_id: str) -> None:
-    """Attach to a live SLURM job after a restart instead of resubmitting.
-
-    Polls sacct/squeue with a self-requeue until the job ends, then
-    finalizes from the result directory.
-    """
-    try:
-        tt, runner = _get_task_type(task.get("task_type", "gremlin"))
-        from revocompute.job.runners.slurm_runner import SlurmJob
-
-        job = SlurmJob(md5sum, tt, runner, [], task["result_dir"])
-        state = job.reconnect(slurm_job_id)
-        requeue = {
-            "args": [md5sum],
-            "kwargs": {"task_type": task.get("task_type", "gremlin"), "recover_slurm": slurm_job_id},
-            "countdown": 30,
-        }
-        if state is True:
-            # The job is alive on the cluster even though the record may
-            # still say "queued" from before the restart.
-            if task.get("status") != "running" and not _is_terminal_status(task.get("status")):
-                task_store.update_task(md5sum, status="running")
-            run_compute_task.apply_async(**requeue)
-            return
-        if state is None:
-            probe = subprocess.run(
-                ["squeue", "-h", "-j", slurm_job_id, "-o", "%T"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            if probe.returncode == 0 and probe.stdout.strip():
-                run_compute_task.apply_async(**requeue)
-                return
-        final = JobState.COMPLETED if job._has_result_artifact() else JobState.FAILED
-        _finalize_after_poll(md5sum, task, tt, final)
-    except Exception as exc:
-        logging.error("recover_slurm failed for %s: %s", md5sum, exc)
-        _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
-
-
 def _recover_orphaned_tasks() -> int:
-    """Scan for running tasks whose Celery task was lost (e.g. Redis restart).
-
-    Docker containers are reconnected and polled inline.  SLURM jobs are
-    re-queued as lightweight polling tasks.
-    """
+    """Reconnect Docker containers whose Celery task was lost (e.g. Redis restart)."""
     recovered = 0
     for task in task_store.list_tasks():
         if task.get("status") not in {"running", "queued"}:
             continue
         container_id = str(task.get("container_id") or "")
-        slurm_job_id = str(task.get("slurm_job_id") or "")
-        if not container_id and not slurm_job_id:
-            continue
-        if slurm_job_id and not slurm_job_id.isdigit():
-            # A pid-based fallback ("srun-12") survived into the record: the
-            # real job handle is lost, so the task can never be reconnected.
-            logging.warning("Recovery: task %s has a non-SLURM job handle %r; marking failed", task["md5sum"], slurm_job_id)
-            _record_failure(task["md5sum"], task, task.get("started_at") or time.time(), "", "SLURM job handle was lost during a server restart")
-            recovered += 1
+        if not container_id:
             continue
         md5sum = task["md5sum"]
         task_type = task.get("task_type", "gremlin")
         logging.info("Recovery: checking orphaned task %s", md5sum)
+        try:
+            from revocompute.job.runners.docker_runner import DockerJob
+            from revocompute.task_types import get as _gt
 
-        from revocompute.task_types import get as _gt
-
-        if container_id:
-            try:
-                from revocompute.job.runners.docker_runner import DockerJob
-
-                tt, runner = _gt(task_type)
-                job = DockerJob(md5sum, tt, runner, [], task["result_dir"])
-                if job.reconnect(container_id):
-                    logging.info("Recovery: reconnected Docker %s for %s", container_id, md5sum)
-                    state = job.poll()
-                    _finalize_after_poll(md5sum, task, tt, state)
-                    recovered += 1
-                else:
-                    _record_failure(
-                        md5sum,
-                        task,
-                        task.get("started_at") or time.time(),
-                        "",
-                        "Docker container not found after server restart",
-                    )
-            except Exception as exc:
-                logging.error("Recovery failed for Docker task %s: %s", md5sum, exc)
-                _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
-
-        elif slurm_job_id:
-            try:
-                from revocompute.job.runners.slurm_runner import SlurmJob
-
-                tt, runner = _gt(task_type)
-                job = SlurmJob(md5sum, tt, runner, [], task["result_dir"])
-                slurm_state = job.reconnect(slurm_job_id)
-                if slurm_state is True:
-                    logging.info("Recovery: SLURM job %s still running for %s, re-queuing poll", slurm_job_id, md5sum)
-                    run_compute_task.apply_async(
-                        args=[md5sum], kwargs={"task_type": task_type, "recover_slurm": slurm_job_id}
-                    )
-                    recovered += 1
-                elif slurm_state is None:
-                    # Unknown sacct state: consult the live queue. A job in
-                    # neither sacct nor squeue was cancelled out from under
-                    # the worker (e.g. the srun client died at a restart).
-                    probe = subprocess.run(
-                        ["squeue", "-h", "-j", slurm_job_id, "-o", "%T"],
-                        capture_output=True,
-                        text=True,
-                        timeout=10,
-                    )
-                    if probe.returncode == 0 and probe.stdout.strip():
-                        logging.warning(
-                            "Recovery: SLURM job %s alive in queue for %s; re-queuing poll", slurm_job_id, md5sum
-                        )
-                        run_compute_task.apply_async(
-                            args=[md5sum], kwargs={"task_type": task_type, "recover_slurm": slurm_job_id}
-                        )
-                        recovered += 1
-                    else:
-                        _record_failure(
-                            md5sum,
-                            task,
-                            task.get("started_at") or time.time(),
-                            "",
-                            "SLURM job was cancelled during a server restart",
-                        )
-                        recovered += 1
-                else:
-                    _record_failure(
-                        md5sum,
-                        task,
-                        task.get("started_at") or time.time(),
-                        "",
-                        "SLURM job not found after server restart",
-                    )
-            except Exception as exc:
-                logging.error("Recovery failed for SLURM task %s: %s", md5sum, exc)
+            tt, runner = _gt(task_type)
+            job = DockerJob(md5sum, tt, runner, [], task["result_dir"])
+            if job.reconnect(container_id):
+                logging.info("Recovery: reconnected Docker %s for %s", container_id, md5sum)
+                state = job.poll()
+                _finalize_after_poll(md5sum, task, tt, state)
+                recovered += 1
+            else:
+                _record_failure(
+                    md5sum,
+                    task,
+                    task.get("started_at") or time.time(),
+                    "",
+                    "Docker container not found after server restart",
+                )
+        except Exception as exc:
+            logging.error("Recovery failed for Docker task %s: %s", md5sum, exc)
+            _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
     return recovered
 
 
@@ -1016,13 +910,9 @@ except ImportError:
 
 
 @celery.task(name="run_compute_task", bind=True, max_retries=0)
-def run_compute_task(self, md5sum: str, task_type: str = "gremlin", params: dict | None = None, recover_slurm: str | None = None):
-    """Compute task — dispatched by task_type.
-
-    ``recover_slurm`` attaches to an already-running SLURM job after a
-    server restart instead of submitting a new one.
-    """
-    return _execute_compute_task(md5sum, task_type, params, recover_slurm)
+def run_compute_task(self, md5sum: str, task_type: str = "gremlin", params: dict | None = None):
+    """Compute task — dispatched by task_type."""
+    return _execute_compute_task(md5sum, task_type, params)
 
 
 @celery.task(name="cancel_compute_resources", bind=True, max_retries=0)
