@@ -357,6 +357,37 @@ def test_drain_sentinel_lifecycle(tmp_path, monkeypatch):
     assert not (task_dir / ".maintenance").exists()
 
 
+# -- proxy broadcasting -------------------------------------------------------
+
+
+def test_proxy_broadcasts_to_subprocess_env_without_leaking_output(tmp_path, monkeypatch):
+    """--use-proxy must reach every subprocess environment (the shell's
+    global export) while the URL never appears in the ctl's own output."""
+    proxy_url = "http://test-user:test-password@proxy.invalid:8080"
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    env_dumper = bin_dir / "docker"
+    env_dumper.write_text(
+        '#!/usr/bin/env bash\nprintf "%s\\n" "HTTP_PROXY=${HTTP_PROXY}" "HTTPS_PROXY=${HTTPS_PROXY}" '
+        '"NO_PROXY=${NO_PROXY}" >> "${SHIM_LOG}"\nif [[ "$*" == *" ps --status running --services"* ]]; then '
+        'printf "redis\\nweb\\ngateway\\nmaintenance\\nworker\\n"; fi\n',
+        encoding="utf-8",
+    )
+    env_dumper.chmod(0o755)
+    task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    monkeypatch.setenv("SHIM_LOG", str(tmp_path / "docker.log"))
+    monkeypatch.delenv("NO_PROXY", raising=False)  # the shell default must apply
+    result = _run_cli(monkeypatch, tmp_path, env_file, bin_dir, "build", f"--use-proxy={proxy_url}")
+
+    assert result.returncode == 0, result.stderr
+    assert proxy_url not in result.stdout
+    assert proxy_url not in result.stderr
+    broadcast = (tmp_path / "docker.log").read_text(encoding="utf-8")
+    assert f"HTTP_PROXY={proxy_url}" in broadcast
+    assert f"HTTPS_PROXY={proxy_url}" in broadcast
+    assert "NO_PROXY=localhost,127.0.0.1,.local" in broadcast
+
+
 # -- dry-run ------------------------------------------------------------------
 
 
