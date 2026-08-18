@@ -30,7 +30,10 @@ def test_slurm_pre_stop_sweep_preserves_pending_and_finalizes_started_tasks():
     sweep = script.split("pre_stop_sweep_slurm() {", 1)[1].split("\n}\n\ncmd_down()", 1)[0]
     down = script.split("cmd_down() {", 1)[1].split("\n}", 1)[0]
 
-    assert "${RUNNER_USERNAME:-revodesign}" in sweep
+    assert "squeue" not in sweep
+    assert 'task.get("slurm_job_id")' in sweep
+    assert 'task.get("status") in {"queued", "running"}' in sweep
+    assert 'scancel "${jobs[@]}"' in sweep
     assert 'if task.get("status") in {"queued", "running"}:' in sweep
     assert '"pending"' not in sweep
     assert "from revocompute.task_runtime import _record_failure, task_store" in sweep

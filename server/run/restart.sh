@@ -1015,14 +1015,22 @@ cmd_up() {
 # without this sweep can leave allocations and task records orphaned.
 pre_stop_sweep_slurm() {
   if [[ "${USE_SLURM}" != "1" ]]; then return 0; fi
-  # Query the scheduler on the host, then cancel and finalize through the
-  # worker, which owns the mounted SLURM clients and task database.
-  local jobs
-  jobs=$(squeue -h -u "${RUNNER_USERNAME:-revodesign}" -o '%i' 2>/dev/null || true)
-  if [[ -n "${jobs}" ]]; then
-    echo "Cancelling in-flight SLURM jobs before stopping the stack: ${jobs}"
+  # Read only this deployment's persisted allocation IDs, then cancel and
+  # finalize through the worker, which owns the task DB and SLURM clients.
+  local jobs=()
+  # shellcheck disable=SC2046
+  mapfile -t jobs < <("${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec -T worker python3 - <<'PY'
+from revocompute.task_runtime import task_store
+for task in task_store.list_tasks():
+    job_id = str(task.get("slurm_job_id") or "").strip()
+    if task.get("status") in {"queued", "running"} and job_id.isdigit():
+        print(job_id)
+PY
+)
+  if (( ${#jobs[@]} )); then
+    echo "Cancelling this deployment's in-flight SLURM jobs: ${jobs[*]}"
     # shellcheck disable=SC2046
-    "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec -T worker scancel ${jobs} || true
+    "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec -T worker scancel "${jobs[@]}" || true
   fi
   echo "Marking in-flight tasks failed before stopping the stack..."
   # shellcheck disable=SC2046

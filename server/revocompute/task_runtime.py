@@ -19,6 +19,7 @@ import os
 import re
 import shutil
 import subprocess
+import threading
 import time
 import zipfile
 from datetime import datetime
@@ -873,8 +874,12 @@ def _recover_orphaned_tasks() -> int:
             job = DockerJob(md5sum, tt, runner, [], task["result_dir"])
             if job.reconnect(container_id):
                 logging.info("Recovery: reconnected Docker %s for %s", container_id, md5sum)
-                state = job.poll()
-                _finalize_after_poll(md5sum, task, tt, state)
+                threading.Thread(
+                    target=_poll_recovered_docker_job,
+                    args=(md5sum, task, tt, job),
+                    name=f"recover-{md5sum[:12]}",
+                    daemon=True,
+                ).start()
                 handled += 1
             else:
                 _record_failure(
@@ -890,6 +895,15 @@ def _recover_orphaned_tasks() -> int:
             _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
             handled += 1
     return handled
+
+
+def _poll_recovered_docker_job(md5sum, task, tt, job) -> None:
+    """Poll and finalize a reconnected container without delaying worker readiness."""
+    try:
+        _finalize_after_poll(md5sum, task, tt, job.poll())
+    except Exception as exc:  # pylint: disable=broad-except
+        logging.exception("Recovery polling failed for Docker task %s", md5sum)
+        _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
 
 
 def _finalize_after_poll(md5sum, task, tt, state):

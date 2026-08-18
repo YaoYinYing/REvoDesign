@@ -534,6 +534,60 @@ def test_worker_recovery_cancels_slurm_orphans_and_preserves_unstarted_queue(mon
     assert failures[1][3:] == ("", "Compute task lost its worker before recording a resource handle")
 
 
+def test_worker_recovery_polls_reconnected_docker_outside_startup(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    runtime = module.task_runtime
+    from revocompute import task_types
+    from revocompute.job.runners import docker_runner
+
+    task = {
+        "md5sum": "e" * 32,
+        "status": "running",
+        "container_id": "container-1",
+        "task_type": "gremlin",
+        "result_dir": str(tmp_path / "result"),
+    }
+    started_threads = []
+    poll_calls = []
+
+    class FakeDockerJob:
+        def __init__(self, *args):
+            del args
+
+        def reconnect(self, container_id):
+            return container_id == "container-1"
+
+        def poll(self):
+            poll_calls.append(True)
+            return runtime.JobState.COMPLETED
+
+    class FakeThread:
+        def __init__(self, *, target, args, name, daemon):
+            self.target = target
+            self.args = args
+            self.name = name
+            self.daemon = daemon
+
+        def start(self):
+            started_threads.append(self)
+
+    monkeypatch.setattr(runtime.task_store, "list_tasks", lambda: [task])
+    monkeypatch.setattr(task_types, "get", lambda task_type: (object(), object()))
+    monkeypatch.setattr(docker_runner, "DockerJob", FakeDockerJob)
+    monkeypatch.setattr(runtime.threading, "Thread", FakeThread)
+
+    assert runtime._recover_orphaned_tasks() == 1
+    assert poll_calls == []
+    assert len(started_threads) == 1
+    assert started_threads[0].target is runtime._poll_recovered_docker_job
+    assert started_threads[0].name == "recover-eeeeeeeeeeee"
+    assert started_threads[0].daemon is True
+
+
 def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
