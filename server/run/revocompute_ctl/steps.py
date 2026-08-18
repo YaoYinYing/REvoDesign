@@ -139,7 +139,8 @@ def _prepared_preflight(state, compose_cmd: tuple[str, ...], dry_run: bool = Fal
         prepare_auth_storage(state, uid)
         prepare_result_storage(state, uid)
     validate_compose_model(state, compose_cmd)
-    validate_resource_policies(state, compose_cmd)
+    if not dry_run:  # the audit launches a throwaway worker container
+        validate_resource_policies(state, compose_cmd)
 
 
 # -- subcommand sequences ----------------------------------------------------
@@ -375,7 +376,11 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     steps.append(Step("prune", lambda: promotion.prune_dangling(state)))
 
     def finalize(timings: dict[str, float]) -> None:
-        if flags.mode != "dev":  # dev CONFIG_DIR is usually the checkout
+        # A deployment stamp belongs wherever rollback matters: any
+        # non-dev mode, or a dev restart against an explicitly configured
+        # deployment CONFIG_DIR.  Local dev with the checkout-config
+        # fallback stays stamp-free.
+        if flags.mode != "dev" or state.values.get("CONFIG_DIR"):
             write_stamp(
                 state,
                 stamp_payload(
