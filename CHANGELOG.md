@@ -55,9 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Server:
-  - Result polling/viewers: terminal task states reload once without overlapping polls; pending result pages keep polling; Mol* teardown completes before iframe removal and preview loaders remain visible.
+  - Result polling/viewers: terminal task states reload once without overlapping polls; pending result pages keep polling; Mol* teardown completes before iframe removal, stale teardown continuations cannot replace newer previews, and preview loaders remain visible.
   - AlphaFold stages: drain the stderr translator before wrapper exit and preserve both process statuses so final stage markers cannot be lost.
   - SLURM status: move allocated tasks from queued to running as soon as the wrapper publishes the real job ID, without waiting for scientific stage output.
+  - SLURM recovery: restarts preserve unstarted queued work while cancelling and fully finalizing orphaned allocations and running records.
   - RFdiffusion runner: redirect Hydra bookkeeping and generated schedule caches to the per-job writable `/tmp` filesystem under read-only container execution; lock task defaults to the pinned upstream inference configuration.
   - Mol* input workbenches: sequence-strip and canvas selections now report canonical residues; cached viewer-shell handshakes no longer race listener setup.
   - task-type intro audit: intros/categories corrected against the runner docs (Pro-Prime = OGT prediction → `fitness`; ThermoMPNN-D = ΔΔG prediction; PLACER = all-atom ligand modeling; GREMLIN = conservation + couplings; HyperMPNN/LASErMPNN/OpenDDE reworded).

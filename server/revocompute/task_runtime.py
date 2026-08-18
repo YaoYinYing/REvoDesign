@@ -813,25 +813,56 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
 
 
 # ---------------------------------------------------------------------------
-# Orphaned Docker container recovery after server restart
+# Orphaned compute-resource recovery after worker restart
 #
-# SLURM tasks need no recovery: restart.sh's pre-stop sweep cancels every
-# in-flight SLURM job and marks its task record failed BEFORE the worker
-# dies, so no SLURM orphan can ever exist.  Docker containers survive the
-# stack restart, so only they are reconnected here.
+# A managed stack shutdown sweeps SLURM jobs before stopping the worker, but
+# an OOM, crash, or direct container restart bypasses that hook.  On worker
+# startup, fail those orphaned records and best-effort cancel their allocation.
+# Docker containers survive a worker restart and are reconnected instead.
 # ---------------------------------------------------------------------------
 
 
 def _recover_orphaned_tasks() -> int:
-    """Reconnect Docker containers whose Celery task was lost (e.g. Redis restart)."""
-    recovered = 0
+    """Resolve compute records whose owning Celery worker disappeared."""
+    handled = 0
     for task in task_store.list_tasks():
         if task.get("status") not in {"running", "queued"}:
             continue
+        md5sum = task["md5sum"]
+        slurm_job_id = str(task.get("slurm_job_id") or "").strip()
         container_id = str(task.get("container_id") or "")
+        if slurm_job_id:
+            cancellation_error = ""
+            scancel = shutil.which("scancel")
+            if scancel and slurm_job_id.isdigit():
+                try:
+                    subprocess.run([scancel, slurm_job_id], timeout=10, check=True)
+                except (OSError, subprocess.SubprocessError) as exc:
+                    cancellation_error = f"; scheduler cancellation could not be confirmed: {exc}"
+                    logging.warning("Recovery could not cancel SLURM job %s for %s: %s", slurm_job_id, md5sum, exc)
+            else:
+                cancellation_error = "; scheduler cancellation could not be attempted"
+            _record_failure(
+                md5sum,
+                task,
+                task.get("started_at") or time.time(),
+                str(task.get("run_stage") or ""),
+                f"SLURM task lost its worker{cancellation_error}",
+            )
+            handled += 1
+            continue
+        if not container_id and task.get("status") == "running":
+            _record_failure(
+                md5sum,
+                task,
+                task.get("started_at") or time.time(),
+                str(task.get("run_stage") or ""),
+                "Compute task lost its worker before recording a resource handle",
+            )
+            handled += 1
+            continue
         if not container_id:
             continue
-        md5sum = task["md5sum"]
         task_type = task.get("task_type", "gremlin")
         logging.info("Recovery: checking orphaned task %s", md5sum)
         try:
@@ -844,7 +875,7 @@ def _recover_orphaned_tasks() -> int:
                 logging.info("Recovery: reconnected Docker %s for %s", container_id, md5sum)
                 state = job.poll()
                 _finalize_after_poll(md5sum, task, tt, state)
-                recovered += 1
+                handled += 1
             else:
                 _record_failure(
                     md5sum,
@@ -853,10 +884,12 @@ def _recover_orphaned_tasks() -> int:
                     "",
                     "Docker container not found after server restart",
                 )
+                handled += 1
         except Exception as exc:
             logging.error("Recovery failed for Docker task %s: %s", md5sum, exc)
             _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
-    return recovered
+            handled += 1
+    return handled
 
 
 def _finalize_after_poll(md5sum, task, tt, state):
@@ -896,7 +929,7 @@ try:
         try:
             count = _recover_orphaned_tasks()
             if count:
-                logging.info("Recovered %d orphaned task(s)", count)
+                logging.info("Handled %d orphaned task(s)", count)
             else:
                 logging.info("Recovery: no orphaned tasks found")
         except Exception:  # boot-time recovery must never die silently

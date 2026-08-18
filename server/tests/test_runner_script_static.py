@@ -12,9 +12,7 @@ from pathlib import Path
 RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin" / "run.sh"
 OPENDDE_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "opendde" / "run.sh"
 MPNN_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "mpnn" / "run.sh"
-ALPHAFOLD_RUNNER_SCRIPT = (
-    Path(__file__).resolve().parents[1] / "docker" / "runners" / "alphafold" / "run.sh"
-)
+ALPHAFOLD_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "alphafold" / "run.sh"
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -25,6 +23,19 @@ def test_prepared_activation_audits_resources_before_stopping_services():
     assert "validate_resource_policies" in preflight
     assert "--no-build --entrypoint python worker" in script
     assert "-m revocompute.resource_audit" in script
+
+
+def test_slurm_pre_stop_sweep_preserves_pending_and_finalizes_started_tasks():
+    script = (SERVER_ROOT / "run" / "restart.sh").read_text(encoding="utf-8")
+    sweep = script.split("pre_stop_sweep_slurm() {", 1)[1].split("\n}\n\ncmd_down()", 1)[0]
+    down = script.split("cmd_down() {", 1)[1].split("\n}", 1)[0]
+
+    assert "${RUNNER_USERNAME:-revodesign}" in sweep
+    assert 'if task.get("status") in {"queued", "running"}:' in sweep
+    assert '"pending"' not in sweep
+    assert "from revocompute.task_runtime import _record_failure, task_store" in sweep
+    assert "_record_failure(" in sweep
+    assert 'source "${ENV_FILE}"' in down
 
 
 def test_runner_script_does_not_eval_user_controlled_commands():
@@ -93,8 +104,7 @@ def test_alphafold_runner_drains_final_stage_before_exit(tmp_path):
     output_dir.mkdir()
     alphafold_root.mkdir()
     fake_context.write_text(
-        '_parse_param() { printf "%s\\n" "$2"; }\n'
-        'primary_input() { printf "%s\\n" "$FAKE_PRIMARY_INPUT"; }\n',
+        '_parse_param() { printf "%s\\n" "$2"; }\n' 'primary_input() { printf "%s\\n" "$FAKE_PRIMARY_INPUT"; }\n',
         encoding="utf-8",
     )
     fake_python.write_text(

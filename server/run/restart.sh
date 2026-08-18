@@ -1011,38 +1011,41 @@ cmd_up() {
 }
 
 # Kill and mark every in-flight SLURM task before the worker dies.  The
-# worker owns the srun clients, so stopping the stack orphans anything
-# running; a clean pre-stop sweep means no orphan can ever exist and no
-# boot-time recovery machinery is needed.
+# worker owns the task database and mounted SLURM clients, so stopping it
+# without this sweep can leave allocations and task records orphaned.
 pre_stop_sweep_slurm() {
   if [[ "${USE_SLURM}" != "1" ]]; then return 0; fi
-  # The worker container owns the srun clients, runs as the SLURM user, and
-  # holds write access to the task DB — the host account has none of the
-  # three, so the whole sweep runs inside the containers before down.
+  # Query the scheduler on the host, then cancel and finalize through the
+  # worker, which owns the mounted SLURM clients and task database.
   local jobs
-  jobs=$(squeue -h -u "${RUNNER_USERNAME}" -o '%i' 2>/dev/null || true)
+  jobs=$(squeue -h -u "${RUNNER_USERNAME:-revodesign}" -o '%i' 2>/dev/null || true)
   if [[ -n "${jobs}" ]]; then
     echo "Cancelling in-flight SLURM jobs before stopping the stack: ${jobs}"
-    # shellcheck disable=SC2086
+    # shellcheck disable=SC2046
     "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec -T worker scancel ${jobs} || true
   fi
   echo "Marking in-flight tasks failed before stopping the stack..."
+  # shellcheck disable=SC2046
   "${COMPOSE_CMD[@]}" $(compose_files) --env-file "${ENV_FILE}" exec -T worker python3 - <<'PY' || true
 import time
-from revocompute.task_runtime import task_store
+from revocompute.task_runtime import _record_failure, task_store
 for task in task_store.list_tasks():
-    if task.get("status") in {"pending", "queued", "running"}:
-        task_store.update_task(
+    if task.get("status") in {"queued", "running"}:
+        _record_failure(
             task["md5sum"],
-            status="failed",
-            error="Cancelled by server restart",
-            finished_at=time.time(),
+            task,
+            task.get("started_at") or time.time(),
+            str(task.get("run_stage") or ""),
+            "Cancelled by server restart",
         )
 PY
 }
 
 cmd_down() {
   require_env_file
+  set -a
+  source "${ENV_FILE}"
+  set +a
   ensure_docker_gid
   resolve_runner_identity
   pre_stop_sweep_slurm

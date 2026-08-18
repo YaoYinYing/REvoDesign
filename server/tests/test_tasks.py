@@ -174,6 +174,8 @@ def test_result_status_polling_handles_terminal_and_pending_responses():
     assert results.index("window.__revocomputeStatusPoll = setInterval") < results.index(
         "if (!response.ok || !Array.isArray(payload.artifacts))"
     )
+    disposal = results.index("await disposeActiveViewer();")
+    assert disposal < results.index("if (isStale(generation)) return;", disposal)
 
 
 def test_execution_logs_are_diagnostic_text_artifacts_not_main_results():
@@ -492,6 +494,40 @@ def test_single_stage_slurm_task_transitions_from_queued_to_running(monkeypatch,
     module.run_compute_task(md5sum, "opendde", {})
 
     assert observed_statuses == ["queued", "running", "finished"]
+
+
+def test_worker_recovery_cancels_slurm_orphans_and_preserves_unstarted_queue(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    runtime = module.task_runtime
+    tasks = [
+        {
+            "md5sum": "a" * 32,
+            "status": "running",
+            "slurm_job_id": "4154",
+            "run_stage": "design",
+            "started_at": 123.0,
+        },
+        {"md5sum": "b" * 32, "status": "running", "started_at": 456.0},
+        {"md5sum": "c" * 32, "status": "queued"},
+        {"md5sum": "d" * 32, "status": "pending"},
+    ]
+    failures = []
+    cancellations = []
+
+    monkeypatch.setattr(runtime.task_store, "list_tasks", lambda: tasks)
+    monkeypatch.setattr(runtime.shutil, "which", lambda command: f"/usr/bin/{command}")
+    monkeypatch.setattr(runtime.subprocess, "run", lambda args, **kwargs: cancellations.append((args, kwargs)))
+    monkeypatch.setattr(runtime, "_record_failure", lambda *args: failures.append(args))
+
+    assert runtime._recover_orphaned_tasks() == 2
+    assert cancellations == [(["/usr/bin/scancel", "4154"], {"timeout": 10, "check": True})]
+    assert [failure[0] for failure in failures] == ["a" * 32, "b" * 32]
+    assert failures[0][3:] == ("design", "SLURM task lost its worker")
+    assert failures[1][3:] == ("", "Compute task lost its worker before recording a resource handle")
 
 
 def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, tmp_path):

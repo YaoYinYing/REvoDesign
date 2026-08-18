@@ -402,6 +402,7 @@
       // A dead warm frame must not poison the next pick: dispose it so the
       // retry cold-starts a fresh shell.
       await disposeActiveViewer();
+      if (isStale(generation)) return;
       surface.replaceChildren();
       surface.appendChild(structureViewerBar(artifact));
       var msg = document.createElement("p");
