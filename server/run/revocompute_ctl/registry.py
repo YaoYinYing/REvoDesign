@@ -263,11 +263,19 @@ def build_slurm_images(state, families: list[RuntimeFamily]) -> int:
             print(f"[SLURM] SIF image unchanged: {family.slurm_image} — skipping.")
             continue
         print(f"[SLURM] Building {staged} from {def_file}...")
-        result = run_cmd(["apptainer", "build", "--fakeroot", staged, str(def_file)], env=state.exported(), check=False)
+        # Atomic staging: a killed build must never leave a corrupt .next
+        # that the next run treats as a valid staging.
+        staging = f"{staged}.build"
+        result = run_cmd(
+            ["apptainer", "build", "--fakeroot", staging, str(def_file)], env=state.exported(), check=False
+        )
         if result.returncode != 0:
+            if os.path.isfile(staging):
+                os.remove(staging)
             print(f"[SLURM] Build failed for {family.name} — disabled for this restart.", file=sys.stderr)
             drop_enabled_runner(state, family.name)
         else:
+            os.replace(staging, staged)
             built += 1
     if built:
         print(f"[SLURM] Built {built} SIF image(s).")

@@ -328,6 +328,7 @@ def test_sif_staging_drops_failed_runner_from_enabled_list(tmp_path, monkeypatch
     state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
     build_slurm_images(state, [family])
     assert state.get("ENABLED_TASKRUNNERS") == ""  # dropped for the run
+    assert not (sif_dir / "gremlin.sif.next").exists()  # no corrupt staging left behind
 
 
 # -- stamp / backup / drain round-trips through the container transport -------
