@@ -98,9 +98,13 @@ def stamp_payload(
         }
     sif_sha256s: dict[str, str] = {}
     if state.use_slurm():
-        # Multi-GB files — hash only the SIFs this deploy actually changed.
+        # Multi-GB files — hash only the SIFs this deploy actually changed:
+        # docker-delta families, or SIFs promoted this restart (the
+        # <sif>.previous marker appears only after a promotion).
         for family in families:
-            if family.name in changed and os.path.isfile(family.slurm_image):
+            if (family.name in changed or os.path.isfile(f"{family.slurm_image}.previous")) and os.path.isfile(
+                family.slurm_image
+            ):
                 sif_sha256s[family.name] = _sha256_file(family.slurm_image)
     return {
         "commit": commit,
