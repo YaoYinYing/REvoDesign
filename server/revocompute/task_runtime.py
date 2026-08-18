@@ -837,6 +837,10 @@ def _recover_slurm_task(md5sum: str, task: dict[str, Any], slurm_job_id: str) ->
             "countdown": 30,
         }
         if state is True:
+            # The job is alive on the cluster even though the record may
+            # still say "queued" from before the restart.
+            if task.get("status") != "running" and not _is_terminal_status(task.get("status")):
+                task_store.update_task(md5sum, status="running")
             run_compute_task.apply_async(**requeue)
             return
         if state is None:
