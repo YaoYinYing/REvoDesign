@@ -12,6 +12,7 @@ recovery machinery is needed.
 
 from __future__ import annotations
 
+import sys
 from revocompute_ctl.compose import compose_args, run_cmd
 
 # Byte-identical to the heredoc restart.sh fed to the worker container.
@@ -77,9 +78,16 @@ def pre_stop_sweep_slurm(state, compose_cmd: tuple[str, ...]) -> None:
             check=False,
         )
     print("Marking in-flight tasks failed before stopping the stack...")
-    run_cmd(
+    marked = run_cmd(
         [*compose_cmd, *compose_args(state), "--env-file", state.env_file, "exec", "-T", "worker", "python3", "-"],
         env=state.exported(),
         stdin=SWEEP_SOURCE,
         check=False,
+        capture=True,
     )
+    if marked.returncode != 0:
+        print(
+            "Pre-stop sweep failed to mark in-flight tasks; they may remain queued/running: "
+            f"{(marked.stderr or '').strip()}",
+            file=sys.stderr,
+        )

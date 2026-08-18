@@ -134,7 +134,14 @@ def rollback_config(state, stamp: dict) -> None:
     print(f"Registry drifted; restoring config backup: {backup}")
     container_fs(
         state,
-        "rm -rf /cfg/runners /cfg/task_types.yaml && cp -a /backup/runners /backup/task_types.yaml /cfg/",
+        "set -e\n"
+        "test -d /backup/runners && test -f /backup/task_types.yaml\n"
+        "rm -rf /cfg/.restore && mkdir -p /cfg/.restore\n"
+        "cp -a /backup/runners /backup/task_types.yaml /cfg/.restore/\n"
+        "rm -rf /cfg/runners /cfg/task_types.yaml\n"
+        "mv /cfg/.restore/runners /cfg/runners\n"
+        "mv /cfg/.restore/task_types.yaml /cfg/task_types.yaml\n"
+        "rmdir /cfg/.restore",
         [(state.config_dir(), "/cfg"), (backup, "/backup")],
     )
 

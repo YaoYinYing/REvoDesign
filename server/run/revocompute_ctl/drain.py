@@ -13,6 +13,7 @@ whatever remains when the timeout hits.
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import time
 
@@ -43,9 +44,14 @@ def begin_drain(state, minutes: int) -> None:
     deadline = time.monotonic() + minutes * 60
     user = state.get("RUNNER_USERNAME") or "revodesign"
     while time.monotonic() < deadline:
-        jobs = run_cmd(
-            ["squeue", "-h", "-u", user, "-o", "%i"], env=state.exported(), check=False, capture=True
-        ).stdout.strip()
+        try:
+            jobs = run_cmd(
+                ["squeue", "-h", "-u", user, "-o", "%i"],
+                env=state.exported(), check=False, capture=True, timeout=60,
+            ).stdout.strip()
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            print(f"[SLURM] squeue unavailable ({exc}); skipping the drain wait.", file=sys.stderr)
+            return
         if not jobs:
             print("In-flight SLURM jobs drained.")
             return
