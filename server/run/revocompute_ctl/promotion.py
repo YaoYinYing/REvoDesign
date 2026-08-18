@@ -154,9 +154,9 @@ def rollback_docker(state, images: dict[str, str], changed: set[str]) -> None:
         run_cmd(["docker", "tag", previous_tag, latest_tag], env=state.exported())
 
 
-def rollback_sifs(state, families: list[RuntimeFamily]) -> None:
+def rollback_sifs(state, families: list[RuntimeFamily], changed: set[str]) -> None:
     for family in families:
-        if not runner_enabled(state, family.name):
+        if not runner_enabled(state, family.name) or family.name not in changed:
             continue
         previous = f"{family.slurm_image}.previous"
         if os.path.isfile(previous):

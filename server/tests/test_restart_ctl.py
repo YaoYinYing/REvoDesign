@@ -33,6 +33,7 @@ from conftest import REPO_DIR, _load_pssm_module, _test_client_auth  # noqa: E40
 from revocompute_ctl import drain as drain_mod  # noqa: E402
 from revocompute_ctl import promotion  # noqa: E402
 from revocompute_ctl import stamp as stamp_mod  # noqa: E402
+from revocompute_ctl import sweep as sweep_mod  # noqa: E402
 from revocompute_ctl.env import EnvState, parse_env_file  # noqa: E402
 from revocompute_ctl.registry import RuntimeFamily, build_slurm_images  # noqa: E402
 from revocompute_ctl.steps import Step, StepRegistry, run_walk  # noqa: E402
@@ -169,6 +170,26 @@ def test_step_registry_requires_stop_last():
         registry.add("x", [Step("a", lambda: None)])
     registry.add("x", [Step("a", lambda: None), Step("stop", lambda: None)])
     assert [step.name for step in registry.get("x")] == ["a", "stop"]
+
+
+def test_slurm_sweep_only_cancels_persisted_deployment_job_ids(monkeypatch, tmp_path):
+    state = EnvState(str(tmp_path / "server.env"), values={"USE_SLURM": "1"})
+    calls = []
+
+    def fake_run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return subprocess.CompletedProcess(argv, 0, stdout="101\n202\n")
+
+    monkeypatch.setattr(sweep_mod, "run_cmd", fake_run)
+    sweep_mod.pre_stop_sweep_slurm(state, ("docker", "compose"))
+
+    first_argv, first_kwargs = calls[0]
+    assert "squeue" not in first_argv
+    assert first_argv[-2:] == ["python3", "-"]
+    assert "slurm_job_id" in first_kwargs["stdin"]
+    assert "pending" not in sweep_mod.SWEEP_SOURCE
+    assert "_record_failure" in sweep_mod.SWEEP_SOURCE
+    assert calls[1][0][-3:] == ["scancel", "101", "202"]
 
 
 def test_walk_runs_completed_cleanups_in_reverse_on_failure():

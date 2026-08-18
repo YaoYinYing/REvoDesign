@@ -17,8 +17,8 @@ import os
 import shutil
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable
 
 from revocompute_ctl.compose import compose_args, ensure_docker_gid, run_cmd
 from revocompute_ctl.registry import (
@@ -442,12 +442,7 @@ def build_rollback_plan(state, compose_cmd: tuple[str, ...]) -> RestartPlan:
     import os as _os
 
     from revocompute_ctl import promotion
-    from revocompute_ctl.stamp import (
-        load_stamp,
-        rollback_config,
-        stamp_payload,
-        write_stamp,
-    )
+    from revocompute_ctl.stamp import load_stamp, rollback_config, stamp_payload, write_stamp
 
     require_env_file(state)
     validate_required_settings(state)
@@ -482,7 +477,10 @@ def build_rollback_plan(state, compose_cmd: tuple[str, ...]) -> RestartPlan:
         Step("stop", lambda: cmd_down(state, compose_cmd)),  # includes the pre-stop sweep
         Step(
             "retag",
-            lambda: (promotion.rollback_docker(state, images, changed), promotion.rollback_sifs(state, families)),
+            lambda: (
+                promotion.rollback_docker(state, images, changed),
+                promotion.rollback_sifs(state, families, changed),
+            ),
         ),
         Step("up", lambda: cmd_up(state, compose_cmd, extra=["--no-build"])),
         Step("readiness", lambda: wait_for_services(state, compose_cmd)),

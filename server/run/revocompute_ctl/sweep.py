@@ -15,15 +15,23 @@ from __future__ import annotations
 from revocompute_ctl.compose import compose_args, run_cmd
 
 # Byte-identical to the heredoc restart.sh fed to the worker container.
-SWEEP_SOURCE = """import time
-from revocompute.task_runtime import task_store
+JOB_IDS_SOURCE = """from revocompute.task_runtime import task_store
 for task in task_store.list_tasks():
-    if task.get("status") in {"pending", "queued", "running"}:
-        task_store.update_task(
+    job_id = str(task.get("slurm_job_id") or "").strip()
+    if task.get("status") in {"queued", "running"} and job_id.isdigit():
+        print(job_id)
+"""
+
+SWEEP_SOURCE = """import time
+from revocompute.task_runtime import _record_failure, task_store
+for task in task_store.list_tasks():
+    if task.get("status") in {"queued", "running"}:
+        _record_failure(
             task["md5sum"],
-            status="failed",
-            error="Cancelled by server restart",
-            finished_at=time.time(),
+            task,
+            task.get("started_at") or time.time(),
+            str(task.get("run_stage") or ""),
+            "Cancelled by server restart",
         )
 """
 
@@ -35,13 +43,24 @@ def pre_stop_sweep_slurm(state, compose_cmd: tuple[str, ...]) -> None:
     if not state.use_slurm():
         return
     jobs = run_cmd(
-        ["squeue", "-h", "-u", state.get("RUNNER_USERNAME") or "revodesign", "-o", "%i"],
+        [
+            *compose_cmd,
+            *compose_args(state),
+            "--env-file",
+            state.env_file,
+            "exec",
+            "-T",
+            "worker",
+            "python3",
+            "-",
+        ],
         env=state.exported(),
+        stdin=JOB_IDS_SOURCE,
         check=False,
         capture=True,
     ).stdout.strip()
     if jobs:
-        print(f"Cancelling in-flight SLURM jobs before stopping the stack: {jobs}")
+        print(f"Cancelling this deployment's in-flight SLURM jobs: {jobs}")
         run_cmd(
             [
                 *compose_cmd,

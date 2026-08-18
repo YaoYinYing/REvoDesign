@@ -68,8 +68,13 @@ stage_fifo="${stage_tmp}/stderr"
 mkfifo "${stage_fifo}"
 cleanup_stage_pipe() { rm -rf -- "${stage_tmp}"; }
 trap cleanup_stage_pipe EXIT
-"${ALPHAFOLD_PYTHON:-python3}" "${ALPHAFOLD_STAGE_TRANSLATOR:-/app/revocompute/stage_translate.py}" \
-  "${ALPHAFOLD_STAGE_PATTERNS:-/app/revocompute/alphafold.stages}" < "${stage_fifo}" >&1 &
+stage_translator="${ALPHAFOLD_STAGE_TRANSLATOR:-/app/revocompute/stage_translate.py}"
+stage_patterns="${ALPHAFOLD_STAGE_PATTERNS:-/app/revocompute/alphafold.stages}"
+if [[ ${stage_translator} == *.awk ]]; then
+  awk -f "${stage_translator}" -v PATTERNS="${stage_patterns}" < "${stage_fifo}" >&1 &
+else
+  python3 "${stage_translator}" "${stage_patterns}" < "${stage_fifo}" >&1 &
+fi
 translator_pid=$!
 set +e
 PYTHONUNBUFFERED=1 "${ALPHAFOLD_PYTHON:-python3}" run_alphafold.py "${af_args[@]}" 2> "${stage_fifo}"
