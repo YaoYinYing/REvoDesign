@@ -819,6 +819,43 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
 # ---------------------------------------------------------------------------
 
 
+def _recover_slurm_task(md5sum: str, task: dict[str, Any], slurm_job_id: str) -> None:
+    """Attach to a live SLURM job after a restart instead of resubmitting.
+
+    Polls sacct/squeue with a self-requeue until the job ends, then
+    finalizes from the result directory.
+    """
+    try:
+        tt, runner = _get_task_type(task.get("task_type", "gremlin"))
+        from revocompute.job.runners.slurm_runner import SlurmJob
+
+        job = SlurmJob(md5sum, tt, runner, [], task["result_dir"])
+        state = job.reconnect(slurm_job_id)
+        requeue = {
+            "args": [md5sum],
+            "kwargs": {"task_type": task.get("task_type", "gremlin"), "recover_slurm": slurm_job_id},
+            "countdown": 30,
+        }
+        if state is True:
+            run_compute_task.apply_async(**requeue)
+            return
+        if state is None:
+            probe = subprocess.run(
+                ["squeue", "-h", "-j", slurm_job_id, "-o", "%T"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if probe.returncode == 0 and probe.stdout.strip():
+                run_compute_task.apply_async(**requeue)
+                return
+        final = JobState.COMPLETED if job._has_result_artifact() else JobState.FAILED
+        _finalize_after_poll(md5sum, task, tt, final)
+    except Exception as exc:
+        logging.error("recover_slurm failed for %s: %s", md5sum, exc)
+        _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
+
+
 def _recover_orphaned_tasks() -> int:
     """Scan for running tasks whose Celery task was lost (e.g. Redis restart).
 
