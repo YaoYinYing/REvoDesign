@@ -347,6 +347,7 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     images = promotion.taggable_images(state, families)
     baseline = promotion.capture_baseline_digests(state, images)
     backup_path_holder: list[str] = [""]
+    promoted_sifs: set[str] = set()
 
     def changed_now() -> set[str]:
         """Per-family change set computed at the moment it is needed: after
@@ -362,14 +363,19 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
 
     def final_changed() -> set[str]:
         """Post-up truth: baseline digest vs. the digest now under latest."""
-        return {
+        return promoted_sifs | {
             name
             for name, entry in baseline.items()
             if promotion.image_id(state, f"{images[name]}:latest") != entry.get("latest", "")
         }
 
     steps: list[Step] = [
-        Step("backup-config", lambda: backup_path_holder.__setitem__(0, backup_config(state))),
+        Step(
+            "backup-config",
+            lambda: backup_path_holder.__setitem__(
+                0, backup_config(state) if flags.mode != "dev" or state.values.get("CONFIG_DIR") else ""
+            ),
+        ),
         Step("capture-baselines", lambda: None),  # captured above; kept as a named phase
         Step("stop", lambda: cmd_down(state, compose_cmd)),
     ]
@@ -392,35 +398,42 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     if state.use_slurm():
         steps.append(Step("build-sif", lambda: slurm_block(state, families, flags.build_sif)))
     steps.append(Step("promote", lambda: promotion.promote_docker(state, images, baseline, flags.mode)))
-    steps.append(Step("promote-sifs", lambda: promotion.promote_sifs(state, families)))
+
+    def promote_sifs() -> None:
+        promoted_sifs.update(family.name for family in families if os.path.isfile(f"{family.slurm_image}.next"))
+        promotion.promote_sifs(state, families)
+
+    steps.append(Step("promote-sifs", promote_sifs))
     steps.append(Step("up", lambda: cmd_up(state, compose_cmd, extra=["--no-build"])))
     if flags.mode == "prepared":
         steps.append(Step("readiness", lambda: wait_for_services(state, compose_cmd)))
     steps.append(Step("prune", lambda: promotion.prune_dangling(state)))
 
     def finalize(timings: dict[str, float]) -> None:
-        changed = final_changed()
-        # A deployment stamp belongs wherever rollback matters: any
-        # non-dev mode, or a dev restart against an explicitly configured
-        # deployment CONFIG_DIR.  Local dev with the checkout-config
-        # fallback stays stamp-free.
-        if flags.mode != "dev" or state.values.get("CONFIG_DIR"):
-            write_stamp(
-                state,
-                stamp_payload(
+        try:
+            changed = final_changed()
+            # A deployment stamp belongs wherever rollback matters: any
+            # non-dev mode, or a dev restart against an explicitly configured
+            # deployment CONFIG_DIR.  Local dev with the checkout-config
+            # fallback stays stamp-free.
+            if flags.mode != "dev" or state.values.get("CONFIG_DIR"):
+                write_stamp(
                     state,
-                    mode=flags.mode,
-                    timings=timings,
-                    changed=sorted(changed),
-                    unchanged=sorted(set(images) - changed),
-                    images=images,
-                    baseline=baseline,
-                    families=families,
-                    backup_path=backup_path_holder[0],
-                ),
-            )
-        if flags.drain_minutes:
-            end_drain(state)
+                    stamp_payload(
+                        state,
+                        mode=flags.mode,
+                        timings=timings,
+                        changed=sorted(changed),
+                        unchanged=sorted(set(images) - changed),
+                        images=images,
+                        baseline=baseline,
+                        families=families,
+                        backup_path=backup_path_holder[0],
+                    ),
+                )
+        finally:
+            if flags.drain_minutes:
+                end_drain(state)
         finish_restart(state)
 
     predicted = changed_now()
@@ -446,9 +459,10 @@ def build_rollback_plan(state, compose_cmd: tuple[str, ...]) -> RestartPlan:
 
     require_env_file(state)
     validate_required_settings(state)
-    families = validate_runtime_files(state)
     resolve_runner_identity(state)  # load_stamp's container_fs runs as this
     stamp = load_stamp(state)
+    rollback_config(state, stamp)
+    families = validate_runtime_files(state)
     stamp_commit = stamp.get("commit", "unknown")
     images = promotion.taggable_images(state, families)
     changed = set(stamp.get("changed") or [])
@@ -470,8 +484,6 @@ def build_rollback_plan(state, compose_cmd: tuple[str, ...]) -> RestartPlan:
             file=sys.stderr,
         )
         raise SystemExit(1)
-
-    rollback_config(state, stamp)
 
     steps: list[Step] = [
         Step("stop", lambda: cmd_down(state, compose_cmd)),  # includes the pre-stop sweep
