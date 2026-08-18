@@ -885,7 +885,7 @@ def _recover_orphaned_tasks() -> int:
                     "Docker container not found after server restart",
                 )
                 handled += 1
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             logging.error("Recovery failed for Docker task %s: %s", md5sum, exc)
             _record_failure(md5sum, task, task.get("started_at") or time.time(), "", f"Recovery error: {exc}")
             handled += 1
@@ -966,12 +966,12 @@ def cancel_compute_resources(self, slurm_job_id: str | None = None, container_id
             except Exception as exc:  # pylint: disable=broad-except
                 logging.warning("Failed to scancel SLURM job %s: %s", slurm_job_id, exc)
     if container_id:
-        docker = shutil.which("docker")
-        if not docker:
+        docker_executable = shutil.which("docker")
+        if not docker_executable:
             logging.warning("docker not found; cannot stop container %s", container_id)
         else:
             try:
-                subprocess.run([docker, "stop", str(container_id)], timeout=15, check=True)
+                subprocess.run([docker_executable, "stop", str(container_id)], timeout=15, check=True)
                 logging.info("Stopped Docker container %s", container_id)
             except Exception as exc:  # pylint: disable=broad-except
                 logging.warning("Failed to stop Docker container %s: %s", container_id, exc)

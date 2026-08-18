@@ -375,6 +375,8 @@
     if (structureViewer === "py2dmol") {
       stage.hidden = false;
       if (structureHolder) structureHolder.hidden = true;
+      stage.replaceChildren();
+      stage.appendChild(structureViewerBar(artifact));
       try {
         await renderPy2DmolFallback(structureText, artifact, stage, generation, new Error("User selected alpha-trace viewer"));
         if (isStale(generation)) return;

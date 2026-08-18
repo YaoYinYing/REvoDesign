@@ -176,6 +176,10 @@ def test_result_status_polling_handles_terminal_and_pending_responses():
     )
     disposal = results.index("await disposeActiveViewer();")
     assert disposal < results.index("if (isStale(generation)) return;", disposal)
+    py2dmol = results.index('if (structureViewer === "py2dmol")')
+    py2dmol_render = results.index("await renderPy2DmolFallback", py2dmol)
+    assert py2dmol < results.index("stage.replaceChildren();", py2dmol) < py2dmol_render
+    assert py2dmol < results.index("stage.appendChild(structureViewerBar(artifact));", py2dmol) < py2dmol_render
 
 
 def test_execution_logs_are_diagnostic_text_artifacts_not_main_results():
