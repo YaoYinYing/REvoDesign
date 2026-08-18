@@ -51,6 +51,9 @@ def load_registry(config_root: str) -> tuple[str, str, list[RuntimeFamily]]:
     container_runtime = str(document.get("container_runtime") or "")
     families: list[RuntimeFamily] = []
     for name, entry in (document.get("runtime_families") or {}).items():
+        if not isinstance(entry, dict):
+            print(f"Incomplete runtime family: {name}", file=sys.stderr)
+            raise RegistryError
         image = str(entry.get("docker_image") or "")
         dockerfile = str(entry.get("dockerfile") or "")
         definition = str(entry.get("definition") or "")

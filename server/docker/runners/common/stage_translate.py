@@ -15,6 +15,8 @@
 # matter how it is configured, which froze every stage marker until the
 # scientific tool exited.
 
+from __future__ import annotations
+
 import re
 import sys
 

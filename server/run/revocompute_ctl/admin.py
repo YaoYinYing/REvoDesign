@@ -69,7 +69,7 @@ def print_admin_logins(state) -> None:
     credentials = state.get("ADMIN_BOOTSTRAP_CREDENTIALS")
     if not credentials:
         return
-    auth_dir = state.get("AUTH_DIR") or os.path.join(state.server_dir(), "users")
+    auth_dir = state.get("AUTH_DIR") or os.path.join(state.server_root(), "auth-data")
     os.makedirs(auth_dir, exist_ok=True)
     handle, credential_file = tempfile.mkstemp(dir=auth_dir, prefix="bootstrap-admin-credentials.")
     with os.fdopen(handle, "w", encoding="utf-8") as stream:

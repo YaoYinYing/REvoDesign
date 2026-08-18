@@ -43,6 +43,8 @@ def parse_env_file(path: str | os.PathLike[str]) -> dict[str, str]:
         value = value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
             value = value[1:-1]
+        elif " #" in value:
+            value = value.split(" #", 1)[0].rstrip()
         values[key] = value
     return values
 

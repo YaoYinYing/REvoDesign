@@ -149,6 +149,10 @@ def main() -> None:
     compose_cmd = detect_compose_cmd()
     subcommand, reset_username, flags = parse_args(sys.argv[1:])
 
+    if subcommand in ("-h", "--help", "help"):
+        print(USAGE)
+        return
+
     if flags.mode == "prepared" and flags.build_sif:
         print(
             "--build-sif is incompatible with --mode=prepared; prepare and validate SIFs before activation.",
@@ -177,10 +181,6 @@ def main() -> None:
         state.runtime["ENABLED_TASKRUNNERS"] = os.environ["ENABLED_TASKRUNNERS"]
     if os.environ.get("SLURM_ALLOWED_QUEUES"):
         state.runtime["SLURM_ALLOWED_QUEUES"] = os.environ["SLURM_ALLOWED_QUEUES"]
-
-    if subcommand in ("-h", "--help", "help"):
-        print(USAGE)
-        return
 
     if subcommand == "setup":
         cmd_setup(state)
