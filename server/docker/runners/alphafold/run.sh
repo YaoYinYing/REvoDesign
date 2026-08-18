@@ -58,18 +58,18 @@ fi
 cd "${ALPHAFOLD_PATH:-/opt/alphafold}"
 # AlphaFold logs its phases to stderr (absl logging); the shared translator
 # rewrites the stable ones into the stdout stage protocol while passing the
-# original lines through to the stderr log unchanged.  A FIFO makes the
-# translator an ordinary child that can be drained before the wrapper exits.
-# Python <3.9 block-buffers stderr into a pipe, so force unbuffered output to
-# publish each stage while AlphaFold is still running.
+# original lines through to the stderr log unchanged.  PYTHONUNBUFFERED=1:
+# Python <3.9 block-buffers stderr when it is a pipe, which would hold every
+# phase line until exit and freeze run_stage at its liveness value.
+# A FIFO makes the translator an ordinary child that can be drained before the
+# wrapper exits, including on tool failure.
 stage_tmp=$(mktemp -d "${TMPDIR:-/tmp}/revodesign-alphafold-stage.XXXXXX")
 stage_fifo="${stage_tmp}/stderr"
 mkfifo "${stage_fifo}"
 cleanup_stage_pipe() { rm -rf -- "${stage_tmp}"; }
 trap cleanup_stage_pipe EXIT
-awk -f "${ALPHAFOLD_STAGE_TRANSLATOR:-/app/revocompute/stage_translate.awk}" \
-  -v PATTERNS="${ALPHAFOLD_STAGE_PATTERNS:-/app/revocompute/alphafold.stages}" \
-  < "${stage_fifo}" >&1 &
+"${ALPHAFOLD_PYTHON:-python3}" "${ALPHAFOLD_STAGE_TRANSLATOR:-/app/revocompute/stage_translate.py}" \
+  "${ALPHAFOLD_STAGE_PATTERNS:-/app/revocompute/alphafold.stages}" < "${stage_fifo}" >&1 &
 translator_pid=$!
 set +e
 PYTHONUNBUFFERED=1 "${ALPHAFOLD_PYTHON:-python3}" run_alphafold.py "${af_args[@]}" 2> "${stage_fifo}"
