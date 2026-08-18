@@ -82,8 +82,9 @@ def stamp_payload(
     backup_path: str,
 ) -> dict:
     """Assemble the stamp.  Reads the current digests (post-up)."""
-    commit = run_cmd(["git", "rev-parse", "HEAD"], check=False, capture=True).stdout.strip()
-    dirty = run_cmd(["git", "status", "--porcelain"], check=False, capture=True).stdout.strip() != ""
+    git_root = f"-C{state.server_root()}"  # the caller's cwd is not the checkout
+    commit = run_cmd(["git", git_root, "rev-parse", "HEAD"], check=False, capture=True).stdout.strip()
+    dirty = run_cmd(["git", git_root, "status", "--porcelain"], check=False, capture=True).stdout.strip() != ""
     digests: dict[str, dict[str, str]] = {}
     for name, image in images.items():
         digests[name] = {
