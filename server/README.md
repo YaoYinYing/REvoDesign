@@ -449,6 +449,27 @@ and a watchdog kills work that exceeds the snapshotted runtime. Invalid fields
 fail closed in the admin API and again at submission/launch rather than being
 silently discarded.
 
+### Ordered workflows
+
+A task type may declare an ordered `workflow` whose stages reuse the same
+runtime family and immutable task snapshot. The worker acts as a lightweight
+Composer: it submits one existing `Job` at a time, validates that allocation's
+outputs through the runner contract, persists the stage/job state, and releases
+the next stage only after success. Each stage has an independently snapshotted
+resource policy in the configuration UI.
+
+```text
+Submission -> Composer -> [CPU: MSA + features] -> [GPU: model + relax] -> Results
+                           | features.pkl          | ranked_0.pdb
+                           +---- persisted --------+
+```
+
+AlphaFold is the first composed task. `alphafold.features` runs MSA and feature
+construction without GPU GRES or Apptainer `--nv`; after `features.pkl` is
+validated, `alphafold.model` receives the GPU allocation for inference and
+optional relaxation. Restarts cancel only the active allocation and resume at
+the first incomplete stage.
+
 ## 5. Authentication
 
 The server uses Bearer-token authentication (replaces the old HTTP Basic Auth + `users.txt` model).
@@ -1187,7 +1208,8 @@ job is enqueued.
 The allocation wrapper writes `REVODESIGN_JOB_ID=<numeric-id>` as its first
 stdout line. The worker stores that real SLURM ID in the `slurm_job_id` column
 of the tasks table so cancellation and restart recovery can address the
-allocation directly.
+allocation directly. Composed tasks additionally persist all stage handles and
+states in `workflow_state`; `slurm_job_id` remains the currently active handle.
 
 ### 13.8 Live Output
 

@@ -208,6 +208,7 @@ def test_create_task_uses_capability_plugins_with_safe_fallbacks():
     assert "workspace.validate()" in orchestrator
     assert 'formData.append("input_paths"' in orchestrator
     assert 'formData.append("params[" + name + "]"' in orchestrator
+    assert 'control.id = "param_" + parameter.name;' in workspace
 
 
 def test_full_stack_smoke_uses_manifest_first_result_contract():
@@ -263,6 +264,43 @@ def test_submission_manifest_carries_params(monkeypatch, tmp_path):
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["params"]["iter"] == 100
     assert manifest["files"][0]["relative_path"] == "2KL8.fasta"
+
+
+def test_alphafold_multimer_submission_preserves_selected_preset(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLED_TASKRUNNERS": "alphafold"},
+    )
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+    user = module.app.config["user_db"].get_user_by_username("tester")
+    module.app.config["user_db"].update_user(user["id"], allow_gpu_use=True)
+
+    class _Queued:
+        id = "queued-alphafold-multimer"
+
+    monkeypatch.setattr(module.run_compute_task, "apply_async", lambda *args, **kwargs: _Queued())
+    fasta_path = Path(__file__).resolve().parents[2] / "tests/data/fasta/Sli_S4.fasta"
+    with fasta_path.open("rb") as handle:
+        response = client.post(
+            "/compute/api/post",
+            headers=auth_header,
+            data={"task_type": "alphafold", "params[model_preset]": "multimer", "file": (handle, fasta_path.name)},
+            content_type="multipart/form-data",
+        )
+
+    assert response.status_code == 302, response.get_data(as_text=True)[:300]
+    task_id = response.headers["Location"].rsplit("/", 1)[-1]
+    task = module.task_store.get_task(task_id)
+    manifest = json.loads(
+        (Path(module.app.config["WORKSPACE_FOLDER"]) / "tester" / task_id / "inputs" / "task.json").read_text()
+    )
+    input_form = json.loads(task["input_form"])
+    assert manifest["params"]["model_preset"] == "multimer"
+    assert set(input_form["resource_policies"]) == {"alphafold.features", "alphafold.model"}
+    assert input_form["resource_policies"]["alphafold.features"]["requires_gpu"] is False
+    assert input_form["resource_policies"]["alphafold.model"]["requires_gpu"] is True
 
 
 def test_create_task_page_has_categorized_rail_and_validation_panel():

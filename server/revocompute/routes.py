@@ -718,13 +718,24 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     if tt.gpus and not g.current_user.get("allow_gpu_use"):
         return jsonify({"error": "GPU access required for this task type. Contact an administrator."}), 403
     resource_policy = None
+    resource_policies: dict[str, Any] = {}
     if managedb is not None:
         try:
-            resource_policy = managedb.resolve_task_resources(
-                tt.name,
-                requires_gpu=tt.gpus,
-                default_timeout_seconds=runner.max_runtime_seconds,
-            )
+            if tt.workflow:
+                resource_policies = {
+                    stage.name: managedb.resolve_task_resources(
+                        stage.name,
+                        requires_gpu=stage.requires_gpu,
+                        default_timeout_seconds=runner.max_runtime_seconds,
+                    )
+                    for stage in tt.workflow
+                }
+            else:
+                resource_policy = managedb.resolve_task_resources(
+                    tt.name,
+                    requires_gpu=tt.gpus,
+                    default_timeout_seconds=runner.max_runtime_seconds,
+                )
         except ResourceValidationError as exc:
             logging.error("Resource policy rejected submission for %s: %s", task_type, exc)
             return jsonify({"error": "This task type has an invalid resource policy; contact an administrator."}), 503
@@ -807,6 +818,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         "submitted_at": datetime.now(tz=timezone.utc).isoformat(),
         "entities": entities,
         "resource_policy": resource_policy.public_dict() if resource_policy is not None else None,
+        "resource_policies": {name: policy.public_dict() for name, policy in resource_policies.items()},
         "workspace": workspace_payload,
     }
 
@@ -2251,18 +2263,25 @@ def admin_get_config():
         return jsonify({"error": "Configuration database not available"}), 500
     task_configs = manage_db.task_type_all()
     type_map = {task_type.name: task_type for task_type in list_types()}
+    stage_map = {
+        stage.name: (task_type, stage) for task_type in type_map.values() for stage in task_type.workflow
+    }
     for config in task_configs:
         task_type = type_map.get(config["tool"])
-        if task_type is None:
+        workflow_stage = stage_map.get(config["tool"])
+        if task_type is None and workflow_stage is None:
             continue
-        config["display_name"] = task_type.display_name
-        config["requires_gpu"] = task_type.gpus
+        stage = workflow_stage[1] if workflow_stage else None
+        task_type = task_type or workflow_stage[0]
+        config["display_name"] = f"{task_type.display_name} / {stage.display_name}" if stage else task_type.display_name
+        config["requires_gpu"] = stage.requires_gpu if stage else task_type.gpus
         config["runtime_family"] = task_type.runtime.name
+        config["is_workflow_stage"] = stage is not None
         _, runner = _get_task_type(task_type.name)
         try:
             resolved = manage_db.resolve_task_resources(
-                task_type.name,
-                requires_gpu=task_type.gpus,
+                config["tool"],
+                requires_gpu=config["requires_gpu"],
                 default_timeout_seconds=runner.max_runtime_seconds,
             )
             config["effective_resources"] = resolved.public_dict()
@@ -2336,6 +2355,10 @@ def admin_set_config():
 
     known_tools = {entry["tool"] for entry in manage_db.task_type_all()}
     type_map = {task_type.name: task_type for task_type in list_types()}
+    profile_gpu = {name: task_type.gpus for name, task_type in type_map.items()}
+    profile_gpu.update(
+        {stage.name: stage.requires_gpu for task_type in type_map.values() for stage in task_type.workflow}
+    )
     pending_task_updates: list[tuple[str, dict[str, Any]]] = []
     pending_resources: list[tuple[str, Any]] = []
     seen_tools: set[str] = set()
@@ -2356,8 +2379,7 @@ def admin_set_config():
             fields = {field: normalize_resource_value(field, entry[field]) for field in _tt_fields if field in entry}
             if "enabled" in fields and fields["enabled"] is None:
                 raise ResourceValidationError("enabled cannot be empty")
-            task_type = type_map.get(tool)
-            if task_type is not None and not task_type.gpus and fields.get("slurm_gres"):
+            if not profile_gpu.get(tool, False) and fields.get("slurm_gres"):
                 raise ResourceValidationError(f"CPU-only task {tool!r} cannot request GPU GRES")
             if fields:
                 pending_task_updates.append((tool, fields))

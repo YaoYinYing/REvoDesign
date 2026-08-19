@@ -198,6 +198,20 @@ for _tt in _list_task_types():
     if manage_db.task_type_get(_tt.name) is None:
         manage_db.task_type_upsert(_tt.name, enabled=True)
         _log.info("Seeded task_type_config for %r (enabled=true)", _tt.name)
+    _parent_resources = manage_db.task_type_get(_tt.name) or {}
+    for _stage in _tt.workflow:
+        if manage_db.task_type_get(_stage.name) is None:
+            _initial = {"enabled": True}
+            if _stage.requires_gpu:
+                _initial.update(
+                    {
+                        key: value
+                        for key, value in _parent_resources.items()
+                        if key not in {"tool", "enabled"} and value is not None
+                    }
+                )
+            manage_db.task_type_upsert(_stage.name, **_initial)
+            _log.info("Seeded workflow resource profile %r", _stage.name)
 
 
 def _is_binary_file(path: str) -> bool:

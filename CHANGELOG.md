@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Server:
+  - workflow Composer: ordered, resumable task stages reuse existing Docker/SLURM jobs with independently snapshotted resource policies; AlphaFold MSA/features now run CPU-only before GPU model/relax.
   - version-2 scientific workspaces: modular task-selected RFdiffusion modes, Mol* residue selection (with result controls hidden by default), declarative linked result views, bounded table pages, and EASIFA table-to-structure mapping. Breaking: every task type must declare `input_workspace` explicitly — startup fails closed when a custom registry omits it.
   - runner: patch RFdiffusion's checkpoint-override parsing (`bool("false")` is True), so binder runs respect `preprocess.sidechain_input=false` instead of crashing in the broken upstream sidechain path.
   - runner: new alphafold family (official google-deepmind/alphafold @ c77e5d2a) — monomer/pTM/multimer presets, full_dbs MSA, Amber relaxation (best by default); DBs and the 2022-12-06 params release ro-mounted from /mnt/db.
@@ -56,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Server:
+  - create-task parameters: choice controls now serialize their selected value, preserving AlphaFold multimer and every other non-default select option.
   - Result polling/viewers: terminal task states reload once without overlapping polls; pending result pages keep polling; Mol* teardown completes before iframe removal, stale teardown continuations cannot replace newer previews, and preview loaders remain visible.
   - AlphaFold stages: drain the stderr translator before wrapper exit and preserve both process statuses so final stage markers cannot be lost.
   - SLURM stages: `srun -u`, unbuffered AlphaFold stderr, and a Python translator stream wrapper phases live, so `run_stage` records intermediates before job exit.

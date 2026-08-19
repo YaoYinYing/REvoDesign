@@ -23,10 +23,29 @@ for task in task_store.list_tasks():
         print(job_id)
 """
 
-SWEEP_SOURCE = """import time
-from revocompute.task_runtime import _record_failure, task_store
+SWEEP_SOURCE = """import json
+import time
+from revocompute.task_runtime import _get_task_type, _record_failure, _workflow_state, task_store
 for task in task_store.list_tasks():
     if task.get("status") in {"queued", "running"}:
+        task_type = task.get("task_type", "gremlin")
+        try:
+            is_workflow = bool(_get_task_type(task_type)[0].workflow)
+        except KeyError:
+            is_workflow = False
+        if is_workflow:
+            state = _workflow_state(task)
+            for step in state.values():
+                if step.get("status") == "running":
+                    step["status"] = "interrupted"
+            task_store.update_task(
+                task["md5sum"],
+                status="queued",
+                slurm_job_id=None,
+                container_id=None,
+                workflow_state=json.dumps(state, sort_keys=True),
+            )
+            continue
         _record_failure(
             task["md5sum"],
             task,
@@ -77,7 +96,7 @@ def pre_stop_sweep_slurm(state, compose_cmd: tuple[str, ...]) -> None:
             env=state.exported(),
             check=False,
         )
-    print("Marking in-flight tasks failed before stopping the stack...")
+    print("Preserving workflows and finalizing other in-flight tasks before stopping the stack...")
     marked = run_cmd(
         [*compose_cmd, *compose_args(state), "--env-file", state.env_file, "exec", "-T", "worker", "python3", "-"],
         env=state.exported(),

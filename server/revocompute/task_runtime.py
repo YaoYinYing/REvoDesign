@@ -22,6 +22,7 @@ import subprocess
 import threading
 import time
 import zipfile
+from dataclasses import replace
 from datetime import datetime
 from typing import Any
 
@@ -286,6 +287,78 @@ def _run_compute_job(
         elif isinstance(job, DockerJob):
             task_store.update_task(task_id, container_id=jid)
     return job.poll()
+
+
+def _workflow_state(task: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    raw = task.get("workflow_state")
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _run_compute_workflow(
+    task_id: str,
+    task: dict[str, Any],
+    tt,
+    runner,
+    entities: list[dict],
+    output_dir: str,
+    resource_policies: dict[str, ResolvedResources],
+    stage_callback,
+) -> JobState:
+    """Run an ordered workflow through the existing one-allocation Job API."""
+    state = _workflow_state(task)
+    for stage in tt.workflow:
+        previous = state.get(stage.name, {})
+        if previous.get("status") == "completed":
+            continue
+        policy = resource_policies.get(stage.name)
+        if policy is None:
+            raise ResourceValidationError(f"Workflow stage {stage.name!r} has no resource snapshot")
+        markers = {name: tt.stage_markers[name] for name in stage.stage_markers}
+        stage_tt = replace(
+            tt,
+            name=stage.name.replace(".", "-"),
+            runner_args=stage.runner_args,
+            gpus=stage.requires_gpu,
+            stage_markers=markers,
+            workflow=(),
+        )
+        first_marker = next(iter(markers))
+        task_store.update_task(task_id, status="queued", run_stage=first_marker)
+        job = _create_job(
+            task_id,
+            stage_tt,
+            runner,
+            entities,
+            output_dir,
+            stage_callback,
+            username=task.get("username", ""),
+            resource_policy=policy,
+        )
+        jid = job.submit()
+        state[stage.name] = {"status": "running", "job_id": jid, "started_at": time.time()}
+        handles = {"workflow_state": json.dumps(state, sort_keys=True)}
+        if isinstance(job, SlurmJob):
+            handles["slurm_job_id"] = jid
+        elif isinstance(job, DockerJob):
+            handles["container_id"] = jid
+        task_store.update_task(task_id, **handles)
+        result = job.poll()
+        state[stage.name].update(status=result.value, finished_at=time.time())
+        task_store.update_task(
+            task_id,
+            workflow_state=json.dumps(state, sort_keys=True),
+            slurm_job_id=None,
+            container_id=None,
+        )
+        if result != JobState.COMPLETED:
+            return result
+    return JobState.COMPLETED
 
 
 # ---------------------------------------------------------------------------
@@ -683,12 +756,17 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
     raw_form = task.get("input_form")
     entities: list[dict] = []
     resource_policy: ResolvedResources | None = None
+    resource_policies: dict[str, ResolvedResources] = {}
     if raw_form:
         try:
             parsed = json.loads(raw_form) if isinstance(raw_form, str) else raw_form
             entities = parsed.get("entities", [])
             if parsed.get("resource_policy"):
                 resource_policy = ResolvedResources.from_snapshot(parsed["resource_policy"])
+            raw_policies = parsed.get("resource_policies", {})
+            if not isinstance(raw_policies, dict):
+                raise TypeError("resource_policies must be an object")
+            resource_policies = {name: ResolvedResources.from_snapshot(policy) for name, policy in raw_policies.items()}
         except (json.JSONDecodeError, TypeError, ResourceValidationError):
             logging.warning("Task %s: input_form or resource policy is invalid.", md5sum)
             _record_failure(md5sum, task, time.time(), "", "Task input or resource policy is invalid")
@@ -764,7 +842,19 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         }
         if resource_policy is not None:
             job_kwargs["resource_policy"] = resource_policy
-        final_state = _run_compute_job(**job_kwargs)
+        if tt.workflow:
+            final_state = _run_compute_workflow(
+                md5sum,
+                task,
+                tt,
+                runner,
+                entities,
+                output_dir,
+                resource_policies,
+                _on_stage_change,
+            )
+        else:
+            final_state = _run_compute_job(**job_kwargs)
         if _task_is_terminal(md5sum):
             logging.info("Task %s was deleted during execution; skipping result packing and finalization.", md5sum)
             return
@@ -832,6 +922,33 @@ def _recover_orphaned_tasks() -> int:
         md5sum = task["md5sum"]
         slurm_job_id = str(task.get("slurm_job_id") or "").strip()
         container_id = str(task.get("container_id") or "")
+        task_type = task.get("task_type", "gremlin")
+        try:
+            workflow_task = bool(_get_task_type(task_type)[0].workflow)
+        except KeyError:
+            workflow_task = False
+        if workflow_task:
+            if slurm_job_id.isdigit() and (scancel := shutil.which("scancel")):
+                try:
+                    subprocess.run([scancel, slurm_job_id], timeout=10, check=True)
+                except (OSError, subprocess.SubprocessError) as exc:
+                    logging.warning("Recovery could not cancel workflow job %s for %s: %s", slurm_job_id, md5sum, exc)
+            state = _workflow_state(task)
+            for step in state.values():
+                if step.get("status") == "running":
+                    step["status"] = "interrupted"
+            task_store.update_task(
+                md5sum,
+                status="pending",
+                slurm_job_id=None,
+                container_id=None,
+                workflow_state=json.dumps(state, sort_keys=True),
+                error=None,
+            )
+            resumed = run_compute_task.apply_async(args=[md5sum], kwargs={"task_type": task_type})
+            task_store.update_task(md5sum, celery_task_id=resumed.id)
+            handled += 1
+            continue
         if slurm_job_id:
             cancellation_error = ""
             scancel = shutil.which("scancel")
@@ -864,7 +981,6 @@ def _recover_orphaned_tasks() -> int:
             continue
         if not container_id:
             continue
-        task_type = task.get("task_type", "gremlin")
         logging.info("Recovery: checking orphaned task %s", md5sum)
         try:
             from revocompute.job.runners.docker_runner import DockerJob

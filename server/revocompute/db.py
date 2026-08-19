@@ -87,6 +87,7 @@ class TaskDatabase:
             Column("input_form", Text),
             Column("slurm_job_id", String),
             Column("container_id", String),
+            Column("workflow_state", Text),
         )
         Index("idx_tasks_uploaded_at", self.tasks_table.c.uploaded_at)
         self._initialize()
@@ -106,7 +107,7 @@ class TaskDatabase:
             # create_all does not add columns to existing tables — backfill
             # ones added after a table first shipped (idempotent).
             existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(tasks)")}
-            for column in ("container_id",):
+            for column in ("container_id", "workflow_state"):
                 if column not in existing:
                     conn.exec_driver_sql(f"ALTER TABLE tasks ADD COLUMN {column} VARCHAR")
 
