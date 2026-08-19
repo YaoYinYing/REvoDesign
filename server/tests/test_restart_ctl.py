@@ -36,7 +36,7 @@ from revocompute_ctl import promotion  # noqa: E402
 from revocompute_ctl import stamp as stamp_mod  # noqa: E402
 from revocompute_ctl import sweep as sweep_mod  # noqa: E402
 from revocompute_ctl.env import EnvState, parse_env_file  # noqa: E402
-from revocompute_ctl.registry import RuntimeFamily, build_slurm_images  # noqa: E402
+from revocompute_ctl.registry import RuntimeFamily, _docker_tag, build_slurm_images  # noqa: E402
 from revocompute_ctl.steps import Step, StepRegistry, run_walk  # noqa: E402
 
 RUNNER_IMAGE = "revodesign-revocompute-runner"
@@ -324,7 +324,6 @@ def test_sif_staging_builds_missing_skips_unchanged(tmp_path, monkeypatch):
     state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
     build_slurm_images(state, [family])  # missing SIF → stage .next
     assert (sif_dir / "gremlin.sif.next").is_file()
-
     (sif_dir / "gremlin.sif.next").unlink()
     (sif_dir / "gremlin.sif").touch()
     build_slurm_images(state, [family])  # image older than SIF → skip
@@ -333,6 +332,12 @@ def test_sif_staging_builds_missing_skips_unchanged(tmp_path, monkeypatch):
     monkeypatch.setenv("SHIM_CREATED", "2030-01-01T00:00:00Z")  # image newer → stage
     build_slurm_images(state, [family])
     assert (sif_dir / "gremlin.sif.next").is_file()
+
+
+def test_docker_tag_distinguishes_registry_port_from_image_tag():
+    assert _docker_tag("registry.example:5000/team/runner") == "registry.example:5000/team/runner:latest"
+    assert _docker_tag("registry.example:5000/team/runner:v2") == "registry.example:5000/team/runner:v2"
+    assert _docker_tag("registry.example:5000/team/runner@sha256:abc") == "registry.example:5000/team/runner@sha256:abc"
 
 
 def test_sif_staging_builds_changed_prepared_image_from_next(tmp_path, monkeypatch):

@@ -55,6 +55,32 @@ def test_race_cancel_finished_task_rejected(monkeypatch, tmp_path):
     assert "not pending or running" in resp.json["error"]
 
 
+def test_race_cancel_loses_atomic_claim_to_completion(monkeypatch, tmp_path):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    from revocompute import routes
+
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+    md5sum = _insert_pending_task(module, tmp_path / "result")
+
+    def finish_before_claim(task_id, **fields):
+        assert task_id == md5sum
+        module.task_store.update_task(md5sum, status="finished")
+        return False
+
+    monkeypatch.setattr(module.task_store, "claim_task_cancellation", finish_before_claim)
+    monkeypatch.setattr(
+        routes.cancel_compute_resources,
+        "delay",
+        lambda **kwargs: pytest.fail("completed task resources must not be cancelled"),
+    )
+
+    response = client.post(f"/compute/api/cancel/{md5sum}", headers=auth_header)
+
+    assert response.status_code == 409
+    assert module.task_store.get_task(md5sum)["status"] == "finished"
+
+
 def test_race_cancel_already_cancelled_task(monkeypatch, tmp_path):
     """Re-cancelling a cancelled task returns 400."""
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})

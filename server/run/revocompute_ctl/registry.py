@@ -218,7 +218,8 @@ def validate_slurm_images(state, families: list[RuntimeFamily]) -> None:
 
 
 def _docker_tag(image: str, suffix: str = "latest") -> str:
-    return f"{image}:{suffix}" if ":" not in image and "@" not in image else image
+    repository = image.rsplit("/", 1)[-1]
+    return f"{image}:{suffix}" if ":" not in repository and "@" not in image else image
 
 
 def _docker_image_id(state, tag: str) -> str:

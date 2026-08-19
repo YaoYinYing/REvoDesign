@@ -1172,14 +1172,14 @@ def cancel_task(md5sum):
     now = time.time()
     started_at = task.get("started_at")
     walltime = (now - started_at) if started_at else None
-    if not task_store.update_task(
+    if not task_store.claim_task_cancellation(
         md5sum,
-        status="cancelled",
         finished_at=now,
         walltime=walltime,
         error="Task cancelled by user",
     ):
         return jsonify({"error": "Task state changed before cancellation"}), 409
+    task = task_store.get_task(md5sum) or task
 
     # Claim cancellation in the database before asking the worker to stop
     # resources, so a workflow cannot launch its next stage in between.

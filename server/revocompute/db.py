@@ -192,6 +192,19 @@ class TaskDatabase:
         with self.engine.begin() as conn:
             return conn.execute(stmt).rowcount == 1
 
+    def claim_task_cancellation(self, md5sum: str, **fields) -> bool:
+        """Atomically cancel a task only while it remains active."""
+        stmt = (
+            update(self.tasks_table)
+            .where(
+                self.tasks_table.c.md5sum == md5sum,
+                self.tasks_table.c.status.in_(("pending", "queued", "running")),
+            )
+            .values(status="cancelled", **fields)
+        )
+        with self.engine.begin() as conn:
+            return conn.execute(stmt).rowcount == 1
+
     def claim_task_cleanup(
         self,
         md5sum: str,

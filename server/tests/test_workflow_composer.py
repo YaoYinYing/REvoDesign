@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import signal
 from pathlib import Path
 
 import pytest
@@ -249,3 +250,18 @@ def test_workflow_recovery_enqueue_failure_stays_discoverable(monkeypatch):
     assert task_runtime._recover_orphaned_tasks() == 1
     assert updates[-1]["status"] == "queued"
     assert "broker unavailable" in updates[-1]["error"]
+
+
+def test_workflow_recovery_escalates_srun_termination(monkeypatch):
+    from revocompute import task_runtime
+
+    kills = []
+    waits = iter((False, True))
+    monkeypatch.setattr(Path, "read_bytes", lambda self: b"srun task-1234")
+    monkeypatch.setattr(task_runtime.os, "kill", lambda pid, sig: kills.append((pid, sig)))
+    monkeypatch.setattr(task_runtime, "_wait_for_process_exit", lambda pid, timeout: next(waits))
+
+    error = task_runtime._stop_orphaned_workflow_execution("task-1234", "srun-42", "")
+
+    assert error == ""
+    assert kills == [(42, signal.SIGTERM), (42, signal.SIGKILL)]

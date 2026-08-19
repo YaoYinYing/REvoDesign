@@ -1008,6 +1008,19 @@ def test_task_store_recovery_claim_is_atomic(monkeypatch, tmp_path):
     assert module.task_store.get_task(md5sum)["status"] == "pending"
 
 
+def test_task_store_cancellation_claim_is_active_only(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    md5sum = _insert_pending_task(module, tmp_path / "result")
+
+    assert module.task_store.claim_task_cancellation(md5sum, error="cancelled") is True
+    assert module.task_store.claim_task_cancellation(md5sum, error="again") is False
+    assert module.task_store.get_task(md5sum)["error"] == "cancelled"
+
+
 def test_run_compute_task_does_not_resurrect_deleted_task(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,

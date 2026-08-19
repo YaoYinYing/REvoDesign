@@ -945,8 +945,19 @@ def _stop_orphaned_workflow_execution(task_id: str, slurm_job_id: str, container
                     return f"Refusing to stop unverified process {pid} for workflow recovery"
                 try:
                     os.kill(pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
                 except OSError as exc:
                     return f"Could not stop srun process {pid}: {exc}"
+                if not _wait_for_process_exit(pid, 10.0):
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    except OSError as exc:
+                        return f"Could not kill srun process {pid}: {exc}"
+                    if not _wait_for_process_exit(pid, 2.0):
+                        return f"srun process {pid} did not exit after SIGKILL"
 
     if container_id:
         client = None
@@ -961,6 +972,22 @@ def _stop_orphaned_workflow_execution(task_id: str, slurm_job_id: str, container
             if client is not None:
                 client.close()
     return ""
+
+
+def _wait_for_process_exit(pid: int, timeout: float) -> bool:
+    """Wait for a PID to disappear or become a reaped-ready zombie."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            state = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8").split()[2]
+        except FileNotFoundError:
+            return True
+        except (OSError, IndexError):
+            state = ""
+        if state == "Z":
+            return True
+        time.sleep(0.1)
+    return False
 
 
 def _recover_orphaned_tasks() -> int:
