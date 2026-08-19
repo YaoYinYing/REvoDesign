@@ -23,6 +23,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
+import yaml
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 RUN_DIR = SERVER_DIR / "run"
@@ -35,7 +36,7 @@ from revocompute_ctl import promotion  # noqa: E402
 from revocompute_ctl import stamp as stamp_mod  # noqa: E402
 from revocompute_ctl import sweep as sweep_mod  # noqa: E402
 from revocompute_ctl.env import EnvState, parse_env_file  # noqa: E402
-from revocompute_ctl.registry import RuntimeFamily, build_slurm_images  # noqa: E402
+from revocompute_ctl.registry import RuntimeFamily, _docker_tag, build_slurm_images  # noqa: E402
 from revocompute_ctl.steps import Step, StepRegistry, run_walk  # noqa: E402
 
 RUNNER_IMAGE = "revodesign-revocompute-runner"
@@ -323,7 +324,6 @@ def test_sif_staging_builds_missing_skips_unchanged(tmp_path, monkeypatch):
     state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
     build_slurm_images(state, [family])  # missing SIF → stage .next
     assert (sif_dir / "gremlin.sif.next").is_file()
-
     (sif_dir / "gremlin.sif.next").unlink()
     (sif_dir / "gremlin.sif").touch()
     build_slurm_images(state, [family])  # image older than SIF → skip
@@ -332,6 +332,39 @@ def test_sif_staging_builds_missing_skips_unchanged(tmp_path, monkeypatch):
     monkeypatch.setenv("SHIM_CREATED", "2030-01-01T00:00:00Z")  # image newer → stage
     build_slurm_images(state, [family])
     assert (sif_dir / "gremlin.sif.next").is_file()
+
+
+def test_docker_tag_distinguishes_registry_port_from_image_tag():
+    assert _docker_tag("registry.example:5000/team/runner") == "registry.example:5000/team/runner:latest"
+    assert _docker_tag("registry.example:5000/team/runner:v2") == "registry.example:5000/team/runner:v2"
+    assert _docker_tag("registry.example:5000/team/runner@sha256:abc") == "registry.example:5000/team/runner@sha256:abc"
+
+
+def test_sif_staging_builds_changed_prepared_image_from_next(tmp_path, monkeypatch):
+    bin_dir = _write_shims(tmp_path)
+    sif_dir = tmp_path / "sifs"
+    sif_dir.mkdir()
+    (sif_dir / "gremlin.sif").touch()
+    family = RuntimeFamily(
+        "gremlin",
+        RUNNER_IMAGE,
+        "docker/runners/pssm_gremlin/Dockerfile",
+        "docker/runners/pssm_gremlin/gremlin.def",
+        str(sif_dir / "gremlin.sif"),
+    )
+    state, log = _shimmed_state(
+        monkeypatch,
+        tmp_path,
+        bin_dir,
+        {f"{RUNNER_IMAGE}:latest": "sha256:old", f"{RUNNER_IMAGE}:next": "sha256:new"},
+    )
+
+    build_slurm_images(state, [family])
+
+    assert (sif_dir / "gremlin.sif.next").is_file()
+    apptainer_line = next(line for line in log.read_text().splitlines() if line.startswith("build "))
+    definition = Path(apptainer_line.rsplit(" ", 1)[-1])
+    assert not definition.exists()  # temporary prepared-tag definition is cleaned up
 
 
 def test_sif_staging_drops_failed_runner_from_enabled_list(tmp_path, monkeypatch):
@@ -469,6 +502,14 @@ def test_rollback_restores_previous_set_and_config(tmp_path, monkeypatch):
     bin_dir = _write_shims(tmp_path)
     config_dir = tmp_path / "config"
     shutil.copytree(Path(REPO_DIR) / "server" / "config", config_dir)
+    registry_file = config_dir / "task_types.yaml"
+    registry = yaml.safe_load(registry_file.read_text(encoding="utf-8"))
+    sif = tmp_path / "sifs" / "gremlin.sif"
+    sif.parent.mkdir()
+    sif.write_text("current", encoding="utf-8")
+    Path(f"{sif}.previous").write_text("previous", encoding="utf-8")
+    registry["runtime_families"]["gremlin"]["slurm_image"] = str(sif)
+    registry_file.write_text(yaml.safe_dump(registry, sort_keys=False), encoding="utf-8")
     task_dir, _auth_dir, env_file = _deploy_env(tmp_path, config_dir)
 
     ids = {f"{RUNNER_IMAGE}:previous": "sha256:prev", f"{RUNNER_IMAGE}:latest": "sha256:bad"}
@@ -487,7 +528,6 @@ def test_rollback_restores_previous_set_and_config(tmp_path, monkeypatch):
         },
     )
     # Drift the registry in a validation-neutral way.
-    registry_file = config_dir / "task_types.yaml"
     registry_file.write_text(registry_file.read_text(encoding="utf-8") + "\n# drifted\n", encoding="utf-8")
 
     result = _run_cli(monkeypatch, tmp_path, env_file, bin_dir, "restart", "--rollback")
@@ -496,6 +536,7 @@ def test_rollback_restores_previous_set_and_config(tmp_path, monkeypatch):
     assert not registry_file.read_text(encoding="utf-8").endswith("# drifted\n")  # config restored
     commands = (tmp_path / "docker.log").read_text(encoding="utf-8").splitlines()
     assert f"tag {RUNNER_IMAGE}:previous {RUNNER_IMAGE}:latest" in commands
+    assert sif.read_text(encoding="utf-8") == "previous"
     assert "All prepared deployment services are running." in result.stdout
     rolled = stamp_mod.load_stamp(state)
     assert rolled["mode"] == "rollback"

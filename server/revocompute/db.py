@@ -87,6 +87,7 @@ class TaskDatabase:
             Column("input_form", Text),
             Column("slurm_job_id", String),
             Column("container_id", String),
+            Column("workflow_state", Text),
         )
         Index("idx_tasks_uploaded_at", self.tasks_table.c.uploaded_at)
         self._initialize()
@@ -106,7 +107,7 @@ class TaskDatabase:
             # create_all does not add columns to existing tables — backfill
             # ones added after a table first shipped (idempotent).
             existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(tasks)")}
-            for column in ("container_id",):
+            for column in ("container_id", "workflow_state"):
                 if column not in existing:
                     conn.exec_driver_sql(f"ALTER TABLE tasks ADD COLUMN {column} VARCHAR")
 
@@ -160,9 +161,9 @@ class TaskDatabase:
         with self.engine.begin() as conn:
             conn.execute(stmt)
 
-    def update_task(self, md5sum: str, **fields) -> None:
+    def update_task(self, md5sum: str, **fields) -> bool:
         if not fields:
-            return
+            return False
         status = fields.get("status")
         if status:
             self._ensure_status(status)
@@ -174,7 +175,35 @@ class TaskDatabase:
         if status is None or (not self._is_deleted_status(status)):
             stmt = stmt.where(self.tasks_table.c.status.notin_(tuple(self.TERMINAL_STATUSES)))
         with self.engine.begin() as conn:
-            conn.execute(stmt)
+            return conn.execute(stmt).rowcount == 1
+
+    def claim_task_recovery(self, md5sum: str, *, expected_status: str) -> bool:
+        """Atomically move one orphaned active task out of recovery scans."""
+        if expected_status not in {"queued", "running"}:
+            return False
+        stmt = (
+            update(self.tasks_table)
+            .where(
+                self.tasks_table.c.md5sum == md5sum,
+                self.tasks_table.c.status == expected_status,
+            )
+            .values(status="pending")
+        )
+        with self.engine.begin() as conn:
+            return conn.execute(stmt).rowcount == 1
+
+    def claim_task_cancellation(self, md5sum: str, **fields) -> bool:
+        """Atomically cancel a task only while it remains active."""
+        stmt = (
+            update(self.tasks_table)
+            .where(
+                self.tasks_table.c.md5sum == md5sum,
+                self.tasks_table.c.status.in_(("pending", "queued", "running")),
+            )
+            .values(status="cancelled", **fields)
+        )
+        with self.engine.begin() as conn:
+            return conn.execute(stmt).rowcount == 1
 
     def claim_task_cleanup(
         self,

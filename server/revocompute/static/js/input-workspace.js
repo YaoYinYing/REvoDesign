@@ -107,6 +107,8 @@
       control.appendChild(checkboxB);
     } else if (parameter.choices && parameter.choices.length) {
       control = element("select", "text-input");
+      control.id = "param_" + parameter.name;
+      control.dataset.paramName = parameter.name;
       parameter.choices.forEach(function (choice) {
         var option = element("option", "", String(choice)); option.value = choice;
         option.selected = choice === parameter.default; control.appendChild(option);

@@ -60,27 +60,32 @@ def main() -> int:
     failed = False
     for task_type in list_types():
         _, runner = get_task_type(task_type.name)
-        values = task_values.get(task_type.name, {})
-        if values.get("enabled") == 0:
+        task_config = task_values.get(task_type.name, {})
+        if task_config.get("enabled") == 0:
             print(f"[RESOURCE] {task_type.name}: disabled (not audited)")
             continue
-        try:
-            resolved = resolve_resources(
-                values.get,
-                globals_.get,
-                requires_gpu=task_type.gpus,
-                allowed_queues=allowed,
-                default_timeout_seconds=runner.max_runtime_seconds,
-            )
-            accelerator = resolved.gres or "cpu"
-            partition = resolved.partition or "scheduler-default"
-            print(
-                f"[RESOURCE] {task_type.name}: cpus={resolved.cpus} memory={resolved.memory} "
-                f"time={resolved.slurm_time} accelerator={accelerator} partition={partition}"
-            )
-        except ResourceValidationError as exc:
-            failed = True
-            print(f"[RESOURCE] {task_type.name}: INVALID: {exc}", file=sys.stderr)
+        profiles = [(task_type.name, task_type.gpus)]
+        if task_type.workflow:
+            profiles = [(stage.name, stage.requires_gpu) for stage in task_type.workflow]
+        for profile_name, requires_gpu in profiles:
+            values = task_values.get(profile_name, task_config if requires_gpu else {})
+            try:
+                resolved = resolve_resources(
+                    values.get,
+                    globals_.get,
+                    requires_gpu=requires_gpu,
+                    allowed_queues=allowed,
+                    default_timeout_seconds=runner.max_runtime_seconds,
+                )
+                accelerator = resolved.gres or "cpu"
+                partition = resolved.partition or "scheduler-default"
+                print(
+                    f"[RESOURCE] {profile_name}: cpus={resolved.cpus} memory={resolved.memory} "
+                    f"time={resolved.slurm_time} accelerator={accelerator} partition={partition}"
+                )
+            except ResourceValidationError as exc:
+                failed = True
+                print(f"[RESOURCE] {profile_name}: INVALID: {exc}", file=sys.stderr)
     return 1 if failed else 0
 
 

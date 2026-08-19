@@ -1,0 +1,116 @@
+diff --git a/run_alphafold.py b/run_alphafold.py
+index 3d8a4f4..a41fb00 100644
+--- a/run_alphafold.py
++++ b/run_alphafold.py
+@@ -231,6 +231,12 @@ flags.DEFINE_boolean(
+     'recommended to enable if possible. GPUs must be available'
+     ' if this setting is enabled.',
+ )
++flags.DEFINE_enum(
++    'run_stage',
++    'all',
++    ['all', 'features', 'model'],
++    'Run the complete pipeline, feature construction only, or modeling only.',
++)
+ flags.DEFINE_integer(
+     'jackhmmer_n_cpu',
+     # Unfortunately, os.process_cpu_count() is only available in Python 3.13+.
+@@ -364,17 +370,22 @@ def predict_structure(
+   if not os.path.exists(msa_output_dir):
+     os.makedirs(msa_output_dir)
+ 
+-  # Get features.
+-  t_0 = time.time()
+-  feature_dict = data_pipeline.process(
+-      input_fasta_path=fasta_path, msa_output_dir=msa_output_dir
+-  )
+-  timings['features'] = time.time() - t_0
+-
+-  # Write out features as a pickled dictionary.
+   features_output_path = os.path.join(output_dir, 'features.pkl')
+-  with open(features_output_path, 'wb') as f:
+-    pickle.dump(feature_dict, f, protocol=4)
++  if FLAGS.run_stage == 'model':
++    logging.info('Reading precomputed features from %s', features_output_path)
++    with open(features_output_path, 'rb') as f:
++      feature_dict = pickle.load(f)
++  else:
++    t_0 = time.time()
++    feature_dict = data_pipeline.process(
++        input_fasta_path=fasta_path, msa_output_dir=msa_output_dir
++    )
++    timings['features'] = time.time() - t_0
++    with open(features_output_path, 'wb') as f:
++      pickle.dump(feature_dict, f, protocol=4)
++    if FLAGS.run_stage == 'features':
++      logging.info('Feature construction complete for %s', fasta_name)
++      return
+ 
+   unrelaxed_pdbs = {}
+   unrelaxed_proteins = {}
+@@ -667,36 +678,40 @@ def main(argv):
+     data_pipeline = monomer_data_pipeline
+ 
+   model_runners = {}
+-  model_names = config.MODEL_PRESETS[FLAGS.model_preset]
+-  for model_name in model_names:
+-    model_config = config.model_config(model_name)
+-    if run_multimer_system:
+-      model_config.model.num_ensemble_eval = num_ensemble
+-    else:
+-      model_config.data.eval.num_ensemble = num_ensemble
+-    model_params = data.get_model_haiku_params(
+-        model_name=model_name, data_dir=FLAGS.data_dir
+-    )
+-    model_runner = model.RunModel(model_config, model_params)
+-    for i in range(num_predictions_per_model):
+-      model_runners[f'{model_name}_pred_{i}'] = model_runner
++  amber_relaxer = None
++  if FLAGS.run_stage != 'features':
++    model_names = config.MODEL_PRESETS[FLAGS.model_preset]
++    for model_name in model_names:
++      model_config = config.model_config(model_name)
++      if run_multimer_system:
++        model_config.model.num_ensemble_eval = num_ensemble
++      else:
++        model_config.data.eval.num_ensemble = num_ensemble
++      model_params = data.get_model_haiku_params(
++          model_name=model_name, data_dir=FLAGS.data_dir
++      )
++      model_runner = model.RunModel(model_config, model_params)
++      for i in range(num_predictions_per_model):
++        model_runners[f'{model_name}_pred_{i}'] = model_runner
+ 
+-  logging.info(
+-      'Have %d models: %s', len(model_runners), list(model_runners.keys())
+-  )
++    logging.info(
++        'Have %d models: %s', len(model_runners), list(model_runners.keys())
++    )
+ 
+-  amber_relaxer = relax.AmberRelaxation(
+-      max_iterations=RELAX_MAX_ITERATIONS,
+-      tolerance=RELAX_ENERGY_TOLERANCE,
+-      stiffness=RELAX_STIFFNESS,
+-      exclude_residues=RELAX_EXCLUDE_RESIDUES,
+-      max_outer_iterations=RELAX_MAX_OUTER_ITERATIONS,
+-      use_gpu=FLAGS.use_gpu_relax,
+-  )
++    amber_relaxer = relax.AmberRelaxation(
++        max_iterations=RELAX_MAX_ITERATIONS,
++        tolerance=RELAX_ENERGY_TOLERANCE,
++        stiffness=RELAX_STIFFNESS,
++        exclude_residues=RELAX_EXCLUDE_RESIDUES,
++        max_outer_iterations=RELAX_MAX_OUTER_ITERATIONS,
++        use_gpu=FLAGS.use_gpu_relax,
++    )
+ 
+   random_seed = FLAGS.random_seed
+   if random_seed is None:
+-    random_seed = random.randrange(sys.maxsize // len(model_runners))
++    random_seed = random.randrange(
++        sys.maxsize // max(len(model_runners), len(config.MODEL_PRESETS[FLAGS.model_preset]))
++    )
+   logging.info('Using random seed %d for the data pipeline', random_seed)
+ 
+   # Predict structure for each of the sequences.

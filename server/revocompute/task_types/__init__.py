@@ -81,6 +81,17 @@ class RuntimeFamily:
 
 
 @dataclass(frozen=True)
+class WorkflowStage:
+    """One scheduler allocation in an ordered task workflow."""
+
+    name: str
+    display_name: str
+    requires_gpu: bool
+    runner_args: tuple[str, ...] = ()
+    stage_markers: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class TaskType:
     """Portable user-facing task definition.
 
@@ -105,6 +116,7 @@ class TaskType:
     runner_args: tuple[str, ...] = ()
     gpus: bool = False
     stage_markers: dict[str, str] = field(default_factory=dict)
+    workflow: tuple[WorkflowStage, ...] = ()
     params: tuple[TaskParam, ...] = ()
     input_workspace: tuple[InputCapability, ...] = ()
     result_workspace: tuple[ResultView, ...] = ()
@@ -334,6 +346,50 @@ def _load_result_workspace(raw: Any) -> tuple[ResultView, ...]:
     return tuple(views)
 
 
+def _load_workflow(raw: Any, task_name: str, stage_markers: dict[str, str]) -> tuple[WorkflowStage, ...]:
+    if raw is None:
+        return ()
+    if not isinstance(raw, list) or len(raw) < 2:
+        raise ValueError(f"Task type {task_name!r} workflow must contain at least two stages")
+    stages: list[WorkflowStage] = []
+    seen: set[str] = set()
+    for entry in raw:
+        if not isinstance(entry, dict) or set(entry) - {
+            "name",
+            "display_name",
+            "requires_gpu",
+            "runner_args",
+            "stage_markers",
+        }:
+            raise ValueError(f"Task type {task_name!r} has an invalid workflow stage")
+        name = entry.get("name")
+        requires_gpu = entry.get("requires_gpu", False)
+        runner_args = entry.get("runner_args", ())
+        raw_markers = entry.get("stage_markers", ())
+        if not isinstance(name, str) or not name.replace("_", "").isalnum() or name in seen:
+            raise ValueError(f"Task type {task_name!r} has an invalid or duplicate workflow stage name")
+        if not isinstance(requires_gpu, bool):
+            raise ValueError(f"Workflow stage {task_name}.{name} requires_gpu must be a boolean")
+        if not isinstance(runner_args, list) or not all(isinstance(arg, str) for arg in runner_args):
+            raise ValueError(f"Workflow stage {task_name}.{name} runner_args must be a list of strings")
+        if not isinstance(raw_markers, list) or not all(isinstance(marker, str) for marker in raw_markers):
+            raise ValueError(f"Workflow stage {task_name}.{name} stage_markers must be a list of strings")
+        markers = tuple(raw_markers)
+        if not markers or not set(markers).issubset(stage_markers):
+            raise ValueError(f"Workflow stage {task_name}.{name} must reference declared stage markers")
+        seen.add(name)
+        stages.append(
+            WorkflowStage(
+                name=f"{task_name}.{name}",
+                display_name=str(entry.get("display_name") or name.replace("_", " ").title()),
+                requires_gpu=requires_gpu,
+                runner_args=tuple(runner_args),
+                stage_markers=markers,
+            )
+        )
+    return tuple(stages)
+
+
 # ---------------------------------------------------------------------------
 # YAML loader
 # ---------------------------------------------------------------------------
@@ -439,6 +495,7 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             raise ValueError(f"Task type {name!r} min_input_files must be between zero and max_input_files")
 
         params = tuple(TaskParam(**{**p, "choices": tuple(p.get("choices", []))}) for p in entry.get("params", []))
+        stage_markers = entry.get("stage_markers", {})
         tt = TaskType(
             name=name,
             display_name=entry["display_name"],
@@ -454,7 +511,8 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             allow_multiple_inputs=allow_multiple_inputs,
             max_input_files=max_input_files,
             min_input_files=min_input_files,
-            stage_markers=entry.get("stage_markers", {}),
+            stage_markers=stage_markers,
+            workflow=_load_workflow(entry.get("workflow"), name, stage_markers),
             params=params,
             input_workspace=_load_input_workspace(entry.get("input_workspace")),
             result_workspace=_load_result_workspace(entry.get("result_workspace")),

@@ -4,9 +4,11 @@ set -e
 task_context_src="${TASK_CONTEXT_SRC:-/app/revocompute/task_context.sh}"
 [[ -f "$task_context_src" ]] && source "$task_context_src"
 
-usage() { echo "Usage: $0 -i <task.json> -o <output_dir>"; exit 1; }
-while getopts ":i:o:" opt; do case "${opt}" in i) input_file=$OPTARG ;; o) output_dir=$OPTARG ;; ?) usage ;; esac; done
+usage() { echo "Usage: $0 -i <task.json> -o <output_dir> [-s all|features|model]"; exit 1; }
+run_stage=all
+while getopts ":i:o:s:" opt; do case "${opt}" in i) input_file=$OPTARG ;; o) output_dir=$OPTARG ;; s) run_stage=$OPTARG ;; ?) usage ;; esac; done
 [[ -z "${input_file:-}" || -z "${output_dir:-}" ]] && usage
+[[ "$run_stage" =~ ^(all|features|model)$ ]] || usage
 input_file=$(readlink -f "$input_file"); output_dir=$(readlink -f "$output_dir")
 [[ ! -f "$input_file" ]] && { echo "Task manifest not found: $input_file"; exit 1; }
 mkdir -p "$output_dir"
@@ -18,6 +20,15 @@ NUM_MULTIMER=$(_parse_param num_multimer_predictions_per_model 1)
 MODELS_TO_RELAX=$(_parse_param models_to_relax best)
 BENCHMARK=$(_parse_param benchmark false)
 fasta_path=$(primary_input)
+fasta_name=$(basename "$fasta_path")
+fasta_name=${fasta_name%.*}
+features_path="${output_dir}/${fasta_name}/features.pkl"
+features_marker="${output_dir}/.alphafold-features-complete"
+use_gpu_relax=true
+[[ "$run_stage" == features ]] && use_gpu_relax=false
+if [[ "$run_stage" == model ]]; then
+  [[ -s "$features_path" && -f "$features_marker" ]] || { echo "Validated AlphaFold features are missing" >&2; exit 1; }
+fi
 
 # A100 memory behaviour: let JAX overcommit via unified memory.
 export TF_FORCE_UNIFIED_MEMORY=1
@@ -34,13 +45,15 @@ af_args=(
   "--db_preset=${DB_PRESET}"
   "--model_preset=${MODEL_PRESET}"
   "--models_to_relax=${MODELS_TO_RELAX}"
-  "--use_gpu_relax=true"
+  "--use_gpu_relax=${use_gpu_relax}"
+  "--run_stage=${run_stage}"
   "--benchmark=${BENCHMARK}"
   "--bfd_database_path=${DB}/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt"
   "--mgnify_database_path=${DB}/mgnify/mgy_clusters.fa"
   "--template_mmcif_dir=${DB}/pdb_mmcif/mmcif_files"
   "--obsolete_pdbs_path=${DB}/pdb_mmcif/obsolete.dat"
   "--uniref90_database_path=${DB}/uniref90/uniref90.fasta"
+  "--uniref30_database_path=${DB}/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02"
 )
 if [[ "$MODEL_PRESET" == "multimer" ]]; then
   af_args+=(
@@ -51,7 +64,6 @@ if [[ "$MODEL_PRESET" == "multimer" ]]; then
 else
   af_args+=(
     "--pdb70_database_path=${DB}/pdb70/pdb70"
-    "--uniref30_database_path=${DB}/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02"
   )
 fi
 
@@ -88,6 +100,13 @@ if [[ ${alphafold_status} -ne 0 || ${translator_status} -ne 0 ]]; then
   echo "AlphaFold exited ${alphafold_status}; stage translator exited ${translator_status}" >&2
   [[ ${alphafold_status} -ne 0 ]] && exit "${alphafold_status}"
   exit "${translator_status}"
+fi
+
+if [[ "$run_stage" == features ]]; then
+  [[ -s "$features_path" ]] || { echo "AlphaFold produced no features.pkl" >&2; exit 1; }
+  touch "$features_marker"
+  echo "AlphaFold feature construction complete."
+  exit 0
 fi
 
 [[ -n "$(ls "${output_dir}"/*/ranked_0.pdb 2>/dev/null || true)" ]] || {

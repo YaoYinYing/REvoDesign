@@ -754,6 +754,17 @@ task_types:
       featuring: "Building features"
       modeling: "Folding models"
       relaxing: "Amber relaxation"
+    workflow:
+      - name: features
+        display_name: "MSA and features"
+        requires_gpu: false
+        runner_args: ["-s", "features"]
+        stage_markers: ["msa_searching", "featuring"]
+      - name: model
+        display_name: "Model and relax"
+        requires_gpu: true
+        runner_args: ["-s", "model"]
+        stage_markers: ["modeling", "relaxing"]
     params:
       - name: "model_preset"
         type: "str"

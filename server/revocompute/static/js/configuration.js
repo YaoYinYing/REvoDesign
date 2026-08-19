@@ -155,8 +155,9 @@
       return;
     }
 
-    var enabledCount = taskTypeConfigs.filter(function (c) { return c.enabled !== false; }).length;
-    taskTypeStatus.textContent = taskTypeConfigs.length + " type(s) · " + enabledCount + " enabled";
+    var taskConfigs = taskTypeConfigs.filter(function (c) { return !c.is_workflow_stage; });
+    var enabledCount = taskConfigs.filter(function (c) { return c.enabled !== false; }).length;
+    taskTypeStatus.textContent = taskConfigs.length + " type(s) · " + enabledCount + " enabled";
 
     taskTypeCards.innerHTML = taskTypeConfigs.map(function (config) {
       var meta = findTypeMeta(config.tool);
@@ -232,6 +233,15 @@
         '<div class="card-field-grid">' + slurmFieldsHtml + '</div>';
     }
 
+    var enableControl = config.is_workflow_stage ? '<span class="toggle-label">Workflow stage</span>' :
+      '<span class="toggle-label ' + (enabled ? "enabled-text" : "disabled-text") + '">' +
+        (enabled ? "Enabled" : "Disabled") +
+      '</span>' +
+      '<label class="toggle-switch">' +
+        '<input type="checkbox" data-type="' + escapeHtml(tool) + '"' + (enabled ? " checked" : "") + '>' +
+        '<span class="toggle-track"></span>' +
+      '</label>';
+
     return (
       '<div class="type-card ' + (enabled ? "enabled" : "disabled") + '">' +
         '<div class="type-card-head">' +
@@ -241,13 +251,7 @@
             '</span>' +
           '</div>' +
           '<div class="card-head-right">' +
-            '<span class="toggle-label ' + (enabled ? "enabled-text" : "disabled-text") + '">' +
-              (enabled ? "Enabled" : "Disabled") +
-            '</span>' +
-            '<label class="toggle-switch">' +
-              '<input type="checkbox" data-type="' + escapeHtml(tool) + '"' + (enabled ? " checked" : "") + '>' +
-              '<span class="toggle-track"></span>' +
-            '</label>' +
+            enableControl +
             '<button class="card-expand-toggle" type="button" title="Configure resources" aria-label="Configure resources">' +
               '&#9881;' +
             '</button>' +

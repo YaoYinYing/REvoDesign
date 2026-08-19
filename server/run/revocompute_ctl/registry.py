@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 import re
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -201,7 +202,8 @@ def validate_slurm_images(state, families: list[RuntimeFamily]) -> None:
         if not Path(target).is_file():
             print(f"[SLURM] Missing SIF image: {family.slurm_image}", file=sys.stderr)
             print(
-                f"        Build it:  apptainer build --fakeroot {family.slurm_image} {state.server_root()}/{family.definition}",
+                "        Build it:  apptainer build --fakeroot "
+                f"{family.slurm_image} {state.server_root()}/{family.definition}",
                 file=sys.stderr,
             )
             missing += 1
@@ -215,6 +217,30 @@ def validate_slurm_images(state, families: list[RuntimeFamily]) -> None:
         raise RegistryError
 
 
+def _docker_tag(image: str, suffix: str = "latest") -> str:
+    repository = image.rsplit("/", 1)[-1]
+    return f"{image}:{suffix}" if ":" not in repository and "@" not in image else image
+
+
+def _docker_image_id(state, tag: str) -> str:
+    return run_cmd(
+        ["docker", "image", "inspect", "--format", "{{.Id}}", tag],
+        env=state.exported(),
+        check=False,
+        capture=True,
+    ).stdout.strip()
+
+
+def _sif_source_tag(state, family: RuntimeFamily) -> str:
+    """Use the prepared runner image when this restart built one."""
+    latest = _docker_tag(family.docker_image)
+    if latest.endswith(":latest"):
+        prepared = f"{latest[:-len(':latest')]}:next"
+        if _docker_image_id(state, prepared):
+            return prepared
+    return latest
+
+
 def sif_stale(state, family: RuntimeFamily) -> bool:
     """True when the deployed SIF needs a rebuild: it is missing, or the
     family's docker image was created after the SIF (covers image updates
@@ -222,8 +248,10 @@ def sif_stale(state, family: RuntimeFamily) -> bool:
     unchanged while the SIF still predates it)."""
     if not Path(family.slurm_image).is_file():
         return True
-    image = family.docker_image
-    tag = f"{image}:latest" if ":" not in image and "@" not in image else image
+    latest = _docker_tag(family.docker_image)
+    tag = _sif_source_tag(state, family)
+    if tag != latest and _docker_image_id(state, tag) != _docker_image_id(state, latest):
+        return True
     created = run_cmd(
         ["docker", "image", "inspect", "--format", "{{.Created}}", tag],
         env=state.exported(),
@@ -237,6 +265,21 @@ def sif_stale(state, family: RuntimeFamily) -> bool:
     except (ValueError, AttributeError):
         image_ts = 0.0
     return image_ts > os.path.getmtime(family.slurm_image)
+
+
+def _sif_definition_for_tag(def_file: Path, source_tag: str) -> tuple[str, str | None]:
+    """Return a definition using the prepared Docker tag, plus a temp path to clean up."""
+    text = def_file.read_text(encoding="utf-8")
+    current = _first_directive_value(text, "From:")
+    if source_tag == current:
+        return str(def_file), None
+    updated = text.replace(f"From: {current}", f"From: {source_tag}", 1)
+    handle = tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".def", delete=False)
+    try:
+        handle.write(updated)
+    finally:
+        handle.close()
+    return handle.name, handle.name
 
 
 def build_slurm_images(state, families: list[RuntimeFamily]) -> int:
@@ -269,9 +312,18 @@ def build_slurm_images(state, families: list[RuntimeFamily]) -> int:
         # Atomic staging: a killed build must never leave a corrupt .next
         # that the next run treats as a valid staging.
         staging = f"{staged}.build"
-        result = run_cmd(
-            ["apptainer", "build", "--fakeroot", staging, str(def_file)], env=state.exported(), check=False
+        build_definition, temporary_definition = _sif_definition_for_tag(
+            def_file, _sif_source_tag(state, family)
         )
+        try:
+            result = run_cmd(
+                ["apptainer", "build", "--fakeroot", staging, build_definition],
+                env=state.exported(),
+                check=False,
+            )
+        finally:
+            if temporary_definition is not None:
+                os.remove(temporary_definition)
         if result.returncode != 0:
             if os.path.isfile(staging):
                 os.remove(staging)

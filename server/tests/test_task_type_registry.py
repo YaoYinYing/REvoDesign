@@ -91,6 +91,23 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
         assert rfdiffusion.runner_args == ("rfdiffusion",)
 
 
+def test_alphafold_declares_cpu_then_gpu_workflow():
+    with _preserve_registry():
+        task_types.load_registry(
+            str(SERVER_ROOT / "config" / "task_types.yaml"),
+            str(SERVER_ROOT / "config" / "runners"),
+            {"alphafold"},
+        )
+        alphafold, _ = task_types.get("alphafold")
+
+        assert [(stage.name, stage.requires_gpu) for stage in alphafold.workflow] == [
+            ("alphafold.features", False),
+            ("alphafold.model", True),
+        ]
+        assert alphafold.workflow[0].runner_args == ("-s", "features")
+        assert alphafold.workflow[1].runner_args == ("-s", "model")
+
+
 def test_input_workspace_capabilities_cover_simple_and_complex_tasks():
     enabled = {"placer-rfdiffusion", "easifa"}
     with _preserve_registry():

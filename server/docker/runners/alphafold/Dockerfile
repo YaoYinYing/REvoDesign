@@ -4,9 +4,11 @@
 FROM alpine/git:2.47.2 AS alphafold-source
 ARG ALPHAFOLD_REPO=https://github.com/google-deepmind/alphafold.git
 ARG ALPHAFOLD_REF=c77e5d2a8961d1a353632c462914ff0a32a950f6
+COPY ./docker/runners/alphafold/staged_pipeline.patch /tmp/staged_pipeline.patch
 RUN git init /opt/alphafold && git -C /opt/alphafold remote add origin ${ALPHAFOLD_REPO} && \
     git -C /opt/alphafold fetch --depth 1 origin ${ALPHAFOLD_REF} && git -C /opt/alphafold checkout --detach FETCH_HEAD && \
-    rm -rf /opt/alphafold/.git
+    git -C /opt/alphafold apply --check /tmp/staged_pipeline.patch && \
+    git -C /opt/alphafold apply /tmp/staged_pipeline.patch && rm -rf /opt/alphafold/.git
 
 FROM --platform=linux/amd64 python:3.11-slim
 

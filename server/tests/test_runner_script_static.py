@@ -24,7 +24,7 @@ def test_prepared_activation_audits_resources_before_stopping_services():
     assert "-m revocompute.resource_audit" in steps_source
 
 
-def test_slurm_pre_stop_sweep_preserves_pending_and_finalizes_started_tasks():
+def test_slurm_pre_stop_sweep_preserves_pending_and_resumable_workflows():
     sweep = (SERVER_ROOT / "run" / "revocompute_ctl" / "sweep.py").read_text(encoding="utf-8")
     down = (SERVER_ROOT / "run" / "revocompute_ctl" / "steps.py").read_text(encoding="utf-8")
 
@@ -34,8 +34,11 @@ def test_slurm_pre_stop_sweep_preserves_pending_and_finalizes_started_tasks():
     assert '"scancel"' in sweep
     assert 'if task.get("status") in {"queued", "running"}:' in sweep
     assert '"pending"' not in sweep
-    assert "from revocompute.task_runtime import _record_failure, task_store" in sweep
+    assert "_record_failure" in sweep and "task_store" in sweep
     assert "_record_failure(" in sweep
+    assert 'status="queued"' in sweep
+    assert 'json.loads(task.get("workflow_state") or "{}")' in sweep
+    assert 'getattr(_get_task_type(task_type)[0], "workflow", ())' in sweep
     assert "pre_stop_sweep_slurm" in down
 
 
@@ -57,7 +60,7 @@ def test_runner_script_executes_pipeline_commands_as_arrays():
     assert '"${cmd[@]}"' in script
 
 
-def _run_with_manifest(script, input_file, output_dir, env, params=None):
+def _run_with_manifest(script, input_file, output_dir, env, params=None, extra_args=()):
     """Run a runner script under the v2 protocol: write task.json next to
     the input, point -i at it, and set TASK_MANIFEST + TASK_CONTEXT_SRC."""
     manifest_path = input_file.parent / "task.json"
@@ -85,7 +88,7 @@ def _run_with_manifest(script, input_file, output_dir, env, params=None):
         str(SERVER_ROOT / "docker" / "runners" / "common" / "task_context.sh"),
     )
     return subprocess.run(
-        ["bash", str(script), "-i", str(manifest_path), "-o", str(output_dir)],
+        ["bash", str(script), *extra_args, "-i", str(manifest_path), "-o", str(output_dir)],
         env=env,
         check=False,
         capture_output=True,
@@ -141,6 +144,75 @@ def test_alphafold_runner_drains_final_stage_before_exit(tmp_path):
     assert completed.returncode == 0, completed.stderr
     assert completed.stdout.index("REVODESIGN_STAGE:modeling") < completed.stdout.index("AlphaFold complete.")
     assert (output_dir / "task_finished").is_file()
+
+
+def test_alphafold_feature_stage_stops_before_modeling(tmp_path):
+    input_file = tmp_path / "input.fasta"
+    output_dir = tmp_path / "outputs"
+    alphafold_root = tmp_path / "alphafold"
+    fake_context = tmp_path / "task_context.sh"
+    fake_python = tmp_path / "fake-python"
+    fake_args = tmp_path / "alphafold.args"
+    input_file.write_text(">first\nAAAA\n>second\nBBBB\n", encoding="utf-8")
+    output_dir.mkdir()
+    alphafold_root.mkdir()
+    fake_context.write_text(
+        '_parse_param() { [[ "$1" == model_preset ]] && printf "multimer\\n" || printf "%s\\n" "$2"; }\n'
+        'primary_input() { printf "%s\\n" "$FAKE_PRIMARY_INPUT"; }\n',
+        encoding="utf-8",
+    )
+    fake_python.write_text(
+        "#!/bin/bash\n"
+        "set -e\n"
+        'printf "%s\\n" "$@" > "$FAKE_ARGS_FILE"\n'
+        'for arg in "$@"; do\n'
+        '  case "$arg" in --output_dir=*) output_dir=${arg#*=} ;; --run_stage=*) stage=${arg#*=} ;; esac\n'
+        "done\n"
+        '[[ "$stage" == features ]]\n'
+        'mkdir -p "$output_dir/input"\n'
+        'printf "FEATURES\\n" > "$output_dir/input/features.pkl"\n',
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    env = os.environ.copy()
+    env.update(
+        {
+            "ALPHAFOLD_PATH": str(alphafold_root),
+            "ALPHAFOLD_PYTHON": str(fake_python),
+            "FAKE_ARGS_FILE": str(fake_args),
+            "FAKE_PRIMARY_INPUT": str(input_file),
+            "TASK_CONTEXT_SRC": str(fake_context),
+            "ALPHAFOLD_STAGE_TRANSLATOR": str(SERVER_ROOT / "docker" / "runners" / "common" / "stage_translate.py"),
+            "ALPHAFOLD_STAGE_PATTERNS": str(SERVER_ROOT / "docker" / "runners" / "alphafold" / "alphafold.stages"),
+            "TMPDIR": str(tmp_path),
+        }
+    )
+
+    completed = _run_with_manifest(
+        ALPHAFOLD_RUNNER_SCRIPT,
+        input_file,
+        output_dir,
+        env,
+        params={"model_preset": "multimer"},
+        extra_args=("-s", "features"),
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    args = fake_args.read_text(encoding="utf-8")
+    assert "--model_preset=multimer" in args
+    assert "--uniref30_database_path=" in args
+    assert "--uniprot_database_path=" in args
+    assert "--pdb70_database_path=" not in args
+    assert (output_dir / ".alphafold-features-complete").is_file()
+    assert not (output_dir / "task_finished").exists()
+
+
+def test_alphafold_image_applies_staged_pipeline_to_pinned_source():
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "alphafold" / "Dockerfile").read_text()
+    patch = (SERVER_ROOT / "docker" / "runners" / "alphafold" / "staged_pipeline.patch").read_text()
+    assert "git -C /opt/alphafold apply --check /tmp/staged_pipeline.patch" in dockerfile
+    assert "FLAGS.run_stage == 'model'" in patch
+    assert "FLAGS.run_stage == 'features'" in patch
 
 
 def test_opendde_runner_uses_writable_snapshot_copy_and_checks_outputs():
