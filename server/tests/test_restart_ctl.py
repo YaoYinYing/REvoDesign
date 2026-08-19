@@ -334,6 +334,33 @@ def test_sif_staging_builds_missing_skips_unchanged(tmp_path, monkeypatch):
     assert (sif_dir / "gremlin.sif.next").is_file()
 
 
+def test_sif_staging_builds_changed_prepared_image_from_next(tmp_path, monkeypatch):
+    bin_dir = _write_shims(tmp_path)
+    sif_dir = tmp_path / "sifs"
+    sif_dir.mkdir()
+    (sif_dir / "gremlin.sif").touch()
+    family = RuntimeFamily(
+        "gremlin",
+        RUNNER_IMAGE,
+        "docker/runners/pssm_gremlin/Dockerfile",
+        "docker/runners/pssm_gremlin/gremlin.def",
+        str(sif_dir / "gremlin.sif"),
+    )
+    state, log = _shimmed_state(
+        monkeypatch,
+        tmp_path,
+        bin_dir,
+        {f"{RUNNER_IMAGE}:latest": "sha256:old", f"{RUNNER_IMAGE}:next": "sha256:new"},
+    )
+
+    build_slurm_images(state, [family])
+
+    assert (sif_dir / "gremlin.sif.next").is_file()
+    apptainer_line = next(line for line in log.read_text().splitlines() if line.startswith("build "))
+    definition = Path(apptainer_line.rsplit(" ", 1)[-1])
+    assert not definition.exists()  # temporary prepared-tag definition is cleaned up
+
+
 def test_sif_staging_drops_failed_runner_from_enabled_list(tmp_path, monkeypatch):
     bin_dir = _write_shims(tmp_path)
     monkeypatch.setenv("APPTAINER_FAIL", "1")
