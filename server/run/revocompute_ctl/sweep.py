@@ -25,16 +25,19 @@ for task in task_store.list_tasks():
 
 SWEEP_SOURCE = """import json
 import time
-from revocompute.task_runtime import _get_task_type, _record_failure, _workflow_state, task_store
+from revocompute.task_runtime import _get_task_type, _record_failure, task_store
 for task in task_store.list_tasks():
     if task.get("status") in {"queued", "running"}:
         task_type = task.get("task_type", "gremlin")
         try:
-            is_workflow = bool(_get_task_type(task_type)[0].workflow)
+            is_workflow = bool(getattr(_get_task_type(task_type)[0], "workflow", ()))
         except KeyError:
             is_workflow = False
         if is_workflow:
-            state = _workflow_state(task)
+            try:
+                state = json.loads(task.get("workflow_state") or "{}")
+            except (TypeError, json.JSONDecodeError):
+                state = {}
             for step in state.values():
                 if step.get("status") == "running":
                     step["status"] = "interrupted"

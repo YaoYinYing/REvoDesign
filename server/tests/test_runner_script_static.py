@@ -37,7 +37,8 @@ def test_slurm_pre_stop_sweep_preserves_pending_and_resumable_workflows():
     assert "_record_failure" in sweep and "task_store" in sweep
     assert "_record_failure(" in sweep
     assert 'status="queued"' in sweep
-    assert "_workflow_state(task)" in sweep
+    assert 'json.loads(task.get("workflow_state") or "{}")' in sweep
+    assert 'getattr(_get_task_type(task_type)[0], "workflow", ())' in sweep
     assert "pre_stop_sweep_slurm" in down
 
 
