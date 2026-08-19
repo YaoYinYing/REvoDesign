@@ -161,9 +161,9 @@ class TaskDatabase:
         with self.engine.begin() as conn:
             conn.execute(stmt)
 
-    def update_task(self, md5sum: str, **fields) -> None:
+    def update_task(self, md5sum: str, **fields) -> bool:
         if not fields:
-            return
+            return False
         status = fields.get("status")
         if status:
             self._ensure_status(status)
@@ -175,7 +175,22 @@ class TaskDatabase:
         if status is None or (not self._is_deleted_status(status)):
             stmt = stmt.where(self.tasks_table.c.status.notin_(tuple(self.TERMINAL_STATUSES)))
         with self.engine.begin() as conn:
-            conn.execute(stmt)
+            return conn.execute(stmt).rowcount == 1
+
+    def claim_task_recovery(self, md5sum: str, *, expected_status: str) -> bool:
+        """Atomically move one orphaned active task out of recovery scans."""
+        if expected_status not in {"queued", "running"}:
+            return False
+        stmt = (
+            update(self.tasks_table)
+            .where(
+                self.tasks_table.c.md5sum == md5sum,
+                self.tasks_table.c.status == expected_status,
+            )
+            .values(status="pending")
+        )
+        with self.engine.begin() as conn:
+            return conn.execute(stmt).rowcount == 1
 
     def claim_task_cleanup(
         self,

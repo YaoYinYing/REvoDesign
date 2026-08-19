@@ -1169,9 +1169,20 @@ def cancel_task(md5sum):
             400,
         )
 
-    # SLURM tooling and the Docker socket live only in the worker container;
-    # the web process delegates the kill there.  The task record flips to
-    # cancelled immediately either way.
+    now = time.time()
+    started_at = task.get("started_at")
+    walltime = (now - started_at) if started_at else None
+    if not task_store.update_task(
+        md5sum,
+        status="cancelled",
+        finished_at=now,
+        walltime=walltime,
+        error="Task cancelled by user",
+    ):
+        return jsonify({"error": "Task state changed before cancellation"}), 409
+
+    # Claim cancellation in the database before asking the worker to stop
+    # resources, so a workflow cannot launch its next stage in between.
     cancel_compute_resources.delay(
         slurm_job_id=str(task["slurm_job_id"]) if task.get("slurm_job_id") else None,
         container_id=str(task["container_id"]) if task.get("container_id") else None,
@@ -1186,17 +1197,6 @@ def cancel_task(md5sum):
             logging.warning("Failed to revoke Celery task %s: %s", celery_id, exc)
 
     _delete_task_artifacts(task)
-
-    now = time.time()
-    started_at = task.get("started_at")
-    walltime = (now - started_at) if started_at else None
-    task_store.update_task(
-        md5sum,
-        status="cancelled",
-        finished_at=now,
-        walltime=walltime,
-        error="Task cancelled by user",
-    )
     return jsonify({"status": "cancelled", "md5sum": md5sum}), 200
 
 

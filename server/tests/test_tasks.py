@@ -983,15 +983,29 @@ def test_task_store_update_ignores_late_non_deleted_updates(monkeypatch, tmp_pat
     )
 
     # Simulate stale worker writes arriving after a delete request.
-    module.task_store.update_task(md5sum, status="running", run_stage="blast")
-    module.task_store.update_task(md5sum, status="finished", walltime=12.3, error=None)
-    module.task_store.update_task(md5sum, run_stage="hhblits")
+    assert module.task_store.update_task(md5sum, status="running", run_stage="blast") is False
+    assert module.task_store.update_task(md5sum, status="finished", walltime=12.3, error=None) is False
+    assert module.task_store.update_task(md5sum, run_stage="hhblits") is False
 
     task = module.task_store.get_task(md5sum)
     assert task is not None
     assert task["status"] == "deleted:cancel"
     assert task["error"] == "Task deleted by user"
     assert task["finished_at"] == deleted_at
+
+
+def test_task_store_recovery_claim_is_atomic(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    md5sum = _insert_pending_task(module, tmp_path / "result")
+    module.task_store.update_task(md5sum, status="running")
+
+    assert module.task_store.claim_task_recovery(md5sum, expected_status="running") is True
+    assert module.task_store.claim_task_recovery(md5sum, expected_status="running") is False
+    assert module.task_store.get_task(md5sum)["status"] == "pending"
 
 
 def test_run_compute_task_does_not_resurrect_deleted_task(monkeypatch, tmp_path):

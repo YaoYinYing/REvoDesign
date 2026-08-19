@@ -17,6 +17,7 @@ import logging
 import mimetypes
 import os
 import re
+import signal
 import shutil
 import subprocess
 import threading
@@ -24,6 +25,7 @@ import time
 import zipfile
 from dataclasses import replace
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import docker
@@ -329,7 +331,8 @@ def _run_compute_workflow(
             workflow=(),
         )
         first_marker = next(iter(markers))
-        task_store.update_task(task_id, status="queued", run_stage=first_marker)
+        if not task_store.update_task(task_id, status="queued", run_stage=first_marker):
+            return JobState.CANCELLED
         job = _create_job(
             task_id,
             stage_tt,
@@ -347,7 +350,9 @@ def _run_compute_workflow(
             handles["slurm_job_id"] = jid
         elif isinstance(job, DockerJob):
             handles["container_id"] = jid
-        task_store.update_task(task_id, **handles)
+        if not task_store.update_task(task_id, **handles):
+            job.cancel()
+            return JobState.CANCELLED
         result = job.poll()
         state[stage.name].update(status=result.value, finished_at=time.time())
         task_store.update_task(
@@ -913,6 +918,51 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
 # ---------------------------------------------------------------------------
 
 
+def _stop_orphaned_workflow_execution(task_id: str, slurm_job_id: str, container_id: str) -> str:
+    """Stop a workflow allocation before another worker resumes its stage."""
+    if slurm_job_id:
+        if slurm_job_id.isdigit():
+            scancel = shutil.which("scancel")
+            if not scancel:
+                return f"Cannot resume while SLURM job {slurm_job_id} cannot be cancelled"
+            try:
+                subprocess.run([scancel, slurm_job_id], timeout=10, check=True)
+            except (OSError, subprocess.SubprocessError) as exc:
+                return f"Could not cancel SLURM job {slurm_job_id}: {exc}"
+        else:
+            match = re.fullmatch(r"srun-([1-9][0-9]*)", slurm_job_id)
+            if not match:
+                return f"Cannot resume workflow with unknown SLURM handle {slurm_job_id!r}"
+            pid = int(match.group(1))
+            try:
+                command = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ")
+            except FileNotFoundError:
+                command = b""
+            except OSError as exc:
+                return f"Could not inspect srun process {pid}: {exc}"
+            if command:
+                if b"srun" not in command or task_id[:8].encode("ascii") not in command:
+                    return f"Refusing to stop unverified process {pid} for workflow recovery"
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except OSError as exc:
+                    return f"Could not stop srun process {pid}: {exc}"
+
+    if container_id:
+        client = None
+        try:
+            client = docker.from_env()
+            client.containers.get(container_id).stop(timeout=10)
+        except docker.errors.NotFound:
+            pass
+        except docker.errors.DockerException as exc:
+            return f"Could not stop Docker container {container_id}: {exc}"
+        finally:
+            if client is not None:
+                client.close()
+    return ""
+
+
 def _recover_orphaned_tasks() -> int:
     """Resolve compute records whose owning Celery worker disappeared."""
     handled = 0
@@ -928,25 +978,36 @@ def _recover_orphaned_tasks() -> int:
         except KeyError:
             workflow_task = False
         if workflow_task:
-            if slurm_job_id.isdigit() and (scancel := shutil.which("scancel")):
-                try:
-                    subprocess.run([scancel, slurm_job_id], timeout=10, check=True)
-                except (OSError, subprocess.SubprocessError) as exc:
-                    logging.warning("Recovery could not cancel workflow job %s for %s: %s", slurm_job_id, md5sum, exc)
+            if not task_store.claim_task_recovery(md5sum, expected_status=str(task.get("status") or "")):
+                continue
+            stop_error = _stop_orphaned_workflow_execution(md5sum, slurm_job_id, container_id)
+            if stop_error:
+                task_store.update_task(md5sum, status="queued", error=stop_error)
+                logging.error("Recovery left workflow %s queued: %s", md5sum, stop_error)
+                handled += 1
+                continue
             state = _workflow_state(task)
             for step in state.values():
                 if step.get("status") == "running":
                     step["status"] = "interrupted"
-            task_store.update_task(
+            if not task_store.update_task(
                 md5sum,
                 status="pending",
                 slurm_job_id=None,
                 container_id=None,
                 workflow_state=json.dumps(state, sort_keys=True),
                 error=None,
-            )
-            resumed = run_compute_task.apply_async(args=[md5sum], kwargs={"task_type": task_type})
-            task_store.update_task(md5sum, celery_task_id=resumed.id)
+            ):
+                handled += 1
+                continue
+            try:
+                resumed = run_compute_task.apply_async(args=[md5sum], kwargs={"task_type": task_type})
+            except Exception as exc:  # pylint: disable=broad-except
+                task_store.update_task(md5sum, status="queued", error=f"Workflow recovery enqueue failed: {exc}")
+                logging.exception("Recovery could not enqueue workflow %s", md5sum)
+            else:
+                if not task_store.update_task(md5sum, celery_task_id=resumed.id):
+                    resumed.revoke(terminate=True)
             handled += 1
             continue
         if slurm_job_id:
