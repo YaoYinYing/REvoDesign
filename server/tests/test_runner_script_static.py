@@ -152,16 +152,19 @@ def test_alphafold_feature_stage_stops_before_modeling(tmp_path):
     alphafold_root = tmp_path / "alphafold"
     fake_context = tmp_path / "task_context.sh"
     fake_python = tmp_path / "fake-python"
+    fake_args = tmp_path / "alphafold.args"
     input_file.write_text(">first\nAAAA\n>second\nBBBB\n", encoding="utf-8")
     output_dir.mkdir()
     alphafold_root.mkdir()
     fake_context.write_text(
-        '_parse_param() { printf "%s\\n" "$2"; }\n' 'primary_input() { printf "%s\\n" "$FAKE_PRIMARY_INPUT"; }\n',
+        '_parse_param() { [[ "$1" == model_preset ]] && printf "multimer\\n" || printf "%s\\n" "$2"; }\n'
+        'primary_input() { printf "%s\\n" "$FAKE_PRIMARY_INPUT"; }\n',
         encoding="utf-8",
     )
     fake_python.write_text(
         "#!/bin/bash\n"
         "set -e\n"
+        'printf "%s\\n" "$@" > "$FAKE_ARGS_FILE"\n'
         'for arg in "$@"; do\n'
         '  case "$arg" in --output_dir=*) output_dir=${arg#*=} ;; --run_stage=*) stage=${arg#*=} ;; esac\n'
         "done\n"
@@ -176,6 +179,7 @@ def test_alphafold_feature_stage_stops_before_modeling(tmp_path):
         {
             "ALPHAFOLD_PATH": str(alphafold_root),
             "ALPHAFOLD_PYTHON": str(fake_python),
+            "FAKE_ARGS_FILE": str(fake_args),
             "FAKE_PRIMARY_INPUT": str(input_file),
             "TASK_CONTEXT_SRC": str(fake_context),
             "ALPHAFOLD_STAGE_TRANSLATOR": str(SERVER_ROOT / "docker" / "runners" / "common" / "stage_translate.py"),
@@ -194,6 +198,11 @@ def test_alphafold_feature_stage_stops_before_modeling(tmp_path):
     )
 
     assert completed.returncode == 0, completed.stderr
+    args = fake_args.read_text(encoding="utf-8")
+    assert "--model_preset=multimer" in args
+    assert "--uniref30_database_path=" in args
+    assert "--uniprot_database_path=" in args
+    assert "--pdb70_database_path=" not in args
     assert (output_dir / ".alphafold-features-complete").is_file()
     assert not (output_dir / "task_finished").exists()
 

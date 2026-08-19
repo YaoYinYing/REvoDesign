@@ -53,6 +53,7 @@ af_args=(
   "--template_mmcif_dir=${DB}/pdb_mmcif/mmcif_files"
   "--obsolete_pdbs_path=${DB}/pdb_mmcif/obsolete.dat"
   "--uniref90_database_path=${DB}/uniref90/uniref90.fasta"
+  "--uniref30_database_path=${DB}/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02"
 )
 if [[ "$MODEL_PRESET" == "multimer" ]]; then
   af_args+=(
@@ -63,7 +64,6 @@ if [[ "$MODEL_PRESET" == "multimer" ]]; then
 else
   af_args+=(
     "--pdb70_database_path=${DB}/pdb70/pdb70"
-    "--uniref30_database_path=${DB}/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02"
   )
 fi
 

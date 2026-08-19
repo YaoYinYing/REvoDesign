@@ -23,6 +23,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
+import yaml
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 RUN_DIR = SERVER_DIR / "run"
@@ -496,6 +497,14 @@ def test_rollback_restores_previous_set_and_config(tmp_path, monkeypatch):
     bin_dir = _write_shims(tmp_path)
     config_dir = tmp_path / "config"
     shutil.copytree(Path(REPO_DIR) / "server" / "config", config_dir)
+    registry_file = config_dir / "task_types.yaml"
+    registry = yaml.safe_load(registry_file.read_text(encoding="utf-8"))
+    sif = tmp_path / "sifs" / "gremlin.sif"
+    sif.parent.mkdir()
+    sif.write_text("current", encoding="utf-8")
+    Path(f"{sif}.previous").write_text("previous", encoding="utf-8")
+    registry["runtime_families"]["gremlin"]["slurm_image"] = str(sif)
+    registry_file.write_text(yaml.safe_dump(registry, sort_keys=False), encoding="utf-8")
     task_dir, _auth_dir, env_file = _deploy_env(tmp_path, config_dir)
 
     ids = {f"{RUNNER_IMAGE}:previous": "sha256:prev", f"{RUNNER_IMAGE}:latest": "sha256:bad"}
@@ -514,7 +523,6 @@ def test_rollback_restores_previous_set_and_config(tmp_path, monkeypatch):
         },
     )
     # Drift the registry in a validation-neutral way.
-    registry_file = config_dir / "task_types.yaml"
     registry_file.write_text(registry_file.read_text(encoding="utf-8") + "\n# drifted\n", encoding="utf-8")
 
     result = _run_cli(monkeypatch, tmp_path, env_file, bin_dir, "restart", "--rollback")
@@ -523,6 +531,7 @@ def test_rollback_restores_previous_set_and_config(tmp_path, monkeypatch):
     assert not registry_file.read_text(encoding="utf-8").endswith("# drifted\n")  # config restored
     commands = (tmp_path / "docker.log").read_text(encoding="utf-8").splitlines()
     assert f"tag {RUNNER_IMAGE}:previous {RUNNER_IMAGE}:latest" in commands
+    assert sif.read_text(encoding="utf-8") == "previous"
     assert "All prepared deployment services are running." in result.stdout
     rolled = stamp_mod.load_stamp(state)
     assert rolled["mode"] == "rollback"
