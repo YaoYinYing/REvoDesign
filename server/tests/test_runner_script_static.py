@@ -121,7 +121,7 @@ def test_esmdynamic_runner_uses_the_manifest_parameters(tmp_path):
         input_file,
         output_dir,
         env,
-        params={"batch_size": 2, "chunk_size": 128, "low_memory": True, "num_recycles": 3, "chain_ids": "AB"},
+        params={"batch_size": 2, "chunk_size": 128, "low_memory": True, "num_recycles": 3},
     )
 
     assert completed.returncode == 0, completed.stderr
@@ -130,7 +130,6 @@ def test_esmdynamic_runner_uses_the_manifest_parameters(tmp_path):
     assert "--chunk_size\n128\n" in args
     assert "--low_memory" in args
     assert "--num_recycles\n3\n" in args
-    assert "--chain_ids\nAB\n" in args
     assert (output_dir / "task_finished").is_file()
 
 

@@ -269,9 +269,9 @@ task_types:
     display_name: "ESMDynamic"
     category: structure
     citation_dois:
-      - {num: 1, doi: "10.1101/2025.08.20.671365", title: "ESMDynamic: Fast and Accurate Prediction of Protein Dynamic Contact Maps from Single Sequences"}
+      - {num: 1, doi: "10.1101/2025.08.20.671365", title: "ESMDynamic: A Fast and Accurate Prediction of Protein Dynamic Contact Maps from Single Sequences"}
     citation_bibtex: |
-      @article{Kleiman_2025, title={ESMDynamic: Fast and Accurate Prediction of Protein Dynamic Contact Maps from Single Sequences}, url={http://dx.doi.org/10.1101/2025.08.20.671365}, DOI={10.1101/2025.08.20.671365}, publisher={openRxiv}, author={Kleiman, Diego E. and Feng, Jiangyan and Xue, Zhengyuan and Shukla, Diwakar}, year={2025}, month=Aug }
+      @article{Kleiman2025.08.20.671365, author={Kleiman, Diego E and Feng, Jiangyan and Xue, Zhengyuan and Shukla, Diwakar}, title={ESMDynamic: A Fast and Accurate Prediction of Protein Dynamic Contact Maps from Single Sequences}, elocation-id={2025.08.20.671365}, year={2026}, doi={10.1101/2025.08.20.671365}, publisher={Cold Spring Harbor Laboratory}, URL={https://www.biorxiv.org/content/early/2026/04/21/2025.08.20.671365}, eprint={https://www.biorxiv.org/content/early/2026/04/21/2025.08.20.671365.full.pdf}, journal={bioRxiv}}
     intro: "Predict protein dynamic contact maps, contact frequencies, and kinetics from a sequence."
     runtime_family: "esmdynamic"
     gpus: true
@@ -285,7 +285,6 @@ task_types:
       - {name: "chunk_size", type: "int", default: 256, minimum: 1, description: "Model chunk size", advanced: true}
       - {name: "low_memory", type: "bool", default: false, description: "Run prediction heads sequentially to reduce memory use", advanced: true}
       - {name: "num_recycles", type: "int", default: null, minimum: 1, description: "Optional model recycle count", advanced: true}
-      - {name: "chain_ids", type: "str", default: "", description: "Chain labels for colon-separated sequences, e.g. ABC", advanced: true}
 
   opendde:
     display_name: "OpenDDE"

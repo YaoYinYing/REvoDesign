@@ -60,6 +60,7 @@ COPY --from=builder /opt/venv /opt/venv
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} docker/runners/esmdynamic/run.sh docker/runners/common/task_context.sh docker/runners/common/task_context.py /app/revocompute/
 
+USER ${RUNNER_UID}:${RUNNER_GID}
 WORKDIR /app/revocompute
 ENV PATH=/opt/venv/bin:${PATH} TORCH_HOME=/mnt/db/weights/esmdynamic RUNNER_USERNAME=${RUNNER_USERNAME}
 ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
