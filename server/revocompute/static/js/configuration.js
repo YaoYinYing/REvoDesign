@@ -169,12 +169,15 @@
       var enabled = config.enabled !== false;
 
       var stages = taskTypeConfigs.filter(function (stage) {
-        return stage.is_workflow_stage && stage.display_name.indexOf(displayName + " / ") === 0;
+        return stage.is_workflow_stage && stage.tool.indexOf(config.tool + ".") === 0;
       });
       var submodules = stages.map(function (stage) {
+        var stageLabel = stage.display_name.indexOf(displayName + " / ") === 0
+          ? stage.display_name.slice(displayName.length + 3)
+          : stage.display_name;
         return buildCard(
           stage.tool,
-          stage.display_name.slice(displayName.length + 3),
+          stageLabel,
           "",
           "",
           0,
