@@ -214,6 +214,7 @@ def test_alphafold_image_applies_staged_pipeline_to_pinned_source():
     assert "FLAGS.run_stage == 'model'" in patch
     assert "FLAGS.run_stage == 'features'" in patch
     assert '"openmm-cuda-12==8.2.0"' in dockerfile
+    assert '"nvidia-cuda-nvrtc-cu12==12.6.85"' in dockerfile
 
 
 def test_alphafold_runner_uses_cuda_amber_relaxation_for_model_stage():
