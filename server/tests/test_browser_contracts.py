@@ -57,6 +57,7 @@ def test_js_modules_load_in_correct_order() -> None:
     )
     assert check.returncode == 0, f"plugin-host.js syntax: {check.stderr}"
     for filename in (
+        "configuration.js",
         "result-preview-plugins.js",
         "input-workspace.js",
         "input-workspace-rfdiffusion.js",

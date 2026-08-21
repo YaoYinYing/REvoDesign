@@ -38,7 +38,9 @@ RUN wget -q -P /opt/alphafold/alphafold/common/ \
 # jax[cuda12] on PyPI bundles its own CUDA libs.
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r /opt/alphafold/requirements.txt && \
+    pip install --no-cache-dir "openmm-cuda-12==8.2.0" && \
     pip install --no-cache-dir "jax[cuda12]==0.4.35" && \
+    pip install --no-cache-dir "nvidia-cuda-nvcc-cu12==12.6.85" "nvidia-cuda-nvrtc-cu12==12.6.85" "nvidia-cuda-runtime-cu12==12.6.77" && \
     pip install --no-cache-dir "numpy==1.26.4"
 
 # jax 0.4.35 + nvidia-cuda-nvcc-cu12: the namespace package has __file__ None,

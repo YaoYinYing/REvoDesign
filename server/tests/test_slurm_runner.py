@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from dataclasses import replace
 from io import StringIO
@@ -198,6 +197,7 @@ def test_render_apptainer_binds_and_env(tmp_path):
     assert "export APPTAINERENV_TASK_ID=" in script
     assert "export APPTAINERENV_TASK_TYPE=" in script
     assert "export APPTAINERENV_TASK_MANIFEST=" in script
+    assert "export APPTAINERENV_CUDA_VISIBLE_DEVICES=" in script
     assert "-i '/mnt/revocompute/tester/inputs/task.json'" in script
     assert "/opt/images/gremlin_v1.sif" in script
 
@@ -206,6 +206,7 @@ def test_render_apptainer_omits_nvidia_flag_for_cpu_task(tmp_path):
     job = SlurmJob("task-1", _make_task_type(gpus=False), _make_runner(), _make_entities(), str(tmp_path / "out"))
     script = job._render_wrapper()
     assert "apptainer run --nv" not in script
+    assert "APPTAINERENV_CUDA_VISIBLE_DEVICES" not in script
     assert "apptainer run --containall --cleanenv --bind" in script
 
 

@@ -464,11 +464,12 @@ Submission -> Composer -> [CPU: MSA + features] -> [GPU: model + relax] -> Resul
                            +---- persisted --------+
 ```
 
-AlphaFold is the first composed task. `alphafold.features` runs MSA and feature
-construction without GPU GRES or Apptainer `--nv`; after `features.pkl` is
-validated, `alphafold.model` receives the GPU allocation for inference and
-optional relaxation. Restarts cancel only the active allocation and resume at
-the first incomplete stage.
+AlphaFold is the first composed task. Its configuration card nests
+`alphafold.features` and `alphafold.model` as resource submodules.
+`alphafold.features` runs MSA and feature construction without GPU GRES or
+Apptainer `--nv`; after `features.pkl` is validated, `alphafold.model` receives
+the GPU allocation for inference and CUDA Amber relaxation. Restarts cancel
+only the active allocation and resume at the first incomplete stage.
 
 ## 5. Authentication
 

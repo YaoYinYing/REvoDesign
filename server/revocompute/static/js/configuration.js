@@ -159,7 +159,7 @@
     var enabledCount = taskConfigs.filter(function (c) { return c.enabled !== false; }).length;
     taskTypeStatus.textContent = taskConfigs.length + " type(s) · " + enabledCount + " enabled";
 
-    taskTypeCards.innerHTML = taskTypeConfigs.map(function (config) {
+    taskTypeCards.innerHTML = taskConfigs.map(function (config) {
       var meta = findTypeMeta(config.tool);
       var displayName = meta ? meta.display_name : (config.display_name || config.tool);
       var ext = meta ? meta.input_extension : "";
@@ -168,7 +168,27 @@
       var paramCount = meta ? meta.params.length : 0;
       var enabled = config.enabled !== false;
 
-      return buildCard(config.tool, displayName, ext, inputLabel, stageCount, paramCount, enabled, config);
+      var stages = taskTypeConfigs.filter(function (stage) {
+        return stage.is_workflow_stage && stage.tool.indexOf(config.tool + ".") === 0;
+      });
+      var submodules = stages.map(function (stage) {
+        var stageLabel = stage.display_name.indexOf(displayName + " / ") === 0
+          ? stage.display_name.slice(displayName.length + 3)
+          : stage.display_name;
+        return buildCard(
+          stage.tool,
+          stageLabel,
+          "",
+          "",
+          0,
+          0,
+          stage.enabled !== false,
+          stage
+        );
+      }).join("");
+
+      return buildCard(config.tool, displayName, ext, inputLabel, stageCount, paramCount, enabled, config) +
+        (submodules ? '<div class="workflow-submodules">' + submodules + '</div>' : '');
     }).join("");
 
     // Wire toggle events

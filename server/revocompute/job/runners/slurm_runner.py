@@ -15,7 +15,6 @@ from __future__ import annotations
 import logging
 import os
 import re
-import shutil
 import subprocess
 import threading
 from typing import Any
@@ -282,6 +281,10 @@ class SlurmJob(Job):
             "export APPTAINERENV_TASK_MANIFEST=" + _sh_quote(self.virtual_workspace_root + "/inputs/task.json")
         )
         gpu_flag = " --nv" if self.tt.gpus else ""
+        if self.tt.gpus:
+            # --cleanenv otherwise drops SLURM's selected GPU before OpenMM
+            # starts inside the container, despite --nv binding its devices.
+            lines.append('export APPTAINERENV_CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-}"')
         # --containall: private /dev,/proc,/sys and fresh tmpfs for /tmp and
         # $HOME — no host HOME, shared filesystems, or credentials visible.
         # --cleanenv: host env is dropped; only the APPTAINERENV_* variables
