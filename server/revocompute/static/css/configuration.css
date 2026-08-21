@@ -53,6 +53,16 @@
 .type-card.enabled::before { background: var(--finished); }
 .type-card.disabled::before { background: var(--cancelled); }
 
+.workflow-submodules {
+  display: grid;
+  gap: 0.65rem;
+  margin: -0.25rem 0 0 1rem;
+}
+
+.workflow-submodules .type-card {
+  padding: 0.85rem 0.9rem;
+}
+
 .type-card-head {
   display: flex;
   justify-content: space-between;

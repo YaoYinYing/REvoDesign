@@ -759,6 +759,8 @@ def test_configuration_page_script_initializes_theme_and_admin_data(monkeypatch,
     )
     assert "var T = window.REvoDesignTheme;" in script
     assert "T.initToggle" in script
+    assert "workflow-submodules" in script
+    assert "stage.display_name.slice(displayName.length + 3)" in script
     assert "init();" in script
 
 
