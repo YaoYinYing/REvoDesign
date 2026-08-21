@@ -33,6 +33,12 @@ runtime_families:
     dockerfile: "docker/runners/esm/Dockerfile"
     definition: "docker/runners/esm/esm.def"
     slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/esm_v1.sif"
+  esmdynamic:
+    docker_image: "revodesign-revocompute-runner-esmdynamic"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/esmdynamic/Dockerfile"
+    definition: "docker/runners/esmdynamic/esmdynamic.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/esmdynamic_v1.sif"
   opendde:
     docker_image: "revodesign-revocompute-runner-opendde"
     entrypoint: ["bash", "/app/revocompute/run.sh"]
@@ -258,6 +264,28 @@ task_types:
         minimum: 1
         step: 1
       - {name: "chain", type: "str", default: "A", description: "Backbone chain to redesign", advanced: true}
+
+  esmdynamic:
+    display_name: "ESMDynamic"
+    category: structure
+    citation_dois:
+      - {num: 1, doi: "10.1101/2025.08.20.671365", title: "ESMDynamic: Fast and Accurate Prediction of Protein Dynamic Contact Maps from Single Sequences"}
+    citation_bibtex: |
+      @article{Kleiman_2025, title={ESMDynamic: Fast and Accurate Prediction of Protein Dynamic Contact Maps from Single Sequences}, url={http://dx.doi.org/10.1101/2025.08.20.671365}, DOI={10.1101/2025.08.20.671365}, publisher={openRxiv}, author={Kleiman, Diego E. and Feng, Jiangyan and Xue, Zhengyuan and Shukla, Diwakar}, year={2025}, month=Aug }
+    intro: "Predict protein dynamic contact maps, contact frequencies, and kinetics from a sequence."
+    runtime_family: "esmdynamic"
+    gpus: true
+    input_extension: ".fasta"
+    input_label: "FASTA file"
+    input_workspace: *fasta_workspace
+    stage_markers:
+      esmdynamic: "ESMDynamic contact-map prediction"
+    params:
+      - {name: "batch_size", type: "int", default: 1, minimum: 1, description: "Sequences per inference batch", advanced: true}
+      - {name: "chunk_size", type: "int", default: 256, minimum: 1, description: "Model chunk size", advanced: true}
+      - {name: "low_memory", type: "bool", default: false, description: "Run prediction heads sequentially to reduce memory use", advanced: true}
+      - {name: "num_recycles", type: "int", default: null, minimum: 1, description: "Optional model recycle count", advanced: true}
+      - {name: "chain_ids", type: "str", default: "", description: "Chain labels for colon-separated sequences, e.g. ABC", advanced: true}
 
   opendde:
     display_name: "OpenDDE"
