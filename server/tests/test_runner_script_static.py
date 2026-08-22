@@ -9,10 +9,13 @@ import os
 import subprocess
 from pathlib import Path
 
+import yaml
+
 RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin" / "run.sh"
 OPENDDE_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "opendde" / "run.sh"
 MPNN_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "mpnn" / "run.sh"
 ALPHAFOLD_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "alphafold" / "run.sh"
+ESMDYNAMIC_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "esmdynamic" / "run.sh"
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -94,6 +97,75 @@ def _run_with_manifest(script, input_file, output_dir, env, params=None, extra_a
         capture_output=True,
         text=True,
     )
+
+
+def test_esmdynamic_runner_uses_the_manifest_parameters(tmp_path):
+    input_file = tmp_path / "input.fasta"
+    output_dir = tmp_path / "outputs"
+    bin_dir = tmp_path / "bin"
+    args_file = tmp_path / "esmdynamic.args"
+    input_file.write_text(">test\nACDE\n", encoding="utf-8")
+    bin_dir.mkdir()
+    runner = bin_dir / "run_esmdynamic"
+    runner.write_text(
+        "#!/bin/bash\n"
+        'printf \'%s\\n\' "$@" > "$ESMDYNAMIC_ARGS_FILE"\n'
+        'for arg in "$@"; do [[ $previous == output_dir ]] && output_dir=$arg; previous=${arg#--}; done\n'
+        'mkdir -p "$output_dir"\n'
+        'printf result > "$output_dir/result.txt"\n',
+        encoding="utf-8",
+    )
+    runner.chmod(0o755)
+    env = os.environ.copy()
+    env.update({"PATH": f"{bin_dir}:{env['PATH']}", "ESMDYNAMIC_ARGS_FILE": str(args_file)})
+    completed = _run_with_manifest(
+        ESMDYNAMIC_RUNNER_SCRIPT,
+        input_file,
+        output_dir,
+        env,
+        params={"batch_size": 2, "chunk_size": 128, "low_memory": True, "num_recycles": 3},
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    args = args_file.read_text(encoding="utf-8")
+    assert "--batch_size\n2\n" in args
+    assert "--chunk_size\n128\n" in args
+    assert "--low_memory" in args
+    assert "--num_recycles\n3\n" in args
+    assert (output_dir / "task_finished").is_file()
+
+
+def test_esmdynamic_reuses_the_shared_esm_checkpoint_cache():
+    runner_path = SERVER_ROOT / "config" / "runners" / "esmdynamic.yaml"
+    runner = yaml.safe_load(runner_path.read_text(encoding="utf-8"))
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "esmdynamic" / "Dockerfile").read_text(encoding="utf-8")
+
+    assert runner["mounts"] == [
+        {
+            "host_path": "/mnt/db/weights/esm/checkpoints",
+            "container_path": "/mnt/db/weights/esm/hub/checkpoints",
+            "mode": "ro",
+        }
+    ]
+    assert "TORCH_HOME=/mnt/db/weights/esm" in dockerfile
+
+
+def test_esmdynamic_failure_does_not_report_complete(tmp_path):
+    input_file = tmp_path / "input.fasta"
+    output_dir = tmp_path / "outputs"
+    bin_dir = tmp_path / "bin"
+    input_file.write_text(">test\nACDE\n", encoding="utf-8")
+    bin_dir.mkdir()
+    runner = bin_dir / "run_esmdynamic"
+    runner.write_text("#!/bin/bash\nexit 2\n", encoding="utf-8")
+    runner.chmod(0o755)
+    env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}:{env['PATH']}"
+
+    completed = _run_with_manifest(ESMDYNAMIC_RUNNER_SCRIPT, input_file, output_dir, env)
+
+    assert completed.returncode == 2
+    assert not (output_dir / "task_finished").exists()
 
 
 def test_alphafold_runner_drains_final_stage_before_exit(tmp_path):

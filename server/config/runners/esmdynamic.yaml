@@ -1,0 +1,8 @@
+# ESMDynamic runner — model checkpoints shared by the GPU inference image.
+mounts:
+  - host_path: "/mnt/db/weights/esm/checkpoints"
+    container_path: "/mnt/db/weights/esm/hub/checkpoints"
+    mode: "ro"
+env: {}
+max_runtime_seconds: 14400
+defaults: {}

@@ -1,0 +1,8 @@
+Bootstrap: docker-daemon
+From: revodesign-revocompute-runner-esmdynamic:latest
+
+%post
+    echo "ESMDynamic runner containerised"
+
+%runscript
+    exec bash /app/revocompute/run.sh "$@"
