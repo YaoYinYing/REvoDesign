@@ -133,6 +133,13 @@ def test_esmdynamic_runner_uses_the_manifest_parameters(tmp_path):
     assert (output_dir / "task_finished").is_file()
 
 
+def test_esmdynamic_reuses_the_shared_esm_checkpoint_cache():
+    runner = (SERVER_ROOT / "config" / "runners" / "esmdynamic.yaml").read_text(encoding="utf-8")
+
+    assert 'host_path: "/mnt/db/weights/esm"' in runner
+    assert 'container_path: "/mnt/db/weights/esmdynamic/hub"' in runner
+
+
 def test_alphafold_runner_drains_final_stage_before_exit(tmp_path):
     input_file = tmp_path / "input.fasta"
     output_dir = tmp_path / "outputs"

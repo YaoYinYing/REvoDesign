@@ -19,24 +19,24 @@ ARG OPENFOLD_REF=5b3e9b800441a6e0543935e31bcf52937aabd189
 ARG DLLOGGER_REPO=https://github.com/NVIDIA/dllogger.git
 ARG DLLOGGER_REF=0478734ff7be75adde8d160e04872664d1c62e5f
 
-RUN uv pip install --python /opt/venv/bin/python --no-cache \
+RUN /opt/venv/bin/uv pip install --python /opt/venv/bin/python --no-cache \
       torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu129 && \
-    uv pip install --python /opt/venv/bin/python --no-cache \
+    /opt/venv/bin/uv pip install --python /opt/venv/bin/python --no-cache \
       biopython==1.85 einops==0.8.1 matplotlib==3.10.3 ml-collections==1.1.0 \
       modelcif==1.4 omegaconf==2.3.0 'plotly[express]==6.1.2' pytorch-lightning==2.5.2 scipy==1.16.0
 
 RUN git init /opt/dllogger && git -C /opt/dllogger remote add origin ${DLLOGGER_REPO} && \
     git -C /opt/dllogger fetch --depth 1 origin ${DLLOGGER_REF} && git -C /opt/dllogger checkout --detach FETCH_HEAD && \
-    uv pip install --python /opt/venv/bin/python --no-cache /opt/dllogger && rm -rf /opt/dllogger/.git && \
+    /opt/venv/bin/uv pip install --python /opt/venv/bin/python --no-cache /opt/dllogger && rm -rf /opt/dllogger/.git && \
     git init /opt/openfold && git -C /opt/openfold remote add origin ${OPENFOLD_REPO} && \
     git -C /opt/openfold fetch --depth 1 origin ${OPENFOLD_REF} && git -C /opt/openfold checkout --detach FETCH_HEAD && \
-    uv pip install --python /opt/venv/bin/python --no-cache --no-build-isolation /opt/openfold && \
+    /opt/venv/bin/uv pip install --python /opt/venv/bin/python --no-cache --no-build-isolation /opt/openfold && \
     wget -q -O /opt/venv/lib/python3.11/site-packages/openfold/resources/stereo_chemical_props.txt \
       https://git.scicore.unibas.ch/schwede/openstructure/-/raw/7102c63615b64735c4941278d92b554ec94415f8/modules/mol/alg/src/stereo_chemical_props.txt && \
     rm -rf /opt/openfold/.git && \
     git init /opt/esmdynamic && git -C /opt/esmdynamic remote add origin ${ESMDYNAMIC_REPO} && \
     git -C /opt/esmdynamic fetch --depth 1 origin ${ESMDYNAMIC_REF} && git -C /opt/esmdynamic checkout --detach FETCH_HEAD && \
-    uv pip install --python /opt/venv/bin/python --no-cache /opt/esmdynamic && rm -rf /opt/esmdynamic/.git
+    /opt/venv/bin/uv pip install --python /opt/venv/bin/python --no-cache /opt/esmdynamic && rm -rf /opt/esmdynamic/.git
 
 FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu22.04
 

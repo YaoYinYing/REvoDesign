@@ -3,6 +3,9 @@ mounts:
   - host_path: "/mnt/db/weights/esmdynamic"
     container_path: "/mnt/db/weights/esmdynamic"
     mode: "ro"
+  - host_path: "/mnt/db/weights/esm"
+    container_path: "/mnt/db/weights/esmdynamic/hub"
+    mode: "ro"
 env: {}
 max_runtime_seconds: 14400
 defaults: {}
