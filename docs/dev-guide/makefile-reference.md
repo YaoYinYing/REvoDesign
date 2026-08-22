@@ -38,6 +38,19 @@ utility commands. Run `make help` to see all targets inline.
 | **Setup** | `setup-display-gha` | Install X11 libraries and start Xvfb for headless Qt testing on GitHub Actions / CircleCI |
 | | `prepare-test` | Install pytest and coverage tooling for the root REvoDesign test suite |
 
+## Server Makefile (`server/Makefile`)
+
+The server test entry points (run from `server/`, `PYTEST` defaults to
+`python -m pytest`):
+
+| Target | Action |
+|--------|--------|
+| `test` | Non-Docker suite (`tests/`, Docker tests ignored) |
+| `test-all` | Full `tests/` including Docker integration tests |
+| `test-cov` | Non-Docker suite with coverage (`--cov=revocompute`); the CI job and Codecov upload entry point |
+| `test-docker-compat` | GREMLIN runner compatibility against a legacy Python 3.6 runner container |
+| `test-docker-full-stack` | `bash tests/run_full_stack_test.sh` — creates and destroys an isolated full-stack Docker deployment |
+
 ## Usage Notes
 
 - **Temporary test directory**: All test targets run inside `tmp-test-dir-with-unique-name/` to ensure the *installed* package is tested, not the source tree. The conftest resolves `REPO_DIR` via `os.path.dirname(__file__)` and `TEST_ROOT` via `os.path.abspath(".")` relative to CWD, which fails outside this directory.

@@ -43,15 +43,16 @@ portable/runtime records:
 - `RuntimeFamily`: `name`, `docker_image`, `entrypoint`, `dockerfile`,
   `definition`, and `slurm_image`.
 - `TaskType`: display name, selected family, accepted input extensions,
-  multi-upload limits, runner arguments, GPU requirement, stages, and params.
+  multi-upload limits, runner arguments, GPU requirement, stages, input/result
+  workspace composition, and params.
 - `TaskParam`: typed UI/API field with defaults, choices, bounds, step, unit,
   required state, and advanced-field state.
 - `RunnerConfig`: only mounts, environment, maximum runtime, and deployment
   parameter defaults.
 
-Runner YAML must not contain `runner`, `job_executor`, `container_runtime`,
-`slurm_image` or `gpus`. GPU eligibility and resource policy belong to the task
-schema; SLURM requests belong to the management database.
+Runner YAML must not contain `runner`, `job_executor`, `container_runtime`, or
+`slurm_image` (a static test enforces this). GPU eligibility and resource policy
+belong to the task schema; SLURM requests belong to the management database.
 
 Resource settings resolve once through `resource_policy.py`:
 
@@ -150,7 +151,11 @@ or compute-node-local home directory are not a production weight strategy.
 
 ### Input workspace composition
 
-Task definitions may optionally declare a safe presentation composition:
+Every task type must declare an `input_workspace` composition; startup fails
+closed when one is missing. Most tasks reference one of the shared
+`workspace_templates` anchors defined at the top of the registry
+(`file`, `fasta`, `structure`); tasks with a custom layout declare an inline
+`capabilities` list:
 
 ```yaml
 input_workspace:
@@ -294,7 +299,9 @@ ZIP, and selected task workspace.
 5. Add/update exactly one runner YAML for the family.
 6. Add static contract, validation, and failure-semantics tests.
 7. Build and smoke Docker without stopping production.
-8. Build a versioned `.sif.partial`, inspect/smoke it, then atomically promote.
+8. Rebuild SIFs with `restart --use-proxy --build-sif` (stale families staged
+   as `.next` and promoted in place) or build and smoke a single family SIF
+   manually.
 9. Back up external configuration and activate with `--mode=prepared`.
 10. Exercise the real server → worker → SLURM → Apptainer path using the
     smallest safe input.

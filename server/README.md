@@ -6,10 +6,11 @@ runbook and the new-task/runtime-family adapter contract, see
 
 REvoCompute is a Flask + Celery service for multi-user protein computation.
 It supports Docker execution and production SLURM + Apptainer execution across
-nine shared runtime families: GREMLIN, Pythia-ddG, ESM, OpenDDE, MPNN, PRIME,
-PLACER/RFdiffusion, BioEmu, and EasIFA. Task schemas, runtime ownership, and
-machine-specific mounts are configuration-driven; adding an adapter normally
-does not require changing server routing code.
+eleven shared runtime families: GREMLIN, Pythia-ddG, ESM, ESMDynamic,
+OpenDDE, MPNN, PRIME, PLACER/RFdiffusion, BioEmu, EasIFA, and AlphaFold.
+Task schemas, runtime ownership, and machine-specific mounts are
+configuration-driven; adding an adapter normally does not require changing
+server routing code.
 
 ## Multi-Task Architecture
 
@@ -117,7 +118,7 @@ The server stack contains:
 **Alternative executor (SLURM + Apptainer):** When the deployed
 `task_types.yaml` sets `job_executor: slurm` and
 `container_runtime: apptainer`, the worker dispatches every task via `srun` +
-Apptainer instead of Docker. See [SLURM + Apptainer](#slurm--apptainer-deployment).
+Apptainer instead of Docker. See [SLURM + Apptainer](#13-slurm--apptainer-deployment).
 
 Scientific Python dependencies used by GREMLIN scripts belong to the runner's
 `docker/runners/pssm_gremlin/GREMLIN.yml`; they are not installed into the web and worker package.
@@ -649,9 +650,11 @@ environment file:
 - `job_executor: slurm` in the selected registry automatically merges
   `docker-compose.slurm.yml`, bind-mounts SLURM client tools + MUNGE, validates
   SIF images, and exports `SLURM_ENABLED=true` to the services.
-- `--build-sif` auto-builds missing `.sif` images from `.def` files during an
-  isolated development restart (requires Apptainer on PATH). Do not use it to
-  prepare production because restart stops services before construction.
+- `--build-sif` stages each stale SIF (missing or older than the family's
+  Docker image) as `<sif>.next`, promotes it in place after `down`, and saves
+  the previous file as `<sif>.previous` for `restart --rollback` (requires
+  Apptainer on PATH). The stack is down while SIFs build, so expect a brief
+  outage; unchanged families are skipped automatically.
 
 Provision production bind-mounted directories as writable by UID/GID
 `1000:1000`. This identity contract provides non-root execution and compatible
@@ -1020,7 +1023,7 @@ does not guess with `find`.
 
 ```def
 Bootstrap: docker-daemon
-From: revodesign-revocompute-runner-pythia:latest
+From: revodesign-revocompute-runner-pythia_ddg:latest
 
 %post
     echo "Pythia-ddG runner containerised"
@@ -1074,37 +1077,37 @@ reaction SMILES selects `wo_reactions`; supplying `reactants>>products` selects
 controlled. Each successful task publishes the complete upstream JSON plus an
 `active_sites.csv` residue table for manifest-first preview and download.
 
-#### Step 5: Prepare artifacts without stopping production
+#### Step 5: Build images and SIFs
+
+Build the Docker images while the healthy stack remains running. Use
+`--use-proxy` only when `REVODESIGN_BUILD_PROXY` is configured in the env file:
 
 ```bash
-# Build Docker images while the healthy stack remains running. Use
-# --use-proxy only when REVODESIGN_BUILD_PROXY is configured in the env file.
 REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
   bash server/run/restart.sh build --use-proxy
 ```
 
-Build each versioned SIF manually from the exact `definition` declared by its
-runtime family. Write to a partial path, validate it, and only then rename it
-atomically. Do not overwrite an active SIF:
-
-```bash
-apptainer build --fakeroot /absolute/images/family_v2.sif.partial \
-  server/docker/runners/family/family.def
-apptainer inspect /absolute/images/family_v2.sif.partial
-mv /absolute/images/family_v2.sif.partial /absolute/images/family_v2.sif
-```
-
-After backing up the external registry and adding rollback tags for current
-Docker image IDs, point each family at the completed versioned SIF. Activate
-without further artifact work:
+Then activate with `--build-sif`. The restart stops the stack, stages each
+stale SIF (missing or older than the family's Docker image) as
+`<sif>.next`, promotes it in place after the build, and saves the previous
+file as `<sif>.previous` for `restart --rollback`; unchanged families are
+skipped automatically, so no manual SIF deletion is needed. The stack is down
+while SIFs build, so batch runner changes and expect a brief outage:
 
 ```bash
 REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
-  bash server/run/restart.sh restart --mode=prepared
+  bash server/run/restart.sh restart --use-proxy --build-sif
 ```
 
-Do not use `restart --build-sif` for production preparation: the restart path
-stops the stack before lengthy SIF construction. The complete backup,
+For a focused single-family iteration, a manual build from the family's exact
+registry `definition` remains available:
+
+```bash
+apptainer build --fakeroot /absolute/images/family_v1.sif \
+  server/docker/runners/family/family.def
+```
+
+Verify `${CONFIG_DIR}/.deploy-stamp` after the restart. The complete backup,
 validation, sizing, activation, and rollback sequence is in the
 [operations guide](OPERATIONS_AND_TASK_ADAPTER_GUIDE.md).
 
@@ -1158,25 +1161,23 @@ Worker (host network)                   SLURM controller
 
 ### 13.4 SIF Image Build (Manual)
 
-When the auto-build isn't suitable, build manually:
+When the staged auto-build isn't suitable, build a single SIF manually from
+the family's exact `definition`:
 
 ```bash
 # 1. Build the Docker image
-docker build -t revodesign-revocompute-runner-pythia:latest \
+docker build -t revodesign-revocompute-runner-pythia_ddg:latest \
   -f server/docker/runners/pythia_ddg/Dockerfile server/
 
-# 2. Convert to a new partial SIF using the family's exact definition
-apptainer build --fakeroot /path/to/pythia_ddg_v2.sif.partial \
+# 2. Convert using the family's exact definition, then inspect
+apptainer build --fakeroot /path/to/pythia_ddg_v1.sif \
   server/docker/runners/pythia_ddg/pythia_ddg.def
-
-# 3. Inspect, smoke-test, then atomically promote it
-apptainer inspect /path/to/pythia_ddg_v2.sif.partial
-mv /path/to/pythia_ddg_v2.sif.partial /path/to/pythia_ddg_v2.sif
+apptainer inspect /path/to/pythia_ddg_v1.sif
 ```
 
-The `--build-sif` helper is convenient for isolated development deployments;
-it is not the production preparation path because a restart stops services
-before those builds begin.
+`restart --build-sif` remains the standard production rebuild: it stages each
+stale SIF as `<sif>.next` and promotes it in place after `down`, saving the
+previous file for `restart --rollback`.
 
 ### 13.5 Runtime Size Gate
 
