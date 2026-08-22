@@ -91,6 +91,26 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
         assert rfdiffusion.runner_args == ("rfdiffusion",)
 
 
+def test_esmdynamic_resolves_its_gpu_runtime_and_shared_checkpoint_cache():
+    with _preserve_registry():
+        task_types.load_registry(
+            str(SERVER_ROOT / "config" / "task_types.yaml"),
+            str(SERVER_ROOT / "config" / "runners"),
+            {"esmdynamic"},
+        )
+        task, runner = task_types.get("esmdynamic")
+
+        assert task.runtime.name == "esmdynamic"
+        assert task.gpus is True
+        assert task.input_extensions == (".fasta",)
+        assert [(mount.host_path, mount.container_path) for mount in runner.mounts] == [
+            (
+                "/mnt/db/weights/esm/checkpoints",
+                "/mnt/db/weights/esm/hub/checkpoints",
+            )
+        ]
+
+
 def test_alphafold_declares_cpu_then_gpu_workflow():
     with _preserve_registry():
         task_types.load_registry(

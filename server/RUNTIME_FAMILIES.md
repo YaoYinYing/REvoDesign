@@ -11,6 +11,7 @@ registry's `gpus:` declarations.
 | `gremlin` | gremlin | condaforge/mambaforge (legacy conda env) | 3.6 (legacy conda env) | GREMLIN conda env | no |
 | `pythia_ddg` | pythia_ddg | python:3.12-slim | 3.12 | torch (CPU wheels), pytorch-lightning | no |
 | `esm` | esm_msa, esm_extract, esm_1v, esm_if1 | nvidia/cuda:12.1.1-cudnn8 | 3.11 | torch 2.2.0+cu121, fair-esm | yes |
+| `esmdynamic` | esmdynamic | nvidia/cuda:12.6.3-cudnn | 3.11 | torch 2.7.1+cu126, fair-esm, OpenFold | yes |
 | `opendde` | opendde | python:3.11-slim | 3.11 | opendde[gpu] 1.0.3 | yes |
 | `mpnn` | hypermpnn, proteinmpnn, solublempnn, ligandmpnn, lasermpnn, thermompnn | python:3.11-slim | 3.11 | torch (CPU wheels) | no |
 | `prime` | prime, prime_dms | python:3.10-slim | 3.10 | torch 2.3.1, transformers 4.36.2 | yes |

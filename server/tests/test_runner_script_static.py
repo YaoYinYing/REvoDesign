@@ -135,9 +135,30 @@ def test_esmdynamic_runner_uses_the_manifest_parameters(tmp_path):
 
 def test_esmdynamic_reuses_the_shared_esm_checkpoint_cache():
     runner = (SERVER_ROOT / "config" / "runners" / "esmdynamic.yaml").read_text(encoding="utf-8")
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "esmdynamic" / "Dockerfile").read_text(encoding="utf-8")
 
-    assert 'host_path: "/mnt/db/weights/esm"' in runner
-    assert 'container_path: "/mnt/db/weights/esmdynamic/hub"' in runner
+    assert 'host_path: "/mnt/db/weights/esm/checkpoints"' in runner
+    assert 'container_path: "/mnt/db/weights/esm/hub/checkpoints"' in runner
+    assert "/mnt/db/weights/esmdynamic" not in runner
+    assert "TORCH_HOME=/mnt/db/weights/esm" in dockerfile
+
+
+def test_esmdynamic_failure_does_not_report_complete(tmp_path):
+    input_file = tmp_path / "input.fasta"
+    output_dir = tmp_path / "outputs"
+    bin_dir = tmp_path / "bin"
+    input_file.write_text(">test\nACDE\n", encoding="utf-8")
+    bin_dir.mkdir()
+    runner = bin_dir / "run_esmdynamic"
+    runner.write_text("#!/bin/bash\nexit 2\n", encoding="utf-8")
+    runner.chmod(0o755)
+    env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}:{env['PATH']}"
+
+    completed = _run_with_manifest(ESMDYNAMIC_RUNNER_SCRIPT, input_file, output_dir, env)
+
+    assert completed.returncode == 2
+    assert not (output_dir / "task_finished").exists()
 
 
 def test_alphafold_runner_drains_final_stage_before_exit(tmp_path):
