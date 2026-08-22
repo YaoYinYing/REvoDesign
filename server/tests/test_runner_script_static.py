@@ -9,6 +9,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import yaml
+
 RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin" / "run.sh"
 OPENDDE_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "opendde" / "run.sh"
 MPNN_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "mpnn" / "run.sh"
@@ -134,12 +136,17 @@ def test_esmdynamic_runner_uses_the_manifest_parameters(tmp_path):
 
 
 def test_esmdynamic_reuses_the_shared_esm_checkpoint_cache():
-    runner = (SERVER_ROOT / "config" / "runners" / "esmdynamic.yaml").read_text(encoding="utf-8")
+    runner_path = SERVER_ROOT / "config" / "runners" / "esmdynamic.yaml"
+    runner = yaml.safe_load(runner_path.read_text(encoding="utf-8"))
     dockerfile = (SERVER_ROOT / "docker" / "runners" / "esmdynamic" / "Dockerfile").read_text(encoding="utf-8")
 
-    assert 'host_path: "/mnt/db/weights/esm/checkpoints"' in runner
-    assert 'container_path: "/mnt/db/weights/esm/hub/checkpoints"' in runner
-    assert "/mnt/db/weights/esmdynamic" not in runner
+    assert runner["mounts"] == [
+        {
+            "host_path": "/mnt/db/weights/esm/checkpoints",
+            "container_path": "/mnt/db/weights/esm/hub/checkpoints",
+            "mode": "ro",
+        }
+    ]
     assert "TORCH_HOME=/mnt/db/weights/esm" in dockerfile
 
 
