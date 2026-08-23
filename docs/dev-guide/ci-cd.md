@@ -10,7 +10,7 @@ Triggered on push/PR to `main`, release creation, and manual `workflow_dispatch`
 
 | Aspect | Configuration | Notes |
 |--------|---------------|-------|
-| Platform | GitHub Actions | Matrix jobs with caching via `actions/cache` |
+| Platform | GitHub Actions | Matrix jobs (`fail-fast: false`) |
 | Operating systems | Ubuntu (primary), macOS | Ubuntu and macOS on push/PR; Windows entries commented out |
 | Python versions | 3.10, 3.11, 3.12 | Matrix fan-out |
 | Environment managers | Conda, Pip | Conda for PyMOL + scientific stack; Pip for Python deps |
@@ -42,6 +42,26 @@ Triggered on push/PR to `main`, release creation, and manual `workflow_dispatch`
 11. Upload coverage reports to Codecov -- `codecov/codecov-action@v7`
 12. Clean up -- `make clean`
 
+### `server-test.yml` -- Server Tests
+
+Triggered by `workflow_dispatch`, or by push/PR to `main` when server code
+changes: `server/revocompute/**`, `server/config/**`, `server/tests/**`,
+`server/run/**`, `server/scripts/**`, `server/docker/**`, `server/env/**`,
+`server/docker-compose.yml`, `server/REvoDesign_PSSM_GREMLIN.sh`,
+`server/Makefile`, `server/pyproject.toml`, `server/.coveragerc`,
+`tests/data/msa/**`, and `.github/workflows/server-test.yml` itself.
+
+Three jobs:
+
+- **ServerTests** (20 min) — Python 3.12, `pip install -e "server/[test]"`,
+  Playwright Chromium for the browser contracts, then
+  `make -C server test-cov` (non-Docker suite). Uploads Playwright traces on
+  failure and coverage to Codecov (`flags: server`).
+- **DockerRunnerCompatibility** (30 min) — `make -C server test-docker-compat`
+  (GREMLIN runner on Python 3.6).
+- **DockerFullStack** (10 min) — `make -C server test-docker-full-stack`
+  against a local full-stack Docker deployment.
+
 ### `lint_badge.yml` -- Pylint
 
 Triggered on push/PR to `main`, release creation, and manual `workflow_dispatch`. Runs `pylint` on the
@@ -59,12 +79,13 @@ status check for merging.
 ### `docker-image.yml` -- Docker Image for Server
 
 Manually triggerable (`workflow_dispatch`). Builds two Docker images:
-- `revodesign-revocompute-runner` -- runner image (PSSM + GREMLIN computation)
-- `revodesign-revocompute-server` -- server image (Flask REST API)
+- `revodesign-pssm-gremlin-non-root` -- runner image (PSSM + GREMLIN computation),
+  from `server/docker/runners/pssm_gremlin/Dockerfile`
+- `revodesign-pssm-gremlin-server-non-root` -- server image (Flask REST API),
+  from `server/docker/server/Dockerfile`
 
 Both images are tagged with the current date and `latest`, then pushed to
-Docker Hub under `yaoyinying/`. The runner's `Dockerfile` and server's
-`Dockerfile` live under `server/docker/`. Desktop README on Docker Hub is
+Docker Hub under `yaoyinying/`. The Docker Hub README for the runner image is
 refreshed from `server/README.md`.
 
 ### `schedule-update-actions.yml` -- GitHub Actions Version Updater
@@ -78,6 +99,8 @@ scope.
 
 Publishes the package to PyPI. Triggered by:
 - Pushing a `v*` tag
+- Pushing to any branch (TestPyPI upload only when the commit message
+  contains `[testpypi]`)
 - Creating a GitHub Release
 - Manual `workflow_dispatch` with target selection (pypi / testpypi)
 
@@ -94,7 +117,7 @@ The workflow:
 Triggered on push to `main` when files under `docs/`, `src/`, or `mkdocs.yml`
 change. Also `workflow_dispatch`. Builds an MkDocs site with Material theme
 and `mkdocstrings[python]`, then deploys to GitHub Pages. Requires the
-`pages` environment and `id-token: write` for OIDC deployment.
+`github-pages` environment and `id-token: write` for OIDC deployment.
 
 ## Environment Variables
 

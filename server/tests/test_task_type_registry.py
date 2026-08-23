@@ -202,7 +202,7 @@ def test_executor_settings_are_global_not_runner_yaml_fields():
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
     assert registry["job_executor"] in {"docker", "slurm"}
     assert registry["container_runtime"] in {"docker", "apptainer"}
-    forbidden = {"runner", "job_executor", "container_runtime", "slurm_image"}
+    forbidden = {"runner", "job_executor", "container_runtime", "slurm_image", "gpus"}
     for runner_config in (SERVER_ROOT / "config" / "runners").glob("*.yaml"):
         data = yaml.safe_load(runner_config.read_text(encoding="utf-8")) or {}
         assert forbidden.isdisjoint(data), runner_config

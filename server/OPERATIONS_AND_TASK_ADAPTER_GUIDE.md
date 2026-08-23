@@ -8,9 +8,10 @@ environment file and external configuration directory.
 
 The short version of the production rule is: build and validate everything
 while the healthy stack is still running, then use `--mode=prepared` for the
-small activation window. SIF rebuilds are the exception: delete the old SIF
-and run `restart --use-proxy --build-sif` — that path stops the stack while
-it builds, so batch runner changes and expect a brief outage.
+small activation window. SIF rebuilds are the exception: run
+`restart --use-proxy --build-sif`, which stops the stack, stages each stale
+SIF as `<sif>.next`, and promotes it after the build (no manual SIF
+deletion) — so plan the batch runner changes around the outage window.
 
 ## 1. System model
 
@@ -151,7 +152,7 @@ Every production `slurm_image` must be absolute and versioned. The control
 module never overwrites a working SIF in place: restarts stage rebuilds as
 `<sif>.next` and promote them after `down`, saving the previous file as
 `<sif>.previous` (see §8). Runner YAML files must not contain `runner`,
-`job_executor`, `container_runtime`, or `slurm_image`.
+`job_executor`, `container_runtime`, `slurm_image`, or `gpus`.
 
 One active runner file exists per runtime family:
 
@@ -494,8 +495,9 @@ REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
 ```
 
 `--drain=15` blocks new submissions through the web-visible
-`${SERVER_DIR}/.maintenance` sentinel (the API answers 503 "submissions are
-paused") and waits up to 15 minutes for in-flight SLURM jobs to finish; the
+`${SERVER_DIR}/.maintenance` sentinel (the API answers 503 "Server is in
+maintenance; submissions are paused") and waits up to 15 minutes for
+in-flight SLURM jobs to finish; the
 pre-stop sweep cancels the remainder. The sentinel is removed after a
 successful restart and on failure.
 
@@ -538,6 +540,8 @@ Add an entry under `task_types`:
 task_types:
   example_score:
     display_name: Example Score
+    category: structure
+    intro: One-line plain-language description shown on the create-task page.
     runtime_family: example-family
     runner_args: [score]
     gpus: false
@@ -547,6 +551,7 @@ task_types:
     allow_multiple_inputs: true
     max_input_files: 32
     input_label: Protein structures
+    input_workspace: *structure_workspace
     stage_markers:
       parse: Parse structures
       score: Score structures
@@ -564,10 +569,16 @@ task_types:
         advanced: true
 ```
 
-Supported parameter types are `str`, `int`, `float`, and `bool`. Use `choices`,
-`minimum`, `maximum`, `step`, `unit`, `required`, and `advanced` to constrain the
-schema. Do not expose host paths, devices, checkpoint paths, executor flags, or
-integrity-bypass switches as user parameters.
+`input_workspace` is required on every task type — startup fails closed when a
+registry entry omits it. Reference one of the shared `workspace_templates`
+anchors defined at the top of the registry (`file`, `fasta`, `structure`), or
+declare an inline `capabilities` list.
+
+Supported parameter types are `str`, `text`, `int`, `float`, and `bool` —
+`int` and `float` render as number inputs, the rest as text. Use `choices`,
+`minimum`, `maximum`, `step`, `unit`, `required`, and `advanced` to constrain
+the schema. Do not expose host paths, devices, checkpoint paths, executor
+flags, or integrity-bypass switches as user parameters.
 
 Add the task name to `ENABLED_TASKRUNNERS` in the deployment environment. The
 frontend form is generated from this schema; do not create a second hard-coded
@@ -741,8 +752,9 @@ username.
 - Candidate imports and real minimum inference pass offline.
 - Production `CONFIG_DIR` registry synced from the repo copy (backup made,
   machine lines re-applied).
-- Old SIFs removed and rebuilt via `restart --use-proxy --build-sif`;
-  each SIF smoked through the `run.sh` contract.
+- SIFs rebuilt via `restart --use-proxy --build-sif` (stale families staged
+  as `.next` and promoted in place); each SIF smoked through the `run.sh`
+  contract.
 - External config backed up outside the active directory.
 - Registry/runner/Compose/prepared-image/SIF preflight passes.
 - `restart --mode=prepared` activates with no build or pull.
