@@ -469,6 +469,17 @@ def test_docker_tag_distinguishes_registry_port_from_image_tag():
     assert _docker_tag("registry.example:5000/team/runner@sha256:abc") == "registry.example:5000/team/runner@sha256:abc"
 
 
+def test_taggable_images_accepts_untagged_registry_port(tmp_path):
+    image = "registry.example:5000/team/runner"
+    family = RuntimeFamily("gremlin", image, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
+    state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "registry.example:5000/team/server"})
+
+    assert promotion.taggable_images(state, [family]) == {
+        "server": "registry.example:5000/team/server",
+        "gremlin": image,
+    }
+
+
 def test_sif_staging_builds_changed_prepared_image_from_next(tmp_path, monkeypatch):
     bin_dir = _write_shims(tmp_path)
     sif_dir = tmp_path / "sifs"

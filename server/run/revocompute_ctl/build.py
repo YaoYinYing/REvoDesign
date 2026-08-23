@@ -12,7 +12,13 @@ import os
 import sys
 
 from revocompute_ctl.compose import compose_args, ensure_docker_gid, run_cmd
-from revocompute_ctl.registry import drop_enabled_runner, expand_enabled_runners, runner_enabled, validate_runtime_files
+from revocompute_ctl.registry import (
+    _docker_tag,
+    drop_enabled_runner,
+    expand_enabled_runners,
+    runner_enabled,
+    validate_runtime_files,
+)
 
 
 def build_runner_images(state, families, proxy_build_args: list[str], uid: str, gid: str) -> bool:
@@ -38,7 +44,7 @@ def build_runner_images(state, families, proxy_build_args: list[str], uid: str, 
             "--build-arg",
             f"RUNNER_GROUP={group}",
             "-t",
-            _tagged(family.docker_image, "next"),
+            _docker_tag(family.docker_image, "next"),
             "-f",
             os.path.join(state.server_root(), family.dockerfile),
             state.server_root(),
@@ -138,8 +144,3 @@ def _resolve_proxy_args(state, use_proxy_from_env: bool, use_proxy: str) -> list
         "--build-arg",
         f"no_proxy={no_proxy}",
     ]
-
-
-def _tagged(image: str, tag: str) -> str:
-    """Append :tag unless the image already carries a tag or digest."""
-    return f"{image}:{tag}" if ":" not in image and "@" not in image else image

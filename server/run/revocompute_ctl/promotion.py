@@ -18,7 +18,7 @@ from __future__ import annotations
 import os
 
 from revocompute_ctl.compose import image_id, run_cmd
-from revocompute_ctl.registry import RuntimeFamily, runner_enabled
+from revocompute_ctl.registry import RuntimeFamily, _docker_tag, runner_enabled
 
 
 def taggable_images(state, families: list[RuntimeFamily]) -> dict[str, str]:
@@ -27,16 +27,12 @@ def taggable_images(state, families: list[RuntimeFamily]) -> dict[str, str]:
     externally managed and excluded from the next/latest/previous dance."""
     managed: dict[str, str] = {}
     server_image = state.get("SERVER_IMAGE") or "revodesign-revocompute-server"
-    if ":" not in server_image and "@" not in server_image:
+    if _docker_tag(server_image) != server_image:
         managed["server"] = server_image
     for family in families:
-        if ":" not in family.docker_image and "@" not in family.docker_image:
+        if _docker_tag(family.docker_image) != family.docker_image:
             managed[family.name] = family.docker_image
     return managed
-
-
-def _tagged(image: str, tag: str) -> str:
-    return f"{image}:{tag}"
 
 
 def capture_baseline_digests(state, images: dict[str, str]) -> dict[str, dict[str, str]]:
@@ -45,8 +41,8 @@ def capture_baseline_digests(state, images: dict[str, str]) -> dict[str, dict[st
     baseline: dict[str, dict[str, str]] = {}
     for name, image in images.items():
         baseline[name] = {
-            "latest": image_id(state, _tagged(image, "latest")),
-            "next": image_id(state, _tagged(image, "next")),
+            "latest": image_id(state, _docker_tag(image, "latest")),
+            "next": image_id(state, _docker_tag(image, "next")),
         }
     return baseline
 
@@ -56,8 +52,8 @@ def changed_image_names(state, images: dict[str, str], baseline: dict[str, dict[
     with :latest; prod compares post-pull latest with its baseline."""
     changed: set[str] = set()
     for name, image in images.items():
-        next_id = image_id(state, _tagged(image, "next"))
-        latest_id = image_id(state, _tagged(image, "latest"))
+        next_id = image_id(state, _docker_tag(image, "next"))
+        latest_id = image_id(state, _docker_tag(image, "latest"))
         if mode in ("dev", "prepared"):
             if next_id and (not latest_id or next_id != latest_id):
                 changed.add(name)
@@ -73,9 +69,9 @@ def promote_docker(state, images: dict[str, str], baseline: dict[str, dict[str, 
     for name, image in images.items():
         if mode == "prepared" and name == "server":
             continue
-        latest_tag = _tagged(image, "latest")
-        next_tag = _tagged(image, "next")
-        previous_tag = _tagged(image, "previous")
+        latest_tag = _docker_tag(image, "latest")
+        next_tag = _docker_tag(image, "next")
+        previous_tag = _docker_tag(image, "previous")
         next_id = image_id(state, next_tag)
         latest_id = image_id(state, latest_tag)
         if mode == "prod":
@@ -137,9 +133,9 @@ def verify_rollback_targets(state, images: dict[str, str], changed: set[str]) ->
     """Refuse the rollback (naming the stamped commit) when any previous tag
     from the changed set no longer exists."""
     missing = [
-        _tagged(image, "previous")
+        _docker_tag(image, "previous")
         for name, image in images.items()
-        if name in changed and not image_id(state, _tagged(image, "previous"))
+        if name in changed and not image_id(state, _docker_tag(image, "previous"))
     ]
     if missing:
         raise RollbackRefused(f"Rollback targets missing: {', '.join(missing)}")
@@ -149,8 +145,8 @@ def rollback_docker(state, images: dict[str, str], changed: set[str]) -> None:
     for name, image in images.items():
         if name not in changed:
             continue
-        previous_tag = _tagged(image, "previous")
-        latest_tag = _tagged(image, "latest")
+        previous_tag = _docker_tag(image, "previous")
+        latest_tag = _docker_tag(image, "latest")
         print(f"Rolling back {image}: previous → latest")
         run_cmd(["docker", "tag", previous_tag, latest_tag], env=state.exported())
 
