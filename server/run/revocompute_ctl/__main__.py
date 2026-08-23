@@ -204,7 +204,7 @@ def main() -> None:
             from revocompute_ctl.registry import build_slurm_images, validate_runtime_files, validate_slurm_images
 
             families = validate_runtime_files(state)
-            build_slurm_images(state, families)
+            build_slurm_images(state, families, fail_on_error=True)
             validate_slurm_images(state, families)
     elif subcommand == "up":
         cmd_up(state, compose_cmd)

@@ -37,7 +37,7 @@ from revocompute_ctl import registry as registry_mod  # noqa: E402
 from revocompute_ctl import stamp as stamp_mod  # noqa: E402
 from revocompute_ctl import sweep as sweep_mod  # noqa: E402
 from revocompute_ctl.env import EnvState, parse_env_file  # noqa: E402
-from revocompute_ctl.registry import RuntimeFamily, _docker_tag, build_slurm_images  # noqa: E402
+from revocompute_ctl.registry import RegistryError, RuntimeFamily, _docker_tag, build_slurm_images  # noqa: E402
 from revocompute_ctl.steps import Step, StepRegistry, run_walk  # noqa: E402
 
 RUNNER_IMAGE = "revodesign-revocompute-runner"
@@ -259,6 +259,14 @@ def test_prepare_fails_when_selected_runner_build_fails(monkeypatch, tmp_path):
     assert "freebindcraft build failed" in result.stderr
 
 
+def test_prepare_rejects_unknown_runner(monkeypatch, tmp_path):
+    _task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    result = _run_cli(monkeypatch, tmp_path, env_file, _write_shims(tmp_path), "prepare", "--enabled-runners=typo")
+
+    assert result.returncode == 1
+    assert "Unknown runner selection: typo" in result.stderr
+
+
 def test_env_state_precedence_runtime_over_file_over_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("RUNNER_UID", "999")
     state = EnvState(str(tmp_path / "fake.env"), values={"RUNNER_UID": "888"})
@@ -375,8 +383,12 @@ def test_sif_staging_builds_missing_skips_unchanged(tmp_path, monkeypatch):
     state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
     build_slurm_images(state, [family])  # missing SIF → stage .next
     assert (sif_dir / "gremlin.sif.next").is_file()
+    monkeypatch.setenv("SHIM_CREATED", "2030-01-01T00:00:00Z")
+    build_slurm_images(state, [family])  # newer Docker :next replaces stale staged SIF
+    assert len([line for line in _log.read_text().splitlines() if line.startswith("build ")]) == 2
     (sif_dir / "gremlin.sif.next").unlink()
     (sif_dir / "gremlin.sif").touch()
+    monkeypatch.delenv("SHIM_CREATED")
     build_slurm_images(state, [family])  # image older than SIF → skip
     assert not (sif_dir / "gremlin.sif.next").exists()
 
@@ -434,6 +446,21 @@ def test_sif_staging_drops_failed_runner_from_enabled_list(tmp_path, monkeypatch
     build_slurm_images(state, [family])
     assert state.get("ENABLED_TASKRUNNERS") == ""  # dropped for the run
     assert not (sif_dir / "gremlin.sif.next").exists()  # no corrupt staging left behind
+
+
+def test_strict_sif_staging_propagates_build_failure(tmp_path, monkeypatch):
+    bin_dir = _write_shims(tmp_path)
+    monkeypatch.setenv("APPTAINER_FAIL", "1")
+    family = RuntimeFamily(
+        "gremlin",
+        RUNNER_IMAGE,
+        "docker/runners/pssm_gremlin/Dockerfile",
+        "docker/runners/pssm_gremlin/gremlin.def",
+        str(tmp_path / "gremlin.sif"),
+    )
+    state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
+    with pytest.raises(RegistryError):
+        build_slurm_images(state, [family], fail_on_error=True)
 
 
 # -- stamp / backup / drain round-trips through the container transport -------

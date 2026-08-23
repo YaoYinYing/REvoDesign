@@ -241,12 +241,13 @@ def _sif_source_tag(state, family: RuntimeFamily) -> str:
     return latest
 
 
-def sif_stale(state, family: RuntimeFamily) -> bool:
+def sif_stale(state, family: RuntimeFamily, path: str | None = None) -> bool:
     """True when the deployed SIF needs a rebuild: it is missing, or the
     family's docker image was created after the SIF (covers image updates
     promoted in an earlier restart — the image digest itself may be
     unchanged while the SIF still predates it)."""
-    if not Path(family.slurm_image).is_file():
+    path = path or family.slurm_image
+    if not Path(path).is_file():
         return True
     latest = _docker_tag(family.docker_image)
     tag = _sif_source_tag(state, family)
@@ -264,7 +265,7 @@ def sif_stale(state, family: RuntimeFamily) -> bool:
         image_ts = datetime.datetime.fromisoformat(created.replace("Z", "+00:00")).timestamp()
     except (ValueError, AttributeError):
         image_ts = 0.0
-    return image_ts > os.path.getmtime(family.slurm_image)
+    return image_ts > os.path.getmtime(path)
 
 
 def _sif_definition_for_tag(def_file: Path, source_tag: str) -> tuple[str, str | None]:
@@ -282,7 +283,7 @@ def _sif_definition_for_tag(def_file: Path, source_tag: str) -> tuple[str, str |
     return handle.name, handle.name
 
 
-def build_slurm_images(state, families: list[RuntimeFamily]) -> int:
+def build_slurm_images(state, families: list[RuntimeFamily], *, fail_on_error: bool = False) -> int:
     """Stage SIFs as ``<sif>.next`` for missing or stale families only;
     promotion (promotion.py) moves them into place after down.  Returns the
     number of SIFs built."""
@@ -304,7 +305,9 @@ def build_slurm_images(state, families: list[RuntimeFamily]) -> int:
             continue
         staged = f"{family.slurm_image}.next"
         if Path(staged).is_file():
-            continue
+            if not sif_stale(state, family, staged):
+                continue
+            os.remove(staged)
         if not sif_stale(state, family):
             print(f"[SLURM] SIF image unchanged: {family.slurm_image} — skipping.")
             continue
@@ -329,6 +332,8 @@ def build_slurm_images(state, families: list[RuntimeFamily]) -> int:
                 os.remove(staging)
             print(f"[SLURM] Build failed for {family.name} — disabled for this restart.", file=sys.stderr)
             drop_enabled_runner(state, family.name)
+            if fail_on_error:
+                raise RegistryError
         else:
             os.replace(staging, staged)
             built += 1
