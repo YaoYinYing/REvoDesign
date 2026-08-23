@@ -150,6 +150,11 @@ def validate_runtime_files(state) -> list[RuntimeFamily]:
         if name not in known:
             print(f"Stale runner configuration has no runtime family: {runner_yaml}", file=sys.stderr)
             raise RegistryError
+    requested = {name for name in state.get("ENABLED_TASKRUNNERS").split(",") if name}
+    unknown = requested - known
+    if unknown:
+        print(f"Unknown runner selection: {', '.join(sorted(unknown))}", file=sys.stderr)
+        raise RegistryError
     return families
 
 
@@ -251,7 +256,11 @@ def sif_stale(state, family: RuntimeFamily, path: str | None = None) -> bool:
         return True
     latest = _docker_tag(family.docker_image)
     tag = _sif_source_tag(state, family)
-    if tag != latest and _docker_image_id(state, tag) != _docker_image_id(state, latest):
+    source_id = _docker_image_id(state, tag)
+    source_file = Path(f"{path}.source")
+    if source_id and source_file.is_file() and source_file.read_text(encoding="utf-8").strip() == source_id:
+        return False
+    if tag != latest and source_id != _docker_image_id(state, latest):
         return True
     created = run_cmd(
         ["docker", "image", "inspect", "--format", "{{.Created}}", tag],
@@ -308,6 +317,7 @@ def build_slurm_images(state, families: list[RuntimeFamily], *, fail_on_error: b
             if not sif_stale(state, family, staged):
                 continue
             os.remove(staged)
+            Path(f"{staged}.source").unlink(missing_ok=True)
         if not sif_stale(state, family):
             print(f"[SLURM] SIF image unchanged: {family.slurm_image} — skipping.")
             continue
@@ -315,9 +325,7 @@ def build_slurm_images(state, families: list[RuntimeFamily], *, fail_on_error: b
         # Atomic staging: a killed build must never leave a corrupt .next
         # that the next run treats as a valid staging.
         staging = f"{staged}.build"
-        build_definition, temporary_definition = _sif_definition_for_tag(
-            def_file, _sif_source_tag(state, family)
-        )
+        build_definition, temporary_definition = _sif_definition_for_tag(def_file, _sif_source_tag(state, family))
         try:
             result = run_cmd(
                 ["apptainer", "build", "--fakeroot", staging, build_definition],
@@ -336,6 +344,9 @@ def build_slurm_images(state, families: list[RuntimeFamily], *, fail_on_error: b
                 raise RegistryError
         else:
             os.replace(staging, staged)
+            Path(f"{staged}.source").write_text(
+                _docker_image_id(state, _sif_source_tag(state, family)), encoding="utf-8"
+            )
             built += 1
     if built:
         print(f"[SLURM] Built {built} SIF image(s).")
@@ -353,7 +364,9 @@ def validate_prepared_images(state, families: list[RuntimeFamily]) -> None:
     ]
     for family in families:
         if runner_enabled(state, family.name):
-            candidates = (family.docker_image, _docker_tag(family.docker_image, "next"))
+            latest = _docker_tag(family.docker_image)
+            prepared = _docker_tag(family.docker_image, "next")
+            candidates = (latest, prepared)
             if all(
                 run_cmd(
                     ["docker", "image", "inspect", image], env=state.exported(), check=False, capture=True
@@ -362,6 +375,22 @@ def validate_prepared_images(state, families: list[RuntimeFamily]) -> None:
                 for image in candidates
             ):
                 print(f"Prepared Docker image is missing: {family.docker_image}", file=sys.stderr)
+                raise RegistryError
+            latest_id = _docker_image_id(state, latest)
+            prepared_id = _docker_image_id(state, prepared)
+            staged = Path(f"{family.slurm_image}.next")
+            source = Path(f"{staged}.source")
+            if (
+                state.use_slurm()
+                and prepared_id
+                and prepared_id != latest_id
+                and (
+                    not staged.is_file()
+                    or not source.is_file()
+                    or source.read_text(encoding="utf-8").strip() != prepared_id
+                )
+            ):
+                print(f"Prepared SIF does not match Docker image: {family.name}", file=sys.stderr)
                 raise RegistryError
     for image in required:
         result = run_cmd(["docker", "image", "inspect", image], env=state.exported(), check=False, capture=True)

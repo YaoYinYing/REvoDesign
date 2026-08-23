@@ -100,11 +100,6 @@ def cmd_build(
     from revocompute_ctl.storage import resolve_runner_identity
 
     families = validate_runtime_files(state)
-    requested = {name for name in state.get("ENABLED_TASKRUNNERS").split(",") if name}
-    unknown = requested - {family.name for family in families}
-    if unknown:
-        print(f"Unknown runner selection: {', '.join(sorted(unknown))}", file=sys.stderr)
-        raise SystemExit(1)
     ensure_docker_gid(state)
     uid, gid = resolve_runner_identity(state)
     runners_ready = build_runner_images(state, families, proxy_build_args, uid, gid)

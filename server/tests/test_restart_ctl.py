@@ -267,6 +267,14 @@ def test_prepare_rejects_unknown_runner(monkeypatch, tmp_path):
     assert "Unknown runner selection: typo" in result.stderr
 
 
+def test_restart_rejects_unknown_runner(monkeypatch, tmp_path):
+    _task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    result = _run_cli(monkeypatch, tmp_path, env_file, _write_shims(tmp_path), "restart", "--enabled-runners=typo")
+
+    assert result.returncode == 1
+    assert "Unknown runner selection: typo" in result.stderr
+
+
 def test_env_state_precedence_runtime_over_file_over_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("RUNNER_UID", "999")
     state = EnvState(str(tmp_path / "fake.env"), values={"RUNNER_UID": "888"})
@@ -325,10 +333,34 @@ def test_prepared_validation_accepts_first_staged_image(tmp_path, monkeypatch):
     available = {"example/server:v1", "nginx:1.28-alpine", "redis:7.2-alpine", f"{RUNNER_IMAGE}:next"}
 
     def fake_run(argv, **_kwargs):
-        return subprocess.CompletedProcess(argv, 0 if argv[-1] in available else 1)
+        return subprocess.CompletedProcess(argv, 0 if argv[-1] in available else 1, stdout="")
 
     monkeypatch.setattr(registry_mod, "run_cmd", fake_run)
     state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1"})
+    registry_mod.validate_prepared_images(state, [family])
+
+
+def test_prepared_validation_requires_sif_for_changed_next_image(tmp_path, monkeypatch):
+    family = RuntimeFamily("gremlin", RUNNER_IMAGE, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
+    available = {
+        "example/server:v1": "sha256:server",
+        "nginx:1.28-alpine": "sha256:nginx",
+        "redis:7.2-alpine": "sha256:redis",
+        f"{RUNNER_IMAGE}:latest": "sha256:old",
+        f"{RUNNER_IMAGE}:next": "sha256:new",
+    }
+
+    def fake_run(argv, **_kwargs):
+        image = argv[-1]
+        return subprocess.CompletedProcess(argv, 0 if image in available else 1, stdout=available.get(image, ""))
+
+    monkeypatch.setattr(registry_mod, "run_cmd", fake_run)
+    state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1", "USE_SLURM": "1"})
+
+    with pytest.raises(RegistryError):
+        registry_mod.validate_prepared_images(state, [family])
+    Path(f"{family.slurm_image}.next").touch()
+    Path(f"{family.slurm_image}.next.source").write_text("sha256:new", encoding="utf-8")
     registry_mod.validate_prepared_images(state, [family])
 
 
@@ -428,6 +460,9 @@ def test_sif_staging_builds_changed_prepared_image_from_next(tmp_path, monkeypat
     apptainer_line = next(line for line in log.read_text().splitlines() if line.startswith("build "))
     definition = Path(apptainer_line.rsplit(" ", 1)[-1])
     assert not definition.exists()  # temporary prepared-tag definition is cleaned up
+
+    build_slurm_images(state, [family])
+    assert len([line for line in log.read_text().splitlines() if line.startswith("build ")]) == 1
 
 
 def test_sif_staging_drops_failed_runner_from_enabled_list(tmp_path, monkeypatch):

@@ -118,6 +118,8 @@ def promote_sifs(state, families: list[RuntimeFamily]) -> None:
             if os.path.isfile(sif):
                 os.replace(sif, f"{sif}.previous")
             os.replace(staged, sif)
+            if os.path.isfile(f"{staged}.source"):
+                os.remove(f"{staged}.source")
             print(f"[SLURM] Promoted staged SIF: {sif}")
 
 
