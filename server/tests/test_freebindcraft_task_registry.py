@@ -34,5 +34,6 @@ def test_freebindcraft_contract():
     assert 'filters_file="/opt/bindcraft/settings_filters/${filters_preset}.json"' in script
     assert '"filter_file"' not in script
     assert 'accepted_designs=("$output_dir"/Accepted/*.pdb)' in script
+    assert "final_designs <= max_trajectories" in script
     assert 'ENV HTTP_PROXY="http' not in dockerfile
     assert "USER ${RUNNER_UID}:${RUNNER_GID}" in dockerfile
