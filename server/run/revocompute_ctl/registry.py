@@ -382,12 +382,11 @@ def validate_prepared_images(state, families: list[RuntimeFamily]) -> None:
             source = Path(f"{staged}.source")
             if (
                 state.use_slurm()
-                and prepared_id
-                and prepared_id != latest_id
+                and (staged.is_file() or (prepared_id and prepared_id != latest_id))
                 and (
                     not staged.is_file()
                     or not source.is_file()
-                    or source.read_text(encoding="utf-8").strip() != prepared_id
+                    or source.read_text(encoding="utf-8").strip() != (prepared_id or latest_id)
                 )
             ):
                 print(f"Prepared SIF does not match Docker image: {family.name}", file=sys.stderr)

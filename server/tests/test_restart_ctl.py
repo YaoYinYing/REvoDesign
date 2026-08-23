@@ -328,6 +328,18 @@ def test_prepared_promotion_activates_first_staged_image(tmp_path, monkeypatch):
     assert _mutating_commands(log) == [f"tag {RUNNER_IMAGE}:next {RUNNER_IMAGE}:latest"]
 
 
+def test_prepared_promotion_ignores_server_next(tmp_path, monkeypatch):
+    bin_dir = _write_shims(tmp_path)
+    state, log = _shimmed_state(
+        monkeypatch,
+        tmp_path,
+        bin_dir,
+        {"revodesign-server:latest": "sha256:old", "revodesign-server:next": "sha256:unrelated"},
+    )
+    promotion.promote_docker(state, {"server": "revodesign-server"}, {}, "prepared")
+    assert not log.exists()
+
+
 def test_prepared_validation_accepts_first_staged_image(tmp_path, monkeypatch):
     family = RuntimeFamily("gremlin", RUNNER_IMAGE, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
     available = {"example/server:v1", "nginx:1.28-alpine", "redis:7.2-alpine", f"{RUNNER_IMAGE}:next"}
@@ -362,6 +374,28 @@ def test_prepared_validation_requires_sif_for_changed_next_image(tmp_path, monke
     Path(f"{family.slurm_image}.next").touch()
     Path(f"{family.slurm_image}.next.source").write_text("sha256:new", encoding="utf-8")
     registry_mod.validate_prepared_images(state, [family])
+
+
+def test_prepared_validation_rejects_orphaned_staged_sif(tmp_path, monkeypatch):
+    family = RuntimeFamily("gremlin", RUNNER_IMAGE, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
+    available = {
+        "example/server:v1": "sha256:server",
+        "nginx:1.28-alpine": "sha256:nginx",
+        "redis:7.2-alpine": "sha256:redis",
+        f"{RUNNER_IMAGE}:latest": "sha256:current",
+    }
+
+    def fake_run(argv, **_kwargs):
+        image = argv[-1]
+        return subprocess.CompletedProcess(argv, 0 if image in available else 1, stdout=available.get(image, ""))
+
+    monkeypatch.setattr(registry_mod, "run_cmd", fake_run)
+    state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1", "USE_SLURM": "1"})
+    Path(f"{family.slurm_image}.next").touch()
+    Path(f"{family.slurm_image}.next.source").write_text("sha256:orphan", encoding="utf-8")
+
+    with pytest.raises(RegistryError):
+        registry_mod.validate_prepared_images(state, [family])
 
 
 def test_promotion_empty_ids_are_a_no_op(tmp_path, monkeypatch):

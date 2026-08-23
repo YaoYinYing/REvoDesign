@@ -72,6 +72,8 @@ def changed_image_names(state, images: dict[str, str], baseline: dict[str, dict[
 def promote_docker(state, images: dict[str, str], baseline: dict[str, dict[str, str]], mode: str) -> None:
     """Advance the tag scheme after down + build/pull."""
     for name, image in images.items():
+        if mode == "prepared" and name == "server":
+            continue
         latest_tag = _tagged(image, "latest")
         next_tag = _tagged(image, "next")
         previous_tag = _tagged(image, "previous")
