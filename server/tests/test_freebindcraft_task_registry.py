@@ -33,5 +33,6 @@ def test_freebindcraft_contract():
     assert {param["name"] for param in task["params"]} <= consumed
     assert 'filters_file="/opt/bindcraft/settings_filters/${filters_preset}.json"' in script
     assert '"filter_file"' not in script
+    assert 'accepted_designs=("$output_dir"/Accepted/*.pdb)' in script
     assert 'ENV HTTP_PROXY="http' not in dockerfile
     assert "USER ${RUNNER_UID}:${RUNNER_GID}" in dockerfile

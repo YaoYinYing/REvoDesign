@@ -348,7 +348,16 @@ def validate_prepared_images(state, families: list[RuntimeFamily]) -> None:
     ]
     for family in families:
         if runner_enabled(state, family.name):
-            required.append(family.docker_image)
+            candidates = (family.docker_image, _docker_tag(family.docker_image, "next"))
+            if all(
+                run_cmd(
+                    ["docker", "image", "inspect", image], env=state.exported(), check=False, capture=True
+                ).returncode
+                != 0
+                for image in candidates
+            ):
+                print(f"Prepared Docker image is missing: {family.docker_image}", file=sys.stderr)
+                raise RegistryError
     for image in required:
         result = run_cmd(["docker", "image", "inspect", image], env=state.exported(), check=False, capture=True)
         if result.returncode != 0:

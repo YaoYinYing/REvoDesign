@@ -33,6 +33,7 @@ if str(RUN_DIR) not in sys.path:
 from conftest import REPO_DIR, _load_pssm_module, _test_client_auth  # noqa: E402
 from revocompute_ctl import drain as drain_mod  # noqa: E402
 from revocompute_ctl import promotion  # noqa: E402
+from revocompute_ctl import registry as registry_mod  # noqa: E402
 from revocompute_ctl import stamp as stamp_mod  # noqa: E402
 from revocompute_ctl import sweep as sweep_mod  # noqa: E402
 from revocompute_ctl.env import EnvState, parse_env_file  # noqa: E402
@@ -75,6 +76,7 @@ _DOCKER_SHIM = textwrap.dedent(
       sh -c "$transformed"
       exit $?
     fi
+    if [[ "$1" == "build" && "${DOCKER_BUILD_FAIL:-0}" == "1" ]]; then exit 1; fi
     exit 0
     """
 )
@@ -247,6 +249,16 @@ def test_prepare_builds_only_selected_runner(monkeypatch, tmp_path):
     assert "build web worker" not in commands
 
 
+def test_prepare_fails_when_selected_runner_build_fails(monkeypatch, tmp_path):
+    _task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    bin_dir = _write_shims(tmp_path)
+    monkeypatch.setenv("DOCKER_BUILD_FAIL", "1")
+    result = _run_cli(monkeypatch, tmp_path, env_file, bin_dir, "prepare", "--enabled-runners=freebindcraft")
+
+    assert result.returncode == 1
+    assert "freebindcraft build failed" in result.stderr
+
+
 def test_env_state_precedence_runtime_over_file_over_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("RUNNER_UID", "999")
     state = EnvState(str(tmp_path / "fake.env"), values={"RUNNER_UID": "888"})
@@ -291,6 +303,25 @@ def test_promotion_first_deploy_skips_previous(tmp_path, monkeypatch):
     state, log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {f"{RUNNER_IMAGE}:next": "sha256:new"})
     promotion.promote_docker(state, {"gremlin": RUNNER_IMAGE}, {}, "dev")
     assert _mutating_commands(log) == [f"tag {RUNNER_IMAGE}:next {RUNNER_IMAGE}:latest"]
+
+
+def test_prepared_promotion_activates_first_staged_image(tmp_path, monkeypatch):
+    bin_dir = _write_shims(tmp_path)
+    state, log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {f"{RUNNER_IMAGE}:next": "sha256:new"})
+    promotion.promote_docker(state, {"gremlin": RUNNER_IMAGE}, {}, "prepared")
+    assert _mutating_commands(log) == [f"tag {RUNNER_IMAGE}:next {RUNNER_IMAGE}:latest"]
+
+
+def test_prepared_validation_accepts_first_staged_image(tmp_path, monkeypatch):
+    family = RuntimeFamily("gremlin", RUNNER_IMAGE, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
+    available = {"example/server:v1", "nginx:1.28-alpine", "redis:7.2-alpine", f"{RUNNER_IMAGE}:next"}
+
+    def fake_run(argv, **_kwargs):
+        return subprocess.CompletedProcess(argv, 0 if argv[-1] in available else 1)
+
+    monkeypatch.setattr(registry_mod, "run_cmd", fake_run)
+    state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1"})
+    registry_mod.validate_prepared_images(state, [family])
 
 
 def test_promotion_empty_ids_are_a_no_op(tmp_path, monkeypatch):

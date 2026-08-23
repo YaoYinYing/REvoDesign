@@ -59,7 +59,7 @@ def changed_image_names(state, images: dict[str, str], baseline: dict[str, dict[
     for name, image in images.items():
         next_id = image_id(state, _tagged(image, "next"))
         latest_id = image_id(state, _tagged(image, "latest"))
-        if mode == "dev":
+        if mode in ("dev", "prepared"):
             if next_id and (not latest_id or next_id != latest_id):
                 changed.add(name)
         elif mode == "prod":
@@ -82,8 +82,6 @@ def promote_docker(state, images: dict[str, str], baseline: dict[str, dict[str, 
             if baseline_latest and latest_id and baseline_latest != latest_id:
                 print(f"Tagging previous {image} from the pre-pull image ({baseline_latest[:12]})")
                 run_cmd(["docker", "tag", baseline_latest, previous_tag], env=state.exported())
-            continue
-        if mode == "prepared":
             continue
         if not next_id:
             # No :next staging — the image was replaced in place (the server

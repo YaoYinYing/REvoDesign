@@ -15,9 +15,10 @@ from revocompute_ctl.compose import compose_args, ensure_docker_gid, run_cmd
 from revocompute_ctl.registry import drop_enabled_runner, expand_enabled_runners, runner_enabled, validate_runtime_files
 
 
-def build_runner_images(state, families, proxy_build_args: list[str], uid: str, gid: str) -> None:
+def build_runner_images(state, families, proxy_build_args: list[str], uid: str, gid: str) -> bool:
     expand_enabled_runners(state, families)
     print("Building runner images...")
+    succeeded = True
     username = state.get("RUNNER_USERNAME") or "revodesign"
     group = state.get("RUNNER_GROUP") or "revodesign_appgroup"
     for family in families:
@@ -46,6 +47,8 @@ def build_runner_images(state, families, proxy_build_args: list[str], uid: str, 
         if result.returncode != 0:
             print(f"  ✗ {family.name} build failed — disabled for this restart.", file=sys.stderr)
             drop_enabled_runner(state, family.name)
+            succeeded = False
+    return succeeded
 
 
 def build_web_images(state, compose_cmd: tuple[str, ...], proxy_build_args: list[str], uid: str, gid: str) -> None:
@@ -99,7 +102,9 @@ def cmd_build(
     families = validate_runtime_files(state)
     ensure_docker_gid(state)
     uid, gid = resolve_runner_identity(state)
-    build_runner_images(state, families, proxy_build_args, uid, gid)
+    runners_ready = build_runner_images(state, families, proxy_build_args, uid, gid)
+    if runners_only and not runners_ready:
+        raise SystemExit(1)
     if not runners_only:
         build_web_images(state, compose_cmd, proxy_build_args, uid, gid)
 

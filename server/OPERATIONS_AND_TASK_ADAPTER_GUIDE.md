@@ -313,8 +313,8 @@ automatically:
   is one `restart --rollback` away.
 - `--mode=prod` pulls `latest` directly; the pre-pull image id becomes
   `previous`.
-- `--mode=prepared` promotes nothing — it activates images that a prior
-  `build` left at `:next` (or a pull left at `latest`).
+- `--mode=prepared` promotes selected runner images that a prior `prepare` or
+  `build` left at `:next`; other images remain unchanged.
 
 For focused development, build a candidate tag first and validate it without
 changing `latest`:

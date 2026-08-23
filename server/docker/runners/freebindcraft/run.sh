@@ -76,6 +76,12 @@ if python3 /opt/bindcraft/bindcraft.py \
   --no-pyrosetta \
   --rank-by "$rank_by" \
   --verbose; then
+  shopt -s nullglob
+  accepted_designs=("$output_dir"/Accepted/*.pdb)
+  if (( ${#accepted_designs[@]} < final_designs )); then
+    echo "FreeBindCraft produced ${#accepted_designs[@]} of $final_designs requested accepted designs." >&2
+    exit 1
+  fi
   touch "$output_dir/task_finished"
   echo "FreeBindCraft complete."
 else
