@@ -52,9 +52,8 @@ def capture_baseline_digests(state, images: dict[str, str]) -> dict[str, dict[st
 
 
 def changed_image_names(state, images: dict[str, str], baseline: dict[str, dict[str, str]], mode: str) -> set[str]:
-    """Families whose image will change in this restart: dev compares
-    :next vs :latest, prod compares the post-pull latest against the
-    pre-pull baseline, prepared is always unchanged."""
+    """Families whose image will change: dev and prepared compare :next
+    with :latest; prod compares post-pull latest with its baseline."""
     changed: set[str] = set()
     for name, image in images.items():
         next_id = image_id(state, _tagged(image, "next"))
