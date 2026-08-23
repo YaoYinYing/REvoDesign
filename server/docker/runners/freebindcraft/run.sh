@@ -31,6 +31,8 @@ rank_by=$(_parse_param rank_by i_pTM)
 }
 (( length_min <= length_max )) || { echo "length_min must not exceed length_max" >&2; exit 1; }
 (( final_designs <= max_trajectories )) || { echo "number_of_final_designs must not exceed max_trajectories" >&2; exit 1; }
+chains=$(printf '%s' "$chains" | tr -s '[:space:],' ',')
+hotspots=$(printf '%s' "$hotspots" | tr -s '[:space:],' ',')
 
 filters_file="/opt/bindcraft/settings_filters/${filters_preset}.json"
 [[ -f "$filters_file" ]] || { echo "Unknown filters preset: $filters_preset" >&2; exit 1; }

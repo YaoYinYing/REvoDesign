@@ -35,5 +35,6 @@ def test_freebindcraft_contract():
     assert '"filter_file"' not in script
     assert 'accepted_designs=("$output_dir"/Accepted/*.pdb)' in script
     assert "final_designs <= max_trajectories" in script
+    assert script.count("tr -s '[:space:],' ','") == 2
     assert 'ENV HTTP_PROXY="http' not in dockerfile
     assert "USER ${RUNNER_UID}:${RUNNER_GID}" in dockerfile
