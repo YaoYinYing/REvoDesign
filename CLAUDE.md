@@ -192,21 +192,56 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 
 ## Adapting a new scientific runner — intake
 
-When asked "adapt \<tool\> to revocompute", the deliverable is a task-type
-registry entry + one runner YAML + `Dockerfile`/`run.sh`/`.def` + contract
-tests + a living SLURM test, following `server/OPERATIONS_AND_TASK_ADAPTER_GUIDE.md`.
-To do it in one precise pass, provide:
+When asked "adapt \<tool\> to revocompute", follow the **Design-Build-Test-Learn
+(DBTL) cycle** (detailed below) to close the loop and improve future adaptations.
+
+The deliverable is a task-type registry entry + one runner YAML + `Dockerfile`/`run.sh`/`.def`
++ contract tests + a living SLURM test, following `server/OPERATIONS_AND_TASK_ADAPTER_GUIDE.md`.
+To start a DBTL pass, provide at minimum the sections under **"Tool"** and **"Minimal run"**
+below — missing critical items (weights, hardware constraints, minimal run params) will
+block the build step and should be resolved first.
 
 - **Tool**: name, repo URL, full commit hash to pin, CLI entrypoint, license.
 - **Hardware**: GPU or CPU; CUDA/torch versions it needs; typical per-run memory and walltime.
 - **Inputs**: accepted file extensions; which is the primary input; multiple/nested inputs needed?
-- **Parameters**: the user-facing knobs — name, type, default, min/max/choices, description — and the CLI flag each maps to.
-- **Outputs**: files produced (extensions); the success signal (completion marker, required outputs, exit codes) and how to detect a silently failed run.
-- **Dependencies**: Python/torch/framework versions; model weights (URL, size, license, offline staging path); runtime network or cache needs.
-- **Minimal run**: one working command line on a tiny input, plus a sample input file or a pointer to `tests/data`.
+- **Parameters**: the user-facing knobs — name, type, default, min/max/choices, description — and
+  the CLI flag each maps to.
+- **Outputs**: files produced (extensions); the success signal (completion marker, required outputs,
+  exit codes) and how to detect a silently failed run.
+- **Dependencies**: Python/torch/framework versions; model weights (URL, size, license, offline staging
+  path); runtime network or cache needs.
+- **Minimal run**: one working command line on a tiny input, plus a sample input file or a pointer
+  to `tests/data`.
 
 If the minimal run, weights, or hardware constraints are missing, ask for
 them before building anything — the pin and the smoke case are the contract.
+
+## Design-Build-Test-Learn cycle
+
+After adapting a new runner, follow the DBTL cycle to close the loop and
+improve future adaptations:
+
+- **Design**: Document dependency pins, hardware requirements, input/output
+  contracts, and parameter schemas before touching any files. Record why a new
+  runtime family was needed versus sharing an existing one. Capture the
+  minimal run parameters (small input, conservative caps) for smoke testing.
+- **Build**: Construct the Dockerfile, runner YAML, `.def` file, and task type
+  registry entry. Build the candidate image tag (`:candidate`) while production
+  stays up. Validate proxy‑free ENV in the final image layer.
+- **Test**: Run the Docker smoke test (minimum safe parameters through the API
+  with a test account). Before production activation, run an actual
+  server‑to‑worker‑to‑SLURM‑to‑Apptainer smoke: submit a task through the real
+  API, monitor the local SLURM job (`squeue`), and read result logs from the API
+  (status `GET /compute/api/running/<md5>`, manifest
+  `GET /compute/api/results/<md5>`, logs
+  `GET /compute/api/results/<md5>/artifacts/<path>`). Verify served static
+  files contain the change and the page behaves as designed.
+- **Learn**: After the cycle, update this section with what was learned —
+  version gotchas (e.g. jax 0.4.x vs 0.6.x incompatibility), OpenCL ICD
+  registration gotchas for OpenMM relax, conda‑versus‑pip resolution choices,
+  or any parameter that proved unnecessary. Record the effective walltime and
+  resource usage so future adaptations can set conservative defaults. Add any
+  new task‑type patterns to the registry’s `RUNTIME_FAMILIES.md` table.
 
 ## Commit and PR guidelines
 

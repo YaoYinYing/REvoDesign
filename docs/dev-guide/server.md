@@ -209,6 +209,10 @@ must not be copied into logs, commits, or reports.
 ## Build and activation semantics
 
 ```bash
+# Prepare selected runner images without rebuilding web/worker or stopping the stack.
+REVODESIGN_SERVER_ENV=server/.env.production \
+  bash server/run/restart.sh prepare --enabled-runners=example --build-sif
+
 # Build all declared runtime families and the server; does not stop the stack.
 REVODESIGN_SERVER_ENV=server/.env.production \
   bash server/run/restart.sh build

@@ -12,12 +12,7 @@ import os
 import sys
 
 from revocompute_ctl.compose import compose_args, ensure_docker_gid, run_cmd
-from revocompute_ctl.registry import (
-    drop_enabled_runner,
-    expand_enabled_runners,
-    runner_enabled,
-    validate_runtime_files,
-)
+from revocompute_ctl.registry import drop_enabled_runner, expand_enabled_runners, runner_enabled, validate_runtime_files
 
 
 def build_runner_images(state, families, proxy_build_args: list[str], uid: str, gid: str) -> None:
@@ -89,8 +84,15 @@ def build_web_images(state, compose_cmd: tuple[str, ...], proxy_build_args: list
         )
 
 
-def cmd_build(state, compose_cmd: tuple[str, ...], use_proxy_from_env: bool, use_proxy: str) -> None:
-    """The build subcommand — runner :next images plus web/worker."""
+def cmd_build(
+    state,
+    compose_cmd: tuple[str, ...],
+    use_proxy_from_env: bool,
+    use_proxy: str,
+    *,
+    runners_only: bool = False,
+) -> None:
+    """Build selected runner ``:next`` images, then optionally web/worker."""
     proxy_build_args = _resolve_proxy_args(state, use_proxy_from_env, use_proxy)
     from revocompute_ctl.storage import resolve_runner_identity
 
@@ -98,7 +100,8 @@ def cmd_build(state, compose_cmd: tuple[str, ...], use_proxy_from_env: bool, use
     ensure_docker_gid(state)
     uid, gid = resolve_runner_identity(state)
     build_runner_images(state, families, proxy_build_args, uid, gid)
-    build_web_images(state, compose_cmd, proxy_build_args, uid, gid)
+    if not runners_only:
+        build_web_images(state, compose_cmd, proxy_build_args, uid, gid)
 
 
 def _resolve_proxy_args(state, use_proxy_from_env: bool, use_proxy: str) -> list[str]:

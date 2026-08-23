@@ -75,6 +75,12 @@ runtime_families:
     dockerfile: "docker/runners/easifa/Dockerfile"
     definition: "docker/runners/easifa/easifa.def"
     slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/easifa_v1.sif"
+  freebindcraft:
+    docker_image: "revodesign-revocompute-runner-freebindcraft"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/freebindcraft/Dockerfile"
+    definition: "docker/runners/freebindcraft/freebindcraft.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/freebindcraft_v1.sif"
   alphafold:
     docker_image: "revodesign-revocompute-runner-alphafold"
     entrypoint: ["bash", "/app/revocompute/run.sh"]
@@ -757,6 +763,70 @@ task_types:
       - {name: "max_length", type: "int", default: 1000, minimum: 1, description: "Maximum enzyme sequence length", advanced: true}
       - {name: "pretty", type: "bool", default: true, description: "Pretty-print the full JSON result", advanced: true}
       - {name: "verbose", type: "bool", default: false, description: "Include detailed upstream inference progress", advanced: true}
+
+  freebindcraft:
+    display_name: "FreeBindCraft"
+    category: function
+    intro: "Protein binder design using OpenMM relax, FASPR, and sc-rs shape complementarity."
+    runtime_family: "freebindcraft"
+    gpus: true
+    input_extension: ".pdb"
+    input_extensions: [".pdb"]
+    primary_input_extensions: [".pdb"]
+    allow_multiple_inputs: false
+    max_input_files: 1
+    input_label: "Protein structure"
+    input_workspace: *structure_workspace
+    stage_markers:
+      parse: "Parse target settings"
+      design: "Binder design loop"
+    params:
+      - name: binder_name
+        type: str
+        default: "binder"
+        description: "Short name used for generated design files"
+      - name: chains
+        type: str
+        default: "A"
+        description: "Target chain IDs, comma- or space-separated"
+      - name: target_hotspot_residues
+        type: str
+        default: ""
+        description: "Target hotspot residue positions, comma- or space-separated"
+      - name: length_min
+        type: int
+        default: 65
+        minimum: 10
+        maximum: 300
+        description: "Minimum binder length"
+      - name: length_max
+        type: int
+        default: 150
+        minimum: 10
+        maximum: 300
+        description: "Maximum binder length"
+      - name: number_of_final_designs
+        type: int
+        default: 1
+        minimum: 1
+        maximum: 100
+        description: "Number of final designs to output"
+      - name: filters_preset
+        type: choice
+        default: "default_filters"
+        choices: ["default_filters", "relaxed_filters", "no_filters"]
+        description: "Filter preset for binder evaluation"
+      - name: rank_by
+        type: choice
+        default: "i_pTM"
+        choices: ["i_pTM", "ipSAE"]
+        description: "Ranking metric for designs"
+      - name: max_trajectories
+        type: int
+        default: 20
+        minimum: 1
+        maximum: 1000
+        description: "Safety cap on trajectory count"
 
   alphafold:
     display_name: "AlphaFold2"

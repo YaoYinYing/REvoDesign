@@ -144,14 +144,19 @@ def detect_executor(state: EnvState) -> tuple[bool, str]:
 
 
 def main() -> None:
-    # The shell resolved the compose command before parsing arguments, so
-    # even an argument error leaves a `docker compose version` trace.
+    # Keep the shell controller's observable compose check before argument
+    # handling; process-isolation tests pin this ordering.
     compose_cmd = detect_compose_cmd()
     subcommand, reset_username, flags = parse_args(sys.argv[1:])
 
     if subcommand in ("-h", "--help", "help"):
         print(USAGE)
         return
+
+    env_file = resolve_env_file()
+    if os.environ.get("REVODESIGN_SERVER_ENV") and not os.path.isfile(env_file) and subcommand != "setup":
+        print(f"Explicit env file does not exist: {env_file}", file=sys.stderr)
+        raise SystemExit(1)
 
     if flags.mode == "prepared" and flags.build_sif:
         print(
@@ -165,7 +170,6 @@ def main() -> None:
         print("--rollback cannot be combined with --build-sif, --use-proxy, --drain, or --dry-run.", file=sys.stderr)
         raise SystemExit(1)
 
-    env_file = resolve_env_file()
     state = EnvState(env_file) if os.path.isfile(env_file) else EnvState(env_file, values={})
     use_slurm, registry_file = detect_executor(state)
     if not use_slurm and (flags.build_sif or os.environ.get("SLURM_ALLOWED_QUEUES")):
@@ -184,12 +188,24 @@ def main() -> None:
 
     if subcommand == "setup":
         cmd_setup(state)
-    elif subcommand == "build":
+    elif subcommand in ("build", "prepare"):
         require_env_file(state)
         validate_required_settings(state)
         from revocompute_ctl.build import cmd_build
 
-        cmd_build(state, compose_cmd, flags.use_proxy_from_env, flags.use_proxy)
+        cmd_build(
+            state,
+            compose_cmd,
+            flags.use_proxy_from_env,
+            flags.use_proxy,
+            runners_only=subcommand == "prepare",
+        )
+        if subcommand == "prepare" and flags.build_sif:
+            from revocompute_ctl.registry import build_slurm_images, validate_runtime_files, validate_slurm_images
+
+            families = validate_runtime_files(state)
+            build_slurm_images(state, families)
+            validate_slurm_images(state, families)
     elif subcommand == "up":
         cmd_up(state, compose_cmd)
     elif subcommand == "down":

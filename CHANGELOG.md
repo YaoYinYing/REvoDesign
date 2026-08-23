@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Server:
+  - runner: FreeBindCraft GPU family and isolated selected-runner image preparation.
   - runner: ESMDynamic GPU family for dynamic protein contact maps, frequencies, and kinetics from FASTA input.
   - workflow Composer: ordered, resumable task stages reuse existing Docker/SLURM jobs with independently snapshotted resource policies; AlphaFold MSA/features now run CPU-only before GPU model/relax.
   - version-2 scientific workspaces: modular task-selected RFdiffusion modes, Mol* residue selection (with result controls hidden by default), declarative linked result views, bounded table pages, and EASIFA table-to-structure mapping. Breaking: every task type must declare `input_workspace` explicitly — startup fails closed when a custom registry omits it.

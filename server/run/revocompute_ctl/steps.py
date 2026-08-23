@@ -344,7 +344,8 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     if flags.mode == "prepared":
         _prepared_preflight(state, compose_cmd, dry_run=flags.dry_run)
 
-    images = promotion.taggable_images(state, families)
+    selected_families = [family for family in families if runner_enabled(state, family.name)]
+    images = promotion.taggable_images(state, selected_families)
     baseline = promotion.capture_baseline_digests(state, images)
     backup_path_holder: list[str] = [""]
     promoted_sifs: set[str] = set()
@@ -359,7 +360,7 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
         build time — the image may be promoted in an earlier restart)."""
         from revocompute_ctl.registry import sif_stale
 
-        return {family.name for family in families if sif_stale(state, family)}
+        return {family.name for family in selected_families if sif_stale(state, family)}
 
     def final_changed() -> set[str]:
         """Post-up truth: baseline digest vs. the digest now under latest."""
@@ -400,10 +401,13 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     steps.append(Step("promote", lambda: promotion.promote_docker(state, images, baseline, flags.mode)))
 
     def promote_sifs() -> None:
-        promoted_sifs.update(family.name for family in families if os.path.isfile(f"{family.slurm_image}.next"))
-        promotion.promote_sifs(state, families)
+        promoted_sifs.update(
+            family.name for family in selected_families if os.path.isfile(f"{family.slurm_image}.next")
+        )
+        promotion.promote_sifs(state, selected_families)
 
-    steps.append(Step("promote-sifs", promote_sifs))
+    if state.use_slurm():
+        steps.append(Step("promote-sifs", promote_sifs))
     steps.append(Step("up", lambda: cmd_up(state, compose_cmd, extra=["--no-build"])))
     if flags.mode == "prepared":
         steps.append(Step("readiness", lambda: wait_for_services(state, compose_cmd)))

@@ -19,6 +19,7 @@ registry's `gpus:` declarations.
 | `bioemu` | bioemu | python:3.11-slim | 3.11 | torch 2.7.1, jax[cuda12] 0.5.3, bioemu 1.4.1 | yes |
 | `easifa` | easifa | debian:bookworm-slim (builder builds torchdrug CUDA ext) | 3.11 | torch + torchdrug CUDA extension | yes |
 | `alphafold` | alphafold | python:3.11-slim | 3.11 | jax 0.4.26 + jaxlib cuda12 wheels, dm-haiku 0.0.12, tensorflow-cpu 2.16.1, hh-suite 3.3.0 + hmmer + kalign, OpenMM (relax) | yes |
+| `freebindcraft` | freebindcraft | python:3.11-slim | 3.11 | jax 0.6.0, ColabDesign, OpenMM, FASPR, sc-rs | yes |
 
 Sharing a family deduplicates Docker/SIF storage; it must not force CPU tasks
 to inherit a large GPU stack or allow incompatible package upgrades. A new

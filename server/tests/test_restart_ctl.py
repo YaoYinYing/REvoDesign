@@ -227,6 +227,26 @@ def test_env_file_parsing_and_redis_password_round_trip(tmp_path):
     assert EnvState(str(env_file)).ensure_redis_password() == password
 
 
+def test_explicit_missing_env_file_fails_before_registry_fallback(monkeypatch, tmp_path):
+    missing = tmp_path / "missing.env"
+    result = _run_cli(monkeypatch, tmp_path, missing, _write_shims(tmp_path), "restart", "--build-sif")
+
+    assert result.returncode == 1
+    assert result.stderr.splitlines()[-1] == f"Explicit env file does not exist: {missing}"
+
+
+def test_prepare_builds_only_selected_runner(monkeypatch, tmp_path):
+    _task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    bin_dir = _write_shims(tmp_path)
+    monkeypatch.setenv("SHIM_LOG", str(tmp_path / "docker.log"))
+    result = _run_cli(monkeypatch, tmp_path, env_file, bin_dir, "prepare", "--enabled-runners=freebindcraft")
+
+    assert result.returncode == 0, result.stderr
+    commands = (tmp_path / "docker.log").read_text(encoding="utf-8")
+    assert "revodesign-revocompute-runner-freebindcraft:next" in commands
+    assert "build web worker" not in commands
+
+
 def test_env_state_precedence_runtime_over_file_over_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("RUNNER_UID", "999")
     state = EnvState(str(tmp_path / "fake.env"), values={"RUNNER_UID": "888"})

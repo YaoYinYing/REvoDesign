@@ -10,7 +10,7 @@ messages are pinned by test_process_isolation.py and the ops guide.
 
 from __future__ import annotations
 
-USAGE = """Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart|reset-passwd]
+USAGE = """Usage: bash server/run/restart.sh [setup|prepare|build|up|down|reload|restart|reset-passwd]
        bash server/run/restart.sh restart [--mode=dev|--mode=prod|--mode=prepared]
        bash server/run/restart.sh reset-passwd <username>
 
@@ -55,6 +55,8 @@ Safety:
 
 Subcommands:
   setup    Prepare the selected env file (create from .env.example if missing) and show detected DOCKER_GID.
+  prepare  Build selected runner :next images and, with --build-sif, stage their SIFs.
+           Does not touch the running deployment.
   build    Build runner image and web/worker images.
   up       Start redis/web/worker with docker compose.
   down     Stop and remove the compose stack.

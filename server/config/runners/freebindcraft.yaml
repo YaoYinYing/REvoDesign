@@ -1,0 +1,10 @@
+mounts:
+  - host_path: "/mnt/db/weights/alphafold/2022-12-06"
+    container_path: "/mnt/db/bindcraft/af_params"
+    mode: "ro"
+env:
+  OPENMM_PLATFORM_ORDER: "OpenCL,CUDA"
+  BINDCRAFT_HOME: "/opt/bindcraft"
+  XLA_PYTHON_CLIENT_MEM_FRACTION: "0.9"
+max_runtime_seconds: 7200
+defaults: {}
