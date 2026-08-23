@@ -227,12 +227,14 @@ runtime family and server image, and starts again. This explains why it rebuilds
 an unrelated family such as EasIFA. `--mode=prod` pulls after stopping and is
 safe only when every configured tag is genuinely published and pullable.
 
-For an existing SLURM deployment with valid SIF paths, there is no reason to
-rebuild runner Docker images during activation. Docker rebuilds prepare new
-SIFs or validate Docker execution. Production SIFs are rebuilt by
-`restart --build-sif`: the stack drains and goes down, stale SIFs are staged
-as `<sif>.next` during the outage, promoted in place after the build, and the
-replaced SIF is kept as `<sif>.previous`.
+For an existing SLURM deployment, prebuild the Docker images while the
+healthy stack runs, then activate with `restart --build-sif`. The activation
+is a `--mode=dev` restart: the stack goes down, then the Docker build step
+re-runs (cache-warm after the prebuild) and each stale SIF is rebuilt during
+the outage. Stale SIFs are staged as `<sif>.next`, promoted in place after
+the build, and the replaced SIF is kept as `<sif>.previous`. Add
+`--drain=<minutes>` to pause submissions and drain in-flight SLURM jobs
+first; without it the pre-stop sweep cancels them when the stack goes down.
 
 Never run the restart helper with `sudo` or as root. It intentionally does not
 recursively chmod/chown application data. Build proxies are passed as build

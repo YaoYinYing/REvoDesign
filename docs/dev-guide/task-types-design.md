@@ -50,9 +50,10 @@ portable/runtime records:
 - `RunnerConfig`: only mounts, environment, maximum runtime, and deployment
   parameter defaults.
 
-Runner YAML must not contain `runner`, `job_executor`, `container_runtime`, or
-`slurm_image` (a static test enforces this). GPU eligibility and resource policy
-belong to the task schema; SLURM requests belong to the management database.
+Runner YAML must not contain `runner`, `job_executor`, `container_runtime`,
+`slurm_image`, or `gpus` (a static test enforces this). GPU eligibility and
+resource policy belong to the task schema; SLURM requests belong to the
+management database.
 
 Resource settings resolve once through `resource_policy.py`:
 
@@ -90,6 +91,14 @@ other tasks are filtered by `ENABLED_TASKRUNNERS`.
 job_executor: slurm
 container_runtime: apptainer
 
+workspace_templates:
+  structure: &structure_workspace
+    capabilities:
+      - {plugin: "files", id: "source_files", title: "Structure inputs", options: {roles: ["primary", "auxiliary"], primary_required: true}}
+      - {plugin: "structure", id: "structure_summary", title: "Structure", options: {source: "source_files", select_chains: false, select_residues: false}}
+      - {plugin: "parameters", id: "task_parameters", title: "Parameters"}
+      - {plugin: "review", id: "submission_review", title: "Review", options: {show_resources: true, show_paths: true}}
+
 runtime_families:
   mpnn:
     docker_image: revodesign-revocompute-runner-mpnn:latest
@@ -109,6 +118,7 @@ task_types:
     allow_multiple_inputs: false
     max_input_files: 1
     input_label: Protein structure
+    input_workspace: *structure_workspace
     gpus: false
     stage_markers:
       design: Design sequences

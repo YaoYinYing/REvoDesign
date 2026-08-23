@@ -53,7 +53,7 @@ The server test entry points (run from `server/`, `PYTEST` defaults to
 
 ## Usage Notes
 
-- **Temporary test directory**: All test targets run inside `tmp-test-dir-with-unique-name/` to ensure the *installed* package is tested, not the source tree. The conftest resolves `REPO_DIR` via `os.path.dirname(__file__)` and `TEST_ROOT` via `os.path.abspath(".")` relative to CWD, which fails outside this directory.
+- **Temporary test directory**: Root `Makefile` test targets run inside `tmp-test-dir-with-unique-name/` to ensure the *installed* package is tested, not the source tree. The conftest resolves `REPO_DIR` via `os.path.dirname(__file__)` and `TEST_ROOT` via `os.path.abspath(".")` relative to CWD, which fails outside this directory. The server targets above run directly from `server/` without a temp dir.
 - **PYTEST_KW**: The keyword test target reads the `PYTEST_KW` variable. For multiple keywords use double quotes: `make kw-test PYTEST_KW='"citable or citation"'`.
 - **Condatest environment**: Most targets expect a conda environment with PyMOL and the scientific stack installed. See the CI workflows for the full setup sequence.
 - **Platform awareness**: PyTorch CPU wheels differ by platform (`install-pytorch-cpu-mac` vs `install-pytorch-cpu-non-mac`). DGL wheels also diverge between Linux and Windows/macOS.

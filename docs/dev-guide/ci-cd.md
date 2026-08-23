@@ -45,9 +45,11 @@ Triggered on push/PR to `main`, release creation, and manual `workflow_dispatch`
 ### `server-test.yml` -- Server Tests
 
 Triggered by `workflow_dispatch`, or by push/PR to `main` when server code
-changes (`server/revocompute/`, `server/config/`, `server/tests/`, `server/run/`,
-`server/scripts/`, `server/docker/`, `server/env/`, the server compose/Makefile/
-pyproject files, and `tests/data/msa/`).
+changes: `server/revocompute/**`, `server/config/**`, `server/tests/**`,
+`server/run/**`, `server/scripts/**`, `server/docker/**`, `server/env/**`,
+`server/docker-compose.yml`, `server/REvoDesign_PSSM_GREMLIN.sh`,
+`server/Makefile`, `server/pyproject.toml`, `server/.coveragerc`,
+`tests/data/msa/**`, and `.github/workflows/server-test.yml` itself.
 
 Three jobs:
 

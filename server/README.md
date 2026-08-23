@@ -1087,12 +1087,15 @@ REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
   bash server/run/restart.sh build --use-proxy
 ```
 
-Then activate with `--build-sif`. The restart stops the stack, stages each
-stale SIF (missing or older than the family's Docker image) as
+Then activate with `--build-sif`. The restart (default `--mode=dev`) stops
+the stack, re-runs the Docker build (cache-warm after the prebuild), stages
+each stale SIF (missing or older than the family's Docker image) as
 `<sif>.next`, promotes it in place after the build, and saves the previous
 file as `<sif>.previous` for `restart --rollback`; unchanged families are
-skipped automatically, so no manual SIF deletion is needed. The stack is down
-while SIFs build, so batch runner changes and expect a brief outage:
+skipped automatically, so no manual SIF deletion is needed. Without
+`--drain=<minutes>`, in-flight SLURM jobs are cancelled by the pre-stop
+sweep. The stack is down while the images and SIFs build, so plan the batch
+runner changes around the outage window:
 
 ```bash
 REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \

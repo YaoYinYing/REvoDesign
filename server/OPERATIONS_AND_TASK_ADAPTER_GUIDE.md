@@ -11,7 +11,7 @@ while the healthy stack is still running, then use `--mode=prepared` for the
 small activation window. SIF rebuilds are the exception: run
 `restart --use-proxy --build-sif`, which stops the stack, stages each stale
 SIF as `<sif>.next`, and promotes it after the build (no manual SIF
-deletion) — so batch runner changes and expect a brief outage.
+deletion) — so plan the batch runner changes around the outage window.
 
 ## 1. System model
 
@@ -152,7 +152,7 @@ Every production `slurm_image` must be absolute and versioned. The control
 module never overwrites a working SIF in place: restarts stage rebuilds as
 `<sif>.next` and promote them after `down`, saving the previous file as
 `<sif>.previous` (see §8). Runner YAML files must not contain `runner`,
-`job_executor`, `container_runtime`, or `slurm_image`.
+`job_executor`, `container_runtime`, `slurm_image`, or `gpus`.
 
 One active runner file exists per runtime family:
 
