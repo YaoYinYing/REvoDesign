@@ -277,8 +277,11 @@ def test_restart_rejects_unknown_runner(monkeypatch, tmp_path):
 
 def test_env_state_precedence_runtime_over_file_over_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("RUNNER_UID", "999")
-    state = EnvState(str(tmp_path / "fake.env"), values={"RUNNER_UID": "888"})
+    state = EnvState(
+        str(tmp_path / "fake.env"), values={"RUNNER_UID": "888", "APPTAINER_CACHEDIR": "/custom/cache"}
+    )
     assert state.get("RUNNER_UID") == "888"  # file beats environment
+    assert state.exported()["APPTAINER_CACHEDIR"] == "/custom/cache"
     state.runtime["RUNNER_UID"] = "777"  # the shell's later export wins
     assert state.get("RUNNER_UID") == "777"
 
