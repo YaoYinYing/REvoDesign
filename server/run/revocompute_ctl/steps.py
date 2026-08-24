@@ -199,7 +199,21 @@ def cmd_down(state, compose_cmd: tuple[str, ...], *, keep_gateway: bool = False)
     print("Stopping services via docker compose...")
     services = ["redis", "web", "maintenance", "worker"]
     if keep_gateway:
-        print("Keeping gateway running to serve the maintenance page.")
+        print("Refreshing gateway and keeping it running to serve the maintenance page.")
+        run_cmd(
+            [
+                *compose_cmd,
+                *compose_args(state),
+                "--env-file",
+                state.env_file,
+                "up",
+                "-d",
+                "--no-deps",
+                "--force-recreate",
+                "gateway",
+            ],
+            env=state.exported(),
+        )
         run_cmd(
             [*compose_cmd, *compose_args(state), "--env-file", state.env_file, "stop", *services],
             env=state.exported(),
