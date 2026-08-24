@@ -387,7 +387,10 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
             ),
         ),
         Step("capture-baselines", lambda: None),  # captured above; kept as a named phase
-        Step("stop", lambda: cmd_down(state, compose_cmd, keep_gateway=flags.keep_gateway)),
+        Step(
+            "stop",
+            lambda: cmd_down(state, compose_cmd, keep_gateway=flags.keep_gateway or bool(flags.drain_minutes)),
+        ),
     ]
     if flags.drain_minutes:
         steps.insert(
