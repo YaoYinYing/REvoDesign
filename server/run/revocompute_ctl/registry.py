@@ -10,6 +10,8 @@ The server owns the registry schema; this module only reads it.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import re
 import sys
@@ -236,6 +238,45 @@ def _docker_image_id(state, tag: str) -> str:
     ).stdout.strip()
 
 
+def _sif_digest_manifest(family: RuntimeFamily) -> Path:
+    return Path(family.slurm_image).parent / "digest" / "image-sif.json"
+
+
+def _sif_sha256(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return f"sha256:{digest.hexdigest()}"
+
+
+def _read_sif_manifest(family: RuntimeFamily) -> dict[str, dict[str, str]]:
+    try:
+        data = json.loads(_sif_digest_manifest(family).read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _record_sif_manifest(family: RuntimeFamily, docker_image_id: str, sif_path: str) -> None:
+    manifest = _sif_digest_manifest(family)
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+    data = _read_sif_manifest(family)
+    data[family.name] = {"docker_image_id": docker_image_id, "sif_sha256": _sif_sha256(sif_path)}
+    handle = tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=manifest.parent, delete=False)
+    try:
+        json.dump(data, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    finally:
+        handle.close()
+    os.replace(handle.name, manifest)
+
+
+def _sif_manifest_matches(family: RuntimeFamily, docker_image_id: str, sif_path: str) -> bool:
+    entry = _read_sif_manifest(family).get(family.name) or {}
+    return entry.get("docker_image_id") == docker_image_id and entry.get("sif_sha256") == _sif_sha256(sif_path)
+
+
 def _sif_source_tag(state, family: RuntimeFamily) -> str:
     """Use the prepared runner image when this restart built one."""
     latest = _docker_tag(family.docker_image)
@@ -257,8 +298,7 @@ def sif_stale(state, family: RuntimeFamily, path: str | None = None) -> bool:
     latest = _docker_tag(family.docker_image)
     tag = _sif_source_tag(state, family)
     source_id = _docker_image_id(state, tag)
-    source_file = Path(f"{path}.source")
-    if source_id and source_file.is_file() and source_file.read_text(encoding="utf-8").strip() == source_id:
+    if source_id and _sif_manifest_matches(family, source_id, path):
         return False
     if tag != latest and source_id != _docker_image_id(state, latest):
         return True
@@ -317,7 +357,6 @@ def build_slurm_images(state, families: list[RuntimeFamily], *, fail_on_error: b
             if not sif_stale(state, family, staged):
                 continue
             os.remove(staged)
-            Path(f"{staged}.source").unlink(missing_ok=True)
         if not sif_stale(state, family):
             print(f"[SLURM] SIF image unchanged: {family.slurm_image} — skipping.")
             continue
@@ -344,9 +383,7 @@ def build_slurm_images(state, families: list[RuntimeFamily], *, fail_on_error: b
                 raise RegistryError
         else:
             os.replace(staging, staged)
-            Path(f"{staged}.source").write_text(
-                _docker_image_id(state, _sif_source_tag(state, family)), encoding="utf-8"
-            )
+            _record_sif_manifest(family, _docker_image_id(state, _sif_source_tag(state, family)), staged)
             built += 1
     if built:
         print(f"[SLURM] Built {built} SIF image(s).")
@@ -379,14 +416,13 @@ def validate_prepared_images(state, families: list[RuntimeFamily]) -> None:
             latest_id = _docker_image_id(state, latest)
             prepared_id = _docker_image_id(state, prepared)
             staged = Path(f"{family.slurm_image}.next")
-            source = Path(f"{staged}.source")
+            source_id = _docker_image_id(state, _sif_source_tag(state, family))
             if (
                 state.use_slurm()
                 and (staged.is_file() or (prepared_id and prepared_id != latest_id))
                 and (
                     not staged.is_file()
-                    or not source.is_file()
-                    or source.read_text(encoding="utf-8").strip() != (prepared_id or latest_id)
+                    or not _sif_manifest_matches(family, source_id, str(staged))
                 )
             ):
                 print(f"Prepared SIF does not match Docker image: {family.name}", file=sys.stderr)

@@ -372,7 +372,7 @@ def test_prepared_validation_requires_sif_for_changed_next_image(tmp_path, monke
     with pytest.raises(RegistryError):
         registry_mod.validate_prepared_images(state, [family])
     Path(f"{family.slurm_image}.next").touch()
-    Path(f"{family.slurm_image}.next.source").write_text("sha256:new", encoding="utf-8")
+    registry_mod._record_sif_manifest(family, "sha256:new", f"{family.slurm_image}.next")
     registry_mod.validate_prepared_images(state, [family])
 
 
@@ -392,7 +392,7 @@ def test_prepared_validation_rejects_orphaned_staged_sif(tmp_path, monkeypatch):
     monkeypatch.setattr(registry_mod, "run_cmd", fake_run)
     state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1", "USE_SLURM": "1"})
     Path(f"{family.slurm_image}.next").touch()
-    Path(f"{family.slurm_image}.next.source").write_text("sha256:orphan", encoding="utf-8")
+    registry_mod._record_sif_manifest(family, "sha256:orphan", f"{family.slurm_image}.next")
 
     with pytest.raises(RegistryError):
         registry_mod.validate_prepared_images(state, [family])
@@ -502,6 +502,9 @@ def test_sif_staging_builds_changed_prepared_image_from_next(tmp_path, monkeypat
     build_slurm_images(state, [family])
 
     assert (sif_dir / "gremlin.sif.next").is_file()
+    manifest = yaml.safe_load((sif_dir / "digest" / "image-sif.json").read_text(encoding="utf-8"))
+    assert manifest["gremlin"]["docker_image_id"] == "sha256:new"
+    assert manifest["gremlin"]["sif_sha256"].startswith("sha256:")
     apptainer_line = next(line for line in log.read_text().splitlines() if line.startswith("build "))
     definition = Path(apptainer_line.rsplit(" ", 1)[-1])
     assert not definition.exists()  # temporary prepared-tag definition is cleaned up
