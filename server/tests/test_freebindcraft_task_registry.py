@@ -21,6 +21,7 @@ def test_freebindcraft_contract():
     consumed = {line.split("_parse_param ", 1)[1].split()[0] for line in script.splitlines() if "_parse_param " in line}
 
     assert task["runtime_family"] == "freebindcraft"
+    assert task["category"] == "design"
     assert task["gpus"] is True
     assert task["input_extensions"] == [".pdb"]
     assert runner["mounts"] == [

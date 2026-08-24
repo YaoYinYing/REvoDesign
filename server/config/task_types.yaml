@@ -766,7 +766,7 @@ task_types:
 
   freebindcraft:
     display_name: "FreeBindCraft"
-    category: function
+    category: design
     intro: "Protein binder design using OpenMM relax, FASPR, and sc-rs shape complementarity."
     runtime_family: "freebindcraft"
     gpus: true
