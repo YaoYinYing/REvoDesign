@@ -31,8 +31,8 @@ if str(RUN_DIR) not in sys.path:
     sys.path.insert(0, str(RUN_DIR))
 
 from conftest import REPO_DIR, _load_pssm_module, _test_client_auth  # noqa: E402
-from revocompute_ctl import drain as drain_mod  # noqa: E402
 from revocompute_ctl import __main__ as main_mod  # noqa: E402
+from revocompute_ctl import maintenance as maintenance_mod  # noqa: E402
 from revocompute_ctl import promotion  # noqa: E402
 from revocompute_ctl import registry as registry_mod  # noqa: E402
 from revocompute_ctl import stamp as stamp_mod  # noqa: E402
@@ -556,7 +556,7 @@ def test_strict_sif_staging_propagates_build_failure(tmp_path, monkeypatch):
         build_slurm_images(state, [family], fail_on_error=True)
 
 
-# -- stamp / backup / drain round-trips through the container transport -------
+# -- stamp / backup / maintenance round-trips through the container transport
 
 
 def test_stamp_round_trip_and_config_backup(tmp_path, monkeypatch):
@@ -594,23 +594,13 @@ def test_stamp_round_trip_and_config_backup(tmp_path, monkeypatch):
     assert isinstance(payload["dirty"], bool)
 
 
-def test_drain_sentinel_lifecycle(tmp_path, monkeypatch):
+def test_maintenance_sentinel_lifecycle(tmp_path, monkeypatch):
     bin_dir = _write_shims(tmp_path)
     task_dir, _auth_dir, _env = _deploy_env(tmp_path)
     state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {}, SERVER_DIR=str(task_dir))
-    drain_mod.begin_drain(state, 1)  # docker executor: sentinel only, no squeue wait
+    maintenance_mod.begin_maintenance(state)
     assert (task_dir / ".maintenance").is_file()
-    drain_mod.end_drain(state)
-    assert not (task_dir / ".maintenance").exists()
-
-
-def test_maintenance_sentinel_lifecycle_without_drain(tmp_path, monkeypatch):
-    bin_dir = _write_shims(tmp_path)
-    task_dir, _auth_dir, _env = _deploy_env(tmp_path)
-    state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {}, SERVER_DIR=str(task_dir))
-    drain_mod.begin_maintenance(state)
-    assert (task_dir / ".maintenance").is_file()
-    drain_mod.end_drain(state)
+    maintenance_mod.end_maintenance(state)
     assert not (task_dir / ".maintenance").exists()
 
 

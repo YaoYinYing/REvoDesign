@@ -96,7 +96,7 @@ Deploy safety flags (all `restart`-only):
 | Flag | Effect |
 |------|--------|
 | `--dry-run` | Prints the planned step walk and per-family changed/unchanged predictions; executes and writes nothing |
-| `--drain=<minutes>` | Blocks new submissions through the `SERVER_DIR/.maintenance` sentinel (API answers 503) and waits for in-flight SLURM jobs; the sweep cancels the remainder at timeout |
+| `--keep-gateway` | Enters maintenance and keeps Nginx serving the static maintenance page while the application services restart |
 | `--rollback` | Restores the previous image/SIF set from the deploy stamp, restoring the config backup when the registry drifted; refuses when the stamped previous set is missing |
 
 A successful prepared/prod restart writes `${CONFIG_DIR}/.deploy-stamp` with
@@ -990,12 +990,10 @@ Key SLURM-specific variables:
 | `CONFIG_DIR` | Path to deployed config directory containing `task_types.yaml` and `runners/`. |
 | `REDIS_URL` | `redis://redis:6379/0` for bridge containers; `redis://127.0.0.1:6380/0` for host-networked worker (set in `docker-compose.slurm.yml`). |
 
-Use `--drain=<minutes>` on `restart` to block submissions, wait for in-flight
-SLURM jobs, and leave the Nginx gateway running while Redis, web, maintenance,
-and worker services are rebuilt. The gateway serves the static maintenance
-page throughout the downtime instead of returning an origin 502. Use
-`--keep-gateway` without `--drain` only when you want maintenance immediately
-without waiting for jobs.
+Use `--keep-gateway` on `restart` to block submissions and leave the Nginx
+gateway running while Redis, web, maintenance, and worker services are rebuilt.
+The gateway serves the static maintenance page throughout the downtime instead
+of returning an origin 502.
 
 For faster, disk-free SIF builds, both Apptainer paths may use a RAM-backed
 filesystem such as `/dev/shm`. Create private directories as the deployment
@@ -1117,8 +1115,8 @@ each stale SIF (missing or older than the family's Docker image) as
 `<sif>.next`, promotes it in place after the build, and saves the previous
 file as `<sif>.previous` for `restart --rollback`; unchanged families are
 skipped automatically, so no manual SIF deletion is needed. Without
-`--drain=<minutes>`, in-flight SLURM jobs are cancelled by the pre-stop
-sweep. The stack is down while the images and SIFs build, so plan the batch
+In-flight SLURM jobs are cancelled by the pre-stop sweep. The stack is down
+while the images and SIFs build, so plan the batch
 runner changes around the outage window:
 
 ```bash

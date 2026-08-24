@@ -56,7 +56,7 @@ class Step:
 
 @dataclass
 class RestartPlan:
-    """The walk plus the post-walk finalizer (stamp + undrain)."""
+    """The walk plus the post-walk finalizer (stamp + maintenance cleanup)."""
 
     steps: list[Step]
     finalize: Callable[[dict[str, float]], None]
@@ -69,7 +69,6 @@ class RestartFlags:
     build_sif: bool = False
     use_proxy: str = ""
     use_proxy_from_env: bool = False
-    drain_minutes: int = 0
     dry_run: bool = False
     rollback: bool = False
     keep_gateway: bool = False
@@ -330,7 +329,7 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     from revocompute_ctl import promotion
     from revocompute_ctl.admin import prepare_admin_bootstrap
     from revocompute_ctl.build import cmd_build
-    from revocompute_ctl.drain import begin_drain, begin_maintenance, end_drain
+    from revocompute_ctl.maintenance import begin_maintenance, end_maintenance
     from revocompute_ctl.stamp import backup_config, stamp_payload, write_stamp
 
     require_env_file(state, dry_run=flags.dry_run)
@@ -340,7 +339,7 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     if flags.mode == "prod":
         require_production_identity(state)
     else:
-        # The drain sentinel and config backup run inside a throwaway
+        # The maintenance sentinel and config backup run inside a throwaway
         # container as the runner identity — resolve it before the walk.
         resolve_runner_identity(state)
     prepare_admin_bootstrap(state)
@@ -389,15 +388,11 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
         Step("capture-baselines", lambda: None),  # captured above; kept as a named phase
         Step(
             "stop",
-            lambda: cmd_down(state, compose_cmd, keep_gateway=flags.keep_gateway or bool(flags.drain_minutes)),
+            lambda: cmd_down(state, compose_cmd, keep_gateway=flags.keep_gateway),
         ),
     ]
-    if flags.drain_minutes:
-        steps.insert(
-            0, Step("drain", lambda: begin_drain(state, flags.drain_minutes), cleanup=lambda: end_drain(state))
-        )
-    elif flags.keep_gateway:
-        steps.insert(0, Step("maintenance", lambda: begin_maintenance(state), cleanup=lambda: end_drain(state)))
+    if flags.keep_gateway:
+        steps.insert(0, Step("maintenance", lambda: begin_maintenance(state), cleanup=lambda: end_maintenance(state)))
 
     if flags.mode == "dev":
         steps.append(
@@ -450,8 +445,8 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
                     ),
                 )
         finally:
-            if flags.drain_minutes:
-                end_drain(state)
+            if flags.keep_gateway:
+                end_maintenance(state)
         finish_restart(state)
 
     predicted = changed_now()

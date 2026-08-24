@@ -34,13 +34,8 @@ USAGE = """Usage: bash server/run/restart.sh [setup|prepare|build|up|down|reload
            --dry-run                           Print the planned step walk and
                                                per-family change predictions
                                                without executing anything.
-           --drain=<minutes>                   Before stopping the stack, block
-                                               new submissions and wait up to
-                                               N minutes for running SLURM jobs
-                                               to finish; the sweep cancels the
-                                               remainder.
-           --keep-gateway                     Leave the gateway running during
-                                               restart so it serves maintenance.
+           --keep-gateway                     Enter maintenance and leave the
+                                               gateway running during restart.
            --rollback                          Restore the previous image/SIF
                                                set from the last deploy stamp,
                                                then restart. Refuses when no

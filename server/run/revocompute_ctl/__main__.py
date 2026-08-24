@@ -90,14 +90,6 @@ def parse_args(argv: list[str]) -> tuple[str, str, RestartFlags]:
             if subcommand != "restart":
                 _usage_exit("--rollback is only supported by the restart subcommand.")
             flags.rollback = True
-        elif arg.startswith("--drain="):
-            flags.drain_minutes = _drain_minutes(subcommand, arg[len("--drain=") :])
-        elif arg == "--drain":
-            position += 1
-            if position >= len(rest):
-                print("--drain requires a number of minutes.", file=sys.stderr)
-                raise SystemExit(1)
-            flags.drain_minutes = _drain_minutes(subcommand, rest[position])
         elif arg == "--keep-gateway":
             if subcommand != "restart":
                 _usage_exit("--keep-gateway is only supported by the restart subcommand.")
@@ -106,20 +98,6 @@ def parse_args(argv: list[str]) -> tuple[str, str, RestartFlags]:
             _usage_exit(f"Unexpected argument: {arg}")
         position += 1
     return subcommand, reset_username, flags
-
-
-def _drain_minutes(subcommand: str, value: str) -> int:
-    if subcommand != "restart":
-        _usage_exit("--drain is only supported by the restart subcommand.")
-    try:
-        minutes = int(value)
-    except ValueError:
-        print("--drain requires a number of minutes.", file=sys.stderr)
-        raise SystemExit(1)
-    if minutes <= 0:
-        print("--drain requires a number of minutes.", file=sys.stderr)
-        raise SystemExit(1)
-    return minutes
 
 
 def resolve_env_file() -> str:
@@ -172,12 +150,11 @@ def main() -> None:
         flags.build_sif
         or flags.use_proxy
         or flags.use_proxy_from_env
-        or flags.drain_minutes
         or flags.dry_run
         or flags.keep_gateway
     ):
         print(
-            "--rollback cannot be combined with --build-sif, --use-proxy, --drain, --dry-run, or --keep-gateway.",
+            "--rollback cannot be combined with --build-sif, --use-proxy, --dry-run, or --keep-gateway.",
             file=sys.stderr,
         )
         raise SystemExit(1)
