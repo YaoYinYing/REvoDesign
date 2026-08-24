@@ -89,6 +89,7 @@ class WorkflowStage:
     requires_gpu: bool
     runner_args: tuple[str, ...] = ()
     stage_markers: tuple[str, ...] = ()
+    requires_network: bool = False
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,7 @@ class TaskType:
     min_input_files: int = 1
     runner_args: tuple[str, ...] = ()
     gpus: bool = False
+    requires_network: bool = False
     stage_markers: dict[str, str] = field(default_factory=dict)
     workflow: tuple[WorkflowStage, ...] = ()
     params: tuple[TaskParam, ...] = ()
@@ -358,18 +360,22 @@ def _load_workflow(raw: Any, task_name: str, stage_markers: dict[str, str]) -> t
             "name",
             "display_name",
             "requires_gpu",
+            "requires_network",
             "runner_args",
             "stage_markers",
         }:
             raise ValueError(f"Task type {task_name!r} has an invalid workflow stage")
         name = entry.get("name")
         requires_gpu = entry.get("requires_gpu", False)
+        requires_network = entry.get("requires_network", False)
         runner_args = entry.get("runner_args", ())
         raw_markers = entry.get("stage_markers", ())
         if not isinstance(name, str) or not name.replace("_", "").isalnum() or name in seen:
             raise ValueError(f"Task type {task_name!r} has an invalid or duplicate workflow stage name")
         if not isinstance(requires_gpu, bool):
             raise ValueError(f"Workflow stage {task_name}.{name} requires_gpu must be a boolean")
+        if not isinstance(requires_network, bool):
+            raise ValueError(f"Workflow stage {task_name}.{name} requires_network must be a boolean")
         if not isinstance(runner_args, list) or not all(isinstance(arg, str) for arg in runner_args):
             raise ValueError(f"Workflow stage {task_name}.{name} runner_args must be a list of strings")
         if not isinstance(raw_markers, list) or not all(isinstance(marker, str) for marker in raw_markers):
@@ -383,6 +389,7 @@ def _load_workflow(raw: Any, task_name: str, stage_markers: dict[str, str]) -> t
                 name=f"{task_name}.{name}",
                 display_name=str(entry.get("display_name") or name.replace("_", " ").title()),
                 requires_gpu=requires_gpu,
+                requires_network=requires_network,
                 runner_args=tuple(runner_args),
                 stage_markers=markers,
             )
@@ -502,6 +509,7 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             runtime=runtime,
             runner_args=tuple(entry.get("runner_args", [])),
             gpus=entry.get("gpus", False),
+            requires_network=entry.get("requires_network", False),
             input_extension=entry["input_extension"],
             input_label=entry["input_label"],
             category=entry.get("category", "other"),

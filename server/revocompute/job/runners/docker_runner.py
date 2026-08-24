@@ -119,15 +119,14 @@ class DockerJob(Job):
             stdout=True,
             stderr=True,
             # Assume the scientific code inside may be exploited: the
-            # container gets no capabilities, no privilege escalation, no
-            # network, a read-only root filesystem, a PID ceiling, and a
-            # writable tmpfs /tmp (HOME points there too, so library caches
-            # keep working; tmpfs usage is governed by mem_limit).
+            # container gets no capabilities, no privilege escalation, a
+            # read-only root filesystem, a PID ceiling, and a writable tmpfs
+            # /tmp. Network is enabled only for explicitly declared stages.
             read_only=True,
             cap_drop=["ALL"],
             security_opt=["no-new-privileges:true"],
             pids_limit=1024,
-            network_mode="none",
+            network_mode="bridge" if self.tt.requires_network else "none",
             tmpfs={"/tmp": "mode=1777"},
         )
         self._job_id = self._container.id

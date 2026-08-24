@@ -461,16 +461,16 @@ resource policy in the configuration UI.
 
 ```text
 Submission -> Composer -> [CPU: MSA + features] -> [GPU: model + relax] -> Results
-                           | features.pkl          | ranked_0.pdb
+                           | features.pkl/A3M     | ranked structure
                            +---- persisted --------+
 ```
 
-AlphaFold is the first composed task. Its configuration card nests
-`alphafold.features` and `alphafold.model` as resource submodules.
-`alphafold.features` runs MSA and feature construction without GPU GRES or
-Apptainer `--nv`; after `features.pkl` is validated, `alphafold.model` receives
-the GPU allocation for inference and CUDA Amber relaxation. Restarts cancel
-only the active allocation and resume at the first incomplete stage.
+AlphaFold2 and ColabFold/AlphaFold2 are independent composed tasks. `alphafold`
+uses the mounted local databases for feature construction; `colabfold_af2`
+uses the public ColabFold MMseqs2 service and mounted
+`/mnt/db/weights/alphafold/colabfold` parameters. Each persists its CPU-stage
+output before local GPU inference and optional Amber relaxation. Restarts
+cancel only the active allocation and resume at the first incomplete stage.
 
 ## 5. Authentication
 

@@ -132,6 +132,17 @@ def test_submit_passes_gpu_device_request(tmp_path):
     assert call_kwargs["device_requests"][0].count == 1
 
 
+def test_submit_allows_network_only_for_declared_task(tmp_path):
+    tt = _make_task_type(requires_network=True)
+    output_dir = _setup_submit_env(tmp_path)
+    mock_client = MagicMock()
+    mock_client.containers.run.return_value.id = "network-job"
+
+    DockerJob("network-task", tt, _make_runner(), _make_entities(), output_dir, docker_client=mock_client).submit()
+
+    assert mock_client.containers.run.call_args.kwargs["network_mode"] == "bridge"
+
+
 def test_submit_without_gpu_has_no_device_request(tmp_path):
     tt = _make_task_type(gpus=False)
     runner = _make_runner()

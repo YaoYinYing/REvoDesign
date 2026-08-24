@@ -58,23 +58,21 @@ There are three configuration boundaries:
 
 The registry owns `job_executor` and `container_runtime` globally. A runtime
 family owns its Docker image, entrypoint, Dockerfile, Apptainer definition, and
-absolute SIF path. A task type owns accepted inputs, GPU eligibility, stage
-labels, runner arguments, and typed user parameters.
+absolute SIF path. A task type owns accepted inputs, GPU/network eligibility,
+stage labels, runner arguments, and typed user parameters.
 
 **Conda vs pip guidance:** Prefer pip-based installs (`python:X-slim` + `pip install`) for
 new runner families when scientific dependencies (JAX, ColabDesign, OpenMM) have
 compatible CUDA wheels on PyPI. Use conda when:
 - A conda-forge package precisely matches a host driver/ABI constraint that pip
-  wheels cannot satisfy (e.g. older jaxlib CUDA segfault constraints as in the
-  `alphafold` family with host driver >=570).
+  wheels cannot satisfy (for example the `alphafold` family's pinned JAX window).
 - Pre-existing conda environments are already deployed and shared across families.
 Sharing a family deduplicates Docker/SIF storage; it must not force CPU tasks to
 inherit a large GPU stack or allow incompatible package upgrades. A new family is
 justified only when dependencies, accelerator needs, system ABI, or license make
-sharing unsafe — see the table in `RUNTIME_FAMILIES.md`. The FreeBindCraft
-adaptation used a pip-based `python:3.11-slim` image with `jax[cuda12]==0.6.0`
-because sharing the `alphafold` family would force an incompatible jax upgrade
-(0.4.35 → 0.6.x) that would break existing alphafold tasks.
+sharing unsafe — see the table in `RUNTIME_FAMILIES.md`. `alphafold` and
+`colabfold_af2` remain separate because the official AlphaFold and pinned
+ColabFold images have different dependency and database contracts.
 
 **OpenCL ICD note:** GPU tasks that use OpenMM relax (e.g. FreeBindCraft) prefer
 the OpenCL platform and require the OpenCL ICD loader plus an NVIDIA ICD vendor

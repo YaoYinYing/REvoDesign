@@ -1,0 +1,9 @@
+# ColabFold/AlphaFold2 runtime settings. MSA data comes from the public
+# ColabFold service; only the complete local model parameter set is mounted.
+mounts:
+  - host_path: "/mnt/db/weights/alphafold/colabfold"
+    container_path: "/mnt/colabfold"
+    mode: "ro"
+env: {}
+max_runtime_seconds: 14400
+defaults: {}
