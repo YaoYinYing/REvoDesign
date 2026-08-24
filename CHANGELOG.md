@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Server:
-  - AlphaFold2 runner: use ColabFold 1.6.2 with the public MMseqs2 MSA service and mounted ColabFold weights; only the MSA workflow stage receives outbound Docker networking.
+  - ColabFold AlphaFold2 runner (`colabfold_af2`): ColabFold 1.6.2 with the public MMseqs2 MSA service and mounted ColabFold weights, alongside the existing offline-database AlphaFold2 runner (`alphafold`); only the ColabFold MSA stage receives outbound Docker networking.
   - rename `pssm_gremlin_server` → `revocompute` (REvoCompute); templates, JS, CSS, email headers rebranded.
   - runtime-family deployment: task types select shared families owning one image/entrypoint/runner YAML/SIF; PLACER + RFdiffusion share a family; Docker and SLURM consume identical resolved manifests.
   - global execution config: `job_executor`/`container_runtime` select the backend; per-family `slurm_image`; runner YAMLs carry only mounts/env/limits/defaults.

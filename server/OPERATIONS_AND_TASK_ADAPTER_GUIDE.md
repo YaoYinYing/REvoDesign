@@ -65,14 +65,14 @@ stage labels, runner arguments, and typed user parameters.
 new runner families when scientific dependencies (JAX, ColabDesign, OpenMM) have
 compatible CUDA wheels on PyPI. Use conda when:
 - A conda-forge package precisely matches a host driver/ABI constraint that pip
-  wheels cannot satisfy.
+  wheels cannot satisfy (for example the `alphafold` family's pinned JAX window).
 - Pre-existing conda environments are already deployed and shared across families.
 Sharing a family deduplicates Docker/SIF storage; it must not force CPU tasks to
 inherit a large GPU stack or allow incompatible package upgrades. A new family is
 justified only when dependencies, accelerator needs, system ABI, or license make
-sharing unsafe — see the table in `RUNTIME_FAMILIES.md`. The ColabFold/AlphaFold
-family uses the pinned upstream CUDA 12 image; other JAX tools remain separate
-when their dependency windows differ.
+sharing unsafe — see the table in `RUNTIME_FAMILIES.md`. `alphafold` and
+`colabfold_af2` remain separate because the official AlphaFold and pinned
+ColabFold images have different dependency and database contracts.
 
 **OpenCL ICD note:** GPU tasks that use OpenMM relax (e.g. FreeBindCraft) prefer
 the OpenCL platform and require the OpenCL ICD loader plus an NVIDIA ICD vendor

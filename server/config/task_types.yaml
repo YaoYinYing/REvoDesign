@@ -87,6 +87,12 @@ runtime_families:
     dockerfile: "docker/runners/alphafold/Dockerfile"
     definition: "docker/runners/alphafold/alphafold.def"
     slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/alphafold_v1.sif"
+  colabfold_af2:
+    docker_image: "revodesign-revocompute-runner-colabfold_af2"
+    entrypoint: ["bash", "/app/revocompute/run.sh"]
+    dockerfile: "docker/runners/colabfold_af2/Dockerfile"
+    definition: "docker/runners/colabfold_af2/colabfold_af2.def"
+    slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/colabfold_af2_v1.sif"
 
 workspace_templates:
   file: &file_workspace
@@ -829,6 +835,55 @@ task_types:
         description: "Safety cap on trajectory count"
 
   alphafold:
+    display_name: "AlphaFold2"
+    category: structure
+    citation_dois:
+      - {num: 1, doi: "10.1038/s41586-021-03819-2", title: "Highly accurate protein structure prediction with AlphaFold"}
+      - {num: 2, doi: "10.1101/2021.10.04.463034", title: "Protein complex prediction with AlphaFold-Multimer"}
+    citation_bibtex: |
+      @article{Jumper_2021, title={Highly accurate protein structure prediction with AlphaFold}, volume={596}, ISSN={1476-4687}, url={http://dx.doi.org/10.1038/s41586-021-03819-2}, DOI={10.1038/s41586-021-03819-2}, number={7873}, journal={Nature}, publisher={Springer Science and Business Media LLC}, author={Jumper, John and Evans, Richard and Pritzel, Alexander and Green, Tim and Figurnov, Michael and Ronneberger, Olaf and Tunyasuvunakool, Kathryn and Bates, Russ and Žídek, Augustin and Potapenko, Anna and Bridgland, Alex and Meyer, Clemens and Kohl, Simon A. A. and Ballard, Andrew J. and Cowie, Andrew and Romera-Paredes, Bernardino and Nikolov, Stanislav and Jain, Rishub and Adler, Jonas and Back, Trevor and Petersen, Stig and Reiman, David and Clancy, Ellen and Zielinski, Michal and Steinegger, Martin and Pacholska, Michalina and Berghammer, Tamas and Bodenstein, Sebastian and Silver, David and Vinyals, Oriol and Senior, Andrew W. and Kavukcuoglu, Koray and Kohli, Pushmeet and Hassabis, Demis}, year={2021}, month=July, pages={583–589} }
+
+      @article{Evans_2021, title={Protein complex prediction with AlphaFold-Multimer}, url={http://dx.doi.org/10.1101/2021.10.04.463034}, DOI={10.1101/2021.10.04.463034}, publisher={openRxiv}, author={Evans, Richard and O’Neill, Michael and Pritzel, Alexander and Antropova, Natasha and Senior, Andrew and Green, Tim and Žídek, Augustin and Bates, Russ and Blackwell, Sam and Yim, Jason and Ronneberger, Olaf and Bodenstein, Sebastian and Zielinski, Michal and Bridgland, Alex and Potapenko, Anna and Cowie, Andrew and Tunyasuvunakool, Kathryn and Jain, Rishub and Clancy, Ellen and Kohli, Pushmeet and Jumper, John and Hassabis, Demis}, year={2021}, month=Oct }
+    intro: "DeepMind AlphaFold2 structure prediction (JAX, multimer-capable)."
+    runtime_family: "alphafold"
+    gpus: true
+    input_extension: ".fasta"
+    input_extensions: [".fasta", ".fa", ".faa"]
+    primary_input_extensions: [".fasta", ".fa", ".faa"]
+    input_label: "Protein sequence (FASTA)"
+    input_workspace: *fasta_workspace
+    stage_markers:
+      msa_searching: "MSA searching"
+      featuring: "Building features"
+      modeling: "Folding models"
+      relaxing: "Amber relaxation"
+    workflow:
+      - name: features
+        display_name: "MSA and features"
+        requires_gpu: false
+        runner_args: ["-s", "features"]
+        stage_markers: ["msa_searching", "featuring"]
+      - name: model
+        display_name: "Model and relax"
+        requires_gpu: true
+        runner_args: ["-s", "model"]
+        stage_markers: ["modeling", "relaxing"]
+    params:
+      - name: "model_preset"
+        type: "str"
+        default: "monomer"
+        choices: ["monomer", "monomer_casp14", "monomer_ptm", "multimer"]
+        description: "Monomer, monomer with pTM head, extra-ensembling monomer, or multimer"
+      - name: "max_template_date"
+        type: "str"
+        default: "2021-11-01"
+        description: "Maximum template release date (YYYY-MM-DD)"
+      - {name: "num_multimer_predictions_per_model", type: "int", default: 1, minimum: 1, maximum: 20, description: "Multimer predictions per model (different seeds)", advanced: true}
+      - {name: "db_preset", type: "str", default: "full_dbs", choices: ["full_dbs"], description: "Sequence database preset (full_dbs)", advanced: true}
+      - {name: "models_to_relax", type: "str", default: "best", choices: ["none", "best", "all"], description: "Amber relaxation of the final models", advanced: true}
+      - {name: "benchmark", type: "bool", default: false, description: "Time the JAX model evaluations", advanced: true}
+
+  colabfold_af2:
     display_name: "ColabFold (AlphaFold2)"
     category: structure
     citation_dois:
@@ -842,7 +897,7 @@ task_types:
 
       @article{Mirdita_2022, title={ColabFold: making protein folding accessible to all}, volume={19}, ISSN={1548-7105}, url={http://dx.doi.org/10.1038/s41592-022-01488-1}, DOI={10.1038/s41592-022-01488-1}, number={6}, journal={Nature Methods}, publisher={Springer Science and Business Media LLC}, author={Mirdita, Milot and Schütze, Konstantin and Moriwaki, Yoshitaka and Heo, Lim and Ovchinnikov, Sergey and Steinegger, Martin}, year={2022}, month=May, pages={679–682} }
     intro: "ColabFold AlphaFold2 prediction with online MMseqs2 MSA search and local GPU inference."
-    runtime_family: "alphafold"
+    runtime_family: "colabfold_af2"
     gpus: true
     input_extension: ".fasta"
     input_extensions: [".fasta", ".fa", ".faa"]

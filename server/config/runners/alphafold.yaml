@@ -1,8 +1,33 @@
-# ColabFold/AlphaFold2 runtime settings. MSA data comes from the public
-# ColabFold service; only the complete local model parameter set is mounted.
+# AlphaFold2 runtime settings — individual ro mounts, never the disk root.
+# DBs compose a container-side layout under /mnt/alphafold; the params
+# release (2022-12-06) carries all 16 model files (monomer, pTM, multimer).
 mounts:
-  - host_path: "/mnt/db/weights/alphafold/colabfold"
-    container_path: "/mnt/colabfold"
+  - host_path: "/mnt/db/weights/alphafold/2022-12-06"
+    container_path: "/mnt/alphafold/params_root"
+    mode: "ro"
+  - host_path: "/mnt/db/bfd"
+    container_path: "/mnt/alphafold/db/bfd"
+    mode: "ro"
+  - host_path: "/mnt/db/mgnify"
+    container_path: "/mnt/alphafold/db/mgnify"
+    mode: "ro"
+  - host_path: "/mnt/db/pdb_mmcif"
+    container_path: "/mnt/alphafold/db/pdb_mmcif"
+    mode: "ro"
+  - host_path: "/mnt/db/pdb70"
+    container_path: "/mnt/alphafold/db/pdb70"
+    mode: "ro"
+  - host_path: "/mnt/db/uniref30_uc30"
+    container_path: "/mnt/alphafold/db/uniref30_uc30"
+    mode: "ro"
+  - host_path: "/mnt/db/uniref90"
+    container_path: "/mnt/alphafold/db/uniref90"
+    mode: "ro"
+  - host_path: "/mnt/db/uniprot"
+    container_path: "/mnt/alphafold/db/uniprot"
+    mode: "ro"
+  - host_path: "/mnt/db/pdb_seqres"
+    container_path: "/mnt/alphafold/db/pdb_seqres"
     mode: "ro"
 env: {}
 max_runtime_seconds: 14400

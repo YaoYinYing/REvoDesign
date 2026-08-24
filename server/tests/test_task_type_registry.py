@@ -111,23 +111,32 @@ def test_esmdynamic_resolves_its_gpu_runtime_and_shared_checkpoint_cache():
         ]
 
 
-def test_alphafold_declares_cpu_then_gpu_workflow():
+def test_alphafold_and_colabfold_declare_independent_workflows():
     with _preserve_registry():
         task_types.load_registry(
             str(SERVER_ROOT / "config" / "task_types.yaml"),
             str(SERVER_ROOT / "config" / "runners"),
-            {"alphafold"},
+            {"alphafold", "colabfold_af2"},
         )
         alphafold, _ = task_types.get("alphafold")
+        colabfold, _ = task_types.get("colabfold_af2")
 
         assert [(stage.name, stage.requires_gpu) for stage in alphafold.workflow] == [
             ("alphafold.features", False),
             ("alphafold.model", True),
         ]
+        assert alphafold.runtime.name == "alphafold"
         assert alphafold.workflow[0].runner_args == ("-s", "features")
         assert alphafold.workflow[1].runner_args == ("-s", "model")
-        assert alphafold.workflow[0].requires_network is True
+        assert alphafold.workflow[0].requires_network is False
         assert alphafold.workflow[1].requires_network is False
+        assert [(stage.name, stage.requires_gpu) for stage in colabfold.workflow] == [
+            ("colabfold_af2.features", False),
+            ("colabfold_af2.model", True),
+        ]
+        assert colabfold.runtime.name == "colabfold_af2"
+        assert colabfold.workflow[0].requires_network is True
+        assert colabfold.workflow[1].requires_network is False
 
 
 def test_input_workspace_capabilities_cover_simple_and_complex_tasks():

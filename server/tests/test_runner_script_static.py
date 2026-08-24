@@ -15,6 +15,7 @@ RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "ps
 OPENDDE_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "opendde" / "run.sh"
 MPNN_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "mpnn" / "run.sh"
 ALPHAFOLD_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "alphafold" / "run.sh"
+COLABFOLD_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "colabfold_af2" / "run.sh"
 ESMDYNAMIC_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "esmdynamic" / "run.sh"
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 
@@ -168,6 +169,115 @@ def test_esmdynamic_failure_does_not_report_complete(tmp_path):
     assert not (output_dir / "task_finished").exists()
 
 
+def test_alphafold_runner_drains_final_stage_before_exit(tmp_path):
+    input_file = tmp_path / "input.fasta"
+    output_dir = tmp_path / "outputs"
+    alphafold_root = tmp_path / "alphafold"
+    fake_context = tmp_path / "task_context.sh"
+    fake_python = tmp_path / "fake-python"
+    delayed_translator = tmp_path / "delayed-stage.awk"
+    patterns = tmp_path / "alphafold.stages"
+    input_file.write_text(">test\nAAAA\n", encoding="utf-8")
+    output_dir.mkdir()
+    alphafold_root.mkdir()
+    fake_context.write_text(
+        '_parse_param() { printf "%s\\n" "$2"; }\n' 'primary_input() { printf "%s\\n" "$FAKE_PRIMARY_INPUT"; }\n',
+        encoding="utf-8",
+    )
+    fake_python.write_text(
+        "#!/bin/bash\n"
+        "set -e\n"
+        'for arg in "$@"; do case "$arg" in --output_dir=*) output_dir=${arg#*=} ;; esac; done\n'
+        'printf "Running model model_1\\n" >&2\n'
+        'mkdir -p "$output_dir/model"\n'
+        'printf "MODEL\\n" > "$output_dir/model/ranked_0.pdb"\n',
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    delayed_translator.write_text(
+        '{ print > "/dev/stderr"; system("sleep 0.2"); print "REVODESIGN_STAGE:modeling"; fflush() }\n',
+        encoding="utf-8",
+    )
+    patterns.write_text("modeling:Running model model_\n", encoding="utf-8")
+    env = os.environ.copy()
+    env.update(
+        {
+            "ALPHAFOLD_PATH": str(alphafold_root),
+            "ALPHAFOLD_PYTHON": str(fake_python),
+            "ALPHAFOLD_STAGE_TRANSLATOR": str(delayed_translator),
+            "ALPHAFOLD_STAGE_PATTERNS": str(patterns),
+            "FAKE_PRIMARY_INPUT": str(input_file),
+            "TASK_CONTEXT_SRC": str(fake_context),
+            "TMPDIR": str(tmp_path),
+        }
+    )
+    completed = _run_with_manifest(ALPHAFOLD_RUNNER_SCRIPT, input_file, output_dir, env)
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.index("REVODESIGN_STAGE:modeling") < completed.stdout.index("AlphaFold complete.")
+    assert (output_dir / "task_finished").is_file()
+
+
+def test_alphafold_feature_stage_stops_before_modeling(tmp_path):
+    input_file = tmp_path / "input.fasta"
+    output_dir = tmp_path / "outputs"
+    alphafold_root = tmp_path / "alphafold"
+    fake_context = tmp_path / "task_context.sh"
+    fake_python = tmp_path / "fake-python"
+    fake_args = tmp_path / "alphafold.args"
+    input_file.write_text(">first\nAAAA\n>second\nBBBB\n", encoding="utf-8")
+    output_dir.mkdir()
+    alphafold_root.mkdir()
+    fake_context.write_text(
+        '_parse_param() { [[ "$1" == model_preset ]] && printf "multimer\\n" || printf "%s\\n" "$2"; }\n'
+        'primary_input() { printf "%s\\n" "$FAKE_PRIMARY_INPUT"; }\n',
+        encoding="utf-8",
+    )
+    fake_python.write_text(
+        "#!/bin/bash\n"
+        "set -e\n"
+        'printf "%s\\n" "$@" > "$FAKE_ARGS_FILE"\n'
+        'for arg in "$@"; do\n'
+        '  case "$arg" in --output_dir=*) output_dir=${arg#*=} ;; --run_stage=*) stage=${arg#*=} ;; esac\n'
+        "done\n"
+        '[[ "$stage" == features ]]\n'
+        'mkdir -p "$output_dir/input"\n'
+        'printf "FEATURES\\n" > "$output_dir/input/features.pkl"\n',
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    env = os.environ.copy()
+    env.update(
+        {
+            "ALPHAFOLD_PATH": str(alphafold_root),
+            "ALPHAFOLD_PYTHON": str(fake_python),
+            "FAKE_ARGS_FILE": str(fake_args),
+            "FAKE_PRIMARY_INPUT": str(input_file),
+            "TASK_CONTEXT_SRC": str(fake_context),
+            "ALPHAFOLD_STAGE_TRANSLATOR": str(SERVER_ROOT / "docker" / "runners" / "common" / "stage_translate.py"),
+            "ALPHAFOLD_STAGE_PATTERNS": str(SERVER_ROOT / "docker" / "runners" / "alphafold" / "alphafold.stages"),
+            "TMPDIR": str(tmp_path),
+        }
+    )
+    completed = _run_with_manifest(
+        ALPHAFOLD_RUNNER_SCRIPT,
+        input_file,
+        output_dir,
+        env,
+        params={"model_preset": "multimer"},
+        extra_args=("-s", "features"),
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    args = fake_args.read_text(encoding="utf-8")
+    assert "--model_preset=multimer" in args
+    assert "--uniref30_database_path=" in args
+    assert "--uniprot_database_path=" in args
+    assert "--pdb70_database_path=" not in args
+    assert (output_dir / ".alphafold-features-complete").is_file()
+    assert not (output_dir / "task_finished").exists()
+
+
 def _write_fake_colabfold(tmp_path: Path) -> Path:
     executable = tmp_path / "colabfold_batch"
     executable.write_text(
@@ -206,7 +316,7 @@ def test_colabfold_feature_stage_uses_online_msa_and_stops_before_modeling(tmp_p
             "TASK_CONTEXT_SRC": str(fake_context),
         }
     )
-    completed = _run_with_manifest(ALPHAFOLD_RUNNER_SCRIPT, input_file, output_dir, env, extra_args=("-s", "features"))
+    completed = _run_with_manifest(COLABFOLD_RUNNER_SCRIPT, input_file, output_dir, env, extra_args=("-s", "features"))
 
     assert completed.returncode == 0, completed.stderr
     args = fake_args.read_text(encoding="utf-8")
@@ -239,7 +349,7 @@ def test_colabfold_model_stage_reuses_msa_and_relaxes_on_gpu(tmp_path):
             "TASK_CONTEXT_SRC": str(fake_context),
         }
     )
-    completed = _run_with_manifest(ALPHAFOLD_RUNNER_SCRIPT, input_file, output_dir, env, extra_args=("-s", "model"))
+    completed = _run_with_manifest(COLABFOLD_RUNNER_SCRIPT, input_file, output_dir, env, extra_args=("-s", "model"))
 
     assert completed.returncode == 0, completed.stderr
     args = fake_args.read_text(encoding="utf-8")
@@ -248,9 +358,26 @@ def test_colabfold_model_stage_reuses_msa_and_relaxes_on_gpu(tmp_path):
     assert (output_dir / "task_finished").is_file()
 
 
-def test_alphafold_image_uses_pinned_colabfold_release():
-    dockerfile = (SERVER_ROOT / "docker" / "runners" / "alphafold" / "Dockerfile").read_text()
+def test_colabfold_image_uses_pinned_release():
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "colabfold_af2" / "Dockerfile").read_text()
     assert "FROM ghcr.io/sokrypton/colabfold:1.6.2-cuda12" in dockerfile
+
+
+def test_alphafold_image_applies_staged_pipeline_to_pinned_source():
+    dockerfile = (SERVER_ROOT / "docker" / "runners" / "alphafold" / "Dockerfile").read_text()
+    patch = (SERVER_ROOT / "docker" / "runners" / "alphafold" / "staged_pipeline.patch").read_text()
+    assert "git -C /opt/alphafold apply --check /tmp/staged_pipeline.patch" in dockerfile
+    assert "FLAGS.run_stage == 'model'" in patch
+    assert "FLAGS.run_stage == 'features'" in patch
+    assert '"openmm-cuda-12==8.2.0"' in dockerfile
+    assert '"nvidia-cuda-nvrtc-cu12==12.6.85"' in dockerfile
+
+
+def test_alphafold_runner_uses_cuda_amber_relaxation_for_model_stage():
+    script = ALPHAFOLD_RUNNER_SCRIPT.read_text(encoding="utf-8")
+    assert "use_gpu_relax=true" in script
+    assert '[[ "$run_stage" == features ]] && use_gpu_relax=false' in script
+    assert '"--use_gpu_relax=${use_gpu_relax}"' in script
 
 
 def test_opendde_runner_uses_writable_snapshot_copy_and_checks_outputs():
