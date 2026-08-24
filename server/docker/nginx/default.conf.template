@@ -26,6 +26,8 @@ http {
     server {
         listen 8080;
         server_name _;
+        if (-f /srv/deployment/.maintenance) { return 503; }
+        error_page 503 = /maintenance.html;
 
         location / {
             proxy_pass http://web:${UPSTREAM_PORT};
@@ -35,6 +37,13 @@ http {
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $origin_proto;
+        }
+
+        location = /maintenance.html {
+            root /usr/share/nginx/html;
+            internal;
+            default_type text/html;
+            add_header Retry-After 120 always;
         }
 
         location /_protected_results/ {

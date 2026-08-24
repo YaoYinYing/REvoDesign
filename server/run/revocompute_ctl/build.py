@@ -13,6 +13,7 @@ import sys
 
 from revocompute_ctl.compose import compose_args, ensure_docker_gid, run_cmd
 from revocompute_ctl.registry import (
+    _docker_tag,
     drop_enabled_runner,
     expand_enabled_runners,
     runner_enabled,
@@ -20,9 +21,10 @@ from revocompute_ctl.registry import (
 )
 
 
-def build_runner_images(state, families, proxy_build_args: list[str], uid: str, gid: str) -> None:
+def build_runner_images(state, families, proxy_build_args: list[str], uid: str, gid: str) -> bool:
     expand_enabled_runners(state, families)
     print("Building runner images...")
+    succeeded = True
     username = state.get("RUNNER_USERNAME") or "revodesign"
     group = state.get("RUNNER_GROUP") or "revodesign_appgroup"
     for family in families:
@@ -42,7 +44,7 @@ def build_runner_images(state, families, proxy_build_args: list[str], uid: str, 
             "--build-arg",
             f"RUNNER_GROUP={group}",
             "-t",
-            _tagged(family.docker_image, "next"),
+            _docker_tag(family.docker_image, "next"),
             "-f",
             os.path.join(state.server_root(), family.dockerfile),
             state.server_root(),
@@ -51,6 +53,8 @@ def build_runner_images(state, families, proxy_build_args: list[str], uid: str, 
         if result.returncode != 0:
             print(f"  ✗ {family.name} build failed — disabled for this restart.", file=sys.stderr)
             drop_enabled_runner(state, family.name)
+            succeeded = False
+    return succeeded
 
 
 def build_web_images(state, compose_cmd: tuple[str, ...], proxy_build_args: list[str], uid: str, gid: str) -> None:
@@ -89,16 +93,26 @@ def build_web_images(state, compose_cmd: tuple[str, ...], proxy_build_args: list
         )
 
 
-def cmd_build(state, compose_cmd: tuple[str, ...], use_proxy_from_env: bool, use_proxy: str) -> None:
-    """The build subcommand — runner :next images plus web/worker."""
+def cmd_build(
+    state,
+    compose_cmd: tuple[str, ...],
+    use_proxy_from_env: bool,
+    use_proxy: str,
+    *,
+    runners_only: bool = False,
+) -> None:
+    """Build selected runner ``:next`` images, then optionally web/worker."""
     proxy_build_args = _resolve_proxy_args(state, use_proxy_from_env, use_proxy)
     from revocompute_ctl.storage import resolve_runner_identity
 
     families = validate_runtime_files(state)
     ensure_docker_gid(state)
     uid, gid = resolve_runner_identity(state)
-    build_runner_images(state, families, proxy_build_args, uid, gid)
-    build_web_images(state, compose_cmd, proxy_build_args, uid, gid)
+    runners_ready = build_runner_images(state, families, proxy_build_args, uid, gid)
+    if runners_only and not runners_ready:
+        raise SystemExit(1)
+    if not runners_only:
+        build_web_images(state, compose_cmd, proxy_build_args, uid, gid)
 
 
 def _resolve_proxy_args(state, use_proxy_from_env: bool, use_proxy: str) -> list[str]:
@@ -130,8 +144,3 @@ def _resolve_proxy_args(state, use_proxy_from_env: bool, use_proxy: str) -> list
         "--build-arg",
         f"no_proxy={no_proxy}",
     ]
-
-
-def _tagged(image: str, tag: str) -> str:
-    """Append :tag unless the image already carries a tag or digest."""
-    return f"{image}:{tag}" if ":" not in image and "@" not in image else image

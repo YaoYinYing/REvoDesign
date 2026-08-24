@@ -56,7 +56,7 @@ class Step:
 
 @dataclass
 class RestartPlan:
-    """The walk plus the post-walk finalizer (stamp + undrain)."""
+    """The walk plus the post-walk finalizer (stamp + maintenance cleanup)."""
 
     steps: list[Step]
     finalize: Callable[[dict[str, float]], None]
@@ -69,9 +69,9 @@ class RestartFlags:
     build_sif: bool = False
     use_proxy: str = ""
     use_proxy_from_env: bool = False
-    drain_minutes: int = 0
     dry_run: bool = False
     rollback: bool = False
+    keep_gateway: bool = False
 
 
 class StepRegistry:
@@ -189,7 +189,7 @@ def cmd_setup(state) -> None:
     print(f"Review {state.env_file} before starting services.")
 
 
-def cmd_down(state, compose_cmd: tuple[str, ...]) -> None:
+def cmd_down(state, compose_cmd: tuple[str, ...], *, keep_gateway: bool = False) -> None:
     from revocompute_ctl.sweep import pre_stop_sweep_slurm
 
     require_env_file(state)
@@ -197,6 +197,28 @@ def cmd_down(state, compose_cmd: tuple[str, ...]) -> None:
     resolve_runner_identity(state)
     pre_stop_sweep_slurm(state, compose_cmd)
     print("Stopping services via docker compose...")
+    services = ["redis", "web", "maintenance", "worker"]
+    if keep_gateway:
+        print("Refreshing gateway and keeping it running to serve the maintenance page.")
+        run_cmd(
+            [
+                *compose_cmd,
+                *compose_args(state),
+                "--env-file",
+                state.env_file,
+                "up",
+                "-d",
+                "--no-deps",
+                "--force-recreate",
+                "gateway",
+            ],
+            env=state.exported(),
+        )
+        run_cmd(
+            [*compose_cmd, *compose_args(state), "--env-file", state.env_file, "stop", *services],
+            env=state.exported(),
+        )
+        return
     run_cmd(
         [*compose_cmd, *compose_args(state), "--env-file", state.env_file, "down"],
         env=state.exported(),
@@ -321,7 +343,7 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     from revocompute_ctl import promotion
     from revocompute_ctl.admin import prepare_admin_bootstrap
     from revocompute_ctl.build import cmd_build
-    from revocompute_ctl.drain import begin_drain, end_drain
+    from revocompute_ctl.maintenance import begin_maintenance, end_maintenance
     from revocompute_ctl.stamp import backup_config, stamp_payload, write_stamp
 
     require_env_file(state, dry_run=flags.dry_run)
@@ -331,7 +353,7 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     if flags.mode == "prod":
         require_production_identity(state)
     else:
-        # The drain sentinel and config backup run inside a throwaway
+        # The maintenance sentinel and config backup run inside a throwaway
         # container as the runner identity — resolve it before the walk.
         resolve_runner_identity(state)
     prepare_admin_bootstrap(state)
@@ -344,7 +366,8 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     if flags.mode == "prepared":
         _prepared_preflight(state, compose_cmd, dry_run=flags.dry_run)
 
-    images = promotion.taggable_images(state, families)
+    selected_families = [family for family in families if runner_enabled(state, family.name)]
+    images = promotion.taggable_images(state, selected_families)
     baseline = promotion.capture_baseline_digests(state, images)
     backup_path_holder: list[str] = [""]
     promoted_sifs: set[str] = set()
@@ -359,7 +382,12 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
         build time — the image may be promoted in an earlier restart)."""
         from revocompute_ctl.registry import sif_stale
 
-        return {family.name for family in families if sif_stale(state, family)}
+        stale: set[str] = set()
+        for family in selected_families:
+            print(f"[SLURM] Checking SIF digest: {family.name} ({family.slurm_image})...")
+            if sif_stale(state, family):
+                stale.add(family.name)
+        return stale
 
     def final_changed() -> set[str]:
         """Post-up truth: baseline digest vs. the digest now under latest."""
@@ -377,12 +405,13 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
             ),
         ),
         Step("capture-baselines", lambda: None),  # captured above; kept as a named phase
-        Step("stop", lambda: cmd_down(state, compose_cmd)),
+        Step(
+            "stop",
+            lambda: cmd_down(state, compose_cmd, keep_gateway=flags.keep_gateway),
+        ),
     ]
-    if flags.drain_minutes:
-        steps.insert(
-            0, Step("drain", lambda: begin_drain(state, flags.drain_minutes), cleanup=lambda: end_drain(state))
-        )
+    if flags.keep_gateway:
+        steps.insert(0, Step("maintenance", lambda: begin_maintenance(state), cleanup=lambda: end_maintenance(state)))
 
     if flags.mode == "dev":
         steps.append(
@@ -400,10 +429,13 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     steps.append(Step("promote", lambda: promotion.promote_docker(state, images, baseline, flags.mode)))
 
     def promote_sifs() -> None:
-        promoted_sifs.update(family.name for family in families if os.path.isfile(f"{family.slurm_image}.next"))
-        promotion.promote_sifs(state, families)
+        promoted_sifs.update(
+            family.name for family in selected_families if os.path.isfile(f"{family.slurm_image}.next")
+        )
+        promotion.promote_sifs(state, selected_families)
 
-    steps.append(Step("promote-sifs", promote_sifs))
+    if state.use_slurm():
+        steps.append(Step("promote-sifs", promote_sifs))
     steps.append(Step("up", lambda: cmd_up(state, compose_cmd, extra=["--no-build"])))
     if flags.mode == "prepared":
         steps.append(Step("readiness", lambda: wait_for_services(state, compose_cmd)))
@@ -432,8 +464,8 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
                     ),
                 )
         finally:
-            if flags.drain_minutes:
-                end_drain(state)
+            if flags.keep_gateway:
+                end_maintenance(state)
         finish_restart(state)
 
     predicted = changed_now()

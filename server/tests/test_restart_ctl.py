@@ -31,12 +31,14 @@ if str(RUN_DIR) not in sys.path:
     sys.path.insert(0, str(RUN_DIR))
 
 from conftest import REPO_DIR, _load_pssm_module, _test_client_auth  # noqa: E402
-from revocompute_ctl import drain as drain_mod  # noqa: E402
+from revocompute_ctl import __main__ as main_mod  # noqa: E402
+from revocompute_ctl import maintenance as maintenance_mod  # noqa: E402
 from revocompute_ctl import promotion  # noqa: E402
+from revocompute_ctl import registry as registry_mod  # noqa: E402
 from revocompute_ctl import stamp as stamp_mod  # noqa: E402
 from revocompute_ctl import sweep as sweep_mod  # noqa: E402
 from revocompute_ctl.env import EnvState, parse_env_file  # noqa: E402
-from revocompute_ctl.registry import RuntimeFamily, _docker_tag, build_slurm_images  # noqa: E402
+from revocompute_ctl.registry import RegistryError, RuntimeFamily, _docker_tag, build_slurm_images  # noqa: E402
 from revocompute_ctl.steps import Step, StepRegistry, run_walk  # noqa: E402
 
 RUNNER_IMAGE = "revodesign-revocompute-runner"
@@ -75,6 +77,7 @@ _DOCKER_SHIM = textwrap.dedent(
       sh -c "$transformed"
       exit $?
     fi
+    if [[ "$1" == "build" && "${DOCKER_BUILD_FAIL:-0}" == "1" ]]; then exit 1; fi
     exit 0
     """
 )
@@ -227,12 +230,67 @@ def test_env_file_parsing_and_redis_password_round_trip(tmp_path):
     assert EnvState(str(env_file)).ensure_redis_password() == password
 
 
+def test_explicit_missing_env_file_fails_before_registry_fallback(monkeypatch, tmp_path):
+    missing = tmp_path / "missing.env"
+    result = _run_cli(monkeypatch, tmp_path, missing, _write_shims(tmp_path), "restart", "--build-sif")
+
+    assert result.returncode == 1
+    assert result.stderr.splitlines()[-1] == f"Explicit env file does not exist: {missing}"
+
+
+def test_prepare_builds_only_selected_runner(monkeypatch, tmp_path):
+    _task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    bin_dir = _write_shims(tmp_path)
+    monkeypatch.setenv("SHIM_LOG", str(tmp_path / "docker.log"))
+    result = _run_cli(monkeypatch, tmp_path, env_file, bin_dir, "prepare", "--enabled-runners=freebindcraft")
+
+    assert result.returncode == 0, result.stderr
+    commands = (tmp_path / "docker.log").read_text(encoding="utf-8")
+    assert "revodesign-revocompute-runner-freebindcraft:next" in commands
+    assert "build web worker" not in commands
+
+
+def test_prepare_fails_when_selected_runner_build_fails(monkeypatch, tmp_path):
+    _task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    bin_dir = _write_shims(tmp_path)
+    monkeypatch.setenv("DOCKER_BUILD_FAIL", "1")
+    result = _run_cli(monkeypatch, tmp_path, env_file, bin_dir, "prepare", "--enabled-runners=freebindcraft")
+
+    assert result.returncode == 1
+    assert "freebindcraft build failed" in result.stderr
+
+
+def test_prepare_rejects_unknown_runner(monkeypatch, tmp_path):
+    _task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    result = _run_cli(monkeypatch, tmp_path, env_file, _write_shims(tmp_path), "prepare", "--enabled-runners=typo")
+
+    assert result.returncode == 1
+    assert "Unknown runner selection: typo" in result.stderr
+
+
+def test_restart_rejects_unknown_runner(monkeypatch, tmp_path):
+    _task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    result = _run_cli(monkeypatch, tmp_path, env_file, _write_shims(tmp_path), "restart", "--enabled-runners=typo")
+
+    assert result.returncode == 1
+    assert "Unknown runner selection: typo" in result.stderr
+
+
 def test_env_state_precedence_runtime_over_file_over_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("RUNNER_UID", "999")
-    state = EnvState(str(tmp_path / "fake.env"), values={"RUNNER_UID": "888"})
+    state = EnvState(
+        str(tmp_path / "fake.env"), values={"RUNNER_UID": "888", "APPTAINER_CACHEDIR": "/custom/cache"}
+    )
     assert state.get("RUNNER_UID") == "888"  # file beats environment
+    assert state.exported()["APPTAINER_CACHEDIR"] == "/custom/cache"
     state.runtime["RUNNER_UID"] = "777"  # the shell's later export wins
     assert state.get("RUNNER_UID") == "777"
+
+
+def test_restart_keep_gateway_flag():
+    subcommand, _reset_username, flags = main_mod.parse_args(["restart", "--keep-gateway"])
+    assert subcommand == "restart"
+    assert flags.keep_gateway
 
 
 # -- promotion ----------------------------------------------------------------
@@ -271,6 +329,83 @@ def test_promotion_first_deploy_skips_previous(tmp_path, monkeypatch):
     state, log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {f"{RUNNER_IMAGE}:next": "sha256:new"})
     promotion.promote_docker(state, {"gremlin": RUNNER_IMAGE}, {}, "dev")
     assert _mutating_commands(log) == [f"tag {RUNNER_IMAGE}:next {RUNNER_IMAGE}:latest"]
+
+
+def test_prepared_promotion_activates_first_staged_image(tmp_path, monkeypatch):
+    bin_dir = _write_shims(tmp_path)
+    state, log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {f"{RUNNER_IMAGE}:next": "sha256:new"})
+    promotion.promote_docker(state, {"gremlin": RUNNER_IMAGE}, {}, "prepared")
+    assert _mutating_commands(log) == [f"tag {RUNNER_IMAGE}:next {RUNNER_IMAGE}:latest"]
+
+
+def test_prepared_promotion_ignores_server_next(tmp_path, monkeypatch):
+    bin_dir = _write_shims(tmp_path)
+    state, log = _shimmed_state(
+        monkeypatch,
+        tmp_path,
+        bin_dir,
+        {"revodesign-server:latest": "sha256:old", "revodesign-server:next": "sha256:unrelated"},
+    )
+    promotion.promote_docker(state, {"server": "revodesign-server"}, {}, "prepared")
+    assert not log.exists()
+
+
+def test_prepared_validation_accepts_first_staged_image(tmp_path, monkeypatch):
+    family = RuntimeFamily("gremlin", RUNNER_IMAGE, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
+    available = {"example/server:v1", "nginx:1.28-alpine", "redis:7.2-alpine", f"{RUNNER_IMAGE}:next"}
+
+    def fake_run(argv, **_kwargs):
+        return subprocess.CompletedProcess(argv, 0 if argv[-1] in available else 1, stdout="")
+
+    monkeypatch.setattr(registry_mod, "run_cmd", fake_run)
+    state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1"})
+    registry_mod.validate_prepared_images(state, [family])
+
+
+def test_prepared_validation_requires_sif_for_changed_next_image(tmp_path, monkeypatch):
+    family = RuntimeFamily("gremlin", RUNNER_IMAGE, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
+    available = {
+        "example/server:v1": "sha256:server",
+        "nginx:1.28-alpine": "sha256:nginx",
+        "redis:7.2-alpine": "sha256:redis",
+        f"{RUNNER_IMAGE}:latest": "sha256:old",
+        f"{RUNNER_IMAGE}:next": "sha256:new",
+    }
+
+    def fake_run(argv, **_kwargs):
+        image = argv[-1]
+        return subprocess.CompletedProcess(argv, 0 if image in available else 1, stdout=available.get(image, ""))
+
+    monkeypatch.setattr(registry_mod, "run_cmd", fake_run)
+    state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1", "USE_SLURM": "1"})
+
+    with pytest.raises(RegistryError):
+        registry_mod.validate_prepared_images(state, [family])
+    Path(f"{family.slurm_image}.next").touch()
+    registry_mod._record_sif_manifest(family, "sha256:new", f"{family.slurm_image}.next")
+    registry_mod.validate_prepared_images(state, [family])
+
+
+def test_prepared_validation_rejects_orphaned_staged_sif(tmp_path, monkeypatch):
+    family = RuntimeFamily("gremlin", RUNNER_IMAGE, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
+    available = {
+        "example/server:v1": "sha256:server",
+        "nginx:1.28-alpine": "sha256:nginx",
+        "redis:7.2-alpine": "sha256:redis",
+        f"{RUNNER_IMAGE}:latest": "sha256:current",
+    }
+
+    def fake_run(argv, **_kwargs):
+        image = argv[-1]
+        return subprocess.CompletedProcess(argv, 0 if image in available else 1, stdout=available.get(image, ""))
+
+    monkeypatch.setattr(registry_mod, "run_cmd", fake_run)
+    state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1", "USE_SLURM": "1"})
+    Path(f"{family.slurm_image}.next").touch()
+    registry_mod._record_sif_manifest(family, "sha256:orphan", f"{family.slurm_image}.next")
+
+    with pytest.raises(RegistryError):
+        registry_mod.validate_prepared_images(state, [family])
 
 
 def test_promotion_empty_ids_are_a_no_op(tmp_path, monkeypatch):
@@ -324,8 +459,12 @@ def test_sif_staging_builds_missing_skips_unchanged(tmp_path, monkeypatch):
     state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
     build_slurm_images(state, [family])  # missing SIF → stage .next
     assert (sif_dir / "gremlin.sif.next").is_file()
+    monkeypatch.setenv("SHIM_CREATED", "2030-01-01T00:00:00Z")
+    build_slurm_images(state, [family])  # newer Docker :next replaces stale staged SIF
+    assert len([line for line in _log.read_text().splitlines() if line.startswith("build ")]) == 2
     (sif_dir / "gremlin.sif.next").unlink()
     (sif_dir / "gremlin.sif").touch()
+    monkeypatch.delenv("SHIM_CREATED")
     build_slurm_images(state, [family])  # image older than SIF → skip
     assert not (sif_dir / "gremlin.sif.next").exists()
 
@@ -338,6 +477,17 @@ def test_docker_tag_distinguishes_registry_port_from_image_tag():
     assert _docker_tag("registry.example:5000/team/runner") == "registry.example:5000/team/runner:latest"
     assert _docker_tag("registry.example:5000/team/runner:v2") == "registry.example:5000/team/runner:v2"
     assert _docker_tag("registry.example:5000/team/runner@sha256:abc") == "registry.example:5000/team/runner@sha256:abc"
+
+
+def test_taggable_images_accepts_untagged_registry_port(tmp_path):
+    image = "registry.example:5000/team/runner"
+    family = RuntimeFamily("gremlin", image, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
+    state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "registry.example:5000/team/server"})
+
+    assert promotion.taggable_images(state, [family]) == {
+        "server": "registry.example:5000/team/server",
+        "gremlin": image,
+    }
 
 
 def test_sif_staging_builds_changed_prepared_image_from_next(tmp_path, monkeypatch):
@@ -362,9 +512,15 @@ def test_sif_staging_builds_changed_prepared_image_from_next(tmp_path, monkeypat
     build_slurm_images(state, [family])
 
     assert (sif_dir / "gremlin.sif.next").is_file()
+    manifest = yaml.safe_load((sif_dir / "digest" / "image-sif.json").read_text(encoding="utf-8"))
+    assert manifest["gremlin"]["docker_image_id"] == "sha256:new"
+    assert manifest["gremlin"]["sif_sha256"].startswith("sha256:")
     apptainer_line = next(line for line in log.read_text().splitlines() if line.startswith("build "))
     definition = Path(apptainer_line.rsplit(" ", 1)[-1])
     assert not definition.exists()  # temporary prepared-tag definition is cleaned up
+
+    build_slurm_images(state, [family])
+    assert len([line for line in log.read_text().splitlines() if line.startswith("build ")]) == 1
 
 
 def test_sif_staging_drops_failed_runner_from_enabled_list(tmp_path, monkeypatch):
@@ -385,7 +541,22 @@ def test_sif_staging_drops_failed_runner_from_enabled_list(tmp_path, monkeypatch
     assert not (sif_dir / "gremlin.sif.next").exists()  # no corrupt staging left behind
 
 
-# -- stamp / backup / drain round-trips through the container transport -------
+def test_strict_sif_staging_propagates_build_failure(tmp_path, monkeypatch):
+    bin_dir = _write_shims(tmp_path)
+    monkeypatch.setenv("APPTAINER_FAIL", "1")
+    family = RuntimeFamily(
+        "gremlin",
+        RUNNER_IMAGE,
+        "docker/runners/pssm_gremlin/Dockerfile",
+        "docker/runners/pssm_gremlin/gremlin.def",
+        str(tmp_path / "gremlin.sif"),
+    )
+    state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
+    with pytest.raises(RegistryError):
+        build_slurm_images(state, [family], fail_on_error=True)
+
+
+# -- stamp / backup / maintenance round-trips through the container transport
 
 
 def test_stamp_round_trip_and_config_backup(tmp_path, monkeypatch):
@@ -423,13 +594,13 @@ def test_stamp_round_trip_and_config_backup(tmp_path, monkeypatch):
     assert isinstance(payload["dirty"], bool)
 
 
-def test_drain_sentinel_lifecycle(tmp_path, monkeypatch):
+def test_maintenance_sentinel_lifecycle(tmp_path, monkeypatch):
     bin_dir = _write_shims(tmp_path)
     task_dir, _auth_dir, _env = _deploy_env(tmp_path)
     state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {}, SERVER_DIR=str(task_dir))
-    drain_mod.begin_drain(state, 1)  # docker executor: sentinel only, no squeue wait
+    maintenance_mod.begin_maintenance(state)
     assert (task_dir / ".maintenance").is_file()
-    drain_mod.end_drain(state)
+    maintenance_mod.end_maintenance(state)
     assert not (task_dir / ".maintenance").exists()
 
 

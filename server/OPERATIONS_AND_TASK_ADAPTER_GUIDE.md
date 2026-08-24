@@ -19,7 +19,7 @@ deletion) — so plan the batch runner changes around the outage window.
 Browser / API client
         |
         v
-   nginx gateway
+    nginx gateway
         |
         +--------------------+
         |                    |
@@ -31,21 +31,21 @@ Browser / API client
                          |
                          | global job_executor
                          |
-             +-----------+-----------+
-             |                       |
-             v                       v
-       Docker runner             srun / SLURM
-             |                       |
-             |                       v
-             |                Apptainer SIF
-             |                       |
-             +-----------+-----------+
-                         |
-                         v
-        task-isolated virtual workspace
-        /mnt/revocompute/<username>/
-        +-- inputs/   read-only snapshot
-        `-- outputs/  writable for this task only
+                     +-----------+-----------+
+                     |                       |
+                     v                       v
+                  Docker runner             srun / SLURM
+                     |                       |
+                     |                       v
+                     |                Apptainer SIF
+                     |                       |
+                     +-----------+-----------+
+                                 |
+                                 v
+            task-isolated virtual workspace
+            /mnt/revocompute/<username>/
+            +-- inputs/   read-only snapshot
+            `-- outputs/  writable for this task only
 ```
 
 There are three configuration boundaries:
@@ -60,6 +60,33 @@ The registry owns `job_executor` and `container_runtime` globally. A runtime
 family owns its Docker image, entrypoint, Dockerfile, Apptainer definition, and
 absolute SIF path. A task type owns accepted inputs, GPU eligibility, stage
 labels, runner arguments, and typed user parameters.
+
+**Conda vs pip guidance:** Prefer pip-based installs (`python:X-slim` + `pip install`) for
+new runner families when scientific dependencies (JAX, ColabDesign, OpenMM) have
+compatible CUDA wheels on PyPI. Use conda when:
+- A conda-forge package precisely matches a host driver/ABI constraint that pip
+  wheels cannot satisfy (e.g. older jaxlib CUDA segfault constraints as in the
+  `alphafold` family with host driver >=570).
+- Pre-existing conda environments are already deployed and shared across families.
+Sharing a family deduplicates Docker/SIF storage; it must not force CPU tasks to
+inherit a large GPU stack or allow incompatible package upgrades. A new family is
+justified only when dependencies, accelerator needs, system ABI, or license make
+sharing unsafe — see the table in `RUNTIME_FAMILIES.md`. The FreeBindCraft
+adaptation used a pip-based `python:3.11-slim` image with `jax[cuda12]==0.6.0`
+because sharing the `alphafold` family would force an incompatible jax upgrade
+(0.4.35 → 0.6.x) that would break existing alphafold tasks.
+
+**OpenCL ICD note:** GPU tasks that use OpenMM relax (e.g. FreeBindCraft) prefer
+the OpenCL platform and require the OpenCL ICD loader plus an NVIDIA ICD vendor
+file. Install `ocl-icd-libopencl1` and create
+`/etc/OpenCL/vendors/nvidia.icd` containing `libnvidia-opencl.so.1`. This
+enables `openmm.Platform.getPlatformNames()` to report `OpenCL` alongside `CPU`
+and (if CUDA wheels are installed) `CUDA`. The environment variable
+`OPENMM_PLATFORM_ORDER=OpenCL,CUDA` sets the preferred order (FreeBindCraft
+sets this). Without the ICD, OpenMM falls back to CPU, which may be significantly
+slower.
+
+For CPU-only tasks, omit `--nv` (Apptainer/SLURM) and do not register the ICD.
 
 ## 2. Host prerequisites
 
@@ -245,7 +272,16 @@ the active directory or bypass registry validation.
 
 ## 7. Build Docker images while production stays up
 
-The `build` subcommand does not call `down`:
+The `prepare` subcommand builds only the selected runner images and does not
+call `down` or rebuild web/worker:
+
+```bash
+REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
+  bash server/run/restart.sh prepare --enabled-runners=example --use-proxy
+```
+
+Add `--build-sif` to stage the selected runners' SIFs while production remains
+up. The broader `build` subcommand builds every enabled runner plus web/worker:
 
 ```bash
 REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
@@ -267,7 +303,7 @@ The build loop creates one image per runtime family and then the server image.
 The deployment tag scheme is `next` → `latest` → `previous`, managed
 automatically:
 
-- `build` tags every runner family as `<image>:next` and leaves the running
+- `prepare` and `build` tag selected runner families as `<image>:next` and leave the running
   deployment untouched. A candidate can be validated as `:next` (or a
   hand-built `:candidate`) without changing `latest`.
 - A `restart` captures the pre-down digests, stops the stack, then promotes:
@@ -277,8 +313,8 @@ automatically:
   is one `restart --rollback` away.
 - `--mode=prod` pulls `latest` directly; the pre-pull image id becomes
   `previous`.
-- `--mode=prepared` promotes nothing — it activates images that a prior
-  `build` left at `:next` (or a pull left at `latest`).
+- `--mode=prepared` promotes selected runner images that a prior `prepare` or
+  `build` left at `:next`; other images remain unchanged.
 
 For focused development, build a candidate tag first and validate it without
 changing `latest`:

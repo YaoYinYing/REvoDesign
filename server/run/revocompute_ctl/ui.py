@@ -10,7 +10,7 @@ messages are pinned by test_process_isolation.py and the ops guide.
 
 from __future__ import annotations
 
-USAGE = """Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart|reset-passwd]
+USAGE = """Usage: bash server/run/restart.sh [setup|prepare|build|up|down|reload|restart|reset-passwd]
        bash server/run/restart.sh restart [--mode=dev|--mode=prod|--mode=prepared]
        bash server/run/restart.sh reset-passwd <username>
 
@@ -34,11 +34,8 @@ USAGE = """Usage: bash server/run/restart.sh [setup|build|up|down|reload|restart
            --dry-run                           Print the planned step walk and
                                                per-family change predictions
                                                without executing anything.
-           --drain=<minutes>                   Before stopping the stack, block
-                                               new submissions and wait up to
-                                               N minutes for running SLURM jobs
-                                               to finish; the sweep cancels the
-                                               remainder.
+           --keep-gateway                     Enter maintenance and leave the
+                                               gateway running during restart.
            --rollback                          Restore the previous image/SIF
                                                set from the last deploy stamp,
                                                then restart. Refuses when no
@@ -55,6 +52,8 @@ Safety:
 
 Subcommands:
   setup    Prepare the selected env file (create from .env.example if missing) and show detected DOCKER_GID.
+  prepare  Build selected runner :next images and, with --build-sif, stage their SIFs.
+           Does not touch the running deployment.
   build    Build runner image and web/worker images.
   up       Start redis/web/worker with docker compose.
   down     Stop and remove the compose stack.
