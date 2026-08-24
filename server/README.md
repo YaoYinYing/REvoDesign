@@ -990,6 +990,23 @@ Key SLURM-specific variables:
 | `CONFIG_DIR` | Path to deployed config directory containing `task_types.yaml` and `runners/`. |
 | `REDIS_URL` | `redis://redis:6379/0` for bridge containers; `redis://127.0.0.1:6380/0` for host-networked worker (set in `docker-compose.slurm.yml`). |
 
+For faster, disk-free SIF builds, both Apptainer paths may use a RAM-backed
+filesystem such as `/dev/shm`. Create private directories as the deployment
+user, then add them to the env file:
+
+```bash
+mkdir -p /dev/shm/revodesign-apptainer-cache /dev/shm/revodesign-apptainer-tmp
+chmod 700 /dev/shm/revodesign-apptainer-cache /dev/shm/revodesign-apptainer-tmp
+```
+
+```dotenv
+APPTAINER_CACHEDIR=/dev/shm/revodesign-apptainer-cache
+APPTAINER_TMPDIR=/dev/shm/revodesign-apptainer-tmp
+```
+
+Check capacity with `df -h /dev/shm`; RAM-backed files disappear after reboot,
+and the cache is only used while building SIFs.
+
 #### Step 3: Configure the executor and runtime families
 
 Select SLURM once in `<CONFIG_DIR>/task_types.yaml` and set each family’s SIF:
