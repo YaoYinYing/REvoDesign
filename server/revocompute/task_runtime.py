@@ -327,6 +327,7 @@ def _run_compute_workflow(
             name=stage.name.replace(".", "-"),
             runner_args=stage.runner_args,
             gpus=stage.requires_gpu,
+            requires_network=stage.requires_network,
             stage_markers=markers,
             workflow=(),
         )

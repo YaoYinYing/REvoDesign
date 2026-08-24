@@ -1,5 +1,0 @@
-# AlphaFold2 stderr phase patterns (absl logging) -> stage markers.
-msa_searching:Started Jackhmmer|Started HHblits|Started HHsearch
-featuring:Predicting [A-Za-z0-9]
-modeling:Running model model_
-relaxing:[Rr]elax|[Aa]mber

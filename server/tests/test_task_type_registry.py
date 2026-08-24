@@ -126,6 +126,8 @@ def test_alphafold_declares_cpu_then_gpu_workflow():
         ]
         assert alphafold.workflow[0].runner_args == ("-s", "features")
         assert alphafold.workflow[1].runner_args == ("-s", "model")
+        assert alphafold.workflow[0].requires_network is True
+        assert alphafold.workflow[1].requires_network is False
 
 
 def test_input_workspace_capabilities_cover_simple_and_complex_tasks():

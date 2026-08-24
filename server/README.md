@@ -460,17 +460,18 @@ the next stage only after success. Each stage has an independently snapshotted
 resource policy in the configuration UI.
 
 ```text
-Submission -> Composer -> [CPU: MSA + features] -> [GPU: model + relax] -> Results
-                           | features.pkl          | ranked_0.pdb
+Submission -> Composer -> [CPU: online MSA] -> [GPU: model + relax] -> Results
+                           | query.a3m          | rank_001_*.pdb
                            +---- persisted --------+
 ```
 
-AlphaFold is the first composed task. Its configuration card nests
+ColabFold/AlphaFold2 is the first composed task. Its configuration card nests
 `alphafold.features` and `alphafold.model` as resource submodules.
-`alphafold.features` runs MSA and feature construction without GPU GRES or
-Apptainer `--nv`; after `features.pkl` is validated, `alphafold.model` receives
-the GPU allocation for inference and CUDA Amber relaxation. Restarts cancel
-only the active allocation and resume at the first incomplete stage.
+`alphafold.features` uses the public ColabFold MMseqs2 service without GPU GRES
+or Apptainer `--nv`; after its A3M is validated, `alphafold.model` reuses that
+MSA and the mounted `/mnt/db/weights/alphafold/colabfold` parameters for local
+GPU inference and optional CUDA Amber relaxation. Restarts cancel only the
+active allocation and resume at the first incomplete stage.
 
 ## 5. Authentication
 

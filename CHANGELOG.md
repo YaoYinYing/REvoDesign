@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Server:
+  - AlphaFold2 runner: use ColabFold 1.6.2 with the public MMseqs2 MSA service and mounted ColabFold weights; only the MSA workflow stage receives outbound Docker networking.
   - rename `pssm_gremlin_server` → `revocompute` (REvoCompute); templates, JS, CSS, email headers rebranded.
   - runtime-family deployment: task types select shared families owning one image/entrypoint/runner YAML/SIF; PLACER + RFdiffusion share a family; Docker and SLURM consume identical resolved manifests.
   - global execution config: `job_executor`/`container_runtime` select the backend; per-family `slurm_image`; runner YAMLs carry only mounts/env/limits/defaults.
@@ -44,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - runner images: pinned Git repos to audited commits, `uv pip install` with extra-index pool, CPU MPNN family sheds CUDA stubs/Triton/torchvision/torchaudio; EASIFA TorchDrug shim statically linked for glibc 2.31 nodes.
   - runner entrypoint: `["bash", "/app/revocompute/run.sh"]`; non-root `--user` execution without root in the image.
   - `POST /compute/api/post`: registry-validated `task_type` + `params[...]`; generic upload validation replaces hardcoded `.fasta`.
-  - security: artifact responses default to attachment + sandbox CSP; no inline scripts (`script-src 'self'` + jsdelivr); Mol* runs in an isolated `/compute/viewer-shell` iframe with its own CSP and postMessage protocol; authenticated Redis + loopback-only gateway; executor-scoped Docker socket; trusted HTTPS proxy chain; runners treated as hostile (apptainer `--containall`, Docker read-only root, cap-drop, no network); O(1) sha256-digest API keys; symlink-aware path containment; post-completion workspace cleanup; debug capture of submissions.
+  - security: artifact responses default to attachment + sandbox CSP; no inline scripts (`script-src 'self'` + jsdelivr); Mol* runs in an isolated `/compute/viewer-shell` iframe with its own CSP and postMessage protocol; authenticated Redis + loopback-only gateway; executor-scoped Docker socket; trusted HTTPS proxy chain; runners treated as hostile (apptainer `--containall`, Docker read-only root, cap-drop, network only for declared stages); O(1) sha256-digest API keys; symlink-aware path containment; post-completion workspace cleanup; debug capture of submissions.
   - ops: Nginx result offload via internal redirects with byte ranges; zero-downtime Gunicorn reload subcommand; `GATEWAY_BIND`; liveness probe `GET /compute/health`; modular input-validator tree with pluggable backends (biotite-based PDB checks).
   - dashboard: bounded 4 KiB previews, py2Dmol structure snapshots, single-flight preview renders, snapshot card parity, `base.css` shared viewer styles.
   - runner database/env config consolidated into `config/runners/<family>.yaml`.
