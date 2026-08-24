@@ -98,6 +98,8 @@ services:
       - "${GATEWAY_BIND:-127.0.0.1}:${PORT:-8080}:8080"
     volumes:
       - ./docker/nginx/default.conf.template:/etc/nginx/nginx.conf.template:ro
+      - ./docker/nginx/maintenance.html:/usr/share/nginx/html/maintenance.html:ro
+      - ${SERVER_DIR}:/srv/deployment:ro
       - ${SERVER_DIR}/results:/srv/results:ro
     tmpfs:
       - /tmp:size=16m,mode=1777

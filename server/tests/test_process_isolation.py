@@ -510,6 +510,8 @@ def test_compose_isolates_worker_auth_and_web_docker_socket():
     assert "ports:" not in web
     assert "expose:" in web
     assert "ports:" in gateway
+    assert "./docker/nginx/maintenance.html:/usr/share/nginx/html/maintenance.html:ro" in gateway
+    assert "${SERVER_DIR}:/srv/deployment:ro" in gateway
     assert "${SERVER_DIR}/results:/srv/results:ro" in gateway
     assert "/var/lib/revodesign-auth" not in gateway
     assert "user: ${RUNNER_UID}:${RUNNER_GID}" in gateway
