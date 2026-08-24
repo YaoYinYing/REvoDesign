@@ -382,7 +382,12 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
         build time — the image may be promoted in an earlier restart)."""
         from revocompute_ctl.registry import sif_stale
 
-        return {family.name for family in selected_families if sif_stale(state, family)}
+        stale: set[str] = set()
+        for family in selected_families:
+            print(f"[SLURM] Checking SIF digest: {family.name} ({family.slurm_image})...")
+            if sif_stale(state, family):
+                stale.add(family.name)
+        return stale
 
     def final_changed() -> set[str]:
         """Post-up truth: baseline digest vs. the digest now under latest."""
