@@ -604,6 +604,16 @@ def test_drain_sentinel_lifecycle(tmp_path, monkeypatch):
     assert not (task_dir / ".maintenance").exists()
 
 
+def test_maintenance_sentinel_lifecycle_without_drain(tmp_path, monkeypatch):
+    bin_dir = _write_shims(tmp_path)
+    task_dir, _auth_dir, _env = _deploy_env(tmp_path)
+    state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {}, SERVER_DIR=str(task_dir))
+    drain_mod.begin_maintenance(state)
+    assert (task_dir / ".maintenance").is_file()
+    drain_mod.end_drain(state)
+    assert not (task_dir / ".maintenance").exists()
+
+
 # -- proxy broadcasting -------------------------------------------------------
 
 

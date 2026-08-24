@@ -330,7 +330,7 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     from revocompute_ctl import promotion
     from revocompute_ctl.admin import prepare_admin_bootstrap
     from revocompute_ctl.build import cmd_build
-    from revocompute_ctl.drain import begin_drain, end_drain
+    from revocompute_ctl.drain import begin_drain, begin_maintenance, end_drain
     from revocompute_ctl.stamp import backup_config, stamp_payload, write_stamp
 
     require_env_file(state, dry_run=flags.dry_run)
@@ -393,6 +393,8 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
         steps.insert(
             0, Step("drain", lambda: begin_drain(state, flags.drain_minutes), cleanup=lambda: end_drain(state))
         )
+    elif flags.keep_gateway:
+        steps.insert(0, Step("maintenance", lambda: begin_maintenance(state), cleanup=lambda: end_drain(state)))
 
     if flags.mode == "dev":
         steps.append(

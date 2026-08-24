@@ -26,11 +26,8 @@ def sentinel_path(state) -> str:
     return os.path.join(state.server_dir(), SENTINEL_NAME)
 
 
-def begin_drain(state, minutes: int) -> None:
-    """Create the sentinel and wait for the SLURM queue to empty (SLURM
-    deployments only; docker deployments get the sentinel alone).  The
-    sentinel is written by a throwaway container as the runner identity —
-    SERVER_DIR is deployment-owned."""
+def begin_maintenance(state) -> None:
+    """Create the deployment-owned maintenance sentinel."""
     from revocompute_ctl.compose import container_fs
 
     container_fs(
@@ -38,7 +35,13 @@ def begin_drain(state, minutes: int) -> None:
         f"printf 'deployment maintenance\\n' > /srv/{SENTINEL_NAME}",
         [(state.server_dir(), "/srv")],
     )
-    print(f"Maintenance mode enabled (submissions paused) — draining in-flight jobs, up to {minutes} min.")
+    print("Maintenance mode enabled (submissions paused).")
+
+
+def begin_drain(state, minutes: int) -> None:
+    """Create the sentinel and wait for the SLURM queue to empty."""
+    begin_maintenance(state)
+    print(f"Draining in-flight jobs, up to {minutes} min.")
     if not state.use_slurm():
         return
     deadline = time.monotonic() + minutes * 60

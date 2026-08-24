@@ -991,9 +991,10 @@ Key SLURM-specific variables:
 | `REDIS_URL` | `redis://redis:6379/0` for bridge containers; `redis://127.0.0.1:6380/0` for host-networked worker (set in `docker-compose.slurm.yml`). |
 
 Use `--keep-gateway` on `restart` to leave the Nginx gateway running while
-Redis, web, maintenance, and worker services are rebuilt. With the
-`.maintenance` sentinel from `--drain`, the gateway serves the static
-maintenance page throughout the downtime instead of returning an origin 502.
+Redis, web, maintenance, and worker services are rebuilt. It automatically
+creates the `.maintenance` sentinel, so the gateway serves the static
+maintenance page throughout the downtime instead of returning an origin 502;
+`--drain` is optional and only waits for in-flight SLURM jobs.
 
 For faster, disk-free SIF builds, both Apptainer paths may use a RAM-backed
 filesystem such as `/dev/shm`. Create private directories as the deployment
