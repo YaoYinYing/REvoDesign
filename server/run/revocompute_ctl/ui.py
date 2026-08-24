@@ -39,6 +39,8 @@ USAGE = """Usage: bash server/run/restart.sh [setup|prepare|build|up|down|reload
                                                N minutes for running SLURM jobs
                                                to finish; the sweep cancels the
                                                remainder.
+           --keep-gateway                     Leave the gateway running during
+                                               restart so it serves maintenance.
            --rollback                          Restore the previous image/SIF
                                                set from the last deploy stamp,
                                                then restart. Refuses when no

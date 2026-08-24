@@ -98,6 +98,10 @@ def parse_args(argv: list[str]) -> tuple[str, str, RestartFlags]:
                 print("--drain requires a number of minutes.", file=sys.stderr)
                 raise SystemExit(1)
             flags.drain_minutes = _drain_minutes(subcommand, rest[position])
+        elif arg == "--keep-gateway":
+            if subcommand != "restart":
+                _usage_exit("--keep-gateway is only supported by the restart subcommand.")
+            flags.keep_gateway = True
         else:
             _usage_exit(f"Unexpected argument: {arg}")
         position += 1
@@ -165,9 +169,17 @@ def main() -> None:
         )
         raise SystemExit(1)
     if flags.rollback and (
-        flags.build_sif or flags.use_proxy or flags.use_proxy_from_env or flags.drain_minutes or flags.dry_run
+        flags.build_sif
+        or flags.use_proxy
+        or flags.use_proxy_from_env
+        or flags.drain_minutes
+        or flags.dry_run
+        or flags.keep_gateway
     ):
-        print("--rollback cannot be combined with --build-sif, --use-proxy, --drain, or --dry-run.", file=sys.stderr)
+        print(
+            "--rollback cannot be combined with --build-sif, --use-proxy, --drain, --dry-run, or --keep-gateway.",
+            file=sys.stderr,
+        )
         raise SystemExit(1)
 
     state = EnvState(env_file) if os.path.isfile(env_file) else EnvState(env_file, values={})

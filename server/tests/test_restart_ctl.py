@@ -32,6 +32,7 @@ if str(RUN_DIR) not in sys.path:
 
 from conftest import REPO_DIR, _load_pssm_module, _test_client_auth  # noqa: E402
 from revocompute_ctl import drain as drain_mod  # noqa: E402
+from revocompute_ctl import __main__ as main_mod  # noqa: E402
 from revocompute_ctl import promotion  # noqa: E402
 from revocompute_ctl import registry as registry_mod  # noqa: E402
 from revocompute_ctl import stamp as stamp_mod  # noqa: E402
@@ -284,6 +285,12 @@ def test_env_state_precedence_runtime_over_file_over_environment(tmp_path, monke
     assert state.exported()["APPTAINER_CACHEDIR"] == "/custom/cache"
     state.runtime["RUNNER_UID"] = "777"  # the shell's later export wins
     assert state.get("RUNNER_UID") == "777"
+
+
+def test_restart_keep_gateway_flag():
+    subcommand, _reset_username, flags = main_mod.parse_args(["restart", "--keep-gateway"])
+    assert subcommand == "restart"
+    assert flags.keep_gateway
 
 
 # -- promotion ----------------------------------------------------------------

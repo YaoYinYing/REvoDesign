@@ -72,6 +72,7 @@ class RestartFlags:
     drain_minutes: int = 0
     dry_run: bool = False
     rollback: bool = False
+    keep_gateway: bool = False
 
 
 class StepRegistry:
@@ -189,7 +190,7 @@ def cmd_setup(state) -> None:
     print(f"Review {state.env_file} before starting services.")
 
 
-def cmd_down(state, compose_cmd: tuple[str, ...]) -> None:
+def cmd_down(state, compose_cmd: tuple[str, ...], *, keep_gateway: bool = False) -> None:
     from revocompute_ctl.sweep import pre_stop_sweep_slurm
 
     require_env_file(state)
@@ -197,6 +198,14 @@ def cmd_down(state, compose_cmd: tuple[str, ...]) -> None:
     resolve_runner_identity(state)
     pre_stop_sweep_slurm(state, compose_cmd)
     print("Stopping services via docker compose...")
+    services = ["redis", "web", "maintenance", "worker"]
+    if keep_gateway:
+        print("Keeping gateway running to serve the maintenance page.")
+        run_cmd(
+            [*compose_cmd, *compose_args(state), "--env-file", state.env_file, "stop", *services],
+            env=state.exported(),
+        )
+        return
     run_cmd(
         [*compose_cmd, *compose_args(state), "--env-file", state.env_file, "down"],
         env=state.exported(),
@@ -378,7 +387,7 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
             ),
         ),
         Step("capture-baselines", lambda: None),  # captured above; kept as a named phase
-        Step("stop", lambda: cmd_down(state, compose_cmd)),
+        Step("stop", lambda: cmd_down(state, compose_cmd, keep_gateway=flags.keep_gateway)),
     ]
     if flags.drain_minutes:
         steps.insert(
