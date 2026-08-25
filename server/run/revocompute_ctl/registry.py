@@ -325,8 +325,11 @@ def _sif_definition_for_tag(def_file: Path, source_tag: str) -> tuple[str, str |
 
 def build_slurm_images(state, families: list[RuntimeFamily], *, fail_on_error: bool = False) -> int:
     """Stage SIFs as ``<sif>.next`` for missing or stale families only;
-    promotion (promotion.py) moves them into place after down.  Returns the
-    number of SIFs built."""
+    promotion (promotion.py) moves them into place after down.  The source
+    Docker image ID captured before each build is re-checked afterwards; a
+    changed ID means the tag was retagged concurrently, and the staging is
+    discarded instead of recording mismatched metadata.  Returns the number
+    of SIFs built."""
     import shutil
 
     if not shutil.which("apptainer"):
@@ -355,7 +358,9 @@ def build_slurm_images(state, families: list[RuntimeFamily], *, fail_on_error: b
         # Atomic staging: a killed build must never leave a corrupt .next
         # that the next run treats as a valid staging.
         staging = f"{staged}.build"
-        build_definition, temporary_definition = _sif_definition_for_tag(def_file, _sif_source_tag(state, family))
+        source_tag = _sif_source_tag(state, family)
+        source_id = _docker_image_id(state, source_tag)
+        build_definition, temporary_definition = _sif_definition_for_tag(def_file, source_tag)
         try:
             result = run_cmd(
                 ["apptainer", "build", "--fakeroot", staging, build_definition],
@@ -372,9 +377,20 @@ def build_slurm_images(state, families: list[RuntimeFamily], *, fail_on_error: b
             drop_enabled_runner(state, family.name)
             if fail_on_error:
                 raise RegistryError
+        elif _docker_image_id(state, source_tag) != source_id:
+            # The tag was retagged while apptainer ran: the staging belongs to
+            # an image this process never saw.  Nothing tied to it may be
+            # written or promoted.
+            if os.path.isfile(staging):
+                os.remove(staging)
+            print(
+                f"[SLURM] Docker image {source_tag} changed during the {family.name} SIF build — discarding it.",
+                file=sys.stderr,
+            )
+            raise RegistryError
         else:
             os.replace(staging, staged)
-            _record_sif_manifest(family, _docker_image_id(state, _sif_source_tag(state, family)), staged)
+            _record_sif_manifest(family, source_id, staged)
             built += 1
     if built:
         print(f"[SLURM] Built {built} SIF image(s).")
@@ -403,9 +419,19 @@ def validate_prepared_images(state, families: list[RuntimeFamily]) -> None:
                 raise RegistryError
             staged = Path(f"{family.slurm_image}.next")
             source_id = _docker_image_id(state, _sif_source_tag(state, family))
-            if state.use_slurm() and staged.is_file() and not _sif_manifest_matches(family, source_id, str(staged)):
-                print(f"Prepared SIF does not match Docker image: {family.name}", file=sys.stderr)
-                raise RegistryError
+            if state.use_slurm():
+                # Whatever staged_sif_path() selects is what activates — with
+                # no staging that is the deployed SIF, so it is validated too.
+                if staged.is_file():
+                    if not _sif_manifest_matches(family, source_id, str(staged)):
+                        print(f"Prepared SIF does not match Docker image: {family.name}", file=sys.stderr)
+                        raise RegistryError
+                elif Path(family.slurm_image).is_file() and sif_stale(state, family):
+                    print(
+                        f"Prepared SIF does not match Docker image: {family.name}",
+                        file=sys.stderr,
+                    )
+                    raise RegistryError
     for image in required:
         result = run_cmd(["docker", "image", "inspect", image], env=state.exported(), check=False, capture=True)
         if result.returncode != 0:

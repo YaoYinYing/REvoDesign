@@ -345,6 +345,51 @@ def test_prepared_validation_rejects_orphaned_staged_sif(tmp_path, monkeypatch):
         registry_mod.validate_prepared_images(state, [family])
 
 
+def _prepared_validation_run(available: dict[str, str], created: str):
+    def fake_run(argv, **_kwargs):
+        if argv[-2] == "{{.Created}}":
+            return subprocess.CompletedProcess(argv, 0, stdout=created)
+        image = argv[-1]
+        return subprocess.CompletedProcess(argv, 0 if image in available else 1, stdout=available.get(image, ""))
+
+    return fake_run
+
+
+def test_prepared_validation_rejects_deployed_sif_older_than_latest_image(tmp_path, monkeypatch):
+    """With no staging present the deployed SIF is what activates — it must
+    not predate the runner image that is about to serve tasks."""
+    family = RuntimeFamily("gremlin", RUNNER_IMAGE, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
+    available = {
+        "example/server:v1": "sha256:server",
+        "nginx:1.28-alpine": "",
+        "redis:7.2-alpine": "",
+        f"{RUNNER_IMAGE}:latest": "sha256:new",
+    }
+    monkeypatch.setattr(registry_mod, "run_cmd", _prepared_validation_run(available, "2030-01-01T00:00:00Z"))
+    state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1", "USE_SLURM": "1"})
+    Path(family.slurm_image).touch()
+
+    with pytest.raises(RegistryError):
+        registry_mod.validate_prepared_images(state, [family])
+
+
+def test_prepared_validation_accepts_deployed_sif_newer_than_latest_image(tmp_path, monkeypatch):
+    """A legacy SIF built manually before digest tracking stays deployable
+    while its image is older than the file."""
+    family = RuntimeFamily("gremlin", RUNNER_IMAGE, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
+    available = {
+        "example/server:v1": "sha256:server",
+        "nginx:1.28-alpine": "",
+        "redis:7.2-alpine": "",
+        f"{RUNNER_IMAGE}:latest": "sha256:new",
+    }
+    monkeypatch.setattr(registry_mod, "run_cmd", _prepared_validation_run(available, "2020-01-01T00:00:00Z"))
+    state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1", "USE_SLURM": "1"})
+    Path(family.slurm_image).touch()
+
+    registry_mod.validate_prepared_images(state, [family])
+
+
 def test_changed_image_names_compares_latest_only(tmp_path, monkeypatch):
     state, _log = _shimmed_state(
         monkeypatch,
@@ -467,6 +512,36 @@ def test_strict_sif_staging_propagates_build_failure(tmp_path, monkeypatch):
     state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
     with pytest.raises(RegistryError):
         build_slurm_images(state, [family], fail_on_error=True)
+
+
+def test_sif_staging_discards_result_when_source_image_changes_mid_build(tmp_path, monkeypatch):
+    """A :latest retag concurrent with apptainer must not leave a staged SIF
+    or recorded metadata whose identity belongs to two different images."""
+    bin_dir = _write_shims(tmp_path)
+    sif_dir = tmp_path / "sifs"
+    sif_dir.mkdir()
+    family = RuntimeFamily(
+        "gremlin",
+        RUNNER_IMAGE,
+        "docker/runners/pssm_gremlin/Dockerfile",
+        "docker/runners/pssm_gremlin/gremlin.def",
+        str(sif_dir / "gremlin.sif"),
+    )
+    state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
+    inspections = iter(["sha256:before", "sha256:after"])
+
+    def fake_run(argv, **_kwargs):
+        stdout = next(inspections) if argv[-2] == "{{.Id}}" else ""
+        return subprocess.CompletedProcess(argv, 0, stdout=stdout)
+
+    monkeypatch.setattr(registry_mod, "run_cmd", fake_run)
+
+    with pytest.raises(RegistryError):
+        build_slurm_images(state, [family])
+
+    assert not (sif_dir / "gremlin.sif.next").exists()  # nothing promoted
+    assert not (sif_dir / "gremlin.sif.next.build").exists()  # partial discarded
+    assert not (sif_dir / "digest" / "image-sif.json").exists()  # no metadata written
 
 
 # -- stamp / backup / maintenance round-trips through the container transport

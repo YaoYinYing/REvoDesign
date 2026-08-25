@@ -297,7 +297,7 @@
         "properties": {
           "name": {"type": "string"},
           "label": {"type": "string"},
-          "type": {"type": "string", "enum": ["str", "int", "float", "bool"]},
+          "type": {"type": "string", "enum": ["str", "int", "float", "bool", "choice"]},
           "default": {},
           "required": {"type": "boolean"},
           "description": {"type": ["string", "null"]},
@@ -319,7 +319,7 @@
           "gpus": {"type": "boolean"},
           "input_extensions": {"type": "array", "items": {"type": "string"}},
           "params": {"type": "array", "items": {"$ref": "#/components/schemas/TaskParameter"}},
-          "stage_markers": {"type": "array", "items": {"type": "string"}},
+          "stage_markers": {"type": "object", "additionalProperties": {"type": "string"}},
           "file_input": {"type": "object"},
           "input_workspace": {"type": "object"}
         },

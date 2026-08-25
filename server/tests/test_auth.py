@@ -7,6 +7,7 @@ from __future__ import annotations
 import io
 import json
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from conftest import (
@@ -325,7 +326,11 @@ def test_logout_invalidates_cookie_dashboard_and_authenticated_pages_are_not_cac
     assert logout.status_code == 200
     after_logout = client.get("/compute/dashboard", headers={"Accept": "text/html"})
     assert after_logout.status_code == 302
-    assert after_logout.headers["Location"] == "/compute/login?return_to=%2Fcompute%2Fdashboard"
+    # Flask 2 encodes "/" in query values as %2F, Flask 3+ leaves it raw —
+    # assert the redirect contract, not the werkzeug-version serialization.
+    location = urlsplit(after_logout.headers["Location"])
+    assert location.path == "/compute/login"
+    assert parse_qs(location.query)["return_to"] == ["/compute/dashboard"]
 
 
 def test_browser_auth_helper_revalidates_back_forward_cache_and_uses_replace():

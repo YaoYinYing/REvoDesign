@@ -68,6 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - AlphaFold: preserve SLURM's selected CUDA device for Amber relaxation; nest workflow resource cards under AlphaFold2.
   - AlphaFold multimer full-database runs now pass the required UniRef30 database path.
   - prepared SLURM deploys validate staged SIFs against the exact `:latest` runner-image digest.
+  - deployment control: staged SIFs whose source Docker image was retagged mid-build are discarded instead of recorded; prepared restarts also validate the deployed SIF against the active image.
+  - public pages: theme toggle now works on `/`, `/runners`, runner details, and `/api-docs`; unpinned Google Fonts links replaced with system-font stacks.
+  - OpenAPI schema: `stage_markers` published as a string-valued object and `choice` admitted as a parameter type, matching the served `/compute/api/types` payloads.
   - create-task parameters: choice controls now serialize their selected value, preserving AlphaFold multimer and every other non-default select option.
   - Result polling/viewers: terminal task states reload once without overlapping polls; pending result pages keep polling; Mol* teardown completes before iframe removal, stale teardown continuations cannot replace newer previews, and preview loaders remain visible.
   - AlphaFold stages: drain the stderr translator before wrapper exit and preserve both process statuses so final stage markers cannot be lost.

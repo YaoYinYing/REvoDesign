@@ -11,7 +11,7 @@
 
 .runners-hero h1 {
   margin: 0;
-  font-family: "Source Serif 4", serif;
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
   font-size: clamp(3.5rem, 7vw, 6.5rem);
   font-weight: 600;
   line-height: 0.94;
@@ -23,7 +23,7 @@
 .runners-summary dl { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.7rem; margin: 2rem 0 0; }
 .runners-summary dl div { padding-top: 0.8rem; border-top: 1px solid var(--line); }
 .runners-summary dt { color: var(--muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-.runners-summary dd { margin: 0.2rem 0 0; color: var(--accent); font-family: "Source Serif 4", serif; font-size: 1.8rem; font-weight: 700; }
+.runners-summary dd { margin: 0.2rem 0 0; color: var(--accent); font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 1.8rem; font-weight: 700; }
 
 .runner-note {
   display: grid;
@@ -50,7 +50,7 @@
 
 .runner-category > header { position: sticky; top: 1.5rem; align-self: start; }
 .category-index { margin: 0; color: var(--accent-2); font-family: ui-monospace, monospace; font-size: 0.7rem; }
-.runner-category h2 { margin: 0.55rem 0 0; font-family: "Source Serif 4", serif; font-size: clamp(1.7rem, 3vw, 2.5rem); letter-spacing: -0.03em; }
+.runner-category h2 { margin: 0.55rem 0 0; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: clamp(1.7rem, 3vw, 2.5rem); letter-spacing: -0.03em; }
 .runner-category > header > p:last-child { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.76rem; }
 .runner-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
 
@@ -72,7 +72,7 @@
 .compute-badge { padding: 0.2rem 0.48rem; border: 1px solid; border-radius: 999px; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; }
 .compute-badge.cpu { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 32%, var(--line)); background: color-mix(in srgb, var(--accent-2) 8%, transparent); }
 .compute-badge.gpu { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 34%, var(--line)); background: color-mix(in srgb, var(--warn) 8%, transparent); }
-.runner-card h3 { margin: 1.2rem 0 0.65rem; font-family: "Source Serif 4", serif; font-size: 1.35rem; line-height: 1.15; }
+.runner-card h3 { margin: 1.2rem 0 0.65rem; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 1.35rem; line-height: 1.15; }
 .runner-card > p { margin: 0; color: var(--muted); font-size: 0.84rem; line-height: 1.62; }
 .runner-card footer { display: flex; justify-content: space-between; gap: 1rem; margin-top: auto; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.68rem; }
 .runner-card footer strong { color: var(--ink); font-weight: 600; }
@@ -80,11 +80,11 @@
 .runner-card footer a:hover { text-decoration: underline; }
 
 .empty-catalog { padding: 4rem; border: 1px solid var(--line); border-radius: 20px; text-align: center; }
-.empty-catalog h2 { margin: 0; font-family: "Source Serif 4", serif; }
+.empty-catalog h2 { margin: 0; font-family: ui-serif, Georgia, "Times New Roman", serif; }
 .empty-catalog p { color: var(--muted); }
 
 .runner-cta { display: grid; grid-template-columns: 1fr auto; gap: 2rem; align-items: end; padding: clamp(4rem, 8vw, 7rem) 0; }
-.runner-cta h2 { max-width: 700px; margin: 0; font-family: "Source Serif 4", serif; font-size: clamp(2.2rem, 5vw, 4rem); line-height: 1.02; letter-spacing: -0.04em; }
+.runner-cta h2 { max-width: 700px; margin: 0; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: clamp(2.2rem, 5vw, 4rem); line-height: 1.02; letter-spacing: -0.04em; }
 .runner-cta > div:last-child { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.65rem; }
 .site-footer { display: flex; justify-content: space-between; gap: 1rem; padding: 1.8rem 0 2.5rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.76rem; }
 
@@ -98,7 +98,7 @@
 
 .back-to-catalog { display: inline-block; margin-bottom: 2rem; color: var(--muted); font-size: 0.8rem; font-weight: 600; text-decoration: none; }
 .back-to-catalog:hover { color: var(--ink); }
-.runner-detail-hero h1 { max-width: 780px; margin: 0; font-family: "Source Serif 4", serif; font-size: clamp(3.8rem, 8vw, 7rem); font-weight: 600; line-height: 0.92; letter-spacing: -0.055em; overflow-wrap: anywhere; }
+.runner-detail-hero h1 { max-width: 780px; margin: 0; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: clamp(3.8rem, 8vw, 7rem); font-weight: 600; line-height: 0.92; letter-spacing: -0.055em; overflow-wrap: anywhere; }
 .runner-intro { max-width: 720px; margin: 1.5rem 0 0; color: var(--muted); font-size: clamp(1rem, 1.6vw, 1.15rem); line-height: 1.72; }
 .runner-detail-hero .hero-cta { margin-top: 2rem; }
 .runner-facts { margin: 0; border-top: 1px solid var(--line); }
@@ -107,18 +107,18 @@
 .runner-facts dd { margin: 0; color: var(--ink); font-family: ui-monospace, monospace; font-size: 0.75rem; font-weight: 700; text-align: right; }
 
 .detail-section { display: grid; grid-template-columns: minmax(220px, 0.35fr) 1fr; gap: clamp(2.5rem, 7vw, 7rem); padding: clamp(4.5rem, 8vw, 7rem) 0; border-top: 1px solid var(--line); }
-.detail-section > header h2 { margin: 0; font-family: "Source Serif 4", serif; font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.04; letter-spacing: -0.035em; }
+.detail-section > header h2 { margin: 0; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.04; letter-spacing: -0.035em; }
 .detail-section > header > p:last-child { margin: 1rem 0 0; color: var(--muted); font-size: 0.84rem; line-height: 1.65; }
 .stage-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; padding: 0; margin: 0; list-style: none; }
 .stage-list li { display: flex; gap: 0.8rem; min-height: 92px; padding: 1rem; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--paper) 93%, white 7%); }
 .stage-list li > span { color: var(--accent-2); font-family: ui-monospace, monospace; font-size: 0.65rem; }
 .stage-list div { display: grid; align-content: start; gap: 0.3rem; }
-.stage-list strong { font-family: "Source Serif 4", serif; font-size: 0.98rem; line-height: 1.2; }
+.stage-list strong { font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 0.98rem; line-height: 1.2; }
 .stage-list small { color: var(--muted); font-family: ui-monospace, monospace; font-size: 0.62rem; }
 
 .parameter-list { border-top: 1px solid var(--line); }
 .parameter-row { display: grid; grid-template-columns: minmax(150px, 0.65fr) 1.25fr minmax(150px, 0.8fr) auto; gap: 1.4rem; align-items: start; padding: 1.3rem 0; border-bottom: 1px solid var(--line); }
-.parameter-name h3 { margin: 0; font-family: "Source Serif 4", serif; font-size: 1rem; }
+.parameter-name h3 { margin: 0; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 1rem; }
 .parameter-name code { color: var(--accent-2); font-size: 0.65rem; }
 .parameter-row > p { margin: 0; color: var(--muted); font-size: 0.8rem; line-height: 1.55; }
 .parameter-row dl { display: grid; gap: 0.35rem; margin: 0; }

@@ -57,6 +57,8 @@ def test_public_index_presents_the_revodesign_mission(monkeypatch, tmp_path):
     assert '<meta name="keywords"' in html
     assert 'href="/static/css/base.css"' in html
     assert 'href="/static/css/index.css"' in html
+    assert 'src="/static/js/theme-toggle.js"' in html
+    assert "fonts.googleapis.com" not in html
 
 
 def test_public_api_docs_expose_the_client_openapi_contract(monkeypatch, tmp_path):
@@ -74,6 +76,8 @@ def test_public_api_docs_expose_the_client_openapi_contract(monkeypatch, tmp_pat
     assert "swagger-ui-dist@5.32.14" in html
     assert 'integrity="sha384-' in html
     assert 'src="/static/js/api-docs.js?v=' in html
+    assert 'src="/static/js/theme-toggle.js"' in html
+    assert "fonts.googleapis.com" not in html
 
     response = client.get("/openapi.json")
     spec = response.get_json()
@@ -81,6 +85,14 @@ def test_public_api_docs_expose_the_client_openapi_contract(monkeypatch, tmp_pat
     assert response.content_type == "application/json"
     assert spec["openapi"] == "3.1.0"
     assert set(spec["components"]["securitySchemes"]) == {"bearerAuth", "apiKeyAuth"}
+    task_type_properties = spec["components"]["schemas"]["TaskType"]["properties"]
+    # The API serializes TaskType.stage_markers directly as dict[str, str].
+    assert task_type_properties["stage_markers"] == {
+        "type": "object",
+        "additionalProperties": {"type": "string"},
+    }
+    parameter_type = spec["components"]["schemas"]["TaskParameter"]["properties"]["type"]
+    assert parameter_type["enum"] == ["str", "int", "float", "bool", "choice"]
     assert {
         "/compute/api/auth/login": {"post"},
         "/compute/api/types": {"get"},
@@ -118,6 +130,8 @@ def test_public_runner_catalog_uses_enabled_task_types(monkeypatch, tmp_path):
     assert '<meta name="keywords"' in html
     assert 'href="/static/css/runners.css"' in html
     assert 'href="/runners/gremlin"' in html
+    assert 'src="/static/js/theme-toggle.js"' in html
+    assert "fonts.googleapis.com" not in html
 
     detail = module.app.test_client().get("/runners/gremlin")
     detail_html = detail.get_data(as_text=True)
@@ -126,6 +140,8 @@ def test_public_runner_catalog_uses_enabled_task_types(monkeypatch, tmp_path):
     assert "What the workflow runs" in detail_html
     assert "GREMLIN optimization iterations" in detail_html
     assert "Available parameters" in detail_html
+    assert 'src="/static/js/theme-toggle.js"' in detail_html
+    assert "fonts.googleapis.com" not in detail_html
     assert module.app.test_client().get("/runners/not-a-runner").status_code == 404
 
 
@@ -203,6 +219,10 @@ def test_task_type_api_exposes_runtime_family_and_gpu_contract(monkeypatch, tmp_
     laser = next(item for item in response.get_json() if item["name"] == "lasermpnn")
     assert laser["runtime_family"] == "mpnn"
     assert laser["gpus"] is False
+    # stage_markers is published as a name-to-label mapping, matching the
+    # object/additionalProperties shape in the OpenAPI schema.
+    assert isinstance(laser["stage_markers"], dict)
+    assert all(isinstance(label, str) for label in laser["stage_markers"].values())
 
     form_response = client.get("/compute/api/types/lasermpnn")
     assert form_response.status_code == 200

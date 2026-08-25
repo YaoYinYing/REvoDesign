@@ -6,6 +6,7 @@ html { scroll-behavior: smooth; }
 .landing-page {
   width: min(1180px, calc(100% - 3rem));
   margin: 0 auto;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 .landing-nav {
@@ -22,7 +23,7 @@ html { scroll-behavior: smooth; }
   align-items: center;
   gap: 0.65rem;
   color: var(--ink);
-  font-family: "Source Serif 4", serif;
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
   font-size: 1.18rem;
   font-weight: 700;
   text-decoration: none;
@@ -50,7 +51,7 @@ html { scroll-behavior: smooth; }
 .hero-copy h1 {
   max-width: 720px;
   margin: 0;
-  font-family: "Source Serif 4", serif;
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
   font-size: clamp(3.3rem, 6.4vw, 5.8rem);
   line-height: 0.96;
   letter-spacing: -0.045em;
@@ -88,7 +89,7 @@ html { scroll-behavior: smooth; }
 .evidence-grid { position: relative; z-index: 1; height: 430px; margin-top: 0.8rem; }
 .evidence-source { position: absolute; left: 0; width: 46%; display: grid; grid-template-columns: 1.5rem 1fr; column-gap: 0.35rem; padding: 0.72rem; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--paper) 94%, white 6%); box-shadow: 0 8px 18px rgba(29, 42, 47, 0.06); }
 .evidence-source span { grid-row: 1 / 3; color: var(--accent-2); font-family: ui-monospace, monospace; font-size: 0.65rem; }
-.evidence-source strong { font-family: "Source Serif 4", serif; font-size: 0.92rem; }
+.evidence-source strong { font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 0.92rem; }
 .evidence-source small { color: var(--muted); font-size: 0.64rem; }
 .source-structure { top: 24px; }
 .source-evolution { top: 126px; }
@@ -99,7 +100,7 @@ html { scroll-behavior: smooth; }
 .judgment::before, .judgment::after { content: ""; position: absolute; border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent); border-radius: 44% 56% 48% 52%; transform: rotate(35deg); }
 .judgment::before { inset: 15%; }
 .judgment::after { inset: 25% 10%; transform: rotate(-32deg); border-color: color-mix(in srgb, var(--warn) 32%, transparent); }
-.judgment span { position: relative; z-index: 1; font-family: "Source Serif 4", serif; font-size: 1.1rem; font-weight: 700; line-height: 1.1; }
+.judgment span { position: relative; z-index: 1; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 1.1rem; font-weight: 700; line-height: 1.1; }
 
 .connector { position: absolute; left: 46%; width: 20%; height: 1px; background: color-mix(in srgb, var(--accent) 42%, transparent); transform-origin: left; }
 .connector::after { content: ""; position: absolute; right: -2px; top: -2px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
@@ -108,12 +109,12 @@ html { scroll-behavior: smooth; }
 .connector-c { top: 265px; transform: rotate(-22deg); }
 .result { position: absolute; right: 2%; bottom: 7px; width: 37%; padding-top: 0.65rem; border-top: 1px solid var(--line); }
 .result span { color: var(--accent-2); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
-.result strong { display: block; margin-top: 0.25rem; font-family: "Source Serif 4", serif; font-size: 1.25rem; line-height: 1.05; }
+.result strong { display: block; margin-top: 0.25rem; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 1.25rem; line-height: 1.05; }
 
 .approach-section, .workflow-section { padding: clamp(4.5rem, 8vw, 7.5rem) 0; border-top: 1px solid var(--line); }
 .section-intro { display: grid; grid-template-columns: 0.5fr 1.35fr 1fr; gap: clamp(1.5rem, 4vw, 4rem); align-items: start; }
 .section-intro .section-kicker { margin-top: 0.4rem; }
-.section-intro h2 { margin: 0; font-family: "Source Serif 4", serif; font-size: clamp(2rem, 4vw, 3.35rem); line-height: 1.06; letter-spacing: -0.035em; }
+.section-intro h2 { margin: 0; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: clamp(2rem, 4vw, 3.35rem); line-height: 1.06; letter-spacing: -0.035em; }
 .section-intro > p:last-child { margin: 0.35rem 0 0; color: var(--muted); line-height: 1.7; }
 
 .foundation-grid { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 4.5rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -121,7 +122,7 @@ html { scroll-behavior: smooth; }
 .foundation-grid article + article { padding-left: 2.4rem; border-left: 1px solid var(--line); }
 .foundation-number { color: var(--accent-2); font-family: ui-monospace, monospace; font-size: 0.7rem; }
 .foundation-grid article:nth-child(2) .foundation-number { color: var(--warn); }
-.foundation-grid h3 { margin: 0.7rem 0 0.6rem; font-family: "Source Serif 4", serif; font-size: 1.3rem; }
+.foundation-grid h3 { margin: 0.7rem 0 0.6rem; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 1.3rem; }
 .foundation-grid p { max-width: 310px; margin: 0; color: var(--muted); font-size: 0.87rem; line-height: 1.65; }
 
 .section-intro.compact { grid-template-columns: 0.5fr 2.35fr; }
@@ -131,7 +132,7 @@ html { scroll-behavior: smooth; }
 .workflow-line li::before { content: ""; position: absolute; top: -6px; left: 0; width: 10px; height: 10px; border: 3px solid var(--paper); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .workflow-line li + li::before { left: 2rem; }
 .workflow-line span { color: var(--accent-2); font-family: ui-monospace, monospace; font-size: 0.68rem; }
-.workflow-line strong { display: block; margin-top: 0.45rem; font-family: "Source Serif 4", serif; font-size: 1.3rem; }
+.workflow-line strong { display: block; margin-top: 0.45rem; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 1.3rem; }
 .workflow-line p { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.84rem; line-height: 1.6; }
 
 .product-section { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; padding: 0 0 clamp(5rem, 9vw, 8rem); }
@@ -140,7 +141,7 @@ html { scroll-behavior: smooth; }
 .compute-card { border-radius: 0 56px 24px 0; }
 .product-label { margin: 0; color: var(--accent-2); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 .compute-card .product-label { color: var(--warn); }
-.product-card h2 { margin: 0.7rem 0 1rem; font-family: "Source Serif 4", serif; font-size: clamp(1.8rem, 3vw, 2.6rem); letter-spacing: -0.025em; }
+.product-card h2 { margin: 0.7rem 0 1rem; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: clamp(1.8rem, 3vw, 2.6rem); letter-spacing: -0.025em; }
 .product-card > p:not(.product-label) { max-width: 440px; margin: 0 0 1.5rem; color: var(--muted); line-height: 1.7; }
 .text-link { color: var(--accent); font-size: 0.86rem; font-weight: 700; text-decoration: none; }
 .text-link:hover { text-decoration: underline; }
@@ -148,7 +149,7 @@ html { scroll-behavior: smooth; }
 .product-bridge span { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
 
 .closing-section { padding: clamp(4rem, 9vw, 8rem) 0; border-top: 1px solid var(--line); text-align: center; }
-.closing-section blockquote { margin: 0 auto; font-family: "Source Serif 4", serif; font-size: clamp(2.7rem, 6vw, 5.4rem); font-weight: 600; line-height: 1.02; letter-spacing: -0.045em; }
+.closing-section blockquote { margin: 0 auto; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: clamp(2.7rem, 6vw, 5.4rem); font-weight: 600; line-height: 1.02; letter-spacing: -0.045em; }
 .closing-section blockquote em { color: var(--accent); }
 .closing-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.7rem; margin-top: 2.5rem; }
 .closing-actions .btn { padding: 0.68rem 1.15rem; }
