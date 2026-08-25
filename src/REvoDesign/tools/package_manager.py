@@ -50,6 +50,8 @@ from pymol.Qt.utils import loadUi
 
 LOGGER_LEVEL = 0
 _WORKER_CONTEXT = threading.local()
+
+
 def _qt_exec(obj, *args, **kwargs):
     """Execute a Qt object on both Qt5 and Qt6 bindings."""
 

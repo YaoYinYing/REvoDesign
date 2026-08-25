@@ -511,7 +511,7 @@ def login_required(f: Callable) -> Callable:
         user = load_current_user()
         if user is None:
             if "text/html" in request.headers.get("Accept", ""):
-                return redirect(url_for("login_page"))
+                return redirect(url_for("login_page", return_to=request.full_path.rstrip("?")))
             return (
                 jsonify(
                     {

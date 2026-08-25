@@ -278,13 +278,7 @@ def _sif_manifest_matches(family: RuntimeFamily, docker_image_id: str, sif_path:
 
 
 def _sif_source_tag(state, family: RuntimeFamily) -> str:
-    """Use the prepared runner image when this restart built one."""
-    latest = _docker_tag(family.docker_image)
-    if latest.endswith(":latest"):
-        prepared = f"{latest[:-len(':latest')]}:next"
-        if _docker_image_id(state, prepared):
-            return prepared
-    return latest
+    return _docker_tag(family.docker_image)
 
 
 def sif_stale(state, family: RuntimeFamily, path: str | None = None) -> bool:
@@ -295,13 +289,10 @@ def sif_stale(state, family: RuntimeFamily, path: str | None = None) -> bool:
     path = path or family.slurm_image
     if not Path(path).is_file():
         return True
-    latest = _docker_tag(family.docker_image)
     tag = _sif_source_tag(state, family)
     source_id = _docker_image_id(state, tag)
     if source_id and _sif_manifest_matches(family, source_id, path):
         return False
-    if tag != latest and source_id != _docker_image_id(state, latest):
-        return True
     created = run_cmd(
         ["docker", "image", "inspect", "--format", "{{.Created}}", tag],
         env=state.exported(),
@@ -318,7 +309,7 @@ def sif_stale(state, family: RuntimeFamily, path: str | None = None) -> bool:
 
 
 def _sif_definition_for_tag(def_file: Path, source_tag: str) -> tuple[str, str | None]:
-    """Return a definition using the prepared Docker tag, plus a temp path to clean up."""
+    """Return a definition using the source Docker tag, plus a temp path to clean up."""
     text = def_file.read_text(encoding="utf-8")
     current = _first_directive_value(text, "From:")
     if source_tag == current:
@@ -402,29 +393,17 @@ def validate_prepared_images(state, families: list[RuntimeFamily]) -> None:
     for family in families:
         if runner_enabled(state, family.name):
             latest = _docker_tag(family.docker_image)
-            prepared = _docker_tag(family.docker_image, "next")
-            candidates = (latest, prepared)
-            if all(
+            if (
                 run_cmd(
-                    ["docker", "image", "inspect", image], env=state.exported(), check=False, capture=True
+                    ["docker", "image", "inspect", latest], env=state.exported(), check=False, capture=True
                 ).returncode
                 != 0
-                for image in candidates
             ):
                 print(f"Prepared Docker image is missing: {family.docker_image}", file=sys.stderr)
                 raise RegistryError
-            latest_id = _docker_image_id(state, latest)
-            prepared_id = _docker_image_id(state, prepared)
             staged = Path(f"{family.slurm_image}.next")
             source_id = _docker_image_id(state, _sif_source_tag(state, family))
-            if (
-                state.use_slurm()
-                and (staged.is_file() or (prepared_id and prepared_id != latest_id))
-                and (
-                    not staged.is_file()
-                    or not _sif_manifest_matches(family, source_id, str(staged))
-                )
-            ):
+            if state.use_slurm() and staged.is_file() and not _sif_manifest_matches(family, source_id, str(staged)):
                 print(f"Prepared SIF does not match Docker image: {family.name}", file=sys.stderr)
                 raise RegistryError
     for image in required:

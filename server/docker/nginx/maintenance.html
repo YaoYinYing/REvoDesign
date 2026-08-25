@@ -1,5 +1,33 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Maintenance</title></head>
-  <body><main><h1>REvoDesign is temporarily unavailable</h1><p>We’re performing maintenance. Please try again shortly.</p></main></body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Maintenance | REvoDesign</title>
+<style>
+  :root { color-scheme: light dark; --paper: #f8faf7; --ink: #1d2a2f; --muted: #5d6c72; --line: #d4ddd8; --accent: #0f4f63; --warn: #b06c14; }
+  * { box-sizing: border-box; }
+  body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 1.25rem; color: var(--ink); background: radial-gradient(circle at 8% 6%, rgba(15,79,99,.12), transparent 28%), radial-gradient(circle at 88% 14%, rgba(176,108,20,.12), transparent 24%), linear-gradient(170deg,#f2f5f1,#e1e9e3); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { width: min(620px, 100%); padding: clamp(2rem, 6vw, 4rem); border: 1px solid var(--line); border-radius: 28px 28px 72px 28px; background: rgba(248,250,247,.92); box-shadow: 0 24px 60px rgba(29,42,47,.13); }
+  .mark { width: 3.2rem; height: 3.2rem; display: grid; place-items: center; border-radius: 50%; color: #f6fbff; background: var(--accent); font-family: Georgia, serif; font-size: 1.2rem; font-weight: 700; box-shadow: 0 10px 20px rgba(15,79,99,.25); }
+  .status { margin: 2rem 0 .8rem; color: var(--warn); font-size: .76rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  .status::before { content: ""; display: inline-block; width: 1.8rem; height: 1px; margin: 0 .5rem .25rem 0; background: currentColor; }
+  h1 { max-width: 520px; margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.5rem, 8vw, 4.5rem); font-weight: 600; line-height: .98; letter-spacing: -.045em; }
+  p { max-width: 470px; margin: 1.4rem 0 0; color: var(--muted); font-size: 1rem; line-height: 1.65; }
+  .foot { display: flex; justify-content: space-between; gap: 1rem; margin-top: 2.4rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: .75rem; }
+  .retry { color: var(--accent); font-weight: 700; }
+  @media (max-width: 480px) { main { border-radius: 22px 22px 52px 22px; } .foot { flex-direction: column; } }
+  @media (prefers-color-scheme: dark) { :root { --paper:#132127; --ink:#e4edf1; --muted:#9fb0b8; --line:#2d424d; --accent:#1b7fa1; --warn:#d79a4d; } body { background: radial-gradient(circle at 10% 8%,rgba(53,117,138,.24),transparent 30%),radial-gradient(circle at 86% 15%,rgba(156,100,31,.24),transparent 26%),linear-gradient(165deg,#0f171c,#0f1a1f); } main { background: rgba(19,33,39,.94); box-shadow: 0 26px 65px rgba(3,9,12,.45); } }
+</style>
+</head>
+<body>
+<main>
+  <div class="mark" aria-hidden="true">RD</div>
+  <div class="status">Scheduled maintenance</div>
+  <h1>Compute workspace temporarily paused.</h1>
+  <p>REvoCompute is being updated and cannot accept requests right now. Please try again shortly.</p>
+  <div class="foot"><span>REvoDesign / REvoCompute</span><span class="retry">Structure. Evolution. Human judgment.</span></div>
+</main>
+</body>
 </html>

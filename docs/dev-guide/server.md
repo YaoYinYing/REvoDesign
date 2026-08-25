@@ -44,6 +44,24 @@ Compose services; the manifest build/pull loops prepare them and workers launch
 them on demand. Only the worker receives the Docker socket. Web is internal and
 the gateway mounts results read-only.
 
+The public `/` route is REvoDesign's mission-led landing page and entry point to
+the PyMOL plugin documentation and REvoCompute. The authenticated application
+remains under `/compute/`. The public `/runners` catalog renders the enabled
+task-type payload shared with `GET /compute/api/types`, keeping the registry as
+the only availability source; `/runners/<task-type>` presents that method's
+stages and parameter contract from the same payload. While the deployment
+maintenance sentinel exists, Nginx serves its standalone `maintenance.html`
+without depending on Flask or application static assets.
+
+The public `/api-docs` page renders the client-facing API contract from
+`/openapi.json`. It covers authentication, task discovery and submission,
+status/cancellation/deletion, and result retrieval; profile and administrative
+operations remain outside the public contract.
+
+The create-task page accepts `?task_type=<name>` for catalog deep links. It
+selects the matching enabled type after loading `/compute/api/types`; absent or
+unknown names retain the first enabled type as the default.
+
 ## Source layout
 
 ```text
@@ -180,6 +198,9 @@ Page routes include `/compute/login`, `/compute/dashboard`,
 `/compute/create_task`, `/compute/results/<task-id>`, and admin-only user,
 runtime-configuration, and log views. Logged-out protected pages return 401;
 logout clears the HttpOnly cookie server-side.
+
+Interactive client documentation is available at `/api-docs`; the underlying
+OpenAPI 3.1 document is available at `/openapi.json` for tooling.
 
 ## Authentication and authorization
 

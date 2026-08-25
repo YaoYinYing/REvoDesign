@@ -129,9 +129,9 @@ def normalize_rfdiffusion(value: Any) -> dict[str, Any]:
         if "fixed" not in kinds or "chain_break" not in kinds or "generated" not in kinds or not hotspots:
             missing = []
             if "fixed" not in kinds:
-                missing.append("target residues — select them in the viewer and press \"Use selection as target\"")
+                missing.append('target residues — select them in the viewer and press "Use selection as target"')
             if not hotspots:
-                missing.append("hotspot residues — select them in the viewer and press \"Use selection as hotspots\"")
+                missing.append('hotspot residues — select them in the viewer and press "Use selection as hotspots"')
             if "chain_break" not in kinds or "generated" not in kinds:
                 missing.append("a binder length")
             raise WorkspaceValidationError("Binder design needs " + " and ".join(missing))

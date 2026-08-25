@@ -36,11 +36,6 @@ USAGE = """Usage: bash server/run/restart.sh [setup|prepare|build|up|down|reload
                                                without executing anything.
            --keep-gateway                     Enter maintenance and leave the
                                                gateway running during restart.
-           --rollback                          Restore the previous image/SIF
-                                               set from the last deploy stamp,
-                                               then restart. Refuses when no
-                                               stamp or previous set exists.
-
 Environment:
   REVODESIGN_SERVER_ENV
           Optional path to env file (absolute or relative to current working directory).
@@ -52,8 +47,8 @@ Safety:
 
 Subcommands:
   setup    Prepare the selected env file (create from .env.example if missing) and show detected DOCKER_GID.
-  prepare  Build selected runner :next images and, with --build-sif, stage their SIFs.
-           Does not touch the running deployment.
+  prepare  Build selected runner images and, with --build-sif, stage their SIFs.
+           Does not restart the running deployment.
   build    Build runner image and web/worker images.
   up       Start redis/web/worker with docker compose.
   down     Stop and remove the compose stack.

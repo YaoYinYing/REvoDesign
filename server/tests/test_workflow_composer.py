@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from revocompute.job import JobState
 from revocompute.resource_policy import ResolvedResources
-from revocompute.task_types import RuntimeFamily, RunnerConfig, TaskType, WorkflowStage
+from revocompute.task_types import RunnerConfig, RuntimeFamily, TaskType, WorkflowStage
 
 
 def _policy(requires_gpu: bool) -> ResolvedResources:

@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Server:
+  - public interactive OpenAPI documentation at `/api-docs`, machine-readable schema, and SEO keywords for public pages.
+  - authentication: login accepts a validated local `return_to` path and protected browser routes preserve their destination.
+  - maintenance: scope the gateway sentinel check to proxied requests so the custom 503 document can render without an internal redirect loop.
+  - public REvoDesign mission page at `/`, live runner catalog and method details under `/runners`, and matching standalone deployment-maintenance page.
   - runner: FreeBindCraft GPU family and isolated selected-runner image preparation.
   - runner: ESMDynamic GPU family for dynamic protein contact maps, frequencies, and kinetics from FASTA input.
   - workflow Composer: ordered, resumable task stages reuse existing Docker/SLURM jobs with independently snapshotted resource policies; AlphaFold MSA/features now run CPU-only before GPU model/relax.
@@ -35,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Server:
+  - create-task: `?task_type=<name>` deep links select an enabled method from runner detail pages.
   - ColabFold AlphaFold2 runner (`colabfold_af2`): ColabFold 1.6.2 with the public MMseqs2 MSA service and mounted ColabFold weights, alongside the existing offline-database AlphaFold2 runner (`alphafold`); only the ColabFold MSA stage receives outbound Docker networking.
   - rename `pssm_gremlin_server` → `revocompute` (REvoCompute); templates, JS, CSS, email headers rebranded.
   - runtime-family deployment: task types select shared families owning one image/entrypoint/runner YAML/SIF; PLACER + RFdiffusion share a family; Docker and SLURM consume identical resolved manifests.
@@ -51,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - runner database/env config consolidated into `config/runners/<family>.yaml`.
   - ESMFold v1 checkpoint removed (2022 openfold kernels no longer compile); ESM-2/1v/IF1 remain.
   - `ENABLED_TASKRUNNERS` filters by runtime family.
-  - deployment control: `restart.sh` is a thin wrapper over the Python control module (`server/run/revocompute_ctl/`); restart walks run as named steps with a deploy stamp (commit, digests, changed families, SIF sha256s, config backup), `:next`→`:latest`→`:previous` promotion with changed-only churn and post-deploy prune, staged `<sif>.next` builds, `--dry-run`, `--drain=<minutes>` (maintenance sentinel + 503 submission gate), and `--rollback`; deployment-state file mutations run inside a throwaway container as the runner identity.
+  - deployment control: `restart.sh` is a thin wrapper over the Python control module (`server/run/revocompute_ctl/`); restart walks run as named steps with a deploy stamp (commit, digests, changed families, SIF sha256s, config backup), direct `:latest` image replacement with post-deploy prune, atomic staged SIF builds, `--dry-run`, and maintenance mode; deployment-state file mutations run inside a throwaway container as the runner identity.
   - server docs/README reconciled with the executor/runtime model (runbook distinguishes build/dev/prod/prepared modes).
 - Package manager:
   - CI: source-aware checks — Bare Tests/Pylint run only for desktop changes, Server Tests only for server changes.
@@ -62,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Server:
   - AlphaFold: preserve SLURM's selected CUDA device for Amber relaxation; nest workflow resource cards under AlphaFold2.
   - AlphaFold multimer full-database runs now pass the required UniRef30 database path.
-  - prepared SLURM deploys build staged SIFs from the matching `:next` runner image instead of silently reusing `:latest`.
+  - prepared SLURM deploys validate staged SIFs against the exact `:latest` runner-image digest.
   - create-task parameters: choice controls now serialize their selected value, preserving AlphaFold multimer and every other non-default select option.
   - Result polling/viewers: terminal task states reload once without overlapping polls; pending result pages keep polling; Mol* teardown completes before iframe removal, stale teardown continuations cannot replace newer previews, and preview loaders remain visible.
   - AlphaFold stages: drain the stderr translator before wrapper exit and preserve both process statuses so final stage markers cannot be lost.

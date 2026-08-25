@@ -26,10 +26,10 @@ http {
     server {
         listen 8080;
         server_name _;
-        if (-f /srv/deployment/.maintenance) { return 503; }
-        error_page 503 = /maintenance.html;
+        error_page 503 =503 /maintenance.html;
 
         location / {
+            if (-f /srv/deployment/.maintenance) { return 503; }
             proxy_pass http://web:${UPSTREAM_PORT};
             proxy_http_version 1.1;
             proxy_set_header Connection "";

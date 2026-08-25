@@ -67,8 +67,8 @@
         resetSubmitButton();
         A.setToken(result.data.token);
         statusEl.className = "status-msg success";
-        statusEl.textContent = "Logged in as " + result.data.username + ". Redirecting to dashboard…";
-        setTimeout(function () { window.location.href = "/compute/dashboard"; }, 800);
+        statusEl.textContent = "Logged in as " + result.data.username + ". Redirecting…";
+        setTimeout(function () { window.location.href = form.dataset.returnTo; }, 800);
       } else if (result.data && result.data.retry_after_seconds) {
         startRetryCountdown(result.data.retry_after_seconds);
       } else {

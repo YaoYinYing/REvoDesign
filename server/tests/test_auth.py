@@ -325,7 +325,7 @@ def test_logout_invalidates_cookie_dashboard_and_authenticated_pages_are_not_cac
     assert logout.status_code == 200
     after_logout = client.get("/compute/dashboard", headers={"Accept": "text/html"})
     assert after_logout.status_code == 302
-    assert after_logout.headers["Location"] == "/compute/login"
+    assert after_logout.headers["Location"] == "/compute/login?return_to=%2Fcompute%2Fdashboard"
 
 
 def test_browser_auth_helper_revalidates_back_forward_cache_and_uses_replace():
@@ -508,6 +508,30 @@ def test_login_page_redirects_authenticated_user(monkeypatch, tmp_path):
     auth_header = _test_client_auth(module)
     resp = client.get("/compute/login", headers=auth_header)
     assert resp.status_code == 302
+
+
+def test_login_return_to_accepts_local_paths_and_rejects_external_urls(monkeypatch, tmp_path):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+
+    page = client.get("/compute/login?return_to=%2Fcompute%2Fcreate_task%3Ftask_type%3Dgremlin")
+    assert 'data-return-to="/compute/create_task?task_type=gremlin"' in page.get_data(as_text=True)
+
+    auth_header = _test_client_auth(module)
+    returned = client.get(
+        "/compute/login?return_to=%2Fcompute%2Fcreate_task%3Ftask_type%3Dgremlin", headers=auth_header
+    )
+    assert returned.headers["Location"] == "/compute/create_task?task_type=gremlin"
+
+    external = client.get("/compute/login?return_to=https%3A%2F%2Fevil.example", headers=auth_header)
+    assert external.headers["Location"] == "/compute/dashboard"
+
+
+def test_login_script_redirects_to_server_validated_return_to():
+    script = (Path(__file__).resolve().parents[1] / "revocompute" / "static" / "js" / "login.js").read_text(
+        encoding="utf-8"
+    )
+    assert "window.location.href = form.dataset.returnTo" in script
 
 
 def test_terms_page(monkeypatch, tmp_path):

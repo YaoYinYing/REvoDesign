@@ -13,6 +13,7 @@ recovery machinery is needed.
 from __future__ import annotations
 
 import sys
+
 from revocompute_ctl.compose import compose_args, run_cmd
 
 # Byte-identical to the heredoc restart.sh fed to the worker container.
