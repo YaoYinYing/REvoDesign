@@ -85,8 +85,8 @@ therefore rebuild all runtime families.
 Image builds install Python packages with `uv pip install` (bootstrapped from
 its PyPI wheel) and keep PyPI in the index pool via `--extra-index-url`
 alongside the pytorch wheelhouses; `run.sh` edits invalidate only the final
-COPY layers. Runner images build to `:next` and are promoted to `:latest`
-after the stack is down; `:previous` always survives for rollback.
+COPY layers. Runner images build directly to `:latest`; replaced digests are
+removed by the post-deploy dangling-image prune.
 `restart --build-sif` stages changed SIFs as `<sif>.next` and promotes them
 in place after `down` — unchanged families are skipped automatically, no
 manual SIF deletion needed.
@@ -96,12 +96,14 @@ Deploy safety flags (all `restart`-only):
 | Flag | Effect |
 |------|--------|
 | `--dry-run` | Prints the planned step walk and per-family changed/unchanged predictions; executes and writes nothing |
-| `--keep-gateway` | Enters maintenance and keeps Nginx serving the static maintenance page while the application services restart |
-| `--rollback` | Restores the previous image/SIF set from the deploy stamp, restoring the config backup when the registry drifted; refuses when the stamped previous set is missing |
+| `--keep-gateway` | Enters maintenance, keeps Nginx serving the static page, then restarts it after the application services to refresh Docker DNS |
 
 A successful prepared/prod restart writes `${CONFIG_DIR}/.deploy-stamp` with
 the commit, digests, changed families, SIF sha256s, registry sha256, and the
 config-backup path.
+
+The controller rejects a second mutating command for the same env file while
+one is running. Dry runs remain available during a deployment.
 
 ## Overview
 
@@ -475,6 +477,9 @@ cancel only the active allocation and resume at the first incomplete stage.
 ## 5. Authentication
 
 The server uses Bearer-token authentication (replaces the old HTTP Basic Auth + `users.txt` model).
+Login links may include a URL-encoded local path, for example
+`/compute/login?return_to=%2Fcompute%2Fcreate_task%3Ftask_type%3Dgremlin`;
+successful login returns there. External return URLs are rejected.
 
 ### How auth works
 
@@ -651,9 +656,8 @@ environment file:
   `docker-compose.slurm.yml`, bind-mounts SLURM client tools + MUNGE, validates
   SIF images, and exports `SLURM_ENABLED=true` to the services.
 - `--build-sif` stages each stale SIF (missing or older than the family's
-  Docker image) as `<sif>.next`, promotes it in place after `down`, and saves
-  the previous file as `<sif>.previous` for `restart --rollback` (requires
-  Apptainer on PATH). The stack is down while SIFs build, so expect a brief
+  Docker image) as `<sif>.next` and atomically replaces it after `down`
+  (requires Apptainer on PATH). The stack is down while SIFs build, so expect a brief
   outage; unchanged families are skipped automatically.
 
 Provision production bind-mounted directories as writable by UID/GID
@@ -697,9 +701,29 @@ REVODESIGN_SERVER_ENV=server/.env.production bash server/run/restart.sh reload
 
 ## 7. Usage
 
+The public landing page is served at `http://<server-ip>:<port>/`. It introduces
+REvoDesign's human-guided enzyme redesign mission and connects the PyMOL plugin,
+documentation, and REvoCompute workspace. During a deployment restart, the
+gateway replaces it with a dependency-free maintenance page until the
+application services are ready again.
+
+The public runner catalog at `http://<server-ip>:<port>/runners` introduces the
+scientific methods currently enabled by the active task registry. Runtime
+families, input formats, and CPU/GPU requirements are read from the same server
+payload as `GET /compute/api/types`. Each `/runners/<task-type>` detail page
+adds the registry-defined workflow stages, parameter defaults, choices, and
+limits.
+
+Interactive client API documentation is served at
+`http://<server-ip>:<port>/api-docs`, with its OpenAPI 3.1 contract at
+`http://<server-ip>:<port>/openapi.json`. The page accepts Bearer tokens and
+`X-API-Key` credentials for live requests against the current server.
+
 ### Create task page
 
 - `http://<server-ip>:<port>/compute/create_task`
+- `http://<server-ip>:<port>/compute/create_task?task_type=<name>` opens the
+  form with a specific enabled task type selected.
 - Select a task type from the dropdown — the form adapts dynamically (file
   extension, hints, params inputs, sequence editor visibility).
 - Upload input files via the **Choose File** button or by **dragging and dropping** a file anywhere on the card.
@@ -1112,8 +1136,7 @@ REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
 Then activate with `--build-sif`. The restart (default `--mode=dev`) stops
 the stack, re-runs the Docker build (cache-warm after the prebuild), stages
 each stale SIF (missing or older than the family's Docker image) as
-`<sif>.next`, promotes it in place after the build, and saves the previous
-file as `<sif>.previous` for `restart --rollback`; unchanged families are
+`<sif>.next` and atomically replaces it after the build; unchanged families are
 skipped automatically, so no manual SIF deletion is needed. Without
 In-flight SLURM jobs are cancelled by the pre-stop sweep. The stack is down
 while the images and SIFs build, so plan the batch
@@ -1133,7 +1156,7 @@ apptainer build --fakeroot /absolute/images/family_v1.sif \
 ```
 
 Verify `${CONFIG_DIR}/.deploy-stamp` after the restart. The complete backup,
-validation, sizing, activation, and rollback sequence is in the
+validation, sizing, and activation sequence is in the
 [operations guide](OPERATIONS_AND_TASK_ADAPTER_GUIDE.md).
 
 #### Step 6: Configure per-task SLURM resources
@@ -1201,8 +1224,7 @@ apptainer inspect /path/to/pythia_ddg_v1.sif
 ```
 
 `restart --build-sif` remains the standard production rebuild: it stages each
-stale SIF as `<sif>.next` and promotes it in place after `down`, saving the
-previous file for `restart --rollback`.
+stale SIF as `<sif>.next` and atomically replaces it after `down`.
 
 ### 13.5 Runtime Size Gate
 
@@ -1218,7 +1240,7 @@ python server/tools/audit_runtime_sizes.py \
 
 The command only inspects artifacts already present; it never pulls, builds,
 or runs them. Compare the JSON with the previous production release before
-promotion. Runtime-family sharing reduces the number of distinct artifacts;
+activation. Runtime-family sharing reduces the number of distinct artifacts;
 the MPNN family additionally omits inference-unused CUDA stub, Triton,
 torchvision, and torchaudio wheels. Removing build tools in a later Docker
 layer is not counted as a size optimization because earlier layer bytes remain.

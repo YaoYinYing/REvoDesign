@@ -44,6 +44,7 @@ include = ["revocompute*"]
 revocompute = [
     "templates/**",
     "templates/images/*",
+    "static/*.json",
     "static/css/*",
     "static/js/*",
 ]

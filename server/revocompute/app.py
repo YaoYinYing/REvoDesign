@@ -50,6 +50,7 @@ app = Flask(__name__, template_folder="./templates")
 # Cache-Control: no-cache (see routes.py) and cache-busted in the page
 # templates by file mtime so CDN and browser caches key on the URL.
 _ITERATED_STATIC_JS = {
+    "api-docs.js",
     "viewer-shell.js",
     "plugin-host.js",
     "result-preview-plugins.js",
@@ -64,12 +65,12 @@ _ITERATED_STATIC_JS = {
 def inject_static_version() -> dict[str, int]:
     """Per-deploy version token for cache-busted static asset URLs."""
     try:
-        newest = max(
-            os.path.getmtime(os.path.join(app.static_folder, "js", name)) for name in _ITERATED_STATIC_JS
-        )
+        newest = max(os.path.getmtime(os.path.join(app.static_folder, "js", name)) for name in _ITERATED_STATIC_JS)
     except OSError:
         newest = 0
     return {"static_version": int(newest)}
+
+
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MiB upload limit
 
 

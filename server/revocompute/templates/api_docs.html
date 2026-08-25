@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Interactive OpenAPI documentation for the REvoCompute scientific computing API.">
+<meta name="keywords" content="REvoCompute API, REvoDesign API, protein engineering API, scientific computing API, bioinformatics API">
+<title>API Documentation | REvoCompute</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/compute/logo.svg">
+<link rel="mask-icon" href="/compute/logo.svg" color="#0f4f63">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.14/swagger-ui.css" integrity="sha384-fgyWYkUAamzuI8mJFu/xpRP0JWCJRwkwUwsYDoOYVHUJ8NQE5cENn8ib3ppwFFSX" crossorigin="anonymous">
+<link rel="stylesheet" href="/static/css/api-docs.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="landing-page api-docs-page">
+  <nav class="landing-nav" aria-label="Main navigation">
+    <a class="brand" href="/" aria-label="REvoDesign home">
+      <img src="/compute/logo.svg" alt="" width="42" height="42">
+      <span>REvoDesign</span>
+    </a>
+    <div class="nav-links">
+      <a href="/">Mission</a>
+      <a href="/runners">Runners</a>
+      <a href="/api-docs" aria-current="page">API</a>
+      <a href="https://yaoyinying.github.io/REvoDesign/">Documentation</a>
+      <a href="https://github.com/YaoYinYing/REvoDesign" rel="noopener noreferrer">GitHub</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
+      <a class="btn btn-primary" href="/compute/dashboard">Open REvoCompute</a>
+    </div>
+  </nav>
+  <header class="api-docs-intro">
+    <p class="eyebrow"><span aria-hidden="true"></span> OpenAPI 3.1</p>
+    <h1>REvoCompute API</h1>
+    <p>Explore the public task workflow, authorize with a Bearer token or API key, and send requests directly to this server.</p>
+  </header>
+  <section id="swagger-ui" aria-label="Interactive API reference"></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.14/swagger-ui-bundle.js" integrity="sha384-Dt83RhU85ZmX7werw9uTFCzmauXUoSyx3pdzTQMABtsnFmooJy4Vz9/ACh7n5m1A" crossorigin="anonymous"></script>
+<script src="/static/js/api-docs.js?v={{ static_version }}"></script>
+<script src="/static/js/theme-toggle.js"></script>
+</body>
+</html>

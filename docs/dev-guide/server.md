@@ -44,6 +44,24 @@ Compose services; the manifest build/pull loops prepare them and workers launch
 them on demand. Only the worker receives the Docker socket. Web is internal and
 the gateway mounts results read-only.
 
+The public `/` route is REvoDesign's mission-led landing page and entry point to
+the PyMOL plugin documentation and REvoCompute. The authenticated application
+remains under `/compute/`. The public `/runners` catalog renders the enabled
+task-type payload shared with `GET /compute/api/types`, keeping the registry as
+the only availability source; `/runners/<task-type>` presents that method's
+stages and parameter contract from the same payload. While the deployment
+maintenance sentinel exists, Nginx serves its standalone `maintenance.html`
+without depending on Flask or application static assets.
+
+The public `/api-docs` page renders the client-facing API contract from
+`/openapi.json`. It covers authentication, task discovery and submission,
+status/cancellation/deletion, and result retrieval; profile and administrative
+operations remain outside the public contract.
+
+The create-task page accepts `?task_type=<name>` for catalog deep links. It
+selects the matching enabled type after loading `/compute/api/types`; absent or
+unknown names retain the first enabled type as the default.
+
 ## Source layout
 
 ```text
@@ -181,6 +199,9 @@ Page routes include `/compute/login`, `/compute/dashboard`,
 runtime-configuration, and log views. Logged-out protected pages return 401;
 logout clears the HttpOnly cookie server-side.
 
+Interactive client documentation is available at `/api-docs`; the underlying
+OpenAPI 3.1 document is available at `/openapi.json` for tooling.
+
 ## Authentication and authorization
 
 Browser navigation uses an `HttpOnly`, `SameSite=Lax` cookie. API clients use a
@@ -244,6 +265,10 @@ Never run the restart helper with `sudo` or as root. It intentionally does not
 recursively chmod/chown application data. Build proxies are passed as build
 arguments and cleared in final runtime stages; do not hard-code them in
 Dockerfiles.
+
+Only one mutating control command may run per deployment env file. With
+`--keep-gateway`, the controller restarts Nginx after recreating `web` so its
+startup-time Docker DNS resolution cannot retain the old container address.
 
 ## Model data and caches
 

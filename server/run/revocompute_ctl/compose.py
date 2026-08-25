@@ -16,7 +16,7 @@ import shutil
 import stat
 import subprocess
 import sys
-from typing import Sequence
+from collections.abc import Sequence
 
 log = logging.getLogger("revocompute_ctl")
 

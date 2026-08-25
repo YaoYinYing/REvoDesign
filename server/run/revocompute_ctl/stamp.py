@@ -6,8 +6,7 @@
 
 A successful restart writes CONFIG_DIR/.deploy-stamp — commit, dirty flag,
 mode, step timings, changed/unchanged families, image digests, SIF sha256s,
-registry sha256, and the config-backup path.  ``--rollback`` loads it and
-restores the stamped deployment.
+registry sha256, and the config-backup path.
 """
 
 from __future__ import annotations
@@ -55,20 +54,6 @@ def write_stamp(state, payload: dict) -> str:
     return path
 
 
-def load_stamp(state) -> dict:
-    path = os.path.join(state.config_dir(), STAMP_FILENAME)
-    result = container_fs(
-        state, f"cat /cfg/{STAMP_FILENAME}", [(state.config_dir(), "/cfg")], capture=True, check=False
-    )
-    if result.returncode != 0:
-        raise SystemExit(f"No deploy stamp found at {path} — nothing to roll back.")
-    try:
-        stamp = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        raise SystemExit(f"Deploy stamp is unreadable: {path}")
-    return stamp
-
-
 def stamp_payload(
     state,
     *,
@@ -92,19 +77,13 @@ def stamp_payload(
     for name, image in images.items():
         digests[name] = {
             "latest": image_id(state, f"{image}:latest"),
-            "next": image_id(state, f"{image}:next"),
-            "previous": image_id(state, f"{image}:previous"),
             "baseline_latest": (baseline.get(name) or {}).get("latest", ""),
         }
     sif_sha256s: dict[str, str] = {}
     if state.use_slurm():
-        # Multi-GB files — hash only the SIFs this deploy actually changed:
-        # docker-delta families, or SIFs promoted this restart (the
-        # <sif>.previous marker appears only after a promotion).
+        # Multi-GB files — hash only SIFs this deploy actually changed.
         for family in families:
-            if (family.name in changed or os.path.isfile(f"{family.slurm_image}.previous")) and os.path.isfile(
-                family.slurm_image
-            ):
+            if family.name in changed and os.path.isfile(family.slurm_image):
                 sif_sha256s[family.name] = _sha256_file(family.slurm_image)
     return {
         "commit": commit,
@@ -119,31 +98,6 @@ def stamp_payload(
         "registry_sha256": registry_sha256(state.config_dir()),
         "config_backup": backup_path,
     }
-
-
-def rollback_config(state, stamp: dict) -> None:
-    """Restore the stamped config backup when the registry drifted since the
-    deploy."""
-    if registry_sha256(state.config_dir()) == stamp.get("registry_sha256"):
-        return
-    backup = stamp.get("config_backup")
-    if not backup or not os.path.isdir(backup):
-        raise SystemExit(
-            f"Registry drifted since {stamp.get('commit', 'the deploy')} and the config backup is missing: {backup}"
-        )
-    print(f"Registry drifted; restoring config backup: {backup}")
-    container_fs(
-        state,
-        "set -e\n"
-        "test -d /backup/runners && test -f /backup/task_types.yaml\n"
-        "rm -rf /cfg/.restore && mkdir -p /cfg/.restore\n"
-        "cp -a /backup/runners /backup/task_types.yaml /cfg/.restore/\n"
-        "rm -rf /cfg/runners /cfg/task_types.yaml\n"
-        "mv /cfg/.restore/runners /cfg/runners\n"
-        "mv /cfg/.restore/task_types.yaml /cfg/task_types.yaml\n"
-        "rmdir /cfg/.restore",
-        [(state.config_dir(), "/cfg"), (backup, "/backup")],
-    )
 
 
 def _sha256_file(path: str) -> str:

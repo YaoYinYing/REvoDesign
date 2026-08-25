@@ -40,6 +40,134 @@ def test_health_endpoint_returns_empty_200_without_auth(monkeypatch, tmp_path):
     assert resp.data == b""
 
 
+def test_public_index_presents_the_revodesign_mission(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    response = module.app.test_client().get("/")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Enzyme redesign, guided by" in html
+    assert "The designer decides" in html
+    assert 'href="/compute/dashboard"' in html
+    assert 'href="/api-docs"' in html
+    assert '<meta name="keywords"' in html
+    assert 'href="/static/css/base.css"' in html
+    assert 'href="/static/css/index.css"' in html
+    assert 'src="/static/js/theme-toggle.js"' in html
+    assert "fonts.googleapis.com" not in html
+
+
+def test_public_api_docs_expose_the_client_openapi_contract(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    client = module.app.test_client()
+    page = client.get("/api-docs")
+    html = page.get_data(as_text=True)
+
+    assert page.status_code == 200
+    assert '<meta name="keywords"' in html
+    assert "swagger-ui-dist@5.32.14" in html
+    assert 'integrity="sha384-' in html
+    assert 'src="/static/js/api-docs.js?v=' in html
+    assert 'src="/static/js/theme-toggle.js"' in html
+    assert "fonts.googleapis.com" not in html
+
+    response = client.get("/openapi.json")
+    spec = response.get_json()
+    assert response.status_code == 200
+    assert response.content_type == "application/json"
+    assert spec["openapi"] == "3.1.0"
+    assert set(spec["components"]["securitySchemes"]) == {"bearerAuth", "apiKeyAuth"}
+    task_type_properties = spec["components"]["schemas"]["TaskType"]["properties"]
+    # The API serializes TaskType.stage_markers directly as dict[str, str].
+    assert task_type_properties["stage_markers"] == {
+        "type": "object",
+        "additionalProperties": {"type": "string"},
+    }
+    parameter_type = spec["components"]["schemas"]["TaskParameter"]["properties"]["type"]
+    assert parameter_type["enum"] == ["str", "int", "float", "bool", "choice"]
+    assert {
+        "/compute/api/auth/login": {"post"},
+        "/compute/api/types": {"get"},
+        "/compute/api/types/{name}": {"get"},
+        "/compute/api/post": {"post"},
+        "/compute/api/running/{task_id}": {"get"},
+        "/compute/api/cancel/{task_id}": {"post"},
+        "/compute/api/delete/{task_id}": {"delete"},
+        "/compute/api/delete": {"post"},
+        "/compute/api/results/{task_id}": {"get"},
+        "/compute/api/results/{task_id}/artifacts/{path}": {"get"},
+        "/compute/api/results/{task_id}/archive": {"post"},
+        "/compute/api/download/{task_id}": {"get"},
+    } == {path: set(operations) for path, operations in spec["paths"].items()}
+    assert all("/admin/" not in path for path in spec["paths"])
+    assert spec["paths"]["/compute/api/post"]["post"]["security"] == [
+        {"bearerAuth": []},
+        {"apiKeyAuth": []},
+    ]
+
+
+def test_public_runner_catalog_uses_enabled_task_types(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLED_TASKRUNNERS": "gremlin"},
+    )
+    response = module.app.test_client().get("/runners")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Available methods" in html
+    assert "PSSM-GREMLIN" in html
+    assert "Runtime families" in html
+    assert '<meta name="keywords"' in html
+    assert 'href="/static/css/runners.css"' in html
+    assert 'href="/runners/gremlin"' in html
+    assert 'src="/static/js/theme-toggle.js"' in html
+    assert "fonts.googleapis.com" not in html
+
+    detail = module.app.test_client().get("/runners/gremlin")
+    detail_html = detail.get_data(as_text=True)
+    assert detail.status_code == 200
+    assert '<meta name="keywords"' in detail_html
+    assert "What the workflow runs" in detail_html
+    assert "GREMLIN optimization iterations" in detail_html
+    assert "Available parameters" in detail_html
+    assert 'src="/static/js/theme-toggle.js"' in detail_html
+    assert "fonts.googleapis.com" not in detail_html
+    assert module.app.test_client().get("/runners/not-a-runner").status_code == 404
+
+
+def test_create_task_supports_task_type_deep_links():
+    script = (SERVER_PACKAGE / "static" / "js" / "create-task.js").read_text(encoding="utf-8")
+    detail = (SERVER_PACKAGE / "templates" / "runner_detail.html").read_text(encoding="utf-8")
+
+    assert 'new URLSearchParams(window.location.search).get("task_type")' in script
+    assert "taskType.name === requested" in script
+    assert "/compute/create_task?task_type={{ task_type.name | urlencode }}" in detail
+
+
+def test_maintenance_page_is_standalone_and_on_mission():
+    html = (SERVER_PACKAGE.parents[0] / "docker" / "nginx" / "maintenance.html").read_text(encoding="utf-8")
+    config = (SERVER_PACKAGE.parents[0] / "docker" / "nginx" / "default.conf.template").read_text(encoding="utf-8")
+
+    assert "Compute workspace temporarily paused" in html
+    assert "Structure. Evolution. Human judgment." in html
+    assert "<style>" in html
+    assert "<link" not in html
+    assert "<script" not in html
+    assert "error_page 503 =503 /maintenance.html;" in config
+    assert config.index("location / {") < config.index("if (-f /srv/deployment/.maintenance)")
+    assert config.index("if (-f /srv/deployment/.maintenance)") < config.index("proxy_pass")
+
+
 def test_server_exposes_local_favicon_assets(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -91,6 +219,10 @@ def test_task_type_api_exposes_runtime_family_and_gpu_contract(monkeypatch, tmp_
     laser = next(item for item in response.get_json() if item["name"] == "lasermpnn")
     assert laser["runtime_family"] == "mpnn"
     assert laser["gpus"] is False
+    # stage_markers is published as a name-to-label mapping, matching the
+    # object/additionalProperties shape in the OpenAPI schema.
+    assert isinstance(laser["stage_markers"], dict)
+    assert all(isinstance(label, str) for label in laser["stage_markers"].values())
 
     form_response = client.get("/compute/api/types/lasermpnn")
     assert form_response.status_code == 200

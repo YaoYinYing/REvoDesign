@@ -6,8 +6,13 @@
 
 from __future__ import annotations
 
+import fcntl
 import os
 import sys
+import tempfile
+from hashlib import sha256
+from pathlib import Path
+from typing import TextIO
 
 from revocompute_ctl import PRIMARY_ENV_FILE
 from revocompute_ctl.compose import detect_compose_cmd
@@ -30,6 +35,19 @@ def _usage_exit(message: str) -> None:
     print(message, file=sys.stderr)
     print(USAGE, file=sys.stderr)
     raise SystemExit(1)
+
+
+def acquire_deployment_lock(env_file: str) -> TextIO:
+    """Refuse concurrent mutations of the same deployment."""
+    key = sha256(os.path.realpath(env_file).encode()).hexdigest()[:16]
+    lock = Path(tempfile.gettempdir(), f"revocompute-{key}.lock").open("a+", encoding="utf-8")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        lock.close()
+        print(f"Another server control command is already running for {env_file}.", file=sys.stderr)
+        raise SystemExit(1) from None
+    return lock
 
 
 def parse_args(argv: list[str]) -> tuple[str, str, RestartFlags]:
@@ -86,10 +104,6 @@ def parse_args(argv: list[str]) -> tuple[str, str, RestartFlags]:
             if subcommand != "restart":
                 _usage_exit("--dry-run is only supported by the restart subcommand.")
             flags.dry_run = True
-        elif arg == "--rollback":
-            if subcommand != "restart":
-                _usage_exit("--rollback is only supported by the restart subcommand.")
-            flags.rollback = True
         elif arg == "--keep-gateway":
             if subcommand != "restart":
                 _usage_exit("--keep-gateway is only supported by the restart subcommand.")
@@ -146,19 +160,6 @@ def main() -> None:
             file=sys.stderr,
         )
         raise SystemExit(1)
-    if flags.rollback and (
-        flags.build_sif
-        or flags.use_proxy
-        or flags.use_proxy_from_env
-        or flags.dry_run
-        or flags.keep_gateway
-    ):
-        print(
-            "--rollback cannot be combined with --build-sif, --use-proxy, --dry-run, or --keep-gateway.",
-            file=sys.stderr,
-        )
-        raise SystemExit(1)
-
     state = EnvState(env_file) if os.path.isfile(env_file) else EnvState(env_file, values={})
     use_slurm, registry_file = detect_executor(state)
     if not use_slurm and (flags.build_sif or os.environ.get("SLURM_ALLOWED_QUEUES")):
@@ -168,6 +169,10 @@ def main() -> None:
     if subcommand not in ("-h", "--help", "help") and os.geteuid() == 0:
         print("Do not run restart.sh through sudo or as root; use the deployment account.", file=sys.stderr)
         raise SystemExit(1)
+
+    deployment_lock = None
+    if subcommand in ("setup", "build", "prepare", "up", "down", "reload", "reset-passwd", "restart"):
+        deployment_lock = None if flags.dry_run else acquire_deployment_lock(env_file)
 
     print(f"Using env file: {env_file}")
     if os.environ.get("ENABLED_TASKRUNNERS"):
@@ -208,12 +213,7 @@ def main() -> None:
 
         cmd_reset_passwd(state, reset_username)
     elif subcommand == "restart":
-        if flags.rollback:
-            from revocompute_ctl.steps import build_rollback_plan
-
-            plan = build_rollback_plan(state, compose_cmd)
-        else:
-            plan = build_restart_plan(state, compose_cmd, flags)
+        plan = build_restart_plan(state, compose_cmd, flags)
         if flags.dry_run:
             for line in plan.report_lines:
                 print(line)
@@ -224,6 +224,8 @@ def main() -> None:
         print(f"Unknown subcommand: {subcommand}", file=sys.stderr)
         print(USAGE, file=sys.stderr)
         raise SystemExit(1)
+    if deployment_lock is not None:
+        deployment_lock.close()
 
 
 if __name__ == "__main__":

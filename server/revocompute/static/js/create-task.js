@@ -322,7 +322,9 @@
       if (!response.ok) throw new Error("Failed to load task types");
       taskTypes = await response.json();
       renderRail();
-      if (taskTypes.length) await fetchFormDefinition(taskTypes[0].name);
+      var requested = new URLSearchParams(window.location.search).get("task_type");
+      var selected = taskTypes.find(function (taskType) { return taskType.name === requested; }) || taskTypes[0];
+      if (selected) await fetchFormDefinition(selected.name);
       else setStatus("No task types are currently enabled.", "error");
     } catch (error) {
       setStatus("Could not reach the server. Check your connection and reload the page.", "error");

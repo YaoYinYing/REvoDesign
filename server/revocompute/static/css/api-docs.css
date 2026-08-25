@@ -1,0 +1,12 @@
+/* REvoCompute — interactive API documentation */
+/* SPDX-License-Identifier: GPL-3.0-only */
+
+.api-docs-intro { padding: clamp(3.5rem, 7vw, 6rem) 0 2rem; }
+.api-docs-intro h1 { margin: 0; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: clamp(3rem, 7vw, 6rem); letter-spacing: -0.05em; }
+.api-docs-intro > p:last-child { max-width: 720px; color: var(--muted); line-height: 1.7; }
+#swagger-ui { min-height: 60vh; padding-bottom: 4rem; }
+.swagger-ui, .swagger-ui .info .title, .swagger-ui .opblock-tag, .swagger-ui .model-title { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.swagger-ui .info { margin: 24px 0; }
+.swagger-ui .scheme-container { box-shadow: none; border: 1px solid var(--line); }
+
+html[data-theme="dark"] #swagger-ui { padding: 1rem; border-radius: 16px; background: #f7f7f7; }

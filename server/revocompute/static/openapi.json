@@ -1,0 +1,370 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "REvoCompute API",
+    "version": "0.1.0",
+    "description": "Client API for discovering scientific runners, submitting tasks, monitoring execution, and retrieving results. Use POST /compute/api/auth/login, then copy the returned token into Authorize as a Bearer token. Long-lived API keys are created from the REvoCompute Profile page."
+  },
+  "servers": [
+    {"url": "/", "description": "This REvoCompute server"}
+  ],
+  "tags": [
+    {"name": "Authentication"},
+    {"name": "Task types"},
+    {"name": "Tasks"},
+    {"name": "Results"}
+  ],
+  "paths": {
+    "/compute/api/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Create a Bearer session",
+        "description": "Exchange a username or email address and password for a time-limited Bearer token. Copy the response token into the Authorize dialog.",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/LoginRequest"},
+              "example": {"username": "researcher", "password": "your-password"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LoginResponse"}}}
+          },
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "429": {"description": "Login rate limit exceeded"}
+        }
+      }
+    },
+    "/compute/api/types": {
+      "get": {
+        "tags": ["Task types"],
+        "summary": "List enabled task types",
+        "operationId": "listTaskTypes",
+        "responses": {
+          "200": {
+            "description": "Enabled task types and their submission parameters",
+            "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/TaskType"}}}}
+          }
+        }
+      }
+    },
+    "/compute/api/types/{name}": {
+      "get": {
+        "tags": ["Task types"],
+        "summary": "Get one task type",
+        "operationId": "getTaskType",
+        "parameters": [{"$ref": "#/components/parameters/TaskTypeName"}],
+        "responses": {
+          "200": {
+            "description": "Task form, input, parameter, and workspace contract",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TaskType"}}}
+          },
+          "404": {"$ref": "#/components/responses/NotFound"},
+          "503": {"$ref": "#/components/responses/Unavailable"}
+        }
+      }
+    },
+    "/compute/api/post": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Submit a compute task",
+        "description": "Submit one or more inputs with an enabled task type. Runner parameters are flat string fields named params[parameter_name]. The optional workspace field is a JSON-encoded version-2 workspace document. The response redirects to the task status URL.",
+        "operationId": "submitTask",
+        "security": [{"bearerAuth": []}, {"apiKeyAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["task_type"],
+                "properties": {
+                  "files": {"type": "array", "items": {"type": "string", "format": "binary"}, "description": "Input files; requirements depend on the selected task type."},
+                  "input_paths": {"type": "array", "items": {"type": "string"}, "description": "Optional relative paths corresponding to files, used by multi-file task types."},
+                  "task_type": {"type": "string", "description": "Enabled task-type name from GET /compute/api/types."},
+                  "workspace": {"type": "string", "description": "Optional JSON-encoded version-2 workspace document."}
+                },
+                "additionalProperties": {"type": "string", "description": "Runner parameter field named params[parameter_name]."}
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "An identical task is already queued or running",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TaskStatus"}}}
+          },
+          "302": {"description": "Task accepted; Location points to its status endpoint"},
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "429": {"description": "Submission rate limit exceeded"},
+          "503": {"$ref": "#/components/responses/Unavailable"}
+        }
+      }
+    },
+    "/compute/api/running/{task_id}": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "Get task status",
+        "operationId": "getTaskStatus",
+        "security": [{"bearerAuth": []}, {"apiKeyAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/TaskId"}],
+        "responses": {
+          "200": {"description": "Terminal task status", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TaskStatus"}}}},
+          "202": {"description": "Task is pending, queued, running, or cleaning up", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TaskStatus"}}}},
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      }
+    },
+    "/compute/api/cancel/{task_id}": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Cancel a running task",
+        "operationId": "cancelTask",
+        "security": [{"bearerAuth": []}, {"apiKeyAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/TaskId"}],
+        "responses": {
+          "200": {"description": "Cancellation claimed", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TaskStatus"}}}},
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"},
+          "409": {"description": "Task state changed before cancellation"}
+        }
+      }
+    },
+    "/compute/api/delete/{task_id}": {
+      "delete": {
+        "tags": ["Tasks"],
+        "summary": "Delete one task",
+        "operationId": "deleteTask",
+        "security": [{"bearerAuth": []}, {"apiKeyAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/TaskId"}],
+        "responses": {
+          "200": {"description": "Task deleted", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TaskStatus"}}}},
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"},
+          "409": {"description": "Task cleanup is already in progress"}
+        }
+      }
+    },
+    "/compute/api/delete": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Delete multiple tasks",
+        "operationId": "deleteTasks",
+        "security": [{"bearerAuth": []}, {"apiKeyAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"type": "object", "required": ["md5sums"], "properties": {"md5sums": {"type": "array", "items": {"$ref": "#/components/schemas/TaskId"}}}}}}
+        },
+        "responses": {
+          "200": {"description": "Per-task deletion outcomes", "content": {"application/json": {"schema": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "string"}}}}}},
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"}
+        }
+      }
+    },
+    "/compute/api/results/{task_id}": {
+      "get": {
+        "tags": ["Results"],
+        "summary": "Get a result manifest",
+        "operationId": "getResults",
+        "security": [{"bearerAuth": []}, {"apiKeyAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/TaskId"}],
+        "responses": {
+          "200": {"description": "Finalized result manifest and archive state", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ResultManifest"}}}},
+          "302": {"description": "Task is not terminal; Location points to its status endpoint"},
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      }
+    },
+    "/compute/api/results/{task_id}/artifacts/{path}": {
+      "get": {
+        "tags": ["Results"],
+        "summary": "Download a result artifact",
+        "description": "Only files published by the finalized result manifest are available. Artifacts default to attachment; set download=0 to request inline delivery under the server sandbox policy.",
+        "operationId": "getResultArtifact",
+        "security": [{"bearerAuth": []}, {"apiKeyAuth": []}],
+        "parameters": [
+          {"$ref": "#/components/parameters/TaskId"},
+          {"name": "path", "in": "path", "required": true, "description": "Slash-preserving artifact path from the manifest", "schema": {"type": "string"}},
+          {"name": "download", "in": "query", "required": false, "schema": {"type": "boolean", "default": true}}
+        ],
+        "responses": {
+          "200": {"description": "Artifact bytes", "content": {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}},
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      }
+    },
+    "/compute/api/results/{task_id}/archive": {
+      "post": {
+        "tags": ["Results"],
+        "summary": "Request a ZIP archive",
+        "operationId": "requestResultsArchive",
+        "security": [{"bearerAuth": []}, {"apiKeyAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/TaskId"}],
+        "responses": {
+          "200": {"description": "Archive is already ready"},
+          "202": {"description": "Archive build queued"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"},
+          "409": {"description": "Task results are not ready"}
+        }
+      }
+    },
+    "/compute/api/download/{task_id}": {
+      "get": {
+        "tags": ["Results"],
+        "summary": "Download a prepared ZIP archive",
+        "operationId": "downloadResults",
+        "security": [{"bearerAuth": []}, {"apiKeyAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/TaskId"}],
+        "responses": {
+          "200": {"description": "ZIP archive", "content": {"application/zip": {"schema": {"type": "string", "format": "binary"}}}},
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"},
+          "409": {"description": "Archive has not been requested"}
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "signed token", "description": "Token returned by POST /compute/api/auth/login."},
+      "apiKeyAuth": {"type": "apiKey", "in": "header", "name": "X-API-Key", "description": "Long-lived key created from the REvoCompute Profile page."}
+    },
+    "parameters": {
+      "TaskId": {"name": "task_id", "in": "path", "required": true, "schema": {"$ref": "#/components/schemas/TaskId"}},
+      "TaskTypeName": {"name": "name", "in": "path", "required": true, "schema": {"type": "string"}, "example": "gremlin"}
+    },
+    "responses": {
+      "BadRequest": {"description": "Invalid request", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+      "Unauthorized": {"description": "Authentication required or invalid", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+      "Forbidden": {"description": "Authenticated but not permitted", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+      "NotFound": {"description": "Resource not found", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+      "Unavailable": {"description": "Server, queue, or task policy unavailable", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}
+    },
+    "schemas": {
+      "TaskId": {"type": "string", "pattern": "^[0-9a-f]{32}$", "example": "0123456789abcdef0123456789abcdef"},
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {"type": "string", "description": "Username or email address"},
+          "password": {"type": "string", "format": "password"}
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "required": ["token", "username"],
+        "properties": {"token": {"type": "string"}, "username": {"type": "string"}}
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {"type": "string"},
+          "message": {"type": "string"},
+          "details": {"type": "array", "items": {"type": "object"}}
+        },
+        "additionalProperties": true
+      },
+      "TaskParameter": {
+        "type": "object",
+        "required": ["name", "type", "required"],
+        "properties": {
+          "name": {"type": "string"},
+          "label": {"type": "string"},
+          "type": {"type": "string", "enum": ["str", "int", "float", "bool", "choice"]},
+          "default": {},
+          "required": {"type": "boolean"},
+          "description": {"type": ["string", "null"]},
+          "choices": {"type": "array", "items": {}},
+          "minimum": {"type": ["number", "null"]},
+          "maximum": {"type": ["number", "null"]}
+        },
+        "additionalProperties": true
+      },
+      "TaskType": {
+        "type": "object",
+        "required": ["name", "display_name", "category", "runtime_family", "params"],
+        "properties": {
+          "name": {"type": "string"},
+          "display_name": {"type": "string"},
+          "category": {"type": "string"},
+          "intro": {"type": "string"},
+          "runtime_family": {"type": "string"},
+          "gpus": {"type": "boolean"},
+          "input_extensions": {"type": "array", "items": {"type": "string"}},
+          "params": {"type": "array", "items": {"$ref": "#/components/schemas/TaskParameter"}},
+          "stage_markers": {"type": "object", "additionalProperties": {"type": "string"}},
+          "file_input": {"type": "object"},
+          "input_workspace": {"type": "object"}
+        },
+        "additionalProperties": true
+      },
+      "TaskStatus": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {"type": "string", "example": "running"},
+          "md5sum": {"$ref": "#/components/schemas/TaskId"},
+          "error": {"type": "string"},
+          "message": {"type": "string"}
+        },
+        "additionalProperties": true
+      },
+      "Artifact": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": {"type": "string"},
+          "url": {"type": "string"},
+          "media_type": {"type": "string"},
+          "preview": {"type": "string"}
+        },
+        "additionalProperties": true
+      },
+      "ResultManifest": {
+        "type": "object",
+        "required": ["status", "artifacts", "archive"],
+        "properties": {
+          "status": {"type": "string", "enum": ["finished", "failed"]},
+          "artifacts": {"type": "array", "items": {"$ref": "#/components/schemas/Artifact"}},
+          "archive": {
+            "type": "object",
+            "required": ["ready", "request_url"],
+            "properties": {
+              "ready": {"type": "boolean"},
+              "request_url": {"type": "string"},
+              "download_url": {"type": ["string", "null"]}
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

@@ -20,7 +20,6 @@ import mimetypes
 import os
 import re
 import shutil
-import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -85,11 +84,7 @@ from revocompute.auth import (
 )
 from revocompute.input_validators import validate_input_file
 from revocompute.ratelimit import rate_limit
-from revocompute.resource_policy import (
-    GLOBAL_RESOURCE_KEYS,
-    ResourceValidationError,
-    normalize_resource_value,
-)
+from revocompute.resource_policy import GLOBAL_RESOURCE_KEYS, ResourceValidationError, normalize_resource_value
 from revocompute.schemas import (
     AdminCreateUserRequest,
     AdminUpdateUserRequest,
@@ -136,6 +131,34 @@ from werkzeug.utils import secure_filename
 # ---------------------------------------------------------------------------
 
 
+@app.route("/", methods=["GET"])
+def index_page():
+    return render_template("index.html")
+
+
+@app.route("/api-docs", methods=["GET"])
+def api_docs_page():
+    return render_template("api_docs.html")
+
+
+@app.route("/openapi.json", methods=["GET"])
+def openapi_spec():
+    return send_from_directory(app.static_folder, "openapi.json", mimetype="application/json")
+
+
+@app.route("/runners", methods=["GET"])
+def runners_page():
+    return render_template("runners.html", task_types=_available_task_types())
+
+
+@app.route("/runners/<name>", methods=["GET"])
+def runner_detail_page(name: str):
+    task_type = next((item for item in _available_task_types() if item["name"] == name), None)
+    if task_type is None:
+        abort(404)
+    return render_template("runner_detail.html", task_type=task_type)
+
+
 @app.route("/compute/health", methods=["GET"])
 def health():
     """Liveness probe — unauthenticated, empty 200 when the process answers."""
@@ -170,9 +193,17 @@ def viewer_shell():
 
 @app.route("/compute/login", methods=["GET"])
 def login_page():
+    return_to = request.args.get("return_to", "")
+    if (
+        not return_to.startswith("/")
+        or return_to.startswith("//")
+        or "\\" in return_to
+        or any(ord(character) < 32 for character in return_to)
+    ):
+        return_to = url_for("task_dashboard")
     if load_current_user() is not None:
-        return redirect(url_for("task_dashboard"))
-    return render_template("login.html")
+        return redirect(return_to)
+    return render_template("login.html", return_to=return_to)
 
 
 @app.route("/compute/terms", methods=["GET"])
@@ -268,6 +299,11 @@ def legacy_dashboard_redirect():
 @app.route("/compute/api/types", methods=["GET"])
 def task_types_list():
     """Return registered task types (public — needed by the create-task page)."""
+    return jsonify(_available_task_types())
+
+
+def _available_task_types() -> list[dict[str, Any]]:
+    """Serialize enabled task types for public pages and APIs."""
     manage_db = current_app.config.get("manage_db")
     types_data = []
     for tt in list_types():
@@ -307,7 +343,7 @@ def task_types_list():
                 "stage_markers": tt.stage_markers,
             }
         )
-    return jsonify(types_data)
+    return types_data
 
 
 def _input_workspace_payload(tt) -> dict:
@@ -2263,9 +2299,7 @@ def admin_get_config():
         return jsonify({"error": "Configuration database not available"}), 500
     task_configs = manage_db.task_type_all()
     type_map = {task_type.name: task_type for task_type in list_types()}
-    stage_map = {
-        stage.name: (task_type, stage) for task_type in type_map.values() for stage in task_type.workflow
-    }
+    stage_map = {stage.name: (task_type, stage) for task_type in type_map.values() for stage in task_type.workflow}
     for config in task_configs:
         task_type = type_map.get(config["tool"])
         workflow_stage = stage_map.get(config["tool"])

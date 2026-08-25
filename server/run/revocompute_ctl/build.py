@@ -2,9 +2,7 @@
 # Distributed under the terms of the GNU General Public License v3.0.
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Runner/web image builds.  Runner images are staged as ``:next`` and
-promoted to ``:latest`` after the stack is down (see promotion.py); the
-web/worker server image keeps its compose-interpolated tag."""
+"""Runner/web image builds."""
 
 from __future__ import annotations
 
@@ -44,7 +42,7 @@ def build_runner_images(state, families, proxy_build_args: list[str], uid: str, 
             "--build-arg",
             f"RUNNER_GROUP={group}",
             "-t",
-            _docker_tag(family.docker_image, "next"),
+            _docker_tag(family.docker_image),
             "-f",
             os.path.join(state.server_root(), family.dockerfile),
             state.server_root(),
@@ -101,7 +99,7 @@ def cmd_build(
     *,
     runners_only: bool = False,
 ) -> None:
-    """Build selected runner ``:next`` images, then optionally web/worker."""
+    """Build selected runner images, then optionally web/worker."""
     proxy_build_args = _resolve_proxy_args(state, use_proxy_from_env, use_proxy)
     from revocompute_ctl.storage import resolve_runner_identity
 

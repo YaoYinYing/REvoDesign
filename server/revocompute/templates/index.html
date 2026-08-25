@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="REvoDesign combines structural insight, evolutionary evidence, and computation for human-guided enzyme redesign.">
+<meta name="keywords" content="REvoDesign, REvoCompute, enzyme redesign, protein engineering, structural biology, computational biology, bioinformatics, PyMOL">
+<title>REvoDesign | Human-guided enzyme redesign</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/compute/logo.svg">
+<link rel="mask-icon" href="/compute/logo.svg" color="#0f4f63">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/index.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="landing-page">
+  <nav class="landing-nav" aria-label="Main navigation">
+    <a class="brand" href="/" aria-label="REvoDesign home">
+      <img src="/compute/logo.svg" alt="" width="42" height="42">
+      <span>REvoDesign</span>
+    </a>
+    <div class="nav-links">
+      <a href="#approach">Approach</a>
+      <a href="#workflow">Workflow</a>
+      <a href="/runners">Runners</a>
+      <a href="/api-docs">API</a>
+      <a href="https://yaoyinying.github.io/REvoDesign/">Documentation</a>
+      <a href="https://github.com/YaoYinYing/REvoDesign" rel="noopener noreferrer">GitHub</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
+      <a class="btn btn-primary" href="/compute/dashboard">Open REvoCompute</a>
+    </div>
+  </nav>
+
+  <section class="landing-hero">
+    <div class="hero-copy">
+      <p class="eyebrow"><span aria-hidden="true"></span> Human-guided protein engineering</p>
+      <h1>Enzyme redesign, guided by <em>structure</em> and <em>evolution.</em></h1>
+      <p class="hero-summary">REvoDesign brings structural context, phylogenetic evidence, human expertise, and computational tools into one guided workflow&mdash;helping protein designers turn complex evidence into practical, testable mutations.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="/compute/dashboard">Start computing <span aria-hidden="true">&rarr;</span></a>
+        <a class="btn btn-soft" href="https://yaoyinying.github.io/REvoDesign/user-guide/installation/">Get the PyMOL plugin</a>
+      </div>
+    </div>
+
+    <figure class="evidence-map" aria-label="Structural, evolutionary, and computational evidence converge through designer judgment into candidate mutations">
+      <figcaption>Evidence-guided design</figcaption>
+      <div class="evidence-grid">
+        <div class="evidence-source source-structure"><span>01</span><strong>Structure</strong><small>Pocket &middot; surface &middot; ligand</small></div>
+        <div class="evidence-source source-evolution"><span>02</span><strong>Evolution</strong><small>Conservation &middot; co-evolution</small></div>
+        <div class="evidence-source source-compute"><span>03</span><strong>Computation</strong><small>Prediction &middot; scoring</small></div>
+        <div class="connector connector-a" aria-hidden="true"></div>
+        <div class="connector connector-b" aria-hidden="true"></div>
+        <div class="connector connector-c" aria-hidden="true"></div>
+        <div class="judgment"><span>Designer<br>judgment</span></div>
+        <div class="result"><span>Shortlist</span><strong>Candidate<br>mutations</strong></div>
+      </div>
+    </figure>
+  </section>
+
+  <section class="approach-section" id="approach">
+    <div class="section-intro">
+      <p class="section-kicker">The approach</p>
+      <h2>Evidence narrows the search.<br>Human judgment directs it.</h2>
+      <p>REvoDesign supports semi-rational enzyme engineering: computation helps reduce a vast design space while scientific context and experimental priorities remain central.</p>
+    </div>
+    <div class="foundation-grid">
+      <article>
+        <span class="foundation-number">01</span>
+        <h3>Structural context</h3>
+        <p>Study solvent exposure, binding pockets, substrates, cofactors, and mutation sites directly inside PyMOL.</p>
+      </article>
+      <article>
+        <span class="foundation-number">02</span>
+        <h3>Evolutionary evidence</h3>
+        <p>Use conservation profiles, sequence clustering, and residue co-evolution to identify plausible design space.</p>
+      </article>
+      <article>
+        <span class="foundation-number">03</span>
+        <h3>Human supervision</h3>
+        <p>Select, reject, compare, and prioritize mutations with the designer&rsquo;s knowledge kept firmly in the loop.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="workflow-section" id="workflow">
+    <div class="section-intro compact">
+      <p class="section-kicker">One connected workflow</p>
+      <h2>From molecular context to a testable shortlist.</h2>
+    </div>
+    <ol class="workflow-line">
+      <li><span>01</span><strong>Explore</strong><p>Inspect the structure and identify relevant regions in PyMOL.</p></li>
+      <li><span>02</span><strong>Propose</strong><p>Combine structural observations, evolutionary constraints, and design intent.</p></li>
+      <li><span>03</span><strong>Compute</strong><p>Run managed prediction, scoring, sequence, structure, and analysis workflows.</p></li>
+      <li><span>04</span><strong>Evaluate</strong><p>Compare candidates and reduce the design space for wet-lab validation.</p></li>
+    </ol>
+  </section>
+
+  <section class="product-section" aria-label="REvoDesign tools">
+    <article class="product-card plugin-card">
+      <p class="product-label">Interactive design environment</p>
+      <h2>REvoDesign for PyMOL</h2>
+      <p>Explore structures, define designable regions, supervise mutation selection, and evaluate candidates in the molecular context where decisions are made.</p>
+      <a class="text-link" href="https://yaoyinying.github.io/REvoDesign/user-guide/installation/">Install the plugin <span aria-hidden="true">&rarr;</span></a>
+    </article>
+    <div class="product-bridge" aria-hidden="true"><span>works with</span></div>
+    <article class="product-card compute-card">
+      <p class="product-label">Managed scientific computing</p>
+      <h2>REvoCompute</h2>
+      <p>Submit reproducible workflows to managed CPU and GPU resources, follow their execution, and inspect structures, tables, logs, and artifacts.</p>
+      <a class="text-link" href="/compute/dashboard">Open the workspace <span aria-hidden="true">&rarr;</span></a>
+    </article>
+  </section>
+
+  <section class="closing-section">
+    <p class="section-kicker">The REvoDesign principle</p>
+    <blockquote>Computation proposes.<br>Evidence constrains.<br><em>The designer decides.</em></blockquote>
+    <div class="closing-actions">
+      <a class="btn btn-primary" href="/compute/dashboard">Open REvoCompute</a>
+      <a class="btn btn-soft" href="/runners">Browse runners</a>
+      <a class="btn btn-soft" href="https://yaoyinying.github.io/REvoDesign/">Read the documentation</a>
+      <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" rel="noopener noreferrer">View source</a>
+    </div>
+  </section>
+
+  <footer>
+    <span>REvoDesign / REvoCompute</span>
+    <span>Open-source tools for human-guided enzyme engineering.</span>
+  </footer>
+</main>
+<script src="/static/js/theme-toggle.js"></script>
+</body>
+</html>

@@ -61,9 +61,7 @@ def search_doi(title: str) -> list[tuple[str, str]]:
     Exact-title acceptance only: the caller confirms the hit before a DOI
     ever enters the registry (EndnoteTweak's DOI-first discipline).
     """
-    url = "https://api.crossref.org/works?" + urllib.parse.urlencode(
-        {"query.bibliographic": title, "rows": "5"}
-    )
+    url = "https://api.crossref.org/works?" + urllib.parse.urlencode({"query.bibliographic": title, "rows": "5"})
     with urllib.request.urlopen(url, timeout=30) as response:
         payload = json.loads(response.read().decode("utf-8"))
     hits = []
@@ -86,9 +84,7 @@ def resolve_block(block: str, existing: str | None) -> str | None:
         if fetched_title and _normalize(title) not in fetched_title:
             # Human check: the fetched record disagrees with the declared
             # title — do not write it into the registry.
-            raise RuntimeError(
-                f"title mismatch for {doi}: declared {title!r} vs fetched {fetched_title!r}"
-            )
+            raise RuntimeError(f"title mismatch for {doi}: declared {title!r} vs fetched {fetched_title!r}")
         resolved.append(bibtex)
     merged = "\n\n".join(resolved)
     if existing and merged in existing:

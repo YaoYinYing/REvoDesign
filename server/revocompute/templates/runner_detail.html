@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="{{ task_type.intro }}">
+<meta name="keywords" content="{{ task_type.display_name }}, {{ task_type.category | replace('_', ' ') }}, REvoCompute, protein engineering, computational biology">
+<title>{{ task_type.display_name }} | REvoCompute Runner</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/compute/logo.svg">
+<link rel="mask-icon" href="/compute/logo.svg" color="#0f4f63">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/index.css">
+<link rel="stylesheet" href="/static/css/runners.css">
+<script src="/static/js/theme.js"></script>
+</head>
+<body>
+<main class="landing-page">
+  <nav class="landing-nav" aria-label="Main navigation">
+    <a class="brand" href="/" aria-label="REvoDesign home">
+      <img src="/compute/logo.svg" alt="" width="42" height="42">
+      <span>REvoDesign</span>
+    </a>
+    <div class="nav-links">
+      <a href="/">Mission</a>
+      <a href="/runners" aria-current="page">Runners</a>
+      <a href="https://yaoyinying.github.io/REvoDesign/">Documentation</a>
+      <a href="https://github.com/YaoYinYing/REvoDesign" rel="noopener noreferrer">GitHub</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
+      <a class="btn btn-primary" href="/compute/create_task?task_type={{ task_type.name | urlencode }}">Create a task</a>
+    </div>
+  </nav>
+
+  <header class="runner-detail-hero">
+    <div>
+      <a class="back-to-catalog" href="/runners">&larr;&nbsp; All available runners</a>
+      <p class="eyebrow"><span aria-hidden="true"></span> {{ task_type.category | replace("_", " ") | title }}</p>
+      <h1>{{ task_type.display_name }}</h1>
+      <p class="runner-intro">{{ task_type.intro }}</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="/compute/create_task?task_type={{ task_type.name | urlencode }}">Create a task <span aria-hidden="true">&rarr;</span></a>
+        <a class="btn btn-soft" href="/compute/dashboard">Open dashboard</a>
+      </div>
+    </div>
+    <dl class="runner-facts">
+      <div><dt>Runtime family</dt><dd>{{ task_type.runtime_family }}</dd></div>
+      <div><dt>Accelerator</dt><dd>{{ "GPU" if task_type.gpus else "CPU" }}</dd></div>
+      <div><dt>Accepted input</dt><dd>{{ task_type.input_extensions | join(" / ") }}</dd></div>
+      <div><dt>Parameters</dt><dd>{{ task_type.params | length }}</dd></div>
+    </dl>
+  </header>
+
+  {% if task_type.stage_markers %}
+  <section class="detail-section stage-section">
+    <header>
+      <p class="section-kicker">Execution path</p>
+      <h2>What the workflow runs.</h2>
+      <p>Stages are reported as the task progresses, so execution can be followed from submission to results.</p>
+    </header>
+    <ol class="stage-list">
+      {% for stage, label in task_type.stage_markers.items() %}
+      <li><span>{{ "%02d" | format(loop.index) }}</span><div><strong>{{ label }}</strong><small>{{ stage }}</small></div></li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+
+  <section class="detail-section parameter-section">
+    <header>
+      <p class="section-kicker">Method controls</p>
+      <h2>Available parameters.</h2>
+      <p>Defaults and limits come directly from the active server registry. Advanced controls are marked for experienced use.</p>
+    </header>
+    {% if task_type.params %}
+    <div class="parameter-list">
+      {% for parameter in task_type.params %}
+      <article class="parameter-row">
+        <div class="parameter-name">
+          <h3>{{ parameter.label }}</h3>
+          <code>{{ parameter.name }}</code>
+        </div>
+        <p>{{ parameter.description or parameter.help or "No additional description." }}</p>
+        <dl>
+          <div><dt>Type</dt><dd>{{ parameter.type }}</dd></div>
+          {% if parameter.default is not none %}<div><dt>Default</dt><dd>{{ parameter.default }}</dd></div>{% endif %}
+          {% if parameter.choices %}<div><dt>Choices</dt><dd>{{ parameter.choices | join(", ") }}</dd></div>{% endif %}
+          {% if parameter.minimum is not none or parameter.maximum is not none %}<div><dt>Range</dt><dd>{{ parameter.minimum if parameter.minimum is not none else "No minimum" }} &ndash; {{ parameter.maximum if parameter.maximum is not none else "No maximum" }}{% if parameter.unit %} {{ parameter.unit }}{% endif %}</dd></div>{% endif %}
+        </dl>
+        <div class="parameter-flags">
+          {% if parameter.required %}<span>Required</span>{% endif %}
+          {% if parameter.advanced %}<span>Advanced</span>{% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-parameters">This method uses its validated server defaults and has no user-facing parameters.</div>
+    {% endif %}
+  </section>
+
+  <section class="runner-cta detail-cta">
+    <div>
+      <p class="section-kicker">Ready to run {{ task_type.display_name }}?</p>
+      <h2>Configure the input and submit a tracked task.</h2>
+    </div>
+    <div>
+      <a class="btn btn-primary" href="/compute/create_task?task_type={{ task_type.name | urlencode }}">Create a task</a>
+      <a class="btn btn-soft" href="/runners">Compare runners</a>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <span>REvoDesign / REvoCompute</span>
+    <span>Method contract read from the active server registry.</span>
+  </footer>
+</main>
+<script src="/static/js/theme-toggle.js"></script>
+</body>
+</html>

@@ -70,7 +70,6 @@ class RestartFlags:
     use_proxy: str = ""
     use_proxy_from_env: bool = False
     dry_run: bool = False
-    rollback: bool = False
     keep_gateway: bool = False
 
 
@@ -339,7 +338,7 @@ def finish_restart(state) -> None:
 
 
 def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags) -> RestartPlan:
-    """Assemble the restart walk for the selected mode (or --rollback)."""
+    """Assemble the restart walk for the selected mode."""
     from revocompute_ctl import promotion
     from revocompute_ctl.admin import prepare_admin_bootstrap
     from revocompute_ctl.build import cmd_build
@@ -375,7 +374,7 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     def changed_now() -> set[str]:
         """Per-family change set computed at the moment it is needed: after
         build/pull for the dry-run prediction, after up for the stamp."""
-        return promotion.changed_image_names(state, images, baseline, flags.mode)
+        return promotion.changed_image_names(state, images, baseline)
 
     def stale_sifs_now() -> set[str]:
         """SIF staging set: missing or image-stale families (computed at
@@ -426,7 +425,6 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
         steps.append(Step("activate", lambda: print("Activating validated prepared images without builds or pulls.")))
     if state.use_slurm():
         steps.append(Step("build-sif", lambda: slurm_block(state, families, flags.build_sif)))
-    steps.append(Step("promote", lambda: promotion.promote_docker(state, images, baseline, flags.mode)))
 
     def promote_sifs() -> None:
         promoted_sifs.update(
@@ -437,6 +435,23 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     if state.use_slurm():
         steps.append(Step("promote-sifs", promote_sifs))
     steps.append(Step("up", lambda: cmd_up(state, compose_cmd, extra=["--no-build"])))
+    if flags.keep_gateway:
+        steps.append(
+            Step(
+                "refresh-gateway",
+                lambda: run_cmd(
+                    [
+                        *compose_cmd,
+                        *compose_args(state),
+                        "--env-file",
+                        state.env_file,
+                        "restart",
+                        "gateway",
+                    ],
+                    env=state.exported(),
+                ),
+            )
+        )
     if flags.mode == "prepared":
         steps.append(Step("readiness", lambda: wait_for_services(state, compose_cmd)))
     steps.append(Step("prune", lambda: promotion.prune_dangling(state)))
@@ -444,10 +459,8 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     def finalize(timings: dict[str, float]) -> None:
         try:
             changed = final_changed()
-            # A deployment stamp belongs wherever rollback matters: any
-            # non-dev mode, or a dev restart against an explicitly configured
-            # deployment CONFIG_DIR.  Local dev with the checkout-config
-            # fallback stays stamp-free.
+            # Production-like deployments retain an audit stamp. Local dev
+            # with the checkout-config fallback stays stamp-free.
             if flags.mode != "dev" or state.values.get("CONFIG_DIR"):
                 write_stamp(
                     state,
@@ -479,80 +492,3 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
         f"SIF changes: changed={', '.join(sorted(sif_predict)) or '-'}",
     ]
     return RestartPlan(steps, finalize, report_lines)
-
-
-def build_rollback_plan(state, compose_cmd: tuple[str, ...]) -> RestartPlan:
-    """Restore the previous image/SIF set from the last deploy stamp, then
-    restart.  Never touches tasks/results/user DB."""
-    import os as _os
-
-    from revocompute_ctl import promotion
-    from revocompute_ctl.stamp import load_stamp, rollback_config, stamp_payload, write_stamp
-
-    require_env_file(state)
-    validate_required_settings(state)
-    resolve_runner_identity(state)  # load_stamp's container_fs runs as this
-    stamp = load_stamp(state)
-    rollback_config(state, stamp)
-    families = validate_runtime_files(state)
-    stamp_commit = stamp.get("commit", "unknown")
-    images = promotion.taggable_images(state, families)
-    changed = set(stamp.get("changed") or [])
-
-    missing = [
-        f"{image}:previous"
-        for name, image in images.items()
-        if name in changed and not _image_id(state, f"{image}:previous")
-    ]
-    if state.use_slurm():
-        missing += [
-            family.slurm_image
-            for family in families
-            if family.name in changed and not _os.path.isfile(f"{family.slurm_image}.previous")
-        ]
-    if missing:
-        print(
-            f"Rollback refused: previous set missing for {', '.join(missing)} (last deployed commit {stamp_commit}).",
-            file=sys.stderr,
-        )
-        raise SystemExit(1)
-
-    steps: list[Step] = [
-        Step("stop", lambda: cmd_down(state, compose_cmd)),  # includes the pre-stop sweep
-        Step(
-            "retag",
-            lambda: (
-                promotion.rollback_docker(state, images, changed),
-                promotion.rollback_sifs(state, families, changed),
-            ),
-        ),
-        Step("up", lambda: cmd_up(state, compose_cmd, extra=["--no-build"])),
-        Step("readiness", lambda: wait_for_services(state, compose_cmd)),
-    ]
-
-    def finalize(timings: dict[str, float]) -> None:
-        write_stamp(
-            state,
-            stamp_payload(
-                state,
-                mode="rollback",
-                timings=timings,
-                changed=sorted(changed),
-                unchanged=sorted(set(images) - changed),
-                images=images,
-                baseline={name: {"latest": "", "next": ""} for name in images},
-                families=families,
-                backup_path=stamp.get("config_backup", ""),
-            ),
-        )
-        finish_restart(state)
-
-    return RestartPlan(
-        steps, finalize, [f"Rollback from {stamp_commit} (changed: {', '.join(sorted(changed)) or '-'})"]
-    )
-
-
-def _image_id(state, tag: str) -> str:
-    from revocompute_ctl.compose import image_id
-
-    return image_id(state, tag)

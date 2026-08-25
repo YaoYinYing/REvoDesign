@@ -5,7 +5,7 @@ environment and from machine-local configuration. This lets several task types
 share one dependency image without copying host paths or SLURM policy into the
 portable registry.
 
-For the full build, versioned-SIF, activation, rollback, and adapter procedure,
+For the full build, versioned-SIF, activation, and adapter procedure,
 see the [operations and task adapter guide](../../server/OPERATIONS_AND_TASK_ADAPTER_GUIDE.md).
 
 ## Ownership model
