@@ -96,11 +96,14 @@ Deploy safety flags (all `restart`-only):
 | Flag | Effect |
 |------|--------|
 | `--dry-run` | Prints the planned step walk and per-family changed/unchanged predictions; executes and writes nothing |
-| `--keep-gateway` | Enters maintenance and keeps Nginx serving the static maintenance page while the application services restart |
+| `--keep-gateway` | Enters maintenance, keeps Nginx serving the static page, then restarts it after the application services to refresh Docker DNS |
 
 A successful prepared/prod restart writes `${CONFIG_DIR}/.deploy-stamp` with
 the commit, digests, changed families, SIF sha256s, registry sha256, and the
 config-backup path.
+
+The controller rejects a second mutating command for the same env file while
+one is running. Dry runs remain available during a deployment.
 
 ## Overview
 

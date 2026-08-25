@@ -287,6 +287,30 @@ def test_restart_keep_gateway_flag():
     assert flags.keep_gateway
 
 
+def test_deployment_lock_rejects_concurrent_control(tmp_path):
+    first = main_mod.acquire_deployment_lock(str(tmp_path / "server.env"))
+    try:
+        with pytest.raises(SystemExit):
+            main_mod.acquire_deployment_lock(str(tmp_path / "server.env"))
+    finally:
+        first.close()
+
+
+def test_keep_gateway_restarts_it_after_web_recreation(monkeypatch, tmp_path):
+    bin_dir = _write_shims(tmp_path)
+    _task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    monkeypatch.setenv("SHIM_IDS", str(tmp_path / "ids.txt"))
+    monkeypatch.setenv("SHIM_LOG", str(tmp_path / "docker.log"))
+
+    result = _run_cli(monkeypatch, tmp_path, env_file, bin_dir, "restart", "--keep-gateway")
+
+    assert result.returncode == 0, result.stderr
+    commands = (tmp_path / "docker.log").read_text(encoding="utf-8").splitlines()
+    up = next(i for i, command in enumerate(commands) if "up --no-build -d redis web gateway" in command)
+    refresh = next(i for i, command in enumerate(commands) if command.endswith("restart gateway"))
+    assert up < refresh
+
+
 # -- latest-only images -------------------------------------------------------
 
 

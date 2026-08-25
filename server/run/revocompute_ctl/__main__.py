@@ -6,8 +6,13 @@
 
 from __future__ import annotations
 
+import fcntl
 import os
 import sys
+import tempfile
+from hashlib import sha256
+from pathlib import Path
+from typing import TextIO
 
 from revocompute_ctl import PRIMARY_ENV_FILE
 from revocompute_ctl.compose import detect_compose_cmd
@@ -30,6 +35,19 @@ def _usage_exit(message: str) -> None:
     print(message, file=sys.stderr)
     print(USAGE, file=sys.stderr)
     raise SystemExit(1)
+
+
+def acquire_deployment_lock(env_file: str) -> TextIO:
+    """Refuse concurrent mutations of the same deployment."""
+    key = sha256(os.path.realpath(env_file).encode()).hexdigest()[:16]
+    lock = Path(tempfile.gettempdir(), f"revocompute-{key}.lock").open("a+", encoding="utf-8")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        lock.close()
+        print(f"Another server control command is already running for {env_file}.", file=sys.stderr)
+        raise SystemExit(1) from None
+    return lock
 
 
 def parse_args(argv: list[str]) -> tuple[str, str, RestartFlags]:
@@ -152,6 +170,10 @@ def main() -> None:
         print("Do not run restart.sh through sudo or as root; use the deployment account.", file=sys.stderr)
         raise SystemExit(1)
 
+    deployment_lock = None
+    if subcommand in ("setup", "build", "prepare", "up", "down", "reload", "reset-passwd", "restart"):
+        deployment_lock = None if flags.dry_run else acquire_deployment_lock(env_file)
+
     print(f"Using env file: {env_file}")
     if os.environ.get("ENABLED_TASKRUNNERS"):
         state.runtime["ENABLED_TASKRUNNERS"] = os.environ["ENABLED_TASKRUNNERS"]
@@ -202,6 +224,8 @@ def main() -> None:
         print(f"Unknown subcommand: {subcommand}", file=sys.stderr)
         print(USAGE, file=sys.stderr)
         raise SystemExit(1)
+    if deployment_lock is not None:
+        deployment_lock.close()
 
 
 if __name__ == "__main__":

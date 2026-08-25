@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Server:
+  - deployment control: reject concurrent mutations and refresh the retained gateway after recreating `web`, preventing Compose rename conflicts and stale-upstream 502s.
   - AlphaFold: preserve SLURM's selected CUDA device for Amber relaxation; nest workflow resource cards under AlphaFold2.
   - AlphaFold multimer full-database runs now pass the required UniRef30 database path.
   - prepared SLURM deploys validate staged SIFs against the exact `:latest` runner-image digest.

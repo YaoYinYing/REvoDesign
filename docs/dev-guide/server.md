@@ -266,6 +266,10 @@ recursively chmod/chown application data. Build proxies are passed as build
 arguments and cleared in final runtime stages; do not hard-code them in
 Dockerfiles.
 
+Only one mutating control command may run per deployment env file. With
+`--keep-gateway`, the controller restarts Nginx after recreating `web` so its
+startup-time Docker DNS resolution cannot retain the old container address.
+
 ## Model data and caches
 
 Large or required model data belongs on operator-managed shared storage,

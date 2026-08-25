@@ -435,6 +435,23 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
     if state.use_slurm():
         steps.append(Step("promote-sifs", promote_sifs))
     steps.append(Step("up", lambda: cmd_up(state, compose_cmd, extra=["--no-build"])))
+    if flags.keep_gateway:
+        steps.append(
+            Step(
+                "refresh-gateway",
+                lambda: run_cmd(
+                    [
+                        *compose_cmd,
+                        *compose_args(state),
+                        "--env-file",
+                        state.env_file,
+                        "restart",
+                        "gateway",
+                    ],
+                    env=state.exported(),
+                ),
+            )
+        )
     if flags.mode == "prepared":
         steps.append(Step("readiness", lambda: wait_for_services(state, compose_cmd)))
     steps.append(Step("prune", lambda: promotion.prune_dangling(state)))
