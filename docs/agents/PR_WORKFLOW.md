@@ -5,9 +5,9 @@
 After opening a PR, own it through the squash-merge marker:
 
 ### 1. Branch Setup
-- Work on a fix branch off `main`
+- Work on a branch off `main`; never push to `main` directly
 - Use conventional commit messages
-- Never push to `main` directly
+- Each commit must be production-quality: show correct evolution, not wrong intermediate attempts
 
 ### 2. Babysit CI Until Green
 - Monitor all CI checks
@@ -21,7 +21,7 @@ After opening a PR, own it through the squash-merge marker:
 
 ### 3. Server PRs (REvoCompute)
 
-Follow [`server/DEPLOYMENT_CONTROL_GUIDE.md`](../server/DEPLOYMENT_CONTROL_GUIDE.md).
+Follow [`server/DEPLOYMENT_CONTROL_GUIDE.md`](../../server/DEPLOYMENT_CONTROL_GUIDE.md).
 
 **Key points:**
 - Use absolute production env path
@@ -46,11 +46,11 @@ Follow [`server/DEPLOYMENT_CONTROL_GUIDE.md`](../server/DEPLOYMENT_CONTROL_GUIDE
 - Run relevant gates: `make kw-test PYTEST_KW='<keyword>'`
 - Cross-Qt checks exist in `REvoDesignTestFlight` (PyQt5) and `REvoDesignTestFlightQt6`
 
-### 5. Final Marker Commit
+### 5. Merge
 When CI is green and every comment is fixed or consciously ignored:
-- Push final empty marker commit: `chore: Done fixing — <what was live/CI verified>`
-- The `Done fixing` prefix is intentional exception to conventional-commit rule
-- User squash-merges from there
+- Push a final empty marker commit only when handing the PR back for manual merge: `chore: Done fixing — <what was live/CI verified>`
+- The `Done fixing` prefix is an intentional exception to the conventional-commit rule
+- Otherwise squash-merge with a conventional commit title
 
 ## PR Lessons Learned
 
@@ -61,6 +61,9 @@ When CI is green and every comment is fixed or consciously ignored:
 - For SIFs: record exact source Docker digest and SIF hash in `images/digest/image-sif.json`
 - Refuse activation on mismatch
 
-## Doc-Only PRs
+## Commit and PR Conventions
 
-When a PR only touches documentation files (e.g. `docs/`, `CLAUDE.md`, `README.md`, `mkdocs.yml`, or `.github/workflows/docs.yml`), append `[skip ci]` to the final commit message.
+- PR titles use `type(scope): description` or `type: description`; valid types are `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, and `revert`.
+- Before pushing, run `make black`, then `git add -A`; pre-commit hooks must pass.
+- Documentation lives under `docs/` or its relevant module directory and needs no build step.
+- When a PR only touches documentation files (for example `docs/`, `CLAUDE.md`, `README.md`, `mkdocs.yml`, or `.github/workflows/docs.yml`), append `[skip ci]` to the final commit message.

@@ -14,7 +14,7 @@
    ```bash
    make tag
    ```
-   
+
    This command:
    - Extracts old/new versions from the git diff
    - Inserts a dated `[X.Y.Z]` section in `CHANGELOG.md`
@@ -30,24 +30,22 @@ The command reads versions from the *unstaged* diff of `__init__.py`.
 
 ## Changelog Conventions
 
-- Module-scoped terse bullets in 1.8.5-era style
-- Top-levels: `- Server:`, `- Package manager:`, `- Qt:`
-- One-line sub-bullets under each
-- Descriptions must be short, precise, and compact — never long prose paragraphs
-- The `## TEMPLATE` block must stay empty
-- Real content belongs only in version sections or `[Unreleased]`
+- Add entries under the relevant Keep a Changelog section in `[Unreleased]`.
+- Use module-scoped terse bullets in 1.8.5-era style: `- Server:`, `- Package manager:`, `- Qt:`, with compact one-line sub-bullets.
+- Keep the `## TEMPLATE` block empty; real content belongs only in `[Unreleased]` or a version section.
 
 ### Example
 
 ```markdown
 ## [Unreleased]
 
-### Server
-- Add FreeBindCraft runner
-- Redesign submission workspace UI
+### Added
+- Server:
+  - runner: FreeBindCraft GPU family.
 
-### Qt
-- Fix QThread memory corruption with uvicorn servers
+### Fixed
+- Qt:
+  - prevent QThread memory corruption with uvicorn servers.
 ```
 
 ## Code-Doc Alignment

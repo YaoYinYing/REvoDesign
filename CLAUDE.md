@@ -9,11 +9,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This file is treated as a neural net with a size budget. After substantial sessions:
 1. Add new learnings as concise bullets
 2. When over budget, prune lowest-value content (frequency × impact)
-3. Move procedural "how-to" to docs/
+3. Move procedural "how-to" to [`docs/agents/`](docs/agents/)
 4. Audit for staleness every 3 months
 
-**PR scope discipline:** Each commit in a PR should represent correct, production-quality work at that point. The PR shows evolution of correct work (incomplete → more complete), not learning journey (wrong → corrected). Squash-merge handles final compression.
-
+See [`docs/agents/CLAUDE_AUDIT.md`](docs/agents/CLAUDE_AUDIT.md) for the audit rationale.
 Use memory/ for session-specific context. Use this file for project-invariant patterns that prevent repeated mistakes.
 
 ## Engineering Principles
@@ -60,21 +59,13 @@ Use memory/ for session-specific context. Use this file for project-invariant pa
 
 ## Workflow
 
-- **Before committing**: Run `make black` then `git add -A` to stage formatting. Pre-commit hooks must pass. Exit code is advisory.
-- **After changes**: Update docs and add CHANGELOG entry under `[Unreleased]`. See [docs/RELEASE.md](docs/RELEASE.md) for changelog style.
-- **Code-doc alignment**: When behavior changes, update docs that describe it in the same PR. A doc describing replaced design is a bug.
+- Follow [`docs/agents/PR_WORKFLOW.md`](docs/agents/PR_WORKFLOW.md) for commits, PRs, CI, and deployment checks.
+- Follow [`docs/agents/RELEASE.md`](docs/agents/RELEASE.md) for changelog and release procedures.
 - **CI suddenly failing on unchanged code?** Re-run the last passing CI commit before chasing symptoms. Same commit, same pass → environment regression (pinned a dep too loose). Same commit, now fails → something external changed. Either way, you know which side the bug lives on before touching code.
 - **Heisenbug debugging**: When a crash moves every time you change unrelated code (different stack trace, same SIGABRT), you're looking at heap-layout-sensitive corruption. The signature: same commit bisects both passing AND failing → the commit is a layout perturbator, not the root cause. Ask: what two object-lifetime systems are mixing? The fix is removing the boundary, not getting the teardown order right.
 - **Test-case-driven fixes**: For live/integration issues, first encode the observed behavior as the smallest test case or skip guard, then make the smallest production/test change, run the focused keyword gate (for example `make kw-test PYTEST_KW=openkinetics`), and update `CHANGELOG.md`. Treat environment-dependent live API responses such as expected HTTP `4xx`/`5xx` as explicit skips, while keeping non-HTTP client errors failing.
-- **Before committing**: Run `make black` then `git add -A`. Pre-commit hooks must pass; exit code is advisory.
-- **After changes**: Update docs and add CHANGELOG entry under `[Unreleased]`. See [docs/RELEASE.md](docs/RELEASE.md) for style.
-- **Code-doc alignment**: When behavior changes, update docs that describe it in the same PR.
 - **Standalone bootstrapper**: `package_manager.py` must be ASCII-only (published as standalone; GBK-hostile environments exist).
 - **Simplified-Chinese Windows living test**: Test first-install on CP936/GBK (UTF-8 option off) and CP65001 (UTF-8 option on, rebooted). Both must succeed.
-- **Version bumping**:
-  1. Update `__version__` in `src/REvoDesign/__init__.py` (validate format at https://regex101.com/r/6AoOI9/1).
-  2. Run `make tag` — it extracts old/new versions from the git diff, inserts a dated `[new_version]` section in `CHANGELOG.md`, commits `CHANGELOG.md` + `__init__.py`, creates an annotated tag with the changelog between versions, and pushes with `--tags`.
-  - **Important**: `make tag` reads versions from the *unstaged* diff of `__init__.py`, so do NOT `git add` the version change before running it.
 
 ## Build and Test
 
@@ -241,11 +232,3 @@ improve future adaptations:
   or any parameter that proved unnecessary. Record the effective walltime and
   resource usage so future adaptations can set conservative defaults. Add any
   new task‑type patterns to the registry’s `RUNTIME_FAMILIES.md` table.
-
-## Commit and PR guidelines
-
-- **Commit messages**: Follow conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`). Use `[skip ci]` to skip CI for non-code changes.
-- **Doc-only PRs**: When a PR only touches documentation files (e.g. `docs/`, `CLAUDE.md`, `README.md`, `mkdocs.yml`, or `.github/workflows/docs.yml`), append `[skip ci]` to the final commit message. CI testing is unnecessary for documentation-only changes.
-- **PR titles**: Must follow conventional commit format — `type(scope): description` or `type: description`. Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Enforced by `semantic-pr-check` workflow on PR open/edit/sync.
-- **Before pushing**: Run `make black`, then `git add -A` to stage formatting changes. Pre-commit hooks must pass.
-- **Documentation**: Stored as Markdown under `docs/` or within the relevant module directory; no build step required.
