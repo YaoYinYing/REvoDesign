@@ -399,7 +399,21 @@
             "required": ["state", "checks", "problems"],
             "properties": {
               "state": {"type": "string", "enum": ["passed", "failed", "not_configured", "not_assessed"]},
-              "checks": {"type": "array", "items": {"type": "object"}},
+              "checks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["view_id", "source", "required", "status", "matched"],
+                  "properties": {
+                    "view_id": {"type": "string"},
+                    "source": {"type": "string"},
+                    "required": {"type": "boolean"},
+                    "status": {"type": "string", "enum": ["passed", "failed"]},
+                    "matched": {"type": "integer", "minimum": 0}
+                  },
+                  "additionalProperties": false
+                }
+              },
               "problems": {"type": "array", "items": {"type": "string"}}
             }
           },

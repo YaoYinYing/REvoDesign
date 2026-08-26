@@ -531,7 +531,6 @@ def _resolve_result_views(
                     {
                         "view_id": definition.id,
                         "source": source_name,
-                        "selector": selector.value,
                         "required": selector.required,
                         "status": status,
                         "matched": len(nonempty),

@@ -193,7 +193,11 @@ def test_result_page_keeps_artifacts_fallback_and_native_space(page: Page) -> No
     search.fill("stdout")
     search.press("Space")
     expect(search).to_have_value("stdout ")
-    expect(page.get_by_role("button", name="execution/slurm-job.stdout.log Execution log · 10 B")).to_be_visible()
+    log_button = page.get_by_role("button", name="execution/slurm-job.stdout.log Execution log · 10 B")
+    expect(log_button).to_be_visible()
+    log_button.click()
+    expect(page.get_by_role("heading", name="execution/slurm-job.stdout.log")).to_be_visible()
+    expect(page.get_by_role("link", name="Download file")).to_be_visible()
 
 
 def test_result_page_collapses_workspace_at_mobile_width(page: Page) -> None:

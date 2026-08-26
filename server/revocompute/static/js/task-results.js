@@ -48,6 +48,7 @@
   function showToast(message, type) {
     var node = document.createElement("div");
     node.className = "toast " + (type || "info");
+    node.setAttribute("role", type === "error" ? "alert" : "status");
     node.textContent = message;
     document.getElementById("toastWrap").appendChild(node);
     setTimeout(function () { node.remove(); }, 3600);
@@ -721,6 +722,7 @@
         if (!response.ok) throw new Error("Structure download failed");
         viewerFrame = await renderMolstar(await response.text(), structureArtifact, viewerStage, previewHost.generation, true);
       } catch (error) {
+        if (services.signal.aborted) return;
         var message = document.createElement("p"); message.className = "preview-message";
         message.textContent = "Structure linking unavailable; the result table remains usable."; viewerStage.appendChild(message);
       }
@@ -743,12 +745,17 @@
   }
 
   function showPreviewError(error) {
+    if (error && error.name === "AbortError") return;
     var stage = document.getElementById("artifactPreview");
     stage.innerHTML = '<p class="preview-message"></p>'; stage.firstChild.textContent = error.message || "Preview unavailable";
   }
 
   previewRegistry = window.REvoComputeResultPreviews.createRegistry({
-    structure: previewStructure,
+    structure: async function (artifact, stage) {
+      stage.parentNode.hidden = true;
+      if (structureHolder) structureHolder.hidden = false;
+      await previewStructure(artifact, stage);
+    },
     image: previewImage,
     table: previewTable,
     text: previewText,
@@ -772,16 +779,15 @@
   async function previewArtifact(artifact) {
     activeArtifact = artifact;
     document.getElementById("previewTitle").textContent = artifact.path;
+    document.getElementById("previewDescription").textContent = artifact.role + " artifact · " + formatBytes(artifact.size);
     var download = document.getElementById("artifactDownload"); download.hidden = false;
     download.href = artifact.url + "?download=1"; download.download = "";
     document.querySelectorAll(".artifact-row").forEach(function (node) {
       var active = node.dataset.path === artifact.path; node.classList.toggle("active", active);
       node.setAttribute("aria-current", active ? "true" : "false");
     });
-    var stage = document.getElementById("artifactPreview"); stage.hidden = false;
-    if (structureHolder) structureHolder.hidden = true;
-    var plugin = previewRegistry.resolve(artifact);
-    if (plugin && plugin.id === "structure" && structureHolder) { stage.hidden = true; structureHolder.hidden = false; }
+    var stage = document.getElementById("artifactPreview");
+    stage.hidden = false; if (structureHolder) structureHolder.hidden = true;
     try { await previewHost.render(artifact); } catch (error) { showPreviewError(error); }
   }
 
@@ -914,6 +920,9 @@
     renderScientificRecord(payload); renderArtifacts(""); renderViewTabs(); renderShortlist();
     document.getElementById("artifactSummary").textContent = artifacts.length + " files · " + formatBytes(payload.total_size);
     var archiveButton = document.getElementById("archiveButton");
+    delete archiveButton.dataset.downloadUrl;
+    archiveButton.textContent = "Create ZIP";
+    document.getElementById("archiveState").textContent = "Individual manifest-approved files are available now.";
     if (payload.archive && payload.archive.ready) {
       archiveButton.textContent = "Download ZIP"; archiveButton.dataset.downloadUrl = payload.archive.download_url;
       document.getElementById("archiveState").textContent = "The manifest-approved ZIP is ready.";
@@ -923,7 +932,11 @@
     else {
       document.getElementById("previewTitle").textContent = "No principal result view";
       document.getElementById("previewDescription").textContent = "This method has not yet declared a scientific result composition. All published artifacts remain available below.";
-      showPreviewError(new Error("Open All artifacts to inspect or download this run."));
+      var stage = document.getElementById("artifactPreview"); stage.replaceChildren();
+      var empty = document.createElement("p"); empty.className = "preview-message";
+      empty.textContent = "Open All artifacts to inspect or download this run."; stage.appendChild(empty);
+      var artifactsSection = document.querySelector(".artifact-section");
+      if (artifactsSection) artifactsSection.open = true;
     }
   }
 
