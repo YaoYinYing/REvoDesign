@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - GitHub Issue Forms for bugs, install problems, features, docs, and private security reports.
 
 ### Changed
+- Documentation:
+  - prune always-loaded Claude guidance and move rare PR/release procedures to linked `docs/agents/` references.
 - Server:
   - deployment control: add a standalone operator/developer guide for modes, preparation, SIF activation, safety, cache behavior, and recovery.
   - create-task: organize server-owned method guidance into a searchable scientific catalog and one continuous, accessible experiment protocol with a normalized review.

@@ -1,6 +1,19 @@
 # CLAUDE.md
 
+**Last pruned:** 2026-08-26 (token budget: 3000 tokens / 400 lines)
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Maintenance Strategy
+
+This file is treated as a neural net with a size budget. After substantial sessions:
+1. Add new learnings as concise bullets
+2. When over budget, prune lowest-value content (frequency × impact)
+3. Move procedural "how-to" to [`docs/agents/`](docs/agents/)
+4. Audit for staleness every 3 months
+
+See [`docs/agents/CLAUDE_AUDIT.md`](docs/agents/CLAUDE_AUDIT.md) for the audit rationale.
+Use memory/ for session-specific context. Use this file for project-invariant patterns that prevent repeated mistakes.
 
 ## Engineering Principles
 
@@ -46,31 +59,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workflow
 
-- **CI suddenly failing on unchanged code?** Re-run the last passing CI commit before chasing symptoms. Same commit, same pass → environment regression (pinned a dep too loose). Same commit, now fails → something external changed. Either way, you know which side the bug lives on before touching a line of code.
-- **Heisenbug debugging**: When a crash moves every time you change unrelated code (different stack trace, same SIGABRT), you're looking at heap-layout-sensitive corruption, not a deterministic logic bug. The signature: same commit bisects both passing AND failing → the commit is a layout perturbator, not the root cause. Stop chasing cleanup ordering. Ask: what two object-lifetime systems are mixing? The fix is removing the boundary, not getting the teardown order right. Each failed "fix" that only shifts the crash is evidence you're treating a symptom.
-- **Before committing**: Run `make black` to format all files, then `git add -A` to stage the formatting changes together with your edits. This ensures pre-commit hooks (black, isort, autoflake, pyupgrade, autopep8) pass and keeps the diff reviewable. **The exit code of `make black` is advisory — if the hooks leave the code with improved syntax and style, the result is good regardless of the exit code.**
-- **After feature/bugfix work**: Update the relevant documentation in `docs/` and add an entry to `CHANGELOG.md` under the `[Unreleased]` section.
-- **CHANGELOG entries**: module-scoped terse bullets in the 1.8.5-era style (`- Server:`, `- Package manager:`, `- Qt:` top-levels with one-line sub-bullets). Descriptions must be short, precise, and compact — never long prose paragraphs. The `## TEMPLATE` block must stay empty; real content belongs only in version sections or `[Unreleased]`. Docs and changelog are part of the deliverable — not an afterthought. **Code-doc alignment**: when a change alters behavior that existing docs already describe (architecture sections, dev guides, CLAUDE.md itself), update that description in the same PR — a doc that still describes the replaced design is a bug, and a reviewer asking "did you update the docs?" means the check was missed.
+- Follow [`docs/agents/PR_WORKFLOW.md`](docs/agents/PR_WORKFLOW.md) for commits, PRs, CI, and deployment checks.
+- Follow [`docs/agents/RELEASE.md`](docs/agents/RELEASE.md) for changelog and release procedures.
+- **CI suddenly failing on unchanged code?** Re-run the last passing CI commit before chasing symptoms. Same commit, same pass → environment regression (pinned a dep too loose). Same commit, now fails → something external changed. Either way, you know which side the bug lives on before touching code.
+- **Heisenbug debugging**: When a crash moves every time you change unrelated code (different stack trace, same SIGABRT), you're looking at heap-layout-sensitive corruption. The signature: same commit bisects both passing AND failing → the commit is a layout perturbator, not the root cause. Ask: what two object-lifetime systems are mixing? The fix is removing the boundary, not getting the teardown order right.
 - **Test-case-driven fixes**: For live/integration issues, first encode the observed behavior as the smallest test case or skip guard, then make the smallest production/test change, run the focused keyword gate (for example `make kw-test PYTEST_KW=openkinetics`), and update `CHANGELOG.md`. Treat environment-dependent live API responses such as expected HTTP `4xx`/`5xx` as explicit skips, while keeping non-HTTP client errors failing.
-- **PR babysitting workflow** — after opening a PR, own it through the squash-merge marker:
-  1. Work on a fix branch off `main`; conventional commit messages; never push to `main` directly.
-  2. Babysit CI until green, then read every bot review comment from codex and
-     coderabbit and decide per comment: fix or ignore — reply with evidence
-     (file:line) when ignoring a valid-looking finding. **DeepSource and Codacy are
-     ignored** — their check statuses and comments are noise (stylistic lint
-     profiles configured opposite to project conventions): don't fix, don't
-     debate, don't treat them as blocking. No branch protection gates on them.
-     Their findings get handled periodically in dedicated batch-fix PRs.
-  3. **Server PRs** (`server/` — REvoCompute): follow [`server/DEPLOYMENT_CONTROL_GUIDE.md`](server/DEPLOYMENT_CONTROL_GUIDE.md). Use the absolute production env path and exactly one controller mutation at a time. If runner images changed, first run `prepare --enabled-runners=<changed-csv> --use-proxy --build-sif` while the healthy stack remains up. Then dry-run and activate with `REVODESIGN_SERVER_ENV=/repo/REvoDesign/server/.env.production.v7-slurm bash server/run/restart.sh restart --mode=prepared --keep-gateway`. When no runner image changed, skip preparation and use the same prepared activation; never use a bare restart for routine production because it defaults to dev mode and rebuilds every enabled runner plus the server. Before activation, sync `server/config/task_types.yaml` to the production `CONFIG_DIR` copy (back it up, copy it over, re-apply the two machine lines `job_executor: slurm` / `container_runtime: apptainer`). New runtime families must be appended to `ENABLED_TASKRUNNERS` in the deployment env file before activation; task types using an enabled family need no additional entry. The server only enables registered-and-listed task types. After the restart, verify `${CONFIG_DIR}/.deploy-stamp` (commit, digests, changed families, backup path). Disk-full recovery: `docker buildx prune`, `APPTAINER_CACHEDIR=/home/yinying/.apptainer/ apptainer cache clean --type all`, remove obsolete SIFs. Then live-verify the affected pages on the canonical direct edge `https://revocompute.yaoyy.moe` in incognito (cache-free); `https://revocompute-relay.yaoyy.moe` is the optional relay edge and is not a deployment blocker. When behavior changed, submit a living test with a real data file from `tests/data` through the API using the group test account (ask the user for credentials if none are in session or memory): login `POST /compute/api/auth/login` with `{"username": …, "password": …}` → Bearer token; submit `POST /compute/api/post` (multipart `file` + `task_type` + `params[name]`/`workspace`); monitor the local SLURM job (`squeue`) and read results from the API — status `GET /compute/api/running/<md5>`, manifest `GET /compute/api/results/<md5>`, logs `GET /compute/api/results/<md5>/artifacts/<path>`. Verify the served static files contain the change AND the page behaves as designed, never just one of the two.
-  4. **Main program PRs** (PyMOL plugin): CI and review comments only — no server deploy. Run the relevant gates (`make kw-test PYTEST_KW='<keyword>'`); cross-Qt checks exist in `REvoDesignTestFlight` (PyQt5) and `REvoDesignTestFlightQt6`.
-  5. When CI is green and every comment is fixed or consciously ignored, push a final empty marker commit `chore: Done fixing — <what was live/CI verified>` as the branch head (the plain `Done fixing` prefix is an intentional exception to the conventional-commit rule, matching the squash-merge habit); the user squash-merges from there.
-- **PR lessons learned**: Do not repeatedly trigger automated reviews; request one review pass, batch valid findings, and verify locally between pushes. Runner builds use the final Docker tag directly—never create `:next` or `:previous` image tags. Replacing `:latest` retires the old digest through dangling-image pruning. For SIFs, record the exact source Docker digest and SIF hash in `images/digest/image-sif.json` and refuse activation on mismatch.
-- **Standalone bootstrapper encoding**: Keep `src/REvoDesign/tools/package_manager.py` ASCII-only because it is published as `REvoDesign_PyMOL.py` and may be saved through locale-aware Windows tools. A UTF-8-to-GBK transcode turns characters such as `→` into bytes beginning with `0xA1`, which Python 3 rejects while parsing the file as UTF-8. Preserve both the GBK-compilation regression test and the `check-standalone-source-ascii` pre-commit guard; non-ASCII text remains acceptable in normal packaged modules.
-- **Simplified-Chinese Windows living test**: After merging the installer change, republish both `REvoDesign_PyMOL.py` and `manifest.json` before testing so the Gist artifacts match the merged source. Test the documented first-install flow early on a Simplified-Chinese Windows machine with the system UTF-8 option **off** (the default CP936/GBK adverse path); record `chcp`, download the raw Gist through the normal user path, install it in PyMOL, and confirm bootstrap and installation succeed. Repeat with **Region → Administrative language settings → Change system locale → “Beta: Use Unicode UTF-8 for worldwide language support”** enabled and the machine rebooted (CP65001); bootstrap and installation must also succeed. The UTF-8 guidance lives in the docs only — the package manager no longer probes code pages or shows a dialog. The toggle is a user workaround for non-English CMD/Windows PowerShell streams, not a prerequisite or substitute for CP936 compatibility.
-- **Version bumping**:
-  1. Update `__version__` in `src/REvoDesign/__init__.py` (validate format at https://regex101.com/r/6AoOI9/1).
-  2. Run `make tag` — it extracts old/new versions from the git diff, inserts a dated `[new_version]` section in `CHANGELOG.md`, commits `CHANGELOG.md` + `__init__.py`, creates an annotated tag with the changelog between versions, and pushes with `--tags`.
-  - **Important**: `make tag` reads versions from the *unstaged* diff of `__init__.py`, so do NOT `git add` the version change before running it.
+- **Standalone bootstrapper**: `package_manager.py` must be ASCII-only (published as standalone; GBK-hostile environments exist).
+- **Simplified-Chinese Windows living test**: Test first-install on CP936/GBK (UTF-8 option off) and CP65001 (UTF-8 option on, rebooted). Both must succeed.
 
 ## Build and Test
 
@@ -179,17 +174,11 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 - **Config files**: YAML under `src/REvoDesign/config/`, managed by OmegaConf/Hydra. The config directory is determined by `platformdirs` user config path.
 - **Version**: Set in `src/REvoDesign/__init__.py` (`__version__`). Use `make tag` to bump.
 
-### Threading: QThread vs `threading.Thread`
+### Threading
 
-**Rule: Long-lived event-loop servers (uvicorn, asyncio) MUST use `threading.Thread`, never `QThread`.**
-
-`WorkerThread` (`src/REvoDesign/tools/package_manager.py`) is a `QThread` subclass. QThread creates a SIP-managed C++ QObject whose Python wrapper can outlive the C++ object during GC. When cross-thread Qt signals touch the stale wrapper, `sipWrapper_dealloc` → `forgetObject` → `QMessageLogger::fatal` → SIGABRT. This is a Heisenbug: heap-layout-sensitive corruption that moves every time code changes.
-
-- **Use `threading.Thread`** for uvicorn servers, asyncio event loops, and any long-lived background work that isn't tightly coupled to Qt widgets.
-- **Use `WorkerThread` (QThread)** for short-lived Qt-adjacent background jobs (e.g. `RunningProcessRegistry`) where signals/slots are needed.
-- When joining a `threading.Thread` from the main thread, pump Qt events with `QApplication.processEvents()` so the UI doesn't freeze.
-- The `_run_server_and_mark_stopped` pattern wraps `server.run()` in a `try/finally` that clears `is_running`, so a thread exit (clean or crash) syncs state without Qt signals.
-- Mocking `threading.Thread` in tests: `MagicMock()` with `is_alive.return_value = False` — no `spec=WorkerThread` since `is_alive` is a `threading.Thread` API.
+- Long-lived servers (uvicorn, asyncio): `threading.Thread`
+- Qt-signal-coupled work: `QThread` via `WorkerThread`
+- When joining from main thread: `QApplication.processEvents()` to keep UI responsive
 
 ## Adapting a new scientific runner — intake
 
@@ -243,11 +232,3 @@ improve future adaptations:
   or any parameter that proved unnecessary. Record the effective walltime and
   resource usage so future adaptations can set conservative defaults. Add any
   new task‑type patterns to the registry’s `RUNTIME_FAMILIES.md` table.
-
-## Commit and PR guidelines
-
-- **Commit messages**: Follow conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`). Use `[skip ci]` to skip CI for non-code changes.
-- **Doc-only PRs**: When a PR only touches documentation files (e.g. `docs/`, `CLAUDE.md`, `README.md`, `mkdocs.yml`, or `.github/workflows/docs.yml`), append `[skip ci]` to the final commit message. CI testing is unnecessary for documentation-only changes.
-- **PR titles**: Must follow conventional commit format — `type(scope): description` or `type: description`. Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Enforced by `semantic-pr-check` workflow on PR open/edit/sync.
-- **Before pushing**: Run `make black`, then `git add -A` to stage formatting changes. Pre-commit hooks must pass.
-- **Documentation**: Stored as Markdown under `docs/` or within the relevant module directory; no build step required.
