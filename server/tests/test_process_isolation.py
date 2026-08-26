@@ -4,10 +4,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
 import sys
+from hashlib import sha256
 from pathlib import Path
 
 import pytest
@@ -36,6 +38,9 @@ def _run_restart_script(
         'printf "%s\\n" "$*" >> "${DOCKER_LOG}"\n'
         'if [[ "$*" == *" ps --status running --services"* ]]; then\n'
         '  printf "redis\\nweb\\ngateway\\nmaintenance\\nworker\\n"\n'
+        "fi\n"
+        'if [[ "$1" == "image" && "$2" == "inspect" && "$3" == "--format" ]]; then\n'
+        '  printf "sha256:%s\\n" "${@: -1}"\n'
         "fi\n",
         encoding="utf-8",
     )
@@ -66,7 +71,8 @@ def _run_restart_script(
 
         with sqlite3.connect(auth_dir / "users.sqlite3") as conn:
             conn.execute(
-                "CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT NOT NULL, token_version INTEGER DEFAULT 0)"
+                "CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, "
+                "password_hash TEXT NOT NULL, token_version INTEGER DEFAULT 0)"
             )
             conn.execute(
                 "INSERT INTO users (username, password_hash, token_version) VALUES (?, ?, ?)",
@@ -124,11 +130,21 @@ def _make_deployed_config(tmp_path, executor="docker", missing_sif=None):
     registry["container_runtime"] = "apptainer" if executor == "slurm" else "docker"
     sif_dir = tmp_path / "sifs"
     sif_dir.mkdir()
+    manifest = {}
     for name, runtime in registry["runtime_families"].items():
         sif_path = sif_dir / f"{name}.sif"
         runtime["slurm_image"] = str(sif_path)
         if executor == "slurm" and name != missing_sif:
             sif_path.touch()
+            image = runtime["docker_image"]
+            source_tag = image if "@" in image or ":" in image.rsplit("/", 1)[-1] else f"{image}:latest"
+            manifest[name] = {
+                "docker_image_id": f"sha256:{source_tag}",
+                "sif_sha256": f"sha256:{sha256(sif_path.read_bytes()).hexdigest()}",
+            }
+    if manifest:
+        (sif_dir / "digest").mkdir()
+        (sif_dir / "digest" / "image-sif.json").write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
     (config_dir / "task_types.yaml").write_text(yaml.safe_dump(registry, sort_keys=False), encoding="utf-8")
     return config_dir
 

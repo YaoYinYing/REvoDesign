@@ -16,35 +16,39 @@
   function pathFor(file) { return file.webkitRelativePath || file.name; }
   function lowerName(file) { return String(file.name || "").toLowerCase(); }
   function matchesExtension(file, extensions) {
-    return (extensions || []).some(function (extension) {
-      return lowerName(file).endsWith(String(extension).toLowerCase());
-    });
+    return (extensions || []).some(function (extension) { return lowerName(file).endsWith(String(extension).toLowerCase()); });
+  }
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return Math.ceil(bytes / 1024) + " KiB";
+    return (bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0) + " MiB";
   }
 
-  function normalizeSequence(raw) {
-    return String(raw || "").toUpperCase().replace(/[^A-Z]/g, "");
+  function parseSequence(raw) {
+    var value = String(raw || "").trim();
+    if (!value) return { name: "", sequence: "", error: "" };
+    if (value.startsWith(">")) {
+      var records = value.split(/^>/m).filter(Boolean);
+      if (records.length !== 1) return { name: "", sequence: "", error: "Paste exactly one FASTA record." };
+      var lines = records[0].split(/\r?\n/);
+      var name = lines.shift().trim();
+      value = lines.join("");
+      var sequence = value.replace(/\s/g, "").toUpperCase();
+      return /^[A-Z]+$/.test(sequence)
+        ? { name: name, sequence: sequence, error: "" }
+        : { name: name, sequence: "", error: "The FASTA sequence may contain letters only." };
+    }
+    var plain = value.replace(/\s/g, "").toUpperCase();
+    return /^[A-Z]+$/.test(plain)
+      ? { name: "", sequence: plain, error: "" }
+      : { name: "", sequence: "", error: "Paste protein letters or one FASTA record." };
   }
 
-  function sequenceSummary(sequence) {
-    if (!sequence) return "No pasted sequence. A selected FASTA file will be used.";
+  function sequenceSummary(parsed) {
+    if (!parsed.sequence) return "No pasted sequence. Selected FASTA files will be used.";
     var groups = [];
-    for (var index = 0; index < sequence.length; index += 10) groups.push(sequence.slice(index, index + 10));
-    return groups.join(" ") + "\n" + sequence.length + " residues";
-  }
-
-  function workspaceCard(definition) {
-    var section = element("section", "workspace-card");
-    section.dataset.capabilityId = definition.id;
-    var heading = element("div", "workspace-card-heading");
-    // Specialized plugin ids (e.g. rfdiffusion-regions) are developer-facing
-    // names; only generic capability ids read naturally as user-facing badges.
-    if (definition.plugin.indexOf("-") < 0) heading.appendChild(element("span", "workspace-plugin-badge", definition.plugin));
-    heading.appendChild(element("h2", "workspace-card-title", definition.title || definition.id));
-    section.appendChild(heading);
-    if (definition.description) section.appendChild(element("p", "workspace-card-description", definition.description));
-    var body = element("div", "workspace-card-body");
-    section.appendChild(body);
-    return { section: section, body: body };
+    for (var index = 0; index < parsed.sequence.length; index += 10) groups.push(parsed.sequence.slice(index, index + 10));
+    return groups.join(" ") + "\n" + parsed.sequence.length + " residues";
   }
 
   function renderParam(parameter, context) {
@@ -54,64 +58,30 @@
     label.htmlFor = "param_" + parameter.name;
     if (parameter.unit) label.textContent += " (" + parameter.unit + ")";
     labelRow.appendChild(label);
-    var helpText = (context.helpCache && context.helpCache[parameter.name]) ? context.helpCache[parameter.name].help : "";
-    var defaultOverride = (context.helpCache && context.helpCache[parameter.name]) ? context.helpCache[parameter.name].default : undefined;
-    var effectiveDefault = defaultOverride !== undefined ? defaultOverride : parameter.default;
-    if (helpText) {
-      var tip = element("span", "param-tooltip", "?");
-      var bubble = element("span", "param-tooltip-bubble", helpText);
-      tip.appendChild(bubble);
-      labelRow.appendChild(tip);
+    if (parameter.help) {
+      var help = element("details", "param-help-details");
+      help.append(element("summary", "param-help-summary", "Why this matters"), element("p", "param-help-long", parameter.help));
+      labelRow.appendChild(help);
     }
-    var hasDefault = effectiveDefault != null;
-    var resetBtn = null;
-    if (hasDefault) {
-      resetBtn = element("span", "param-reset", "↻");
-      resetBtn.setAttribute("aria-label", "Reset to default value");
-      labelRow.appendChild(resetBtn);
+    var reset = null;
+    if (parameter.default != null) {
+      reset = element("button", "param-reset", "Reset"); reset.type = "button";
+      reset.setAttribute("aria-label", "Reset " + (parameter.label || parameter.name) + " to its default");
+      labelRow.appendChild(reset);
     }
     wrap.appendChild(labelRow);
-    function isBinaryChoice(choices) {
-      if (!choices || choices.length !== 2) return false;
-      var set = String(choices[0]) + "," + String(choices[1]);
-      return set === "0,1" || set === "1,0" || set === "true,false" || set === "false,true";
-    }
 
     var control;
-    if (isBinaryChoice(parameter.choices)) {
-      var onValue = String(parameter.choices[0]), offValue = String(parameter.choices[1]);
-      control = element("span", "param-toggle-wrap");
-      var hidden = element("input", "");
-      hidden.type = "hidden"; hidden.value = parameter.default === onValue || parameter.default === true ? onValue : offValue;
-      hidden.id = "param_" + parameter.name; hidden.dataset.paramName = parameter.name;
-      var checkbox = element("input", "param-toggle");
-      checkbox.type = "checkbox"; checkbox.checked = hidden.value === onValue;
-      checkbox.addEventListener("change", function () {
-        hidden.value = checkbox.checked ? onValue : offValue;
-        context.changed();
-      });
-      control.appendChild(hidden);
-      control.appendChild(checkbox);
-    } else if (parameter.type === "bool") {
-      control = element("span", "param-toggle-wrap");
-      var hiddenB = element("input", "");
-      hiddenB.type = "hidden"; hiddenB.value = parameter.default === true ? "true" : "false";
-      hiddenB.id = "param_" + parameter.name; hiddenB.dataset.paramName = parameter.name;
-      var checkboxB = element("input", "param-toggle");
-      checkboxB.type = "checkbox"; checkboxB.checked = parameter.default === true;
-      checkboxB.addEventListener("change", function () {
-        hiddenB.value = checkboxB.checked ? "true" : "false";
-        context.changed();
-      });
-      control.appendChild(hiddenB);
-      control.appendChild(checkboxB);
+    if (parameter.type === "bool") {
+      control = element("input", "param-checkbox");
+      control.type = "checkbox"; control.checked = parameter.default === true;
+      control.id = "param_" + parameter.name; control.dataset.paramName = parameter.name;
     } else if (parameter.choices && parameter.choices.length) {
       control = element("select", "text-input");
-      control.id = "param_" + parameter.name;
-      control.dataset.paramName = parameter.name;
+      control.id = "param_" + parameter.name; control.dataset.paramName = parameter.name;
       parameter.choices.forEach(function (choice) {
         var option = element("option", "", String(choice)); option.value = choice;
-        option.selected = choice === parameter.default; control.appendChild(option);
+        option.selected = String(choice) === String(parameter.default); control.appendChild(option);
       });
     } else {
       control = element("input", "text-input");
@@ -120,45 +90,29 @@
       if (parameter.minimum != null) control.min = parameter.minimum;
       if (parameter.maximum != null) control.max = parameter.maximum;
       if (parameter.step != null) control.step = parameter.step;
-      else if (parameter.type === "float") control.step = "any";  // fractional defaults (0.01, 0.07) would otherwise fail step=1
+      else if (parameter.type === "float") control.step = "any";
       control.required = Boolean(parameter.required);
-      control.id = "param_" + parameter.name;
-      control.dataset.paramName = parameter.name;
+      control.id = "param_" + parameter.name; control.dataset.paramName = parameter.name;
     }
     var error = element("p", "param-error"); error.id = "param_error_" + parameter.name; error.hidden = true;
-    if (parameter.type !== "bool") {
-      control.setAttribute("aria-describedby", error.id);
-      control.addEventListener("input", function () {
-        control.removeAttribute("aria-invalid"); error.hidden = true; error.textContent = ""; context.changed();
-      });
+    control.setAttribute("aria-describedby", error.id);
+    function clearError() {
+      control.removeAttribute("aria-invalid"); error.hidden = true; error.textContent = ""; context.changed();
     }
+    control.addEventListener("input", clearError); control.addEventListener("change", clearError);
     wrap.appendChild(control);
-    if (resetBtn) {
-      resetBtn.addEventListener("click", function () {
-        var defVal = effectiveDefault;
-        if (parameter.type === "bool" || isBinaryChoice(parameter.choices)) {
-          var hiddenEl = control.querySelector("input[type=hidden]");
-          var cb = control.querySelector("input[type=checkbox]");
-          var onVal = isBinaryChoice(parameter.choices) ? String(parameter.choices[0]) : "true";
-          var offVal = isBinaryChoice(parameter.choices) ? String(parameter.choices[1]) : "false";
-          var isOn = defVal === true || String(defVal) === onVal;
-          if (hiddenEl) hiddenEl.value = isOn ? onVal : offVal;
-          if (cb) cb.checked = isOn;
-        } else if (parameter.choices && parameter.choices.length) {
-          var options = control.querySelectorAll("option");
-          options.forEach(function (opt) { opt.selected = String(opt.value) === String(defVal); });
-        } else {
-          control.value = defVal == null ? "" : defVal;
-        }
-        control.removeAttribute("aria-invalid");
-        var err = document.getElementById("param_error_" + parameter.name);
-        if (err) { err.hidden = true; err.textContent = ""; }
-        context.changed();
-      });
-    }
+    if (reset) reset.addEventListener("click", function () {
+      if (parameter.type === "bool") control.checked = parameter.default === true;
+      else control.value = parameter.default == null ? "" : parameter.default;
+      clearError();
+    });
     if (parameter.description) wrap.appendChild(element("p", "param-help", parameter.description));
     wrap.appendChild(error);
     return wrap;
+  }
+
+  function paramValue(parameter, control) {
+    return parameter.type === "bool" ? String(control.checked) : control.value;
   }
 
   function validateParameters(parameters) {
@@ -168,10 +122,7 @@
       var message = document.getElementById("param_error_" + parameter.name);
       if (!control) return;
       if (control.checkValidity()) {
-        // Clear stale inline error state from a previous validation pass.
-        control.removeAttribute("aria-invalid");
-        if (message) { message.hidden = true; message.textContent = ""; }
-        return;
+        control.removeAttribute("aria-invalid"); if (message) { message.hidden = true; message.textContent = ""; } return;
       }
       control.setAttribute("aria-invalid", "true");
       if (message) { message.textContent = control.validationMessage || "Check this value."; message.hidden = false; }
@@ -188,46 +139,39 @@
       var input = context.fileInput;
       var row = element("div", "file-upload-row");
       var button = element("button", "btn btn-soft", context.form.file_input.multiple ? "Choose files" : "Choose file"); button.type = "button";
-      var folderButton = null; var folderInput = null;
+      var folderButton = null, folderInput = null;
       if (context.form.file_input.multiple) {
         folderButton = element("button", "btn btn-soft", "Choose folder"); folderButton.type = "button";
-        folderInput = element("input"); folderInput.type = "file"; folderInput.multiple = true;
-        folderInput.className = "sr-only"; folderInput.accept = context.form.file_input.accept;
-        folderInput.setAttribute("webkitdirectory", "");
+        folderInput = element("input"); folderInput.type = "file"; folderInput.multiple = true; folderInput.className = "sr-only";
+        folderInput.accept = context.form.file_input.accept; folderInput.setAttribute("webkitdirectory", "");
       }
       var summary = element("span", "file-name muted", "No files selected");
-      row.appendChild(button);
-      if (folderButton) row.appendChild(folderButton);
-      row.appendChild(summary); target.appendChild(row);
+      row.appendChild(button); if (folderButton) row.appendChild(folderButton); row.appendChild(summary); target.appendChild(row);
       if (folderInput) target.appendChild(folderInput);
       var hint = element("p", "param-help"); target.appendChild(hint);
       var fileList = element("div", "input-file-list"); target.appendChild(fileList);
-      var fileError = element("p", "param-error"); fileError.id = "file_error"; fileError.hidden = true;
-      target.appendChild(fileError);
+      var fileError = element("p", "param-error"); fileError.id = "file_error_" + definition.id; fileError.hidden = true;
+      button.setAttribute("aria-describedby", fileError.id); target.appendChild(fileError);
 
       function refresh() {
-        var files = context.files();
-        button.removeAttribute("aria-invalid");
-        fileError.hidden = true; fileError.textContent = "";
+        var files = context.files(); button.removeAttribute("aria-invalid"); fileError.hidden = true; fileError.textContent = "";
         summary.textContent = files.length ? files.length + " file(s) selected" : "No files selected";
-        hint.textContent = "Accepted: " + context.form.file_input.extensions.join(", ") +
-          ". Maximum " + context.form.file_input.max_files + ". Nested relative paths are preserved.";
+        hint.textContent = "Accepted: " + context.form.file_input.extensions.join(", ") + ". Maximum " + context.form.file_input.max_files + ". Nested paths are preserved.";
         fileList.replaceChildren();
         files.forEach(function (file, index) {
           var item = element("label", "input-file-item");
-          var radio = element("input"); radio.type = "radio"; radio.name = "primary_input";
-          radio.checked = index === context.primaryIndex;
+          var radio = element("input"); radio.type = "radio"; radio.name = "primary_input"; radio.checked = index === context.primaryIndex;
           radio.disabled = !matchesExtension(file, context.form.file_input.primary_extensions);
           radio.addEventListener("change", function () { context.primaryIndex = index; refresh(); context.filesChanged(); });
           var details = element("span", "input-file-details");
-          details.append(element("strong", "", pathFor(file)), element("small", "", (index === context.primaryIndex ? "Primary · " : "Auxiliary · ") + file.size + " bytes"));
+          details.append(element("strong", "", pathFor(file)), element("small", "", (index === context.primaryIndex ? "Primary · " : "Auxiliary · ") + formatBytes(file.size)));
           item.append(radio, details); fileList.appendChild(item);
         });
       }
       function choose() { input.click(); }
       function changed() { context.setFiles(Array.from(input.files || [])); context.ensurePrimary(); refresh(); context.filesChanged(); }
-      function folderChanged() { context.setFiles(Array.from(folderInput.files || [])); context.ensurePrimary(); refresh(); context.filesChanged(); }
       function chooseFolder() { folderInput.click(); }
+      function folderChanged() { context.setFiles(Array.from(folderInput.files || [])); context.ensurePrimary(); refresh(); context.filesChanged(); }
       button.addEventListener("click", choose); input.addEventListener("change", changed);
       if (folderButton) folderButton.addEventListener("click", chooseFolder);
       if (folderInput) folderInput.addEventListener("change", folderChanged);
@@ -235,13 +179,19 @@
       return {
         refresh: refresh,
         readValue: function () { return context.orderedFiles().map(pathFor); },
+        summarize: function () {
+          var files = context.orderedFiles();
+          return files.length ? { label: "Input", value: files.map(pathFor).join(", ") } : null;
+        },
         validate: function () {
-          var files = context.files(); var errors = [];
-          fileError.hidden = true; fileError.textContent = "";
-          if (!files.length && !context.sequence() && (!definition.options || definition.options.primary_required !== false)) errors.push("Choose an input file or provide a sequence.");
+          var files = context.files(), errors = [], sequence = context.sequence();
+          button.removeAttribute("aria-invalid"); fileError.hidden = true; fileError.textContent = "";
+          if (!files.length && !sequence && (!definition.options || definition.options.primary_required !== false)) errors.push("Choose an input file or provide a sequence.");
           if (files.length > context.form.file_input.max_files) errors.push("Too many input files selected.");
           if (files.some(function (file) { return !matchesExtension(file, context.form.file_input.extensions); })) errors.push("One or more files has an unsupported extension.");
           if (files.length && !matchesExtension(files[context.primaryIndex], context.form.file_input.primary_extensions)) errors.push("Choose a supported primary input.");
+          var bytes = files.reduce(function (total, file) { return total + file.size; }, 0) + (sequence ? new Blob([sequence]).size : 0);
+          if (bytes > context.form.file_input.max_request_bytes) errors.push("Combined inputs exceed the " + formatBytes(context.form.file_input.max_request_bytes) + " request limit.");
           if (errors.length) { button.setAttribute("aria-invalid", "true"); fileError.textContent = errors[0]; fileError.hidden = false; }
           return errors;
         },
@@ -257,20 +207,25 @@
   registry.register({
     id: "sequence",
     mount: function (target, definition, context) {
-      var name = element("input", "text-input"); name.type = "text"; name.placeholder = "Sequence name";
-      var textarea = element("textarea", "sequence-input"); textarea.placeholder = "Paste protein sequence letters (A-Z)";
-      var preview = element("pre", "preview", sequenceSummary(""));
-      var seqError = element("p", "param-error"); seqError.id = "sequence_error"; seqError.hidden = true;
-      target.append(name, textarea, preview, seqError);
-      context.sequenceNameInput = name; context.sequenceInput = textarea;
-      function refresh() { textarea.removeAttribute("aria-invalid"); seqError.hidden = true; seqError.textContent = ""; preview.textContent = sequenceSummary(context.sequence()); context.changed(); }
+      var name = element("input", "text-input"); name.type = "text"; name.placeholder = "Sequence name"; name.setAttribute("aria-label", "Sequence name");
+      var textarea = element("textarea", "sequence-input"); textarea.placeholder = "Paste protein letters or one FASTA record"; textarea.setAttribute("aria-label", "Protein sequence");
+      var preview = element("pre", "preview", sequenceSummary(parseSequence("")));
+      var seqError = element("p", "param-error"); seqError.id = "sequence_error_" + definition.id; seqError.hidden = true; textarea.setAttribute("aria-describedby", seqError.id);
+      target.append(name, textarea, preview, seqError); context.sequenceNameInput = name; context.sequenceInput = textarea;
+      function refresh() {
+        var parsed = context.parsedSequence();
+        if (parsed.name && !name.value) name.value = parsed.name;
+        textarea.removeAttribute("aria-invalid"); seqError.hidden = true; seqError.textContent = "";
+        preview.textContent = parsed.error || sequenceSummary(parsed); context.changed();
+      }
       textarea.addEventListener("input", refresh); name.addEventListener("input", context.changed);
       return {
         readValue: function () { return { name: name.value.trim(), sequence: context.sequence() }; },
+        summarize: function () { return context.sequence() ? { label: "Sequence", value: context.sequence().length + " residues" } : null; },
         validate: function () {
-          var errors = [];
+          var parsed = context.parsedSequence(), errors = [];
+          if (parsed.error) errors.push(parsed.error);
           if (context.sequence() && context.files().length) errors.push("Use either the pasted sequence or uploaded FASTA files, not both.");
-          if (!context.sequence() && !context.files().length) errors.push("Enter a sequence or choose a FASTA file.");
           if (errors.length) { textarea.setAttribute("aria-invalid", "true"); seqError.textContent = errors[0]; seqError.hidden = false; }
           return errors;
         },
@@ -282,63 +237,41 @@
   registry.register({
     id: "structure",
     mount: function (target, definition, context) {
+      var selectable = Boolean(definition.options && (definition.options.select_chains || definition.options.select_residues));
       var status = element("p", "structure-status", "Choose a PDB or mmCIF file to inspect it locally.");
-      var frame = element("iframe", "structure-workbench-frame");
-      frame.title = "Interactive structure selection";
+      var frame = element("iframe", "structure-workbench-frame" + (selectable ? "" : " inspection-only"));
+      frame.title = selectable ? "Interactive structure selection" : "Structure preview";
       frame.hidden = true; frame.setAttribute("sandbox", "allow-scripts");
-      var generation = 0;
-      var reader = null; var requestId = null;
-      var shellReady = false; var pendingStructure = null;
+      var generation = 0, reader = null, requestId = null, shellReady = false, pendingStructure = null;
       context.selectedResidues = [];
       function receive(event) {
         if (event.source !== frame.contentWindow || !event.data) return;
-        if (event.data.type === "shell-ready") {
-          shellReady = true;
-          if (pendingStructure) { frame.contentWindow.postMessage(pendingStructure, "*"); pendingStructure = null; }
-          return;
-        }
+        if (event.data.type === "shell-ready") { shellReady = true; if (pendingStructure) { frame.contentWindow.postMessage(pendingStructure, "*"); pendingStructure = null; } return; }
         if (event.data.requestId !== requestId) return;
-        if (event.data.type === "selection" && Array.isArray(event.data.residues)) {
-          context.selectedResidues = event.data.residues; context.changed();
-        } else if (event.data.type === "selection-error") {
-          status.textContent = "Structure selection could not be read: " + (event.data.message || "unknown error");
-        }
+        if (selectable && event.data.type === "selection" && Array.isArray(event.data.residues)) { context.selectedResidues = event.data.residues; context.changed(); }
+        else if (event.data.type === "selection-error") status.textContent = "Structure selection could not be read: " + (event.data.message || "unknown error");
       }
-      window.addEventListener("message", receive);
-      // Install the handshake listener before appending the iframe: a cached
-      // shell can otherwise report readiness between append and registration.
-      frame.src = "/compute/viewer-shell";
-      target.append(status, frame);
+      window.addEventListener("message", receive); frame.src = "/compute/viewer-shell"; target.append(status, frame);
       function refresh() {
-        generation += 1; var current = generation;
-        if (reader) reader.abort();
-        var file = context.primaryFile();
-        context.structure = null; context.selectedResidues = [];
-        if (!file || !matchesExtension(file, [".pdb", ".cif", ".mmcif"])) {
-          frame.hidden = true; status.textContent = "Choose a PDB or mmCIF primary file for structure-guided modes."; return;
-        }
-        status.textContent = "Reading " + pathFor(file) + "…";
-        reader = new FileReader();
+        generation += 1; var current = generation; if (reader) reader.abort();
+        var file = context.primaryFile(); context.selectedResidues = [];
+        if (!file || !matchesExtension(file, [".pdb", ".cif", ".mmcif"])) { frame.hidden = true; status.textContent = "Choose a PDB or mmCIF primary file to inspect it."; return; }
+        status.textContent = "Reading " + pathFor(file) + "…"; reader = new FileReader();
         reader.addEventListener("load", function () {
-          if (current !== generation) return;
-          requestId = "input-" + current + "-" + Date.now(); frame.hidden = false;
-          var message = { type: "structure", requestId: requestId, text: reader.result,
-            format: lowerName(file).endsWith(".pdb") ? "pdb" : "mmcif", label: pathFor(file),
-            selectionEnabled: true, showControls: true };
-          // The shell's message listener may not be installed yet (slow first
-          // load): queue until the iframe reports shell-ready, mirroring the
-          // result viewer's handshake so the post can never be dropped.
+          if (current !== generation) return; requestId = "input-" + current + "-" + Date.now(); frame.hidden = false;
+          var message = { type: "structure", requestId: requestId, text: reader.result, format: lowerName(file).endsWith(".pdb") ? "pdb" : "mmcif", label: pathFor(file), selectionEnabled: selectable, showControls: selectable };
           if (shellReady) frame.contentWindow.postMessage(message, "*"); else pendingStructure = message;
-          status.textContent = pathFor(file) + " · select residues in the 3D view or the sequence strip";
+          status.textContent = selectable ? pathFor(file) + " · select residues in the 3D view or sequence strip" : pathFor(file) + " · inspection only";
         });
-        reader.addEventListener("error", function () { status.textContent = "This structure could not be read locally."; });
-        reader.readAsText(file);
+        reader.addEventListener("error", function () { status.textContent = "This structure could not be read locally."; }); reader.readAsText(file);
       }
       context.structureSelections = function () { return context.selectedResidues.slice(); };
-      return { refresh: refresh, readValue: function () { return { selected_residues: context.structureSelections() }; }, destroy: function () {
-        generation += 1; pendingStructure = null; if (reader) reader.abort(); window.removeEventListener("message", receive);
-        if (frame.contentWindow) frame.contentWindow.postMessage({ type: "dispose" }, "*");
-      } };
+      return {
+        refresh: refresh,
+        readValue: function () { return { selected_residues: context.structureSelections() }; },
+        summarize: function () { return selectable && context.selectedResidues.length ? { label: "Selection", value: context.selectedResidues.length + " residues" } : null; },
+        destroy: function () { generation += 1; pendingStructure = null; if (reader) reader.abort(); window.removeEventListener("message", receive); if (frame.contentWindow) frame.contentWindow.postMessage({ type: "dispose" }, "*"); }
+      };
     }
   });
 
@@ -348,20 +281,9 @@
       var fields = (definition.options && definition.options.fields) || [];
       var params = context.form.params.filter(function (param) { return fields.includes(param.name); });
       params.forEach(function (parameter) { target.appendChild(renderParam(parameter, context)); });
-      if (definition.options && definition.options.source &&
-          definition.options.syntax === "rfdiffusion" && fields.includes("hotspot_res")) {
-        var insert = element("button", "btn btn-soft btn-small", "Set selected residues as hotspots"); insert.type = "button";
-        insert.addEventListener("click", function () {
-          var selected = context.structureSelections ? context.structureSelections() : [];
-          var control = document.getElementById("param_hotspot_res");
-          if (!control || !selected.length) return context.status("Select one or more structure residues first.", "error");
-          control.value = "[" + selected.join(",") + "]";
-          control.dispatchEvent(new Event("input", { bubbles: true }));
-        });
-        target.appendChild(insert);
-      }
       return {
-        readValue: function () { return fields.reduce(function (values, name) { var input = document.getElementById("param_" + name); if (input) values[name] = input.value; return values; }, {}); },
+        readValue: function () { return fields.reduce(function (values, name) { var input = document.getElementById("param_" + name); if (input) values[name] = input.type === "checkbox" ? String(input.checked) : input.value; return values; }, {}); },
+        summarize: function () { return params.map(function (parameter) { var input = document.getElementById("param_" + parameter.name); return input && paramValue(parameter, input) ? { label: parameter.label || parameter.name, value: paramValue(parameter, input) } : null; }).filter(Boolean); },
         validate: function () { return validateParameters(params); }
       };
     }
@@ -370,28 +292,25 @@
   registry.register({
     id: "parameters",
     mount: function (target, definition, context) {
-      var regionFields = new Set();
-      context.capabilities.forEach(function (capability) {
-        if (capability.plugin.endsWith("regions")) ((capability.options && capability.options.fields) || []).forEach(function (name) { regionFields.add(name); });
-      });
-      var params = context.form.params.filter(function (parameter) { return !regionFields.has(parameter.name); });
+      var params = context.form.params.filter(function (parameter) { return !context.regionFields.has(parameter.name); });
       var basic = params.filter(function (parameter) { return !parameter.advanced; });
       var advanced = params.filter(function (parameter) { return Boolean(parameter.advanced); });
-      if (basic.length) {
-        var basicGrid = element("div", "basic-params-grid");
-        basic.forEach(function (parameter) { basicGrid.appendChild(renderParam(parameter, context)); });
-        target.appendChild(basicGrid);
-      }
+      if (basic.length) { var basicGrid = element("div", "basic-params-grid"); basic.forEach(function (parameter) { basicGrid.appendChild(renderParam(parameter, context)); }); target.appendChild(basicGrid); }
       if (advanced.length) {
-        var details = element("details", "advanced-params");
-        details.appendChild(element("summary", "", "Advanced parameters (" + advanced.length + ")"));
-        var grid = element("div", "advanced-params-grid");
-        advanced.forEach(function (parameter) { grid.appendChild(renderParam(parameter, context)); });
-        details.appendChild(grid); target.appendChild(details);
+        var details = element("details", "advanced-params"); details.appendChild(element("summary", "", "Advanced settings (" + advanced.length + ")"));
+        var grid = element("div", "advanced-params-grid"); advanced.forEach(function (parameter) { grid.appendChild(renderParam(parameter, context)); }); details.appendChild(grid); target.appendChild(details);
       }
-      if (!params.length) target.appendChild(element("p", "muted", "This task has no adjustable parameters."));
+      if (!params.length) target.appendChild(element("p", "muted", "This method uses its validated defaults."));
       return {
         readValue: function () { return context.paramValues(); },
+        summarize: function () {
+          var rows = params.map(function (parameter) {
+            var input = document.getElementById("param_" + parameter.name); if (!input) return null;
+            var value = paramValue(parameter, input), changed = String(value) !== String(parameter.default == null ? "" : parameter.default);
+            return changed ? { label: parameter.label || parameter.name, value: value + (parameter.unit ? " " + parameter.unit : "") } : null;
+          }).filter(Boolean);
+          return rows.length ? rows : [{ label: "Settings", value: "Validated defaults" }];
+        },
         validate: function () { return validateParameters(params); }
       };
     }
@@ -402,74 +321,82 @@
     mount: function (target, definition, context) {
       var summary = element("dl", "submission-review"); target.appendChild(summary);
       function refresh() {
-        var files = context.orderedFiles(); var params = context.paramValues();
         summary.replaceChildren();
-        [["Task", context.form.display_name], ["Runtime", context.form.runtime_family], ["Inputs", files.length ? files.map(pathFor).join(", ") : (context.sequence() ? "Pasted FASTA sequence" : "None")], ["Parameters", Object.keys(params).length ? Object.keys(params).length + " configured" : "Defaults only"]].forEach(function (row) {
-          summary.append(element("dt", "", row[0]), element("dd", "", row[1]));
-        });
+        var rows = [{ label: "Method", value: context.form.display_name }].concat(context.workspaceSummaries());
+        if (definition.options && definition.options.show_paths === false) rows = rows.filter(function (row) { return row.label !== "Input"; });
+        rows.forEach(function (row) { summary.append(element("dt", "", row.label), element("dd", "", row.value)); });
       }
       return { refresh: refresh, readValue: function () { return { task_type: context.form.name, files: context.orderedFiles().map(pathFor), params: context.paramValues() }; } };
     }
   });
 
   function InputWorkspace(root, options) {
-    this.root = root; this.options = options; this.form = null; this.primaryIndex = 0;
-    this.context = null;
+    this.root = root; this.options = options; this.form = null; this.primaryIndex = 0; this.context = null; this.stepTargets = new Map();
+    var workspace = this;
     this.host = new Core.PluginHost(registry, root, {
+      clearRoot: false,
       createTarget: function (definition) {
-        var card = workspaceCard(definition); root.appendChild(card.section); return card.body;
+        var target = workspace.stepTargets.get(definition.stepId); if (!target) throw new Error("Missing protocol step " + definition.stepId);
+        var section = element("section", "workspace-component"); section.dataset.capabilityId = definition.id;
+        if (definition.title) section.appendChild(element("h3", "workspace-component-title", definition.title));
+        if (definition.description) section.appendChild(element("p", "workspace-component-description", definition.description));
+        var body = element("div", "workspace-component-body"); section.appendChild(body); target.appendChild(section); return body;
       },
-      onUnsupported: function (definition) { options.status("Unsupported input component: " + definition.plugin, "error"); }
+      onUnsupported: function (definition) { options.status("Unsupported input component: " + definition.plugin, "error"); },
+      onError: function (fault) {
+        if (!fault.target) return;
+        fault.target.replaceChildren(element("p", "component-error", "This component could not load: " + fault.message));
+      }
     });
   }
 
-  InputWorkspace.prototype.mount = function (formDefinition, helpCache) {
-    helpCache = helpCache || {};
-    var workspace = this; this.form = formDefinition; this.primaryIndex = 0;
-    this.options.fileInput.value = "";
-    var selectedFiles = [];
-    var capabilities = formDefinition.input_workspace && formDefinition.input_workspace.capabilities;
-    if (!capabilities || !capabilities.length) throw new Error("Task form has no input workspace capabilities");
+  InputWorkspace.prototype.mount = function (formDefinition) {
+    var workspace = this; this.host.destroy(); this.root.replaceChildren(); this.stepTargets.clear();
+    this.form = formDefinition; this.primaryIndex = 0; this.options.fileInput.value = ""; var selectedFiles = [];
+    var steps = formDefinition.input_workspace && formDefinition.input_workspace.steps;
+    if (!steps || !steps.length) throw new Error("Task form has no input workspace steps");
+    steps.forEach(function (step, index) {
+      var section = element("section", "protocol-step"); section.id = "protocol-step-" + step.id; section.dataset.stepId = step.id;
+      var heading = element("header", "protocol-step-heading"); heading.append(element("span", "protocol-step-number", String(index + 1).padStart(2, "0")), element("h2", "protocol-step-title", step.title));
+      if (step.description) heading.appendChild(element("p", "protocol-step-description", step.description));
+      var body = element("div", "protocol-step-body"); section.append(heading, body); workspace.root.appendChild(section); workspace.stepTargets.set(step.id, body);
+    });
+    var capabilities = steps.flatMap(function (step) { return step.capabilities.map(function (capability) { return Object.assign({ stepId: step.id }, capability); }); });
+    var regionFields = new Set();
+    capabilities.forEach(function (capability) { if (capability.plugin.endsWith("regions")) ((capability.options && capability.options.fields) || []).forEach(function (name) { regionFields.add(name); }); });
     this.context = {
-      helpCache: helpCache,
-      form: formDefinition,
-      capabilities: capabilities,
-      fileInput: this.options.fileInput,
-      primaryIndex: 0,
-      files: function () { return selectedFiles.slice(); },
-      setFiles: function (files) { selectedFiles = Array.from(files || []); },
+      form: formDefinition, capabilities: capabilities, regionFields: regionFields, fileInput: this.options.fileInput, primaryIndex: 0,
+      files: function () { return selectedFiles.slice(); }, setFiles: function (files) { selectedFiles = Array.from(files || []); },
       primaryFile: function () { return this.files()[this.primaryIndex] || null; },
-      ensurePrimary: function () {
-        var files = this.files(); var primary = formDefinition.file_input.primary_extensions;
-        if (!files[this.primaryIndex] || !matchesExtension(files[this.primaryIndex], primary)) {
-          var index = files.findIndex(function (file) { return matchesExtension(file, primary); }); this.primaryIndex = index < 0 ? 0 : index;
-        }
-      },
-      orderedFiles: function () {
-        var files = this.files(); if (!files.length || this.primaryIndex === 0) return files;
-        return [files[this.primaryIndex]].concat(files.filter(function (_, index) { return index !== workspace.context.primaryIndex; }));
-      },
-      sequence: function () { return normalizeSequence(this.sequenceInput ? this.sequenceInput.value : ""); },
-      paramValues: function () {
-        var values = {};
-        formDefinition.params.forEach(function (parameter) { var input = document.getElementById("param_" + parameter.name); if (input && input.value !== "") values[parameter.name] = input.value; });
-        return values;
-      },
+      ensurePrimary: function () { var files = this.files(), primary = formDefinition.file_input.primary_extensions; if (!files[this.primaryIndex] || !matchesExtension(files[this.primaryIndex], primary)) { var index = files.findIndex(function (file) { return matchesExtension(file, primary); }); this.primaryIndex = index < 0 ? 0 : index; } },
+      orderedFiles: function () { var files = this.files(); if (!files.length || this.primaryIndex === 0) return files; return [files[this.primaryIndex]].concat(files.filter(function (_, index) { return index !== workspace.context.primaryIndex; })); },
+      parsedSequence: function () { return parseSequence(this.sequenceInput ? this.sequenceInput.value : ""); },
+      sequence: function () { return this.parsedSequence().sequence; },
+      paramValues: function () { var values = {}; formDefinition.params.forEach(function (parameter) { if (regionFields.has(parameter.name)) return; var input = document.getElementById("param_" + parameter.name); if (!input) return; var value = paramValue(parameter, input); if (value !== "") values[parameter.name] = value; }); return values; },
       status: this.options.status,
-      changed: function () {
+      workspaceSummaries: function () {
+        var summaries = [];
         workspace.host.instances.forEach(function (mounted) {
-          if (mounted.definition.plugin === "review" && typeof mounted.instance.refresh === "function") mounted.instance.refresh();
+          if (mounted.definition.plugin === "review" || typeof mounted.instance.summarize !== "function") return;
+          try {
+            var result = mounted.instance.summarize();
+            if (Array.isArray(result)) summaries.push.apply(summaries, result);
+            else if (result) summaries.push(result);
+          } catch (error) {
+            workspace.host._fault(mounted.definition, mounted.plugin, "summarize", error, mounted.target);
+          }
         });
+        return summaries;
       },
-      filesChanged: function () {
-        workspace.host.instances.forEach(function (mounted) {
-          if (["structure", "review"].includes(mounted.definition.plugin) && typeof mounted.instance.refresh === "function") mounted.instance.refresh();
-        });
-      }
+      changed: function () { workspace._refreshReview(); if (workspace.options.onChange) workspace.options.onChange(); },
+      filesChanged: function () { workspace.host.instances.forEach(function (mounted) { if (["structure", "review"].includes(mounted.definition.plugin) && typeof mounted.instance.refresh === "function") mounted.instance.refresh(); }); if (workspace.options.onChange) workspace.options.onChange(); }
     };
     this.host.mount(capabilities, this.context); this.host.refresh();
   };
 
+  InputWorkspace.prototype._refreshReview = function () {
+    this.host.instances.forEach(function (mounted) { if (mounted.definition.plugin === "review" && typeof mounted.instance.refresh === "function") mounted.instance.refresh(); });
+  };
   InputWorkspace.prototype.files = function () { return this.context ? this.context.orderedFiles() : []; };
   InputWorkspace.prototype.sequence = function () { return this.context ? this.context.sequence() : ""; };
   InputWorkspace.prototype.sequenceName = function () { return this.context && this.context.sequenceNameInput ? this.context.sequenceNameInput.value : ""; };
@@ -477,7 +404,7 @@
   InputWorkspace.prototype.collect = function () { return this.host.collect(); };
   InputWorkspace.prototype.validate = function () { return this.host.validate(); };
   InputWorkspace.prototype.refresh = function () { this.host.refresh(); };
-  InputWorkspace.prototype.destroy = function () { this.host.destroy(); this.context = null; };
+  InputWorkspace.prototype.destroy = function () { this.host.destroy(); this.root.replaceChildren(); this.context = null; };
 
   global.REvoComputeInputWorkspace = Object.freeze({ InputWorkspace: InputWorkspace, registry: registry });
 })(window);

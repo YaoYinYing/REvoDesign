@@ -74,7 +74,9 @@
 .compute-badge.gpu { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 34%, var(--line)); background: color-mix(in srgb, var(--warn) 8%, transparent); }
 .runner-card h3 { margin: 1.2rem 0 0.65rem; font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 1.35rem; line-height: 1.15; }
 .runner-card > p { margin: 0; color: var(--muted); font-size: 0.84rem; line-height: 1.62; }
-.runner-card footer { display: flex; justify-content: space-between; gap: 1rem; margin-top: auto; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.68rem; }
+.runner-card .runner-use-when { margin-top: 0.7rem; font-size: 0.75rem; }
+.runner-card .runner-handoff { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line); color: var(--accent); font-size: 0.68rem; }
+.runner-card footer { display: flex; justify-content: space-between; gap: 1rem; margin-top: auto; padding-top: 1.2rem; color: var(--muted); font-size: 0.68rem; }
 .runner-card footer strong { color: var(--ink); font-weight: 600; }
 .runner-card footer a { color: var(--accent); font-weight: 700; text-decoration: none; white-space: nowrap; }
 .runner-card footer a:hover { text-decoration: underline; }
@@ -128,6 +130,12 @@
 .parameter-flags { display: grid; justify-items: end; gap: 0.3rem; min-width: 4.5rem; }
 .parameter-flags span { padding: 0.16rem 0.4rem; border: 1px solid color-mix(in srgb, var(--warn) 32%, var(--line)); border-radius: 999px; color: var(--warn); font-size: 0.58rem; font-weight: 700; text-transform: uppercase; }
 .empty-parameters { padding: 2rem; border: 1px solid var(--line); border-radius: 16px; color: var(--muted); }
+.guidance-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.guidance-list article { padding: 1.2rem 1.3rem 1.3rem 0; border-bottom: 1px solid var(--line); }
+.guidance-list article:nth-child(even) { padding-left: 1.3rem; border-left: 1px solid var(--line); }
+.guidance-list h3 { margin: 0; font-family: ui-serif, Georgia, serif; font-size: 1rem; }
+.guidance-list p, .guidance-list ul, .guidance-list ol { margin: 0.55rem 0 0; color: var(--muted); font-size: 0.8rem; line-height: 1.6; }
+.guidance-list a { color: var(--accent); }
 .detail-cta { border-top: 1px solid var(--line); }
 
 html[data-theme="dark"] .runner-card { background: color-mix(in srgb, var(--paper) 94%, #0f171c 6%); box-shadow: 0 12px 28px rgba(3, 9, 12, 0.28); }
@@ -155,6 +163,8 @@ html[data-theme="dark"] .stage-list li { background: color-mix(in srgb, var(--pa
   .runner-detail-hero h1 { font-size: clamp(3.4rem, 17vw, 5.3rem); }
   .stage-list { grid-template-columns: 1fr; }
   .parameter-row { grid-template-columns: 1fr; gap: 0.65rem; }
+  .guidance-list { grid-template-columns: 1fr; }
+  .guidance-list article:nth-child(even) { padding-left: 0; border-left: 0; }
   .parameter-row dl, .parameter-flags { grid-column: auto; grid-row: auto; }
   .parameter-flags { display: flex; justify-content: flex-start; }
   .site-footer { flex-direction: column; }

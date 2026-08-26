@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Server:
+  - deployment control: add a standalone operator/developer guide for modes, preparation, SIF activation, safety, cache behavior, and recovery.
+  - create-task: organize server-owned method guidance into a searchable scientific catalog and one continuous, accessible experiment protocol with a normalized review.
   - create-task: `?task_type=<name>` deep links select an enabled method from runner detail pages.
   - ColabFold AlphaFold2 runner (`colabfold_af2`): ColabFold 1.6.2 with the public MMseqs2 MSA service and mounted ColabFold weights, alongside the existing offline-database AlphaFold2 runner (`alphafold`); only the ColabFold MSA stage receives outbound Docker networking.
   - rename `pssm_gremlin_server` → `revocompute` (REvoCompute); templates, JS, CSS, email headers rebranded.
@@ -65,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Server:
+  - deployment and submission workspace: require recorded SIF identity, retain maintenance after failed activation, preserve runner metadata, and avoid duplicate region parameters.
   - deployment control: reject concurrent mutations and refresh the retained gateway after recreating `web`, preventing Compose rename conflicts and stale-upstream 502s.
   - AlphaFold: preserve SLURM's selected CUDA device for Amber relaxation; nest workflow resource cards under AlphaFold2.
   - AlphaFold multimer full-database runs now pass the required UniRef30 database path.

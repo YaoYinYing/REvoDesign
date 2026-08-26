@@ -63,6 +63,7 @@ def test_js_modules_load_in_correct_order() -> None:
         "input-workspace-rfdiffusion.js",
         "viewer-shell.js",
         "task-results.js",
+        "create-task.js",
     ):
         result = subprocess.run(
             ["node", "--check", str(js_dir / filename)],

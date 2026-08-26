@@ -93,11 +93,15 @@ container_runtime: apptainer
 
 workspace_templates:
   structure: &structure_workspace
-    capabilities:
-      - {plugin: "files", id: "source_files", title: "Structure inputs", options: {roles: ["primary", "auxiliary"], primary_required: true}}
-      - {plugin: "structure", id: "structure_summary", title: "Structure", options: {source: "source_files", select_chains: false, select_residues: false}}
-      - {plugin: "parameters", id: "task_parameters", title: "Parameters"}
-      - {plugin: "review", id: "submission_review", title: "Review", options: {show_resources: true, show_paths: true}}
+    steps:
+      - id: material
+        title: Provide the structure
+        description: Choose the structure that defines the molecular context
+        capabilities:
+          - {plugin: "files", id: "source_files", title: "Structure files", options: {primary_required: true}}
+          - {plugin: "structure", id: "structure_summary", title: "Inspect the structure", options: {source: "source_files", select_chains: false, select_residues: false}}
+      - {id: settings, title: Set the experiment, capabilities: [{plugin: "parameters", id: "task_parameters"}]}
+      - {id: review, title: Review and run, capabilities: [{plugin: "review", id: "submission_review", options: {show_paths: true}}]}
 
 runtime_families:
   mpnn:
@@ -162,42 +166,42 @@ or compute-node-local home directory are not a production weight strategy.
 ### Input workspace composition
 
 Every task type must declare an `input_workspace` composition; startup fails
-closed when one is missing. Most tasks reference one of the shared
-`workspace_templates` anchors defined at the top of the registry
-(`file`, `fasta`, `structure`); tasks with a custom layout declare an inline
-`capabilities` list:
+closed when one is missing. Most tasks reference a shared `file`, `fasta`, or
+`structure` template. Custom methods group capabilities into meaningful protocol
+steps rather than exposing implementation units as a wizard:
 
 ```yaml
 input_workspace:
-  capabilities:
-    - plugin: files
-      id: source_files
-      options: {roles: [primary, auxiliary], primary_required: true}
-    - plugin: structure
-      id: structure_builder
-      options: {source: source_files, select_chains: true, select_residues: true}
-    - plugin: rfdiffusion-regions
-      id: design_regions
-      options: {source: structure_builder, fields: [contig, hotspot_res], syntax: rfdiffusion}
-    - plugin: parameters
-      id: task_parameters
-    - plugin: review
-      id: submission_review
+  steps:
+    - id: material
+      title: Provide the target structure
+      capabilities:
+        - {plugin: files, id: source_files, options: {primary_required: true}}
+        - {plugin: structure, id: structure_builder, options: {source: source_files, select_residues: true}}
+    - id: intent
+      title: Define the design intent
+      capabilities:
+        - {plugin: rfdiffusion-regions, id: design_regions, options: {source: structure_builder, fields: [contig, hotspot_res], syntax: rfdiffusion}}
+    - id: settings
+      title: Set the experiment
+      capabilities: [{plugin: parameters, id: task_parameters}]
+    - id: review
+      title: Review and run
+      capabilities: [{plugin: review, id: submission_review, options: {show_paths: true}}]
 ```
 
-Only built-in plugin IDs and their allowlisted options are accepted. Every task
-type declares the composition explicitly; startup fails closed for missing,
-unknown, or remotely supplied components. The first capability must collect
-files or sequences and the last must be `review`.
+Only built-in plugin IDs and allowlisted options are accepted. Step and
+capability IDs are unique, declared sources must exist, the first capability
+collects files or a sequence, and the final capability is `review`. The form
+definition is version 3; computation-affecting browser state still submits the
+version-2 `workspace` JSON document, preserving the API boundary. RFdiffusion
+contigs and hotspots remain server-normalized and structure-checked.
 
-Simple FASTA tasks normally compose files, sequence, parameters, and review.
-Structure tasks add structure inspection, while complex tools may add region
-controls. Each specialized workspace variety is a separate, statically shipped
-plugin module selected by its task-type declaration; the shared host contains
-no task-name branches. Stateful components submit a version-2 `workspace` JSON document
-alongside files and ordinary parameters. RFdiffusion contigs and hotspots are
-normalized and checked by the server, so browser state cannot broaden runner
-parameters.
+Each task also declares `summary`, `use_when`, `input_summary`,
+`output_summary`, and non-empty `considerations`. Verify this content against the
+pinned adapter and upstream contract. Do not publish guessed accuracy, runtime,
+or biological-validity claims. These fields power the method catalog, detail
+page, and selected-method brief from one server-owned source.
 
 Task types may also declare `result_workspace.views`. Each view selects an
 allowlisted local plugin and exact manifest artifacts. The

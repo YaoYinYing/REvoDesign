@@ -94,40 +94,86 @@ runtime_families:
     definition: "docker/runners/colabfold_af2/colabfold_af2.def"
     slurm_image: "/mnt/data/srv/revodesign/server-slurm/images/colabfold_af2_v1.sif"
 
+categories:
+  evolution: {label: "Understand evolution", description: "Find conservation, co-evolution, and learned sequence representations.", order: 10}
+  structure: {label: "Predict or explore structure", description: "Predict folds, complexes, dynamics, or conformational ensembles.", order: 20}
+  fitness: {label: "Evaluate variants", description: "Estimate stability, fitness, and sequence-level properties.", order: 30}
+  function: {label: "Annotate function", description: "Locate functional residues and add biochemical context.", order: 40}
+  inverse_folding: {label: "Design sequences", description: "Design or score sequences against a supplied structure.", order: 50}
+  design: {label: "Generate new designs", description: "Generate backbones or complete binder-design campaigns.", order: 60}
+
 workspace_templates:
   file: &file_workspace
-    capabilities:
-      - {plugin: "files", id: "source_files", title: "Inputs", options: {roles: ["primary", "auxiliary"], primary_required: true}}
-      - {plugin: "parameters", id: "task_parameters", title: "Parameters"}
-      - {plugin: "review", id: "submission_review", title: "Review", options: {show_resources: true, show_paths: true}}
+    steps:
+      - {id: "material", title: "Provide the input", description: "Choose the scientific input consumed by this method", capabilities: [{plugin: "files", id: "source_files", title: "Input files", options: {primary_required: true}}]}
+      - {id: "settings", title: "Set the experiment", description: "Adjust only the controls that matter for this run", capabilities: [{plugin: "parameters", id: "task_parameters", title: "Method settings"}]}
+      - {id: "review", title: "Review and run", description: "Check the input and settings before creating the task snapshot", capabilities: [{plugin: "review", id: "submission_review", title: "Experiment review", options: {show_paths: true}}]}
   fasta: &fasta_workspace
-    capabilities:
-      - {plugin: "files", id: "source_files", title: "Sequence files", options: {roles: ["primary", "auxiliary"], primary_required: true}}
-      - {plugin: "sequence", id: "sequence_editor", title: "Sequence", options: {allow_multiple: false, format: "fasta"}}
-      - {plugin: "parameters", id: "task_parameters", title: "Parameters"}
-      - {plugin: "review", id: "submission_review", title: "Review", options: {show_resources: true, show_paths: true}}
+    steps:
+      - id: "material"
+        title: "Provide the protein sequence"
+        description: "Upload FASTA files or paste one protein sequence"
+        capabilities:
+          - {plugin: "files", id: "source_files", title: "Sequence files", options: {primary_required: true}}
+          - {plugin: "sequence", id: "sequence_editor", title: "Paste a sequence"}
+      - {id: "settings", title: "Set the experiment", description: "Adjust only the controls that matter for this run", capabilities: [{plugin: "parameters", id: "task_parameters", title: "Method settings"}]}
+      - {id: "review", title: "Review and run", description: "Check the sequence and settings before creating the task snapshot", capabilities: [{plugin: "review", id: "submission_review", title: "Experiment review", options: {show_paths: true}}]}
   structure: &structure_workspace
-    capabilities:
-      - {plugin: "files", id: "source_files", title: "Structure inputs", options: {roles: ["primary", "auxiliary"], primary_required: true}}
-      - {plugin: "structure", id: "structure_summary", title: "Structure", options: {source: "source_files", select_chains: false, select_residues: false}}
-      - {plugin: "parameters", id: "task_parameters", title: "Parameters"}
-      - {plugin: "review", id: "submission_review", title: "Review", options: {show_resources: true, show_paths: true}}
+    steps:
+      - id: "material"
+        title: "Provide the structure"
+        description: "Choose the structure that defines the molecular context"
+        capabilities:
+          - {plugin: "files", id: "source_files", title: "Structure files", options: {primary_required: true}}
+          - {plugin: "structure", id: "structure_summary", title: "Inspect the structure", options: {source: "source_files", select_chains: false, select_residues: false}}
+      - {id: "settings", title: "Set the experiment", description: "Define the design or analysis settings", capabilities: [{plugin: "parameters", id: "task_parameters", title: "Method settings"}]}
+      - {id: "review", title: "Review and run", description: "Check the structure and settings before creating the task snapshot", capabilities: [{plugin: "review", id: "submission_review", title: "Experiment review", options: {show_paths: true}}]}
 
 task_types:
 
   gremlin:
     display_name: "PSSM-GREMLIN"
     category: evolution
-    intro: "Sequence conservation (PSI-BLAST PSSM) and co-evolutionary couplings (GREMLIN) for a protein sequence."
+    summary: Sequence conservation (PSI-BLAST PSSM) and co-evolutionary couplings (GREMLIN) for a protein sequence.
+    use_when: Use this to identify conserved positions and co-evolving residue pairs from one protein sequence.
+    input_summary: One protein sequence as FASTA, either uploaded or pasted.
+    output_summary: A multiple-sequence alignment, a PSI-BLAST position-specific scoring matrix, and GREMLIN coupling data.
+    considerations:
+      - Results depend on homolog coverage in the configured sequence databases.
     runtime_family: "gremlin"
     input_extension: ".fasta"
     input_label: "FASTA file"
     input_workspace:
-      capabilities:
-        - {plugin: "files", id: "source_files", title: "FASTA input", options: {roles: ["primary"], primary_required: true}}
-        - {plugin: "sequence", id: "sequence_editor", title: "Sequence", description: "Upload a FASTA file or paste one protein sequence.", options: {allow_multiple: false, format: "fasta"}}
-        - {plugin: "parameters", id: "task_parameters", title: "GREMLIN settings"}
-        - {plugin: "review", id: "submission_review", title: "Review", options: {show_resources: true, show_paths: true}}
+      steps:
+      - id: material
+        title: Provide the input
+        description: Choose the scientific input for this experiment
+        capabilities:
+        - plugin: files
+          id: source_files
+          title: FASTA input
+          options:
+            primary_required: true
+        - plugin: sequence
+          id: sequence_editor
+          title: Sequence
+          description: Upload a FASTA file or paste one protein sequence.
+      - id: settings
+        title: Set the experiment
+        description: Adjust only the controls that matter for this run
+        capabilities:
+        - plugin: parameters
+          id: task_parameters
+          title: GREMLIN settings
+      - id: review
+        title: Review and run
+        description: Check the input and settings before creating the task snapshot
+        capabilities:
+        - plugin: review
+          id: submission_review
+          title: Review
+          options:
+            show_paths: true
     stage_markers:
       hhblits: "HHblits MSA generation"
       hhfilter: "HHfilter filtering"
@@ -144,7 +190,7 @@ task_types:
         step: 1
         advanced: true
       - name: "evalue"
-        type: "text"
+        type: "str"
         default: "1E-10"
         description: "HHblits E-value significance threshold (lower = more stringent)"
         help: "The E-value controls which sequence matches HHblits considers statistically significant during iterative profile construction. A lower threshold (e.g. 1E-20) admits only near-identical homologs and produces a tighter, less diverse alignment; a higher threshold (e.g. 1E-4) brings in remote homologs and increases sequence diversity. The default 1E-10 balances coverage and quality for most protein families."
@@ -185,7 +231,12 @@ task_types:
   pythia_ddg:
     display_name: "Pythia-ddG"
     category: fitness
-    intro: "Masked-mutation stability (ΔΔG) scan of a PDB structure."
+    summary: Masked-mutation stability (ΔΔG) scan of a PDB structure.
+    use_when: Use this for a structure-wide computational scan of mutation-associated stability changes.
+    input_summary: One protein structure in PDB format.
+    output_summary: Predicted stability-change scores for substitutions across the supplied structure.
+    considerations:
+      - Predicted ΔΔG values are computational estimates and require experimental interpretation.
     runtime_family: "pythia_ddg"
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -197,7 +248,12 @@ task_types:
   esm_msa:
     display_name: "ESM-MSA-1b Variant Effect"
     category: evolution
-    intro: "Per-position variant-effect profile from an MSA via ESM-MSA-1b."
+    summary: Per-position variant-effect profile from an MSA via ESM-MSA-1b.
+    use_when: Use this when you already have an A3M alignment and want a residue-level variant-effect profile.
+    input_summary: One A3M multiple-sequence alignment; the configured row limit selects the first sequences.
+    output_summary: A table of per-position ESM-MSA-1b masked-marginal scores.
+    considerations:
+      - Alignment composition and the selected row count affect the profile.
     runtime_family: "esm"
     gpus: true
     input_extension: ".a3m"
@@ -217,7 +273,12 @@ task_types:
   esm_extract:
     display_name: "ESM-2 Embedding"
     category: evolution
-    intro: "ESM-2 embeddings, contacts, and logits from a sequence."
+    summary: ESM-2 embeddings, contacts, and logits from a sequence.
+    use_when: Use this to generate ESM-2 representations for downstream sequence analysis.
+    input_summary: One protein sequence as FASTA.
+    output_summary: Requested ESM-2 representations and optional contact predictions.
+    considerations:
+      - The configured truncation length limits how many residues are retained.
     runtime_family: "esm"
     gpus: true
     input_extension: ".fasta"
@@ -241,7 +302,12 @@ task_types:
   esm_1v:
     display_name: "ESM-1v Scoring"
     category: fitness
-    intro: "Zero-shot variant effect scores from ESM-1v."
+    summary: Zero-shot variant effect scores from ESM-1v.
+    use_when: Use this for sequence-only, zero-shot prioritization of single amino-acid substitutions.
+    input_summary: One protein sequence as FASTA.
+    output_summary: A table of ESM-1v scores for possible substitutions.
+    considerations:
+      - Scores prioritize variants computationally and are not experimental fitness measurements.
     runtime_family: "esm"
     gpus: true
     input_extension: ".fasta"
@@ -254,7 +320,12 @@ task_types:
   esm_if1:
     display_name: "ESM-IF1 Design"
     category: inverse_folding
-    intro: "Inverse folding — design sequences that fold to a given backbone."
+    summary: Inverse folding — design sequences that fold to a given backbone.
+    use_when: Use this to propose sequences compatible with a known protein backbone.
+    input_summary: One protein backbone in PDB format and the chain to redesign.
+    output_summary: Sampled protein sequences for the selected backbone chain.
+    considerations:
+      - The selected chain and sampling temperature materially affect generated sequences.
     runtime_family: "esm"
     gpus: true
     input_extension: ".pdb"
@@ -284,7 +355,12 @@ task_types:
       - {num: 1, doi: "10.1101/2025.08.20.671365", title: "ESMDynamic: A Fast and Accurate Prediction of Protein Dynamic Contact Maps from Single Sequences"}
     citation_bibtex: |
       @article{Kleiman2025.08.20.671365, author={Kleiman, Diego E and Feng, Jiangyan and Xue, Zhengyuan and Shukla, Diwakar}, title={ESMDynamic: A Fast and Accurate Prediction of Protein Dynamic Contact Maps from Single Sequences}, elocation-id={2025.08.20.671365}, year={2026}, doi={10.1101/2025.08.20.671365}, publisher={Cold Spring Harbor Laboratory}, URL={https://www.biorxiv.org/content/early/2026/04/21/2025.08.20.671365}, eprint={https://www.biorxiv.org/content/early/2026/04/21/2025.08.20.671365.full.pdf}, journal={bioRxiv}}
-    intro: "Predict protein dynamic contact maps, contact frequencies, and kinetics from a sequence."
+    summary: Predict protein dynamic contact maps, contact frequencies, and kinetics from a sequence.
+    use_when: Use this to estimate residue-contact dynamics directly from a protein sequence.
+    input_summary: One protein sequence as FASTA.
+    output_summary: Predicted dynamic contact maps, contact frequencies, and kinetic outputs.
+    considerations:
+      - Outputs are model predictions from sequence rather than a molecular-dynamics trajectory.
     runtime_family: "esmdynamic"
     gpus: true
     input_extension: ".fasta"
@@ -301,7 +377,12 @@ task_types:
   opendde:
     display_name: "OpenDDE"
     category: structure
-    intro: "All-atom structure prediction with MSA and template guidance (OpenDDE)."
+    summary: All-atom structure prediction with MSA and template guidance (OpenDDE).
+    use_when: Use this for OpenDDE co-folding jobs that need an explicit JSON specification.
+    input_summary: One OpenDDE JSON job specification describing the molecular system.
+    output_summary: Predicted all-atom structures and model confidence outputs produced by OpenDDE.
+    considerations:
+      - The JSON schema and optional MSA/template settings must match the pinned OpenDDE runner.
     runtime_family: "opendde"
     gpus: true
     input_extension: ".json"
@@ -347,7 +428,12 @@ task_types:
   hypermpnn:
     display_name: "HyperMPNN"
     category: inverse_folding
-    intro: "Thermostable sequence design using hyperthermophile-trained ProteinMPNN weights (HyperMPNN)."
+    summary: Thermostable sequence design using hyperthermophile-trained ProteinMPNN weights (HyperMPNN).
+    use_when: Use this to sample backbone-compatible sequences with HyperMPNN weights trained on hyperthermophile proteins.
+    input_summary: One protein backbone in PDB format.
+    output_summary: Designed FASTA sequences and optional scores or probabilities.
+    considerations:
+      - Hyperthermophile-biased weights are a design prior, not a guarantee of thermostability.
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -382,7 +468,12 @@ task_types:
   proteinmpnn:
     display_name: "ProteinMPNN"
     category: inverse_folding
-    intro: "ProteinMPNN sequence design for the given backbone."
+    summary: ProteinMPNN sequence design for the given backbone.
+    use_when: Use this for general sequence design conditioned on a supplied protein backbone.
+    input_summary: One protein backbone in PDB format.
+    output_summary: Designed FASTA sequences and optional scores or residue probabilities.
+    considerations:
+      - Generated sequences require structural and experimental evaluation.
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "Protein backbone (PDB)"
@@ -411,7 +502,12 @@ task_types:
   solublempnn:
     display_name: "SolubleMPNN"
     category: inverse_folding
-    intro: "Solubility-aware ProteinMPNN sequence design."
+    summary: Solubility-aware ProteinMPNN sequence design.
+    use_when: Use this when sequence design should use ProteinMPNN checkpoints tuned for soluble proteins.
+    input_summary: One soluble-protein backbone in PDB format.
+    output_summary: Designed FASTA sequences from a soluble-protein checkpoint.
+    considerations:
+      - The soluble-protein prior does not guarantee expression or solubility.
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "Soluble protein backbone (PDB)"
@@ -439,7 +535,12 @@ task_types:
   ligandmpnn:
     display_name: "LigandMPNN"
     category: inverse_folding
-    intro: "Ligand-aware sequence design (LigandMPNN)."
+    summary: Ligand-aware sequence design (LigandMPNN).
+    use_when: Use this to design residues in the context of a bound ligand and optionally pack side chains.
+    input_summary: One PDB structure containing the protein and relevant ligand context.
+    output_summary: Designed sequences, with optional packed structures and model statistics.
+    considerations:
+      - Ligand identity, atom records, residue syntax, and structure preparation affect the design context.
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -489,7 +590,12 @@ task_types:
   lasermpnn:
     display_name: "LASErMPNN"
     category: inverse_folding
-    intro: "Ligand-conditioned sequence design and sidechain packing for protonated (all-atom) structures (LASErMPNN)."
+    summary: Ligand-conditioned sequence design and sidechain packing for protonated (all-atom) structures (LASErMPNN).
+    use_when: Use this for ligand-conditioned sequence and side-chain design across one or more all-atom structures.
+    input_summary: One or more protonated protein–ligand structures in PDB or mmCIF format.
+    output_summary: Designed structures and/or FASTA sequences according to the selected output mode.
+    considerations:
+      - Inputs must be all-atom and protonated for the intended LASErMPNN contract.
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_extensions: [".pdb", ".cif", ".mmcif"]
@@ -532,7 +638,12 @@ task_types:
   thermompnn:
     display_name: "ThermoMPNN-D"
     category: fitness
-    intro: "Stability change (ΔΔG) prediction for single and double mutants (ThermoMPNN-D)."
+    summary: Stability change (ΔΔG) prediction for single and double mutants (ThermoMPNN-D).
+    use_when: Use this to estimate stability changes for single mutations or nearby double mutations.
+    input_summary: One PDB structure and the chain IDs to analyze.
+    output_summary: Predicted ΔΔG tables for the selected single- or double-mutant mode.
+    considerations:
+      - Double-mutant results depend on the selected mode and Cα distance cutoff.
     runtime_family: "mpnn"
     input_extension: ".pdb"
     input_label: "PDB file"
@@ -557,7 +668,12 @@ task_types:
   prime:
     display_name: "Pro-Prime"
     category: fitness
-    intro: "Optimal growth temperature (OGT) prediction from a protein sequence (Pro-Prime)."
+    summary: Optimal growth temperature (OGT) prediction from a protein sequence (Pro-Prime).
+    use_when: Use this to estimate a protein sequence’s optimal growth temperature.
+    input_summary: One protein sequence as FASTA.
+    output_summary: A table containing the model-predicted optimal growth temperature.
+    considerations:
+      - The prediction is model-derived and should be interpreted within the model’s training domain.
     runtime_family: "prime"
     runner_args: ["ogt"]
     gpus: true
@@ -571,7 +687,12 @@ task_types:
   prime_dms:
     display_name: "PRIME DMS"
     category: fitness
-    intro: "Fitness prediction for mutations (Prime DMS)."
+    summary: Fitness prediction for mutations (Prime DMS).
+    use_when: Use this for sequence-based mutation scoring, either exhaustive single substitutions or supplied variants.
+    input_summary: FASTA input where the first record is the reference; additional equal-length records are variants.
+    output_summary: A table of PRIME mutation scores for the generated or supplied variants.
+    considerations:
+      - Record order is meaningful, and supplied variants must match the reference length.
     runtime_family: "prime"
     runner_args: ["dms"]
     gpus: true
@@ -589,7 +710,12 @@ task_types:
   rfdiffusion:
     display_name: "RFdiffusion"
     category: design
-    intro: "Protein backbone generation via RFdiffusion."
+    summary: Protein backbone generation via RFdiffusion.
+    use_when: Use this to generate new backbones, scaffold a motif, or design a binder around a target surface.
+    input_summary: No file for unconditional generation, or a primary PDB for structure-guided modes; auxiliary files remain in the snapshot.
+    output_summary: Generated backbone structures and optional diffusion trajectories.
+    considerations:
+      - Motif and binder modes require valid structure selections and a server-normalized design plan.
     runtime_family: "placer-rfdiffusion"
     runner_args: ["rfdiffusion"]
     gpus: true
@@ -601,12 +727,61 @@ task_types:
     max_input_files: 64
     min_input_files: 0
     input_workspace:
-      capabilities:
-        - {plugin: "files", id: "source_files", title: "Input workspace", description: "Upload a primary PDB for structure-guided modes; unconditional generation needs no file.", options: {roles: ["primary", "auxiliary"], primary_required: false}}
-        - {plugin: "structure", id: "structure_builder", title: "Structure", description: "Inspect chains and residues in the primary structure.", options: {source: "source_files", select_chains: true, select_residues: true}}
-        - {plugin: "rfdiffusion-regions", id: "design_regions", title: "Design regions", description: "Build unconditional, motif-scaffolding, binder, or expert contigs.", options: {source: "structure_builder", fields: ["design_mode", "contig", "hotspot_res"], syntax: "rfdiffusion", modes: ["unconditional", "motif_scaffolding", "binder", "expert"]}}
-        - {plugin: "parameters", id: "task_parameters", title: "Diffusion settings", options: {groups: ["basic", "advanced"]}}
-        - {plugin: "review", id: "submission_review", title: "Review design", options: {show_resources: true, show_paths: true}}
+      steps:
+      - id: material
+        title: Provide the input
+        description: Choose the scientific input for this experiment
+        capabilities:
+        - plugin: files
+          id: source_files
+          title: Input workspace
+          description: Upload a primary PDB for structure-guided modes; unconditional generation needs no file.
+          options:
+            primary_required: false
+        - plugin: structure
+          id: structure_builder
+          title: Structure
+          description: Inspect chains and residues in the primary structure.
+          options:
+            source: source_files
+            select_chains: true
+            select_residues: true
+      - id: intent
+        title: Define the scientific intent
+        description: Specify which molecular features the method should preserve, redesign, or analyze
+        capabilities:
+        - plugin: rfdiffusion-regions
+          id: design_regions
+          title: Design regions
+          description: Build unconditional, motif-scaffolding, binder, or expert contigs.
+          options:
+            source: structure_builder
+            fields:
+            - design_mode
+            - contig
+            - hotspot_res
+            syntax: rfdiffusion
+            modes:
+            - unconditional
+            - motif_scaffolding
+            - binder
+            - expert
+      - id: settings
+        title: Set the experiment
+        description: Adjust only the controls that matter for this run
+        capabilities:
+        - plugin: parameters
+          id: task_parameters
+          title: Diffusion settings
+      - id: review
+        title: Review and run
+        description: Check the input and settings before creating the task snapshot
+        capabilities:
+        - plugin: review
+          id: submission_review
+          title: Review design
+          options:
+            show_paths: true
     stage_markers:
       rfdiffusion: "RFdiffusion backbone generation"
     params:
@@ -668,7 +843,12 @@ task_types:
   placer:
     display_name: "PLACER"
     category: structure
-    intro: "All-atom modeling of protein-ligand complexes from an input structure (PLACER)."
+    summary: All-atom modeling of protein-ligand complexes from an input structure (PLACER).
+    use_when: Use this to generate or refine all-atom protein–ligand complex models from supplied structures.
+    input_summary: One or more PDB or mmCIF complexes, with one selected as the primary structure.
+    output_summary: Sampled complex structures and PLACER scoring tables.
+    considerations:
+      - Ligand, residue, mutation, bond, and crop identifiers must follow the pinned PLACER syntax.
     runtime_family: "placer-rfdiffusion"
     runner_args: ["placer"]
     gpus: true
@@ -679,12 +859,59 @@ task_types:
     allow_multiple_inputs: true
     max_input_files: 64
     input_workspace:
-      capabilities:
-        - {plugin: "files", id: "source_files", title: "Structure workspace", description: "Upload all PDB/mmCIF inputs; nested paths remain intact.", options: {roles: ["primary", "auxiliary"], primary_required: true}}
-        - {plugin: "structure", id: "structure_builder", title: "Structures and ligands", description: "Inspect the primary structure and its chains before sampling.", options: {source: "source_files", select_chains: true, select_residues: true}}
-        - {plugin: "regions", id: "placement_regions", title: "Placement context", description: "Specify target residues, mutations, ligands, or crop centers when needed.", options: {source: "structure_builder", fields: ["predict_ligand", "fixed_ligand", "target_res", "mutate", "crop_centers", "corruption_centers"], syntax: "placer"}}
-        - {plugin: "parameters", id: "task_parameters", title: "Sampling settings", options: {groups: ["basic", "advanced"]}}
-        - {plugin: "review", id: "submission_review", title: "Review placement", options: {show_resources: true, show_paths: true}}
+      steps:
+      - id: material
+        title: Provide the input
+        description: Choose the scientific input for this experiment
+        capabilities:
+        - plugin: files
+          id: source_files
+          title: Structure workspace
+          description: Upload all PDB/mmCIF inputs; nested paths remain intact.
+          options:
+            primary_required: true
+        - plugin: structure
+          id: structure_builder
+          title: Structures and ligands
+          description: Inspect the primary structure and its chains before sampling.
+          options:
+            source: source_files
+            select_chains: true
+            select_residues: true
+      - id: intent
+        title: Define the scientific intent
+        description: Specify which molecular features the method should preserve, redesign, or analyze
+        capabilities:
+        - plugin: regions
+          id: placement_regions
+          title: Placement context
+          description: Specify target residues, mutations, ligands, or crop centers when needed.
+          options:
+            source: structure_builder
+            fields:
+            - predict_ligand
+            - fixed_ligand
+            - target_res
+            - mutate
+            - crop_centers
+            - corruption_centers
+            syntax: placer
+      - id: settings
+        title: Set the experiment
+        description: Adjust only the controls that matter for this run
+        capabilities:
+        - plugin: parameters
+          id: task_parameters
+          title: Sampling settings
+      - id: review
+        title: Review and run
+        description: Check the input and settings before creating the task snapshot
+        capabilities:
+        - plugin: review
+          id: submission_review
+          title: Review placement
+          options:
+            show_paths: true
     stage_markers:
       placer: "PLACER structure generation"
     params:
@@ -716,7 +943,12 @@ task_types:
   bioemu:
     display_name: "BioEmu"
     category: structure
-    intro: "Conformational ensemble sampling from sequence (BioEmu)."
+    summary: Conformational ensemble sampling from sequence (BioEmu).
+    use_when: Use this to sample a diverse conformational ensemble from one protein sequence.
+    input_summary: One protein sequence as FASTA.
+    output_summary: A filtered ensemble of sampled protein conformations and supporting artifacts.
+    considerations:
+      - A generated ensemble is a model sample and not a measured thermodynamic population.
     runtime_family: "bioemu"
     gpus: true
     input_extension: ".fasta"
@@ -739,17 +971,51 @@ task_types:
   easifa:
     display_name: "EasIFA2 Active Sites"
     category: function
-    intro: "Active-site annotation with optional reaction context (EasIFA)."
+    summary: Active-site annotation with optional reaction context (EasIFA).
+    use_when: Use this to annotate likely enzyme active-site residues, optionally with reaction context.
+    input_summary: One enzyme PDB structure and, optionally, a reaction SMILES string.
+    output_summary: Residue-level active-site annotations linked to the submitted enzyme structure.
+    considerations:
+      - Blank reaction context selects the structure-only model; sequence length is bounded by the configured maximum.
     runtime_family: "easifa"
     gpus: true
     input_extension: ".pdb"
     input_label: "Enzyme structure (PDB)"
     input_workspace:
-      capabilities:
-        - {plugin: "files", id: "source_files", title: "Enzyme structure", options: {roles: ["primary"], primary_required: true}}
-        - {plugin: "structure", id: "structure_builder", title: "Structure", description: "Inspect the uploaded enzyme and detected chains.", options: {source: "source_files", select_chains: false, select_residues: false}}
-        - {plugin: "parameters", id: "task_parameters", title: "Reaction context", options: {groups: ["basic", "advanced"]}}
-        - {plugin: "review", id: "submission_review", title: "Review annotation", options: {show_resources: true, show_paths: true}}
+      steps:
+      - id: material
+        title: Provide the input
+        description: Choose the scientific input for this experiment
+        capabilities:
+        - plugin: files
+          id: source_files
+          title: Enzyme structure
+          options:
+            primary_required: true
+        - plugin: structure
+          id: structure_builder
+          title: Structure
+          description: Inspect the uploaded enzyme and detected chains.
+          options:
+            source: source_files
+            select_chains: false
+            select_residues: false
+      - id: settings
+        title: Set the experiment
+        description: Adjust only the controls that matter for this run
+        capabilities:
+        - plugin: parameters
+          id: task_parameters
+          title: Reaction context
+      - id: review
+        title: Review and run
+        description: Check the input and settings before creating the task snapshot
+        capabilities:
+        - plugin: review
+          id: submission_review
+          title: Review annotation
+          options:
+            show_paths: true
     result_workspace:
       views:
         - plugin: "residue-table-structure"
@@ -773,7 +1039,12 @@ task_types:
   freebindcraft:
     display_name: "FreeBindCraft"
     category: design
-    intro: "Protein binder design using OpenMM relax, FASPR, and sc-rs shape complementarity."
+    summary: Protein binder design using OpenMM relax, FASPR, and sc-rs shape complementarity.
+    use_when: Use this for an end-to-end binder-design campaign against a prepared target structure.
+    input_summary: One target protein structure in PDB format, with target chains and optional hotspot residues.
+    output_summary: Accepted binder structures and their design and ranking metrics.
+    considerations:
+      - The run may explore many trajectories before enough designs pass the selected filters.
     runtime_family: "freebindcraft"
     gpus: true
     input_extension: ".pdb"
@@ -818,12 +1089,12 @@ task_types:
         maximum: 100
         description: "Number of final designs to output"
       - name: filters_preset
-        type: choice
+        type: str
         default: "default_filters"
         choices: ["default_filters", "relaxed_filters", "no_filters"]
         description: "Filter preset for binder evaluation"
       - name: rank_by
-        type: choice
+        type: str
         default: "i_pTM"
         choices: ["i_pTM", "ipSAE"]
         description: "Ranking metric for designs"
@@ -844,7 +1115,12 @@ task_types:
       @article{Jumper_2021, title={Highly accurate protein structure prediction with AlphaFold}, volume={596}, ISSN={1476-4687}, url={http://dx.doi.org/10.1038/s41586-021-03819-2}, DOI={10.1038/s41586-021-03819-2}, number={7873}, journal={Nature}, publisher={Springer Science and Business Media LLC}, author={Jumper, John and Evans, Richard and Pritzel, Alexander and Green, Tim and Figurnov, Michael and Ronneberger, Olaf and Tunyasuvunakool, Kathryn and Bates, Russ and Žídek, Augustin and Potapenko, Anna and Bridgland, Alex and Meyer, Clemens and Kohl, Simon A. A. and Ballard, Andrew J. and Cowie, Andrew and Romera-Paredes, Bernardino and Nikolov, Stanislav and Jain, Rishub and Adler, Jonas and Back, Trevor and Petersen, Stig and Reiman, David and Clancy, Ellen and Zielinski, Michal and Steinegger, Martin and Pacholska, Michalina and Berghammer, Tamas and Bodenstein, Sebastian and Silver, David and Vinyals, Oriol and Senior, Andrew W. and Kavukcuoglu, Koray and Kohli, Pushmeet and Hassabis, Demis}, year={2021}, month=July, pages={583–589} }
 
       @article{Evans_2021, title={Protein complex prediction with AlphaFold-Multimer}, url={http://dx.doi.org/10.1101/2021.10.04.463034}, DOI={10.1101/2021.10.04.463034}, publisher={openRxiv}, author={Evans, Richard and O’Neill, Michael and Pritzel, Alexander and Antropova, Natasha and Senior, Andrew and Green, Tim and Žídek, Augustin and Bates, Russ and Blackwell, Sam and Yim, Jason and Ronneberger, Olaf and Bodenstein, Sebastian and Zielinski, Michal and Bridgland, Alex and Potapenko, Anna and Cowie, Andrew and Tunyasuvunakool, Kathryn and Jain, Rishub and Clancy, Ellen and Kohli, Pushmeet and Jumper, John and Hassabis, Demis}, year={2021}, month=Oct }
-    intro: "DeepMind AlphaFold2 structure prediction (JAX, multimer-capable)."
+    summary: DeepMind AlphaFold2 structure prediction (JAX, multimer-capable).
+    use_when: Use this for local-database AlphaFold2 monomer or multimer prediction.
+    input_summary: One FASTA file; use multiple records for a multimer together with the multimer preset.
+    output_summary: Ranked predicted structures, confidence data, features, and optional relaxed models.
+    considerations:
+      - MSA and template searches use the server’s installed databases and can dominate runtime.
     runtime_family: "alphafold"
     gpus: true
     input_extension: ".fasta"
@@ -896,7 +1172,12 @@ task_types:
       @article{Evans_2021, title={Protein complex prediction with AlphaFold-Multimer}, url={http://dx.doi.org/10.1101/2021.10.04.463034}, DOI={10.1101/2021.10.04.463034}, publisher={openRxiv}, author={Evans, Richard and O’Neill, Michael and Pritzel, Alexander and Antropova, Natasha and Senior, Andrew and Green, Tim and Žídek, Augustin and Bates, Russ and Blackwell, Sam and Yim, Jason and Ronneberger, Olaf and Bodenstein, Sebastian and Zielinski, Michal and Bridgland, Alex and Potapenko, Anna and Cowie, Andrew and Tunyasuvunakool, Kathryn and Jain, Rishub and Clancy, Ellen and Kohli, Pushmeet and Jumper, John and Hassabis, Demis}, year={2021}, month=Oct }
 
       @article{Mirdita_2022, title={ColabFold: making protein folding accessible to all}, volume={19}, ISSN={1548-7105}, url={http://dx.doi.org/10.1038/s41592-022-01488-1}, DOI={10.1038/s41592-022-01488-1}, number={6}, journal={Nature Methods}, publisher={Springer Science and Business Media LLC}, author={Mirdita, Milot and Schütze, Konstantin and Moriwaki, Yoshitaka and Heo, Lim and Ovchinnikov, Sergey and Steinegger, Martin}, year={2022}, month=May, pages={679–682} }
-    intro: "ColabFold AlphaFold2 prediction with online MMseqs2 MSA search and local GPU inference."
+    summary: ColabFold AlphaFold2 prediction with online MMseqs2 MSA search and local GPU inference.
+    use_when: Use this for AlphaFold2 prediction with public MMseqs2 MSA search and local model inference.
+    input_summary: One FASTA file; multiple records represent a complex.
+    output_summary: The searched alignment, ranked predicted structures, scores, and optional relaxed models.
+    considerations:
+      - MSA generation depends on the external ColabFold service unless single-sequence mode is selected.
     runtime_family: "colabfold_af2"
     gpus: true
     input_extension: ".fasta"

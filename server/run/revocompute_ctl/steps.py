@@ -410,7 +410,7 @@ def build_restart_plan(state, compose_cmd: tuple[str, ...], flags: RestartFlags)
         ),
     ]
     if flags.keep_gateway:
-        steps.insert(0, Step("maintenance", lambda: begin_maintenance(state), cleanup=lambda: end_maintenance(state)))
+        steps.insert(0, Step("maintenance", lambda: begin_maintenance(state)))
 
     if flags.mode == "dev":
         steps.append(

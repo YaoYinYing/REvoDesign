@@ -22,6 +22,7 @@ SERVER_ROOT = Path(__file__).resolve().parents[1]
 def _preserve_registry():
     task_snapshot = dict(task_types._registry)
     runtime_snapshot = dict(task_types._runtime_registry)
+    category_snapshot = dict(task_types._category_registry)
     executor_snapshot = task_types._job_executor
     container_snapshot = task_types._container_runtime
     try:
@@ -31,8 +32,23 @@ def _preserve_registry():
         task_types._registry.update(task_snapshot)
         task_types._runtime_registry.clear()
         task_types._runtime_registry.update(runtime_snapshot)
+        task_types._category_registry.clear()
+        task_types._category_registry.update(category_snapshot)
         task_types._job_executor = executor_snapshot
         task_types._container_runtime = container_snapshot
+
+
+def test_every_task_declares_scientific_guidance_and_semantic_steps():
+    registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
+    assert registry["categories"]
+    assert len({category["order"] for category in registry["categories"].values()}) == len(registry["categories"])
+    for name, task in registry["task_types"].items():
+        for field in ("summary", "use_when", "input_summary", "output_summary"):
+            assert isinstance(task[field], str) and task[field].strip(), (name, field)
+        assert task["considerations"] and all(isinstance(item, str) and item.strip() for item in task["considerations"])
+        steps = task["input_workspace"]["steps"]
+        assert steps[0]["capabilities"][0]["plugin"] in {"files", "sequence"}
+        assert steps[-1]["capabilities"][-1]["plugin"] == "review"
 
 
 def test_task_types_carry_categories():
@@ -151,25 +167,27 @@ def test_input_workspace_capabilities_cover_simple_and_complex_tasks():
         rfdiffusion, _ = task_types.get("rfdiffusion")
         easifa, _ = task_types.get("easifa")
 
-        assert [cap.plugin for cap in gremlin.input_workspace] == [
+        assert [cap.plugin for cap in task_types.iter_capabilities(gremlin)] == [
             "files",
             "sequence",
             "parameters",
             "review",
         ]
-        assert [cap.plugin for cap in rfdiffusion.input_workspace] == [
+        assert [cap.plugin for cap in task_types.iter_capabilities(rfdiffusion)] == [
             "files",
             "structure",
             "rfdiffusion-regions",
             "parameters",
             "review",
         ]
-        region_options = next(cap.options for cap in rfdiffusion.input_workspace if cap.plugin == "rfdiffusion-regions")
+        region_options = next(
+            cap.options for cap in task_types.iter_capabilities(rfdiffusion) if cap.plugin == "rfdiffusion-regions"
+        )
         assert {"design_mode", "contig", "hotspot_res"}.issubset(region_options["fields"])
         assert region_options["modes"] == ["unconditional", "motif_scaffolding", "binder", "expert"]
         assert rfdiffusion.min_input_files == 0
         assert easifa.result_workspace[0].plugin == "residue-table-structure"
-        assert [cap.plugin for cap in easifa.input_workspace] == [
+        assert [cap.plugin for cap in task_types.iter_capabilities(easifa)] == [
             "files",
             "structure",
             "parameters",
@@ -180,9 +198,19 @@ def test_input_workspace_capabilities_cover_simple_and_complex_tasks():
 def test_input_workspace_rejects_remote_or_unknown_plugin_configuration(tmp_path):
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
     registry["task_types"]["gremlin"]["input_workspace"] = {
-        "capabilities": [
-            {"plugin": "https://example.invalid/plugin.js", "id": "remote"},
-            {"plugin": "review", "id": "review"},
+        "steps": [
+            {
+                "id": "material",
+                "title": "Input",
+                "description": "",
+                "capabilities": [{"plugin": "https://example.invalid/plugin.js", "id": "remote"}],
+            },
+            {
+                "id": "review",
+                "title": "Review",
+                "description": "",
+                "capabilities": [{"plugin": "review", "id": "review"}],
+            },
         ]
     }
     registry_path = tmp_path / "task_types.yaml"
@@ -490,6 +518,8 @@ def test_invalid_input_contract_is_rejected(tmp_path, task_fields, message):
     registry.write_text(
         "job_executor: docker\n"
         "container_runtime: docker\n"
+        "categories:\n"
+        "  other: {label: Other, description: Other methods, order: 1}\n"
         "runtime_families:\n"
         "  test:\n"
         "    docker_image: example/test\n"

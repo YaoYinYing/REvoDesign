@@ -6,12 +6,15 @@ contract for adapting a new scientific task type. Commands use placeholders;
 keep deployment credentials and machine-local paths in the selected mode-0600
 environment file and external configuration directory.
 
+The authoritative reference for the control CLI, modes, locks, artifact
+lifecycle, restart walk, and recovery is
+[DEPLOYMENT_CONTROL_GUIDE.md](DEPLOYMENT_CONTROL_GUIDE.md).
+
 The short version of the production rule is: build and validate everything
 while the healthy stack is still running, then use `--mode=prepared` for the
-small activation window. SIF rebuilds are the exception: run
-`restart --use-proxy --build-sif`, which stops the stack, stages each stale
-SIF as `<sif>.next`, and promotes it after the build (no manual SIF
-deletion) — so plan the batch runner changes around the outage window.
+small activation window. Build changed runner images and matching SIFs with
+`prepare --enabled-runners=<csv> --build-sif`; this stages each stale SIF as
+`<sif>.next` while the healthy deployment remains up.
 
 ## 1. System model
 
@@ -174,9 +177,9 @@ runtime_families:
 ```
 
 Every production `slurm_image` must be absolute and versioned. The control
-module never overwrites a working SIF in place: restarts stage rebuilds as
-`<sif>.next` and promote them after `down`, saving the previous file as
-`<sif>.previous` (see §8). Runner YAML files must not contain `runner`,
+module builds through `<sif>.next.build`, stages the completed artifact as
+`<sif>.next`, and atomically replaces the deployed SIF after `down` (see §8).
+Runner YAML files must not contain `runner`,
 `job_executor`, `container_runtime`, `slurm_image`, or `gpus`.
 
 One active runner file exists per runtime family:
@@ -358,15 +361,19 @@ in place and no manual delete is needed:
 
 ```bash
 REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
-  bash server/run/restart.sh restart --use-proxy --build-sif
+  bash server/run/restart.sh prepare \
+    --enabled-runners=example \
+    --use-proxy \
+    --build-sif
 ```
 
-`restart --build-sif` stages `<sif>.next` for every family whose SIF is
+`prepare --build-sif` stages `<sif>.next` for every selected family whose SIF is
 missing or **older than the family's docker image** — image updates that
 were deployed without a SIF rebuild (in any earlier restart) are caught
 automatically. Limit a catch-up build to one family with
-`--enabled-runners=<name>` when the full set would be too costly. After
-`down`, activation moves the staged file into place with `os.replace`.
+`--enabled-runners=<name>` when the full set would be too costly. A later
+prepared restart moves the staged file into place with `os.replace` after
+`down`.
 Staging is atomic (built to `<sif>.next.build`, renamed on success), so a
 killed build can never leave a corrupt `.next`. One SIF per family at the
 registry path; no versioned `.sif.partial` files. `--build-sif` is
@@ -475,8 +482,6 @@ The safe activation sequence is:
 ```text
 plan: --dry-run prints the walk + per-family change predictions
                     |
-drain (optional): --drain=N blocks submissions, waits for SLURM jobs
-                    |
             validate registry/runners/images/SIFs/Compose
                     |
              any failure? ---- yes ---> keep current stack running
@@ -502,8 +507,8 @@ drain (optional): --drain=N blocks submissions, waits for SLURM jobs
             smoke
 ```
 
-Dry-run first — it reads only and predicts exactly which families will
-change:
+Dry-run first. It reads only and reports the current image baseline and stale
+SIF set; it does not simulate a future build:
 
 ```bash
 REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
@@ -514,15 +519,16 @@ Activate only after the dry-run prediction matches the prepared artifacts:
 
 ```bash
 REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
-  bash server/run/restart.sh restart --mode=prepared --drain=15
+  bash server/run/restart.sh restart --mode=prepared --keep-gateway
 ```
 
-`--drain=15` blocks new submissions through the web-visible
+`--keep-gateway` blocks new submissions through the web-visible
 `${SERVER_DIR}/.maintenance` sentinel (the API answers 503 "Server is in
-maintenance; submissions are paused") and waits up to 15 minutes for
-in-flight SLURM jobs to finish; the
-pre-stop sweep cancels the remainder. The sentinel is removed after a
-successful restart and on failure.
+maintenance; submissions are paused") and keeps Nginx serving the maintenance
+page. The pre-stop sweep cancels this deployment's SLURM jobs, requeues
+resumable workflows, and fails other in-flight tasks. The sentinel is removed
+only after a successful restart; failures leave maintenance active until a
+known-good stack is restored.
 
 Prepared mode performs all artifact/config/Compose checks before `down`, then
 starts with existing images and no build or pull. Verify Compose services,
@@ -555,7 +561,12 @@ task_types:
   example_score:
     display_name: Example Score
     category: structure
-    intro: One-line plain-language description shown on the create-task page.
+    summary: Structure-based score for each supplied complex.
+    use_when: Use this to compare prepared complexes with one pinned scoring method.
+    input_summary: One or more prepared PDB or mmCIF complexes; the first is primary.
+    output_summary: A score table and per-complex supporting artifacts.
+    considerations:
+      - Scores are model outputs and require scientific interpretation.
     runtime_family: example-family
     runner_args: [score]
     gpus: false
@@ -586,10 +597,12 @@ task_types:
 `input_workspace` is required on every task type — startup fails closed when a
 registry entry omits it. Reference one of the shared `workspace_templates`
 anchors defined at the top of the registry (`file`, `fasta`, `structure`), or
-declare an inline `capabilities` list.
+declare semantic `steps`, each containing one or more allowlisted capabilities.
+The first step collects biological material and the last step reviews the run.
+Verify every guidance field against the pinned adapter and real outputs; do not
+promise unverified accuracy, runtime, or applicability.
 
-Supported parameter types are `str`, `text`, `int`, `float`, and `bool` —
-`int` and `float` render as number inputs, the rest as text. Use `choices`,
+Supported parameter types are `str`, `int`, `float`, and `bool`. Use `choices`,
 `minimum`, `maximum`, `step`, `unit`, `required`, and `advanced` to constrain
 the schema. Do not expose host paths, devices, checkpoint paths, executor
 flags, or integrity-bypass switches as user parameters.
@@ -766,9 +779,10 @@ username.
 - Candidate imports and real minimum inference pass offline.
 - Production `CONFIG_DIR` registry synced from the repo copy (backup made,
   machine lines re-applied).
-- SIFs rebuilt via `restart --use-proxy --build-sif` (stale families staged
-  as `.next` and promoted in place); each SIF smoked through the `run.sh`
-  contract.
+- Changed runners and SIFs prepared via
+  `prepare --enabled-runners=<csv> --use-proxy --build-sif` while production
+  remains up; stale SIFs staged as `.next` and each SIF smoked through the
+  `run.sh` contract.
 - External config backed up outside the active directory.
 - Registry/runner/Compose/prepared-image/SIF preflight passes.
 - `restart --mode=prepared` activates with no build or pull.

@@ -116,7 +116,7 @@
     try {
       var resp = await fetch("/compute/api/types");
       if (!resp.ok) throw new Error("HTTP " + resp.status);
-      taskTypes = await resp.json();
+      taskTypes = (await resp.json()).task_types || [];
     } catch (e) {
       taskTypes = [];
     }

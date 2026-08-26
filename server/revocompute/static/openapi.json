@@ -48,8 +48,8 @@
         "operationId": "listTaskTypes",
         "responses": {
           "200": {
-            "description": "Enabled task types and their submission parameters",
-            "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/TaskType"}}}}
+            "description": "Ordered scientific categories and enabled task summaries",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TaskCatalog"}}}
           }
         }
       }
@@ -307,23 +307,57 @@
         },
         "additionalProperties": true
       },
+      "TaskCatalog": {
+        "type": "object",
+        "required": ["version", "categories", "task_types"],
+        "properties": {
+          "version": {"type": "integer", "const": 2},
+          "categories": {"type": "array", "items": {"type": "object"}},
+          "task_types": {"type": "array", "items": {"$ref": "#/components/schemas/TaskType"}}
+        }
+      },
       "TaskType": {
         "type": "object",
-        "required": ["name", "display_name", "category", "runtime_family", "params"],
+        "required": ["name", "display_name", "category", "summary", "use_when", "input_summary", "output_summary", "considerations", "params"],
         "properties": {
           "name": {"type": "string"},
           "display_name": {"type": "string"},
           "category": {"type": "string"},
-          "intro": {"type": "string"},
+          "summary": {"type": "string"},
+          "use_when": {"type": "string"},
+          "input_summary": {"type": "string"},
+          "output_summary": {"type": "string"},
+          "considerations": {"type": "array", "items": {"type": "string"}},
           "runtime_family": {"type": "string"},
           "gpus": {"type": "boolean"},
+          "requires_network": {"type": "boolean"},
           "input_extensions": {"type": "array", "items": {"type": "string"}},
           "params": {"type": "array", "items": {"$ref": "#/components/schemas/TaskParameter"}},
           "stage_markers": {"type": "object", "additionalProperties": {"type": "string"}},
-          "file_input": {"type": "object"},
-          "input_workspace": {"type": "object"}
+          "file_input": {"type": "object", "properties": {"max_request_bytes": {"type": "integer"}}},
+          "input_workspace": {"$ref": "#/components/schemas/InputWorkspace"}
         },
         "additionalProperties": true
+      },
+      "InputWorkspace": {
+        "type": "object",
+        "required": ["version", "steps"],
+        "properties": {
+          "version": {"type": "integer", "const": 3},
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "title", "capabilities"],
+              "properties": {
+                "id": {"type": "string"},
+                "title": {"type": "string"},
+                "description": {"type": "string"},
+                "capabilities": {"type": "array", "items": {"type": "object"}}
+              }
+            }
+          }
+        }
       },
       "TaskStatus": {
         "type": "object",

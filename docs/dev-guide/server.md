@@ -59,8 +59,9 @@ status/cancellation/deletion, and result retrieval; profile and administrative
 operations remain outside the public contract.
 
 The create-task page accepts `?task_type=<name>` for catalog deep links. It
-selects the matching enabled type after loading `/compute/api/types`; absent or
-unknown names retain the first enabled type as the default.
+selects a matching enabled method after loading the ordered scientific catalog;
+without a valid deep link it asks the researcher to choose by purpose rather
+than silently selecting the first enabled method.
 
 ## Source layout
 
@@ -229,6 +230,10 @@ must not be copied into logs, commits, or reports.
 
 ## Build and activation semantics
 
+The authoritative command, mode, safety, artifact-lifecycle, and recovery
+reference is the
+[REvoCompute Deployment Control Guide](../../server/DEPLOYMENT_CONTROL_GUIDE.md).
+
 ```bash
 # Prepare selected runner images without rebuilding web/worker or stopping the stack.
 REVODESIGN_SERVER_ENV=server/.env.production \
@@ -252,14 +257,21 @@ runtime family and server image, and starts again. This explains why it rebuilds
 an unrelated family such as EasIFA. `--mode=prod` pulls after stopping and is
 safe only when every configured tag is genuinely published and pullable.
 
-For an existing SLURM deployment, prebuild the Docker images while the
-healthy stack runs, then activate with `restart --build-sif`. The activation
-is a `--mode=dev` restart: the stack goes down, then the Docker build step
-re-runs (cache-warm after the prebuild) and each stale SIF is rebuilt during
-the outage. Stale SIFs are staged as `<sif>.next`, promoted in place after
-the build, and the replaced SIF is kept as `<sif>.previous`. Add
-`--drain=<minutes>` to pause submissions and drain in-flight SLURM jobs
-first; without it the pre-stop sweep cancels them when the stack goes down.
+For an existing SLURM deployment, prepare only the changed Docker families and
+their SIFs while the healthy stack runs:
+
+```bash
+REVODESIGN_SERVER_ENV=server/.env.production \
+  bash server/run/restart.sh prepare \
+    --enabled-runners=example \
+    --build-sif
+```
+
+Then activate with `restart --mode=prepared --keep-gateway`. Stale SIFs build atomically
+through `<sif>.next.build`, stage as `<sif>.next`, and replace the deployed SIF
+after `down`. There is no `--drain` flag; the pre-stop sweep cancels this
+deployment's SLURM jobs, requeues resumable workflows, and fails other
+in-flight tasks.
 
 Never run the restart helper with `sudo` or as root. It intentionally does not
 recursively chmod/chown application data. Build proxies are passed as build

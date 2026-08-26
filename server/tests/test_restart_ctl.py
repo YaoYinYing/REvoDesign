@@ -31,10 +31,12 @@ if str(RUN_DIR) not in sys.path:
 
 from conftest import REPO_DIR, _load_pssm_module, _test_client_auth  # noqa: E402
 from revocompute_ctl import __main__ as main_mod  # noqa: E402
+from revocompute_ctl import admin as admin_mod  # noqa: E402
 from revocompute_ctl import maintenance as maintenance_mod  # noqa: E402
 from revocompute_ctl import promotion  # noqa: E402
 from revocompute_ctl import registry as registry_mod  # noqa: E402
 from revocompute_ctl import stamp as stamp_mod  # noqa: E402
+from revocompute_ctl import steps as steps_mod  # noqa: E402
 from revocompute_ctl import sweep as sweep_mod  # noqa: E402
 from revocompute_ctl.env import EnvState, parse_env_file  # noqa: E402
 from revocompute_ctl.registry import RegistryError, RuntimeFamily, _docker_tag, build_slurm_images  # noqa: E402
@@ -369,19 +371,15 @@ def test_prepared_validation_rejects_orphaned_staged_sif(tmp_path, monkeypatch):
         registry_mod.validate_prepared_images(state, [family])
 
 
-def _prepared_validation_run(available: dict[str, str], created: str):
+def _prepared_validation_run(available: dict[str, str]):
     def fake_run(argv, **_kwargs):
-        if argv[-2] == "{{.Created}}":
-            return subprocess.CompletedProcess(argv, 0, stdout=created)
         image = argv[-1]
         return subprocess.CompletedProcess(argv, 0 if image in available else 1, stdout=available.get(image, ""))
 
     return fake_run
 
 
-def test_prepared_validation_rejects_deployed_sif_older_than_latest_image(tmp_path, monkeypatch):
-    """With no staging present the deployed SIF is what activates — it must
-    not predate the runner image that is about to serve tasks."""
+def test_prepared_validation_rejects_unrecorded_deployed_sif(tmp_path, monkeypatch):
     family = RuntimeFamily("gremlin", RUNNER_IMAGE, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
     available = {
         "example/server:v1": "sha256:server",
@@ -389,7 +387,7 @@ def test_prepared_validation_rejects_deployed_sif_older_than_latest_image(tmp_pa
         "redis:7.2-alpine": "",
         f"{RUNNER_IMAGE}:latest": "sha256:new",
     }
-    monkeypatch.setattr(registry_mod, "run_cmd", _prepared_validation_run(available, "2030-01-01T00:00:00Z"))
+    monkeypatch.setattr(registry_mod, "run_cmd", _prepared_validation_run(available))
     state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1", "USE_SLURM": "1"})
     Path(family.slurm_image).touch()
 
@@ -397,9 +395,7 @@ def test_prepared_validation_rejects_deployed_sif_older_than_latest_image(tmp_pa
         registry_mod.validate_prepared_images(state, [family])
 
 
-def test_prepared_validation_accepts_deployed_sif_newer_than_latest_image(tmp_path, monkeypatch):
-    """A legacy SIF built manually before digest tracking stays deployable
-    while its image is older than the file."""
+def test_prepared_validation_accepts_manifested_deployed_sif(tmp_path, monkeypatch):
     family = RuntimeFamily("gremlin", RUNNER_IMAGE, "Dockerfile", "gremlin.def", str(tmp_path / "gremlin.sif"))
     available = {
         "example/server:v1": "sha256:server",
@@ -407,9 +403,10 @@ def test_prepared_validation_accepts_deployed_sif_newer_than_latest_image(tmp_pa
         "redis:7.2-alpine": "",
         f"{RUNNER_IMAGE}:latest": "sha256:new",
     }
-    monkeypatch.setattr(registry_mod, "run_cmd", _prepared_validation_run(available, "2020-01-01T00:00:00Z"))
+    monkeypatch.setattr(registry_mod, "run_cmd", _prepared_validation_run(available))
     state = EnvState(str(tmp_path / "server.env"), values={"SERVER_IMAGE": "example/server:v1", "USE_SLURM": "1"})
     Path(family.slurm_image).touch()
+    registry_mod._record_sif_manifest(family, "sha256:new", family.slurm_image)
 
     registry_mod.validate_prepared_images(state, [family])
 
@@ -437,19 +434,18 @@ def test_sif_staging_builds_missing_skips_unchanged(tmp_path, monkeypatch):
         "docker/runners/pssm_gremlin/gremlin.def",
         str(sif_dir / "gremlin.sif"),
     )
-    state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
+    state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {f"{RUNNER_IMAGE}:latest": "sha256:one"})
     build_slurm_images(state, [family])  # missing SIF → stage .next
     assert (sif_dir / "gremlin.sif.next").is_file()
-    monkeypatch.setenv("SHIM_CREATED", "2030-01-01T00:00:00Z")
-    build_slurm_images(state, [family])  # newer Docker image replaces stale staged SIF
+    (tmp_path / "ids.txt").write_text(f"{RUNNER_IMAGE}:latest=sha256:two\n", encoding="utf-8")
+    build_slurm_images(state, [family])  # changed Docker image replaces stale staged SIF
     assert len([line for line in _log.read_text().splitlines() if line.startswith("build ")]) == 2
     (sif_dir / "gremlin.sif.next").unlink()
     (sif_dir / "gremlin.sif").touch()
-    monkeypatch.delenv("SHIM_CREATED")
-    build_slurm_images(state, [family])  # image older than SIF → skip
+    build_slurm_images(state, [family])  # matching manifest → skip
     assert not (sif_dir / "gremlin.sif.next").exists()
 
-    monkeypatch.setenv("SHIM_CREATED", "2030-01-01T00:00:00Z")  # image newer → stage
+    (tmp_path / "ids.txt").write_text(f"{RUNNER_IMAGE}:latest=sha256:three\n", encoding="utf-8")
     build_slurm_images(state, [family])
     assert (sif_dir / "gremlin.sif.next").is_file()
 
@@ -489,8 +485,6 @@ def test_sif_staging_builds_from_latest_image(tmp_path, monkeypatch):
         bin_dir,
         {f"{RUNNER_IMAGE}:latest": "sha256:new"},
     )
-    monkeypatch.setenv("SHIM_CREATED", "2030-01-01T00:00:00Z")
-
     build_slurm_images(state, [family])
 
     assert (sif_dir / "gremlin.sif.next").is_file()
@@ -517,7 +511,7 @@ def test_sif_staging_drops_failed_runner_from_enabled_list(tmp_path, monkeypatch
         "docker/runners/pssm_gremlin/gremlin.def",
         str(sif_dir / "gremlin.sif"),
     )
-    state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
+    state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {f"{RUNNER_IMAGE}:latest": "sha256:new"})
     build_slurm_images(state, [family])
     assert state.get("ENABLED_TASKRUNNERS") == ""  # dropped for the run
     assert not (sif_dir / "gremlin.sif.next").exists()  # no corrupt staging left behind
@@ -533,7 +527,7 @@ def test_strict_sif_staging_propagates_build_failure(tmp_path, monkeypatch):
         "docker/runners/pssm_gremlin/gremlin.def",
         str(tmp_path / "gremlin.sif"),
     )
-    state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {})
+    state, _log = _shimmed_state(monkeypatch, tmp_path, bin_dir, {f"{RUNNER_IMAGE}:latest": "sha256:new"})
     with pytest.raises(RegistryError):
         build_slurm_images(state, [family], fail_on_error=True)
 
@@ -614,6 +608,43 @@ def test_maintenance_sentinel_lifecycle(tmp_path, monkeypatch):
     assert (task_dir / ".maintenance").is_file()
     maintenance_mod.end_maintenance(state)
     assert not (task_dir / ".maintenance").exists()
+
+
+@pytest.mark.parametrize("failure_step", ["up", "readiness"])
+def test_failed_activation_keeps_maintenance(monkeypatch, tmp_path, failure_step):
+    events = []
+    state = EnvState(str(tmp_path / "server.env"), values={"SERVER_DIR": str(tmp_path), "ADMIN_USERS": "admin"})
+
+    def fail_at(phase):
+        if failure_step == phase:
+            raise RuntimeError(f"{phase} failed")
+
+    monkeypatch.setattr(steps_mod, "require_env_file", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(steps_mod, "validate_required_settings", lambda *_args: None)
+    monkeypatch.setattr(steps_mod, "validate_runtime_files", lambda *_args: [])
+    monkeypatch.setattr(steps_mod, "resolve_runner_identity", lambda *_args: (1000, 1000))
+    monkeypatch.setattr(steps_mod, "_prepared_preflight", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(steps_mod, "cmd_down", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(steps_mod, "cmd_up", lambda *_args, **_kwargs: fail_at("up"))
+    monkeypatch.setattr(steps_mod, "wait_for_services", lambda *_args: fail_at("readiness"))
+    monkeypatch.setattr(steps_mod, "run_cmd", lambda *args, **kwargs: subprocess.CompletedProcess(args, 0))
+    monkeypatch.setattr(admin_mod, "prepare_admin_bootstrap", lambda *_args: None)
+    monkeypatch.setattr(maintenance_mod, "begin_maintenance", lambda *_args: events.append("begin"))
+    monkeypatch.setattr(maintenance_mod, "end_maintenance", lambda *_args: events.append("end"))
+    monkeypatch.setattr(promotion, "taggable_images", lambda *_args: {})
+    monkeypatch.setattr(promotion, "capture_baseline_digests", lambda *_args: {})
+    monkeypatch.setattr(promotion, "prune_dangling", lambda *_args: None)
+    monkeypatch.setattr(stamp_mod, "backup_config", lambda *_args: "")
+
+    plan = steps_mod.build_restart_plan(
+        state,
+        ("docker", "compose"),
+        steps_mod.RestartFlags(mode="prepared", keep_gateway=True),
+    )
+    with pytest.raises(RuntimeError, match=failure_step):
+        run_walk(plan.steps)
+
+    assert events == ["begin"]
 
 
 # -- proxy broadcasting -------------------------------------------------------

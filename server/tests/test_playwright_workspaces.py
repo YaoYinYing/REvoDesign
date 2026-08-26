@@ -36,13 +36,19 @@ def test_native_browser_mounts_and_collects_rfdiffusion_workspace(page: Page) ->
             {name: "hotspot_res", type: "str", default: ""},
             {name: "diffuser_b_0", type: "float", default: 0.01, minimum: 0}
           ],
-          input_workspace: {version: 2, capabilities: [
-            {plugin: "files", id: "source_files", title: "Files", options: {primary_required: false}},
-            {plugin: "rfdiffusion-regions", id: "design_regions", title: "Regions", options: {
-              syntax: "rfdiffusion", fields: ["design_mode", "contig", "hotspot_res"],
-              modes: ["unconditional", "motif_scaffolding", "binder", "expert"]
-            }},
-            {plugin: "review", id: "submission_review", title: "Review", options: {}}
+          input_workspace: {version: 3, steps: [
+            {id: "material", title: "Input", description: "", capabilities: [
+              {plugin: "files", id: "source_files", title: "Files", options: {primary_required: false}}
+            ]},
+            {id: "intent", title: "Intent", description: "", capabilities: [
+              {plugin: "rfdiffusion-regions", id: "design_regions", title: "Regions", options: {
+                syntax: "rfdiffusion", fields: ["design_mode", "contig", "hotspot_res"],
+                modes: ["unconditional", "motif_scaffolding", "binder", "expert"]
+              }}
+            ]},
+            {id: "review", title: "Review", description: "", capabilities: [
+              {plugin: "review", id: "submission_review", title: "Review", options: {}}
+            ]}
           ]}
         });
         """
@@ -53,6 +59,41 @@ def test_native_browser_mounts_and_collects_rfdiffusion_workspace(page: Page) ->
     assert collected["segments"] == [{"kind": "generated", "min_length": 100, "max_length": 100}]
     # Fractional float defaults must satisfy native constraint validation
     # (a bare step=1 would flag 0.01 as a step mismatch).
+    assert page.evaluate("window.workspace.validate()") == []
+
+
+def test_semantic_steps_group_alternative_inputs_and_review(page: Page) -> None:
+    page.set_content('<div id="root"></div><input id="files" type="file">')
+    page.add_script_tag(path=STATIC_JS / "plugin-host.js")
+    page.add_script_tag(path=STATIC_JS / "input-workspace.js")
+    page.evaluate(
+        """
+        window.workspace = new window.REvoComputeInputWorkspace.InputWorkspace(
+          document.getElementById("root"),
+          {fileInput: document.getElementById("files"), status: function () {}}
+        );
+        window.workspace.mount({
+          name: "example", display_name: "Example",
+          file_input: {accept: ".fasta", extensions: [".fasta"], primary_extensions: [".fasta"],
+            multiple: false, max_files: 1, max_request_bytes: 16777216},
+          params: [],
+          input_workspace: {version: 3, steps: [
+            {id: "material", title: "Provide sequence", description: "", capabilities: [
+              {plugin: "files", id: "source_files", title: "Files", options: {primary_required: true}},
+              {plugin: "sequence", id: "sequence_editor", title: "Paste sequence", options: {}}
+            ]},
+            {id: "review", title: "Review", description: "", capabilities: [
+              {plugin: "review", id: "submission_review", title: "Review", options: {}}
+            ]}
+          ]}
+        });
+        """
+    )
+    expect(page.locator(".protocol-step")).to_have_count(2)
+    expect(page.locator("#protocol-step-material [data-capability-id=source_files]")).to_be_visible()
+    expect(page.locator("#protocol-step-material [data-capability-id=sequence_editor]")).to_be_visible()
+    page.get_by_label("Protein sequence").fill(">example\nACDEFG")
+    assert page.evaluate("window.workspace.sequence()") == "ACDEFG"
     assert page.evaluate("window.workspace.validate()") == []
 
 
@@ -106,10 +147,14 @@ def test_structure_plugin_queues_structure_until_shell_ready(page: Page) -> None
           file_input: {accept: ".pdb", extensions: [".pdb"],
             primary_extensions: [".pdb"], multiple: true, max_files: 64},
           params: [],
-          input_workspace: {version: 2, capabilities: [
-            {plugin: "files", id: "source_files", title: "Files", options: {primary_required: true}},
-            {plugin: "structure", id: "structure_builder", title: "Structure", options: {source: "source_files"}},
-            {plugin: "review", id: "submission_review", title: "Review", options: {}}
+          input_workspace: {version: 3, steps: [
+            {id: "material", title: "Input", description: "", capabilities: [
+              {plugin: "files", id: "source_files", title: "Files", options: {primary_required: true}},
+              {plugin: "structure", id: "structure_builder", title: "Structure", options: {source: "source_files", select_residues: true}}
+            ]},
+            {id: "review", title: "Review", description: "", capabilities: [
+              {plugin: "review", id: "submission_review", title: "Review", options: {}}
+            ]}
           ]}
         });
         """

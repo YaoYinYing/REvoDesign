@@ -17,9 +17,8 @@ explore co-evolution constraints.
 REvoDesign requires PSSM and GREMLIN profiles computed from sequence databases.
 Use the computation service:
 
-1. Go to <https://revodesign.yaoyy.moe/compute/create_task>
-2. Upload a FASTA-format sequence file (one sequence per file).
-   Sequences may contain unknown residues (`X`) but not stop codons (`*`).
+1. Go to <https://revodesign.yaoyy.moe/compute/create_task> and choose **PSSM-GREMLIN** under **Understand evolution**.
+2. Follow the experiment protocol: upload a FASTA-format sequence file or paste one sequence, review the validated defaults, then run the method. Sequences may contain unknown residues (`X`) but not stop codons (`*`).
 3. Monitor progress at the [Dashboard](https://revodesign.yaoyy.moe/compute/dashboard).
 4. Hover over a task to reveal a cancel button (if queued/running) or
    a download button (if complete).

@@ -366,9 +366,13 @@ function assertThrows(fn, pattern, message) {
     name: "gremlin", display_name: "PSSM-GREMLIN", runtime_family: "gremlin", gpus: false,
     file_input: { accept: ".fasta", extensions: [".fasta"], primary_extensions: [".fasta"], label: "FASTA", required: true, multiple: false, max_files: 1 },
     params: [],
-    input_workspace: { version: 1, capabilities: [
-      { plugin: "files", id: "source_files", title: "FASTA", options: { roles: ["primary"], primary_required: true } },
-      { plugin: "review", id: "submission_review", title: "Review", options: {} }
+    input_workspace: { version: 3, steps: [
+      { id: "material", title: "Provide input", description: "", capabilities: [
+        { plugin: "files", id: "source_files", title: "FASTA", options: { primary_required: true } }
+      ]},
+      { id: "review", title: "Review", description: "", capabilities: [
+        { plugin: "review", id: "submission_review", title: "Review", options: {} }
+      ]}
     ]}
   });
 
@@ -379,6 +383,24 @@ function assertThrows(fn, pattern, message) {
   // destroy
   ws.destroy();
   assertEqual(ws.context, null, "destroy clears context");
+
+  var inputs = { param_contigs: fakeNode("input"), param_iterations: fakeNode("input") };
+  inputs.param_contigs.value = "10-20"; inputs.param_iterations.value = "50";
+  mockDocument.getElementById = function (id) { return inputs[id] || null; };
+  ws.mount({
+    name: "rfdiffusion", display_name: "RFdiffusion",
+    file_input: { extensions: [".pdb"], primary_extensions: [".pdb"], required: false, multiple: false, max_files: 1 },
+    params: [{ name: "contigs", type: "str", default: "" }, { name: "iterations", type: "int", default: 25 }],
+    input_workspace: { version: 3, steps: [
+      { id: "settings", title: "Settings", capabilities: [
+        { plugin: "regions", id: "regions", options: { fields: ["contigs"] } },
+        { plugin: "parameters", id: "parameters", options: {} }
+      ]},
+      { id: "review", title: "Review", capabilities: [{ plugin: "review", id: "review", options: {} }] }
+    ]}
+  });
+  assertDeepEqual(ws.paramValues(), { iterations: "50" }, "region-owned fields stay in workspace state");
+  ws.destroy(); mockDocument.getElementById = function (_id) { return null; };
 })();
 
 // ===================================================================
@@ -411,6 +433,39 @@ function assertThrows(fn, pattern, message) {
     assert(false, "collect should not throw even if a plugin crashes");
   }
   assert(values !== undefined, "collect returns object");
+  assert(host.validate().some(function (message) { return message.indexOf("plugin crash") >= 0; }), "collect fault blocks validation");
+})();
+
+// ===================================================================
+// Plugin lifecycle faults remain isolated and block validation
+// ===================================================================
+
+(function () {
+  console.log("--- Plugin lifecycle fault isolation ---");
+  var registry = new PluginRegistry("fault-test");
+  var order = [];
+  registry.register({ id: "broken-mount", mount: function () { throw new Error("mount failed"); } });
+  registry.register({ id: "stable", mount: function () {
+    order.push("stable-mount");
+    return {
+      summarize: function () { return { label: "Stable", value: "ready" }; },
+      refresh: function () { order.push("stable-refresh"); },
+      destroy: function () { order.push("stable-destroy"); throw new Error("destroy failed"); }
+    };
+  }});
+  registry.register({ id: "last", mount: function () { order.push("last-mount"); return { destroy: function () { order.push("last-destroy"); } }; } });
+  var errors = [];
+  var root = fakeNode("div");
+  var host = new PluginHost(registry, root, { onError: function (fault) { errors.push(fault.phase); } });
+  host.mount([{ plugin: "broken-mount", id: "broken" }, { plugin: "stable", id: "stable" }, { plugin: "last", id: "last" }]);
+  assertDeepEqual(order, ["stable-mount", "last-mount"], "mount failure does not stop later plugins");
+  assert(host.validate().some(function (message) { return message.indexOf("mount failed") >= 0; }), "mount fault blocks validation");
+  assertDeepEqual(host.summarize(), [{ label: "Stable", value: "ready" }], "summaries preserve mounted order");
+  host.refresh();
+  host.destroy();
+  assertDeepEqual(order, ["stable-mount", "last-mount", "stable-refresh", "last-destroy", "stable-destroy"], "destroy continues in reverse order after failure");
+  assertEqual(root.children.length, 0, "destroy fault still clears root");
+  assert(errors.indexOf("mount") >= 0 && errors.indexOf("destroy") >= 0, "lifecycle faults reach one host callback");
 })();
 
 // ===================================================================

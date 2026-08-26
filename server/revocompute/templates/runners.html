@@ -68,7 +68,9 @@
             <span class="compute-badge {{ "gpu" if method.gpus else "cpu" }}">{{ "GPU" if method.gpus else "CPU" }}</span>
           </div>
           <h3>{{ method.display_name }}</h3>
-          <p>{{ method.intro }}</p>
+          <p>{{ method.summary }}</p>
+          <p class="runner-use-when"><strong>Use when:</strong> {{ method.use_when }}</p>
+          <p class="runner-handoff">{{ method.input_summary }} <span aria-hidden="true">→</span> {{ method.output_summary }}</p>
           <footer>
             <span>Input <strong>{{ method.input_extensions | join(" / ") }}</strong></span>
             <a href="/runners/{{ method.name }}">View method <span aria-hidden="true">&rarr;</span></a>
