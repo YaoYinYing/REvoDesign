@@ -150,7 +150,7 @@ def test_create_task_supports_task_type_deep_links():
     detail = (SERVER_PACKAGE / "templates" / "runner_detail.html").read_text(encoding="utf-8")
 
     assert 'new URLSearchParams(window.location.search).get("task_type")' in script
-    assert "taskType.name === requested" in script
+    assert "task.name === requested" in script
     assert "/compute/create_task?task_type={{ task_type.name | urlencode }}" in detail
 
 
@@ -216,9 +216,14 @@ def test_task_type_api_exposes_runtime_family_and_gpu_contract(monkeypatch, tmp_
 
     response = client.get("/compute/api/types")
     assert response.status_code == 200
-    laser = next(item for item in response.get_json() if item["name"] == "lasermpnn")
-    assert laser["runtime_family"] == "mpnn"
+    catalog = response.get_json()
+    assert [category["order"] for category in catalog["categories"]] == sorted(
+        category["order"] for category in catalog["categories"]
+    )
+    laser = next(item for item in catalog["task_types"] if item["name"] == "lasermpnn")
+    assert "runtime_family" not in laser
     assert laser["gpus"] is False
+    assert laser["summary"] and laser["use_when"] and laser["input_summary"] and laser["output_summary"]
     # stage_markers is published as a name-to-label mapping, matching the
     # object/additionalProperties shape in the OpenAPI schema.
     assert isinstance(laser["stage_markers"], dict)
@@ -231,9 +236,11 @@ def test_task_type_api_exposes_runtime_family_and_gpu_contract(monkeypatch, tmp_
     assert form["gpus"] is False
     # Resource usage is not part of the user-facing submission review.
     assert "resources" not in form
-    assert form["input_workspace"]["version"] == 2
-    assert form["input_workspace"]["capabilities"][0]["plugin"] == "files"
-    assert form["input_workspace"]["capabilities"][-1]["plugin"] == "review"
+    assert form["definition_version"] == 3
+    assert form["input_workspace"]["version"] == 3
+    assert form["input_workspace"]["steps"][0]["capabilities"][0]["plugin"] == "files"
+    assert form["input_workspace"]["steps"][-1]["capabilities"][-1]["plugin"] == "review"
+    assert form["file_input"]["max_request_bytes"] == 16 * 1024 * 1024
 
 
 def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
@@ -435,22 +442,23 @@ def test_alphafold_multimer_submission_preserves_selected_preset(monkeypatch, tm
     assert input_form["resource_policies"]["alphafold.model"]["requires_gpu"] is True
 
 
-def test_create_task_page_has_categorized_rail_and_validation_panel():
+def test_create_task_page_has_method_chooser_protocol_and_single_submission():
     template = (SERVER_PACKAGE / "templates" / "create_task.html").read_text(encoding="utf-8")
     for marker in (
-        'id="categoryRail"',
-        'id="wizardToggle"',
-        'role="switch"',
-        'id="validationPanel"',
+        'id="methodChooser"',
+        'id="methodSearch"',
+        'id="experimentWorkbench"',
+        'id="protocolTrack"',
         'id="validationChecks"',
-        'id="validationSubmit"',
         'id="uploadButton"',
-        'id="taskIntro"',
+        'id="taskSummary"',
     ):
         assert marker in template
+    assert template.count('type="submit"') == 1
     script = (SERVER_PACKAGE / "static" / "js" / "create-task.js").read_text(encoding="utf-8")
-    assert "CATEGORY_ORDER" in script
-    assert "revocompute_wizard_mode" in script
+    assert "CATEGORY_ORDER" not in script
+    assert "revocompute_wizard_mode" not in script
+    assert "setInterval" not in script
     assert "refreshValidation" in script
 
 

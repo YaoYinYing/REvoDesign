@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="{{ task_type.intro }}">
+<meta name="description" content="{{ task_type.summary }}">
 <meta name="keywords" content="{{ task_type.display_name }}, {{ task_type.category | replace('_', ' ') }}, REvoCompute, protein engineering, computational biology">
 <title>{{ task_type.display_name }} | REvoCompute Runner</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -38,7 +38,7 @@
       <a class="back-to-catalog" href="/runners">&larr;&nbsp; All available runners</a>
       <p class="eyebrow"><span aria-hidden="true"></span> {{ task_type.category | replace("_", " ") | title }}</p>
       <h1>{{ task_type.display_name }}</h1>
-      <p class="runner-intro">{{ task_type.intro }}</p>
+      <p class="runner-intro">{{ task_type.summary }}</p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="/compute/create_task?task_type={{ task_type.name | urlencode }}">Create a task <span aria-hidden="true">&rarr;</span></a>
         <a class="btn btn-soft" href="/compute/dashboard">Open dashboard</a>
@@ -51,6 +51,21 @@
       <div><dt>Parameters</dt><dd>{{ task_type.params | length }}</dd></div>
     </dl>
   </header>
+
+  <section class="detail-section method-guidance">
+    <header>
+      <p class="section-kicker">Scientific contract</p>
+      <h2>Know what this method needs.</h2>
+      <p>The method contract comes from the same active server registry used to build the task workspace.</p>
+    </header>
+    <div class="guidance-list">
+      <article><h3>Use when</h3><p>{{ task_type.use_when }}</p></article>
+      <article><h3>Provide</h3><p>{{ task_type.input_summary }}</p></article>
+      <article><h3>Receive</h3><p>{{ task_type.output_summary }}</p></article>
+      <article><h3>Consider</h3><ul>{% for item in task_type.considerations %}<li>{{ item }}</li>{% endfor %}</ul></article>
+      {% if task_type.citations %}<article><h3>Cite</h3><ol>{% for citation in task_type.citations %}<li><a href="https://doi.org/{{ citation.doi }}" rel="noopener noreferrer">{{ citation.title }}</a></li>{% endfor %}</ol></article>{% endif %}
+    </div>
+  </section>
 
   {% if task_type.stage_markers %}
   <section class="detail-section stage-section">

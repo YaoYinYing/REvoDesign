@@ -159,7 +159,12 @@
       mode.addEventListener("change", applyMode);
       [raw, minimum, maximum].forEach(function (node) { node.addEventListener("change", function () { context.changed(); normalize(); }); });
       applyMode();
-      return { readValue: value, validate: function () { return normalizationError ? [normalizationError] : []; }, destroy: function () { if (controller) controller.abort(); } };
+      return {
+        readValue: value,
+        summarize: function () { return { label: "Design intent", value: status.textContent }; },
+        validate: function () { return normalizationError ? [normalizationError] : []; },
+        destroy: function () { if (controller) controller.abort(); }
+      };
     }
   });
 })(window);

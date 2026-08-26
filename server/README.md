@@ -1,7 +1,9 @@
 # REvoCompute Server
 
-For the complete production build → versioned SIF → prepared SLURM activation
-runbook and the new-task/runtime-family adapter contract, see
+For the control CLI, deployment modes, artifact lifecycle, safety invariants,
+and recovery procedures, see the
+[REvoCompute Deployment Control Guide](DEPLOYMENT_CONTROL_GUIDE.md). For the
+new-task/runtime-family adapter contract, see the
 [REvoCompute Operations and Task Adapter Guide](OPERATIONS_AND_TASK_ADAPTER_GUIDE.md).
 
 REvoCompute is a Flask + Celery service for multi-user protein computation.
@@ -44,15 +46,15 @@ Each runner container follows a standard contract (protocol v2):
   helpers, backed by `task_context.py`.
 - Runs as non-root `--user` (identity from `RUNNER_UID`/`RUNNER_GID` in `.env`)
 
-The create-task page builds a scientific input workspace from
-`GET /compute/api/types/<name>`. The response contains a versioned, declarative
-`input_workspace.capabilities` list. Local plugins compose file roles, pasted
-sequences, structure inspection, residue/region controls, typed parameters,
-and a final review. A simple FASTA task therefore stays small, while
-RFdiffusion or PLACER can expose a guided multi-file structure workflow without
-adding task-name conditionals to the page. Specialized varieties, such as the
-RFdiffusion region/contig builder, live in separate statically loaded plugin
-modules and are selected by task-type capability IDs.
+The create-task page builds a scientific experiment protocol from
+`GET /compute/api/types/<name>`. Its version-3 form definition groups local,
+declarative capabilities into meaningful `input_workspace.steps`; the submitted
+workspace document remains version 2. Plugins compose file roles, pasted
+sequences, structure inspection, residue/region controls, typed parameters, and
+a final review. A simple FASTA task therefore stays small, while RFdiffusion or
+PLACER can expose a guided multi-file structure workflow without task-name
+conditionals in the page orchestrator. Specialized varieties, such as the
+RFdiffusion region/contig builder, remain separate statically loaded plugins.
 
 Capability YAML selects only plugin IDs shipped by the server. Unknown plugins,
 unknown options, executable snippets, and remote plugin URLs are rejected at
@@ -87,9 +89,9 @@ its PyPI wheel) and keep PyPI in the index pool via `--extra-index-url`
 alongside the pytorch wheelhouses; `run.sh` edits invalidate only the final
 COPY layers. Runner images build directly to `:latest`; replaced digests are
 removed by the post-deploy dangling-image prune.
-`restart --build-sif` stages changed SIFs as `<sif>.next` and promotes them
-in place after `down` — unchanged families are skipped automatically, no
-manual SIF deletion needed.
+`prepare --build-sif` stages changed SIFs as `<sif>.next` while production
+remains up; a later prepared restart promotes them in place after `down`.
+Unchanged families are skipped automatically, with no manual SIF deletion.
 
 Deploy safety flags (all `restart`-only):
 
@@ -724,11 +726,10 @@ Interactive client API documentation is served at
 - `http://<server-ip>:<port>/compute/create_task`
 - `http://<server-ip>:<port>/compute/create_task?task_type=<name>` opens the
   form with a specific enabled task type selected.
-- Select a task type from the dropdown — the form adapts dynamically (file
-  extension, hints, params inputs, sequence editor visibility).
-- Upload input files via the **Choose File** button or by **dragging and dropping** a file anywhere on the card.
-- For ``.fasta`` task types, an optional sequence editor lets you paste raw
-  protein sequences as text instead of uploading a file.
+- Without a deep link, choose a method by scientific purpose, input, or expected output. The page does not silently select the first enabled method.
+- Follow the method's server-declared protocol: provide biological material, define scientific intent when needed, set consequential controls, then review and run.
+- Upload inputs with **Choose file(s)** or drag and drop. FASTA methods also accept one pasted sequence or one complete FASTA record.
+- The final review and readiness panel must be valid before the single **Run <method>** action is enabled.
 
 ### Dashboard
 
@@ -1133,18 +1134,22 @@ REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
   bash server/run/restart.sh build --use-proxy
 ```
 
-Then activate with `--build-sif`. The restart (default `--mode=dev`) stops
-the stack, re-runs the Docker build (cache-warm after the prebuild), stages
-each stale SIF (missing or older than the family's Docker image) as
-`<sif>.next` and atomically replaces it after the build; unchanged families are
-skipped automatically, so no manual SIF deletion is needed. Without
-In-flight SLURM jobs are cancelled by the pre-stop sweep. The stack is down
-while the images and SIFs build, so plan the batch
-runner changes around the outage window:
+Prepare the changed families and their matching SIFs while the healthy stack
+remains up. SIFs stage as `<sif>.next`; unchanged families are skipped:
 
 ```bash
 REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
-  bash server/run/restart.sh restart --use-proxy --build-sif
+  bash server/run/restart.sh prepare \
+    --enabled-runners=family \
+    --use-proxy \
+    --build-sif
+```
+
+Then activate the prepared artifacts without rebuilding:
+
+```bash
+REVODESIGN_SERVER_ENV=server/.env.production.v7-slurm \
+  bash server/run/restart.sh restart --mode=prepared --keep-gateway
 ```
 
 For a focused single-family iteration, a manual build from the family's exact
@@ -1223,8 +1228,9 @@ apptainer build --fakeroot /path/to/pythia_ddg_v1.sif \
 apptainer inspect /path/to/pythia_ddg_v1.sif
 ```
 
-`restart --build-sif` remains the standard production rebuild: it stages each
-stale SIF as `<sif>.next` and atomically replaces it after `down`.
+`prepare --build-sif` is the standard production rebuild: it stages each stale
+SIF as `<sif>.next`; a later prepared restart atomically promotes it after
+`down`.
 
 ### 13.5 Runtime Size Gate
 

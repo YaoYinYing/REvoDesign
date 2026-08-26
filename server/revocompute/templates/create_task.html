@@ -3,95 +3,88 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>REvoDesign | Create REvoCompute Task</title>
-<link rel="icon" href="/favicon.ico" sizes="any"/>
-<link rel="icon" type="image/svg+xml" href="/compute/logo.svg"/>
-<link rel="mask-icon" href="/compute/logo.svg" color="#000000"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<title>REvoDesign | Create Compute Task</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/compute/logo.svg">
+<link rel="mask-icon" href="/compute/logo.svg" color="#0f4f63">
 <link rel="stylesheet" href="/static/css/base.css?v={{ static_version }}">
 <link rel="stylesheet" href="/static/css/create-task.css?v={{ static_version }}">
 <script src="/static/js/theme.js?v={{ static_version }}"></script>
 </head>
 <body>
-<main class="page">
-  <section class="panel hero">
-    <div class="hero-top">
-      <div>
-        <h1 class="headline">Create Compute Task</h1>
-        <p class="subline">Pick a method, feed it inputs, check the validation panel, and queue a secured compute job.</p>
-      </div>
-      <div class="hero-actions">
-        <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
-        <a class="btn btn-soft" href="/compute/dashboard">Dashboard</a>
-        <a class="btn btn-soft" href="https://github.com/YaoYinYing/REvoDesign" target="_blank" rel="noopener noreferrer">GitHub</a>
-      </div>
+<main class="page experiment-page">
+  <header class="experiment-nav">
+    <a class="experiment-brand" href="/" aria-label="REvoDesign home">
+      <img src="/compute/logo.svg" alt="" width="38" height="38">
+      <span>REvoCompute</span>
+    </a>
+    <div class="hero-actions">
+      <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
+      <a class="btn btn-soft" href="/runners">Compare methods</a>
+      <a class="btn btn-soft" href="/compute/dashboard">Dashboard</a>
     </div>
+  </header>
+
+  <section class="method-chooser" id="methodChooser" aria-labelledby="chooserTitle">
+    <div class="chooser-intro">
+      <p class="eyebrow">New computational experiment</p>
+      <h1 id="chooserTitle">What do you need to learn or design?</h1>
+      <p>Choose by scientific purpose. Each method explains the material it needs and the evidence it produces.</p>
+      <label class="method-search-label" for="methodSearch">Find a method</label>
+      <input class="search-input" id="methodSearch" type="search" placeholder="Search methods, inputs, or outputs" autocomplete="off">
+    </div>
+    <div class="method-groups" id="methodGroups" aria-live="polite"></div>
+    <p class="status" id="catalogStatus" aria-live="polite">Loading available methods…</p>
   </section>
 
-  <section class="panel card">
-    <nav class="category-rail" id="categoryRail" aria-label="Compute categories">
-      <span class="rail-label">Methods</span>
-    </nav>
+  <section class="experiment-workbench" id="experimentWorkbench" hidden>
+    <header class="method-brief">
+      <div>
+        <p class="method-category" id="activeTaskCategory"></p>
+        <h1 id="activeTaskName">Create Compute Task</h1>
+        <p class="method-summary" id="taskSummary"></p>
+      </div>
+      <button class="btn btn-soft" type="button" id="changeMethod">Change method</button>
+      <dl class="method-contract">
+        <div><dt>Use when</dt><dd id="taskUseWhen"></dd></div>
+        <div><dt>Provide</dt><dd id="taskInput"></dd></div>
+        <div><dt>Receive</dt><dd id="taskOutput"></dd></div>
+      </dl>
+      <div class="method-facts">
+        <span id="taskAccelerator"></span>
+        <span id="taskNetwork" hidden>Network stage</span>
+        <a id="taskDetails" href="/runners">About this method →</a>
+      </div>
+    </header>
 
-    <div class="mode-row">
-      <span class="mode-label" id="wizardModeLabel">Step-by-step wizard</span>
-      <button class="mode-switch" type="button" id="wizardToggle" role="switch" aria-checked="true" aria-labelledby="wizardModeLabel">
-        <span class="mode-knob" aria-hidden="true"></span>
-      </button>
-    </div>
-
-    <div class="grid">
-      <div class="input-zone">
-        <div class="active-task-line" id="activeTaskLine">
-          <span class="active-task-category" id="activeTaskCategory"></span>
-          <span class="active-task-name" id="activeTaskName">Choose a method above</span>
-        </div>
-        <p class="task-intro" id="taskIntro">Pick a category and a method to see what it does.</p>
-
+    <div class="experiment-layout">
+      <nav class="protocol-track" id="protocolTrack" aria-label="Experiment protocol"></nav>
+      <div class="experiment-form-panel">
         <form id="uploadForm" enctype="multipart/form-data">
           <input type="file" name="file" id="fileInput" class="sr-only">
-          <div class="input-workspace" id="inputWorkspace" aria-live="polite"></div>
-
-          <div class="wizard-nav" id="wizardNav" hidden>
-            <button class="btn btn-soft" type="button" id="wizardPrev" disabled>← Back</button>
-            <div class="wizard-progress" id="wizardProgress" role="progressbar" aria-valuemin="1" aria-valuemax="1" aria-valuenow="1"></div>
-            <button class="btn btn-soft" type="button" id="wizardNext">Next →</button>
-          </div>
-
-          <div class="submit-row" id="submitRowTop">
-            <button class="btn btn-primary" id="uploadButton" type="submit">Run analysis</button>
-            <button class="btn btn-soft" type="button" id="clearButton">Clear</button>
+          <div class="input-workspace" id="inputWorkspace"></div>
+          <div class="run-actions">
+            <button class="btn btn-primary" id="uploadButton" type="submit">Run experiment</button>
+            <button class="btn btn-soft" type="button" id="clearButton">Clear workspace</button>
           </div>
         </form>
-        <p class="muted">Inputs are copied into an immutable, task-isolated snapshot. The server validates every file, path, and parameter again before execution.</p>
-        <div id="uploadStatus" class="status" aria-live="polite">Ready for upload.</div>
+        <p class="snapshot-note">Inputs are copied into an immutable, task-isolated snapshot. The server validates every file, path, parameter, and scientific plan before execution.</p>
+        <div id="uploadStatus" class="status" aria-live="polite">Choose a method to begin.</div>
       </div>
 
-      <div class="workspace-help-trigger" id="workspaceHelpWrap">
-        <button class="workspace-help-btn" type="button" id="workspaceHelpBtn" title="About the input workspace" aria-label="About the input workspace">?</button>
-        <div class="workspace-help-popover" id="workspaceHelpPopover" hidden>
-          <p class="info-title">Scientific input workspace</p>
-          <ul class="info-list">
-            <li>Simple tasks show only the sequence, file, and parameter controls they need.</li>
-            <li>Complex tasks compose file roles, structures, regions, parameters, and review steps.</li>
-            <li>Nested relative paths and the selected primary input are shown before submission.</li>
-            <li>Advanced scientific controls stay grouped and out of the normal workflow.</li>
-            <li>Completed runs publish individual manifest-approved results; ZIP remains optional.</li>
-          </ul>
+      <aside class="readiness-panel" aria-labelledby="readinessTitle">
+        <div class="readiness-head">
+          <p class="eyebrow">Experiment review</p>
+          <h2 id="readinessTitle">Readiness</h2>
+          <strong id="validationSummary">Waiting for inputs</strong>
         </div>
-      </div>
+        <ul class="validation-checks" id="validationChecks"></ul>
+        <details class="considerations">
+          <summary>Method considerations</summary>
+          <ul id="taskConsiderations"></ul>
+        </details>
+      </aside>
     </div>
-
-    <section class="validation-panel" id="validationPanel" aria-label="Live validation" aria-live="polite">
-      <div class="validation-head">
-        <h2 class="validation-title"><span class="live-dot" aria-hidden="true"></span> Validation</h2>
-        <span class="validation-summary" id="validationSummary">Waiting for inputs</span>
-      </div>
-      <ul class="validation-checks" id="validationChecks"></ul>
-      <div class="submit-row" id="submitRowBottom">
-        <button class="btn btn-primary" id="validationSubmit" type="button">Run analysis</button>
-      </div>
-    </section>
   </section>
 </main>
 

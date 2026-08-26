@@ -116,7 +116,7 @@ from revocompute.task_runtime import (
     run_compute_task,
     task_store,
 )
-from revocompute.task_types import list_types
+from revocompute.task_types import iter_capabilities, list_categories, list_types
 from revocompute.workspace_contracts import (
     WorkspaceValidationError,
     normalize_capability,
@@ -148,12 +148,13 @@ def openapi_spec():
 
 @app.route("/runners", methods=["GET"])
 def runners_page():
-    return render_template("runners.html", task_types=_available_task_types())
+    catalog = _available_task_types()
+    return render_template("runners.html", task_types=catalog["task_types"])
 
 
 @app.route("/runners/<name>", methods=["GET"])
 def runner_detail_page(name: str):
-    task_type = next((item for item in _available_task_types() if item["name"] == name), None)
+    task_type = next((item for item in _available_task_types()["task_types"] if item["name"] == name), None)
     if task_type is None:
         abort(404)
     return render_template("runner_detail.html", task_type=task_type)
@@ -302,63 +303,100 @@ def task_types_list():
     return jsonify(_available_task_types())
 
 
-def _available_task_types() -> list[dict[str, Any]]:
-    """Serialize enabled task types for public pages and APIs."""
+def _task_guidance(tt) -> dict[str, Any]:
+    return {
+        "summary": tt.summary,
+        "use_when": tt.use_when,
+        "input_summary": tt.input_summary,
+        "output_summary": tt.output_summary,
+        "considerations": list(tt.considerations),
+    }
+
+
+def _parameter_payload(parameter, *, include_help: bool = False) -> dict[str, Any]:
+    payload = {
+        "name": parameter.name,
+        "type": parameter.type,
+        "default": parameter.default,
+        "required": parameter.required,
+        "description": parameter.description,
+        "label": parameter.label or parameter.name.replace("_", " ").title(),
+        "choices": list(parameter.choices),
+        "minimum": parameter.minimum,
+        "maximum": parameter.maximum,
+        "step": parameter.step,
+        "unit": parameter.unit,
+        "advanced": parameter.advanced,
+    }
+    if include_help:
+        payload["help"] = parameter.help
+    return payload
+
+
+def _task_summary(tt, *, include_params: bool = False) -> dict[str, Any]:
+    payload = {
+        "name": tt.name,
+        "display_name": tt.display_name,
+        "category": tt.category,
+        **_task_guidance(tt),
+        "gpus": tt.gpus,
+        "requires_network": tt.requires_network or any(stage.requires_network for stage in tt.workflow),
+        "input_extensions": list(tt.input_extensions or (tt.input_extension,)),
+        "input_label": tt.input_label,
+        "stage_markers": tt.stage_markers,
+    }
+    if include_params:
+        payload["params"] = [_parameter_payload(parameter) for parameter in tt.params]
+    return payload
+
+
+def _available_task_types() -> dict[str, Any]:
+    """Serialize the ordered, enabled scientific method catalog."""
     manage_db = current_app.config.get("manage_db")
-    types_data = []
+    enabled_types = []
     for tt in list_types():
-        if manage_db is not None:
-            enabled = manage_db.task_type_is_enabled(tt.name)
-            if enabled is False:
-                continue
-        types_data.append(
+        if manage_db is not None and manage_db.task_type_is_enabled(tt.name) is False:
+            continue
+        enabled_types.append(_task_summary(tt, include_params=True))
+    category_order = {category.name: category.order for category in list_categories()}
+    enabled_types.sort(key=lambda item: (category_order[item["category"]], item["display_name"].lower()))
+    return {
+        "version": 2,
+        "categories": [
             {
-                "name": tt.name,
-                "display_name": tt.display_name,
-                "category": tt.category,
-                "intro": tt.intro,
-                "runtime_family": tt.runtime.name,
-                "gpus": tt.gpus,
-                "input_extension": tt.input_extension,
-                "input_extensions": list(tt.input_extensions or (tt.input_extension,)),
-                "input_label": tt.input_label,
-                "params": [
-                    {
-                        "name": p.name,
-                        "type": p.type,
-                        "default": p.default,
-                        "required": p.required,
-                        "description": p.description,
-                        "label": p.label or p.name.replace("_", " ").title(),
-                        "choices": list(p.choices),
-                        "minimum": p.minimum,
-                        "maximum": p.maximum,
-                        "step": p.step,
-                        "unit": p.unit,
-                        "help": p.help,
-                        "advanced": p.advanced,
-                    }
-                    for p in tt.params
-                ],
-                "stage_markers": tt.stage_markers,
+                "name": category.name,
+                "label": category.label,
+                "description": category.description,
+                "order": category.order,
             }
-        )
-    return types_data
+            for category in list_categories()
+            if any(task["category"] == category.name for task in enabled_types)
+        ],
+        "task_types": enabled_types,
+    }
 
 
 def _input_workspace_payload(tt) -> dict:
     """Serialize the declarative, non-executable input workspace contract."""
     return {
-        "version": 2,
-        "capabilities": [
+        "version": 3,
+        "steps": [
             {
-                "plugin": capability.plugin,
-                "id": capability.id,
-                "title": capability.title,
-                "description": capability.description,
-                "options": capability.options,
+                "id": step.id,
+                "title": step.title,
+                "description": step.description,
+                "capabilities": [
+                    {
+                        "plugin": capability.plugin,
+                        "id": capability.id,
+                        "title": capability.title,
+                        "description": capability.description,
+                        "options": capability.options,
+                    }
+                    for capability in step.capabilities
+                ],
             }
-            for capability in tt.input_workspace
+            for step in tt.input_workspace
         ],
     }
 
@@ -396,12 +434,20 @@ def task_type_form(name: str):
 
     return jsonify(
         {
-            "name": tt.name,
-            "display_name": tt.display_name,
-            "category": tt.category,
-            "intro": tt.intro,
+            **_task_summary(tt),
+            "definition_version": 3,
             "runtime_family": tt.runtime.name,
-            "gpus": tt.gpus,
+            "citations": [{"num": number, "doi": doi, "title": title} for number, doi, title in tt.citation_dois],
+            "workflow": [
+                {
+                    "name": stage.name,
+                    "display_name": stage.display_name,
+                    "requires_gpu": stage.requires_gpu,
+                    "requires_network": stage.requires_network,
+                    "stage_markers": list(stage.stage_markers),
+                }
+                for stage in tt.workflow
+            ],
             "file_input": {
                 "accept": ",".join(tt.input_extensions or (tt.input_extension,)),
                 "extensions": list(tt.input_extensions or (tt.input_extension,)),
@@ -410,25 +456,9 @@ def task_type_form(name: str):
                 "required": tt.min_input_files > 0,
                 "multiple": tt.allow_multiple_inputs,
                 "max_files": tt.max_input_files,
+                "max_request_bytes": current_app.config["MAX_CONTENT_LENGTH"],
             },
-            "params": [
-                {
-                    "name": p.name,
-                    "type": p.type,
-                    "default": p.default,
-                    "required": p.required,
-                    "description": p.description,
-                    "label": p.label or p.name.replace("_", " ").title(),
-                    "choices": list(p.choices),
-                    "minimum": p.minimum,
-                    "maximum": p.maximum,
-                    "step": p.step,
-                    "unit": p.unit,
-                    "advanced": p.advanced,
-                }
-                for p in tt.params
-            ],
-            "show_sequence_editor": tt.input_extension == ".fasta",
+            "params": [_parameter_payload(parameter, include_help=True) for parameter in tt.params],
             "input_workspace": _input_workspace_payload(tt),
         }
     )
@@ -443,7 +473,7 @@ def normalize_workspace(name: str):
     except KeyError:
         return jsonify({"error": f"Unknown task type: {name!r}"}), 404
     payload = request.get_json(silent=True) or {}
-    capability = next((item for item in tt.input_workspace if item.id == payload.get("capability_id")), None)
+    capability = next((item for item in iter_capabilities(tt) if item.id == payload.get("capability_id")), None)
     if capability is None or not capability.plugin.endswith("regions"):
         return jsonify({"error": "Unknown normalizable workspace capability"}), 400
     try:
@@ -451,28 +481,6 @@ def normalize_workspace(name: str):
     except WorkspaceValidationError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify(result)
-
-
-@app.route("/compute/api/types/<name>/help", methods=["GET"])
-def task_type_help(name: str):
-    """Return help text and defaults for one task type's parameters (public).
-
-    Separated from the main form response so that long explanation text
-    does not bloat every page load.  The client fetches this lazily.
-    """
-    try:
-        tt, _ = _get_task_type(name)
-    except KeyError:
-        return jsonify({"error": f"Unknown task type: {name!r}"}), 404
-    entries = {}
-    for p in tt.params:
-        if p.help or p.default is not None:
-            entries[p.name] = {}
-            if p.help:
-                entries[p.name]["help"] = p.help
-            if p.default is not None:
-                entries[p.name]["default"] = p.default
-    return jsonify(entries), 200
 
 
 _WORKSPACE_KEY_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
@@ -722,10 +730,10 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     capability_values = workspace_payload.get("capabilities", {})
     if not isinstance(capability_values, dict):
         return jsonify({"error": "Workspace capabilities must be an object"}), 400
-    known_capability_ids = {item.id for item in tt.input_workspace}
+    known_capability_ids = {item.id for item in iter_capabilities(tt)}
     if set(capability_values) - known_capability_ids:
         return jsonify({"error": "Workspace contains an unknown capability"}), 400
-    region_capability = next((item for item in tt.input_workspace if item.plugin.endswith("regions")), None)
+    region_capability = next((item for item in iter_capabilities(tt) if item.plugin.endswith("regions")), None)
     if region_capability is not None and region_capability.options.get("syntax") == "rfdiffusion":
         if region_capability.id not in capability_values:
             return jsonify({"error": "Workspace is missing region state"}), 400

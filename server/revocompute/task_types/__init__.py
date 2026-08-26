@@ -59,6 +59,26 @@ class InputCapability:
 
 
 @dataclass(frozen=True)
+class InputStep:
+    """One meaningful, ordered step in the user-facing experiment protocol."""
+
+    id: str
+    title: str
+    description: str
+    capabilities: tuple[InputCapability, ...]
+
+
+@dataclass(frozen=True)
+class Category:
+    """Server-owned presentation metadata for a scientific method group."""
+
+    name: str
+    label: str
+    description: str
+    order: int
+
+
+@dataclass(frozen=True)
 class ResultView:
     """A safe task-owned composition of local result-view plugins."""
 
@@ -120,19 +140,21 @@ class TaskType:
     stage_markers: dict[str, str] = field(default_factory=dict)
     workflow: tuple[WorkflowStage, ...] = ()
     params: tuple[TaskParam, ...] = ()
-    input_workspace: tuple[InputCapability, ...] = ()
+    input_workspace: tuple[InputStep, ...] = ()
     result_workspace: tuple[ResultView, ...] = ()
     # Method citations: citation_dois is an ordered map (position -> DOI) —
     # projects with multiple papers (AF2, ColabFold, ESM) list them all. The
     # BibTeX is resolved from the DOIs by tools/resolve_citations.py (never
     # hand-guessed) and checked in as citation_bibtex. The server writes it
     # into every result dir as citations.bib at finalize.
-    citation_dois: tuple[tuple[int, str], ...] = ()
+    citation_dois: tuple[tuple[int, str, str], ...] = ()
     citation_bibtex: str = ""
-    # Classification for the create-task category rail (data, not behaviour).
     category: str = "other"
-    # One-paragraph method intro shown on the submission page.
-    intro: str = ""
+    summary: str = ""
+    use_when: str = ""
+    input_summary: str = ""
+    output_summary: str = ""
+    considerations: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -165,6 +187,7 @@ class RunnerConfig:
 
 _registry: dict[str, tuple[TaskType, RunnerConfig]] = {}
 _runtime_registry: dict[str, RuntimeFamily] = {}
+_category_registry: dict[str, Category] = {}
 _job_executor = "docker"
 _container_runtime = "docker"
 
@@ -178,13 +201,13 @@ _INPUT_CAPABILITY_PLUGINS = {
     "review",
 }
 _INPUT_CAPABILITY_OPTION_KEYS = {
-    "files": {"roles", "primary_required"},
-    "sequence": {"allow_multiple", "format"},
+    "files": {"primary_required"},
+    "sequence": set(),
     "structure": {"source", "select_chains", "select_residues"},
     "regions": {"source", "fields", "syntax", "modes"},
     "rfdiffusion-regions": {"source", "fields", "syntax", "modes"},
-    "parameters": {"groups"},
-    "review": {"show_resources", "show_paths"},
+    "parameters": set(),
+    "review": {"show_paths"},
 }
 
 _DOI_PATTERN = re.compile(r"^10\.\d{4,9}/[^\s]+$")
@@ -254,6 +277,16 @@ def list_runtimes() -> list[RuntimeFamily]:
     return list(_runtime_registry.values())
 
 
+def list_categories() -> list[Category]:
+    """Return scientific categories in their server-owned display order."""
+    return sorted(_category_registry.values(), key=lambda category: (category.order, category.name))
+
+
+def iter_capabilities(task_type: TaskType) -> tuple[InputCapability, ...]:
+    """Flatten one task's semantic steps into deterministic plugin order."""
+    return tuple(capability for step in task_type.input_workspace for capability in step.capabilities)
+
+
 def get_job_executor() -> str:
     """Return the executor selected once for the active registry."""
     return _job_executor
@@ -264,55 +297,86 @@ def get_container_runtime() -> str:
     return _container_runtime
 
 
-def _load_input_workspace(raw: Any) -> tuple[InputCapability, ...]:
+def _valid_identifier(value: Any) -> bool:
+    return isinstance(value, str) and bool(value) and value.replace("_", "").replace("-", "").isalnum()
+
+
+def _required_text(value: Any, field_name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be non-empty text")
+    return value.strip()
+
+
+def _load_input_capability(entry: Any, seen_ids: set[str]) -> InputCapability:
+    if not isinstance(entry, dict):
+        raise ValueError("Each input workspace capability must be a mapping")
+    unknown = set(entry) - {"plugin", "id", "title", "description", "options"}
+    if unknown:
+        raise ValueError(f"Unknown input workspace capability fields: {sorted(unknown)}")
+    plugin = entry.get("plugin")
+    capability_id = entry.get("id")
+    if plugin not in _INPUT_CAPABILITY_PLUGINS:
+        raise ValueError(f"Unknown input workspace plugin: {plugin!r}")
+    if not _valid_identifier(capability_id):
+        raise ValueError(f"Invalid input workspace capability id: {capability_id!r}")
+    if capability_id in seen_ids:
+        raise ValueError(f"Duplicate input workspace capability id: {capability_id!r}")
+    options = entry.get("options", {})
+    if not isinstance(options, dict):
+        raise ValueError(f"Options for input workspace capability {capability_id!r} must be a mapping")
+    unknown_options = set(options) - _INPUT_CAPABILITY_OPTION_KEYS[plugin]
+    if unknown_options:
+        raise ValueError(f"Unknown options for input workspace plugin {plugin!r}: {sorted(unknown_options)}")
+    seen_ids.add(capability_id)
+    return InputCapability(
+        plugin=plugin,
+        id=capability_id,
+        title=str(entry.get("title") or ""),
+        description=str(entry.get("description") or ""),
+        options=options,
+    )
+
+
+def _load_input_workspace(raw: Any) -> tuple[InputStep, ...]:
     if raw is None:
         raise ValueError("Every task type must declare input_workspace")
-    if not isinstance(raw, dict) or set(raw) != {"capabilities"}:
-        raise ValueError("input_workspace must contain only a capabilities list")
-    entries = raw["capabilities"]
+    if not isinstance(raw, dict) or set(raw) != {"steps"}:
+        raise ValueError("input_workspace must contain only a steps list")
+    entries = raw["steps"]
     if not isinstance(entries, list) or not entries:
-        raise ValueError("input_workspace.capabilities must be a non-empty list")
-    capabilities: list[InputCapability] = []
-    seen_ids: set[str] = set()
+        raise ValueError("input_workspace.steps must be a non-empty list")
+    steps: list[InputStep] = []
+    step_ids: set[str] = set()
+    capability_ids: set[str] = set()
     for entry in entries:
-        if not isinstance(entry, dict):
-            raise ValueError("Each input workspace capability must be a mapping")
-        unknown = set(entry) - {"plugin", "id", "title", "description", "options"}
-        if unknown:
-            raise ValueError(f"Unknown input workspace capability fields: {sorted(unknown)}")
-        plugin = entry.get("plugin")
-        capability_id = entry.get("id")
-        if plugin not in _INPUT_CAPABILITY_PLUGINS:
-            raise ValueError(f"Unknown input workspace plugin: {plugin!r}")
-        if (
-            not isinstance(capability_id, str)
-            or not capability_id
-            or not capability_id.replace("_", "").replace("-", "").isalnum()
-        ):
-            raise ValueError(f"Invalid input workspace capability id: {capability_id!r}")
-        if capability_id in seen_ids:
-            raise ValueError(f"Duplicate input workspace capability id: {capability_id!r}")
-        options = entry.get("options", {})
-        if not isinstance(options, dict):
-            raise ValueError(f"Options for input workspace capability {capability_id!r} must be a mapping")
-        unknown_options = set(options) - _INPUT_CAPABILITY_OPTION_KEYS[plugin]
-        if unknown_options:
-            raise ValueError(f"Unknown options for input workspace plugin {plugin!r}: {sorted(unknown_options)}")
-        seen_ids.add(capability_id)
-        capabilities.append(
-            InputCapability(
-                plugin=plugin,
-                id=capability_id,
-                title=str(entry.get("title") or ""),
-                description=str(entry.get("description") or ""),
-                options=options,
+        if not isinstance(entry, dict) or set(entry) - {"id", "title", "description", "capabilities"}:
+            raise ValueError("Each input workspace step must contain id, title, description, and capabilities")
+        step_id = entry.get("id")
+        if not _valid_identifier(step_id) or step_id in step_ids:
+            raise ValueError(f"Invalid or duplicate input workspace step id: {step_id!r}")
+        raw_capabilities = entry.get("capabilities")
+        if not isinstance(raw_capabilities, list) or not raw_capabilities:
+            raise ValueError(f"Input workspace step {step_id!r} must contain capabilities")
+        step_ids.add(step_id)
+        steps.append(
+            InputStep(
+                id=step_id,
+                title=_required_text(entry.get("title"), f"Input workspace step {step_id!r} title"),
+                description=str(entry.get("description") or "").strip(),
+                capabilities=tuple(_load_input_capability(item, capability_ids) for item in raw_capabilities),
             )
         )
+    capabilities = tuple(capability for step in steps for capability in step.capabilities)
     if capabilities[0].plugin not in {"files", "sequence"}:
         raise ValueError("The first input workspace capability must collect files or a sequence")
     if capabilities[-1].plugin != "review":
         raise ValueError("The last input workspace capability must be review")
-    return tuple(capabilities)
+    known_ids = {capability.id for capability in capabilities}
+    for capability in capabilities:
+        source = capability.options.get("source")
+        if source and source not in known_ids:
+            raise ValueError(f"Input workspace capability {capability.id!r} references unknown source {source!r}")
+    return tuple(steps)
 
 
 def _load_result_workspace(raw: Any) -> tuple[ResultView, ...]:
@@ -436,6 +500,7 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
 
     _registry.clear()
     _runtime_registry.clear()
+    _category_registry.clear()
 
     if "job_executor" not in types_data or "container_runtime" not in types_data:
         raise ValueError("Task registry must declare global job_executor and container_runtime")
@@ -464,6 +529,32 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             slurm_image=slurm_image,
         )
     _runtime_registry.update(runtimes)
+    for task_name, task_entry in types_data.get("task_types", {}).items():
+        runtime_name = task_entry.get("runtime_family")
+        if runtime_name not in runtimes:
+            raise ValueError(f"Task type {task_name!r} references unknown runtime family {runtime_name!r}")
+
+    raw_categories = types_data.get("categories")
+    if not isinstance(raw_categories, dict) or not raw_categories:
+        raise ValueError("Task registry must declare scientific categories")
+    category_orders: set[int] = set()
+    for name, entry in raw_categories.items():
+        if (
+            not _valid_identifier(name)
+            or not isinstance(entry, dict)
+            or set(entry) != {"label", "description", "order"}
+        ):
+            raise ValueError(f"Invalid scientific category: {name!r}")
+        order = entry["order"]
+        if not isinstance(order, int) or isinstance(order, bool) or order in category_orders:
+            raise ValueError(f"Scientific category {name!r} must have a unique integer order")
+        category_orders.add(order)
+        _category_registry[name] = Category(
+            name=name,
+            label=_required_text(entry["label"], f"Scientific category {name!r} label"),
+            description=_required_text(entry["description"], f"Scientific category {name!r} description"),
+            order=order,
+        )
 
     runner_configs: dict[str, RunnerConfig] = {}
     for name, entry in types_data.get("task_types", {}).items():
@@ -501,7 +592,17 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
         ):
             raise ValueError(f"Task type {name!r} min_input_files must be between zero and max_input_files")
 
+        category = entry.get("category", "other")
+        if category not in _category_registry:
+            raise ValueError(f"Task type {name!r} references unknown category {category!r}")
         params = tuple(TaskParam(**{**p, "choices": tuple(p.get("choices", []))}) for p in entry.get("params", []))
+        for param in params:
+            if param.type not in {"str", "int", "float", "bool"}:
+                raise ValueError(f"Task type {name!r} parameter {param.name!r} has unsupported type {param.type!r}")
+        considerations = entry.get("considerations")
+        if not isinstance(considerations, list) or not considerations:
+            raise ValueError(f"Task type {name!r} must declare considerations")
+        consideration_text = tuple(_required_text(item, f"Task type {name!r} consideration") for item in considerations)
         stage_markers = entry.get("stage_markers", {})
         tt = TaskType(
             name=name,
@@ -512,8 +613,12 @@ def load_registry(task_types_yaml: str, runners_dir: str, enabled: set[str]) -> 
             requires_network=entry.get("requires_network", False),
             input_extension=entry["input_extension"],
             input_label=entry["input_label"],
-            category=entry.get("category", "other"),
-            intro=entry.get("intro", ""),
+            category=category,
+            summary=_required_text(entry.get("summary"), f"Task type {name!r} summary"),
+            use_when=_required_text(entry.get("use_when"), f"Task type {name!r} use_when"),
+            input_summary=_required_text(entry.get("input_summary"), f"Task type {name!r} input_summary"),
+            output_summary=_required_text(entry.get("output_summary"), f"Task type {name!r} output_summary"),
+            considerations=consideration_text,
             input_extensions=input_extensions,
             primary_input_extensions=primary_input_extensions,
             allow_multiple_inputs=allow_multiple_inputs,

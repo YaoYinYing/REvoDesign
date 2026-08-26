@@ -87,7 +87,7 @@ Start with a small set of reusable capabilities:
 - `regions`: residues, chains, motifs, hotspots, fixed/redesigned positions, or
   contig-like ranges;
 - `relationships`: choose a primary input and associate auxiliary inputs;
-- `review`: normalized submission summary, warnings, and resource estimate.
+- `review`: normalized submission summary, warnings, and immutable input paths.
 
 These capabilities should be composable. For example, RFdiffusion would use
 `files + structure + regions + parameters + review`; GREMLIN could continue to
