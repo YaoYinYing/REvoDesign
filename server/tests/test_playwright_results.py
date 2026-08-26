@@ -180,6 +180,9 @@ def test_result_page_opens_principal_view_and_exports_shortlist(page: Page) -> N
 
     page.get_by_label("Add Binding site · A:28 to shortlist").check()
     expect(page.locator("#shortlistCount")).to_have_text("1 selected")
+    page.get_by_label("Add Binding site · A:28 to shortlist").uncheck()
+    expect(page.locator("#shortlistCount")).to_have_text("0 selected")
+    page.get_by_label("Add Binding site · A:28 to shortlist").check()
     with page.expect_download() as download:
         page.get_by_role("button", name="Export shortlist").click()
     assert download.value.suggested_filename == "shortlist.json"

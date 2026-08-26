@@ -562,7 +562,7 @@
     }
     if (selected) shortlist.set(key, item); else shortlist.delete(key);
     renderShortlist();
-    return true;
+    return selected;
   }
 
   function renderShortlist() {
