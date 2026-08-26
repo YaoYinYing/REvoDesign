@@ -383,6 +383,24 @@ function assertThrows(fn, pattern, message) {
   // destroy
   ws.destroy();
   assertEqual(ws.context, null, "destroy clears context");
+
+  var inputs = { param_contigs: fakeNode("input"), param_iterations: fakeNode("input") };
+  inputs.param_contigs.value = "10-20"; inputs.param_iterations.value = "50";
+  mockDocument.getElementById = function (id) { return inputs[id] || null; };
+  ws.mount({
+    name: "rfdiffusion", display_name: "RFdiffusion",
+    file_input: { extensions: [".pdb"], primary_extensions: [".pdb"], required: false, multiple: false, max_files: 1 },
+    params: [{ name: "contigs", type: "str", default: "" }, { name: "iterations", type: "int", default: 25 }],
+    input_workspace: { version: 3, steps: [
+      { id: "settings", title: "Settings", capabilities: [
+        { plugin: "regions", id: "regions", options: { fields: ["contigs"] } },
+        { plugin: "parameters", id: "parameters", options: {} }
+      ]},
+      { id: "review", title: "Review", capabilities: [{ plugin: "review", id: "review", options: {} }] }
+    ]}
+  });
+  assertDeepEqual(ws.paramValues(), { iterations: "50" }, "region-owned fields stay in workspace state");
+  ws.destroy(); mockDocument.getElementById = function (_id) { return null; };
 })();
 
 // ===================================================================
@@ -415,6 +433,7 @@ function assertThrows(fn, pattern, message) {
     assert(false, "collect should not throw even if a plugin crashes");
   }
   assert(values !== undefined, "collect returns object");
+  assert(host.validate().some(function (message) { return message.indexOf("plugin crash") >= 0; }), "collect fault blocks validation");
 })();
 
 // ===================================================================

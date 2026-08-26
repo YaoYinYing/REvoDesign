@@ -127,6 +127,7 @@ def test_public_runner_catalog_uses_enabled_task_types(monkeypatch, tmp_path):
     assert "Available methods" in html
     assert "PSSM-GREMLIN" in html
     assert "Runtime families" in html
+    assert '<span class="runtime-family">gremlin</span>' in html
     assert '<meta name="keywords"' in html
     assert 'href="/static/css/runners.css"' in html
     assert 'href="/runners/gremlin"' in html
@@ -140,6 +141,7 @@ def test_public_runner_catalog_uses_enabled_task_types(monkeypatch, tmp_path):
     assert "What the workflow runs" in detail_html
     assert "GREMLIN optimization iterations" in detail_html
     assert "Available parameters" in detail_html
+    assert "<dt>Runtime family</dt><dd>gremlin</dd>" in detail_html
     assert 'src="/static/js/theme-toggle.js"' in detail_html
     assert "fonts.googleapis.com" not in detail_html
     assert module.app.test_client().get("/runners/not-a-runner").status_code == 404

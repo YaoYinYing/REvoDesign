@@ -657,10 +657,10 @@ environment file:
 - `job_executor: slurm` in the selected registry automatically merges
   `docker-compose.slurm.yml`, bind-mounts SLURM client tools + MUNGE, validates
   SIF images, and exports `SLURM_ENABLED=true` to the services.
-- `--build-sif` stages each stale SIF (missing or older than the family's
-  Docker image) as `<sif>.next` and atomically replaces it after `down`
-  (requires Apptainer on PATH). The stack is down while SIFs build, so expect a brief
-  outage; unchanged families are skipped automatically.
+- `prepare --build-sif` stages each stale SIF as `<sif>.next` while the stack
+  stays up; a later `restart --mode=prepared` atomically replaces it after
+  `down` (requires Apptainer on PATH). Dev/prod restart with `--build-sif` is
+  the outage-oriented fallback; unchanged families are skipped automatically.
 
 Provision production bind-mounted directories as writable by UID/GID
 `1000:1000`. This identity contract provides non-root execution and compatible

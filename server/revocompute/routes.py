@@ -148,13 +148,16 @@ def openapi_spec():
 
 @app.route("/runners", methods=["GET"])
 def runners_page():
-    catalog = _available_task_types()
+    catalog = _available_task_types(include_runner_metadata=True)
     return render_template("runners.html", task_types=catalog["task_types"])
 
 
 @app.route("/runners/<name>", methods=["GET"])
 def runner_detail_page(name: str):
-    task_type = next((item for item in _available_task_types()["task_types"] if item["name"] == name), None)
+    task_type = next(
+        (item for item in _available_task_types(include_runner_metadata=True)["task_types"] if item["name"] == name),
+        None,
+    )
     if task_type is None:
         abort(404)
     return render_template("runner_detail.html", task_type=task_type)
@@ -333,7 +336,7 @@ def _parameter_payload(parameter, *, include_help: bool = False) -> dict[str, An
     return payload
 
 
-def _task_summary(tt, *, include_params: bool = False) -> dict[str, Any]:
+def _task_summary(tt, *, include_params: bool = False, include_runner_metadata: bool = False) -> dict[str, Any]:
     payload = {
         "name": tt.name,
         "display_name": tt.display_name,
@@ -347,17 +350,22 @@ def _task_summary(tt, *, include_params: bool = False) -> dict[str, Any]:
     }
     if include_params:
         payload["params"] = [_parameter_payload(parameter) for parameter in tt.params]
+    if include_runner_metadata:
+        payload.update(
+            runtime_family=tt.runtime.name,
+            citations=[{"num": number, "doi": doi, "title": title} for number, doi, title in tt.citation_dois],
+        )
     return payload
 
 
-def _available_task_types() -> dict[str, Any]:
+def _available_task_types(*, include_runner_metadata: bool = False) -> dict[str, Any]:
     """Serialize the ordered, enabled scientific method catalog."""
     manage_db = current_app.config.get("manage_db")
     enabled_types = []
     for tt in list_types():
         if manage_db is not None and manage_db.task_type_is_enabled(tt.name) is False:
             continue
-        enabled_types.append(_task_summary(tt, include_params=True))
+        enabled_types.append(_task_summary(tt, include_params=True, include_runner_metadata=include_runner_metadata))
     category_order = {category.name: category.order for category in list_categories()}
     enabled_types.sort(key=lambda item: (category_order[item["category"]], item["display_name"].lower()))
     return {

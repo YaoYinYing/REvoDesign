@@ -527,7 +527,8 @@ REVODESIGN_SERVER_ENV="${REVODESIGN_SERVER_ENV}" \
 maintenance; submissions are paused") and keeps Nginx serving the maintenance
 page. The pre-stop sweep cancels this deployment's SLURM jobs, requeues
 resumable workflows, and fails other in-flight tasks. The sentinel is removed
-after a successful restart and during failure cleanup.
+only after a successful restart; failures leave maintenance active until a
+known-good stack is restored.
 
 Prepared mode performs all artifact/config/Compose checks before `down`, then
 starts with existing images and no build or pull. Verify Compose services,

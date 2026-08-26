@@ -292,9 +292,7 @@
   registry.register({
     id: "parameters",
     mount: function (target, definition, context) {
-      var regionFields = new Set();
-      context.capabilities.forEach(function (capability) { if (capability.plugin.endsWith("regions")) ((capability.options && capability.options.fields) || []).forEach(function (name) { regionFields.add(name); }); });
-      var params = context.form.params.filter(function (parameter) { return !regionFields.has(parameter.name); });
+      var params = context.form.params.filter(function (parameter) { return !context.regionFields.has(parameter.name); });
       var basic = params.filter(function (parameter) { return !parameter.advanced; });
       var advanced = params.filter(function (parameter) { return Boolean(parameter.advanced); });
       if (basic.length) { var basicGrid = element("div", "basic-params-grid"); basic.forEach(function (parameter) { basicGrid.appendChild(renderParam(parameter, context)); }); target.appendChild(basicGrid); }
@@ -306,11 +304,12 @@
       return {
         readValue: function () { return context.paramValues(); },
         summarize: function () {
-          return params.map(function (parameter) {
+          var rows = params.map(function (parameter) {
             var input = document.getElementById("param_" + parameter.name); if (!input) return null;
             var value = paramValue(parameter, input), changed = String(value) !== String(parameter.default == null ? "" : parameter.default);
             return changed ? { label: parameter.label || parameter.name, value: value + (parameter.unit ? " " + parameter.unit : "") } : null;
           }).filter(Boolean);
+          return rows.length ? rows : [{ label: "Settings", value: "Validated defaults" }];
         },
         validate: function () { return validateParameters(params); }
       };
@@ -325,7 +324,6 @@
         summary.replaceChildren();
         var rows = [{ label: "Method", value: context.form.display_name }].concat(context.workspaceSummaries());
         if (definition.options && definition.options.show_paths === false) rows = rows.filter(function (row) { return row.label !== "Input"; });
-        if (!rows.some(function (row) { return row.label === "Settings" || row.label === "Parameters"; })) rows.push({ label: "Settings", value: "Validated defaults" });
         rows.forEach(function (row) { summary.append(element("dt", "", row.label), element("dd", "", row.value)); });
       }
       return { refresh: refresh, readValue: function () { return { task_type: context.form.name, files: context.orderedFiles().map(pathFor), params: context.paramValues() }; } };
@@ -364,15 +362,17 @@
       var body = element("div", "protocol-step-body"); section.append(heading, body); workspace.root.appendChild(section); workspace.stepTargets.set(step.id, body);
     });
     var capabilities = steps.flatMap(function (step) { return step.capabilities.map(function (capability) { return Object.assign({ stepId: step.id }, capability); }); });
+    var regionFields = new Set();
+    capabilities.forEach(function (capability) { if (capability.plugin.endsWith("regions")) ((capability.options && capability.options.fields) || []).forEach(function (name) { regionFields.add(name); }); });
     this.context = {
-      form: formDefinition, capabilities: capabilities, fileInput: this.options.fileInput, primaryIndex: 0,
+      form: formDefinition, capabilities: capabilities, regionFields: regionFields, fileInput: this.options.fileInput, primaryIndex: 0,
       files: function () { return selectedFiles.slice(); }, setFiles: function (files) { selectedFiles = Array.from(files || []); },
       primaryFile: function () { return this.files()[this.primaryIndex] || null; },
       ensurePrimary: function () { var files = this.files(), primary = formDefinition.file_input.primary_extensions; if (!files[this.primaryIndex] || !matchesExtension(files[this.primaryIndex], primary)) { var index = files.findIndex(function (file) { return matchesExtension(file, primary); }); this.primaryIndex = index < 0 ? 0 : index; } },
       orderedFiles: function () { var files = this.files(); if (!files.length || this.primaryIndex === 0) return files; return [files[this.primaryIndex]].concat(files.filter(function (_, index) { return index !== workspace.context.primaryIndex; })); },
       parsedSequence: function () { return parseSequence(this.sequenceInput ? this.sequenceInput.value : ""); },
       sequence: function () { return this.parsedSequence().sequence; },
-      paramValues: function () { var values = {}; formDefinition.params.forEach(function (parameter) { var input = document.getElementById("param_" + parameter.name); if (!input) return; var value = paramValue(parameter, input); if (value !== "") values[parameter.name] = value; }); return values; },
+      paramValues: function () { var values = {}; formDefinition.params.forEach(function (parameter) { if (regionFields.has(parameter.name)) return; var input = document.getElementById("param_" + parameter.name); if (!input) return; var value = paramValue(parameter, input); if (value !== "") values[parameter.name] = value; }); return values; },
       status: this.options.status,
       workspaceSummaries: function () {
         var summaries = [];

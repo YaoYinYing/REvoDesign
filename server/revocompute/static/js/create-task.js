@@ -116,7 +116,7 @@
 
   function refreshValidation() {
     validationChecks.replaceChildren();
-    if (!currentForm) { validationSummary.textContent = "Choose a method"; submitButton.disabled = true; return; }
+    if (!currentForm) { validationSummary.textContent = "Choose a method"; submitButton.disabled = true; return []; }
     var errors = workspace.validate(), files = workspace.files(), sequence = workspace.sequence();
     if (errors.length) errors.forEach(function (error) { validationChecks.appendChild(validationRow("error", error)); });
     else {
@@ -132,13 +132,14 @@
       var hasInvalid = ids.some(function (id) { return workspaceRoot.querySelector('[data-capability-id="' + id + '"] [aria-invalid="true"]'); });
       link.classList.toggle("has-issues", hasInvalid); link.classList.toggle("complete", !hasInvalid && (files.length || sequence || step.id !== "material"));
     });
+    return errors;
   }
 
   var workspace = new Workspace(workspaceRoot, { fileInput: fileInput, status: setStatus, onChange: refreshValidation });
 
   async function submitTask() {
     if (!currentForm) return showChooser("Choose a method before running an experiment.");
-    var errors = workspace.validate(); refreshValidation();
+    var capabilities = workspace.collect(), errors = refreshValidation();
     if (errors.length) { setStatus("Fix the highlighted issues before running this experiment.", "error"); var first = form.querySelector('[aria-invalid="true"]'); if (first) first.focus(); return; }
     var files = workspace.files(), sequence = workspace.sequence();
     if (!files.length && sequence) {
@@ -148,7 +149,7 @@
     var formData = new FormData();
     files.forEach(function (file) { formData.append("files", file); formData.append("input_paths", file.webkitRelativePath || file.name); });
     formData.append("task_type", currentForm.name);
-    formData.append("workspace", JSON.stringify({ version: 2, capabilities: workspace.collect() }));
+    formData.append("workspace", JSON.stringify({ version: 2, capabilities: capabilities }));
     var params = workspace.paramValues(); Object.keys(params).forEach(function (name) { formData.append("params[" + name + "]", params[name]); });
     submitButton.disabled = true; clearButton.disabled = true; setStatus("Uploading the immutable snapshot and queueing the task…", "busy");
     try {

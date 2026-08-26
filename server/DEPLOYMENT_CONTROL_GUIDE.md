@@ -303,10 +303,9 @@ For each family, `images/digest/image-sif.json` records:
 - the exact source Docker image ID; and
 - the SHA-256 of the built SIF.
 
-The manifest is authoritative when present. For older unrecorded SIFs, image
-creation time versus SIF modification time is a compatibility fallback.
-Prepared activation rejects a deployed or staged SIF that does not match the
-current Docker image.
+The manifest is authoritative. Unrecorded SIFs are stale and must be rebuilt;
+file timestamps never prove artifact identity. Prepared activation rejects a
+deployed or staged SIF that does not match the current Docker image.
 
 ### 9.2 Atomic staging
 
@@ -354,11 +353,11 @@ With `--keep-gateway`, the controller:
    worker;
 3. starts the complete stack;
 4. restarts Nginx after web recreation so its Docker DNS is fresh; and
-5. removes the maintenance sentinel during finalization or failure cleanup.
+5. removes the maintenance sentinel only after successful finalization.
 
 Prepared mode additionally waits up to 60 seconds for Redis, web, gateway,
-maintenance, and worker to report running. The sentinel being removed after a
-failure is cleanup behavior, not proof that the stack is healthy.
+maintenance, and worker to report running. If activation or readiness fails,
+the sentinel remains until a known-good stack is restored.
 
 ## 11. Standard workflows
 

@@ -274,7 +274,11 @@ def _record_sif_manifest(family: RuntimeFamily, docker_image_id: str, sif_path: 
 
 def _sif_manifest_matches(family: RuntimeFamily, docker_image_id: str, sif_path: str) -> bool:
     entry = _read_sif_manifest(family).get(family.name) or {}
-    return entry.get("docker_image_id") == docker_image_id and entry.get("sif_sha256") == _sif_sha256(sif_path)
+    return (
+        bool(docker_image_id)
+        and entry.get("docker_image_id") == docker_image_id
+        and entry.get("sif_sha256") == _sif_sha256(sif_path)
+    )
 
 
 def _sif_source_tag(state, family: RuntimeFamily) -> str:
@@ -282,30 +286,13 @@ def _sif_source_tag(state, family: RuntimeFamily) -> str:
 
 
 def sif_stale(state, family: RuntimeFamily, path: str | None = None) -> bool:
-    """True when the deployed SIF needs a rebuild: it is missing, or the
-    family's docker image was created after the SIF (covers image updates
-    promoted in an earlier restart — the image digest itself may be
-    unchanged while the SIF still predates it)."""
+    """True unless the SIF manifest proves the file matches the Docker image."""
     path = path or family.slurm_image
     if not Path(path).is_file():
         return True
     tag = _sif_source_tag(state, family)
     source_id = _docker_image_id(state, tag)
-    if source_id and _sif_manifest_matches(family, source_id, path):
-        return False
-    created = run_cmd(
-        ["docker", "image", "inspect", "--format", "{{.Created}}", tag],
-        env=state.exported(),
-        check=False,
-        capture=True,
-    ).stdout.strip()
-    try:
-        import datetime
-
-        image_ts = datetime.datetime.fromisoformat(created.replace("Z", "+00:00")).timestamp()
-    except (ValueError, AttributeError):
-        image_ts = 0.0
-    return image_ts > os.path.getmtime(path)
+    return not _sif_manifest_matches(family, source_id, path)
 
 
 def _sif_definition_for_tag(def_file: Path, source_tag: str) -> tuple[str, str | None]:
@@ -360,6 +347,9 @@ def build_slurm_images(state, families: list[RuntimeFamily], *, fail_on_error: b
         staging = f"{staged}.build"
         source_tag = _sif_source_tag(state, family)
         source_id = _docker_image_id(state, source_tag)
+        if not source_id:
+            print(f"[SLURM] Docker image identity is unavailable: {source_tag}", file=sys.stderr)
+            raise RegistryError
         build_definition, temporary_definition = _sif_definition_for_tag(def_file, source_tag)
         try:
             result = run_cmd(

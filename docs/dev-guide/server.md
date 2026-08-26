@@ -267,7 +267,7 @@ REVODESIGN_SERVER_ENV=server/.env.production \
     --build-sif
 ```
 
-Then activate with `restart --mode=prepared`. Stale SIFs build atomically
+Then activate with `restart --mode=prepared --keep-gateway`. Stale SIFs build atomically
 through `<sif>.next.build`, stage as `<sif>.next`, and replace the deployed SIF
 after `down`. There is no `--drain` flag; the pre-stop sweep cancels this
 deployment's SLURM jobs, requeues resumable workflows, and fails other
