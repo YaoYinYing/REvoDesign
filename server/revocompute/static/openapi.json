@@ -372,21 +372,41 @@
       },
       "Artifact": {
         "type": "object",
-        "required": ["path"],
+        "required": ["path", "size", "sha256", "media_type", "preview", "role", "url"],
         "properties": {
           "path": {"type": "string"},
+          "size": {"type": "integer", "minimum": 0},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
           "url": {"type": "string"},
           "media_type": {"type": "string"},
-          "preview": {"type": "string"}
+          "preview": {"type": ["string", "null"], "enum": ["structure", "image", "table", "text", null]},
+          "role": {"type": "string", "enum": ["primary", "evidence", "provenance", "diagnostic", "artifact"]}
         },
-        "additionalProperties": true
+        "additionalProperties": false
       },
       "ResultManifest": {
         "type": "object",
-        "required": ["status", "artifacts", "archive"],
+        "required": ["schema_version", "task_id", "task_type", "created_at", "status", "run", "output_check", "limitations", "views", "artifacts", "total_size", "archive"],
         "properties": {
+          "schema_version": {"type": "integer", "const": 3},
+          "task_id": {"$ref": "#/components/schemas/TaskId"},
+          "task_type": {"type": "string"},
+          "created_at": {"type": "string", "format": "date-time"},
           "status": {"type": "string", "enum": ["finished", "failed"]},
+          "run": {"type": "object"},
+          "output_check": {
+            "type": "object",
+            "required": ["state", "checks", "problems"],
+            "properties": {
+              "state": {"type": "string", "enum": ["passed", "failed", "not_configured", "not_assessed"]},
+              "checks": {"type": "array", "items": {"type": "object"}},
+              "problems": {"type": "array", "items": {"type": "string"}}
+            }
+          },
+          "limitations": {"type": "array", "items": {"type": "string"}},
+          "views": {"type": "array", "items": {"type": "object"}},
           "artifacts": {"type": "array", "items": {"$ref": "#/components/schemas/Artifact"}},
+          "total_size": {"type": "integer", "minimum": 0},
           "archive": {
             "type": "object",
             "required": ["ready", "request_url"],
@@ -397,7 +417,7 @@
             }
           }
         },
-        "additionalProperties": true
+        "additionalProperties": false
       }
     }
   }

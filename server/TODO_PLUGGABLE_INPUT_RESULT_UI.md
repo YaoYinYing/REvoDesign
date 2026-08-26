@@ -1,11 +1,13 @@
 # TODO: Pluggable Scientific Input and Result Workspaces
 
-Status: implementation complete for the version-2 workspace contract,
-server-normalized RFdiffusion modes, Mol* residue selection, declarative
-task-type result mappings, EASIFA linked table/structure views, bounded table
-fetching, and native Chromium contracts. Production SLURM/Apptainer living tests
-and deployment verification remain operational release gates. This document is
-not an activation checklist and does not authorize production changes.
+Status: implementation complete for the version-3 input and scientific-result
+workspace contracts, server-normalized RFdiffusion modes, Mol* residue
+selection, candidate/entity/evidence result views, technical output checks,
+shortlist export, bounded fetching, and native Chromium contracts. Real-manifest
+cataloguing, remaining task mappings, and cross-task composition remain open.
+Production SLURM/Apptainer living tests and deployment verification remain
+operational release gates. This document is not an activation checklist and
+does not authorize production changes.
 
 ## Why this work exists
 
@@ -227,10 +229,10 @@ adapter, not copied page-level event handlers.
 
 ## Result-workspace reference composition
 
-Keep the artifact tree and Main Results as separate views over one manifest.
-The result host should support:
+Keep the artifact tree and principal scientific result as separate views over
+one manifest. The result host supports:
 
-- a primary gallery for manifest-designated scientific outputs;
+- a primary candidate, entity-table, or evidence view for manifest-designated scientific outputs;
 - a searchable artifact tree preserving nested paths;
 - one active preview stage with plugin-owned controls;
 - optional linked views, such as selecting a score row and highlighting the
@@ -307,13 +309,20 @@ reports canonical residue locations from the structure-selection manager.
 
 ### Phase 5: migrate remaining task families
 
+- Capture real manifests before declaring mappings for upstream-owned output trees.
 - Adopt input capabilities for MPNN, ESM/DMS, PRIME, GREMLIN, OpenDDE, BioEmu,
   and EASIFA incrementally.
 - Add domain viewers only when supported by real output artifacts and bounded
   browser behavior.
 - Remove old page-specific listeners only after parity tests pass.
 
-### Phase 6: production hardening
+### Phase 6: cross-task composition
+
+- Accept only authorized immutable `{task_id, artifact_path, sha256}` source references.
+- Validate destination input compatibility, then copy or hardlink into a new task snapshot; never retain live result-tree symlinks.
+- Record minimal lineage and define source-retention behavior without introducing a DAG engine.
+
+### Phase 7: production hardening
 
 - Test desktop, narrow/mobile, keyboard-only, and basic screen-reader flows.
 - Test plugin failures, slow/ranged responses, cancelled navigation, oversized

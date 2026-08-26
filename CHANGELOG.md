@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Server:
+  - result decision workspaces: scientific manifest v3, server-declared candidate/entity/evidence views, technical output checks, reproducibility records, accessible shortlist export, and the complete artifact/download fallback.
   - public interactive OpenAPI documentation at `/api-docs`, machine-readable schema, and SEO keywords for public pages.
   - authentication: login accepts a validated local `return_to` path and protected browser routes preserve their destination.
   - maintenance: scope the gateway sentinel check to proxied requests so the custom 503 document can render without an internal redirect loop.

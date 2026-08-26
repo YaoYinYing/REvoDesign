@@ -804,17 +804,30 @@ full ZIP is an optional asynchronous cache created only after an explicit
 archive request. It contains only files published by the manifest and is not
 part of task completion.
 
-The dedicated result page presents previewable artifacts under **Main Results**.
-Its lifecycle-aware local plugin host resolves viewers from manifest `preview`
-metadata and preserves individual download as the universal fallback. Images,
-bounded CSV/TSV tables, and text use local preview plugins. PDB/mmCIF files use
-the pinned Mol\* Viewer 5.11.0 bundle with subresource-integrity verification;
-if that asset or WebGL is unavailable, the page falls back to a local
-alpha-carbon trace. A generation-token guard keeps viewer renders
-single-flight: switching artifacts or viewers mid-load cancels the stale
-render, so Mol* and py2Dmol can never race on the same stage. Inline image
-and structure previews have size limits so a large artifact is downloaded
-instead of being loaded wholesale into browser memory.
+The dedicated result page consumes scientific manifest schema version 3. The
+manifest records safe run provenance, task-owned limitations, explicit artifact
+roles, a technical output check, and resolved local scientific views. The output
+check proves only that configured files are present, non-empty, and structurally
+mappable; it does not establish scientific or experimental validity.
+
+Three server-allowlisted view shapes compose current results without task-name
+logic in JavaScript: candidate collections, entity tables optionally linked to a
+structure, and evidence bundles. The first primary view opens as the principal
+result. Scientists can shortlist candidates or table entities and export a
+bounded `shortlist.json`; the export records review choices but is not a task
+submission or lineage document. Limitations, effective parameters, input hashes,
+citations, and timestamps remain available under the reproducibility record.
+
+All manifest-approved artifacts remain searchable and individually downloadable
+under **All artifacts and diagnostics**. The lifecycle-aware local plugin host
+resolves both scientific views and file previews, aborts stale renders, and
+preserves download as the universal fallback. Images, bounded CSV/TSV tables,
+and text use local preview plugins. PDB/mmCIF files use the pinned Mol\* Viewer
+5.11.0 bundle with subresource-integrity verification; if that asset or WebGL is
+unavailable, the page offers a local alpha-carbon trace. pLDDT coloring is shown
+only when trusted task metadata declares pLDDT in the structure B-factor field.
+Inline image and structure previews retain size limits so large artifacts are
+downloaded instead of loaded wholesale into browser memory.
 
 ## 9. Public Access
 

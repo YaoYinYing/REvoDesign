@@ -7,12 +7,15 @@
   var T = window.REvoDesignTheme;
   var task = JSON.parse(document.getElementById("result-task-data").textContent);
   var artifacts = [];
+  var resultManifest = null;
   var activeArtifact = null;
   var activeMolstar = null;
-  var thumbnailUrls = [];
   var previewRegistry = null;
   var previewHost = null;
   var resultViews = [];
+  var shortlist = new Map();
+  var shortlistUrl = null;
+  var MAX_SHORTLIST_ITEMS = 200;
   // Warm Mol* viewer: one shell iframe and one plugin instance stay alive
   // across structure previews. The frame lives in a persistent holder that
   // is never reparented (reparenting reloads an iframe), so switching
@@ -29,7 +32,6 @@
   var structureTextCacheBytes = 0;
   var STRUCTURE_CACHE_MAX_FILES = 3;
   var STRUCTURE_CACHE_MAX_BYTES = 60 * 1024 * 1024;
-  var viewRegistry = new window.REvoComputePlugins.PluginRegistry("result view");
   var MOLSTAR_THEME_COOKIE = "revodesign-molstar-theme";
   // Mol* runs inside the isolated /compute/viewer-shell iframe (its bundle
   // needs new Function, which only that shell's CSP permits). All constants
@@ -179,7 +181,7 @@
   // preference store).  Resets when the user selects a different artifact.
   var structureViewer = "molstar";
 
-  var activeColorMode = "plddt";
+  var activeColorMode = "chain";
 
   function setStructureColor(mode) {
     activeColorMode = mode;
@@ -200,7 +202,7 @@
     });
   }
 
-  function structureViewerBar(artifact) {
+  function structureViewerBar(artifact, rerender) {
     var bar = document.createElement("div");
     bar.className = "structure-viewer-bar";
     bar.setAttribute("role", "toolbar");
@@ -211,7 +213,7 @@
       btn.className = "viewer-toggle" + (structureViewer === viewer ? " active" : "");
       btn.textContent = label;
       btn.setAttribute("aria-pressed", structureViewer === viewer ? "true" : "false");
-      btn.addEventListener("click", function () { structureViewer = viewer; previewArtifact(artifact); });
+      btn.addEventListener("click", function () { structureViewer = viewer; (rerender || previewArtifact)(artifact); });
       return btn;
     };
     bar.append(makeBtn("Mol* (full)", "molstar"), makeBtn("py2Dmol (alpha)", "py2dmol"));
@@ -219,7 +221,10 @@
     colorBar.className = "structure-color-bar";
     colorBar.setAttribute("role", "group");
     colorBar.setAttribute("aria-label", "Structure color theme");
-    [{ mode: "plddt", label: "pLDDT" }, { mode: "chain", label: "Chain" }, { mode: "rainbow", label: "Rainbow" }].forEach(function (c) {
+    var colorModes = [{ mode: "chain", label: "Chain" }, { mode: "rainbow", label: "Rainbow" }];
+    if (artifact.confidence_encoding === "plddt_bfactor") colorModes.unshift({ mode: "plddt", label: "pLDDT" });
+    if (!colorModes.some(function (item) { return item.mode === activeColorMode; })) activeColorMode = "chain";
+    colorModes.forEach(function (c) {
       var btn = document.createElement("button");
       btn.type = "button"; btn.className = "color-toggle"; btn.textContent = c.label; btn.dataset.mode = c.mode;
       if (activeColorMode === c.mode) btn.classList.add("active");
@@ -537,19 +542,228 @@
     }
   }
 
+  function artifactFor(path) {
+    return artifacts.find(function (artifact) { return artifact.path === path; }) || null;
+  }
+
+  function artifactPaths(view, source) {
+    return (view.sources && Array.isArray(view.sources[source]) ? view.sources[source] : [])
+      .map(artifactFor).filter(Boolean);
+  }
+
+  function shortlistKey(viewId, entityId) { return viewId + ":" + entityId; }
+
+  function setShortlisted(item, selected) {
+    var key = shortlistKey(item.view_id, item.id);
+    if (selected && !shortlist.has(key) && shortlist.size >= MAX_SHORTLIST_ITEMS) {
+      showToast("The shortlist is limited to 200 selections.", "error");
+      return false;
+    }
+    if (selected) shortlist.set(key, item); else shortlist.delete(key);
+    renderShortlist();
+    return true;
+  }
+
+  function renderShortlist() {
+    var list = document.getElementById("shortlistItems");
+    var count = document.getElementById("shortlistCount");
+    list.replaceChildren(); count.textContent = shortlist.size + " selected";
+    if (!shortlist.size) {
+      var empty = document.createElement("p"); empty.className = "muted";
+      empty.textContent = "Select candidates or table rows to build a review set."; list.appendChild(empty);
+    }
+    shortlist.forEach(function (item) {
+      var row = document.createElement("div"); row.className = "shortlist-item";
+      var label = document.createElement("span"); label.textContent = item.label;
+      var remove = document.createElement("button"); remove.type = "button"; remove.className = "btn btn-soft btn-small";
+      remove.textContent = "Remove"; remove.addEventListener("click", function () { setShortlisted(item, false); });
+      row.append(label, remove); list.appendChild(row);
+    });
+    document.getElementById("exportShortlist").disabled = !shortlist.size;
+  }
+
+  function exportShortlist() {
+    if (!shortlist.size) return;
+    if (shortlistUrl) URL.revokeObjectURL(shortlistUrl);
+    var payload = {
+      schema_version: 1,
+      source_task: { id: task.md5, task_type: resultManifest.task_type, manifest_schema: resultManifest.schema_version },
+      selected: Array.from(shortlist.values())
+    };
+    shortlistUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2) + "\n"], { type: "application/json" }));
+    var link = document.createElement("a"); link.href = shortlistUrl; link.download = "shortlist.json"; link.click();
+    setTimeout(function () { if (shortlistUrl) { URL.revokeObjectURL(shortlistUrl); shortlistUrl = null; } }, 0);
+  }
+
+  function candidateItem(view, artifact) {
+    return {
+      view_id: view.id, entity: "candidate", id: artifact.path, label: artifact.path,
+      values: {}, artifacts: [{ path: artifact.path, sha256: artifact.sha256 }]
+    };
+  }
+
+  async function renderCandidateCollection(view, stage) {
+    var candidates = artifactPaths(view, "candidates");
+    if (!candidates.length) throw new Error("No candidate outputs are available.");
+    var layout = document.createElement("div"); layout.className = "candidate-layout";
+    var list = document.createElement("div"); list.className = "candidate-list";
+    var preview = document.createElement("div"); preview.className = "candidate-preview";
+    layout.append(list, preview); stage.appendChild(layout);
+    async function openCandidate(artifact) {
+      artifact.confidence_encoding = view.mapping.confidence_encoding || null;
+      list.querySelectorAll(".candidate-card").forEach(function (node) {
+        node.setAttribute("aria-current", node.dataset.path === artifact.path ? "true" : "false");
+      });
+      preview.replaceChildren();
+      if (artifact.preview === "structure") {
+        var response = await A.authFetch(artifact.url);
+        if (!response.ok) throw new Error("Candidate structure could not be loaded.");
+        var structureText = await response.text();
+        var bar = structureViewerBar(artifact, openCandidate); preview.appendChild(bar);
+        if (structureViewer === "py2dmol") {
+          await renderPy2DmolFallback(structureText, artifact, preview, previewHost.generation, new Error("User selected alpha-trace viewer"));
+          return;
+        }
+        await renderMolstar(structureText, artifact, preview, previewHost.generation, true);
+        return;
+      }
+      var plugin = previewRegistry.resolve(artifact);
+      if (!plugin) {
+        var message = document.createElement("p"); message.className = "preview-message";
+        message.textContent = "No inline preview is available. Download this candidate instead."; preview.appendChild(message); return;
+      }
+      var surface = document.createElement("div"); surface.className = "result-plugin-surface"; preview.appendChild(surface);
+      await plugin.render(artifact, surface, {});
+    }
+    candidates.forEach(function (artifact) {
+      var card = document.createElement("div"); card.className = "candidate-card"; card.dataset.path = artifact.path;
+      var open = document.createElement("button"); open.type = "button"; open.className = "candidate-open";
+      var name = document.createElement("strong"); name.textContent = artifact.path;
+      var meta = document.createElement("span"); meta.textContent = formatBytes(artifact.size) + " · sha256 " + artifact.sha256.slice(0, 10);
+      open.append(name, meta); open.addEventListener("click", function () { openCandidate(artifact).catch(showPreviewError); });
+      var item = candidateItem(view, artifact);
+      var select = document.createElement("label"); select.className = "candidate-select";
+      var checkbox = document.createElement("input"); checkbox.type = "checkbox";
+      checkbox.checked = shortlist.has(shortlistKey(item.view_id, item.id));
+      checkbox.addEventListener("change", function () { checkbox.checked = setShortlisted(item, checkbox.checked); });
+      select.append(checkbox, document.createTextNode(" Shortlist")); card.append(open, select); list.appendChild(card);
+    });
+    await openCandidate(candidates[0]);
+  }
+
+  function tableUrl(path, offset) {
+    return "/compute/api/results/" + encodeURIComponent(task.md5) + "/tables/" +
+      path.split("/").map(encodeURIComponent).join("/") + "?offset=" + offset + "&limit=100";
+  }
+
+  async function renderEntityTable(view, stage, services) {
+    var tableArtifacts = artifactPaths(view, "table");
+    if (tableArtifacts.length !== 1) throw new Error("The configured result table is unavailable.");
+    var tableArtifact = tableArtifacts[0]; var structures = artifactPaths(view, "structure");
+    var structureArtifact = structures[0] || null; var viewerFrame = null; var offset = 0;
+    var layout = document.createElement("div"); layout.className = structureArtifact ? "linked-result-layout" : "linked-result-layout table-only";
+    var tableRegion = document.createElement("div"); tableRegion.className = "linked-result-table";
+    var viewerStage = document.createElement("div"); viewerStage.className = "linked-result-structure";
+    layout.append(tableRegion); if (structureArtifact) layout.append(viewerStage); stage.appendChild(layout);
+
+    async function loadPage() {
+      var response = await A.authFetch(tableUrl(tableArtifact.path, offset), { signal: services.signal });
+      if (!response.ok) throw new Error("Result table could not be loaded.");
+      var page = await response.json(); tableRegion.replaceChildren();
+      var wrap = document.createElement("div"); wrap.className = "artifact-table-wrap";
+      var table = document.createElement("table"); table.className = "artifact-table-preview entity-result-table";
+      var heading = document.createElement("tr");
+      page.columns.forEach(function (column) { var th = document.createElement("th"); th.scope = "col"; th.textContent = column; heading.appendChild(th); });
+      var pick = document.createElement("th"); pick.scope = "col"; pick.textContent = "Review"; heading.appendChild(pick); table.appendChild(heading);
+      var indexes = {}; page.columns.forEach(function (column, index) { indexes[column] = index; });
+      page.rows.forEach(function (row) {
+        var id = view.mapping.key_columns.map(function (column) { return row[indexes[column]]; }).join(":");
+        var label = view.mapping.label_column ? row[indexes[view.mapping.label_column]] + " · " + id : id;
+        var item = {
+          view_id: view.id, entity: view.mapping.entity, id: id, label: label,
+          values: Object.fromEntries((view.mapping.evidence_columns || []).map(function (column) { return [column, row[indexes[column]]]; })),
+          artifacts: [tableArtifact, structureArtifact].filter(Boolean).map(function (artifact) { return { path: artifact.path, sha256: artifact.sha256 }; })
+        };
+        var tr = document.createElement("tr"); tr.tabIndex = 0; tr.setAttribute("aria-selected", "false");
+        row.forEach(function (value) { var td = document.createElement("td"); td.textContent = value; tr.appendChild(td); });
+        var selectCell = document.createElement("td"); var checkbox = document.createElement("input"); checkbox.type = "checkbox";
+        checkbox.setAttribute("aria-label", "Add " + label + " to shortlist"); checkbox.checked = shortlist.has(shortlistKey(item.view_id, item.id));
+        checkbox.addEventListener("click", function (event) { event.stopPropagation(); });
+        checkbox.addEventListener("change", function () { checkbox.checked = setShortlisted(item, checkbox.checked); });
+        selectCell.appendChild(checkbox); tr.appendChild(selectCell);
+        function follow() {
+          table.querySelectorAll("tr[aria-selected=true]").forEach(function (node) { node.setAttribute("aria-selected", "false"); });
+          tr.setAttribute("aria-selected", "true");
+          if (viewerFrame && view.mapping.residue_column) postToShell(viewerFrame, {
+            type: "select-residue", chain: view.mapping.chain_column ? row[indexes[view.mapping.chain_column]] : "",
+            residue: Number(row[indexes[view.mapping.residue_column]]), numbering: view.mapping.numbering
+          });
+        }
+        tr.addEventListener("click", follow); tr.addEventListener("keydown", function (event) {
+          if (event.key === "Enter") { event.preventDefault(); follow(); }
+        }); table.appendChild(tr);
+      });
+      wrap.appendChild(table); tableRegion.appendChild(wrap);
+      var pager = document.createElement("div"); pager.className = "table-pager";
+      var previous = document.createElement("button"); previous.type = "button"; previous.className = "btn btn-soft btn-small";
+      previous.textContent = "Previous"; previous.disabled = offset === 0;
+      previous.addEventListener("click", function () { offset = Math.max(0, offset - 100); loadPage().catch(showPreviewError); });
+      var next = document.createElement("button"); next.type = "button"; next.className = "btn btn-soft btn-small";
+      next.textContent = "Next"; next.disabled = !page.has_more;
+      next.addEventListener("click", function () { offset += 100; loadPage().catch(showPreviewError); });
+      var pageLabel = document.createElement("span"); pageLabel.textContent = "Rows " + (offset + 1) + "–" + (offset + page.rows.length);
+      pager.append(previous, pageLabel, next); tableRegion.appendChild(pager);
+    }
+    await loadPage();
+    if (structureArtifact) {
+      try {
+        var response = await A.authFetch(structureArtifact.url, { signal: services.signal });
+        if (!response.ok) throw new Error("Structure download failed");
+        viewerFrame = await renderMolstar(await response.text(), structureArtifact, viewerStage, previewHost.generation, true);
+      } catch (error) {
+        var message = document.createElement("p"); message.className = "preview-message";
+        message.textContent = "Structure linking unavailable; the result table remains usable."; viewerStage.appendChild(message);
+      }
+    }
+  }
+
+  async function renderEvidenceBundle(view, stage) {
+    var items = artifactPaths(view, "items"); var list = document.createElement("div"); list.className = "evidence-list";
+    var preview = document.createElement("div"); preview.className = "evidence-preview"; stage.append(list, preview);
+    items.forEach(function (artifact) {
+      var button = document.createElement("button"); button.type = "button"; button.className = "evidence-item";
+      button.textContent = artifact.path; button.addEventListener("click", function () {
+        preview.replaceChildren(); var plugin = previewRegistry.resolve(artifact);
+        if (!plugin) { preview.textContent = "This evidence is available as a download."; return; }
+        var surface = document.createElement("div"); surface.className = "result-plugin-surface"; preview.appendChild(surface);
+        plugin.render(artifact, surface, {}).catch(showPreviewError);
+      }); list.appendChild(button);
+    });
+    if (items[0]) list.firstChild.click();
+  }
+
+  function showPreviewError(error) {
+    var stage = document.getElementById("artifactPreview");
+    stage.innerHTML = '<p class="preview-message"></p>'; stage.firstChild.textContent = error.message || "Preview unavailable";
+  }
+
   previewRegistry = window.REvoComputeResultPreviews.createRegistry({
     structure: previewStructure,
     image: previewImage,
     table: previewTable,
-    text: previewText
+    text: previewText,
+    "candidate-collection": renderCandidateCollection,
+    "entity-table": renderEntityTable,
+    "evidence-bundle": renderEvidenceBundle
   });
   previewHost = new window.REvoComputeResultPreviews.ResultPreviewHost(
     previewRegistry,
-    document.getElementById("artifactPreview")
+    document.getElementById("artifactPreview"),
+    {
+      statusNode: document.getElementById("previewStatus"),
+      beforeClear: function () { document.getElementById("previewStatus").textContent = ""; }
+    }
   );
-  // Persistent holder for the warm Mol* frame — a sibling of the preview
-  // stage that is never cleared or reparented, so the shell survives
-  // artifact switches. Non-structure previews use the stage as before.
   structureHolder = document.createElement("div");
   structureHolder.className = "artifact-preview-stage";
   structureHolder.hidden = true;
@@ -557,276 +771,160 @@
 
   async function previewArtifact(artifact) {
     activeArtifact = artifact;
-    previewHost.destroy();
     document.getElementById("previewTitle").textContent = artifact.path;
-    var download = document.getElementById("artifactDownload");
-    download.hidden = false;
-    download.href = artifact.url + "?download=1";
-    download.download = "";
+    var download = document.getElementById("artifactDownload"); download.hidden = false;
+    download.href = artifact.url + "?download=1"; download.download = "";
     document.querySelectorAll(".artifact-row").forEach(function (node) {
-      node.classList.toggle("active", node.dataset.path === artifact.path);
+      var active = node.dataset.path === artifact.path; node.classList.toggle("active", active);
+      node.setAttribute("aria-current", active ? "true" : "false");
     });
-    var stage = document.getElementById("artifactPreview");
-    var plugin = previewRegistry.resolve(artifact);
-    stage.hidden = false;
+    var stage = document.getElementById("artifactPreview"); stage.hidden = false;
     if (structureHolder) structureHolder.hidden = true;
-    if (!plugin) {
-      stage.innerHTML = '<p class="preview-message">No inline preview is available for this file type. Download the artifact instead.</p>';
-      return;
-    }
-    if (plugin.maxBytes && artifact.size > plugin.maxBytes) {
-      stage.innerHTML = '<p class="preview-message">This file exceeds the safe inline preview limit. Download it instead.</p>';
-      return;
-    }
-    if (plugin.id === "structure" && structureHolder) {
-      stage.hidden = true;
-      structureHolder.hidden = false;
-    }
-    try {
-      stage.replaceChildren();
-      showLoading(stage, "Loading preview…");
-      await previewHost.render(artifact);
-    } catch (error) {
-      stage.innerHTML = '<p class="preview-message"></p>';
-      stage.firstChild.textContent = error.message || "Preview unavailable";
-    }
+    var plugin = previewRegistry.resolve(artifact);
+    if (plugin && plugin.id === "structure" && structureHolder) { stage.hidden = true; structureHolder.hidden = false; }
+    try { await previewHost.render(artifact); } catch (error) { showPreviewError(error); }
   }
 
-  async function renderResidueTableStructure(view) {
-    activeArtifact = null; previewHost.destroy();
-    var generation = previewHost.generation;
-    var stage = document.getElementById("artifactPreview");
-    stage.hidden = false;
-    if (structureHolder) structureHolder.hidden = true;
+  async function previewView(view, focusHeading) {
+    activeArtifact = null;
     document.getElementById("previewTitle").textContent = view.title;
     document.getElementById("artifactDownload").hidden = true;
-    var tableArtifact = artifacts.find(function (item) { return item.path === view.artifacts.table; });
-    var structureArtifact = artifacts.find(function (item) { return item.path === view.artifacts.structure; });
-    if (!tableArtifact || !structureArtifact) throw new Error("Linked result artifacts are unavailable");
-    var responses = await Promise.all([
-      A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5) + "/tables/" + view.artifacts.table.split("/").map(encodeURIComponent).join("/") + "?limit=100"),
-      A.authFetch(structureArtifact.url)
-    ]);
-    if (generation !== previewHost.generation) return;
-    if (!responses[0].ok || !responses[1].ok) throw new Error("Linked result data could not be loaded");
-    var page = await responses[0].json(); var structureText = await responses[1].text();
-    if (generation !== previewHost.generation) return;
-    stage.replaceChildren();
-    var layout = document.createElement("div"); layout.className = "linked-result-layout";
-    var tableWrap = document.createElement("div"); tableWrap.className = "artifact-table-wrap linked-result-table";
-    var table = document.createElement("table"); table.className = "artifact-table-preview";
-    var heading = document.createElement("tr");
-    page.columns.forEach(function (column) { var th = document.createElement("th"); th.textContent = column; heading.appendChild(th); });
-    table.appendChild(heading);
-    var chainIndex = page.columns.indexOf(view.mapping.chain_column);
-    var residueIndex = page.columns.indexOf(view.mapping.residue_column);
-    if (residueIndex < 0) throw new Error("Configured residue column is absent from the result table");
-    var viewerFrame = null;
-    page.rows.forEach(function (row) {
-      var tr = document.createElement("tr"); tr.tabIndex = 0; tr.setAttribute("aria-selected", "false");
-      row.forEach(function (value) { var td = document.createElement("td"); td.textContent = value; tr.appendChild(td); });
-      function select() {
-        table.querySelectorAll("tr[aria-selected=true]").forEach(function (node) { node.setAttribute("aria-selected", "false"); });
-        tr.setAttribute("aria-selected", "true");
-        if (!viewerFrame) return;
-        postToShell(viewerFrame, { type: "select-residue", chain: chainIndex >= 0 ? row[chainIndex] : "",
-          residue: Number(row[residueIndex]), numbering: view.mapping.numbering });
-      }
-      tr.addEventListener("click", select); tr.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(); }
-      }); table.appendChild(tr);
+    document.getElementById("previewDescription").textContent = view.description || "";
+    document.querySelectorAll(".result-view-tab").forEach(function (node) {
+      var active = node.dataset.viewId === view.id; node.setAttribute("aria-pressed", active ? "true" : "false");
     });
-    tableWrap.appendChild(table);
-    if (page.has_more) {
-      var note = document.createElement("p");
-      note.className = "preview-message";
-      note.textContent = "Showing the first 100 rows. Download the file for the complete table.";
-      tableWrap.appendChild(note);
-    }
-    var viewerStage = document.createElement("div"); viewerStage.className = "linked-result-structure";
-    layout.append(tableWrap, viewerStage); stage.appendChild(layout);
-    try { viewerFrame = await renderMolstar(structureText, structureArtifact, viewerStage, generation, true); }
-    catch (error) { if (generation === previewHost.generation) { var message = document.createElement("p"); message.className = "preview-message"; message.textContent = "Structure linking unavailable: " + error.message; viewerStage.appendChild(message); } }
-  }
-
-  viewRegistry.register({ id: "residue-table-structure", mount: function () {}, render: renderResidueTableStructure });
-
-  function previewView(view) {
-    var plugin = viewRegistry.resolve(view);
-    if (!plugin) return showToast("Unsupported linked result view", "error");
-    plugin.render(view).catch(function (error) { showToast(error.message || "Linked view unavailable", "error"); });
+    document.getElementById("artifactPreview").hidden = false; if (structureHolder) structureHolder.hidden = true;
+    try {
+      await previewHost.render(view);
+      if (focusHeading) document.getElementById("previewTitle").focus();
+    } catch (error) { showPreviewError(error); }
   }
 
   function artifactButton(artifact) {
-    var button = document.createElement("button");
-    button.type = "button";
-    button.className = "artifact-row";
-    button.dataset.path = artifact.path;
-    var name = document.createElement("span");
-    name.className = "artifact-row-name";
-    name.textContent = artifact.path;
-    var size = document.createElement("span");
-    size.className = "artifact-row-size";
-    size.textContent = (artifact.role === "diagnostic" ? "Execution log · " : "") + formatBytes(artifact.size);
-    button.append(name, size);
-    button.addEventListener("click", function () { previewArtifact(artifact); });
-    return button;
+    var button = document.createElement("button"); button.type = "button"; button.className = "artifact-row"; button.dataset.path = artifact.path;
+    var name = document.createElement("span"); name.className = "artifact-row-name"; name.textContent = artifact.path;
+    var size = document.createElement("span"); size.className = "artifact-row-size";
+    size.textContent = (artifact.role === "diagnostic" ? "Execution log · " : artifact.role + " · ") + formatBytes(artifact.size);
+    button.append(name, size); button.addEventListener("click", function () { previewArtifact(artifact); }); return button;
   }
 
   function artifactFolder(directory, children) {
-    var folder = document.createElement("details");
-    folder.className = "artifact-folder";
-    folder.open = true;
-    var summary = document.createElement("summary");
-    summary.className = "artifact-folder-name";
-    summary.textContent = directory + "/";
-    folder.appendChild(summary);
-    var inner = document.createElement("div");
-    inner.className = "artifact-folder-children";
-    children.forEach(function (child) { inner.appendChild(child); });
-    folder.appendChild(inner);
-    return folder;
+    var folder = document.createElement("details"); folder.className = "artifact-folder"; folder.open = true;
+    var summary = document.createElement("summary"); summary.className = "artifact-folder-name"; summary.textContent = directory + "/";
+    var inner = document.createElement("div"); inner.className = "artifact-folder-children";
+    children.forEach(function (child) { inner.appendChild(child); }); folder.append(summary, inner); return folder;
   }
 
   function buildArtifactTree() {
     var root = { folders: {}, files: [] };
     artifacts.forEach(function (artifact) {
-      var node = root;
-      artifact.path.split("/").slice(0, -1).forEach(function (segment) {
-        node.folders[segment] = node.folders[segment] || { folders: {}, files: [] };
-        node = node.folders[segment];
-      });
-      node.files.push(artifact);
+      var node = root; artifact.path.split("/").slice(0, -1).forEach(function (segment) {
+        node.folders[segment] = node.folders[segment] || { folders: {}, files: [] }; node = node.folders[segment];
+      }); node.files.push(artifact);
     });
     function renderNode(node) {
       var entries = [];
-      Object.keys(node.folders).sort().forEach(function (name) {
-        entries.push(artifactFolder(name, renderNode(node.folders[name])));
-      });
-      node.files.slice().sort(function (a, b) { return a.path < b.path ? -1 : 1; })
-        .forEach(function (artifact) { entries.push(artifactButton(artifact)); });
-      return entries;
+      Object.keys(node.folders).sort().forEach(function (name) { entries.push(artifactFolder(name, renderNode(node.folders[name]))); });
+      node.files.slice().sort(function (a, b) { return a.path.localeCompare(b.path); })
+        .forEach(function (artifact) { entries.push(artifactButton(artifact)); }); return entries;
     }
     return renderNode(root);
   }
 
   function renderArtifacts(query) {
-    var normalized = String(query || "").trim().toLowerCase();
-    var list = document.getElementById("artifactList");
-    list.replaceChildren();
+    var normalized = String(query || "").trim().toLowerCase(); var list = document.getElementById("artifactList"); list.replaceChildren();
     if (normalized) {
-      // Search shows a flat result list — a collapsed tree would hide matches.
       artifacts.filter(function (artifact) { return artifact.path.toLowerCase().includes(normalized); })
-        .forEach(function (artifact) { list.appendChild(artifactButton(artifact)); });
-      return;
+        .forEach(function (artifact) { list.appendChild(artifactButton(artifact)); }); return;
     }
     buildArtifactTree().forEach(function (node) { list.appendChild(node); });
   }
 
-  async function loadImageThumbnail(artifact, frame) {
-    if (artifact.size > 4 * 1024 * 1024) {
-      frame.textContent = "IMAGE";
-      return;
-    }
-    try {
-      var response = await A.authFetch(artifact.url);
-      if (!response.ok) throw new Error("Thumbnail unavailable");
-      var objectUrl = URL.createObjectURL(await response.blob());
-      thumbnailUrls.push(objectUrl);
-      var image = document.createElement("img");
-      image.alt = "Preview of " + artifact.path;
-      image.loading = "lazy";
-      image.src = objectUrl;
-      frame.replaceChildren(image);
-    } catch (error) {
-      frame.textContent = "IMAGE";
-    }
+  function renderViewTabs() {
+    var tabs = document.getElementById("resultViews"); tabs.replaceChildren();
+    resultViews.forEach(function (view) {
+      var button = document.createElement("button"); button.type = "button"; button.className = "result-view-tab";
+      button.dataset.viewId = view.id; button.textContent = view.title;
+      button.addEventListener("click", function () { previewView(view, true); }); tabs.appendChild(button);
+    });
   }
 
-  function renderMainResults() {
-    var main = document.getElementById("mainResults");
-    thumbnailUrls.forEach(function (url) { URL.revokeObjectURL(url); });
-    thumbnailUrls = [];
-    main.replaceChildren();
-    resultViews.forEach(function (view) {
-      var card = document.createElement("button"); card.type = "button"; card.className = "main-result-card main-result-linked";
-      var name = document.createElement("strong"); name.textContent = view.title;
-      card.append(document.createTextNode("LINKED "), name);
-      card.addEventListener("click", function () { previewView(view); }); main.appendChild(card);
+  function appendDefinitionList(root, items) {
+    items.forEach(function (item) {
+      var term = document.createElement("dt"); term.textContent = item[0]; var value = document.createElement("dd"); value.textContent = item[1];
+      root.append(term, value);
     });
-    artifacts.filter(function (artifact) {
-      return Boolean(artifact.preview) && artifact.role !== "diagnostic";
-    }).forEach(function (artifact) {
-      var card = document.createElement("button");
-      card.type = "button";
-      card.className = "main-result-card main-result-" + artifact.preview;
-      card.setAttribute("aria-label", "Preview " + artifact.path);
-      var frame = document.createElement("span");
-      frame.className = "main-result-frame";
-      frame.textContent = artifact.preview === "structure" ? "3D" : artifact.preview.toUpperCase();
-      var name = document.createElement("strong");
-      name.textContent = artifact.path;
-      var detail = document.createElement("span");
-      var plugin = previewRegistry.resolve(artifact);
-      detail.textContent = (plugin ? plugin.label : artifact.preview) + " · " + formatBytes(artifact.size);
-      card.append(frame, name, detail);
-      card.addEventListener("click", function () { previewArtifact(artifact); });
-      main.appendChild(card);
-      if (artifact.preview === "image") loadImageThumbnail(artifact, frame);
+  }
+
+  function renderScientificRecord(payload) {
+    var run = payload.run || {}; var method = run.method || {}; var check = payload.output_check || { state: "not_configured", problems: [] };
+    document.getElementById("methodName").textContent = method.name || payload.task_type;
+    document.getElementById("resultStatus").textContent = payload.status || task.status;
+    var checkText = { passed: "Expected outputs found", failed: "Output mapping incomplete", not_configured: "No principal result mapping", not_assessed: "Outputs were not assessed" };
+    document.getElementById("outputCheck").textContent = checkText[check.state] || check.state;
+    document.getElementById("outputSummary").textContent = method.output_summary || "Inspect the published artifacts below.";
+    var problems = document.getElementById("outputProblems"); problems.replaceChildren();
+    (check.problems || []).forEach(function (problem) { var li = document.createElement("li"); li.textContent = problem; problems.appendChild(li); });
+    var limitations = document.getElementById("limitationList"); limitations.replaceChildren();
+    (payload.limitations || []).forEach(function (text) { var li = document.createElement("li"); li.textContent = text; limitations.appendChild(li); });
+    var setup = document.getElementById("runSetup"); setup.replaceChildren();
+    appendDefinitionList(setup, [
+      ["Submitted", run.submitted_at || "—"], ["Started", run.started_at || "—"], ["Finished", run.finished_at || "—"],
+      ["Wall time", run.walltime_seconds == null ? "—" : Math.round(run.walltime_seconds) + " s"]
+    ]);
+    (run.inputs || []).forEach(function (input) { appendDefinitionList(setup, [["Input", input.path + " · sha256 " + input.sha256]]); });
+    (run.parameters || []).forEach(function (parameter) {
+      appendDefinitionList(setup, [[parameter.label, String(parameter.value) + (parameter.unit ? " " + parameter.unit : "")]]);
+    });
+    var citations = document.getElementById("citationList"); citations.replaceChildren();
+    (run.citations || []).forEach(function (citation) {
+      var li = document.createElement("li"); var link = document.createElement("a"); link.href = "https://doi.org/" + citation.doi;
+      link.target = "_blank"; link.rel = "noopener noreferrer"; link.textContent = citation.title + " · " + citation.doi; li.appendChild(link); citations.appendChild(li);
     });
   }
 
   async function loadResults() {
-    await disposeActiveViewer();
-    structureTextCache.clear();
-    structureTextCacheBytes = 0;
+    await disposeActiveViewer(); structureTextCache.clear(); structureTextCacheBytes = 0;
     if (structureHolder) structureHolder.hidden = true;
     var response = await A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5));
     var payload = await response.json().catch(function () { return {}; });
-    document.getElementById("resultStatus").textContent = payload.status || task.status;
-    // Status is set once at load; poll while the task is pending so a
-    // queued/running page updates itself and reloads when results land.
-    if (window.__revocomputeStatusPoll) clearInterval(window.__revocomputeStatusPoll);
     var initialStatus = payload.status || task.status;
+    if (window.__revocomputeStatusPoll) clearInterval(window.__revocomputeStatusPoll);
     var terminalStatuses = ["finished", "failed", "cancelled", "deleted", "deleted:finshed", "deleted:cancel"];
     var statusPollInFlight = false;
     if (terminalStatuses.indexOf(initialStatus) === -1) {
       window.__revocomputeStatusPoll = setInterval(async function () {
-        if (statusPollInFlight) return;
-        statusPollInFlight = true;
+        if (statusPollInFlight) return; statusPollInFlight = true;
         try {
           var pollResponse = await A.authFetch("/compute/api/running/" + encodeURIComponent(task.md5));
           var pollPayload = await pollResponse.json().catch(function () { return {}; });
           var isTerminal = terminalStatuses.indexOf(pollPayload.status) !== -1;
           if (!pollResponse.ok && !isTerminal) return;
-          var statusEl = document.getElementById("resultStatus");
-          if (statusEl && pollPayload.status) statusEl.textContent = pollPayload.status;
-          if (isTerminal) {
-            clearInterval(window.__revocomputeStatusPoll);
-            window.location.reload();
-          }
-        } catch (error) { /* transient network hiccup — retry next tick */ }
-        finally { statusPollInFlight = false; }
+          if (pollPayload.status) document.getElementById("resultStatus").textContent = pollPayload.status;
+          if (isTerminal) { clearInterval(window.__revocomputeStatusPoll); window.location.reload(); }
+        } catch (error) { /* retry transient failures */ } finally { statusPollInFlight = false; }
       }, 15000);
     }
     if (!response.ok || !Array.isArray(payload.artifacts)) {
       if (response.ok && terminalStatuses.indexOf(initialStatus) === -1) return;
       throw new Error(payload.message || "Results are not available yet");
     }
-    artifacts = payload.artifacts;
-    resultViews = Array.isArray(payload.views) ? payload.views : [];
-    document.getElementById("resultFileCount").textContent = artifacts.length;
-    document.getElementById("resultTotalSize").textContent = formatBytes(payload.total_size);
+    if (payload.schema_version !== 3) throw new Error("This result record uses an unsupported schema version.");
+    resultManifest = payload; artifacts = payload.artifacts; resultViews = Array.isArray(payload.views) ? payload.views : [];
+    renderScientificRecord(payload); renderArtifacts(""); renderViewTabs(); renderShortlist();
+    document.getElementById("artifactSummary").textContent = artifacts.length + " files · " + formatBytes(payload.total_size);
     var archiveButton = document.getElementById("archiveButton");
     if (payload.archive && payload.archive.ready) {
-      archiveButton.textContent = "Download ZIP";
-      archiveButton.dataset.downloadUrl = payload.archive.download_url;
-      document.getElementById("archiveState").textContent = "The optional manifest-approved ZIP is ready.";
+      archiveButton.textContent = "Download ZIP"; archiveButton.dataset.downloadUrl = payload.archive.download_url;
+      document.getElementById("archiveState").textContent = "The manifest-approved ZIP is ready.";
     }
-    renderArtifacts("");
-    renderMainResults();
-    var first = artifacts.find(function (artifact) { return Boolean(artifact.preview); });
-    if (first && !activeArtifact) previewArtifact(first);
+    var first = resultViews.find(function (view) { return view.role === "primary"; });
+    if (first) await previewView(first, false);
+    else {
+      document.getElementById("previewTitle").textContent = "No principal result view";
+      document.getElementById("previewDescription").textContent = "This method has not yet declared a scientific result composition. All published artifacts remain available below.";
+      showPreviewError(new Error("Open All artifacts to inspect or download this run."));
+    }
   }
 
   async function archiveAction() {
@@ -848,25 +946,7 @@
     document.getElementById("refreshResults").addEventListener("click", function () { window.location.reload(); });
     document.getElementById("artifactSearch").addEventListener("input", function (event) { renderArtifacts(event.target.value); });
     document.getElementById("archiveButton").addEventListener("click", archiveAction);
-
-    // Space to preview (macOS Finder Quick Look), Escape to close
-    document.addEventListener("keydown", function (event) {
-      if (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA") return;
-      if (event.key === " " || event.code === "Space") {
-        event.preventDefault();
-        if (activeArtifact) { activeArtifact = null; previewHost.destroy(); return; }
-        var first = artifacts.find(function (a) { return Boolean(a.preview); });
-        if (first) previewArtifact(first);
-      }
-      if (event.key === "Escape" && activeArtifact) {
-        event.preventDefault();
-        activeArtifact = null;
-        previewHost.destroy();
-        document.getElementById("previewTitle").textContent = "";
-        document.getElementById("artifactDownload").hidden = true;
-        document.querySelectorAll(".artifact-row.active").forEach(function (r) { r.classList.remove("active"); });
-      }
-    });
+    document.getElementById("exportShortlist").addEventListener("click", exportShortlist);
 
     loadResults().catch(function (error) {
       document.getElementById("artifactPreview").innerHTML = '<p class="preview-message"></p>';
@@ -875,6 +955,6 @@
   });
   window.addEventListener("pagehide", function () {
     previewHost.destroy();
-    thumbnailUrls.forEach(function (url) { URL.revokeObjectURL(url); });
+    if (shortlistUrl) URL.revokeObjectURL(shortlistUrl);
   });
 })();

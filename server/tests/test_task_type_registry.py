@@ -186,13 +186,29 @@ def test_input_workspace_capabilities_cover_simple_and_complex_tasks():
         assert {"design_mode", "contig", "hotspot_res"}.issubset(region_options["fields"])
         assert region_options["modes"] == ["unconditional", "motif_scaffolding", "binder", "expert"]
         assert rfdiffusion.min_input_files == 0
-        assert easifa.result_workspace[0].plugin == "residue-table-structure"
+        assert easifa.result_workspace[0].plugin == "entity-table"
         assert [cap.plugin for cap in task_types.iter_capabilities(easifa)] == [
             "files",
             "structure",
             "parameters",
             "review",
         ]
+
+
+def test_result_workspace_rejects_unsafe_or_unknown_configuration(tmp_path):
+    registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
+    view = registry["task_types"]["easifa"]["result_workspace"]["views"][0]
+    view["plugin"] = "https://example.invalid/result.js"
+    registry_path = tmp_path / "unknown-result.yaml"
+    registry_path.write_text(yaml.safe_dump(registry), encoding="utf-8")
+    with _preserve_registry(), pytest.raises(ValueError, match="Unknown result workspace plugin"):
+        task_types.load_registry(str(registry_path), str(SERVER_ROOT / "config" / "runners"), {"easifa"})
+
+    view["plugin"] = "entity-table"
+    view["sources"]["table"] = [{"path": "../secrets.csv", "required": True}]
+    registry_path.write_text(yaml.safe_dump(registry), encoding="utf-8")
+    with _preserve_registry(), pytest.raises(ValueError, match="Unsafe result workspace artifact selector"):
+        task_types.load_registry(str(registry_path), str(SERVER_ROOT / "config" / "runners"), {"easifa"})
 
 
 def test_input_workspace_rejects_remote_or_unknown_plugin_configuration(tmp_path):
