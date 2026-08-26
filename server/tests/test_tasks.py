@@ -118,7 +118,7 @@ def test_public_runner_catalog_uses_enabled_task_types(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
         tmp_path,
-        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLED_TASKRUNNERS": "gremlin"},
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLED_TASKRUNNERS": "gremlin,mpnn"},
     )
     response = module.app.test_client().get("/runners")
     html = response.get_data(as_text=True)
@@ -126,8 +126,9 @@ def test_public_runner_catalog_uses_enabled_task_types(monkeypatch, tmp_path):
     assert response.status_code == 200
     assert "Available methods" in html
     assert "PSSM-GREMLIN" in html
-    assert "Runtime families" in html
+    assert "Runtime families</dt><dd>2</dd>" in html
     assert '<span class="runtime-family">gremlin</span>' in html
+    assert '<span class="runtime-family">mpnn</span>' in html
     assert '<meta name="keywords"' in html
     assert 'href="/static/css/runners.css"' in html
     assert 'href="/runners/gremlin"' in html
