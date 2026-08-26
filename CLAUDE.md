@@ -12,7 +12,7 @@ This file is treated as a neural net with a size budget. After substantial sessi
 3. Move procedural "how-to" to docs/
 4. Audit for staleness every 3 months
 
-**PR scope discipline:** Commits should show final correct state, not intermediate learning. When revising based on new information, amend commits to replace the intermediate state. The squash-merge handles the rest.
+**PR scope discipline:** Each commit in a PR should represent correct, production-quality work at that point. The PR shows evolution of correct work (incomplete → more complete), not learning journey (wrong → corrected). Squash-merge handles final compression.
 
 Use memory/ for session-specific context. Use this file for project-invariant patterns that prevent repeated mistakes.
 
