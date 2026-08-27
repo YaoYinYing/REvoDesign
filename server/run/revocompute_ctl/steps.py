@@ -71,6 +71,7 @@ class RestartFlags:
     use_proxy_from_env: bool = False
     dry_run: bool = False
     keep_gateway: bool = False
+    server_only: bool = False
 
 
 class StepRegistry:

@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation:
   - prune always-loaded Claude guidance and move rare PR/release procedures to linked `docs/agents/` references.
 - Server:
+  - deployment control: allow `build --server-only` to rebuild web/worker images without rebuilding runner images or invalidating prepared SIFs.
   - deployment control: allow `down --keep-gateway` to leave Nginx serving the maintenance page while application services remain stopped.
   - deployment control: add a standalone operator/developer guide for modes, preparation, SIF activation, safety, cache behavior, and recovery.
   - create-task: organize server-owned method guidance into a searchable scientific catalog and one continuous, accessible experiment protocol with a normalized review.
@@ -71,6 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Server:
+  - GREMLIN: allow the registry's minimum single optimization iteration without dividing by zero in progress logging.
+  - RFdiffusion: reject diffusion schedules below the pinned runtime's supported minimum of 15 steps before submission.
   - deployment and submission workspace: require recorded SIF identity, retain maintenance after failed activation, preserve runner metadata, and avoid duplicate region parameters.
   - deployment control: reject concurrent mutations and refresh the retained gateway after recreating `web`, preventing Compose rename conflicts and stale-upstream 502s.
   - AlphaFold: preserve SLURM's selected CUDA device for Amber relaxation; nest workflow resource cards under AlphaFold2.

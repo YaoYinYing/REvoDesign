@@ -411,6 +411,13 @@ This builds all enabled runners plus web/worker and leaves the current stack
 running. On SLURM, follow any changed runner image with a matching SIF build
 before prepared activation.
 
+When only server code changed, skip runner builds and leave SIF identities
+untouched:
+
+```bash
+bash server/run/restart.sh build --server-only --use-proxy
+```
+
 ### 11.4 Activate published images
 
 ```bash

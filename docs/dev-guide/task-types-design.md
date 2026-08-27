@@ -204,11 +204,15 @@ or biological-validity claims. These fields power the method catalog, detail
 page, and selected-method brief from one server-owned source.
 
 Task types may also declare `result_workspace.views`. Each view selects an
-allowlisted local plugin and exact manifest artifacts. The
-`residue-table-structure` view maps configured table columns to Mol\* residue
-numbering without task-name conditionals in the result page. Result structure
-views start with Mol\*'s right-side controls hidden so the structure remains the
-visual focus; interactive input workspaces opt into those controls explicitly.
+allowlisted local plugin and exact manifest artifacts. The `entity-table` view
+maps configured table columns to Mol\* residue numbering without task-name
+conditionals in the result page; candidate collections and evidence bundles use
+the same manifest-first boundary. Result structure views start with Mol\*'s
+right-side controls hidden so the structure remains the visual focus;
+interactive input workspaces opt into those controls explicitly.
+The authoritative design, lifecycle, scientific-interpretation, trajectory, and
+implementation gates are documented in
+[Scientific result-view plugins](result-view-plugins.md).
 
 The API validates task type, files, relative paths, and params before it creates
 the task. Each task receives an immutable host snapshot:

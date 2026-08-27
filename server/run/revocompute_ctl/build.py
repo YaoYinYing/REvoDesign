@@ -98,6 +98,7 @@ def cmd_build(
     use_proxy: str,
     *,
     runners_only: bool = False,
+    server_only: bool = False,
 ) -> None:
     """Build selected runner images, then optionally web/worker."""
     proxy_build_args = _resolve_proxy_args(state, use_proxy_from_env, use_proxy)
@@ -106,9 +107,10 @@ def cmd_build(
     families = validate_runtime_files(state)
     ensure_docker_gid(state)
     uid, gid = resolve_runner_identity(state)
-    runners_ready = build_runner_images(state, families, proxy_build_args, uid, gid)
-    if runners_only and not runners_ready:
-        raise SystemExit(1)
+    if not server_only:
+        runners_ready = build_runner_images(state, families, proxy_build_args, uid, gid)
+        if runners_only and not runners_ready:
+            raise SystemExit(1)
     if not runners_only:
         build_web_images(state, compose_cmd, proxy_build_args, uid, gid)
 

@@ -108,6 +108,10 @@ def parse_args(argv: list[str]) -> tuple[str, str, RestartFlags]:
             if subcommand not in ("down", "restart"):
                 _usage_exit("--keep-gateway is only supported by the down and restart subcommands.")
             flags.keep_gateway = True
+        elif arg == "--server-only":
+            if subcommand != "build":
+                _usage_exit("--server-only is only supported by the build subcommand.")
+            flags.server_only = True
         else:
             _usage_exit(f"Unexpected argument: {arg}")
         position += 1
@@ -193,6 +197,7 @@ def main() -> None:
             flags.use_proxy_from_env,
             flags.use_proxy,
             runners_only=subcommand == "prepare",
+            server_only=flags.server_only,
         )
         if subcommand == "prepare" and flags.build_sif:
             from revocompute_ctl.registry import build_slurm_images, validate_runtime_files, validate_slurm_images

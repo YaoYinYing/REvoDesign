@@ -834,7 +834,7 @@ task_types:
       # These checkpoint-sensitive defaults mirror the pinned RFdiffusion
       # config/inference/base.yaml. The runner forwards them intentionally so
       # checkpoint training metadata does not silently replace inference defaults.
-      - {name: "diffuser_T", type: "int", default: 50, minimum: 1, description: "Number of diffusion timesteps", advanced: true}
+      - {name: "diffuser_T", type: "int", default: 50, minimum: 15, description: "Number of diffusion timesteps", advanced: true}
       - {name: "diffuser_b_0", type: "float", default: 0.01, minimum: 0, description: "Initial translation variance", advanced: true}
       - {name: "diffuser_b_T", type: "float", default: 0.07, minimum: 0, description: "Final translation variance", advanced: true}
       - {name: "diffuser_schedule_type", type: "str", default: "linear", choices: ["linear"], description: "Translation noise schedule", advanced: true}

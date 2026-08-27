@@ -9,6 +9,9 @@ Production SLURM/Apptainer living tests and deployment verification remain
 operational release gates. This document is not an activation checklist and
 does not authorize production changes.
 
+The next result-view goal is tracked in
+[`TODO_SCIENTIFIC_RESULT_VIEW_PROTOCOLS.md`](TODO_SCIENTIFIC_RESULT_VIEW_PROTOCOLS.md).
+
 ## Why this work exists
 
 The current create-task page can render typed parameters from the task-type

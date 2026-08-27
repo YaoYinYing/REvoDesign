@@ -629,33 +629,39 @@
       });
       var candidateStage = document.createElement("div");
       preview.replaceChildren(candidateStage);
-      if (artifact.preview === "structure") {
-        var structurePlugin = previewRegistry.resolve(artifact);
-        if (exceedsPreviewLimit(artifact, structurePlugin, candidateStage)) return;
-        var text = await structureText(artifact, previewHost.generation, services.signal);
-        if (!text || generation !== candidateGeneration) return;
-        var bar = structureViewerBar(artifact, openCandidate); candidateStage.appendChild(bar);
-        if (structureViewer === "py2dmol") {
-          await renderPy2DmolFallback(text, artifact, candidateStage, previewHost.generation, new Error("User selected alpha-trace viewer"));
+      try {
+        if (artifact.preview === "structure") {
+          var structurePlugin = previewRegistry.resolve(artifact);
+          if (exceedsPreviewLimit(artifact, structurePlugin, candidateStage)) return;
+          var text = await structureText(artifact, previewHost.generation, services.signal);
+          if (!text || generation !== candidateGeneration) return;
+          var bar = structureViewerBar(artifact, openCandidate); candidateStage.appendChild(bar);
+          if (structureViewer === "py2dmol") {
+            await renderPy2DmolFallback(text, artifact, candidateStage, previewHost.generation, new Error("User selected alpha-trace viewer"));
+            return;
+          }
+          await renderMolstar(text, artifact, candidateStage, previewHost.generation, true);
           return;
         }
-        await renderMolstar(text, artifact, candidateStage, previewHost.generation, true);
-        return;
+        var plugin = previewRegistry.resolve(artifact);
+        if (!plugin) {
+          var message = document.createElement("p"); message.className = "preview-message";
+          message.textContent = "No inline preview is available. Download this candidate instead."; candidateStage.appendChild(message); return;
+        }
+        var surface = document.createElement("div"); surface.className = "result-plugin-surface"; candidateStage.appendChild(surface);
+        await plugin.render(artifact, surface, services);
+      } catch (error) {
+        if (generation !== candidateGeneration || (error && error.name === "AbortError")) return;
+        candidateStage.replaceChildren(); var errorMessage = document.createElement("p"); errorMessage.className = "preview-message";
+        errorMessage.textContent = error.message || "Preview unavailable"; candidateStage.appendChild(errorMessage);
       }
-      var plugin = previewRegistry.resolve(artifact);
-      if (!plugin) {
-        var message = document.createElement("p"); message.className = "preview-message";
-        message.textContent = "No inline preview is available. Download this candidate instead."; candidateStage.appendChild(message); return;
-      }
-      var surface = document.createElement("div"); surface.className = "result-plugin-surface"; candidateStage.appendChild(surface);
-      await plugin.render(artifact, surface, services);
     }
     candidates.forEach(function (artifact) {
       var card = document.createElement("div"); card.className = "candidate-card"; card.dataset.path = artifact.path;
       var open = document.createElement("button"); open.type = "button"; open.className = "candidate-open";
       var name = document.createElement("strong"); name.textContent = artifact.path;
       var meta = document.createElement("span"); meta.textContent = formatBytes(artifact.size) + " · sha256 " + artifact.sha256.slice(0, 10);
-      open.append(name, meta); open.addEventListener("click", function () { openCandidate(artifact).catch(showPreviewError); });
+      open.append(name, meta); open.addEventListener("click", function () { openCandidate(artifact); });
       var item = candidateItem(view, artifact);
       var select = document.createElement("label"); select.className = "candidate-select";
       var checkbox = document.createElement("input"); checkbox.type = "checkbox";

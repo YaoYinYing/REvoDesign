@@ -585,7 +585,9 @@ def test_shared_runner_gives_rfdiffusion_writable_runtime_directories():
 
 def test_rfdiffusion_defaults_match_pinned_upstream_inference_config():
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
-    params = {param["name"]: param.get("default") for param in registry["task_types"]["rfdiffusion"]["params"]}
+    definitions = registry["task_types"]["rfdiffusion"]["params"]
+    params = {param["name"]: param.get("default") for param in definitions}
+    assert next(param for param in definitions if param["name"] == "diffuser_T")["minimum"] == 15
 
     # RosettaCommons/RFdiffusion@86507b6, config/inference/base.yaml.
     expected = {
