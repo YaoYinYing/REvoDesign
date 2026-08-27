@@ -110,7 +110,7 @@ def _manifest() -> dict:
     }
 
 
-def _open_result_page(page: Page) -> None:
+def _open_result_page(page: Page, delay_second_viewer: bool = False) -> None:
     page.route("https://fonts.googleapis.com/**", lambda route: route.abort())
     page.route("https://fonts.gstatic.com/**", lambda route: route.abort())
     html = _task_results_html()
@@ -166,10 +166,15 @@ def _open_result_page(page: Page) -> None:
         lambda route: route.fulfill(content_type="chemical/x-pdb", body=pdb),
     )
     page.route("https://revocompute.example/compute/api/results/*", lambda route: route.fulfill(json=manifest))
-    page.route(
-        "https://revocompute.example/compute/viewer-shell",
-        lambda route: route.fulfill(content_type="text/html", body=shell),
-    )
+    viewer_requests = 0
+
+    def serve_viewer(route):
+        nonlocal viewer_requests
+        viewer_requests += 1
+        body = "<script></script>" if delay_second_viewer and viewer_requests == 2 else shell
+        route.fulfill(content_type="text/html", body=body)
+
+    page.route("https://revocompute.example/compute/viewer-shell", serve_viewer)
     page.goto("https://revocompute.example/compute/results/0123456789abcdef0123456789abcdef")
 
 
@@ -220,3 +225,14 @@ def test_result_page_collapses_workspace_at_mobile_width(page: Page) -> None:
         """node => node.compareDocumentPosition(document.querySelector('.decision-rail')) &
         Node.DOCUMENT_POSITION_FOLLOWING"""
     )
+
+
+def test_result_page_cancels_delayed_warm_viewer_on_artifact_switch(page: Page) -> None:
+    _open_result_page(page, delay_second_viewer=True)
+    expect(page.get_by_role("heading", name="Active-site mapping")).to_be_visible()
+    page.get_by_text("All artifacts and diagnostics").evaluate("node => node.parentNode.open = true")
+    page.locator(".artifact-row", has_text="enzyme_structure.pdb").evaluate("node => node.click()")
+    expect(page.locator("iframe.artifact-molstar-preview")).to_have_count(1)
+    page.locator(".artifact-row", has_text="execution/slurm-job.stdout.log").evaluate("node => node.click()")
+    expect(page.get_by_role("heading", name="execution/slurm-job.stdout.log")).to_be_visible()
+    expect(page.locator("iframe.artifact-molstar-preview")).to_have_count(0, timeout=3000)

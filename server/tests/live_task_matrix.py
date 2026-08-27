@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import tempfile
 import time
 from pathlib import Path
 
@@ -112,9 +114,14 @@ WORKSPACES = {
 
 
 def save(path: Path, state: dict) -> None:
-    temporary = path.with_name(f"{path.name}.tmp")
-    temporary.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    temporary.replace(path)
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(state, indent=2, sort_keys=True) + "\n")
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def form_value(value: object) -> str:
@@ -127,6 +134,8 @@ def poll_payload(response: requests.Response) -> dict | None:
     try:
         payload = response.json()
     except requests.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
         return None
     return payload if response.status_code != 404 or payload.get("status") == "failed" else None
 

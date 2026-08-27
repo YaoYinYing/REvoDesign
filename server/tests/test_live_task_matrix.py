@@ -24,10 +24,11 @@ def test_live_matrix_preserves_case_except_for_booleans():
 def test_live_matrix_state_writes_are_atomic(monkeypatch, tmp_path):
     state_path = tmp_path / "state.json"
     state_path.write_text("old\n", encoding="utf-8")
-    monkeypatch.setattr(type(state_path), "write_text", lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError()))
+    monkeypatch.setattr(type(state_path), "replace", lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError()))
     with pytest.raises(OSError):
         save(state_path, {"tasks": {}})
     assert state_path.read_text(encoding="utf-8") == "old\n"
+    assert list(tmp_path.iterdir()) == [state_path]
 
 
 def test_live_matrix_accepts_terminal_failed_404_only():
@@ -37,5 +38,9 @@ def test_live_matrix_accepts_terminal_failed_404_only():
     missing = requests.Response()
     missing.status_code = 404
     missing._content = b'{"status":"not_found"}'
+    malformed = requests.Response()
+    malformed.status_code = 404
+    malformed._content = b'[]'
     assert poll_payload(failed) == {"status": "failed"}
     assert poll_payload(missing) is None
+    assert poll_payload(malformed) is None

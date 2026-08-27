@@ -128,7 +128,7 @@
       if (!warmMolstar || event.source !== warmMolstar.frame.contentWindow || !event.data) return;
       if (event.data.type === "shell-ready") {
         var ready = warmPending["__shell_ready__"];
-        if (ready) { delete warmPending["__shell_ready__"]; ready(); }
+        if (ready) { delete warmPending["__shell_ready__"]; clearTimeout(ready.timer); ready.resolve(); }
         return;
       }
       var pending = warmPending[event.data.requestId];
@@ -242,7 +242,14 @@
     return bar;
   }
 
-  async function renderMolstar(structureText, artifact, stage, generation, fresh) {
+  function viewerAbortError() {
+    var error = new Error("Viewer render cancelled");
+    error.name = "AbortError";
+    return error;
+  }
+
+  async function renderMolstar(structureText, artifact, stage, generation, fresh, signal) {
+    if (signal && signal.aborted) throw viewerAbortError();
     var requestId = "mol-" + Math.random().toString(36).slice(2);
     var message = {
       type: "structure",
@@ -257,9 +264,26 @@
       // Warm path: the shell is already booted; post the new structure and
       // await the ready report for this requestId. No iframe work at all.
       await new Promise(function (resolve, reject) {
-        var timer = setTimeout(function () { delete warmPending[requestId]; reject(new Error("Mol* timed out")); }, 45000);
-        warmPending[requestId] = { resolve: resolve, reject: reject, timer: timer };
-        postToShell(warmMolstar.frame, message);
+        var settled = false;
+        var removeAbort = function () {};
+        function finish(error, frame) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          delete warmPending[requestId];
+          removeAbort();
+          if (error) reject(error); else resolve(frame);
+        }
+        var timer = setTimeout(function () { finish(new Error("Mol* timed out")); }, 45000);
+        warmPending[requestId] = {
+          resolve: function (frame) { finish(null, frame); }, reject: finish, timer: timer
+        };
+        if (signal) {
+          var onAbort = function () { finish(viewerAbortError()); disposeActiveViewer(); };
+          signal.addEventListener("abort", onAbort, { once: true });
+          removeAbort = function () { signal.removeEventListener("abort", onAbort); };
+        }
+        try { postToShell(warmMolstar.frame, message); } catch (error) { finish(error); }
       });
       if (isStale(generation)) return warmMolstar.frame;
       activeMolstar = warmMolstar;
@@ -274,17 +298,27 @@
       frame.title = "Mol* structure viewer";
       var handshake = new Promise(function (resolve, reject) {
         var settled = false;
-        var timer = setTimeout(function () { if (settled) return; settled = true; window.removeEventListener("message", onMessage); reject(new Error("Mol* timed out")); }, 45000);
+        function finish(error) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          window.removeEventListener("message", onMessage);
+          if (signal) signal.removeEventListener("abort", onAbort);
+          if (error) reject(error); else resolve(frame);
+        }
+        var timer = setTimeout(function () { finish(new Error("Mol* timed out")); }, 45000);
+        function onAbort() { frame.remove(); finish(viewerAbortError()); }
         function onMessage(event) {
           if ((event.origin !== location.origin && event.origin !== "null") || event.source !== frame.contentWindow || !event.data) return;
           if (event.data.type === "shell-ready") postToShell(frame, message);
           else if (event.data.type === "ready" && event.data.requestId === requestId) {
-            if (settled) return; settled = true; clearTimeout(timer); window.removeEventListener("message", onMessage); resolve(frame);
+            finish();
           } else if (event.data.type === "error" && event.data.requestId === requestId) {
-            if (settled) return; settled = true; clearTimeout(timer); window.removeEventListener("message", onMessage); reject(new Error(event.data.message));
+            finish(new Error(event.data.message));
           }
         }
         window.addEventListener("message", onMessage);
+        if (signal) signal.addEventListener("abort", onAbort, { once: true });
       });
       stage.appendChild(frame);
       frame.src = "/compute/viewer-shell";
@@ -305,13 +339,33 @@
     warmFrame.src = "/compute/viewer-shell";
     await new Promise(function (resolve, reject) {
       var settled = false;
-      var timer = setTimeout(function () { if (settled) return; settled = true; reject(new Error("Mol* timed out")); }, 45000);
-      warmPending["__shell_ready__"] = function () {
+      var removeAbort = function () {};
+      function finish(error, frame) {
         if (settled) return;
-        postToShell(warmFrame, message);
-        var reqTimer = setTimeout(function () { if (settled) return; settled = true; delete warmPending[requestId]; reject(new Error("Mol* timed out")); }, 45000);
-        warmPending[requestId] = { resolve: function (frame) { if (settled) return; settled = true; clearTimeout(timer); resolve(frame); }, reject: function (error) { if (settled) return; settled = true; clearTimeout(timer); reject(error); }, timer: reqTimer };
+        settled = true;
+        clearTimeout(timer);
+        delete warmPending["__shell_ready__"];
+        delete warmPending[requestId];
+        removeAbort();
+        if (error) reject(error); else resolve(frame);
+      }
+      var timer = setTimeout(function () { finish(new Error("Mol* timed out")); }, 45000);
+      warmPending["__shell_ready__"] = {
+        resolve: function () {
+          try { postToShell(warmFrame, message); } catch (error) { finish(error); return; }
+          timer = setTimeout(function () { finish(new Error("Mol* timed out")); }, 45000);
+          warmPending[requestId] = {
+            resolve: function (frame) { finish(null, frame); }, reject: finish, timer: timer
+          };
+        },
+        reject: finish,
+        timer: timer
       };
+      if (signal) {
+        var onAbort = function () { finish(viewerAbortError()); disposeActiveViewer(); };
+        signal.addEventListener("abort", onAbort, { once: true });
+        removeAbort = function () { signal.removeEventListener("abort", onAbort); };
+      }
     });
     if (isStale(generation)) return warmFrame;
     activeMolstar = warmMolstar;
@@ -402,7 +456,7 @@
     // Cached swaps resolve almost instantly; a loading box would only flash.
     var loading = cached ? null : showLoading(surface, "Loading structure…");
     try {
-      await renderMolstar(text, artifact, surface, generation);
+      await renderMolstar(text, artifact, surface, generation, false, signal);
       if (loading) loading.remove();
     }
     catch (error) {
@@ -640,7 +694,7 @@
             await renderPy2DmolFallback(text, artifact, candidateStage, previewHost.generation, new Error("User selected alpha-trace viewer"));
             return;
           }
-          await renderMolstar(text, artifact, candidateStage, previewHost.generation, true);
+          await renderMolstar(text, artifact, candidateStage, previewHost.generation, true, services.signal);
           return;
         }
         var plugin = previewRegistry.resolve(artifact);
@@ -752,7 +806,9 @@
       try {
         var response = await A.authFetch(structureArtifact.url, { signal: services.signal });
         if (!response.ok) throw new Error("Structure download failed");
-        viewerFrame = await renderMolstar(await response.text(), structureArtifact, viewerStage, previewHost.generation, true);
+        viewerFrame = await renderMolstar(
+          await response.text(), structureArtifact, viewerStage, previewHost.generation, true, services.signal
+        );
         if (viewerFrame && pendingSelection) postToShell(viewerFrame, pendingSelection);
       } catch (error) {
         if (services.signal.aborted) return;
