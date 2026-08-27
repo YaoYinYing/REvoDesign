@@ -159,6 +159,7 @@ spell the intended production mode explicitly.
 | `--mode=prod` | `restart` | Pull published images after stopping, then activate |
 | `--mode=prepared` | `restart` | Validate existing local artifacts before stopping; no build or pull |
 | `--enabled-runners=CSV` | build/prepare/restart paths | Override enabled runtime families for this invocation |
+| `--server-only` | `build` | Build web/worker images without rebuilding runner images |
 | `--build-sif` | SLURM preparation/dev or prod restart | Build missing/stale SIFs; incompatible with prepared mode |
 | `--use-proxy` | build paths | Read `REVODESIGN_BUILD_PROXY` from the selected env file |
 | `--use-proxy=URL` | build paths | Supply the build proxy directly for this invocation |

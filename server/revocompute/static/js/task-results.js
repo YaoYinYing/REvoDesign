@@ -689,9 +689,15 @@
 
     async function loadPage() {
       var requestedOffset = offset;
-      var response = await A.authFetch(tableUrl(tableArtifact.path, requestedOffset), { signal: services.signal });
-      if (!response.ok) throw new Error("Result table could not be loaded.");
-      var page = await response.json();
+      var page;
+      try {
+        var response = await A.authFetch(tableUrl(tableArtifact.path, requestedOffset), { signal: services.signal });
+        if (!response.ok) throw new Error("Result table could not be loaded.");
+        page = await response.json();
+      } catch (error) {
+        if (requestedOffset !== offset) return;
+        throw error;
+      }
       if (requestedOffset !== offset) return;
       tableRegion.replaceChildren();
       var wrap = document.createElement("div"); wrap.className = "artifact-table-wrap";
@@ -790,7 +796,13 @@
     structure: async function (artifact, stage, services) {
       stage.hidden = true;
       if (structureHolder) structureHolder.hidden = false;
-      await previewStructure(artifact, stage, services.signal);
+      try {
+        await previewStructure(artifact, stage, services.signal);
+      } catch (error) {
+        stage.hidden = false;
+        if (structureHolder) structureHolder.hidden = true;
+        throw error;
+      }
     },
     image: previewImage,
     table: previewTable,

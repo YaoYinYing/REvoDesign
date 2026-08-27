@@ -317,6 +317,8 @@ def test_result_status_polling_handles_terminal_and_pending_responses():
     assert results.index("window.__revocomputeStatusPoll = setInterval") < results.index(
         "if (!response.ok || !Array.isArray(payload.artifacts))"
     )
+    assert "if (requestedOffset !== offset) return;\n        throw error;" in results
+    assert "stage.hidden = false;\n        if (structureHolder) structureHolder.hidden = true;" in results
     disposal = results.index("await disposeActiveViewer();")
     assert disposal < results.index("if (isStale(generation)) return;", disposal)
     py2dmol = results.index('if (structureViewer === "py2dmol")')

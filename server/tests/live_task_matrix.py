@@ -112,11 +112,23 @@ WORKSPACES = {
 
 
 def save(path: Path, state: dict) -> None:
-    path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary = path.with_name(f"{path.name}.tmp")
+    temporary.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.replace(path)
 
 
 def form_value(value: object) -> str:
     return str(value).lower() if isinstance(value, bool) else str(value)
+
+
+def poll_payload(response: requests.Response) -> dict | None:
+    if response.status_code not in {200, 202, 404}:
+        return None
+    try:
+        payload = response.json()
+    except requests.JSONDecodeError:
+        return None
+    return payload if response.status_code != 404 or payload.get("status") == "failed" else None
 
 
 def submit(session: requests.Session, base_url: str, name: str) -> str:
@@ -195,13 +207,9 @@ def main() -> None:
         for name, item in list(active.items()):
             task_id = item["task_id"]
             response = session.get(f"{args.base_url}/compute/api/running/{task_id}", timeout=30)
-            if response.status_code not in {200, 202}:
+            payload = poll_payload(response)
+            if payload is None:
                 print(f"POLL {name} HTTP {response.status_code}; retrying", flush=True)
-                continue
-            try:
-                payload = response.json()
-            except requests.JSONDecodeError:
-                print(f"POLL {name} returned non-JSON; retrying", flush=True)
                 continue
             status = payload.get("status", "unknown")
             if status != item.get("status"):

@@ -6,7 +6,10 @@ from __future__ import annotations
 
 import json
 
-from live_task_matrix import CASES, REPO_ROOT, WORKSPACES, form_value
+import pytest
+import requests
+
+from live_task_matrix import CASES, REPO_ROOT, WORKSPACES, form_value, poll_payload, save
 
 
 def test_live_matrix_preserves_case_except_for_booleans():
@@ -16,3 +19,23 @@ def test_live_matrix_preserves_case_except_for_booleans():
     assert WORKSPACES["rfdiffusion"]["capabilities"]["design_regions"]["mode"] == "unconditional"
     opendde = json.loads((REPO_ROOT / CASES["opendde"][0]).read_text(encoding="utf-8"))
     assert opendde and isinstance(opendde, list)
+
+
+def test_live_matrix_state_writes_are_atomic(monkeypatch, tmp_path):
+    state_path = tmp_path / "state.json"
+    state_path.write_text("old\n", encoding="utf-8")
+    monkeypatch.setattr(type(state_path), "write_text", lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError()))
+    with pytest.raises(OSError):
+        save(state_path, {"tasks": {}})
+    assert state_path.read_text(encoding="utf-8") == "old\n"
+
+
+def test_live_matrix_accepts_terminal_failed_404_only():
+    failed = requests.Response()
+    failed.status_code = 404
+    failed._content = b'{"status":"failed"}'
+    missing = requests.Response()
+    missing.status_code = 404
+    missing._content = b'{"status":"not_found"}'
+    assert poll_payload(failed) == {"status": "failed"}
+    assert poll_payload(missing) is None
