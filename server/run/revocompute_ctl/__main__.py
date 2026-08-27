@@ -70,7 +70,7 @@ def parse_args(argv: list[str]) -> tuple[str, str, RestartFlags]:
     while position < len(rest):
         arg = rest[position]
         if arg.startswith("--mode="):
-            flags.mode = arg[len("--mode=") :]
+            flags.mode = arg[len("--mode="):]
             if flags.mode not in ("dev", "prod", "prepared"):
                 _usage_exit(f"Invalid mode: {flags.mode}. Expected dev, prod, or prepared.")
             if subcommand != "restart":
@@ -84,7 +84,7 @@ def parse_args(argv: list[str]) -> tuple[str, str, RestartFlags]:
                 raise SystemExit(1)
             os.environ["SLURM_ALLOWED_QUEUES"] = rest[position]
         elif arg.startswith("--enabled-runners="):
-            os.environ["ENABLED_TASKRUNNERS"] = arg[len("--enabled-runners=") :]
+            os.environ["ENABLED_TASKRUNNERS"] = arg[len("--enabled-runners="):]
         elif arg == "--enabled-runners":
             position += 1
             if position >= len(rest) or rest[position].startswith("--"):
@@ -94,7 +94,7 @@ def parse_args(argv: list[str]) -> tuple[str, str, RestartFlags]:
         elif arg == "--build-sif":
             flags.build_sif = True
         elif arg.startswith("--use-proxy="):
-            flags.use_proxy = arg[len("--use-proxy=") :]
+            flags.use_proxy = arg[len("--use-proxy="):]
             os.environ["HTTP_PROXY"] = flags.use_proxy
             os.environ["HTTPS_PROXY"] = flags.use_proxy
             os.environ["NO_PROXY"] = os.environ.get("NO_PROXY", "localhost,127.0.0.1,.local")
@@ -105,8 +105,8 @@ def parse_args(argv: list[str]) -> tuple[str, str, RestartFlags]:
                 _usage_exit("--dry-run is only supported by the restart subcommand.")
             flags.dry_run = True
         elif arg == "--keep-gateway":
-            if subcommand != "restart":
-                _usage_exit("--keep-gateway is only supported by the restart subcommand.")
+            if subcommand not in ("down", "restart"):
+                _usage_exit("--keep-gateway is only supported by the down and restart subcommands.")
             flags.keep_gateway = True
         else:
             _usage_exit(f"Unexpected argument: {arg}")
@@ -203,7 +203,7 @@ def main() -> None:
     elif subcommand == "up":
         cmd_up(state, compose_cmd)
     elif subcommand == "down":
-        cmd_down(state, compose_cmd)
+        cmd_down(state, compose_cmd, keep_gateway=flags.keep_gateway)
     elif subcommand == "reload":
         cmd_reload(state, compose_cmd)
     elif subcommand == "reset-passwd":

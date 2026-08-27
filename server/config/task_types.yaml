@@ -1084,7 +1084,7 @@ task_types:
           description: Binder structures that passed the selected campaign filters.
           sources:
             candidates:
-              - {glob: "Accepted/*.pdb", required: true}
+              - {glob: "Accepted/*.pdb", required: false}
           mapping: {}
     stage_markers:
       parse: "Parse target settings"

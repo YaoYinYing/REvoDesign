@@ -204,12 +204,18 @@ def test_result_page_keeps_artifacts_fallback_and_native_space(page: Page) -> No
     expect(page.get_by_role("heading", name="execution/slurm-job.stdout.log")).to_be_visible()
     expect(page.get_by_role("link", name="Download file")).to_be_visible()
 
+    search.fill("enzyme_structure")
+    page.locator(".artifact-row", has_text="enzyme_structure.pdb").click()
+    expect(page.get_by_role("heading", name="enzyme_structure.pdb")).to_be_visible()
+    expect(page.locator("iframe.artifact-molstar-preview")).to_be_visible()
+
 
 def test_result_page_collapses_workspace_at_mobile_width(page: Page) -> None:
     page.set_viewport_size({"width": 560, "height": 900})
     _open_result_page(page)
     columns = page.locator(".result-workspace").evaluate("node => getComputedStyle(node).gridTemplateColumns")
-    assert " " not in columns.strip()
+    tracks = columns.strip().split()
+    assert len(tracks) == 1 and tracks[0] != "none", columns
     assert page.locator(".preview-workspace").evaluate(
         """node => node.compareDocumentPosition(document.querySelector('.decision-rail')) &
         Node.DOCUMENT_POSITION_FOLLOWING"""

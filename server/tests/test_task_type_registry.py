@@ -211,6 +211,18 @@ def test_result_workspace_rejects_unsafe_or_unknown_configuration(tmp_path):
         task_types.load_registry(str(registry_path), str(SERVER_ROOT / "config" / "runners"), {"easifa"})
 
 
+def test_freebindcraft_allows_zero_accepted_designs():
+    with _preserve_registry():
+        task_types.load_registry(
+            str(SERVER_ROOT / "config" / "task_types.yaml"),
+            str(SERVER_ROOT / "config" / "runners"),
+            {"freebindcraft"},
+        )
+        freebindcraft, _ = task_types.get("freebindcraft")
+
+        assert not freebindcraft.result_workspace[0].sources["candidates"][0].required
+
+
 def test_input_workspace_rejects_remote_or_unknown_plugin_configuration(tmp_path):
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
     registry["task_types"]["gremlin"]["input_workspace"] = {

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 USAGE = """Usage: bash server/run/restart.sh [setup|prepare|build|up|down|reload|restart|reset-passwd]
        bash server/run/restart.sh restart [--mode=dev|--mode=prod|--mode=prepared]
+       bash server/run/restart.sh down [--keep-gateway]
        bash server/run/restart.sh reset-passwd <username>
 
        SLURM flags (when task_types.yaml selects job_executor: slurm):
@@ -30,12 +31,12 @@ USAGE = """Usage: bash server/run/restart.sh [setup|prepare|build|up|down|reload
                                                e.g. 'gremlin,pythia_ddg'.
                                                Default: all registered runners.
 
-       Deploy safety flags (restart):
+       Deploy safety flags (down / restart):
            --dry-run                           Print the planned step walk and
                                                per-family change predictions
                                                without executing anything.
            --keep-gateway                     Enter maintenance and leave the
-                                               gateway running during restart.
+                                               gateway running while services stop.
 Environment:
   REVODESIGN_SERVER_ENV
           Optional path to env file (absolute or relative to current working directory).
@@ -51,7 +52,7 @@ Subcommands:
            Does not restart the running deployment.
   build    Build runner image and web/worker images.
   up       Start redis/web/worker with docker compose.
-  down     Stop and remove the compose stack.
+  down     Stop and remove the compose stack; --keep-gateway retains Nginx in maintenance mode.
   reload   Send HUP to Gunicorn for a zero-downtime application reload.
   restart  Restart in dev mode by default.
            --mode=dev:  down, build local images with host UID/GID, then up.

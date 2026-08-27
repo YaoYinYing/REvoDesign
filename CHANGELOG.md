@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation:
   - prune always-loaded Claude guidance and move rare PR/release procedures to linked `docs/agents/` references.
 - Server:
+  - deployment control: allow `down --keep-gateway` to leave Nginx serving the maintenance page while application services remain stopped.
   - deployment control: add a standalone operator/developer guide for modes, preparation, SIF activation, safety, cache behavior, and recovery.
   - create-task: organize server-owned method guidance into a searchable scientific catalog and one continuous, accessible experiment protocol with a normalized review.
   - create-task: `?task_type=<name>` deep links select an enabled method from runner detail pages.

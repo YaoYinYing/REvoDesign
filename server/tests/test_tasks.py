@@ -260,7 +260,7 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert '"/compute/viewer-shell"' in script
     assert "shell-ready" in script
     assert "postMessage" in script
-    assert "A.authFetch(artifact.url)" in script
+    assert "A.authFetch(artifact.url, { signal: services.signal })" in script
     assert "renderPy2DmolFallback" in script
     assert "isStale" in script
     viewer_shell = (SERVER_PACKAGE / "static" / "js" / "viewer-shell.js").read_text(encoding="utf-8")
@@ -638,6 +638,7 @@ def test_run_compute_task_finalizes_uncompressed_result_manifest(monkeypatch, tm
     names = {item["path"] for item in manifest["artifacts"]}
     assert manifest["schema_version"] == 3
     assert manifest["output_check"]["state"] == "failed"
+    assert manifest["output_check"]["problems"]
     assert "log/task_finished" in names
     assert "pssm_msa/input_ascii_mtx_file" in names
     assert all(len(item["sha256"]) == 64 for item in manifest["artifacts"])
@@ -990,7 +991,8 @@ def test_task_configured_linked_result_and_bounded_table_api(monkeypatch, tmp_pa
     }
     assert manifest["views"][0]["mapping"]["numbering"] == "label_seq_id"
     assert manifest["run"]["inputs"] == [{"path": "enzyme.pdb", "sha256": "d" * 64}]
-    assert manifest["run"]["parameters"][0]["value"] == "CCO>>CC=O"
+    parameters = {item["name"]: item["value"] for item in manifest["run"]["parameters"]}
+    assert parameters["reaction_smiles"] == "CCO>>CC=O"
     public_manifest = json.dumps(manifest)
     assert "private-owner" not in public_manifest
     assert "/private/host/workspace" not in public_manifest
@@ -1152,6 +1154,7 @@ def test_viewer_shell_isolates_molstar_eval_csp(monkeypatch, tmp_path):
     style_src = next(part.strip() for part in csp.split(";") if part.strip().startswith("style-src"))
     assert "'self'" in style_src
     connect_src = next(part.strip() for part in csp.split(";") if part.strip().startswith("connect-src"))
+    # data: is self-contained, so the viewer shell still cannot reach remote hosts.
     assert connect_src == "connect-src data:"
     html = response.get_data(as_text=True)
     viewer_script = 'src="/static/js/viewer-shell.js?v='

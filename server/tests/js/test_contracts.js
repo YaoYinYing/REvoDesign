@@ -143,7 +143,7 @@ var InputWorkspace = mockWindow.REvoComputeInputWorkspace;
 // assert helper
 // ---------------------------------------------------------------------------
 
-var passed = 0, failed = 0;
+var passed = 0, failed = 0, pending = [];
 
 function assert(condition, message) {
   if (condition) { passed += 1; }
@@ -356,12 +356,12 @@ function assertThrows(fn, pattern, message) {
   });
   var stage = fakeNode("div");
   var host = new ResultPreviews.ResultPreviewHost(registry, stage);
-  host.render({ plugin: "candidate-collection" }).then(function () {
+  pending.push(host.render({ plugin: "candidate-collection" }).then(function () {
     assertEqual(host.active.plugin.id, "candidate-collection", "composed view resolves through preview host");
     host.destroy();
     assert(aborted, "destroy aborts active render signal");
     assertEqual(destroyed, 1, "destroy tears down active plugin exactly once");
-  });
+  }).catch(function (error) { assert(false, "composed lifecycle: " + error.message); }));
 })();
 
 // ===================================================================
@@ -494,8 +494,8 @@ function assertThrows(fn, pattern, message) {
 // Summary
 // ===================================================================
 
-setTimeout(function () {
+Promise.all(pending).then(function () {
   console.log("");
   console.log(passed + " passed, " + failed + " failed");
   process.exit(failed > 0 ? 1 : 0);
-}, 0);
+});

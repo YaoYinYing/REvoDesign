@@ -366,10 +366,10 @@
     return text;
   }
 
-  async function previewStructure(artifact, stage) {
+  async function previewStructure(artifact, stage, signal) {
     var generation = previewHost.generation;
     var cached = structureTextCache.has(artifact.path);
-    var text = await structureText(artifact, generation);
+    var text = await structureText(artifact, generation, signal);
     if (!text) return;
     var surface = structureHolder || stage;
     clearSurfacePreservingWarm(surface);
@@ -450,8 +450,8 @@
     stage.appendChild(wrap);
   }
 
-  async function previewImage(artifact, stage) {
-    var response = await A.authFetch(artifact.url);
+  async function previewImage(artifact, stage, services) {
+    var response = await A.authFetch(artifact.url, { signal: services.signal });
     if (!response.ok) throw new Error("Image download failed");
     var objectUrl = URL.createObjectURL(await response.blob());
     var image = document.createElement("img");
@@ -517,8 +517,8 @@
     stage.appendChild(wrapper);
   }
 
-  async function previewText(artifact, stage) {
-    var response = await A.authFetch(artifact.url, { headers: { Range: "bytes=0-262143" } });
+  async function previewText(artifact, stage, services) {
+    var response = await A.authFetch(artifact.url, { headers: { Range: "bytes=0-262143" }, signal: services.signal });
     if (!response.ok && response.status !== 206) throw new Error("Text preview download failed");
     var text = await response.text();
     if (isMsaFile(artifact.path)) {
@@ -530,9 +530,9 @@
     stage.appendChild(pre);
   }
 
-  async function previewTable(artifact, stage) {
+  async function previewTable(artifact, stage, services) {
     var encoded = artifact.path.split("/").map(encodeURIComponent).join("/");
-    var response = await A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5) + "/tables/" + encoded + "?limit=100");
+    var response = await A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5) + "/tables/" + encoded + "?limit=100", { signal: services.signal });
     if (!response.ok) throw new Error("Table preview download failed");
     var page = await response.json();
     renderTable(page, stage);
@@ -551,6 +551,13 @@
   function artifactPaths(view, source) {
     return (view.sources && Array.isArray(view.sources[source]) ? view.sources[source] : [])
       .map(artifactFor).filter(Boolean);
+  }
+
+  function exceedsPreviewLimit(artifact, plugin, stage) {
+    if (!plugin || !plugin.maxBytes || Number(artifact.size || 0) <= plugin.maxBytes) return false;
+    var message = document.createElement("p"); message.className = "preview-message";
+    message.textContent = "This file exceeds the safe inline preview limit. Download it instead.";
+    stage.appendChild(message); return true;
   }
 
   function shortlistKey(viewId, entityId) { return viewId + ":" + entityId; }
@@ -605,35 +612,43 @@
 
   async function renderCandidateCollection(view, stage, services) {
     var candidates = artifactPaths(view, "candidates");
-    if (!candidates.length) throw new Error("No candidate outputs are available.");
+    if (!candidates.length) {
+      var empty = document.createElement("p"); empty.className = "preview-message";
+      empty.textContent = "No candidates passed the configured filters."; stage.appendChild(empty); return;
+    }
     var layout = document.createElement("div"); layout.className = "candidate-layout";
     var list = document.createElement("div"); list.className = "candidate-list";
     var preview = document.createElement("div"); preview.className = "candidate-preview";
+    var candidateGeneration = 0;
     layout.append(list, preview); stage.appendChild(layout);
     async function openCandidate(artifact) {
+      var generation = ++candidateGeneration;
       artifact.confidence_encoding = view.mapping.confidence_encoding || null;
       list.querySelectorAll(".candidate-card").forEach(function (node) {
         node.setAttribute("aria-current", node.dataset.path === artifact.path ? "true" : "false");
       });
-      preview.replaceChildren();
+      var candidateStage = document.createElement("div");
+      preview.replaceChildren(candidateStage);
       if (artifact.preview === "structure") {
+        var structurePlugin = previewRegistry.resolve(artifact);
+        if (exceedsPreviewLimit(artifact, structurePlugin, candidateStage)) return;
         var text = await structureText(artifact, previewHost.generation, services.signal);
-        if (!text) return;
-        var bar = structureViewerBar(artifact, openCandidate); preview.appendChild(bar);
+        if (!text || generation !== candidateGeneration) return;
+        var bar = structureViewerBar(artifact, openCandidate); candidateStage.appendChild(bar);
         if (structureViewer === "py2dmol") {
-          await renderPy2DmolFallback(text, artifact, preview, previewHost.generation, new Error("User selected alpha-trace viewer"));
+          await renderPy2DmolFallback(text, artifact, candidateStage, previewHost.generation, new Error("User selected alpha-trace viewer"));
           return;
         }
-        await renderMolstar(text, artifact, preview, previewHost.generation, true);
+        await renderMolstar(text, artifact, candidateStage, previewHost.generation, true);
         return;
       }
       var plugin = previewRegistry.resolve(artifact);
       if (!plugin) {
         var message = document.createElement("p"); message.className = "preview-message";
-        message.textContent = "No inline preview is available. Download this candidate instead."; preview.appendChild(message); return;
+        message.textContent = "No inline preview is available. Download this candidate instead."; candidateStage.appendChild(message); return;
       }
-      var surface = document.createElement("div"); surface.className = "result-plugin-surface"; preview.appendChild(surface);
-      await plugin.render(artifact, surface, {});
+      var surface = document.createElement("div"); surface.className = "result-plugin-surface"; candidateStage.appendChild(surface);
+      await plugin.render(artifact, surface, services);
     }
     candidates.forEach(function (artifact) {
       var card = document.createElement("div"); card.className = "candidate-card"; card.dataset.path = artifact.path;
@@ -660,16 +675,19 @@
     var tableArtifacts = artifactPaths(view, "table");
     if (tableArtifacts.length !== 1) throw new Error("The configured result table is unavailable.");
     var tableArtifact = tableArtifacts[0]; var structures = artifactPaths(view, "structure");
-    var structureArtifact = structures[0] || null; var viewerFrame = null; var offset = 0;
+    var structureArtifact = structures[0] || null; var viewerFrame = null; var pendingSelection = null; var offset = 0;
     var layout = document.createElement("div"); layout.className = structureArtifact ? "linked-result-layout" : "linked-result-layout table-only";
     var tableRegion = document.createElement("div"); tableRegion.className = "linked-result-table";
     var viewerStage = document.createElement("div"); viewerStage.className = "linked-result-structure";
     layout.append(tableRegion); if (structureArtifact) layout.append(viewerStage); stage.appendChild(layout);
 
     async function loadPage() {
-      var response = await A.authFetch(tableUrl(tableArtifact.path, offset), { signal: services.signal });
+      var requestedOffset = offset;
+      var response = await A.authFetch(tableUrl(tableArtifact.path, requestedOffset), { signal: services.signal });
       if (!response.ok) throw new Error("Result table could not be loaded.");
-      var page = await response.json(); tableRegion.replaceChildren();
+      var page = await response.json();
+      if (requestedOffset !== offset) return;
+      tableRegion.replaceChildren();
       var wrap = document.createElement("div"); wrap.className = "artifact-table-wrap";
       var table = document.createElement("table"); table.className = "artifact-table-preview entity-result-table";
       var heading = document.createElement("tr");
@@ -694,10 +712,12 @@
         function follow() {
           table.querySelectorAll("tr[aria-selected=true]").forEach(function (node) { node.setAttribute("aria-selected", "false"); });
           tr.setAttribute("aria-selected", "true");
-          if (viewerFrame && view.mapping.residue_column) postToShell(viewerFrame, {
+          if (!view.mapping.residue_column) return;
+          pendingSelection = {
             type: "select-residue", chain: view.mapping.chain_column ? row[indexes[view.mapping.chain_column]] : "",
             residue: Number(row[indexes[view.mapping.residue_column]]), numbering: view.mapping.numbering
-          });
+          };
+          if (viewerFrame) postToShell(viewerFrame, pendingSelection);
         }
         tr.addEventListener("click", follow); tr.addEventListener("keydown", function (event) {
           if (event.key === "Enter") { event.preventDefault(); follow(); }
@@ -706,20 +726,22 @@
       wrap.appendChild(table); tableRegion.appendChild(wrap);
       var pager = document.createElement("div"); pager.className = "table-pager";
       var previous = document.createElement("button"); previous.type = "button"; previous.className = "btn btn-soft btn-small";
-      previous.textContent = "Previous"; previous.disabled = offset === 0;
+      previous.textContent = "Previous"; previous.disabled = requestedOffset === 0;
       previous.addEventListener("click", function () { offset = Math.max(0, offset - 100); loadPage().catch(showPreviewError); });
       var next = document.createElement("button"); next.type = "button"; next.className = "btn btn-soft btn-small";
       next.textContent = "Next"; next.disabled = !page.has_more;
       next.addEventListener("click", function () { offset += 100; loadPage().catch(showPreviewError); });
-      var pageLabel = document.createElement("span"); pageLabel.textContent = "Rows " + (offset + 1) + "–" + (offset + page.rows.length);
+      var pageLabel = document.createElement("span"); pageLabel.textContent = "Rows " + (requestedOffset + 1) + "–" + (requestedOffset + page.rows.length);
       pager.append(previous, pageLabel, next); tableRegion.appendChild(pager);
     }
     await loadPage();
     if (structureArtifact) {
+      if (exceedsPreviewLimit(structureArtifact, previewRegistry.resolve(structureArtifact), viewerStage)) return;
       try {
         var response = await A.authFetch(structureArtifact.url, { signal: services.signal });
         if (!response.ok) throw new Error("Structure download failed");
         viewerFrame = await renderMolstar(await response.text(), structureArtifact, viewerStage, previewHost.generation, true);
+        if (viewerFrame && pendingSelection) postToShell(viewerFrame, pendingSelection);
       } catch (error) {
         if (services.signal.aborted) return;
         var message = document.createElement("p"); message.className = "preview-message";
@@ -728,19 +750,28 @@
     }
   }
 
-  async function renderEvidenceBundle(view, stage) {
+  async function renderEvidenceBundle(view, stage, services) {
     var items = artifactPaths(view, "items"); var list = document.createElement("div"); list.className = "evidence-list";
     var preview = document.createElement("div"); preview.className = "evidence-preview"; stage.append(list, preview);
+    var evidenceGeneration = 0;
+    async function openEvidence(artifact) {
+      var generation = ++evidenceGeneration; var plugin = previewRegistry.resolve(artifact);
+      var surface = document.createElement("div"); surface.className = "result-plugin-surface"; preview.replaceChildren(surface);
+      if (!plugin) { surface.textContent = "This evidence is available as a download."; return; }
+      if (exceedsPreviewLimit(artifact, plugin, surface)) return;
+      try { await plugin.render(artifact, surface, services); }
+      catch (error) {
+        if (generation !== evidenceGeneration || error.name === "AbortError") return;
+        surface.replaceChildren(); var message = document.createElement("p"); message.className = "preview-message";
+        message.textContent = error.message || "Preview unavailable"; surface.appendChild(message);
+      }
+    }
     items.forEach(function (artifact) {
       var button = document.createElement("button"); button.type = "button"; button.className = "evidence-item";
-      button.textContent = artifact.path; button.addEventListener("click", function () {
-        preview.replaceChildren(); var plugin = previewRegistry.resolve(artifact);
-        if (!plugin) { preview.textContent = "This evidence is available as a download."; return; }
-        var surface = document.createElement("div"); surface.className = "result-plugin-surface"; preview.appendChild(surface);
-        plugin.render(artifact, surface, {}).catch(showPreviewError);
-      }); list.appendChild(button);
+      button.textContent = artifact.path; button.addEventListener("click", function () { openEvidence(artifact); }); list.appendChild(button);
     });
-    if (items[0]) list.firstChild.click();
+    if (items[0]) await openEvidence(items[0]);
+    else preview.textContent = "No evidence artifacts are available.";
   }
 
   function showPreviewError(error) {
@@ -750,10 +781,10 @@
   }
 
   previewRegistry = window.REvoComputeResultPreviews.createRegistry({
-    structure: async function (artifact, stage) {
-      stage.parentNode.hidden = true;
+    structure: async function (artifact, stage, services) {
+      stage.hidden = true;
       if (structureHolder) structureHolder.hidden = false;
-      await previewStructure(artifact, stage);
+      await previewStructure(artifact, stage, services.signal);
     },
     image: previewImage,
     table: previewTable,
