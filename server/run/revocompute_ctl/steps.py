@@ -71,6 +71,7 @@ class RestartFlags:
     use_proxy_from_env: bool = False
     dry_run: bool = False
     keep_gateway: bool = False
+    server_only: bool = False
 
 
 class StepRegistry:
@@ -149,7 +150,8 @@ def _prepared_preflight(state, compose_cmd: tuple[str, ...], dry_run: bool = Fal
 def require_env_file(state, dry_run: bool = False) -> None:
     if not os.path.isfile(state.env_file):
         print(
-            f"Expected {state.env_file} to exist. Run: REVODESIGN_SERVER_ENV={state.env_file} bash server/run/restart.sh setup",
+            f"Expected {state.env_file} to exist. Run: REVODESIGN_SERVER_ENV={state.env_file} "
+            "bash server/run/restart.sh setup",
             file=sys.stderr,
         )
         raise SystemExit(1)
@@ -189,11 +191,14 @@ def cmd_setup(state) -> None:
 
 
 def cmd_down(state, compose_cmd: tuple[str, ...], *, keep_gateway: bool = False) -> None:
+    from revocompute_ctl.maintenance import begin_maintenance, sentinel_path
     from revocompute_ctl.sweep import pre_stop_sweep_slurm
 
     require_env_file(state)
     ensure_docker_gid(state)
     resolve_runner_identity(state)
+    if keep_gateway and not os.path.isfile(sentinel_path(state)):
+        begin_maintenance(state)
     pre_stop_sweep_slurm(state, compose_cmd)
     print("Stopping services via docker compose...")
     services = ["redis", "web", "maintenance", "worker"]

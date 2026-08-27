@@ -11,6 +11,7 @@ opens the user database.
 
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
 import logging
@@ -25,6 +26,7 @@ import time
 import zipfile
 from dataclasses import replace
 from datetime import datetime
+from fnmatch import fnmatchcase
 from pathlib import Path
 from typing import Any
 
@@ -375,6 +377,8 @@ def _run_compute_workflow(
 _TEXT_PREVIEW_EXTENSIONS = {
     ".a3m",
     ".aln",
+    ".bib",
+    ".bibtex",
     ".csv",
     ".fa",
     ".faa",
@@ -416,72 +420,221 @@ def _preview_kind(relative_path: str) -> str | None:
     return None
 
 
-def _finalize_results_manifest(task: dict) -> dict[str, Any]:
-    """Atomically publish the immutable result-tree inventory for a task."""
+def _iso_timestamp(value: Any) -> str | None:
+    try:
+        return datetime.fromtimestamp(float(value)).astimezone().isoformat() if value is not None else None
+    except (TypeError, ValueError, OSError):
+        return None
+
+
+def _public_run_record(task: dict[str, Any], task_type: Any, finished_at: float) -> dict[str, Any]:
+    raw_form = task.get("input_form")
+    try:
+        form = json.loads(raw_form) if isinstance(raw_form, str) else raw_form
+    except (json.JSONDecodeError, TypeError):
+        form = {}
+    form = form if isinstance(form, dict) else {}
+    entities = form.get("entities") if isinstance(form.get("entities"), list) else []
+    params_by_name = {parameter.name: parameter for parameter in task_type.params} if task_type else {}
+    inputs = [
+        {
+            "path": str(entity.get("relative_path") or entity.get("verified_value") or ""),
+            "sha256": str(entity.get("hash") or ""),
+        }
+        for entity in entities
+        if entity.get("type") == "file" and (entity.get("relative_path") or entity.get("verified_value"))
+    ]
+    parameters = []
+    for entity in entities:
+        if entity.get("type") == "file" or not entity.get("name"):
+            continue
+        definition = params_by_name.get(entity["name"])
+        parameters.append(
+            {
+                "name": entity["name"],
+                "label": (
+                    definition.label or entity["name"].replace("_", " ").title()
+                    if definition
+                    else entity["name"].replace("_", " ").title()
+                ),
+                "value": entity.get("verified_value", entity.get("value")),
+                "unit": definition.unit if definition else "",
+            }
+        )
+    started_at = task.get("started_at")
+    walltime = (
+        max(finished_at - float(started_at), 0.0) if isinstance(started_at, (int, float)) else task.get("walltime")
+    )
+    return {
+        "method": {
+            "id": task.get("task_type", "gremlin"),
+            "name": task_type.display_name if task_type else task.get("task_type", "gremlin"),
+            "summary": task_type.summary if task_type else "",
+            "output_summary": task_type.output_summary if task_type else "",
+        },
+        "inputs": inputs,
+        "parameters": parameters,
+        "submitted_at": form.get("submitted_at") or _iso_timestamp(task.get("uploaded_at")),
+        "started_at": _iso_timestamp(started_at),
+        "finished_at": _iso_timestamp(finished_at),
+        "walltime_seconds": walltime,
+        "citations": (
+            [{"num": number, "doi": doi, "title": title} for number, doi, title in task_type.citation_dois]
+            if task_type
+            else []
+        ),
+    }
+
+
+def _default_artifact_role(relative_path: str) -> str:
+    basename = os.path.basename(relative_path)
+    if relative_path == "citations.bib" or relative_path.startswith("debug/"):
+        return "provenance"
+    if (
+        relative_path.startswith(("execution/", "log/"))
+        or basename in {"task_finished", "task_failed.txt"}
+        or (basename.startswith(".") and basename.endswith("-complete"))
+        or relative_path.endswith((".stderr.log", ".stdout.log", ".err"))
+    ):
+        return "diagnostic"
+    return "artifact"
+
+
+def _resolve_result_views(
+    task_type: Any,
+    artifacts: list[dict[str, Any]],
+    result_dir: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
+    views: list[dict[str, Any]] = []
+    checks: list[dict[str, Any]] = []
+    problems: list[str] = []
+    if task_type is None or not task_type.result_workspace:
+        return views, checks, problems
+    paths = [artifact["path"] for artifact in artifacts]
+    artifact_by_path = {artifact["path"]: artifact for artifact in artifacts}
+    for definition in task_type.result_workspace:
+        resolved_sources: dict[str, list[str]] = {}
+        for source_name, selectors in definition.sources.items():
+            matches: list[str] = []
+            for selector in selectors:
+                selected = (
+                    [path for path in paths if fnmatchcase(path, selector.value)]
+                    if selector.is_glob
+                    else [selector.value] if selector.value in artifact_by_path else []
+                )
+                if len(selected) > 500:
+                    problems.append(f"{definition.title}: {source_name} matched more than 500 artifacts")
+                    selected = selected[:500]
+                nonempty = [path for path in selected if artifact_by_path[path]["size"] > 0]
+                status = "passed" if nonempty or not selector.required else "failed"
+                checks.append(
+                    {
+                        "view_id": definition.id,
+                        "source": source_name,
+                        "required": selector.required,
+                        "status": status,
+                        "matched": len(nonempty),
+                    }
+                )
+                if selector.required and not nonempty:
+                    problems.append(f"{definition.title}: required {source_name} output is missing or empty")
+                matches.extend(nonempty)
+            resolved_sources[source_name] = list(dict.fromkeys(matches))
+        if definition.plugin == "entity-table":
+            tables = resolved_sources.get("table", [])
+            structures = resolved_sources.get("structure", [])
+            if len(tables) != 1:
+                problems.append(f"{definition.title}: table source must resolve to exactly one artifact")
+            if len(structures) > 1:
+                problems.append(f"{definition.title}: structure source must resolve to at most one artifact")
+            if len(tables) == 1:
+                delimiter = "\t" if tables[0].lower().endswith(".tsv") else ","
+                try:
+                    with open(_safe_join(result_dir, *tables[0].split("/")), newline="", encoding="utf-8") as handle:
+                        columns = next(csv.reader(handle, delimiter=delimiter), [])
+                except (OSError, UnicodeError, csv.Error):
+                    columns = []
+                required_columns = set(definition.mapping.get("key_columns", []))
+                required_columns.update(definition.mapping.get("evidence_columns", []))
+                required_columns.update(
+                    definition.mapping[key]
+                    for key in ("label_column", "chain_column", "residue_column")
+                    if definition.mapping.get(key)
+                )
+                missing = sorted(required_columns - set(columns))
+                if missing:
+                    problems.append(f"{definition.title}: table is missing columns {', '.join(missing)}")
+        view = {
+            "id": definition.id,
+            "plugin": definition.plugin,
+            "role": definition.role,
+            "title": definition.title,
+            "description": definition.description,
+            "sources": resolved_sources,
+            "mapping": definition.mapping,
+        }
+        views.append(view)
+        artifact_role = "primary" if definition.role == "primary" else "evidence"
+        for source_name, source_paths in resolved_sources.items():
+            role = "evidence" if source_name == "supporting" else artifact_role
+            for path in source_paths:
+                if artifact_by_path[path]["role"] not in {"provenance", "diagnostic"}:
+                    artifact_by_path[path]["role"] = role
+    return views, checks, list(dict.fromkeys(problems))
+
+
+def _finalize_results_manifest(
+    task: dict[str, Any],
+    *,
+    execution_state: str,
+    finished_at: float,
+) -> dict[str, Any]:
+    """Atomically publish the immutable scientific result record for a task."""
+    if execution_state not in {"completed", "failed"}:
+        raise ValueError("execution_state must be completed or failed")
     result_dir = os.path.abspath(task["result_dir"])
     os.makedirs(result_dir, exist_ok=True)
-    # Method citation: every result dir carries the task type's BibTeX
-    # (resolved from its DOI, never hand-guessed) as citations.bib.
     try:
-        citation_tt, _ = _get_task_type(task.get("task_type", "gremlin"))
+        task_type, _ = _get_task_type(task.get("task_type", "gremlin"))
     except KeyError:
-        citation_tt = None
-    if citation_tt is not None and citation_tt.citation_bibtex:
+        task_type = None
+    if task_type is not None and task_type.citation_bibtex:
         with open(os.path.join(result_dir, "citations.bib"), "w", encoding="utf-8") as handle:
-            handle.write(citation_tt.citation_bibtex.strip() + "\n")
+            handle.write(task_type.citation_bibtex.strip() + "\n")
     artifacts: list[dict[str, Any]] = []
     for root, dirs, files in os.walk(result_dir, followlinks=False):
-        dirs[:] = sorted(d for d in dirs if not os.path.islink(os.path.join(root, d)))
+        dirs[:] = sorted(directory for directory in dirs if not os.path.islink(os.path.join(root, directory)))
         for filename in sorted(files):
             path = os.path.join(root, filename)
             relative_path = os.path.relpath(path, result_dir).replace(os.sep, "/")
             if relative_path in {"manifest.json", ".manifest.json.tmp"} or os.path.islink(path):
                 continue
             stat = os.stat(path, follow_symlinks=False)
-            artifact = {
-                "path": relative_path,
-                "size": stat.st_size,
-                "sha256": _sha256_file(path),
-                "media_type": mimetypes.guess_type(relative_path)[0] or "application/octet-stream",
-                "preview": _preview_kind(relative_path),
-            }
-            if relative_path.startswith("execution/slurm-") and relative_path.endswith((".stdout.log", ".stderr.log")):
-                artifact["role"] = "diagnostic"
-            artifacts.append(artifact)
-    artifact_by_path = {item["path"]: item for item in artifacts}
-    views: list[dict[str, Any]] = []
-    try:
-        task_type, _ = _get_task_type(task.get("task_type", "gremlin"))
-    except KeyError:
-        task_type = None
-    if task_type is not None:
-        for definition in task_type.result_workspace:
-            table_path = str(definition.options["table_path"])
-            structure_path = str(definition.options["structure_path"])
-            if table_path not in artifact_by_path or structure_path not in artifact_by_path:
-                logging.warning("Skipping result view %s: declared artifacts are missing", definition.id)
-                continue
-            group = str(definition.options.get("group") or definition.id)
-            artifact_by_path[table_path].update({"role": "primary", "group": group, "preview": "table"})
-            artifact_by_path[structure_path].update({"role": "primary", "group": group, "preview": "structure"})
-            views.append(
+            artifacts.append(
                 {
-                    "id": definition.id,
-                    "plugin": definition.plugin,
-                    "title": definition.title,
-                    "artifacts": {"table": table_path, "structure": structure_path},
-                    "mapping": {
-                        "chain_column": definition.options["chain_column"],
-                        "residue_column": definition.options["residue_column"],
-                        "numbering": definition.options["numbering"],
-                    },
+                    "path": relative_path,
+                    "size": stat.st_size,
+                    "sha256": _sha256_file(path),
+                    "media_type": mimetypes.guess_type(relative_path)[0] or "application/octet-stream",
+                    "preview": _preview_kind(relative_path),
+                    "role": _default_artifact_role(relative_path),
                 }
             )
+    views, checks, problems = _resolve_result_views(task_type, artifacts, result_dir)
+    if execution_state == "failed":
+        output_state = "not_assessed"
+    elif task_type is None or not task_type.result_workspace:
+        output_state = "not_configured"
+    else:
+        output_state = "failed" if problems else "passed"
     manifest = {
-        "schema_version": 2,
+        "schema_version": 3,
         "task_id": task["md5sum"],
         "task_type": task.get("task_type", "gremlin"),
-        "created_at": datetime.now().astimezone().isoformat(),
+        "created_at": _iso_timestamp(finished_at),
+        "run": _public_run_record(task, task_type, finished_at),
+        "output_check": {"state": output_state, "checks": checks, "problems": problems},
+        "limitations": list(task_type.considerations) if task_type else [],
         "artifacts": artifacts,
         "views": views,
         "total_size": sum(item["size"] for item in artifacts),
@@ -527,7 +680,7 @@ def _build_results_archive(task: dict) -> str:
     return zip_filename
 
 
-def _finalize_failed_results(task: dict, error: Any) -> None:
+def _finalize_failed_results(task: dict, error: Any, *, finished_at: float) -> None:
     result_dir = task.get("result_dir")
     if not result_dir:
         return
@@ -542,7 +695,7 @@ def _finalize_failed_results(task: dict, error: Any) -> None:
             handle.write(f"Input: {task.get('filename', 'unknown')}\n\n")
             handle.write(message)
             handle.write("\n")
-        _finalize_results_manifest(task)
+        _finalize_results_manifest(task, execution_state="failed", finished_at=finished_at)
     except Exception as exc:  # pylint: disable=broad-except
         logging.warning("Failed to finalize failed task %s: %s", task.get("md5sum"), exc)
 
@@ -597,7 +750,7 @@ def _record_failure(md5sum: str, task: dict, start_time: float, run_stage: str, 
     if _task_is_terminal(md5sum):
         return
     _capture_debug_submission(task, _entities_from_input_form(task))
-    _finalize_failed_results(task, error_message)
+    _finalize_failed_results(task, error_message, finished_at=finish_time)
     task_store.update_task(
         md5sum,
         status="failed",
@@ -885,11 +1038,11 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         if _is_terminal_status(refreshed_task.get("status")):
             return
         _capture_debug_submission(task, entities, params)
-        _finalize_results_manifest(refreshed_task)
+        finish_time = time.time()
+        _finalize_results_manifest(refreshed_task, execution_state="completed", finished_at=finish_time)
         refreshed_task = task_store.get_task(md5sum) or refreshed_task
         if _is_terminal_status(refreshed_task.get("status")):
             return
-        finish_time = time.time()
         task_store.update_task(
             md5sum,
             status="finished",
@@ -1124,11 +1277,11 @@ def _finalize_after_poll(md5sum, task, tt, state):
         if _is_terminal_status(refreshed.get("status")):
             return
         _capture_debug_submission(task, _entities_from_input_form(task))
-        _finalize_results_manifest(refreshed)
+        finish_time = time.time()
+        _finalize_results_manifest(refreshed, execution_state="completed", finished_at=finish_time)
         refreshed = task_store.get_task(md5sum) or refreshed
         if _is_terminal_status(refreshed.get("status")):
             return
-        finish_time = time.time()
         task_store.update_task(
             md5sum,
             status="finished",

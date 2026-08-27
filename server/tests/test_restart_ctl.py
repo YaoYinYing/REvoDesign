@@ -266,6 +266,19 @@ def test_prepare_rejects_unknown_runner(monkeypatch, tmp_path):
     assert "Unknown runner selection: typo" in result.stderr
 
 
+def test_build_server_only_skips_runner_images(monkeypatch, tmp_path):
+    _task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    bin_dir = _write_shims(tmp_path)
+    monkeypatch.setenv("SHIM_IDS", str(tmp_path / "ids.txt"))
+    monkeypatch.setenv("SHIM_LOG", str(tmp_path / "docker.log"))
+    result = _run_cli(monkeypatch, tmp_path, env_file, bin_dir, "build", "--server-only")
+
+    assert result.returncode == 0, result.stderr
+    commands = (tmp_path / "docker.log").read_text(encoding="utf-8").splitlines()
+    assert any(command.endswith("build web worker") for command in commands)
+    assert not any(command.startswith("build ") for command in commands)
+
+
 def test_restart_rejects_unknown_runner(monkeypatch, tmp_path):
     _task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
     result = _run_cli(monkeypatch, tmp_path, env_file, _write_shims(tmp_path), "restart", "--enabled-runners=typo")
@@ -283,10 +296,28 @@ def test_env_state_precedence_runtime_over_file_over_environment(tmp_path, monke
     assert state.get("RUNNER_UID") == "777"
 
 
-def test_restart_keep_gateway_flag():
-    subcommand, _reset_username, flags = main_mod.parse_args(["restart", "--keep-gateway"])
-    assert subcommand == "restart"
+@pytest.mark.parametrize("subcommand", ["down", "restart"])
+def test_keep_gateway_flag(subcommand):
+    parsed, _reset_username, flags = main_mod.parse_args([subcommand, "--keep-gateway"])
+    assert parsed == subcommand
     assert flags.keep_gateway
+
+
+def test_down_keep_gateway_leaves_gateway_serving_maintenance(monkeypatch, tmp_path):
+    bin_dir = _write_shims(tmp_path)
+    task_dir, _auth_dir, env_file = _deploy_env(tmp_path)
+    monkeypatch.setenv("SHIM_IDS", str(tmp_path / "ids.txt"))
+    monkeypatch.setenv("SHIM_LOG", str(tmp_path / "docker.log"))
+
+    result = _run_cli(monkeypatch, tmp_path, env_file, bin_dir, "down", "--keep-gateway")
+
+    assert result.returncode == 0, result.stderr
+    assert (task_dir / ".maintenance").is_file()
+    commands = (tmp_path / "docker.log").read_text(encoding="utf-8").splitlines()
+    assert any("up -d --no-deps --force-recreate gateway" in command for command in commands)
+    assert any(command.endswith("stop redis web maintenance worker") for command in commands)
+    compose_commands = [command.split() for command in commands if "--env-file" in command.split()]
+    assert all(tokens[tokens.index("--env-file") + 2] != "down" for tokens in compose_commands)
 
 
 def test_deployment_lock_rejects_concurrent_control(tmp_path):

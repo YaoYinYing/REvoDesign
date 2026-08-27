@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>REvoDesign | Main Results</title>
+<title>REvoDesign | Results</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="/compute/logo.svg">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
@@ -13,50 +13,81 @@
 </head>
 <body>
 <main class="page result-page">
-  <section class="panel result-hero">
+  <header class="panel result-hero">
     <div>
-      <p class="result-eyebrow">{{ task.task_type }}</p>
+      <p class="result-eyebrow" id="methodName">{{ task.task_type }}</p>
       <h1 class="headline">{{ task.fasta_fn }}</h1>
-      <p class="subline"><code>{{ task.md5 }}</code></p>
+      <p class="subline">Task <code>{{ task.md5 }}</code></p>
     </div>
     <div class="hero-actions">
       <a class="btn btn-soft" href="/compute/dashboard">Dashboard</a>
       <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
       <button class="btn btn-soft" type="button" id="refreshResults">Refresh</button>
     </div>
+  </header>
+
+  <section class="panel outcome-panel" aria-labelledby="outcomeHeading">
+    <div class="decision-step" aria-hidden="true"><span>Outcome</span><span>Evidence</span><span>Selection</span></div>
+    <div class="outcome-copy">
+      <p class="result-eyebrow">Run outcome</p>
+      <h2 id="outcomeHeading"><span id="resultStatus">{{ task.status }}</span> · <span id="outputCheck">Checking outputs</span></h2>
+      <p id="outputSummary" class="outcome-summary">Loading the scientific result record…</p>
+      <ul id="outputProblems" class="output-problems"></ul>
+      <p class="technical-scope">The output check confirms configured files and table fields—not scientific or experimental validity.</p>
+    </div>
   </section>
 
-  <section class="result-summary-grid" aria-label="Task result summary">
-    <article class="panel result-stat"><span>Status</span><strong id="resultStatus">{{ task.status }}</strong></article>
-    <article class="panel result-stat"><span>Files</span><strong id="resultFileCount">—</strong></article>
-    <article class="panel result-stat"><span>Total size</span><strong id="resultTotalSize">—</strong></article>
-    <article class="panel result-stat"><span>Wall time</span><strong>{{ task.walltime }}</strong></article>
-  </section>
-
-  <section class="result-layout">
-    <aside class="panel artifact-sidebar">
-      <div class="section-title-row">
-        <h2>Artifacts</h2>
-        <button class="btn btn-soft btn-small" type="button" id="archiveButton">Create ZIP</button>
-      </div>
-      <p class="muted" id="archiveState">The manifest and individual files are available without an archive.</p>
-      <input class="artifact-search" id="artifactSearch" type="search" placeholder="Filter files" aria-label="Filter result artifacts">
-      <nav class="artifact-list" id="artifactList" aria-label="Result artifacts"></nav>
-    </aside>
-
-    <section class="panel preview-workspace">
-      <div class="section-title-row">
+  <section class="result-workspace">
+    <article class="panel preview-workspace" aria-labelledby="previewTitle">
+      <nav class="result-view-tabs" id="resultViews" aria-label="Scientific result views"></nav>
+      <div class="section-title-row preview-heading">
         <div>
-          <p class="result-eyebrow">Main Results</p>
-          <h2 id="previewTitle">Choose an artifact</h2>
+          <p class="result-eyebrow">Principal result</p>
+          <h2 id="previewTitle" tabindex="-1">Loading result</h2>
+          <p class="muted" id="previewDescription"></p>
         </div>
         <a class="btn btn-soft btn-small" id="artifactDownload" hidden>Download file</a>
       </div>
-      <div class="main-results" id="mainResults"></div>
-      <div class="artifact-preview-stage" id="artifactPreview" aria-live="polite">
-        <p class="empty-result">Select a previewable result from Main Results or the artifact list.</p>
+      <p class="sr-only" id="previewStatus" role="status" aria-live="polite"></p>
+      <div class="artifact-preview-stage" id="artifactPreview" aria-busy="false">
+        <p class="empty-result">Loading the principal scientific result…</p>
       </div>
-    </section>
+    </article>
+
+    <aside class="panel decision-rail" aria-labelledby="shortlistHeading">
+      <p class="result-eyebrow">Selection</p>
+      <div class="section-title-row">
+        <h2 id="shortlistHeading">Review shortlist</h2>
+        <span class="shortlist-count" id="shortlistCount" aria-live="polite">0 selected</span>
+      </div>
+      <div class="shortlist-items" id="shortlistItems"></div>
+      <button class="btn btn-primary" type="button" id="exportShortlist" disabled>Export shortlist</button>
+      <p class="muted">This bounded export records your review choices. It does not submit another computation.</p>
+    </aside>
+  </section>
+
+  <section class="result-record">
+    <details class="panel record-section" open>
+      <summary>Limitations</summary>
+      <ul id="limitationList"></ul>
+    </details>
+    <details class="panel record-section">
+      <summary>Run setup and reproducibility</summary>
+      <dl class="run-setup" id="runSetup"></dl>
+      <h3>Method citations</h3>
+      <ul id="citationList"></ul>
+    </details>
+    <details class="panel record-section artifact-section">
+      <summary>All artifacts and diagnostics <span id="artifactSummary"></span></summary>
+      <div class="artifact-tools">
+        <div>
+          <button class="btn btn-soft btn-small" type="button" id="archiveButton">Create ZIP</button>
+          <p class="muted" id="archiveState">Individual manifest-approved files are available now.</p>
+        </div>
+        <input class="artifact-search" id="artifactSearch" type="search" placeholder="Filter files" aria-label="Filter result artifacts">
+      </div>
+      <nav class="artifact-list" id="artifactList" aria-label="Result artifacts"></nav>
+    </details>
   </section>
 </main>
 

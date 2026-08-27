@@ -288,7 +288,7 @@ def GREMLIN(msa, opt_type="adam", opt_iter=100, opt_rate=1.0, batch_size=None):
         if opt_type == "adam":
             for i in range(opt_iter):
                 sess.run(opt, feed())
-                if (i + 1) % int(opt_iter / 10) == 0:
+                if (i + 1) % max(1, int(opt_iter / 10)) == 0:
                     print("iter", (i + 1), get_loss())
 
         # save the V and W parameters of the MRF

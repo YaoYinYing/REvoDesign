@@ -174,6 +174,19 @@ task_types:
           title: Review
           options:
             show_paths: true
+    result_workspace:
+      views:
+        - plugin: evidence-bundle
+          id: evolutionary_evidence
+          role: primary
+          title: Evolutionary evidence
+          description: Alignment, position-specific scoring, and co-evolution evidence produced for the submitted sequence.
+          sources:
+            items:
+              - {glob: "gremlin_msa/*.i90c75.a3m", required: true}
+              - {glob: "pssm_msa/*_ascii_mtx_file", required: true}
+              - {glob: "gremlin_res/*_GREMLIN_mtx.png", required: true}
+          mapping: {}
     stage_markers:
       hhblits: "HHblits MSA generation"
       hhfilter: "HHfilter filtering"
@@ -821,7 +834,7 @@ task_types:
       # These checkpoint-sensitive defaults mirror the pinned RFdiffusion
       # config/inference/base.yaml. The runner forwards them intentionally so
       # checkpoint training metadata does not silently replace inference defaults.
-      - {name: "diffuser_T", type: "int", default: 50, minimum: 1, description: "Number of diffusion timesteps", advanced: true}
+      - {name: "diffuser_T", type: "int", default: 50, minimum: 15, description: "Number of diffusion timesteps", advanced: true}
       - {name: "diffuser_b_0", type: "float", default: 0.01, minimum: 0, description: "Initial translation variance", advanced: true}
       - {name: "diffuser_b_T", type: "float", default: 0.07, minimum: 0, description: "Final translation variance", advanced: true}
       - {name: "diffuser_schedule_type", type: "str", default: "linear", choices: ["linear"], description: "Translation noise schedule", advanced: true}
@@ -1018,16 +1031,24 @@ task_types:
             show_paths: true
     result_workspace:
       views:
-        - plugin: "residue-table-structure"
-          id: "active_sites"
-          title: "Active-site mapping"
-          options:
-            table_path: "active_sites.csv"
-            structure_path: "enzyme_structure.pdb"
-            chain_column: "chain"
-            residue_column: "residue_index"
-            numbering: "label_seq_id"
-            group: "active-sites"
+        - plugin: entity-table
+          id: active_sites
+          role: primary
+          title: Active-site mapping
+          description: Predicted active-site residues in the submitted enzyme structure.
+          sources:
+            table:
+              - {path: "active_sites.csv", required: true}
+            structure:
+              - {path: "enzyme_structure.pdb", required: true}
+          mapping:
+            entity: residue
+            key_columns: [chain, residue_index]
+            label_column: site_name
+            chain_column: chain
+            residue_column: residue_index
+            numbering: label_seq_id
+            evidence_columns: [site_class, probabilities]
     stage_markers:
       easifa: "EasIFA2 active-site annotation"
     params:
@@ -1054,6 +1075,17 @@ task_types:
     max_input_files: 1
     input_label: "Protein structure"
     input_workspace: *structure_workspace
+    result_workspace:
+      views:
+        - plugin: candidate-collection
+          id: accepted_binders
+          role: primary
+          title: Accepted binder designs
+          description: Binder structures that passed the selected campaign filters.
+          sources:
+            candidates:
+              - {glob: "Accepted/*.pdb", required: false}
+          mapping: {}
     stage_markers:
       parse: "Parse target settings"
       design: "Binder design loop"
@@ -1128,6 +1160,18 @@ task_types:
     primary_input_extensions: [".fasta", ".fa", ".faa"]
     input_label: "Protein sequence (FASTA)"
     input_workspace: *fasta_workspace
+    result_workspace:
+      views:
+        - plugin: candidate-collection
+          id: ranked_models
+          role: primary
+          title: Ranked structure models
+          description: Predicted structures in the ranking order published by AlphaFold.
+          sources:
+            candidates:
+              - {glob: "*/ranked_*.pdb", required: true}
+          mapping:
+            confidence_encoding: plddt_bfactor
     stage_markers:
       msa_searching: "MSA searching"
       featuring: "Building features"

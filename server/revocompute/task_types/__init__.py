@@ -79,13 +79,25 @@ class Category:
 
 
 @dataclass(frozen=True)
+class ArtifactSelector:
+    """A bounded server-side selector for manifest-approved result artifacts."""
+
+    value: str
+    is_glob: bool
+    required: bool
+
+
+@dataclass(frozen=True)
 class ResultView:
     """A safe task-owned composition of local result-view plugins."""
 
     plugin: str
     id: str
+    role: str
     title: str
-    options: dict[str, Any] = field(default_factory=dict)
+    description: str
+    sources: dict[str, tuple[ArtifactSelector, ...]]
+    mapping: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -242,17 +254,28 @@ def _load_citation_dois(raw: Any, name: str) -> tuple[tuple[int, str, str], ...]
     return tuple(sorted(ordered))
 
 
-_RESULT_VIEW_PLUGINS = {"residue-table-structure"}
-_RESULT_VIEW_OPTION_KEYS = {
-    "residue-table-structure": {
-        "table_path",
-        "structure_path",
+_RESULT_VIEW_SOURCE_KEYS = {
+    "candidate-collection": {"candidates", "supporting"},
+    "entity-table": {"table", "structure"},
+    "evidence-bundle": {"items"},
+}
+_RESULT_VIEW_MAPPING_KEYS = {
+    "candidate-collection": {"confidence_encoding"},
+    "entity-table": {
+        "entity",
+        "key_columns",
+        "label_column",
         "chain_column",
         "residue_column",
         "numbering",
-        "group",
-    }
+        "evidence_columns",
+    },
+    "evidence-bundle": set(),
 }
+_RESULT_VIEW_ROLES = {"primary", "evidence"}
+_RESULT_ENTITIES = {"residue", "mutation", "candidate"}
+_RESULT_NUMBERINGS = {"label_seq_id", "auth_seq_id"}
+_RESULT_CONFIDENCE_ENCODINGS = {"plddt_bfactor"}
 
 
 def register(task_type: TaskType, runner: RunnerConfig) -> None:
@@ -379,6 +402,63 @@ def _load_input_workspace(raw: Any) -> tuple[InputStep, ...]:
     return tuple(steps)
 
 
+def _load_artifact_selector(raw: Any, view_id: str) -> ArtifactSelector:
+    if not isinstance(raw, dict) or set(raw) not in ({"path", "required"}, {"glob", "required"}):
+        raise ValueError(f"Result view {view_id!r} selectors require exactly path or glob plus required")
+    key = "glob" if "glob" in raw else "path"
+    value = raw[key]
+    if (
+        not isinstance(value, str)
+        or not value
+        or value.startswith("/")
+        or "\\" in value
+        or any(part in {"", ".", ".."} for part in value.split("/"))
+    ):
+        raise ValueError(f"Unsafe result workspace artifact selector: {value!r}")
+    if not isinstance(raw["required"], bool):
+        raise ValueError(f"Result view {view_id!r} selector required must be a boolean")
+    return ArtifactSelector(value=value, is_glob=key == "glob", required=raw["required"])
+
+
+def _string_list(value: Any, field_name: str, *, required: bool = False) -> list[str]:
+    if value is None and not required:
+        return []
+    if (
+        not isinstance(value, list)
+        or (required and not value)
+        or not all(isinstance(item, str) and item for item in value)
+    ):
+        raise ValueError(f"{field_name} must be a list of non-empty strings")
+    return value
+
+
+def _validate_result_mapping(plugin: str, mapping: Any, view_id: str) -> dict[str, Any]:
+    if not isinstance(mapping, dict) or set(mapping) - _RESULT_VIEW_MAPPING_KEYS[plugin]:
+        raise ValueError(f"Invalid mapping for result workspace plugin {plugin!r}")
+    if plugin == "candidate-collection":
+        confidence = mapping.get("confidence_encoding")
+        if confidence is not None and confidence not in _RESULT_CONFIDENCE_ENCODINGS:
+            raise ValueError(f"Invalid confidence encoding for result view {view_id!r}")
+    elif plugin == "entity-table":
+        if mapping.get("entity") not in _RESULT_ENTITIES:
+            raise ValueError(f"Invalid entity for result view {view_id!r}")
+        _string_list(mapping.get("key_columns"), f"Result view {view_id!r} key_columns", required=True)
+        _string_list(mapping.get("evidence_columns", []), f"Result view {view_id!r} evidence_columns")
+        for key in ("label_column", "chain_column", "residue_column"):
+            if key in mapping and (not isinstance(mapping[key], str) or not mapping[key]):
+                raise ValueError(f"Result view {view_id!r} {key} must be non-empty text")
+        numbering = mapping.get("numbering")
+        if numbering is not None and numbering not in _RESULT_NUMBERINGS:
+            raise ValueError(f"Invalid numbering for result view {view_id!r}")
+        if ("chain_column" in mapping or "residue_column" in mapping or numbering) and not {
+            "chain_column",
+            "residue_column",
+            "numbering",
+        }.issubset(mapping):
+            raise ValueError(f"Incomplete structure mapping for result view {view_id!r}")
+    return mapping
+
+
 def _load_result_workspace(raw: Any) -> tuple[ResultView, ...]:
     if raw is None:
         return ()
@@ -387,28 +467,52 @@ def _load_result_workspace(raw: Any) -> tuple[ResultView, ...]:
     views: list[ResultView] = []
     seen: set[str] = set()
     for entry in raw["views"]:
-        if not isinstance(entry, dict) or set(entry) - {"plugin", "id", "title", "options"}:
-            raise ValueError("Invalid result workspace view")
+        if not isinstance(entry, dict) or set(entry) != {
+            "plugin",
+            "id",
+            "role",
+            "title",
+            "description",
+            "sources",
+            "mapping",
+        }:
+            raise ValueError(
+                "Result workspace views require plugin, id, role, title, description, sources, and mapping"
+            )
         plugin = entry.get("plugin")
         view_id = entry.get("id")
-        if plugin not in _RESULT_VIEW_PLUGINS:
+        if plugin not in _RESULT_VIEW_SOURCE_KEYS:
             raise ValueError(f"Unknown result workspace plugin: {plugin!r}")
-        if not isinstance(view_id, str) or not view_id or not view_id.replace("_", "").replace("-", "").isalnum():
-            raise ValueError(f"Invalid result workspace view id: {view_id!r}")
-        if view_id in seen:
-            raise ValueError(f"Duplicate result workspace view id: {view_id!r}")
-        options = entry.get("options", {})
-        if not isinstance(options, dict) or set(options) - _RESULT_VIEW_OPTION_KEYS[plugin]:
-            raise ValueError(f"Invalid options for result workspace plugin {plugin!r}")
-        required = {"table_path", "structure_path", "chain_column", "residue_column", "numbering"}
-        if not required.issubset(options) or options["numbering"] not in {"label_seq_id", "auth_seq_id"}:
-            raise ValueError(f"Incomplete result workspace mapping for {view_id!r}")
-        for key in ("table_path", "structure_path"):
-            path = str(options[key])
-            if path.startswith("/") or any(part in {"", ".", ".."} for part in path.split("/")):
-                raise ValueError(f"Unsafe result workspace artifact path: {path!r}")
+        if not _valid_identifier(view_id) or view_id in seen:
+            raise ValueError(f"Invalid or duplicate result workspace view id: {view_id!r}")
+        role = entry.get("role")
+        if role not in _RESULT_VIEW_ROLES:
+            raise ValueError(f"Invalid role for result workspace view {view_id!r}")
+        sources = entry.get("sources")
+        if not isinstance(sources, dict) or not sources or set(sources) - _RESULT_VIEW_SOURCE_KEYS[plugin]:
+            raise ValueError(f"Invalid sources for result workspace plugin {plugin!r}")
+        required_source_keys = (
+            {"candidates"} if plugin == "candidate-collection" else {"table"} if plugin == "entity-table" else {"items"}
+        )
+        if not required_source_keys.issubset(sources):
+            raise ValueError(f"Incomplete sources for result workspace view {view_id!r}")
+        normalized_sources: dict[str, tuple[ArtifactSelector, ...]] = {}
+        for source_name, selectors in sources.items():
+            if not isinstance(selectors, list) or not selectors:
+                raise ValueError(f"Result view {view_id!r} source {source_name!r} must contain selectors")
+            normalized_sources[source_name] = tuple(_load_artifact_selector(item, view_id) for item in selectors)
         seen.add(view_id)
-        views.append(ResultView(plugin=plugin, id=view_id, title=str(entry.get("title") or view_id), options=options))
+        views.append(
+            ResultView(
+                plugin=plugin,
+                id=view_id,
+                role=role,
+                title=_required_text(entry.get("title"), f"Result view {view_id!r} title"),
+                description=_required_text(entry.get("description"), f"Result view {view_id!r} description"),
+                sources=normalized_sources,
+                mapping=_validate_result_mapping(plugin, entry.get("mapping"), view_id),
+            )
+        )
     return tuple(views)
 
 

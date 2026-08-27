@@ -12,6 +12,7 @@ from pathlib import Path
 import yaml
 
 RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "pssm_gremlin" / "run.sh"
+GREMLIN_SCRIPT = RUNNER_SCRIPT.parent / "scripts" / "GREMLIN_TFv1.py"
 OPENDDE_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "opendde" / "run.sh"
 MPNN_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "mpnn" / "run.sh"
 ALPHAFOLD_RUNNER_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "runners" / "alphafold" / "run.sh"
@@ -62,6 +63,10 @@ def test_runner_script_executes_pipeline_commands_as_arrays():
         assert command in script
 
     assert '"${cmd[@]}"' in script
+
+
+def test_gremlin_single_iteration_has_a_nonzero_progress_interval():
+    assert "max(1, int(opt_iter / 10))" in GREMLIN_SCRIPT.read_text(encoding="utf-8")
 
 
 def _run_with_manifest(script, input_file, output_dir, env, params=None, extra_args=()):

@@ -184,11 +184,11 @@ def viewer_shell():
     response.headers["Content-Security-Policy"] = (
         "default-src 'none'; "
         "script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; "
-        "style-src 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
         "img-src data: blob:; "
         "font-src data:; "
         "worker-src blob:; "
-        "connect-src 'none'"
+        "connect-src data:"
     )
     # The whole point is embedding — the global DENY must not apply here.
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
@@ -682,9 +682,11 @@ def _reject_invalid_input(
     if error_message is None:
         return None
 
+    finished_at = time.time()
     failed_task = {**base_record, "md5sum": md5sum, "status": "failed", "error": error_message}
-    task_store.upsert_task(md5sum, **base_record, status="failed", error=error_message)
-    _finalize_failed_results(failed_task, error_message)
+    failed_record = {**base_record, "finished_at": finished_at}
+    task_store.upsert_task(md5sum, **failed_record, status="failed", error=error_message)
+    _finalize_failed_results(failed_task, error_message, finished_at=finished_at)
     _cleanup_task_workspace(failed_task)
     return jsonify({"error": response_message}), 400
 
@@ -919,12 +921,14 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     except Exception:
         logging.exception("Failed to submit compute task %s to Celery", md5sum)
         error_message = "Task queue unavailable — please try again later"
+        finished_at = time.time()
         failed_task = task_store.get_task(md5sum) or dict(md5sum=md5sum, **base_record)
-        _finalize_failed_results(failed_task, error_message)
+        _finalize_failed_results(failed_task, error_message, finished_at=finished_at)
         _cleanup_task_workspace(failed_task)
         task_store.update_task(
             md5sum,
             status="failed",
+            finished_at=finished_at,
             error=error_message,
         )
         return jsonify({"error": error_message}), 503

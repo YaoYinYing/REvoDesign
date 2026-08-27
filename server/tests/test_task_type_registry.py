@@ -186,13 +186,41 @@ def test_input_workspace_capabilities_cover_simple_and_complex_tasks():
         assert {"design_mode", "contig", "hotspot_res"}.issubset(region_options["fields"])
         assert region_options["modes"] == ["unconditional", "motif_scaffolding", "binder", "expert"]
         assert rfdiffusion.min_input_files == 0
-        assert easifa.result_workspace[0].plugin == "residue-table-structure"
+        assert easifa.result_workspace[0].plugin == "entity-table"
         assert [cap.plugin for cap in task_types.iter_capabilities(easifa)] == [
             "files",
             "structure",
             "parameters",
             "review",
         ]
+
+
+def test_result_workspace_rejects_unsafe_or_unknown_configuration(tmp_path):
+    registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
+    view = registry["task_types"]["easifa"]["result_workspace"]["views"][0]
+    view["plugin"] = "https://example.invalid/result.js"
+    registry_path = tmp_path / "unknown-result.yaml"
+    registry_path.write_text(yaml.safe_dump(registry), encoding="utf-8")
+    with _preserve_registry(), pytest.raises(ValueError, match="Unknown result workspace plugin"):
+        task_types.load_registry(str(registry_path), str(SERVER_ROOT / "config" / "runners"), {"easifa"})
+
+    view["plugin"] = "entity-table"
+    view["sources"]["table"] = [{"path": "../secrets.csv", "required": True}]
+    registry_path.write_text(yaml.safe_dump(registry), encoding="utf-8")
+    with _preserve_registry(), pytest.raises(ValueError, match="Unsafe result workspace artifact selector"):
+        task_types.load_registry(str(registry_path), str(SERVER_ROOT / "config" / "runners"), {"easifa"})
+
+
+def test_freebindcraft_allows_zero_accepted_designs():
+    with _preserve_registry():
+        task_types.load_registry(
+            str(SERVER_ROOT / "config" / "task_types.yaml"),
+            str(SERVER_ROOT / "config" / "runners"),
+            {"freebindcraft"},
+        )
+        freebindcraft, _ = task_types.get("freebindcraft")
+
+        assert not freebindcraft.result_workspace[0].sources["candidates"][0].required
 
 
 def test_input_workspace_rejects_remote_or_unknown_plugin_configuration(tmp_path):
@@ -557,7 +585,9 @@ def test_shared_runner_gives_rfdiffusion_writable_runtime_directories():
 
 def test_rfdiffusion_defaults_match_pinned_upstream_inference_config():
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
-    params = {param["name"]: param.get("default") for param in registry["task_types"]["rfdiffusion"]["params"]}
+    definitions = registry["task_types"]["rfdiffusion"]["params"]
+    params = {param["name"]: param.get("default") for param in definitions}
+    assert next(param for param in definitions if param["name"] == "diffuser_T")["minimum"] == 15
 
     # RosettaCommons/RFdiffusion@86507b6, config/inference/base.yaml.
     expected = {

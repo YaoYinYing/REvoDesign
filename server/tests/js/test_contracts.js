@@ -92,6 +92,7 @@ var mockWindow = {
   File: function File(_parts, _name, _opts) { this.name = _name; this.webkitRelativePath = ""; },
   FormData: function FormData() { this._data = []; this.append = function (k, v) { this._data.push([k, v]); }; },
   Event: function Event(type) { this.type = type; this.bubbles = true; },
+  AbortController: AbortController,
   console: console,
   setTimeout: setTimeout,
   clearTimeout: clearTimeout,
@@ -142,7 +143,7 @@ var InputWorkspace = mockWindow.REvoComputeInputWorkspace;
 // assert helper
 // ---------------------------------------------------------------------------
 
-var passed = 0, failed = 0;
+var passed = 0, failed = 0, pending = [];
 
 function assert(condition, message) {
   if (condition) { passed += 1; }
@@ -342,6 +343,27 @@ function assertThrows(fn, pattern, message) {
   assertEqual(stage.children.length, 0, "double destroy is harmless");
 })();
 
+(function () {
+  console.log("--- ResultPreviewHost composed lifecycle ---");
+  var destroyed = 0;
+  var aborted = false;
+  var registry = ResultPreviews.createRegistry({
+    structure: function () {}, image: function () {}, table: function () {}, text: function () {},
+    "candidate-collection": function (_view, _stage, services) {
+      services.signal.addEventListener("abort", function () { aborted = true; });
+      return Promise.resolve({ destroy: function () { destroyed += 1; } });
+    }
+  });
+  var stage = fakeNode("div");
+  var host = new ResultPreviews.ResultPreviewHost(registry, stage);
+  pending.push(host.render({ plugin: "candidate-collection" }).then(function () {
+    assertEqual(host.active.plugin.id, "candidate-collection", "composed view resolves through preview host");
+    host.destroy();
+    assert(aborted, "destroy aborts active render signal");
+    assertEqual(destroyed, 1, "destroy tears down active plugin exactly once");
+  }).catch(function (error) { assert(false, "composed lifecycle: " + error.message); }));
+})();
+
 // ===================================================================
 // Input workspace helpers — pure functions from the module
 // ===================================================================
@@ -472,6 +494,8 @@ function assertThrows(fn, pattern, message) {
 // Summary
 // ===================================================================
 
-console.log("");
-console.log(passed + " passed, " + failed + " failed");
-process.exit(failed > 0 ? 1 : 0);
+Promise.all(pending).then(function () {
+  console.log("");
+  console.log(passed + " passed, " + failed + " failed");
+  process.exit(failed > 0 ? 1 : 0);
+});

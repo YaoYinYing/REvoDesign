@@ -254,12 +254,13 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
 
     assert 'window.location.assign("/compute/results/"' in dashboard_script
     assert 'A.authFetch("/compute/api/results/"' in script
-    assert "Main Results" in template
-    assert "Scientific previews" not in template
+    assert "Principal result" in template
+    assert "Review shortlist" in template
+    assert "All artifacts and diagnostics" in template
     assert '"/compute/viewer-shell"' in script
     assert "shell-ready" in script
     assert "postMessage" in script
-    assert "A.authFetch(artifact.url)" in script
+    assert "A.authFetch(artifact.url, { signal: services.signal })" in script
     assert "renderPy2DmolFallback" in script
     assert "isStale" in script
     viewer_shell = (SERVER_PACKAGE / "static" / "js" / "viewer-shell.js").read_text(encoding="utf-8")
@@ -302,6 +303,10 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert "buildArtifactTree" in script
 
 
+def test_server_docker_context_excludes_environment_files():
+    assert ".env*" in (SERVER_PACKAGE.parent / ".dockerignore").read_text(encoding="utf-8").splitlines()
+
+
 def test_result_status_polling_handles_terminal_and_pending_responses():
     dashboard = (SERVER_PACKAGE / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
     results = (SERVER_PACKAGE / "static" / "js" / "task-results.js").read_text(encoding="utf-8")
@@ -316,6 +321,8 @@ def test_result_status_polling_handles_terminal_and_pending_responses():
     assert results.index("window.__revocomputeStatusPoll = setInterval") < results.index(
         "if (!response.ok || !Array.isArray(payload.artifacts))"
     )
+    assert "if (requestedOffset !== offset) return;\n        throw error;" in results
+    assert "stage.hidden = false;\n        if (structureHolder) structureHolder.hidden = true;" in results
     disposal = results.index("await disposeActiveViewer();")
     assert disposal < results.index("if (isStale(generation)) return;", disposal)
     py2dmol = results.index('if (structureViewer === "py2dmol")')
@@ -327,8 +334,8 @@ def test_result_status_polling_handles_terminal_and_pending_responses():
 def test_execution_logs_are_diagnostic_text_artifacts_not_main_results():
     runtime = (SERVER_PACKAGE / "task_runtime.py").read_text(encoding="utf-8")
     results = (SERVER_PACKAGE / "static" / "js" / "task-results.js").read_text(encoding="utf-8")
-    assert 'artifact["role"] = "diagnostic"' in runtime
-    assert 'artifact.role !== "diagnostic"' in results
+    assert 'return "diagnostic"' in runtime
+    assert 'artifact.role === "diagnostic"' in results
     assert "Execution log · " in results
 
 
@@ -582,6 +589,8 @@ def test_run_compute_task_handles_docker_daemon_error(monkeypatch, tmp_path):
     result_dir = Path(task["result_dir"])
     assert result_dir.is_dir()
     manifest = json.loads((result_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["schema_version"] == 3
+    assert manifest["output_check"]["state"] == "not_assessed"
     assert {item["path"] for item in manifest["artifacts"]} >= {"input.fasta", "task_failed.txt"}
     assert "Permission denied" in (result_dir / "task_failed.txt").read_text(encoding="utf-8")
     assert not (Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_results.zip").exists()
@@ -633,6 +642,9 @@ def test_run_compute_task_finalizes_uncompressed_result_manifest(monkeypatch, tm
     assert result_dir.is_dir()
     manifest = json.loads((result_dir / "manifest.json").read_text(encoding="utf-8"))
     names = {item["path"] for item in manifest["artifacts"]}
+    assert manifest["schema_version"] == 3
+    assert manifest["output_check"]["state"] == "failed"
+    assert manifest["output_check"]["problems"]
     assert "log/task_finished" in names
     assert "pssm_msa/input_ascii_mtx_file" in names
     assert all(len(item["sha256"]) == 64 for item in manifest["artifacts"])
@@ -850,7 +862,7 @@ def test_optional_archive_keeps_result_tree(monkeypatch, tmp_path):
         status="finished",
     )
     task = module.task_store.get_task(md5sum)
-    module.task_runtime._finalize_results_manifest(task)
+    module.task_runtime._finalize_results_manifest(task, execution_state="completed", finished_at=1_700_000_000)
     (result_dir / "late-unpublished.txt").write_text("not in manifest\n", encoding="utf-8")
 
     archive_path = Path(module.task_runtime._build_results_archive(task))
@@ -884,7 +896,9 @@ def test_result_manifest_allows_only_published_artifacts(monkeypatch, tmp_path):
         username="tester",
         status="finished",
     )
-    module.task_runtime._finalize_results_manifest(module.task_store.get_task(md5sum))
+    module.task_runtime._finalize_results_manifest(
+        module.task_store.get_task(md5sum), execution_state="completed", finished_at=1_700_000_000
+    )
     (result_dir / "not-published.txt").write_text("late mutation", encoding="utf-8")
 
     manifest_response = client.get(f"/compute/api/results/{md5sum}", headers=auth_header)
@@ -901,7 +915,7 @@ def test_result_manifest_allows_only_published_artifacts(monkeypatch, tmp_path):
 
     assert manifest_response.status_code == 200
     assert result_page.status_code == 200
-    assert "Main Results" in result_page.get_data(as_text=True)
+    assert "Principal result" in result_page.get_data(as_text=True)
     assert md5sum in result_page.get_data(as_text=True)
     # Page bootstrap is an inert JSON script block, not executable inline JS.
     assert 'id="result-task-data"' in result_page.get_data(as_text=True)
@@ -930,7 +944,8 @@ def test_task_configured_linked_result_and_bounded_table_api(monkeypatch, tmp_pa
     result_dir = tmp_path / "linked_results"
     result_dir.mkdir()
     (result_dir / "active_sites.csv").write_text(
-        'chain,residue_index,residue,probabilities\nA,28,G,"[0.1,0.9]"\n', encoding="utf-8"
+        'chain,residue_index,residue,site_class,site_name,probabilities\nA,28,G,active,Binding site,"[0.1,0.9]"\n',
+        encoding="utf-8",
     )
     (result_dir / "enzyme_structure.pdb").write_text(
         "ATOM      1  CA  GLY A  28      10.000  10.000  10.000  1.00 20.00           C\nEND\n",
@@ -944,17 +959,109 @@ def test_task_configured_linked_result_and_bounded_table_api(monkeypatch, tmp_pa
         result_dir=result_dir,
         username="tester",
     )
-    module.task_store.update_task(md5sum, task_type="easifa")
-    module.task_runtime._finalize_results_manifest(module.task_store.get_task(md5sum))
+    module.task_store.update_task(
+        md5sum,
+        task_type="easifa",
+        input_form=json.dumps(
+            {
+                "user": "private-owner",
+                "snapshot_root": "/private/host/workspace",
+                "resource_policy": {"partition": "private"},
+                "submitted_at": "2026-01-01T00:00:00Z",
+                "entities": [
+                    {
+                        "name": "primary_input",
+                        "type": "file",
+                        "relative_path": "enzyme.pdb",
+                        "snapshot_path": "/private/host/workspace/enzyme.pdb",
+                        "hash": "d" * 64,
+                    },
+                    {"name": "reaction_smiles", "type": "str", "verified_value": "CCO>>CC=O"},
+                ],
+            }
+        ),
+    )
+    module.task_runtime._finalize_results_manifest(
+        module.task_store.get_task(md5sum), execution_state="completed", finished_at=1_700_000_000
+    )
 
     manifest = client.get(f"/compute/api/results/{md5sum}", headers=auth_header).get_json()
     table = client.get(f"/compute/api/results/{md5sum}/tables/active_sites.csv?limit=1", headers=auth_header)
 
-    assert manifest["schema_version"] == 2
-    assert manifest["views"][0]["plugin"] == "residue-table-structure"
+    assert manifest["schema_version"] == 3
+    assert manifest["output_check"]["state"] == "passed"
+    assert manifest["views"][0]["plugin"] == "entity-table"
+    assert manifest["views"][0]["sources"] == {
+        "table": ["active_sites.csv"],
+        "structure": ["enzyme_structure.pdb"],
+    }
     assert manifest["views"][0]["mapping"]["numbering"] == "label_seq_id"
+    assert manifest["run"]["inputs"] == [{"path": "enzyme.pdb", "sha256": "d" * 64}]
+    parameters = {item["name"]: item["value"] for item in manifest["run"]["parameters"]}
+    assert parameters["reaction_smiles"] == "CCO>>CC=O"
+    public_manifest = json.dumps(manifest)
+    assert "private-owner" not in public_manifest
+    assert "/private/host/workspace" not in public_manifest
+    assert "resource_policy" not in public_manifest
     assert table.status_code == 200
-    assert table.get_json()["rows"] == [["A", "28", "G", "[0.1,0.9]"]]
+    assert table.get_json()["rows"] == [["A", "28", "G", "active", "Binding site", "[0.1,0.9]"]]
+
+
+def test_result_output_check_reports_missing_required_artifact(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678", "ENABLED_TASKRUNNERS": "easifa"},
+    )
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "incomplete_results"
+    result_dir.mkdir()
+    (result_dir / "active_sites.csv").write_text(
+        "chain,residue_index,site_class,site_name,probabilities\nA,28,active,Binding site,[]\n",
+        encoding="utf-8",
+    )
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="enzyme.pdb",
+        file_path=result_dir / "missing.pdb",
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+    module.task_store.update_task(md5sum, task_type="easifa")
+    manifest = module.task_runtime._finalize_results_manifest(
+        module.task_store.get_task(md5sum), execution_state="completed", finished_at=1_700_000_000
+    )
+
+    assert manifest["output_check"]["state"] == "failed"
+    assert any("structure output is missing or empty" in problem for problem in manifest["output_check"]["problems"])
+    assert module.task_store.get_task(md5sum)["status"] == "finished"
+    assert next(item for item in manifest["artifacts"] if item["path"] == "active_sites.csv")["role"] == "primary"
+
+
+def test_failed_execution_manifest_is_not_assessed(monkeypatch, tmp_path):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "failed_results"
+    result_dir.mkdir()
+    (result_dir / "task_failed.txt").write_text("failed\n", encoding="utf-8")
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="input.fasta",
+        file_path=result_dir / "input.fasta",
+        result_dir=result_dir,
+        username="tester",
+        status="failed",
+    )
+    manifest = module.task_runtime._finalize_results_manifest(
+        module.task_store.get_task(md5sum), execution_state="failed", finished_at=1_700_000_000
+    )
+
+    assert manifest["schema_version"] == 3
+    assert manifest["output_check"]["state"] == "not_assessed"
+    assert manifest["artifacts"][0]["role"] == "diagnostic"
 
 
 def test_rfdiffusion_workspace_normalization_and_structure_free_submission(monkeypatch, tmp_path):
@@ -1050,8 +1157,11 @@ def test_viewer_shell_isolates_molstar_eval_csp(monkeypatch, tmp_path):
     script_src = next(part.strip() for part in csp.split(";") if part.strip().startswith("script-src"))
     assert "'unsafe-eval'" in script_src
     assert "https://cdn.jsdelivr.net" in script_src
+    style_src = next(part.strip() for part in csp.split(";") if part.strip().startswith("style-src"))
+    assert "'self'" in style_src
     connect_src = next(part.strip() for part in csp.split(";") if part.strip().startswith("connect-src"))
-    assert connect_src == "connect-src 'none'"
+    # data: is self-contained, so the viewer shell still cannot reach remote hosts.
+    assert connect_src == "connect-src data:"
     html = response.get_data(as_text=True)
     viewer_script = 'src="/static/js/viewer-shell.js?v='
     assert viewer_script in html
@@ -1084,7 +1194,9 @@ def test_archive_endpoint_queues_only_on_explicit_request(monkeypatch, tmp_path)
         username="tester",
         status="finished",
     )
-    module.task_runtime._finalize_results_manifest(module.task_store.get_task(md5sum))
+    module.task_runtime._finalize_results_manifest(
+        module.task_store.get_task(md5sum), execution_state="completed", finished_at=1_700_000_000
+    )
 
     queued: list[list[str]] = []
 
@@ -1756,7 +1868,9 @@ def test_admin_can_manage_other_users_tasks_in_private_mode(monkeypatch, tmp_pat
         username="tester",
         status="finished",
     )
-    module.task_runtime._finalize_results_manifest(module.task_store.get_task(md5sum))
+    module.task_runtime._finalize_results_manifest(
+        module.task_store.get_task(md5sum), execution_state="completed", finished_at=1_700_000_000
+    )
 
     running = client.get(f"/compute/api/running/{md5sum}", headers=admin_header)
     assert running.status_code == 200

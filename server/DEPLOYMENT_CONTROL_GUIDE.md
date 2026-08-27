@@ -142,7 +142,7 @@ The option selects whole runtime families, not individual task types.
 | `prepare` | Yes | No | Builds selected runners | Prepare runner images while production remains up; optionally stage matching SIFs |
 | `build` | Yes | No | Builds selected runners and server | Build local Docker artifacts without activation |
 | `up` | Yes | No | Compose may resolve missing images | Start Redis, web, gateway, maintenance, and worker |
-| `down` | Yes | Yes | No | Sweep in-flight work and stop the deployment |
+| `down` | Yes | Yes | No | Sweep in-flight work and stop the deployment; optionally retain the gateway |
 | `reload` | Yes | No | No | Send HUP to Gunicorn for application reload |
 | `restart` | Yes | Yes | Depends on mode | Run the ordered deployment walk |
 | `reset-passwd USER` | Yes | No | No | Back up the auth DB, rotate one password, and invalidate its tokens |
@@ -159,12 +159,13 @@ spell the intended production mode explicitly.
 | `--mode=prod` | `restart` | Pull published images after stopping, then activate |
 | `--mode=prepared` | `restart` | Validate existing local artifacts before stopping; no build or pull |
 | `--enabled-runners=CSV` | build/prepare/restart paths | Override enabled runtime families for this invocation |
+| `--server-only` | `build` | Build web/worker images without rebuilding runner images |
 | `--build-sif` | SLURM preparation/dev or prod restart | Build missing/stale SIFs; incompatible with prepared mode |
 | `--use-proxy` | build paths | Read `REVODESIGN_BUILD_PROXY` from the selected env file |
 | `--use-proxy=URL` | build paths | Supply the build proxy directly for this invocation |
 | `--allowed-slurm-queue QUEUES` | SLURM paths | Override allowed SLURM partitions for this invocation |
 | `--dry-run` | `restart` | Validate and report the current plan without executing it |
-| `--keep-gateway` | `restart` | Serve maintenance through Nginx during application downtime |
+| `--keep-gateway` | `down`, `restart` | Serve maintenance through Nginx while application services are stopped |
 
 Only the `--mode=value` spelling is accepted. `--mode prepared` is invalid.
 `--use-proxy` does not request a build; it only supplies proxy arguments if the
@@ -346,7 +347,7 @@ this deployment's numeric SLURM job IDs and calls `scancel`. It then:
 If the worker is already unavailable, the sweep prints a warning and continues;
 the operator must inspect task and SLURM state manually.
 
-With `--keep-gateway`, the controller:
+With `restart --keep-gateway`, the controller:
 
 1. creates `${SERVER_DIR}/.maintenance`, pausing submissions;
 2. recreates and retains Nginx while stopping Redis, web, maintenance, and
@@ -354,6 +355,10 @@ With `--keep-gateway`, the controller:
 3. starts the complete stack;
 4. restarts Nginx after web recreation so its Docker DNS is fresh; and
 5. removes the maintenance sentinel only after successful finalization.
+
+`down --keep-gateway` performs the first two steps and deliberately leaves the
+maintenance sentinel and gateway running. Use a managed `restart
+--keep-gateway` to restore the complete stack and lift maintenance.
 
 Prepared mode additionally waits up to 60 seconds for Redis, web, gateway,
 maintenance, and worker to report running. If activation or readiness fails,
@@ -407,6 +412,13 @@ This builds all enabled runners plus web/worker and leaves the current stack
 running. On SLURM, follow any changed runner image with a matching SIF build
 before prepared activation.
 
+When only server code changed, skip runner builds and leave SIF identities
+untouched:
+
+```bash
+bash server/run/restart.sh build --server-only --use-proxy
+```
+
 ### 11.4 Activate published images
 
 ```bash
@@ -429,6 +441,7 @@ the checkout configuration for you.
 bash server/run/restart.sh up
 bash server/run/restart.sh reload
 bash server/run/restart.sh down
+bash server/run/restart.sh down --keep-gateway
 bash server/run/restart.sh reset-passwd USERNAME
 ```
 

@@ -1,0 +1,14 @@
+[
+  {
+    "name": "tiny",
+    "modelSeeds": [101],
+    "sequences": [
+      {
+        "proteinChain": {
+          "sequence": "ACDEFGHIK",
+          "count": 1
+        }
+      }
+    ]
+  }
+]
