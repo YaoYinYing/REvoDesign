@@ -303,6 +303,10 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert "buildArtifactTree" in script
 
 
+def test_server_docker_context_excludes_environment_files():
+    assert ".env*" in (SERVER_PACKAGE.parent / ".dockerignore").read_text(encoding="utf-8").splitlines()
+
+
 def test_result_status_polling_handles_terminal_and_pending_responses():
     dashboard = (SERVER_PACKAGE / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
     results = (SERVER_PACKAGE / "static" / "js" / "task-results.js").read_text(encoding="utf-8")
