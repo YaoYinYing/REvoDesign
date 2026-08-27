@@ -111,6 +111,8 @@ def _manifest() -> dict:
 
 
 def _open_result_page(page: Page) -> None:
+    page.route("https://fonts.googleapis.com/**", lambda route: route.abort())
+    page.route("https://fonts.gstatic.com/**", lambda route: route.abort())
     html = _task_results_html()
     manifest = _manifest()
     pdb = "ATOM      1  CA  GLY A  28      10.000  10.000  10.000  1.00 20.00           C\nEND\n"

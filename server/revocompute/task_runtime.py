@@ -505,13 +505,13 @@ def _resolve_result_views(
     artifacts: list[dict[str, Any]],
     result_dir: str,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
-    paths = [artifact["path"] for artifact in artifacts]
-    artifact_by_path = {artifact["path"]: artifact for artifact in artifacts}
     views: list[dict[str, Any]] = []
     checks: list[dict[str, Any]] = []
     problems: list[str] = []
-    if task_type is None:
+    if task_type is None or not task_type.result_workspace:
         return views, checks, problems
+    paths = [artifact["path"] for artifact in artifacts]
+    artifact_by_path = {artifact["path"]: artifact for artifact in artifacts}
     for definition in task_type.result_workspace:
         resolved_sources: dict[str, list[str]] = {}
         for source_name, selectors in definition.sources.items():

@@ -7,14 +7,11 @@
   var T = window.REvoDesignTheme;
   var task = JSON.parse(document.getElementById("result-task-data").textContent);
   var artifacts = [];
-  var resultManifest = null;
-  var activeArtifact = null;
   var activeMolstar = null;
   var previewRegistry = null;
   var previewHost = null;
   var resultViews = [];
   var shortlist = new Map();
-  var shortlistUrl = null;
   var MAX_SHORTLIST_ITEMS = 200;
   // Warm Mol* viewer: one shell iframe and one plugin instance stay alive
   // across structure previews. The frame lives in a persistent holder that
@@ -157,11 +154,11 @@
     return previewHost && previewHost.generation !== generation;
   }
 
-  async function renderPy2DmolFallback(structureText, artifact, stage, generation, molstarError) {
+  async function renderPy2DmolFallback(text, artifact, stage, generation, molstarError) {
     try {
       await window.REvoDesignPy2Dmol.renderAlphaTrace(
         stage,
-        structureText,
+        text,
         structureFormat(artifact.path),
         artifact.path,
         [Math.max(320, Math.min(stage.clientWidth - 220, 900)), 560],
@@ -351,25 +348,29 @@
     return box;
   }
 
+  async function structureText(artifact, generation, signal) {
+    var cached = structureTextCache.get(artifact.path);
+    if (cached) return cached;
+    var response = await A.authFetch(artifact.url, signal ? { signal: signal } : undefined);
+    if (isStale(generation)) return null;
+    if (!response.ok) throw new Error("Structure download failed (HTTP " + response.status + ")");
+    var text = await response.text();
+    if (isStale(generation)) return null;
+    structureTextCache.set(artifact.path, text);
+    structureTextCacheBytes += text.length;
+    while (structureTextCache.size > STRUCTURE_CACHE_MAX_FILES || structureTextCacheBytes > STRUCTURE_CACHE_MAX_BYTES) {
+      var oldest = structureTextCache.keys().next().value;
+      structureTextCacheBytes -= structureTextCache.get(oldest).length;
+      structureTextCache.delete(oldest);
+    }
+    return text;
+  }
+
   async function previewStructure(artifact, stage) {
     var generation = previewHost.generation;
-    var cached = structureTextCache.get(artifact.path);
-    var structureText = cached || null;
-    if (!structureText) {
-      var response = await A.authFetch(artifact.url);
-      if (isStale(generation)) return;
-      if (!response.ok) throw new Error("Structure download failed (HTTP " + response.status + ")");
-      structureText = await response.text();
-      if (isStale(generation)) return;
-      // Bounded cache: evict oldest first while over the file or byte budget.
-      structureTextCache.set(artifact.path, structureText);
-      structureTextCacheBytes += structureText.length;
-      while (structureTextCache.size > STRUCTURE_CACHE_MAX_FILES || structureTextCacheBytes > STRUCTURE_CACHE_MAX_BYTES) {
-        var oldest = structureTextCache.keys().next().value;
-        structureTextCacheBytes -= structureTextCache.get(oldest).length;
-        structureTextCache.delete(oldest);
-      }
-    }
+    var cached = structureTextCache.has(artifact.path);
+    var text = await structureText(artifact, generation);
+    if (!text) return;
     var surface = structureHolder || stage;
     clearSurfacePreservingWarm(surface);
     var bar = structureViewerBar(artifact);
@@ -384,7 +385,7 @@
       stage.replaceChildren();
       stage.appendChild(structureViewerBar(artifact));
       try {
-        await renderPy2DmolFallback(structureText, artifact, stage, generation, new Error("User selected alpha-trace viewer"));
+        await renderPy2DmolFallback(text, artifact, stage, generation, new Error("User selected alpha-trace viewer"));
         if (isStale(generation)) return;
         setTimeout(function () { if (!isStale(generation)) setStructureColor(activeColorMode); }, 100);
       }
@@ -401,7 +402,7 @@
     // Cached swaps resolve almost instantly; a loading box would only flash.
     var loading = cached ? null : showLoading(surface, "Loading structure…");
     try {
-      await renderMolstar(structureText, artifact, surface, generation);
+      await renderMolstar(text, artifact, surface, generation);
       if (loading) loading.remove();
     }
     catch (error) {
@@ -585,15 +586,14 @@
 
   function exportShortlist() {
     if (!shortlist.size) return;
-    if (shortlistUrl) URL.revokeObjectURL(shortlistUrl);
     var payload = {
       schema_version: 1,
-      source_task: { id: task.md5, task_type: resultManifest.task_type, manifest_schema: resultManifest.schema_version },
+      source_task: { id: task.md5, task_type: task.task_type, manifest_schema: 3 },
       selected: Array.from(shortlist.values())
     };
-    shortlistUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2) + "\n"], { type: "application/json" }));
-    var link = document.createElement("a"); link.href = shortlistUrl; link.download = "shortlist.json"; link.click();
-    setTimeout(function () { if (shortlistUrl) { URL.revokeObjectURL(shortlistUrl); shortlistUrl = null; } }, 0);
+    var exportUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2) + "\n"], { type: "application/json" }));
+    var link = document.createElement("a"); link.href = exportUrl; link.download = "shortlist.json"; link.click();
+    setTimeout(function () { URL.revokeObjectURL(exportUrl); }, 0);
   }
 
   function candidateItem(view, artifact) {
@@ -603,7 +603,7 @@
     };
   }
 
-  async function renderCandidateCollection(view, stage) {
+  async function renderCandidateCollection(view, stage, services) {
     var candidates = artifactPaths(view, "candidates");
     if (!candidates.length) throw new Error("No candidate outputs are available.");
     var layout = document.createElement("div"); layout.className = "candidate-layout";
@@ -617,15 +617,14 @@
       });
       preview.replaceChildren();
       if (artifact.preview === "structure") {
-        var response = await A.authFetch(artifact.url);
-        if (!response.ok) throw new Error("Candidate structure could not be loaded.");
-        var structureText = await response.text();
+        var text = await structureText(artifact, previewHost.generation, services.signal);
+        if (!text) return;
         var bar = structureViewerBar(artifact, openCandidate); preview.appendChild(bar);
         if (structureViewer === "py2dmol") {
-          await renderPy2DmolFallback(structureText, artifact, preview, previewHost.generation, new Error("User selected alpha-trace viewer"));
+          await renderPy2DmolFallback(text, artifact, preview, previewHost.generation, new Error("User selected alpha-trace viewer"));
           return;
         }
-        await renderMolstar(structureText, artifact, preview, previewHost.generation, true);
+        await renderMolstar(text, artifact, preview, previewHost.generation, true);
         return;
       }
       var plugin = previewRegistry.resolve(artifact);
@@ -777,7 +776,6 @@
   document.getElementById("artifactPreview").parentNode.appendChild(structureHolder);
 
   async function previewArtifact(artifact) {
-    activeArtifact = artifact;
     document.getElementById("previewTitle").textContent = artifact.path;
     document.getElementById("previewDescription").textContent = artifact.role + " artifact · " + formatBytes(artifact.size);
     var download = document.getElementById("artifactDownload"); download.hidden = false;
@@ -792,7 +790,6 @@
   }
 
   async function previewView(view, focusHeading) {
-    activeArtifact = null;
     document.getElementById("previewTitle").textContent = view.title;
     document.getElementById("artifactDownload").hidden = true;
     document.getElementById("previewDescription").textContent = view.description || "";
@@ -916,7 +913,7 @@
       throw new Error(payload.message || "Results are not available yet");
     }
     if (payload.schema_version !== 3) throw new Error("This result record uses an unsupported schema version.");
-    resultManifest = payload; artifacts = payload.artifacts; resultViews = Array.isArray(payload.views) ? payload.views : [];
+    artifacts = payload.artifacts; resultViews = Array.isArray(payload.views) ? payload.views : [];
     renderScientificRecord(payload); renderArtifacts(""); renderViewTabs(); renderShortlist();
     document.getElementById("artifactSummary").textContent = artifacts.length + " files · " + formatBytes(payload.total_size);
     var archiveButton = document.getElementById("archiveButton");
@@ -968,6 +965,5 @@
   });
   window.addEventListener("pagehide", function () {
     previewHost.destroy();
-    if (shortlistUrl) URL.revokeObjectURL(shortlistUrl);
   });
 })();
