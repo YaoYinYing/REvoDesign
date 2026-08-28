@@ -500,6 +500,117 @@ def _default_artifact_role(relative_path: str) -> str:
     return "artifact"
 
 
+def _json_path(value: Any, path: str) -> Any:
+    for part in path.split(".") if path else ():
+        if isinstance(value, list) and part.isdigit():
+            index = int(part)
+            if index >= len(value):
+                raise KeyError(path)
+            value = value[index]
+        elif isinstance(value, dict) and part in value:
+            value = value[part]
+        else:
+            raise KeyError(path)
+    return value
+
+
+def _validate_scientific_view(
+    definition: Any,
+    sources: dict[str, list[str]],
+    result_dir: str,
+) -> list[str]:
+    """Check resolved files against the declared protocol, without task-name branches."""
+    problems: list[str] = []
+    singular = {
+        "alignment": ("alignment",),
+    }.get(definition.plugin, ())
+    for source in singular:
+        if len(sources.get(source, [])) != 1:
+            problems.append(f"{definition.title}: {source} source must resolve to exactly one artifact")
+    if problems:
+        return problems
+
+    if definition.plugin == "entity-table":
+        tables = sources.get("table", [])
+        structures = sources.get("structure", [])
+        if len(tables) != 1:
+            problems.append(f"{definition.title}: table source must resolve to exactly one artifact")
+        if len(structures) > 1:
+            problems.append(f"{definition.title}: structure source must resolve to at most one artifact")
+        if len(tables) == 1:
+            delimiter = "\t" if tables[0].lower().endswith(".tsv") else ","
+            try:
+                with open(_safe_join(result_dir, *tables[0].split("/")), newline="", encoding="utf-8") as handle:
+                    columns = next(csv.reader(handle, delimiter=delimiter), [])
+            except (OSError, UnicodeError, csv.Error):
+                columns = []
+            required_columns = set(definition.mapping.get("key_columns", []))
+            required_columns.update(definition.mapping.get("evidence_columns", []))
+            required_columns.update(
+                definition.mapping[key]
+                for key in ("label_column", "chain_column", "residue_column")
+                if definition.mapping.get(key)
+            )
+            missing = sorted(required_columns - set(columns))
+            if missing:
+                problems.append(f"{definition.title}: table is missing columns {', '.join(missing)}")
+        return problems
+
+    if definition.plugin == "trajectory":
+        topologies = sources.get("topology", [])
+        coordinates = sources.get("coordinates", [])
+        if definition.mapping["association"] == "single" and (len(topologies) != 1 or len(coordinates) != 1):
+            problems.append(
+                f"{definition.title}: single association requires exactly one topology and coordinate artifact"
+            )
+        elif definition.mapping["association"] == "stem-prefix":
+            stems = [os.path.splitext(os.path.basename(path))[0] for path in topologies]
+            for path in coordinates:
+                name = os.path.basename(path)
+                if not any(name.startswith(f"{stem}_") for stem in stems):
+                    problems.append(f"{definition.title}: coordinate {path} has no declared topology association")
+        expected_suffix = f".{definition.mapping['coordinate_format']}"
+        if any(not path.lower().endswith(expected_suffix) for path in coordinates):
+            problems.append(f"{definition.title}: coordinate format does not match the declared artifacts")
+        return problems
+
+    paths = sources.get("series", []) if definition.plugin == "metric-series" else sources.get("matrices", [])
+    if definition.plugin == "scalar-summary":
+        paths = sources["data"]
+    if definition.plugin not in {"metric-series", "matrix", "scalar-summary"}:
+        return problems
+    for relative_path in paths:
+        path = _safe_join(result_dir, *relative_path.split("/"))
+        try:
+            if definition.mapping.get("format") == "csv":
+                with open(path, newline="", encoding="utf-8") as handle:
+                    columns = next(csv.reader(handle), [])
+                required = set(definition.mapping.get("value_columns", []))
+                required.add(definition.mapping.get("x_column") or definition.mapping.get("row_labels_column"))
+                missing = sorted(column for column in required if column and column not in columns)
+                if missing:
+                    problems.append(f"{definition.title}: data is missing columns {', '.join(missing)}")
+                continue
+            if os.path.getsize(path) > 8 * 1024 * 1024:
+                problems.append(f"{definition.title}: JSON source exceeds the 8 MiB scientific-view limit")
+                continue
+            with open(path, encoding="utf-8") as handle:
+                payload = json.load(handle)
+            if definition.plugin == "scalar-summary":
+                values = [_json_path(payload, field["path"]) for field in definition.mapping["fields"]]
+                if any(isinstance(value, (dict, list)) or value is None for value in values):
+                    raise ValueError("scalar fields must resolve to values")
+            else:
+                values = _json_path(payload, definition.mapping["value_path"])
+                if not isinstance(values, list) or (
+                    definition.plugin == "matrix" and values and not all(isinstance(row, list) for row in values)
+                ):
+                    raise ValueError("declared numeric data has the wrong shape")
+        except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+            problems.append(f"{definition.title}: declared data mapping could not be resolved")
+    return problems
+
+
 def _resolve_result_views(
     task_type: Any,
     artifacts: list[dict[str, Any]],
@@ -540,30 +651,7 @@ def _resolve_result_views(
                     problems.append(f"{definition.title}: required {source_name} output is missing or empty")
                 matches.extend(nonempty)
             resolved_sources[source_name] = list(dict.fromkeys(matches))
-        if definition.plugin == "entity-table":
-            tables = resolved_sources.get("table", [])
-            structures = resolved_sources.get("structure", [])
-            if len(tables) != 1:
-                problems.append(f"{definition.title}: table source must resolve to exactly one artifact")
-            if len(structures) > 1:
-                problems.append(f"{definition.title}: structure source must resolve to at most one artifact")
-            if len(tables) == 1:
-                delimiter = "\t" if tables[0].lower().endswith(".tsv") else ","
-                try:
-                    with open(_safe_join(result_dir, *tables[0].split("/")), newline="", encoding="utf-8") as handle:
-                        columns = next(csv.reader(handle, delimiter=delimiter), [])
-                except (OSError, UnicodeError, csv.Error):
-                    columns = []
-                required_columns = set(definition.mapping.get("key_columns", []))
-                required_columns.update(definition.mapping.get("evidence_columns", []))
-                required_columns.update(
-                    definition.mapping[key]
-                    for key in ("label_column", "chain_column", "residue_column")
-                    if definition.mapping.get(key)
-                )
-                missing = sorted(required_columns - set(columns))
-                if missing:
-                    problems.append(f"{definition.title}: table is missing columns {', '.join(missing)}")
+        problems.extend(_validate_scientific_view(definition, resolved_sources, result_dir))
         view = {
             "id": definition.id,
             "plugin": definition.plugin,

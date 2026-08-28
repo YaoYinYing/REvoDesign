@@ -22,7 +22,10 @@
         render: renderers[definition.id]
       });
     });
-    ["candidate-collection", "entity-table", "evidence-bundle"].forEach(function (id) {
+    [
+      "candidate-collection", "entity-table", "evidence-bundle", "alignment",
+      "trajectory", "metric-series", "matrix", "scalar-summary"
+    ].forEach(function (id) {
       if (typeof renderers[id] === "function") registry.register({ id: id, label: id, maxBytes: null, render: renderers[id] });
     });
     return registry;

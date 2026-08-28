@@ -51,6 +51,16 @@ def test_every_task_declares_scientific_guidance_and_semantic_steps():
         assert steps[-1]["capabilities"][-1]["plugin"] == "review"
 
 
+def test_scientific_result_views_cover_every_task_with_stable_outputs():
+    registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
+    unmapped = {name for name, task in registry["task_types"].items() if not task.get("result_workspace")}
+
+    assert unmapped == {"esm_extract"}
+    for name, task in registry["task_types"].items():
+        views = task.get("result_workspace", {}).get("views", [])
+        assert sum(view["role"] == "primary" for view in views) <= 1, name
+
+
 def test_task_types_carry_categories():
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
     task_types = registry["task_types"]
@@ -395,7 +405,7 @@ def test_prime_family_exposes_distinct_ogt_and_dms_contracts():
     assert "Prime_690M-7b75010748d2" in dockerfile
     assert '"predict_score"' in script
     assert 'tuple("ACDEFGHIKLMNPQRSTVWY")' in script
-    assert '"position": position' in script
+    assert '"mutations": mutation_label' in script
     assert '"mutation_count": len(substitutions)' in script
     assert 'f"{input_fasta.stem}_prime_combinatorial.csv"' in script
 

@@ -26,6 +26,32 @@
   var selectionSubscription = null;
   var activeRequestId = null;
 
+  async function prepareViewer(message) {
+    await ensureMolstarAssets();
+    if (viewer) {
+      await viewer.plugin.clear();
+    } else {
+      setLoadingPhase("Preparing the interactive structure…");
+      viewerId = "molstar-shell-" + Math.random().toString(36).slice(2);
+      var target = document.createElement("div");
+      target.id = viewerId;
+      host.appendChild(target);
+      viewer = await window.molstar.Viewer.create(target.id, {
+        layoutIsExpanded: false,
+        layoutShowControls: Boolean(message.showControls),
+        layoutShowRemoteState: false,
+        layoutShowSequence: true,
+        layoutShowLog: false,
+        layoutShowLeftPanel: false,
+        viewportShowExpand: true,
+        viewportShowSelectionMode: true,
+        viewportShowAnimation: true,
+        viewportShowTrajectoryControls: true
+      });
+    }
+    viewer.plugin.canvas3d.setProps({ renderer: { backgroundColor: MOLSTAR_CANVAS_COLORS[activeTheme] } });
+  }
+
   function setLoadingPhase(text) {
     stateNode.dataset.state = "loading";
     stateNode.textContent = text;
@@ -205,35 +231,11 @@
       setLoadingPhase("Downloading the Mol* viewer…");
     }
     try {
-      await ensureMolstarAssets();
-      if (viewer) {
-        // Warm path: reuse the booted plugin — clear the previous state and
-        // load the next structure into the same canvas. Disposing and
-        // recreating the Viewer re-initializes the whole bundle.
-        await viewer.plugin.clear();
-      } else {
-        setLoadingPhase("Preparing the interactive structure…");
-        viewerId = "molstar-shell-" + Math.random().toString(36).slice(2);
-        var target = document.createElement("div");
-        target.id = viewerId;
-        host.appendChild(target);
-        viewer = await window.molstar.Viewer.create(target.id, {
-          layoutIsExpanded: false,
-          layoutShowControls: Boolean(message.showControls),
-          layoutShowRemoteState: false,
-          layoutShowSequence: true,
-          layoutShowLog: false,
-          layoutShowLeftPanel: false,
-          viewportShowExpand: true,
-          viewportShowSelectionMode: true,
-          viewportShowAnimation: true
-        });
-      }
+      await prepareViewer(message);
       // Sequence-strip and canvas clicks select only while Mol* selection mode
       // is active. Input workbenches request selection explicitly; result
       // viewers retain Mol*'s ordinary focus-oriented default.
       viewer.plugin.selectionMode = Boolean(message.selectionEnabled);
-      viewer.plugin.canvas3d.setProps({ renderer: { backgroundColor: MOLSTAR_CANVAS_COLORS[activeTheme] } });
       var format = message.format === "mmcif" ? "mmcif" : "pdb";
       await viewer.loadStructureFromData(message.text, format, { label: message.label || "structure" });
       await updateStructureColor(message.colorMode || "plddt");
@@ -257,10 +259,71 @@
     } catch (e) { /* Keep the current Mol* theme when a theme is not applicable. */ }
   }
 
+  function trajectoryInfo() {
+    if (!viewer) return null;
+    var state = viewer.plugin.state.data;
+    var transform = window.molstar.lib.plugin.StateTransforms.Model.ModelFromTrajectory;
+    var models = state.selectQ(function (query) { return query.ofTransformer(transform); });
+    if (!models.length) return null;
+    var model = models[0];
+    var trajectory = state.cells.get(model.transform.parent);
+    return {
+      model: model,
+      frame: Number(model.params.values.modelIndex || 0),
+      frameCount: Number(trajectory && trajectory.obj && trajectory.obj.data.frameCount || 1)
+    };
+  }
+
+  async function setTrajectoryFrame(action, value) {
+    var info = trajectoryInfo();
+    if (!info) return;
+    var frame = action === "set" ? Number(value) : info.frame + Number(value || 0);
+    frame = ((Math.round(frame) % info.frameCount) + info.frameCount) % info.frameCount;
+    var update = viewer.plugin.state.data.build();
+    update.to(info.model).update({ modelIndex: frame });
+    await viewer.plugin.state.data.updateTree(update).run();
+    report({ type: "trajectory-frame", requestId: activeRequestId, frame: frame, frameCount: info.frameCount });
+  }
+
+  async function mountTrajectory(message) {
+    activeRequestId = message.requestId;
+    applyTheme(message.theme);
+    if (!viewer) { stateNode.hidden = false; host.hidden = true; setLoadingPhase("Downloading the Mol* viewer…"); }
+    try {
+      await prepareViewer(message);
+      if (message.coordinateFormat === "pdb") {
+        await viewer.loadStructureFromData(message.coordinates, "pdb", { dataLabel: message.label || "trajectory" });
+      } else {
+        await viewer.loadTrajectory({
+          model: { kind: "model-data", data: message.topology, format: "pdb" },
+          modelLabel: "Declared topology",
+          coordinates: {
+            kind: "coordinates-data",
+            data: message.coordinateBytes,
+            format: message.coordinateFormat
+          },
+          coordinatesLabel: message.label || "coordinates",
+          preset: "default"
+        });
+      }
+      var info = trajectoryInfo();
+      if (!info) throw new Error("Mol* did not create a trajectory");
+      stateNode.hidden = true; host.hidden = false;
+      report({ type: "trajectory-ready", requestId: message.requestId, frame: info.frame, frameCount: info.frameCount });
+    } catch (error) {
+      fail(error.message || String(error));
+      report({ type: "error", requestId: message.requestId, message: error.message || String(error) });
+    }
+  }
+
   window.addEventListener("message", function (event) {
     if (event.source !== window.parent) return;
     if (!event.data || typeof event.data !== "object") return;
     if (event.data.type === "structure") queueMount(event.data);
+    else if (event.data.type === "trajectory") mountChain = mountChain.then(function () { return mountTrajectory(event.data); });
+    else if (event.data.type === "trajectory-control") {
+      mountChain = mountChain.then(function () { return setTrajectoryFrame(event.data.action, event.data.value); });
+    }
     else if (event.data.type === "theme") applyTheme(event.data.theme);
     else if (event.data.type === "color") updateStructureColor(event.data.mode);
     else if (event.data.type === "select-residue") selectResidue(event.data);

@@ -24,16 +24,13 @@ RUN python -m pip install --no-cache-dir uv && \
 RUN mkdir -p /app/revocompute && chown -R ${RUNNER_UID}:${RUNNER_GID} /app/revocompute
 
 COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/prime/run.sh ./docker/runners/common/task_context.sh ./docker/runners/common/task_context.py /app/revocompute/
-
-# Vendored model code for the pinned Prime snapshots (see vendor/README.md).
-# The model-dir code is never executed with trust_remote_code; it must be
-# vendored here at build time.
-COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/prime/vendor/ /opt/prime_model_code/
+COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/prime/model-code.sha256 /opt/prime-model-code.sha256
 
 WORKDIR /app/revocompute/
 ENV RUNNER_USERNAME=${RUNNER_USERNAME} \
     PRIME_MODEL_DIR=/mnt/db/weights/prime/ProPrime_650M_OGT_Prediction-91490f95c707 \
-    PRIME_DMS_MODEL_DIR=/mnt/db/weights/prime/Prime_690M-7b75010748d2
+    PRIME_DMS_MODEL_DIR=/mnt/db/weights/prime/Prime_690M-7b75010748d2 \
+    PRIME_CODE_MANIFEST=/opt/prime-model-code.sha256
 ENV HTTP_PROXY="" HTTPS_PROXY="" ALL_PROXY="" \
     http_proxy="" https_proxy="" all_proxy="" NO_PROXY="" no_proxy=""
 ENTRYPOINT ["bash", "/app/revocompute/run.sh"]

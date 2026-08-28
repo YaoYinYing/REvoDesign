@@ -254,6 +254,17 @@ task_types:
     input_extension: ".pdb"
     input_label: "PDB file"
     input_workspace: *structure_workspace
+    result_workspace:
+      views:
+        - plugin: matrix
+          id: mutation_scan
+          role: primary
+          title: Predicted stability-change matrix
+          description: Predicted mutation-associated stability changes by substituted amino acid and sequence position.
+          sources:
+            matrices:
+              - {glob: "*_pred_mask.csv", required: true}
+          mapping: {format: csv, row_labels_column: index, x_label: "Sequence position (zero-based)", y_label: "Substituted amino acid", unit: "kcal/mol ΔΔG", direction: lower, scale: diverging, center: 0}
     stage_markers:
       pythia_ddg: "Pythia masked ddG scan"
     params: []
@@ -272,6 +283,30 @@ task_types:
     input_extension: ".a3m"
     input_label: "Multiple sequence alignment (a3m)"
     input_workspace: *file_workspace
+    result_workspace:
+      views:
+        - plugin: metric-series
+          id: residue_profile
+          role: primary
+          title: Per-residue masked-marginal profile
+          description: Wild-type log probability and predictive entropy along the query sequence.
+          sources:
+            series:
+              - {path: "msa1b_profile.csv", required: true}
+          mapping: {format: csv, x_column: position, value_columns: [log_prob, entropy], x_label: "Residue position", y_label: "Model value", unit: "natural log units", direction: neutral, missing: "empty cell"}
+        - plugin: scalar-summary
+          id: profile_summary
+          role: evidence
+          title: Profile summary
+          description: Aggregate statistics and alignment depth reported by the pinned model runner.
+          sources:
+            data:
+              - {path: "msa1b_summary.json", required: true}
+          mapping:
+            fields:
+              - {path: msa_rows, label: "MSA rows", unit: "sequences", direction: neutral}
+              - {path: mean_entropy, label: "Mean entropy", unit: "nats", direction: lower}
+              - {path: mean_log_prob, label: "Mean wild-type log probability", unit: "nats", direction: higher}
     stage_markers:
       esm_msa: "ESM-MSA-1b masked-marginal profile"
     params:
@@ -326,6 +361,17 @@ task_types:
     input_extension: ".fasta"
     input_label: "FASTA file"
     input_workspace: *fasta_workspace
+    result_workspace:
+      views:
+        - plugin: entity-table
+          id: mutation_scores
+          role: primary
+          title: Single-mutation effect scores
+          description: Zero-shot log-likelihood differences for all single amino-acid substitutions; higher scores are more compatible with the model.
+          sources:
+            table:
+              - {glob: "*_esm1v_scores.csv", required: true}
+          mapping: {entity: mutation, key_columns: [mutation], label_column: mutation, evidence_columns: [mean_score]}
     stage_markers:
       esm_1v: "ESM-1v variant effect prediction"
     params: []
@@ -344,6 +390,17 @@ task_types:
     input_extension: ".pdb"
     input_label: "PDB file"
     input_workspace: *structure_workspace
+    result_workspace:
+      views:
+        - plugin: candidate-collection
+          id: designed_sequences
+          role: primary
+          title: Designed sequences
+          description: Sampled sequences conditioned on the selected backbone chain, in runner output order.
+          sources:
+            candidates:
+              - {glob: "*_designs.fasta", required: true}
+          mapping: {}
     stage_markers:
       esm_if1: "ESM-IF1 inverse folding"
     params:
@@ -379,6 +436,19 @@ task_types:
     input_extension: ".fasta"
     input_label: "FASTA file"
     input_workspace: *fasta_workspace
+    result_workspace:
+      views:
+        - plugin: evidence-bundle
+          id: dynamics_evidence
+          role: primary
+          title: Predicted dynamics evidence
+          description: Representative contact, frequency, and kinetic predictions at the first reported temperature; these are model predictions, not MD frames.
+          sources:
+            items:
+              - {glob: "*/dynamic/*_dynamic_confidence_320K.png", required: true}
+              - {glob: "*/frequency/*_frequency_pred_320K.png", required: true}
+              - {glob: "*/kinetics/*_kinetics_confidence_320K.png", required: true}
+          mapping: {}
     stage_markers:
       esmdynamic: "ESMDynamic contact-map prediction"
     params:
@@ -401,6 +471,32 @@ task_types:
     input_extension: ".json"
     input_label: "JSON file (OpenDDE job spec)"
     input_workspace: *file_workspace
+    result_workspace:
+      views:
+        - plugin: candidate-collection
+          id: predicted_structures
+          role: primary
+          title: Predicted all-atom structures
+          description: OpenDDE structure samples in the deterministic artifact order declared by the run.
+          sources:
+            candidates:
+              - {glob: "*/seed_*/predictions/*_sample_*.cif", required: true}
+          mapping:
+            confidence_encoding: plddt_bfactor
+        - plugin: scalar-summary
+          id: model_confidence
+          role: evidence
+          title: Model confidence summary
+          description: Per-sample confidence and ranking values published by OpenDDE.
+          sources:
+            data:
+              - {glob: "*/seed_*/predictions/*_summary_confidence_sample_*.json", required: true}
+          mapping:
+            fields:
+              - {path: plddt, label: "pLDDT", unit: "score", direction: higher}
+              - {path: gpde, label: "gPDE", unit: "score", direction: lower}
+              - {path: ptm, label: "pTM", unit: "score", direction: higher}
+              - {path: ranking_score, label: "Ranking score", unit: "score", direction: higher}
     stage_markers:
       opendde: "OpenDDE co-folding inference"
     params:
@@ -451,6 +547,17 @@ task_types:
     input_extension: ".pdb"
     input_label: "PDB file"
     input_workspace: *structure_workspace
+    result_workspace: &mpnn_sequence_results
+      views:
+        - plugin: candidate-collection
+          id: designed_sequences
+          role: primary
+          title: Designed sequences
+          description: Designed sequences in the order published by the MPNN runner.
+          sources:
+            candidates:
+              - {glob: "seqs/*.fa", required: true}
+          mapping: {}
     stage_markers:
       hypermpnn: "HyperMPNN thermostable design"
     params:
@@ -491,6 +598,7 @@ task_types:
     input_extension: ".pdb"
     input_label: "Protein backbone (PDB)"
     input_workspace: *structure_workspace
+    result_workspace: *mpnn_sequence_results
     stage_markers:
       proteinmpnn: "ProteinMPNN sequence design"
     params:
@@ -525,6 +633,7 @@ task_types:
     input_extension: ".pdb"
     input_label: "Soluble protein backbone (PDB)"
     input_workspace: *structure_workspace
+    result_workspace: *mpnn_sequence_results
     stage_markers:
       solublempnn: "SolubleMPNN sequence design"
     params:
@@ -558,6 +667,26 @@ task_types:
     input_extension: ".pdb"
     input_label: "PDB file"
     input_workspace: *structure_workspace
+    result_workspace:
+      views:
+        - plugin: candidate-collection
+          id: designed_sequences
+          role: primary
+          title: Ligand-aware designed sequences
+          description: Designed sequences produced in the supplied ligand context.
+          sources:
+            candidates:
+              - {glob: "seqs/*.fa", required: true}
+          mapping: {}
+        - plugin: candidate-collection
+          id: packed_structures
+          role: evidence
+          title: Packed structures
+          description: Structure outputs produced when side-chain packing is enabled.
+          sources:
+            candidates:
+              - {glob: "backbones/*.pdb", required: false}
+          mapping: {}
     stage_markers:
       ligandmpnn: "LigandMPNN sequence design"
     params:
@@ -617,6 +746,18 @@ task_types:
     max_input_files: 64
     input_label: "Protonated protein–ligand structures (PDB/mmCIF)"
     input_workspace: *structure_workspace
+    result_workspace:
+      views:
+        - plugin: candidate-collection
+          id: designed_structures
+          role: primary
+          title: Ligand-conditioned designs
+          description: Designed structures in runner output order, with the sequence file retained as supporting evidence.
+          sources:
+            candidates:
+              - {glob: "*/design_*.pdb", required: false}
+              - {path: "designs.fasta", required: true}
+          mapping: {}
     stage_markers:
       lasermpnn: "LASErMPNN ligand-conditioned sequence and side-chain design"
     params:
@@ -661,6 +802,17 @@ task_types:
     input_extension: ".pdb"
     input_label: "PDB file"
     input_workspace: *structure_workspace
+    result_workspace:
+      views:
+        - plugin: entity-table
+          id: stability_scores
+          role: primary
+          title: Predicted mutation stability changes
+          description: Mutations passing the configured threshold and their predicted stability changes; lower ΔΔG is more favourable.
+          sources:
+            table:
+              - {path: "thermompnn.csv", required: true}
+          mapping: {entity: mutation, key_columns: [Mutation], label_column: Mutation, evidence_columns: ["ddG (kcal/mol)"]}
     stage_markers:
       thermompnn: "ThermoMPNN-D stability prediction"
     params:
@@ -693,6 +845,17 @@ task_types:
     input_extension: ".fasta"
     input_label: "FASTA file"
     input_workspace: *fasta_workspace
+    result_workspace:
+      views:
+        - plugin: entity-table
+          id: growth_temperature
+          role: primary
+          title: Predicted optimal growth temperature
+          description: Model-estimated optimal growth temperature in degrees Celsius; treat it as a sequence-level prediction, not a measured value.
+          sources:
+            table:
+              - {glob: "*_ogt.csv", required: true}
+          mapping: {entity: candidate, key_columns: [id], label_column: id, evidence_columns: [ogt]}
     stage_markers:
       prime: "Pro-Prime OGT prediction"
     params: []
@@ -716,6 +879,17 @@ task_types:
     allow_multiple_inputs: true
     max_input_files: 64
     input_workspace: *fasta_workspace
+    result_workspace:
+      views:
+        - plugin: entity-table
+          id: mutation_scores
+          role: primary
+          title: Zero-shot mutation scores
+          description: Log-likelihood-ratio mutation scores; higher values indicate variants the model considers more plausible relative to the reference, not measured fitness.
+          sources:
+            table:
+              - {glob: "*_prime_*.csv", required: true}
+          mapping: {entity: mutation, key_columns: [mutations], label_column: mutations, evidence_columns: [mutation_count, predict_score]}
     stage_markers:
       prime_dms: "PRIME zero-shot mutation scoring"
     params: []
@@ -795,6 +969,28 @@ task_types:
           title: Review design
           options:
             show_paths: true
+    result_workspace:
+      views:
+        - plugin: candidate-collection
+          id: generated_backbones
+          role: primary
+          title: Generated backbones
+          description: Final backbone designs in deterministic artifact order.
+          sources:
+            candidates:
+              - {glob: "design_*.pdb", required: true}
+          mapping: {}
+        - plugin: trajectory
+          id: diffusion_trajectory
+          role: evidence
+          title: Diffusion trajectories
+          description: Multi-model PDB coordinates explicitly associated with their final design topology; frames are diffusion steps, not physical time.
+          sources:
+            topology:
+              - {glob: "design_*.pdb", required: true}
+            coordinates:
+              - {glob: "traj/*_pX0_traj.pdb", required: false}
+          mapping: {coordinate_format: pdb, frame_unit: "diffusion step", timestep: 1, association: stem-prefix}
     stage_markers:
       rfdiffusion: "RFdiffusion backbone generation"
     params:
@@ -925,6 +1121,26 @@ task_types:
           title: Review placement
           options:
             show_paths: true
+    result_workspace:
+      views:
+        - plugin: candidate-collection
+          id: complex_models
+          role: primary
+          title: Predicted complex models
+          description: Protein–ligand complex models in the order emitted by PLACER.
+          sources:
+            candidates:
+              - {glob: "*_model.pdb", required: true}
+          mapping: {}
+        - plugin: entity-table
+          id: model_scores
+          role: evidence
+          title: Model confidence and geometry scores
+          description: PLACER model metrics; interpretation depends on the selected reranking field.
+          sources:
+            table:
+              - {glob: "*.csv", required: true}
+          mapping: {entity: candidate, key_columns: [label, model_idx], label_column: label, evidence_columns: [fape, lddt, rmsd, prmsd, plddt, plddt_pde]}
     stage_markers:
       placer: "PLACER structure generation"
     params:
@@ -967,6 +1183,19 @@ task_types:
     input_extension: ".fasta"
     input_label: "FASTA file"
     input_workspace: *fasta_workspace
+    result_workspace:
+      views:
+        - plugin: trajectory
+          id: conformational_ensemble
+          role: primary
+          title: Sampled conformational ensemble
+          description: Filtered BioEmu samples associated with the declared PDB topology; sample order is not physical time.
+          sources:
+            topology:
+              - {path: "topology.pdb", required: true}
+            coordinates:
+              - {path: "samples.xtc", required: true}
+          mapping: {coordinate_format: xtc, frame_unit: sample, timestep: 1, association: single}
     stage_markers:
       bioemu: "BioEmu structure sampling"
     params:
@@ -1086,6 +1315,15 @@ task_types:
             candidates:
               - {glob: "Accepted/*.pdb", required: false}
           mapping: {}
+        - plugin: entity-table
+          id: design_metrics
+          role: evidence
+          title: Binder ranking and confidence metrics
+          description: Accepted designs with campaign ranking, confidence, interface, and sequence metrics.
+          sources:
+            table:
+              - {path: "final_design_stats.csv", required: true}
+          mapping: {entity: candidate, key_columns: [Design], label_column: Design, evidence_columns: [Rank, Average_pLDDT, Average_pTM, Average_i_pTM, Average_pAE, Average_i_pAE, Average_ipSAE]}
     stage_markers:
       parse: "Parse target settings"
       design: "Binder design loop"
@@ -1172,6 +1410,24 @@ task_types:
               - {glob: "*/ranked_*.pdb", required: true}
           mapping:
             confidence_encoding: plddt_bfactor
+        - plugin: metric-series
+          id: residue_confidence
+          role: evidence
+          title: Per-residue model confidence
+          description: Per-residue pLDDT confidence for each predicted model; higher values indicate greater local model confidence.
+          sources:
+            series:
+              - {glob: "*/confidence_*.json", required: true}
+          mapping: {format: json, value_path: "confidenceScore", x_label: "Residue position", y_label: pLDDT, unit: score, direction: higher, missing: "null", y_min: 0, y_max: 100}
+        - plugin: matrix
+          id: predicted_aligned_error
+          role: evidence
+          title: Predicted aligned error
+          description: Pairwise predicted aligned error for each model; lower values indicate greater confidence in relative residue placement.
+          sources:
+            matrices:
+              - {glob: "*/pae_*.json", required: true}
+          mapping: {format: json, value_path: "0.predicted_aligned_error", x_label: "Aligned residue", y_label: "Scored residue", unit: "Å", direction: lower, scale: sequential, scale_min: 0, scale_max: 31.75}
     stage_markers:
       msa_searching: "MSA searching"
       featuring: "Building features"
@@ -1229,6 +1485,57 @@ task_types:
     primary_input_extensions: [".fasta", ".fa", ".faa"]
     input_label: "Protein sequence (FASTA)"
     input_workspace: *fasta_workspace
+    result_workspace:
+      views:
+        - plugin: candidate-collection
+          id: ranked_models
+          role: primary
+          title: Ranked structure models
+          description: Predicted structures in the ranking order published by ColabFold.
+          sources:
+            candidates:
+              - {glob: "*_rank_*.pdb", required: true}
+          mapping:
+            confidence_encoding: plddt_bfactor
+        - plugin: metric-series
+          id: residue_confidence
+          role: evidence
+          title: Per-residue model confidence
+          description: Per-residue pLDDT confidence for each ranked model.
+          sources:
+            series:
+              - {glob: "*_scores_rank_*.json", required: true}
+          mapping: {format: json, value_path: plddt, x_label: "Residue position", y_label: pLDDT, unit: score, direction: higher, missing: "null", y_min: 0, y_max: 100}
+        - plugin: matrix
+          id: predicted_aligned_error
+          role: evidence
+          title: Predicted aligned error
+          description: Pairwise predicted aligned error; lower values indicate greater confidence in relative residue placement.
+          sources:
+            matrices:
+              - {glob: "*_predicted_aligned_error_*.json", required: true}
+          mapping: {format: json, value_path: predicted_aligned_error, x_label: "Aligned residue", y_label: "Scored residue", unit: "Å", direction: lower, scale: sequential, scale_min: 0, scale_max: 31.75}
+        - plugin: scalar-summary
+          id: global_confidence
+          role: evidence
+          title: Global model confidence
+          description: Global confidence values published with each ColabFold model.
+          sources:
+            data:
+              - {glob: "*_scores_rank_*.json", required: true}
+          mapping:
+            fields:
+              - {path: ptm, label: pTM, unit: score, direction: higher}
+              - {path: max_pae, label: "Maximum PAE", unit: "Å", direction: lower}
+        - plugin: alignment
+          id: model_alignment
+          role: evidence
+          title: Model input alignment
+          description: The A3M alignment supplied to model inference, with sequence-based residue numbering.
+          sources:
+            alignment:
+              - {glob: "*.a3m", required: true}
+          mapping: {format: a3m, numbering: sequence}
     stage_markers:
       msa_searching: "MSA searching"
       modeling: "Folding models"

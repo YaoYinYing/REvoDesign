@@ -110,16 +110,113 @@ def _manifest() -> dict:
     }
 
 
-def _open_result_page(page: Page, delay_second_viewer: bool = False) -> None:
+def _add_protocol_fixtures(manifest: dict) -> None:
+    fixtures = [
+        ("confidence.json", "application/json", "text", 80),
+        ("pae.json", "application/json", "text", 80),
+        ("summary.json", "application/json", "text", 80),
+        ("input.a3m", "application/octet-stream", "text", 40),
+        ("topology.pdb", "chemical/x-pdb", "structure", 80),
+        ("samples.xtc", "application/octet-stream", None, 24),
+    ]
+    for index, (path, media_type, preview, size) in enumerate(fixtures):
+        manifest["artifacts"].append(
+            {
+                "path": path,
+                "size": size,
+                "sha256": chr(ord("d") + index) * 64,
+                "media_type": media_type,
+                "preview": preview,
+                "role": "evidence",
+                "url": f"/compute/api/results/task/artifacts/{path}",
+            }
+        )
+    manifest["views"].extend(
+        [
+            {
+                "id": "confidence",
+                "plugin": "metric-series",
+                "role": "evidence",
+                "title": "Residue confidence",
+                "description": "Per-residue confidence.",
+                "sources": {"series": ["confidence.json"]},
+                "mapping": {
+                    "format": "json",
+                    "value_path": "values",
+                    "x_label": "Residue",
+                    "y_label": "pLDDT",
+                    "unit": "score",
+                    "direction": "higher",
+                    "missing": "null",
+                    "y_min": 0,
+                    "y_max": 100,
+                },
+            },
+            {
+                "id": "pae",
+                "plugin": "matrix",
+                "role": "evidence",
+                "title": "Predicted aligned error",
+                "description": "Pairwise error.",
+                "sources": {"matrices": ["pae.json"]},
+                "mapping": {
+                    "format": "json",
+                    "value_path": "values",
+                    "x_label": "Aligned residue",
+                    "y_label": "Scored residue",
+                    "unit": "Å",
+                    "direction": "lower",
+                    "scale": "sequential",
+                    "scale_min": 0,
+                    "scale_max": 30,
+                },
+            },
+            {
+                "id": "summary",
+                "plugin": "scalar-summary",
+                "role": "evidence",
+                "title": "Global confidence",
+                "description": "Global confidence values.",
+                "sources": {"data": ["summary.json"]},
+                "mapping": {"fields": [{"path": "ptm", "label": "pTM", "unit": "score", "direction": "higher"}]},
+            },
+            {
+                "id": "alignment",
+                "plugin": "alignment",
+                "role": "evidence",
+                "title": "Input alignment",
+                "description": "Aligned sequences.",
+                "sources": {"alignment": ["input.a3m"]},
+                "mapping": {"format": "a3m", "numbering": "sequence"},
+            },
+            {
+                "id": "ensemble",
+                "plugin": "trajectory",
+                "role": "evidence",
+                "title": "Conformational ensemble",
+                "description": "Sampled conformations.",
+                "sources": {"topology": ["topology.pdb"], "coordinates": ["samples.xtc"]},
+                "mapping": {"coordinate_format": "xtc", "frame_unit": "sample", "timestep": 1, "association": "single"},
+            },
+        ]
+    )
+    manifest["total_size"] = sum(item["size"] for item in manifest["artifacts"])
+
+
+def _open_result_page(page: Page, delay_second_viewer: bool = False, protocols: bool = False) -> None:
     page.route("https://fonts.googleapis.com/**", lambda route: route.abort())
     page.route("https://fonts.gstatic.com/**", lambda route: route.abort())
     html = _task_results_html()
     manifest = _manifest()
+    if protocols:
+        _add_protocol_fixtures(manifest)
     pdb = "ATOM      1  CA  GLY A  28      10.000  10.000  10.000  1.00 20.00           C\nEND\n"
     shell = """<script>
     parent.postMessage({type: 'shell-ready'}, '*');
     window.addEventListener('message', function (event) {
       if (event.data.type === 'structure') parent.postMessage({type: 'ready', requestId: event.data.requestId}, '*');
+      if (event.data.type === 'trajectory') parent.postMessage({type: 'trajectory-ready', requestId: event.data.requestId, frame: 0, frameCount: 3}, '*');
+      if (event.data.type === 'trajectory-control') parent.postMessage({type: 'trajectory-frame', frame: event.data.action === 'set' ? event.data.value : 1, frameCount: 3}, '*');
       if (event.data.type === 'select-residue') parent.postMessage({type: 'selected', payload: event.data}, '*');
       if (event.data.type === 'dispose') parent.postMessage({type: 'disposed'}, '*');
     });
@@ -164,6 +261,30 @@ def _open_result_page(page: Page, delay_second_viewer: bool = False) -> None:
     page.route(
         "https://revocompute.example/compute/api/results/task/artifacts/enzyme_structure.pdb*",
         lambda route: route.fulfill(content_type="chemical/x-pdb", body=pdb),
+    )
+    page.route(
+        "https://revocompute.example/compute/api/results/task/artifacts/confidence.json*",
+        lambda route: route.fulfill(json={"values": [72, 84, 91]}),
+    )
+    page.route(
+        "https://revocompute.example/compute/api/results/task/artifacts/pae.json*",
+        lambda route: route.fulfill(json={"values": [[1, 8], [7, 2]]}),
+    )
+    page.route(
+        "https://revocompute.example/compute/api/results/task/artifacts/summary.json*",
+        lambda route: route.fulfill(json={"ptm": 0.82}),
+    )
+    page.route(
+        "https://revocompute.example/compute/api/results/task/artifacts/input.a3m*",
+        lambda route: route.fulfill(body=">query\nACDE\n>homolog\nAC-E\n"),
+    )
+    page.route(
+        "https://revocompute.example/compute/api/results/task/artifacts/topology.pdb*",
+        lambda route: route.fulfill(content_type="chemical/x-pdb", body=pdb),
+    )
+    page.route(
+        "https://revocompute.example/compute/api/results/task/artifacts/samples.xtc*",
+        lambda route: route.fulfill(content_type="application/octet-stream", body=b"mock-xtc"),
     )
     page.route("https://revocompute.example/compute/api/results/*", lambda route: route.fulfill(json=manifest))
     viewer_requests = 0
@@ -236,3 +357,28 @@ def test_result_page_cancels_delayed_warm_viewer_on_artifact_switch(page: Page) 
     page.locator(".artifact-row", has_text="execution/slurm-job.stdout.log").evaluate("node => node.click()")
     expect(page.get_by_role("heading", name="execution/slurm-job.stdout.log")).to_be_visible()
     expect(page.locator("iframe.artifact-molstar-preview")).to_have_count(0, timeout=3000)
+
+
+def test_scientific_protocol_views_are_interactive_and_accessible(page: Page) -> None:
+    _open_result_page(page, protocols=True)
+
+    page.get_by_role("button", name="Residue confidence").click()
+    expect(page.get_by_role("img", name="pLDDT by Residue")).to_be_visible()
+    expect(page.get_by_text("Higher is favourable")).to_be_visible()
+
+    page.get_by_role("button", name="Predicted aligned error").click()
+    matrix = page.get_by_role("grid", name="Predicted aligned error; use arrow keys to inspect cells")
+    matrix.focus()
+    matrix.press("ArrowRight")
+    expect(page.get_by_role("status").filter(has_text="Aligned residue 2")).to_be_visible()
+
+    page.get_by_role("button", name="Global confidence").click()
+    expect(page.get_by_text("0.82 score")).to_be_visible()
+
+    page.get_by_role("button", name="Input alignment").click()
+    expect(page.get_by_text("Columns use sequence numbering")).to_be_visible()
+
+    page.get_by_role("button", name="Conformational ensemble").click()
+    expect(page.get_by_label("Trajectory frame")).to_have_attribute("max", "2")
+    page.get_by_role("button", name="Next").click()
+    expect(page.get_by_text("2 / 3 · 1 sample")).to_be_visible()

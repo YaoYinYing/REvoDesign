@@ -108,38 +108,49 @@ standard bounded preview selected by manifest `preview` metadata.
 This is not a miscellaneous-files gallery. Diagnostics and unrelated outputs
 stay in the artifact list.
 
-## Candidate future protocols
+### `alignment`
 
-Add these only after a living task publishes stable data and a contract test
-pins its semantics.
+`sources.alignment` resolves exactly one A3M, FASTA, or Stockholm artifact.
+`mapping.format` declares that format and `mapping.numbering` is `sequence` or
+`alignment`. The bounded, keyboard-scrollable renderer preserves gaps and uses
+residue letters as the non-colour encoding. It does not infer residue numbering
+or conservation scores.
 
 ### `trajectory`
 
-Use for a multi-model structure or coordinates associated with one topology.
-The source roles should be `topology` (PDB/mmCIF, required) and `coordinates`
-(multi-model PDB or a trajectory such as XTC/DCD, required). Mapping must declare
-time units and timestep when they are not encoded in the trajectory, plus an
-optional alignment selection.
+`sources.topology` and `sources.coordinates` are both required. Mapping declares
+`coordinate_format` (`pdb`, `xtc`, or `dcd`), `frame_unit`, numeric `timestep`,
+and an explicit `association` (`single` or `stem-prefix`). XTC/DCD is never
+opened without the declared topology. Multi-model PDB and composed trajectories
+provide previous/next, play/pause, scrub, speed, and frame/unit readout. The
+authenticated parent bounds and fetches both files, transfers them to the
+sandboxed pinned Mol* shell, and aborts stale work.
 
-The Mol* implementation should provide model/frame selection, previous/next,
-play/pause, a scrubber, frame/time readout, playback speed, and optional
-alignment. XTC/DCD must never be opened without its declared topology. Loading
-is bounded or streamed; changing views aborts pending topology/trajectory work.
-Plotting libraries are not trajectory renderers.
+### `metric-series`
 
-### quantitative metric views
+`sources.series` contains one or more CSV or JSON artifacts. Mapping declares
+the format, x/value columns or JSON value path, axis labels, unit, missing-value
+rule, direction (`higher`, `lower`, or `neutral`), and optional fixed y bounds.
+The browser draws bounded native SVG and identifies direction in text.
 
-Use a metric/table protocol for stable numeric schemas such as per-residue
-pLDDT, PAE, pTM/iPTM, ranked candidate scores, RMSF, or dihedral angles. Mapping
-must declare the entity key, value columns, units, missing-value behavior, and
-whether higher or lower is favourable. Thresholds and colour scales must come
-from the scientific contract, not browser guesses.
+### `matrix`
 
-Prefer native SVG/canvas or an already-installed dependency. Add a maintained
-plot library only when interaction such as linked brushing, zoom, or multiple
-large series materially improves interpretation. A Ramachandran view must show
-phi/psi definitions, residue identity, allowed-region provenance, outliers, and
-selection linkage to the structure; a decorative scatter plot is insufficient.
+`sources.matrices` contains CSV or JSON matrices. Mapping declares the value
+path or row-label column, axes, unit, direction, sequential/diverging scale,
+and any scientifically defined bounds or centre. The bounded native canvas is
+keyboard navigable and reports the selected row, column, and numeric value, so
+colour is not the only encoding.
+
+### `scalar-summary`
+
+`sources.data` contains JSON records. Each allowlisted mapping field declares
+an exact JSON path, label, unit, and direction. Fields must resolve to scalar
+values during manifest finalization; the browser never derives scientific
+values from filenames or task names.
+
+Quantitative renderers intentionally use native SVG/canvas. Add a maintained,
+pinned plotting dependency only if a validated result requires interaction
+that these bounded renderers cannot provide.
 
 ## Browser lifecycle and safety
 
