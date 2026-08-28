@@ -215,8 +215,13 @@ def _open_result_page(page: Page, delay_second_viewer: bool = False, protocols: 
     parent.postMessage({type: 'shell-ready'}, '*');
     window.addEventListener('message', function (event) {
       if (event.data.type === 'structure') parent.postMessage({type: 'ready', requestId: event.data.requestId}, '*');
-      if (event.data.type === 'trajectory') parent.postMessage({type: 'trajectory-ready', requestId: event.data.requestId, frame: 0, frameCount: 3}, '*');
-      if (event.data.type === 'trajectory-control') parent.postMessage({type: 'trajectory-frame', frame: event.data.action === 'set' ? event.data.value : 1, frameCount: 3}, '*');
+      if (event.data.type === 'trajectory') {
+        parent.postMessage({type: 'trajectory-ready', requestId: event.data.requestId, frame: 0, frameCount: 3}, '*');
+      }
+      if (event.data.type === 'trajectory-control') {
+        var frame = event.data.action === 'set' ? event.data.value : 1;
+        parent.postMessage({type: 'trajectory-frame', frame: frame, frameCount: 3}, '*');
+      }
       if (event.data.type === 'select-residue') parent.postMessage({type: 'selected', payload: event.data}, '*');
       if (event.data.type === 'dispose') parent.postMessage({type: 'disposed'}, '*');
     });

@@ -536,12 +536,12 @@ def _validate_result_mapping(plugin: str, mapping: Any, view_id: str) -> dict[st
         fields = mapping.get("fields")
         if not isinstance(fields, list) or not fields:
             raise ValueError(f"Result view {view_id!r} fields must be a non-empty list")
-        for field in fields:
-            if not isinstance(field, dict) or set(field) != {"path", "label", "unit", "direction"}:
+        for scalar_field in fields:
+            if not isinstance(scalar_field, dict) or set(scalar_field) != {"path", "label", "unit", "direction"}:
                 raise ValueError(f"Result view {view_id!r} scalar fields require path, label, unit, and direction")
-            if not all(isinstance(field[key], str) and field[key] for key in ("path", "label")):
+            if not all(isinstance(scalar_field[key], str) and scalar_field[key] for key in ("path", "label")):
                 raise ValueError(f"Result view {view_id!r} scalar field path and label must be non-empty text")
-            if not isinstance(field["unit"], str) or field["direction"] not in _RESULT_DIRECTIONS:
+            if not isinstance(scalar_field["unit"], str) or scalar_field["direction"] not in _RESULT_DIRECTIONS:
                 raise ValueError(f"Result view {view_id!r} scalar field has invalid unit or direction")
     return mapping
 
