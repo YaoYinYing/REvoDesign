@@ -559,6 +559,7 @@ def _insert_pending_task(
         source_ip="127.0.0.1",
         user_agent="pytest",
         username="tester",
+        submitted_by_user_id=int(scope["scope_id"]),
         input_form=json.dumps({"user": "tester", "submitted_at": "2026-01-01T00:00:00Z", "entities": entities}),
         **scope,
     )
@@ -1526,6 +1527,7 @@ def test_cleanup_expired_task_artifacts_only_removes_old_terminal_results(monkey
             source_ip="127.0.0.1",
             user_agent="pytest",
             username="tester",
+            submitted_by_user_id=int(scope["scope_id"]),
             **scope,
         )
         task_artifacts.append((md5sum, result_dir, zip_path))
@@ -1578,6 +1580,7 @@ def test_cleanup_skips_task_replaced_before_atomic_claim(monkeypatch, tmp_path):
         status="finished",
         is_binary=0,
         username="tester",
+        submitted_by_user_id=int(scope["scope_id"]),
         **scope,
     )
     original_claim = module.task_store.claim_task_cleanup
@@ -1726,6 +1729,7 @@ def _upsert_task_for_user(
         source_ip="127.0.0.1",
         user_agent="pytest",
         username=username,
+        submitted_by_user_id=int(scope["scope_id"]),
         run_stage=run_stage,
         **scope,
     )

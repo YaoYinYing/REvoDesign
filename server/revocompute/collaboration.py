@@ -16,10 +16,13 @@ from typing import Any
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 
+from revocompute.schema_epoch import require_current_schema
+
 PROJECT_VISIBILITIES = frozenset({"private", "internal", "public"})
 PROJECT_ROLES = frozenset({"owner", "maintainer", "contributor", "viewer"})
 INVITATION_STATUSES = frozenset({"pending", "accepted", "declined", "revoked", "expired"})
 READ_CAPABILITIES = frozenset({"view_project", "view_tasks", "view_results"})
+ARCHIVED_MEMBER_CAPABILITIES = READ_CAPABILITIES | {"use_artifacts"}
 ROLE_CAPABILITIES = {
     "owner": frozenset(
         {
@@ -138,6 +141,15 @@ class CollaborationDatabase:
             conn.exec_driver_sql("PRAGMA busy_timeout=30000")
             conn.exec_driver_sql("PRAGMA foreign_keys=ON")
             conn.exec_driver_sql("PRAGMA journal_mode=WAL")
+            require_current_schema(
+                conn,
+                {
+                    "projects": {column.name for column in self.projects.columns},
+                    "project_members": {column.name for column in self.members.columns},
+                    "project_invitations": {column.name for column in self.invitations.columns},
+                },
+                database_name="collaboration database",
+            )
             self.metadata.create_all(conn, checkfirst=True)
 
     @staticmethod
@@ -199,7 +211,7 @@ class CollaborationDatabase:
 
     def list_projects(self, user_id: int | None, *, authenticated: bool = True) -> list[dict[str, Any]]:
         with self.engine.connect() as conn:
-            rows = conn.execute(sa.select(self.projects).where(self.projects.c.archived_at.is_(None))).all()
+            rows = conn.execute(sa.select(self.projects)).all()
         return [
             project
             for row in rows
@@ -222,7 +234,11 @@ class CollaborationDatabase:
         fields["updated_at"] = time.time()
         with self.engine.begin() as conn:
             return (
-                conn.execute(sa.update(self.projects).where(self.projects.c.id == project_id).values(**fields)).rowcount
+                conn.execute(
+                    sa.update(self.projects)
+                    .where(self.projects.c.id == project_id, self.projects.c.archived_at.is_(None))
+                    .values(**fields)
+                ).rowcount
                 == 1
             )
 
@@ -234,14 +250,19 @@ class CollaborationDatabase:
     def archive_project(self, project_id: int) -> bool:
         now = time.time()
         with self.engine.begin() as conn:
-            return (
-                conn.execute(
-                    sa.update(self.projects)
-                    .where(self.projects.c.id == project_id, self.projects.c.archived_at.is_(None))
-                    .values(archived_at=now, updated_at=now)
-                ).rowcount
-                == 1
+            archived = conn.execute(
+                sa.update(self.projects)
+                .where(self.projects.c.id == project_id, self.projects.c.archived_at.is_(None))
+                .values(archived_at=now, updated_at=now)
+            ).rowcount
+            if archived != 1:
+                return False
+            conn.execute(
+                sa.update(self.invitations)
+                .where(self.invitations.c.project_id == project_id, self.invitations.c.status == "pending")
+                .values(status="revoked")
             )
+            return True
 
     def list_members(self, project_id: int) -> list[dict[str, Any]]:
         with self.engine.connect() as conn:
@@ -269,6 +290,8 @@ class CollaborationDatabase:
     def set_member_role(self, project_id: int, user_id: int, role: str) -> bool:
         if role not in PROJECT_ROLES or role == "owner":
             raise ValueError("owner changes require transfer_ownership")
+        if not self._project_is_active(project_id):
+            return False
         with self.engine.begin() as conn:
             return (
                 conn.execute(
@@ -284,6 +307,8 @@ class CollaborationDatabase:
             )
 
     def transfer_ownership(self, project_id: int, current_owner_id: int, new_owner_id: int) -> bool:
+        if not self._project_is_active(project_id):
+            return False
         with self.engine.begin() as conn:
             current = conn.execute(
                 sa.select(self.members.c.role).where(
@@ -310,6 +335,8 @@ class CollaborationDatabase:
             return True
 
     def remove_member(self, project_id: int, user_id: int) -> bool:
+        if not self._project_is_active(project_id):
+            return False
         with self.engine.begin() as conn:
             return (
                 conn.execute(
@@ -333,7 +360,7 @@ class CollaborationDatabase:
     ) -> dict[str, Any]:
         if role not in PROJECT_ROLES or role == "owner":
             raise ValueError("invalid invitation role")
-        if not self.get_project(project_id):
+        if not self._project_is_active(project_id):
             raise ValueError("project does not exist")
         if self.get_membership(project_id, invited_user_id):
             raise ValueError("user is already a project member")
@@ -433,6 +460,11 @@ class CollaborationDatabase:
             ).first()
             if invitation is None:
                 return False
+            project = conn.execute(
+                sa.select(self.projects.c.archived_at).where(self.projects.c.id == invitation.project_id)
+            ).first()
+            if project is None or project.archived_at is not None:
+                return False
             if invitation.expires_at <= now:
                 conn.execute(
                     sa.update(self.invitations).where(self.invitations.c.id == invitation_id).values(status="expired")
@@ -453,14 +485,21 @@ class CollaborationDatabase:
 
     def can(self, project_id: int | str, user_id: int | None, capability: str, *, authenticated: bool = True) -> bool:
         project = self.get_project(project_id)
-        if not project or project["archived_at"] is not None:
+        if not project:
             return False
         membership = self.get_membership(project_id, user_id) if user_id is not None else None
         if membership:
-            return capability in ROLE_CAPABILITIES[membership["role"]]
+            capabilities = ROLE_CAPABILITIES[membership["role"]]
+            if project["archived_at"] is not None:
+                capabilities = capabilities.intersection(ARCHIVED_MEMBER_CAPABILITIES)
+            return capability in capabilities
         if capability not in READ_CAPABILITIES:
             return False
         return project["visibility"] == "public" or (project["visibility"] == "internal" and authenticated)
+
+    def _project_is_active(self, project_id: int | str) -> bool:
+        project = self.get_project(project_id)
+        return bool(project and project["archived_at"] is None)
 
     def capabilities(
         self,
@@ -471,11 +510,14 @@ class CollaborationDatabase:
     ) -> list[str]:
         """Return the principal's effective Project capabilities."""
         project = self.get_project(project_id)
-        if not project or project["archived_at"] is not None:
+        if not project:
             return []
         membership = self.get_membership(project_id, user_id) if user_id is not None else None
         if membership:
-            return sorted(ROLE_CAPABILITIES[membership["role"]])
+            capabilities = ROLE_CAPABILITIES[membership["role"]]
+            if project["archived_at"] is not None:
+                capabilities = capabilities.intersection(ARCHIVED_MEMBER_CAPABILITIES)
+            return sorted(capabilities)
         may_read = project["visibility"] == "public" or (project["visibility"] == "internal" and authenticated)
         return sorted(READ_CAPABILITIES) if may_read else []
 

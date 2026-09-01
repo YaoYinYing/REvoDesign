@@ -39,15 +39,22 @@ def test_visibility_discovery_and_archival(store):
     assert {p["id"] for p in store.list_projects(99)} == {internal["id"], public["id"]}
     assert store.can_submit_task(private["id"], 1)
     assert not store.can_submit_task(internal["id"], 99)
+    assert store.archive_project(private["id"])
+    assert store.archive_project(internal["id"])
     assert store.archive_project(public["id"])
     assert not store.archive_project(public["id"])
-    assert not store.can_view_project(public["id"], None, authenticated=False)
+    assert store.can_view_project(public["id"], None, authenticated=False)
+    assert public["id"] in {project["id"] for project in store.list_projects(None, authenticated=False)}
+    assert {project["id"] for project in store.list_projects(99)} == {internal["id"], public["id"]}
+    assert {project["id"] for project in store.list_projects(1)} == {private["id"], internal["id"], public["id"]}
 
 
 def test_effective_capabilities_for_members_and_outsiders(store):
     private = store.create_project(1, "Private")
     internal = store.create_project(2, "Internal", visibility="internal")
     public = store.create_project(3, "Public", visibility="public")
+    viewer_invitation = store.invite(public["id"], 4, 3, "viewer")
+    assert store.respond_invitation(viewer_invitation["id"], 4, True)
     assert "transfer_ownership" in store.capabilities(private["id"], 1)
     assert store.capabilities(private["id"], 99) == []
     assert store.capabilities(internal["id"], 99) == ["view_project", "view_results", "view_tasks"]
@@ -58,7 +65,20 @@ def test_effective_capabilities_for_members_and_outsiders(store):
         "view_tasks",
     ]
     assert store.archive_project(public["id"])
-    assert store.capabilities(public["id"], 3) == []
+    assert store.capabilities(public["id"], 3) == [
+        "use_artifacts",
+        "view_project",
+        "view_results",
+        "view_tasks",
+    ]
+    assert store.capabilities(public["id"], None, authenticated=False) == [
+        "view_project",
+        "view_results",
+        "view_tasks",
+    ]
+    assert not store.can_submit_task(public["id"], 3)
+    assert store.capabilities(public["id"], 4) == ["view_project", "view_results", "view_tasks"]
+    assert not store.can_use_artifact(public["id"], 4)
 
 
 def test_invitation_accept_decline_duplicate_and_expire(store):
@@ -81,6 +101,18 @@ def test_invitation_accept_decline_duplicate_and_expire(store):
     time.sleep(0.02)
     assert not store.respond_invitation(expired["id"], 4, True)
     assert store.get_invitation(expired["id"])["status"] == "expired"
+
+
+def test_pending_invitation_cannot_add_member_after_archive(store):
+    project = store.create_project(1, "Frozen")
+    invitation = store.invite(project["id"], 2, 1, "contributor")
+    assert store.archive_project(project["id"])
+    assert not store.respond_invitation(invitation["id"], 2, True)
+    assert store.get_invitation(invitation["id"])["status"] == "revoked"
+    assert store.get_membership(project["id"], 2) is None
+    assert not store.update_project(project["id"], name="Still frozen")
+    with pytest.raises(ValueError, match="project does not exist"):
+        store.invite(project["id"], 3, 1, "viewer")
 
 
 def test_invitation_revoke_and_listing(store):

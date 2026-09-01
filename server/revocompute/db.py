@@ -30,6 +30,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import OperationalError
 
+from revocompute.schema_epoch import require_current_schema
+
 
 class TaskDatabase:
     """Minimal SQLite-based task tracker for compute jobs."""
@@ -91,6 +93,7 @@ class TaskDatabase:
             Column("scope_type", String, nullable=False),
             Column("scope_id", String, nullable=False),
             Column("storage_key", String, nullable=False),
+            Column("submitted_by_user_id", Integer, nullable=False),
             Column("artifact_provenance", Text, nullable=False, default="[]"),
             CheckConstraint("scope_type IN ('personal','project')", name="ck_task_scope_type"),
         )
@@ -101,11 +104,17 @@ class TaskDatabase:
             self.tasks_table.c.scope_id,
             self.tasks_table.c.uploaded_at,
         )
+        Index("idx_tasks_submitter", self.tasks_table.c.submitted_by_user_id, self.tasks_table.c.uploaded_at)
         self._initialize()
 
     def _initialize(self) -> None:
         with self.engine.begin() as conn:
             self._safe_apply_pragmas(conn)
+            require_current_schema(
+                conn,
+                {"tasks": {column.name for column in self.tasks_table.columns}},
+                database_name="task database",
+            )
             try:
                 self.metadata.create_all(conn, checkfirst=True)
             except OperationalError as exc:
@@ -115,15 +124,6 @@ class TaskDatabase:
                 if "already exists" not in str(exc).lower():
                     raise
                 logging.warning("TaskDatabase metadata already present, skipping creation")
-            # These established runtime fields predate Project Scope.
-            existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(tasks)")}
-            migrations = (
-                ("container_id", "VARCHAR"),
-                ("workflow_state", "VARCHAR"),
-            )
-            for column, ddl in migrations:
-                if column not in existing:
-                    conn.exec_driver_sql(f"ALTER TABLE tasks ADD COLUMN {column} {ddl}")
 
     @staticmethod
     def _safe_apply_pragmas(conn) -> None:
@@ -277,13 +277,13 @@ class TaskDatabase:
             rows = conn.execute(stmt).mappings().all()
         return [self._normalize_task_row(row) for row in rows]
 
-    def count_user_active_tasks(self, username: str) -> int:
+    def count_user_active_tasks(self, user_id: int) -> int:
         """Count pending, queued, and running tasks for a user."""
         stmt = (
             select(func.count())
             .select_from(self.tasks_table)
             .where(
-                self.tasks_table.c.username == username,
+                self.tasks_table.c.submitted_by_user_id == user_id,
                 self.tasks_table.c.status.in_(["pending", "queued", "running"]),
             )
         )

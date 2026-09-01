@@ -674,6 +674,14 @@ Create a writable `AUTH_DIR` before the first start. The web process creates
 `${AUTH_DIR}/users.sqlite3` with the current schema. Existing databases must
 already match that schema; server setup does not migrate them.
 
+Project Scope introduces a destructive development-state epoch transition.
+For the one-time upgrade, stop REvoCompute, deliberately reset the test-era
+user, task, and collaboration databases plus the old workspace/results roots,
+then start the new release and recreate users and Projects. Startup validates
+all three schemas and fails with reset instructions when old state is found; it
+never migrates or deletes that state. An ordinary restart never resets current
+databases or scoped storage.
+
 ### Equivalent Docker Compose commands
 
 These commands are equivalent only after `users.sqlite3` contains an account.

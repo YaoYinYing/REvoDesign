@@ -51,6 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation:
   - prune always-loaded Claude guidance and move rare PR/release procedures to linked `docs/agents/` references.
 - Server:
+  - Project Scope hardening: immutable task submitter IDs, read-only archived
+    scientific records with eligible artifact reuse, capability-scoped user
+    discovery, non-member attribution redaction, and fail-fast schema-epoch
+    validation with an explicit development-state reset contract.
   - deployment control: allow `build --server-only` to rebuild web/worker images without rebuilding runner images or invalidating prepared SIFs.
   - deployment control: allow `down --keep-gateway` to leave Nginx serving the maintenance page while application services remain stopped.
   - deployment control: add a standalone operator/developer guide for modes, preparation, SIF activation, safety, cache behavior, and recovery.

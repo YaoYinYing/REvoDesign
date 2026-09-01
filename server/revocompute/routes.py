@@ -48,7 +48,6 @@ from revocompute.app import (
     TEMPLATE_IMAGE_DIR,
     _client_country,
     _client_ip,
-    _current_username,
     _delete_task_artifacts,
     _deleted_status_from_task,
     _is_admin_user,
@@ -420,12 +419,20 @@ def project_archive_api(project_id: str):
     )
 
 
-@app.route("/compute/api/users/search", methods=["GET"])
+@app.route("/compute/api/projects/<project_id>/users/search", methods=["GET"])
 @login_required
-def users_search_api():
+def project_users_search_api(project_id: str):
+    store = current_app.config["collaboration"]
+    if not store.can(project_id, int(g.current_user["id"]), "invite_members"):
+        return jsonify({"error": "Forbidden"}), 403
     query = request.args.get("q", "").strip().casefold()
     if len(query) < 2:
         return jsonify({"users": []})
+    excluded_user_ids = {int(member["user_id"]) for member in store.list_members(project_id)}
+    excluded_user_ids.update(
+        int(invitation["invited_user_id"])
+        for invitation in store.list_project_invitations(project_id, status="pending")
+    )
     users = [
         {
             "id": user["id"],
@@ -433,6 +440,7 @@ def users_search_api():
             "display_name": user.get("full_name") or user["username"],
         }
         for user in current_app.config["user_db"].list_users()
+        if int(user["id"]) not in excluded_user_ids
         if query in str(user.get("username") or "").casefold() or query in str(user.get("full_name") or "").casefold()
     ][:20]
     return jsonify({"users": users})
@@ -443,6 +451,9 @@ def users_search_api():
 def project_tasks_api(project_id: str):
     if not _project_access(project_id, "view_tasks"):
         return jsonify({"error": "Project not found"}), 404
+    user = g.get("current_user")
+    is_member = bool(user and current_app.config["collaboration"].get_membership(project_id, int(user["id"])))
+    reveal_submitter = _is_admin_user() or is_member
     tasks = [
         {
             "md5sum": task["md5sum"],
@@ -450,7 +461,7 @@ def project_tasks_api(project_id: str):
             "task_type": task["task_type"],
             "status": task["status"],
             "uploaded_at": task["uploaded_at"],
-            "username": task.get("username"),
+            "submitted_by": task.get("username") if reveal_submitter else None,
         }
         for task in task_store.list_tasks()
         if task.get("scope_type") == "project" and str(task.get("scope_id")) == str(project_id)
@@ -949,12 +960,14 @@ def _can_reuse_source_task(source: dict[str, Any], destination_scope: dict[str, 
     user = g.current_user
     if source.get("scope_type") == "project":
         source_project = str(source.get("scope_id") or "")
-        return (
-            destination_scope["scope_type"] == "project"
-            and source_project == destination_scope["scope_id"]
-            and bool(source_project)
-            and current_app.config["collaboration"].can_use_artifact(int(source_project), int(user["id"]))
-        )
+        if not source_project or not current_app.config["collaboration"].can_use_artifact(
+            int(source_project), int(user["id"])
+        ):
+            return False
+        if destination_scope["scope_type"] == "project":
+            return source_project == destination_scope["scope_id"]
+        project = current_app.config["collaboration"].get_project(int(source_project))
+        return destination_scope["scope_type"] == "personal" and bool(project and project["archived_at"] is not None)
     if destination_scope["scope_type"] != "personal":
         return False
     return source.get("scope_type") == "personal" and str(source["scope_id"]) == str(user["id"])
@@ -1096,6 +1109,7 @@ def _prepare_task_record(
         "source_ip": metadata["ip"],
         "user_agent": metadata["user_agent"],
         "username": metadata["username"],
+        "submitted_by_user_id": int(g.current_user["id"]),
         "request_headers": metadata["headers_json"],
         "local_user": _local_user_identity(),
         "celery_task_id": None,
@@ -1297,7 +1311,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     # Celery/Docker queue, not the HTTP layer.  Raise MAX_ACTIVE_TASKS_PER_USER
     # if users routinely hit it with legitimate batch work.
     MAX_ACTIVE_TASKS_PER_USER = 5
-    if task_store.count_user_active_tasks(metadata["username"]) >= MAX_ACTIVE_TASKS_PER_USER:
+    if task_store.count_user_active_tasks(int(g.current_user["id"])) >= MAX_ACTIVE_TASKS_PER_USER:
         return (
             jsonify(
                 {
@@ -1837,7 +1851,7 @@ def cancel_task(md5sum):
 _DASHBOARD_SEQUENCE_PREVIEW_BYTES = 4096
 
 
-def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, is_admin: bool) -> dict[str, Any]:
+def _dashboard_task_status(task: dict[str, Any], index: int) -> dict[str, Any]:
     submitted_time = task.get("uploaded_at")
     finished_time = task.get("finished_at")
     task_type_name = task.get("task_type", "gremlin")
@@ -1900,7 +1914,7 @@ def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, 
 @app.route("/compute/dashboard", methods=["GET"])
 @login_required
 def task_dashboard():  # skipcq: PY-R1000 -- dashboard filtering and response assembly share request state.
-    current_user = _current_username() or ""
+    current_username = str(g.current_user["username"])
     is_admin = _is_admin_user()
     all_tasks = task_store.list_tasks()
     if is_admin:
@@ -1918,22 +1932,17 @@ def task_dashboard():  # skipcq: PY-R1000 -- dashboard filtering and response as
             )
             or (
                 task.get("scope_type") != "project"
-                and (
-                    str(task.get("scope_id") or "") == str(user_id)
-                    or (not task.get("scope_id") and task.get("username") == current_user)
-                )
+                and str(task.get("scope_id") or "") == str(user_id)
             )
         ]
     visible_tasks = [task for task in scoped_tasks if not _is_deleted_status(task.get("status"))]
-    task_statuses = [
-        _dashboard_task_status(task, index, current_user, is_admin) for index, task in enumerate(visible_tasks)
-    ]
+    task_statuses = [_dashboard_task_status(task, index) for index, task in enumerate(visible_tasks)]
     sorted_task_statuses = sorted(task_statuses, key=lambda x: x["submitted_timestamp"], reverse=True)
 
     return render_template(
         "dashboard.html",
         sorted_task_statuses=sorted_task_statuses,
-        current_username=current_user,
+        current_username=current_username,
         is_admin_user=is_admin,
     )
 
@@ -1953,7 +1962,7 @@ def task_results_page(md5sum):
     response = make_response(
         render_template(
             "task_results.html",
-            task=_dashboard_task_status(task, 0, _current_username() or "", _is_admin_user()),
+            task=_dashboard_task_status(task, 0),
         )
     )
     response.headers["Cache-Control"] = "no-cache"

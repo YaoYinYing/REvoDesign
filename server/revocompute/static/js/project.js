@@ -137,7 +137,7 @@
     window.clearTimeout(searchTimer); var query = event.target.value.trim(); if (query.length < 2) return;
     searchTimer = window.setTimeout(async function () {
       try {
-        var payload = await request("/compute/api/users/search?q=" + encodeURIComponent(query)); state.users = payload.users || [];
+        var payload = await request(apiRoot + "/users/search?q=" + encodeURIComponent(query)); state.users = payload.users || [];
         var options = document.getElementById("inviteUserOptions"); options.replaceChildren(); state.users.forEach(function (user) { var option = document.createElement("option"); option.value = user.username; option.label = user.display_name || user.username; options.appendChild(option); });
       } catch (error) { setStatus(error.message, "error"); }
     }, 200);
@@ -159,7 +159,7 @@
     document.querySelectorAll(".project-tab").forEach(function (tab) { tab.classList.toggle("active", tab.dataset.tab === name); });
     document.querySelectorAll(".project-tab-panel").forEach(function (panel) { panel.hidden = panel.dataset.panel !== name; });
     if (name === "tasks") loadTasks().catch(function (error) { setStatus(error.message, "error"); });
-    if (name === "members") Promise.all([loadMembers(), loadInvitations()]).catch(function (error) { setStatus(error.message, "error"); });
+    if (name === "members") Promise.all([loadMembers(), has("manage_members") ? loadInvitations() : Promise.resolve([])]).catch(function (error) { setStatus(error.message, "error"); });
   }
 
   document.querySelectorAll(".project-tab").forEach(function (tab) { tab.addEventListener("click", function () { openTab(tab.dataset.tab); }); });
@@ -199,7 +199,7 @@
     document.getElementById("inviteMemberForm").hidden = !has("invite_members");
     document.querySelector('[data-tab="members"]').hidden = !state.role;
     document.querySelector('[data-tab="settings"]').hidden = !canSettings && !has("delete_project");
-    if (project.archived_at) { document.getElementById("projectScopeLabel").textContent = "Archived project"; taskButton.hidden = true; }
+    if (project.archived_at) { document.getElementById("projectScopeLabel").textContent = "Archived"; document.getElementById("projectVisibilityBadge").textContent = project.visibility + " | archived"; taskButton.hidden = true; }
     return project;
   }
 

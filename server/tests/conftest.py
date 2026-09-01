@@ -320,6 +320,7 @@ def _upsert_task_for_user(
         source_ip="127.0.0.1",
         user_agent="pytest",
         username=username,
+        submitted_by_user_id=int(scope["scope_id"]),
         run_stage=run_stage,
         **scope,
     )
@@ -342,6 +343,7 @@ def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta"
         source_ip="127.0.0.1",
         user_agent="pytest",
         username="tester",
+        submitted_by_user_id=int(scope["scope_id"]),
         **scope,
     )
     return md5sum

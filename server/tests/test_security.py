@@ -128,6 +128,7 @@ def test_security_auxiliary_uploads_content_validated(monkeypatch, tmp_path):
         "scope_type": "personal",
         "scope_id": "1",
         "storage_key": "tester-abcdef",
+        "submitted_by_user_id": 1,
         "artifact_provenance": "[]",
     }
     saved_inputs = [

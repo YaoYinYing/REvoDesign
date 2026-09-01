@@ -63,12 +63,33 @@ version rebuild the REvoCompute databases and storage roots; there is no old
 task-layout resolver or username-based fallback. Every task row is complete at
 creation and every path is derived from its immutable scope identity.
 
+This release is a new persistent-state epoch. Startup validates the user, task,
+and collaboration schemas before serving work. Reusing an older or partial
+schema fails with an operator-facing reset message; startup never alters,
+backfills, guesses, or deletes persistent state.
+
+For the one-time development upgrade, stop REvoCompute, deliberately remove the
+test-era user/task/collaboration databases and old workspace/results roots,
+then start the release and recreate users and Projects. Ordinary restarts do
+not perform this reset and must preserve the current databases and scoped
+storage roots.
+
+Tasks persist two independent immutable identities: `scope_type` plus
+`scope_id` determines where the task belongs, while `submitted_by_user_id`
+records who submitted it. The optional username value is a historical display
+snapshot only and is never an authorization primitive.
+
 ## Artifact references
 
 An input may use `@<task-id>/<logical-artifact-path>`. This is submission syntax
 only. Before any physical lookup, the server loads the source task and checks
 that the caller may reuse artifacts in the same Personal or Project scope.
 Cross-user and cross-Project reuse is denied.
+
+When a Project is archived, eligible members may snapshot its finalized
+manifest artifacts into their Personal scope. This narrow frozen-record rule
+does not permit submission into the archived Project or Project-to-Project
+sharing.
 
 The storage resolver then requires a finalized source task and an exact entry
 in its authoritative result manifest. It rejects absolute paths, traversal,

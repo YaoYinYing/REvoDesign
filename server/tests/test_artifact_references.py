@@ -80,6 +80,7 @@ def _source_task(module, owner, *, project=None, status="finished", publish=True
         status=status,
         is_binary=0,
         username=owner["username"],
+        submitted_by_user_id=int(owner["id"]),
         task_type="gremlin",
         **scope,
     )
@@ -102,6 +103,11 @@ def _submit_reference(module, headers, source, *, project=None, path="models/sou
 def _join_project(store, project, user, role):
     invitation = store.invite(project["id"], user["id"], project["owner_user_id"], role)
     assert store.respond_invitation(invitation["id"], user["id"], True)
+
+
+def _disable_cancel_dispatch(module, monkeypatch):
+    route_globals = module.app.view_functions["cancel_task"].__wrapped__.__globals__
+    monkeypatch.setattr(route_globals["cancel_compute_resources"], "delay", lambda *args, **kwargs: None)
 
 
 def test_own_personal_artifact_becomes_immutable_snapshot_with_provenance(module):
@@ -144,6 +150,88 @@ def test_same_project_contributor_can_reuse_but_viewer_cannot(module):
     assert task["scope_id"] == str(project["id"])
     assert "/projects/" in module.app.config["storage_resolver"].get_task_root(task)
     assert denied.status_code == 403
+
+
+def test_archived_project_artifacts_remain_reusable_but_project_is_frozen(module):
+    alice, _ = _user(module, "alice")
+    bob, bob_headers = _user(module, "bob")
+    viewer, viewer_headers = _user(module, "viewer")
+    store = module.app.config["collaboration"]
+    project = store.create_project(alice["id"], "Frozen Science")
+    project["owner_user_id"] = alice["id"]
+    _join_project(store, project, bob, "contributor")
+    _join_project(store, project, viewer, "viewer")
+    source, _ = _source_task(module, alice, project=project)
+    assert store.archive_project(project["id"])
+
+    reused_to_personal = _submit_reference(module, bob_headers, source)
+    viewer_denied = _submit_reference(module, viewer_headers, source)
+    project_submission_denied = _submit_reference(module, bob_headers, source, project=project)
+
+    assert reused_to_personal.status_code == 302
+    downstream = module.task_store.get_task(reused_to_personal.headers["Location"].rsplit("/", 1)[-1])
+    assert downstream["scope_type"] == "personal"
+    assert json.loads(downstream["artifact_provenance"])[0]["source_scope_id"] == str(project["id"])
+    assert viewer_denied.status_code == 403
+    assert project_submission_denied.status_code == 403
+
+
+def test_task_mutation_uses_immutable_submitter_id_across_username_rename(module, monkeypatch):
+    alice, _ = _user(module, "alice")
+    bob, bob_headers = _user(module, "bob")
+    maintainer, maintainer_headers = _user(module, "maintainer")
+    viewer, viewer_headers = _user(module, "viewer")
+    store = module.app.config["collaboration"]
+    project = store.create_project(alice["id"], "Identity")
+    project["owner_user_id"] = alice["id"]
+    for user, role in ((bob, "contributor"), (maintainer, "maintainer"), (viewer, "viewer")):
+        _join_project(store, project, user, role)
+
+    source, _ = _source_task(module, alice, project=project)
+    submitted = _submit_reference(module, bob_headers, source, project=project)
+    task_id = submitted.headers["Location"].rsplit("/", 1)[-1]
+    task = module.task_store.get_task(task_id)
+    assert task["submitted_by_user_id"] == bob["id"]
+
+    _disable_cancel_dispatch(module, monkeypatch)
+    module.app.config["user_db"].update_user(bob["id"], username="bob-renamed")
+    impostor = module.app.config["user_db"].create_user(
+        "bob",
+        "bob-impostor@test.local",
+        "password",
+        registration_status="approved",
+        user_status="active",
+    )
+    module.app.config["user_db"].verify_email(impostor["id"])
+    from revocompute.auth import generate_token
+
+    impostor_headers = {"Authorization": f"Bearer {generate_token(impostor['id'])}"}
+    impostor = module.app.config["user_db"].get_user_by_username("bob")
+    _join_project(store, project, impostor, "contributor")
+    client = module.app.test_client()
+    assert client.post(f"/compute/api/cancel/{task_id}", headers=impostor_headers).status_code == 403
+    assert client.post(f"/compute/api/cancel/{task_id}", headers=bob_headers).status_code == 200
+
+    other_source, _ = _source_task(module, alice, project=project)
+    other_task_id = _submit_reference(module, bob_headers, other_source, project=project).headers["Location"].rsplit(
+        "/", 1
+    )[-1]
+    assert client.post(f"/compute/api/cancel/{other_task_id}", headers=viewer_headers).status_code == 403
+    assert client.post(f"/compute/api/cancel/{other_task_id}", headers=maintainer_headers).status_code == 200
+
+
+def test_personal_task_mutation_remains_bound_to_user_id_after_rename(module, monkeypatch):
+    alice, alice_headers = _user(module, "alice")
+    source, _ = _source_task(module, alice)
+    submitted = _submit_reference(module, alice_headers, source)
+    task_id = submitted.headers["Location"].rsplit("/", 1)[-1]
+    _disable_cancel_dispatch(module, monkeypatch)
+    module.app.config["user_db"].update_user(alice["id"], username="alice-renamed")
+
+    response = module.app.test_client().post(f"/compute/api/cancel/{task_id}", headers=alice_headers)
+
+    assert response.status_code == 200
+    assert module.task_store.get_task(task_id)["submitted_by_user_id"] == alice["id"]
 
 
 def test_cross_user_and_cross_project_reuse_are_denied(module):

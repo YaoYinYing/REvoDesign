@@ -368,7 +368,7 @@ def _task_mutation_allowed(task: dict[str, Any]) -> bool:
     if task.get("scope_type") == "project":
         store = app.config["collaboration"]
         project_id = int(task["scope_id"])
-        if task.get("username") == user.get("username"):
+        if str(task.get("submitted_by_user_id")) == str(user["id"]):
             return store.can(project_id, int(user["id"]), "cancel_own_tasks")
         return store.can(project_id, int(user["id"]), "cancel_project_tasks")
     return task.get("scope_type") == "personal" and str(task["scope_id"]) == str(user["id"])
@@ -409,10 +409,9 @@ def _task_access_denied(md5sum: str):
     )
 
 
-def _task_id_for_upload(content_md5: str, username: str | None) -> str:
-    # Keep task IDs owner-scoped so two users uploading the same FASTA never collide.
-    owner = username or "anonymous"
-    scoped_key = f"{owner}:{content_md5}"
+def _task_id_for_upload(content_md5: str, scope_identity: str) -> str:
+    # Keep task IDs scope-specific so identical inputs in different scopes never collide.
+    scoped_key = f"{scope_identity}:{content_md5}"
     return hashlib.md5(scoped_key.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 

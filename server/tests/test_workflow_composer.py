@@ -14,6 +14,14 @@ from revocompute.resource_policy import ResolvedResources
 from revocompute.task_types import RunnerConfig, RuntimeFamily, TaskType, WorkflowStage
 
 
+@pytest.fixture(autouse=True)
+def _isolated_runtime_state(monkeypatch, tmp_path):
+    server_root = Path(__file__).resolve().parents[1]
+    monkeypatch.setenv("SERVER_DIR", str(tmp_path))
+    monkeypatch.setenv("CONFIG_DIR", str(server_root / "config"))
+    monkeypatch.setenv("ENABLED_TASKRUNNERS", "alphafold")
+
+
 def _policy(requires_gpu: bool) -> ResolvedResources:
     return ResolvedResources(
         cpus=8,
@@ -33,10 +41,6 @@ def _policy(requires_gpu: bool) -> ResolvedResources:
 
 
 def test_composer_resumes_after_completed_feature_stage(monkeypatch):
-    server_root = Path(__file__).resolve().parents[1]
-    monkeypatch.setenv("SERVER_DIR", str(server_root))
-    monkeypatch.setenv("CONFIG_DIR", str(server_root / "config"))
-    monkeypatch.setenv("ENABLED_TASKRUNNERS", "alphafold")
     from revocompute import task_runtime
 
     runtime = RuntimeFamily("alphafold", "image", ("bash", "run.sh"), "Dockerfile", "runner.def", "image.sif")

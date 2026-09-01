@@ -31,7 +31,7 @@
     card.className = "project-card";
     card.href = "/compute/projects/" + encodeURIComponent(projectId(project));
     var head = document.createElement("div"); head.className = "project-card-head";
-    var visibility = document.createElement("span"); visibility.className = "visibility-badge"; visibility.textContent = project.visibility || "private";
+    var visibility = document.createElement("span"); visibility.className = "visibility-badge"; visibility.textContent = (project.visibility || "private") + (project.archived_at ? " | archived" : "");
     var role = document.createElement("span"); role.className = "project-role-badge"; role.textContent = project.membership_role || project.role || "Read only";
     head.append(visibility, role);
     var body = document.createElement("div");
@@ -47,7 +47,7 @@
   function renderProjects() {
     var query = projectSearch.value.trim().toLowerCase();
     var visible = projects.filter(function (project) {
-      return !query || [project.name, project.description, project.visibility, project.membership_role, project.role].join(" ").toLowerCase().includes(query);
+      return !query || [project.name, project.description, project.visibility, project.archived_at ? "archived" : "active", project.membership_role, project.role].join(" ").toLowerCase().includes(query);
     });
     grid.replaceChildren(); visible.forEach(function (project) { grid.appendChild(projectCard(project)); });
     document.getElementById("projectsEmpty").hidden = visible.length > 0;
