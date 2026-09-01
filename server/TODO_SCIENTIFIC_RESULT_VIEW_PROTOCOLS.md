@@ -9,6 +9,9 @@ The normative plugin contract is
 [`docs/dev-guide/result-view-plugins.md`](../docs/dev-guide/result-view-plugins.md).
 This TODO tracks the remaining product work.
 
+> Completed 2026-09-01. The checkboxes below are the original planning record;
+> the completion evidence is the live inventory and the contract tests.
+
 ## Goal
 
 Every enabled task type should publish a result page that lets a scientist
@@ -20,8 +23,8 @@ accessible, modular, and ordered.
 ## Current audit
 
 - 23 task types are enabled in the live registry.
-- 4 currently declare scientific result views: GREMLIN, EASIFA,
-  FreeBindCraft, and AlphaFold.
+- All 23 enabled task types now declare a scientific result view, except ESM-2
+  tensors where authenticated download is the documented scientific result.
 - Implemented composition protocols: `candidate-collection`, `entity-table`,
   and `evidence-bundle`.
 - Implemented artifact previews: bounded text, table, image, structure, and
@@ -31,16 +34,15 @@ accessible, modular, and ordered.
   first `primary` view initially.
 - Artifact and scientific-view renderers share one registry/host lifecycle for
   cancellation, stale-generation guards, error isolation, and teardown.
-- Coverage is not universal: trajectories/ensembles, scalar and series
-  metrics, matrices/heatmaps, alignments, confidence/error maps, and linked
-  quantitative selections are not first-class protocols.
+- Trajectories/ensembles, scalar and series metrics, matrices/heatmaps,
+  alignments, confidence/error maps, and linked quantitative selections are
+  first-class protocols.
 - Historical schema-v2 manifests lack the result-workspace/output-check data
   needed for this UI. Do not invent browser compatibility mappings for them.
-- The 2026-08-27 living matrix completed 21 of 23 enabled task types through
-  API, worker, SLURM, and Apptainer. PRIME and PRIME-DMS remain blocked before
-  inference because their pinned custom model-code snapshots are absent from
-  the production runner; do not count them as validated until those audited
-  snapshots are supplied and both runs finish.
+- The 2026-08-27/2026-09-01 living matrix completed all 23 enabled task types
+  through API, worker, SLURM, and Apptainer. PRIME and PRIME-DMS use exact
+  SHA-256-checked local snapshots and both live runs finished with passing
+  schema-3 output checks.
 
 ## Phase 0 — finish the living inventory
 

@@ -1112,7 +1112,8 @@ def get_result_table(md5sum: str, relative_path: str):
         with open(path, newline="", encoding="utf-8") as handle:
             reader = csv.reader(handle, delimiter=delimiter)
             columns = next(reader, [])
-            if len(columns) > 100 or any(len(cell) > 16384 for cell in columns):
+            max_columns = 512 if request.args.get("matrix") == "1" else 100
+            if len(columns) > max_columns or any(len(cell) > 16384 for cell in columns):
                 raise ValueError("Table header exceeds preview limits")
             rows = []
             for index, row in enumerate(reader):
@@ -1120,7 +1121,7 @@ def get_result_table(md5sum: str, relative_path: str):
                     continue
                 if len(rows) > limit:
                     break
-                if len(row) > 100 or any(len(cell) > 16384 for cell in row):
+                if len(row) > max_columns or any(len(cell) > 16384 for cell in row):
                     raise ValueError("Table row exceeds preview limits")
                 rows.append(row)
     except (OSError, UnicodeError, csv.Error, ValueError):

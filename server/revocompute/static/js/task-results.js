@@ -54,10 +54,10 @@
   // The shell iframe is sandboxed without allow-same-origin, so its origin
   // is opaque ("null") — postMessages must target the frame's own serialized
   // origin, never the parent's.
-  function postToShell(frame, payload) {
+  function postToShell(frame, payload, transfer) {
     var targetOrigin = "*";
     try { targetOrigin = frame.contentWindow.origin || "*"; } catch (e) { /* frame gone */ }
-    frame.contentWindow.postMessage(payload, targetOrigin);
+    frame.contentWindow.postMessage(payload, targetOrigin, transfer || []);
   }
 
   function readMolstarTheme() {
@@ -614,6 +614,292 @@
     stage.appendChild(message); return true;
   }
 
+  function valueAtPath(value, path) {
+    String(path || "").split(".").filter(Boolean).forEach(function (part) {
+      if (value == null || !(part in value)) throw new Error("The declared data field is unavailable.");
+      value = value[part];
+    });
+    return value;
+  }
+
+  async function loadJson(artifact, signal) {
+    if (Number(artifact.size || 0) > 8 * 1024 * 1024) throw new Error("This scientific data file exceeds the 8 MiB preview limit.");
+    var response = await A.authFetch(artifact.url, { headers: { Range: "bytes=0-8388607" }, signal: signal });
+    if (!response.ok && response.status !== 206) throw new Error("Scientific data could not be loaded.");
+    return response.json();
+  }
+
+  async function loadCsv(artifact, signal, matrix) {
+    var rows = [], columns = null, offset = 0;
+    do {
+      var url = tableUrl(artifact.path, offset).replace("limit=100", "limit=500") + (matrix ? "&matrix=1" : "");
+      var response = await A.authFetch(url, { signal: signal });
+      if (!response.ok) throw new Error("Scientific table could not be loaded.");
+      var page = await response.json();
+      if (!Array.isArray(page.rows)) throw new Error("Scientific table returned invalid rows.");
+      columns = columns || page.columns;
+      rows = rows.concat(page.rows);
+      var previousOffset = offset;
+      offset += page.rows.length;
+      if (!page.has_more || !page.rows.length || offset === previousOffset) break;
+    } while (rows.length < 10000);
+    return { columns: columns || [], rows: rows, truncated: rows.length >= 10000 };
+  }
+
+  function directionLabel(direction) {
+    return { higher: "Higher is favourable", lower: "Lower is favourable", neutral: "No ranking direction" }[direction] || "";
+  }
+
+  async function renderAlignment(view, stage, services) {
+    var source = artifactPaths(view, "alignment")[0];
+    if (!source) throw new Error("The configured alignment is unavailable.");
+    var response = await A.authFetch(source.url, { headers: { Range: "bytes=0-262143" }, signal: services.signal });
+    if (!response.ok && response.status !== 206) throw new Error("Alignment download failed.");
+    var note = document.createElement("p"); note.className = "scientific-note";
+    note.textContent = "Columns use " + view.mapping.numbering + " numbering. Preview is bounded to 256 KiB and 5,000 lines.";
+    stage.appendChild(note); renderMsa(await response.text(), stage);
+  }
+
+  function scientificPicker(items, label, open) {
+    var bar = document.createElement("div"); bar.className = "scientific-toolbar";
+    var caption = document.createElement("label"); caption.textContent = label + " ";
+    var select = document.createElement("select"); select.setAttribute("aria-label", label);
+    items.forEach(function (artifact, index) {
+      var option = document.createElement("option"); option.value = String(index); option.textContent = artifact.path; select.appendChild(option);
+    });
+    select.addEventListener("change", function () { open(items[Number(select.value)]).catch(showPreviewError); });
+    caption.appendChild(select); bar.appendChild(caption); return bar;
+  }
+
+  async function renderMetricSeries(view, stage, services) {
+    var sources = artifactPaths(view, "series");
+    if (!sources.length) throw new Error("The configured metric series is unavailable.");
+    var chart = document.createElement("div"); chart.className = "metric-chart";
+    var generation = 0;
+    async function open(artifact) {
+      var current = ++generation, mapping = view.mapping, series = [], xValues = [];
+      if (mapping.format === "json") {
+        var values = valueAtPath(await loadJson(artifact, services.signal), mapping.value_path);
+        series = [{ name: mapping.y_label || "Value", values: values.map(Number) }];
+        xValues = values.map(function (_value, index) { return index + 1; });
+      } else {
+        var page = await loadCsv(artifact, services.signal);
+        var indexes = {}; page.columns.forEach(function (column, index) { indexes[column] = index; });
+        xValues = page.rows.map(function (row, index) {
+          var value = Number(row[indexes[mapping.x_column]]); return Number.isFinite(value) ? value : index + 1;
+        });
+        series = mapping.value_columns.map(function (column) {
+          return { name: column, values: page.rows.map(function (row) { return Number(row[indexes[column]]); }) };
+        });
+      }
+      if (current !== generation || services.signal.aborted) return;
+      var points = series.flatMap(function (item) { return item.values.filter(Number.isFinite); });
+      if (!points.length) throw new Error("The metric series contains no numeric values.");
+      var yMin = mapping.y_min == null ? Math.min.apply(null, points) : Number(mapping.y_min);
+      var yMax = mapping.y_max == null ? Math.max.apply(null, points) : Number(mapping.y_max);
+      if (yMin === yMax) yMax = yMin + 1;
+      var width = 760, height = 360, pad = 48;
+      var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 " + width + " " + height); svg.setAttribute("role", "img");
+      svg.setAttribute("aria-label", (mapping.y_label || "Metric") + " by " + (mapping.x_label || "index"));
+      var colors = ["#087f8c", "#c44536", "#6a4c93", "#2f7d32", "#b26a00"];
+      var xMin = Math.min.apply(null, xValues), xMax = Math.max.apply(null, xValues);
+      series.forEach(function (item, seriesIndex) {
+        var path = document.createElementNS(svg.namespaceURI, "path");
+        var drawing = false;
+        var commands = item.values.map(function (value, index) {
+          if (!Number.isFinite(value)) { drawing = false; return null; }
+          var xValue = Number(xValues[index]);
+          var x = pad + (width - 2 * pad) * ((xValue - xMin) / Math.max(xMax - xMin, 1));
+          var y = height - pad - (height - 2 * pad) * ((value - yMin) / (yMax - yMin));
+          var command = drawing ? "L" : "M"; drawing = true;
+          return command + x.toFixed(1) + " " + y.toFixed(1);
+        }).filter(Boolean).join(" ");
+        path.setAttribute("d", commands); path.setAttribute("fill", "none");
+        path.setAttribute("stroke", colors[seriesIndex % colors.length]); path.setAttribute("stroke-width", "2"); svg.appendChild(path);
+      });
+      var summary = document.createElement("p"); summary.className = "scientific-note";
+      summary.textContent = (mapping.x_label || "Index") + ": " + xValues.length + " points · " +
+        (mapping.y_label || "Value") + ": " + yMin.toFixed(3) + "–" + yMax.toFixed(3) +
+        (mapping.unit ? " " + mapping.unit : "") + " · " + directionLabel(mapping.direction);
+      chart.replaceChildren(svg, summary);
+    }
+    if (sources.length > 1) stage.appendChild(scientificPicker(sources, "Metric source", open));
+    stage.appendChild(chart); await open(sources[0]);
+  }
+
+  async function renderMatrix(view, stage, services) {
+    var sources = artifactPaths(view, "matrices");
+    if (!sources.length) throw new Error("The configured matrix is unavailable.");
+    var region = document.createElement("div"); region.className = "matrix-view";
+    var generation = 0;
+    async function open(artifact) {
+      var current = ++generation, mapping = view.mapping, values, xLabels, yLabels;
+      if (mapping.format === "json") {
+        values = valueAtPath(await loadJson(artifact, services.signal), mapping.value_path);
+        xLabels = (values[0] || []).map(function (_value, index) { return String(index + 1); });
+        yLabels = values.map(function (_value, index) { return String(index + 1); });
+      } else {
+        var page = await loadCsv(artifact, services.signal, true); var labelIndex = page.columns.indexOf(mapping.row_labels_column);
+        xLabels = labelIndex < 0 ? page.columns : page.columns.filter(function (_column, index) { return index !== labelIndex; });
+        yLabels = page.rows.map(function (row, index) { return labelIndex < 0 ? String(index + 1) : row[labelIndex]; });
+        values = page.rows.map(function (row) { return (labelIndex < 0 ? row : row.filter(function (_value, index) { return index !== labelIndex; })).map(Number); });
+      }
+      if (current !== generation || services.signal.aborted) return;
+      if (!Array.isArray(values) || !values.length || !Array.isArray(values[0])) throw new Error("The matrix is empty.");
+      var numeric = values.flat().map(Number).filter(Number.isFinite);
+      var minimum = mapping.scale_min == null ? Math.min.apply(null, numeric) : Number(mapping.scale_min);
+      var maximum = mapping.scale_max == null ? Math.max.apply(null, numeric) : Number(mapping.scale_max);
+      var center = mapping.center == null ? 0 : Number(mapping.center);
+      var canvas = document.createElement("canvas"); canvas.width = 720; canvas.height = 540; canvas.tabIndex = 0;
+      canvas.setAttribute("role", "grid"); canvas.setAttribute("aria-label", view.title + "; use arrow keys to inspect cells");
+      var context = canvas.getContext("2d"), rows = values.length, columns = values[0].length;
+      function color(value) {
+        var ratio;
+        if (mapping.scale === "diverging") {
+          ratio = value <= center ? 0.5 * (value - minimum) / Math.max(center - minimum, 1e-12) :
+            0.5 + 0.5 * (value - center) / Math.max(maximum - center, 1e-12);
+          return "hsl(" + (220 - 220 * Math.max(0, Math.min(1, ratio))) + " 68% " + (42 + 38 * (1 - Math.abs(ratio - 0.5) * 2)) + "%)";
+        }
+        ratio = (value - minimum) / Math.max(maximum - minimum, 1e-12);
+        return "hsl(" + (205 - 165 * ratio) + " 68% " + (94 - 54 * ratio) + "%)";
+      }
+      values.forEach(function (row, y) { row.forEach(function (raw, x) {
+        context.fillStyle = Number.isFinite(Number(raw)) ? color(Number(raw)) : "#777";
+        context.fillRect(x * canvas.width / columns, y * canvas.height / rows, canvas.width / columns + 0.5, canvas.height / rows + 0.5);
+      }); });
+      var readout = document.createElement("p"); readout.className = "matrix-readout"; readout.setAttribute("role", "status");
+      var selected = { x: 0, y: 0 };
+      function report() {
+        readout.textContent = (mapping.x_label || "Column") + " " + xLabels[selected.x] + " · " +
+          (mapping.y_label || "Row") + " " + yLabels[selected.y] + " · value " + values[selected.y][selected.x] +
+          (mapping.unit ? " " + mapping.unit : "");
+      }
+      canvas.addEventListener("click", function (event) {
+        var box = canvas.getBoundingClientRect();
+        selected.x = Math.min(columns - 1, Math.max(0, Math.floor((event.clientX - box.left) / box.width * columns)));
+        selected.y = Math.min(rows - 1, Math.max(0, Math.floor((event.clientY - box.top) / box.height * rows))); report();
+      });
+      canvas.addEventListener("keydown", function (event) {
+        var moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+        if (!moves[event.key]) return; event.preventDefault();
+        selected.x = Math.min(columns - 1, Math.max(0, selected.x + moves[event.key][0]));
+        selected.y = Math.min(rows - 1, Math.max(0, selected.y + moves[event.key][1])); report();
+      });
+      var legend = document.createElement("p"); legend.className = "scientific-note";
+      legend.textContent = "Scale " + minimum + " to " + maximum + (mapping.unit ? " " + mapping.unit : "") +
+        " · " + directionLabel(mapping.direction) + " · grey marks missing values.";
+      report(); region.replaceChildren(canvas, readout, legend);
+    }
+    if (sources.length > 1) stage.appendChild(scientificPicker(sources, "Matrix source", open));
+    stage.appendChild(region); await open(sources[0]);
+  }
+
+  async function renderScalarSummary(view, stage, services) {
+    var artifacts = artifactPaths(view, "data");
+    if (!artifacts.length) throw new Error("The configured summary data is unavailable.");
+    var list = document.createElement("dl"); list.className = "scalar-grid";
+    async function open(artifact) {
+      var payload = await loadJson(artifact, services.signal); list.replaceChildren();
+      view.mapping.fields.forEach(function (field) {
+        var term = document.createElement("dt"); term.textContent = field.label;
+        var value = document.createElement("dd"); value.textContent = String(valueAtPath(payload, field.path)) +
+          (field.unit ? " " + field.unit : "");
+        var meaning = document.createElement("span"); meaning.textContent = directionLabel(field.direction); value.appendChild(meaning);
+        list.append(term, value);
+      });
+    }
+    if (artifacts.length > 1) stage.appendChild(scientificPicker(artifacts, "Summary source", open));
+    stage.appendChild(list); await open(artifacts[0]);
+  }
+
+  async function renderTrajectory(view, stage, services) {
+    var topologies = artifactPaths(view, "topology"), coordinatesList = artifactPaths(view, "coordinates");
+    var coordinates = coordinatesList[0];
+    if (!coordinates) {
+      var empty = document.createElement("p"); empty.className = "preview-message";
+      empty.textContent = "No trajectory coordinates were produced for this run. Declared artifacts remain downloadable below.";
+      stage.appendChild(empty); return;
+    }
+    var coordinateName = coordinates && coordinates.path.split("/").pop();
+    var topology = view.mapping.association === "stem-prefix" ? topologies.find(function (artifact) {
+      return coordinateName.startsWith(artifact.path.split("/").pop().replace(/\.[^.]+$/, "") + "_");
+    }) : topologies[0];
+    if (!topology || !coordinates) throw new Error("The declared topology and coordinates are required.");
+    if (Number(topology.size) + Number(coordinates.size) > 64 * 1024 * 1024) {
+      throw new Error("This trajectory exceeds the 64 MiB inline limit. Download it instead.");
+    }
+    var topologyResponse = await A.authFetch(topology.url, { signal: services.signal });
+    var coordinatesResponse = await A.authFetch(coordinates.url, { signal: services.signal });
+    if (!topologyResponse.ok || !coordinatesResponse.ok) throw new Error("Trajectory data could not be loaded.");
+    var topologyText = await topologyResponse.text();
+    var format = view.mapping.coordinate_format;
+    var coordinateData = format === "pdb" ? await coordinatesResponse.text() : await coordinatesResponse.arrayBuffer();
+    if (services.signal.aborted) return;
+    var controls = document.createElement("div"); controls.className = "trajectory-controls";
+    var previous = document.createElement("button"); previous.type = "button"; previous.textContent = "Previous";
+    var play = document.createElement("button"); play.type = "button"; play.textContent = "Play"; play.setAttribute("aria-pressed", "false");
+    var next = document.createElement("button"); next.type = "button"; next.textContent = "Next";
+    var scrub = document.createElement("input"); scrub.type = "range"; scrub.min = "0"; scrub.max = "0"; scrub.value = "0";
+    scrub.setAttribute("aria-label", "Trajectory frame");
+    var speed = document.createElement("select"); speed.setAttribute("aria-label", "Playback speed");
+    [0.5, 1, 2].forEach(function (value) { var option = document.createElement("option"); option.value = value; option.textContent = value + "×"; if (value === 1) option.selected = true; speed.appendChild(option); });
+    var readout = document.createElement("span"); readout.setAttribute("role", "status"); readout.textContent = "Loading frames…";
+    controls.append(previous, play, next, scrub, speed, readout);
+    if (coordinatesList.length > 1) {
+      var bounded = document.createElement("p"); bounded.className = "scientific-note";
+      bounded.textContent = "Showing the first declared trajectory; " + (coordinatesList.length - 1) + " additional coordinate files remain downloadable below.";
+      stage.appendChild(bounded);
+    }
+    var frame = document.createElement("iframe"); frame.className = "artifact-molstar-preview"; frame.sandbox = "allow-scripts";
+    frame.title = "Mol* trajectory viewer"; stage.append(controls, frame);
+    var timer = null, frameCount = 1, current = 0, settled = false, onMessage = null, abortHandler = null;
+    function showFrame(index) {
+      current = Math.min(frameCount - 1, Math.max(0, Number(index) || 0)); scrub.value = String(current);
+      readout.textContent = (current + 1) + " / " + frameCount + " · " +
+        (current * Number(view.mapping.timestep)) + " " + view.mapping.frame_unit;
+    }
+    function command(action, value) { postToShell(frame, { type: "trajectory-control", action: action, value: value }); }
+    function stop() { clearInterval(timer); timer = null; play.textContent = "Play"; play.setAttribute("aria-pressed", "false"); }
+    function start() {
+      stop(); play.textContent = "Pause"; play.setAttribute("aria-pressed", "true");
+      timer = setInterval(function () { command("advance", 1); }, 1000 / Number(speed.value));
+    }
+    previous.addEventListener("click", function () { command("advance", -1); }); next.addEventListener("click", function () { command("advance", 1); });
+    scrub.addEventListener("input", function () { command("set", Number(scrub.value)); });
+    play.addEventListener("click", function () { if (timer) stop(); else start(); }); speed.addEventListener("change", function () { if (timer) start(); });
+    var ready = new Promise(function (resolve, reject) {
+      var timeout = setTimeout(function () {
+        window.removeEventListener("message", onMessage); reject(new Error("Trajectory viewer timed out"));
+      }, 45000);
+      onMessage = function (event) {
+        if (event.source !== frame.contentWindow || !event.data) return;
+        if (event.data.type === "shell-ready") {
+          var payload = {
+            type: "trajectory", requestId: "trajectory", topology: topologyText,
+            coordinateFormat: format, label: coordinates.path, theme: readMolstarTheme()
+          };
+          if (format === "pdb") payload.coordinates = coordinateData;
+          else payload.coordinateBytes = new Uint8Array(coordinateData);
+          postToShell(frame, payload, format === "pdb" ? [] : [coordinateData]);
+        } else if (event.data.type === "trajectory-ready") {
+          settled = true; clearTimeout(timeout); frameCount = Math.max(1, Number(event.data.frameCount) || 1); scrub.max = String(frameCount - 1); showFrame(0); resolve();
+        } else if (event.data.type === "trajectory-frame") showFrame(event.data.frame);
+        else if (event.data.type === "error" && !settled) {
+          clearTimeout(timeout); window.removeEventListener("message", onMessage); reject(new Error(event.data.message));
+        }
+      };
+      window.addEventListener("message", onMessage);
+      abortHandler = function () { clearTimeout(timeout); stop(); window.removeEventListener("message", onMessage); frame.remove(); resolve(); };
+      services.signal.addEventListener("abort", abortHandler, { once: true });
+    });
+    frame.src = "/compute/viewer-shell"; await ready;
+    return { destroy: function () {
+      stop(); window.removeEventListener("message", onMessage);
+      services.signal.removeEventListener("abort", abortHandler); frame.remove();
+    } };
+  }
+
   function shortlistKey(viewId, entityId) { return viewId + ":" + entityId; }
 
   function setShortlisted(item, selected) {
@@ -865,7 +1151,12 @@
     text: previewText,
     "candidate-collection": renderCandidateCollection,
     "entity-table": renderEntityTable,
-    "evidence-bundle": renderEvidenceBundle
+    "evidence-bundle": renderEvidenceBundle,
+    alignment: renderAlignment,
+    trajectory: renderTrajectory,
+    "metric-series": renderMetricSeries,
+    matrix: renderMatrix,
+    "scalar-summary": renderScalarSummary
   });
   previewHost = new window.REvoComputeResultPreviews.ResultPreviewHost(
     previewRegistry,

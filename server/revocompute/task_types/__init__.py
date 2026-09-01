@@ -258,6 +258,11 @@ _RESULT_VIEW_SOURCE_KEYS = {
     "candidate-collection": {"candidates", "supporting"},
     "entity-table": {"table", "structure"},
     "evidence-bundle": {"items"},
+    "alignment": {"alignment"},
+    "trajectory": {"topology", "coordinates"},
+    "metric-series": {"series"},
+    "matrix": {"matrices"},
+    "scalar-summary": {"data"},
 }
 _RESULT_VIEW_MAPPING_KEYS = {
     "candidate-collection": {"confidence_encoding"},
@@ -271,11 +276,44 @@ _RESULT_VIEW_MAPPING_KEYS = {
         "evidence_columns",
     },
     "evidence-bundle": set(),
+    "alignment": {"format", "numbering"},
+    "trajectory": {"coordinate_format", "frame_unit", "timestep", "alignment", "association"},
+    "metric-series": {
+        "format",
+        "x_column",
+        "value_columns",
+        "value_path",
+        "x_label",
+        "y_label",
+        "unit",
+        "direction",
+        "missing",
+        "y_min",
+        "y_max",
+    },
+    "matrix": {
+        "format",
+        "value_path",
+        "row_labels_column",
+        "x_label",
+        "y_label",
+        "unit",
+        "direction",
+        "scale",
+        "scale_min",
+        "scale_max",
+        "center",
+    },
+    "scalar-summary": {"fields"},
 }
 _RESULT_VIEW_ROLES = {"primary", "evidence"}
 _RESULT_ENTITIES = {"residue", "mutation", "candidate"}
 _RESULT_NUMBERINGS = {"label_seq_id", "auth_seq_id"}
 _RESULT_CONFIDENCE_ENCODINGS = {"plddt_bfactor"}
+_RESULT_DATA_FORMATS = {"csv", "json"}
+_RESULT_DIRECTIONS = {"higher", "lower", "neutral"}
+_RESULT_MATRIX_SCALES = {"sequential", "diverging"}
+_RESULT_TRAJECTORY_FORMATS = {"pdb", "xtc", "dcd"}
 
 
 def register(task_type: TaskType, runner: RunnerConfig) -> None:
@@ -456,6 +494,55 @@ def _validate_result_mapping(plugin: str, mapping: Any, view_id: str) -> dict[st
             "numbering",
         }.issubset(mapping):
             raise ValueError(f"Incomplete structure mapping for result view {view_id!r}")
+    elif plugin == "alignment":
+        if mapping.get("format") not in {"a3m", "fasta", "stockholm"}:
+            raise ValueError(f"Invalid alignment format for result view {view_id!r}")
+        if mapping.get("numbering") not in {"sequence", "alignment"}:
+            raise ValueError(f"Invalid alignment numbering for result view {view_id!r}")
+    elif plugin == "trajectory":
+        if mapping.get("coordinate_format") not in _RESULT_TRAJECTORY_FORMATS:
+            raise ValueError(f"Invalid trajectory coordinate format for result view {view_id!r}")
+        if not isinstance(mapping.get("frame_unit"), str) or not mapping["frame_unit"]:
+            raise ValueError(f"Result view {view_id!r} frame_unit must be non-empty text")
+        if not isinstance(mapping.get("timestep"), (int, float)) or isinstance(mapping["timestep"], bool):
+            raise ValueError(f"Result view {view_id!r} timestep must be numeric")
+        if "alignment" in mapping and (not isinstance(mapping["alignment"], str) or not mapping["alignment"]):
+            raise ValueError(f"Result view {view_id!r} alignment must be non-empty text")
+        if mapping.get("association") not in {"single", "stem-prefix"}:
+            raise ValueError(f"Invalid trajectory association for result view {view_id!r}")
+    elif plugin in {"metric-series", "matrix"}:
+        if mapping.get("format") not in _RESULT_DATA_FORMATS:
+            raise ValueError(f"Invalid data format for result view {view_id!r}")
+        if mapping.get("direction") not in _RESULT_DIRECTIONS:
+            raise ValueError(f"Invalid metric direction for result view {view_id!r}")
+        for key in ("x_label", "y_label", "unit"):
+            if key in mapping and not isinstance(mapping[key], str):
+                raise ValueError(f"Result view {view_id!r} {key} must be text")
+        if plugin == "metric-series":
+            _string_list(mapping.get("value_columns", []), f"Result view {view_id!r} value_columns")
+            if mapping["format"] == "csv" and not mapping.get("value_columns"):
+                raise ValueError(f"CSV metric series {view_id!r} must declare value_columns")
+            if mapping["format"] == "json" and not isinstance(mapping.get("value_path"), str):
+                raise ValueError(f"JSON metric series {view_id!r} must declare value_path")
+        else:
+            if mapping.get("scale") not in _RESULT_MATRIX_SCALES:
+                raise ValueError(f"Invalid matrix scale for result view {view_id!r}")
+            if mapping["format"] == "json" and not isinstance(mapping.get("value_path"), str):
+                raise ValueError(f"JSON matrix {view_id!r} must declare value_path")
+        for key in ("y_min", "y_max", "scale_min", "scale_max", "center"):
+            if key in mapping and (not isinstance(mapping[key], (int, float)) or isinstance(mapping[key], bool)):
+                raise ValueError(f"Result view {view_id!r} {key} must be numeric")
+    elif plugin == "scalar-summary":
+        fields = mapping.get("fields")
+        if not isinstance(fields, list) or not fields:
+            raise ValueError(f"Result view {view_id!r} fields must be a non-empty list")
+        for scalar_field in fields:
+            if not isinstance(scalar_field, dict) or set(scalar_field) != {"path", "label", "unit", "direction"}:
+                raise ValueError(f"Result view {view_id!r} scalar fields require path, label, unit, and direction")
+            if not all(isinstance(scalar_field[key], str) and scalar_field[key] for key in ("path", "label")):
+                raise ValueError(f"Result view {view_id!r} scalar field path and label must be non-empty text")
+            if not isinstance(scalar_field["unit"], str) or scalar_field["direction"] not in _RESULT_DIRECTIONS:
+                raise ValueError(f"Result view {view_id!r} scalar field has invalid unit or direction")
     return mapping
 
 
@@ -491,9 +578,16 @@ def _load_result_workspace(raw: Any) -> tuple[ResultView, ...]:
         sources = entry.get("sources")
         if not isinstance(sources, dict) or not sources or set(sources) - _RESULT_VIEW_SOURCE_KEYS[plugin]:
             raise ValueError(f"Invalid sources for result workspace plugin {plugin!r}")
-        required_source_keys = (
-            {"candidates"} if plugin == "candidate-collection" else {"table"} if plugin == "entity-table" else {"items"}
-        )
+        required_source_keys = {
+            "candidate-collection": {"candidates"},
+            "entity-table": {"table"},
+            "evidence-bundle": {"items"},
+            "alignment": {"alignment"},
+            "trajectory": {"topology", "coordinates"},
+            "metric-series": {"series"},
+            "matrix": {"matrices"},
+            "scalar-summary": {"data"},
+        }[plugin]
         if not required_source_keys.issubset(sources):
             raise ValueError(f"Incomplete sources for result workspace view {view_id!r}")
         normalized_sources: dict[str, tuple[ArtifactSelector, ...]] = {}
@@ -513,6 +607,8 @@ def _load_result_workspace(raw: Any) -> tuple[ResultView, ...]:
                 mapping=_validate_result_mapping(plugin, entry.get("mapping"), view_id),
             )
         )
+    if sum(view.role == "primary" for view in views) > 1:
+        raise ValueError("result_workspace may declare at most one primary view")
     return tuple(views)
 
 

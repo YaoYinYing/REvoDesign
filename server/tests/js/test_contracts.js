@@ -308,6 +308,15 @@ function assertThrows(fn, pattern, message) {
   assert(registry.get("table") !== null, "createRegistry registers table preview");
   assert(registry.get("text") !== null, "createRegistry registers text preview");
 
+  var scientific = ResultPreviews.createRegistry({
+    structure: function () {}, image: function () {}, table: function () {}, text: function () {},
+    alignment: function () {}, trajectory: function () {}, "metric-series": function () {},
+    matrix: function () {}, "scalar-summary": function () {}
+  });
+  ["alignment", "trajectory", "metric-series", "matrix", "scalar-summary"].forEach(function (id) {
+    assert(scientific.get(id) !== null, "createRegistry registers " + id);
+  });
+
   var stage = fakeNode("div");
   var beforeClearCalls = [];
   var host = new ResultPreviews.ResultPreviewHost(registry, stage, {

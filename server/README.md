@@ -810,13 +810,16 @@ roles, a technical output check, and resolved local scientific views. The output
 check proves only that configured files are present, non-empty, and structurally
 mappable; it does not establish scientific or experimental validity.
 
-Three server-allowlisted view shapes compose current results without task-name
-logic in JavaScript: candidate collections, entity tables optionally linked to a
-structure, and evidence bundles. The first primary view opens as the principal
-result. Scientists can shortlist candidates or table entities and export a
+Server-allowlisted view shapes compose current results without task-name logic
+in JavaScript: candidate collections, entity tables optionally linked to a
+structure, evidence bundles, alignments, trajectories, metric series, matrices,
+and scalar summaries. The first primary view opens as the principal result.
+Scientists can shortlist candidates or table entities and export a
 bounded `shortlist.json`; the export records review choices but is not a task
 submission or lineage document. Limitations, effective parameters, input hashes,
 citations, and timestamps remain available under the reproducibility record.
+The living artifact and semantics audit is
+[`SCIENTIFIC_RESULT_VIEW_INVENTORY.md`](SCIENTIFIC_RESULT_VIEW_INVENTORY.md).
 
 All manifest-approved artifacts remain searchable and individually downloadable
 under **All artifacts and diagnostics**. The lifecycle-aware local plugin host
@@ -826,6 +829,9 @@ and text use local preview plugins. PDB/mmCIF files use the pinned Mol\* Viewer
 5.11.0 bundle with subresource-integrity verification; if that asset or WebGL is
 unavailable, the page offers a local alpha-carbon trace. pLDDT coloring is shown
 only when trusted task metadata declares pLDDT in the structure B-factor field.
+Native SVG/canvas renders bounded quantitative data without a plotting
+dependency. XTC/DCD coordinates require an explicitly declared topology and are
+transferred through the authenticated parent into the sandboxed Mol\* shell.
 Inline image and structure previews retain size limits so large artifacts are
 downloaded instead of loaded wholesale into browser memory.
 

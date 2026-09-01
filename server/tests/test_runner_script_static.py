@@ -671,20 +671,17 @@ def test_slurm_runner_limits_threaded_libraries_to_the_allocation():
 PRIME_DIR = SERVER_ROOT / "docker" / "runners" / "prime"
 
 
-def test_prime_runner_vendors_model_code_instead_of_trust_remote_code():
+def test_prime_runner_hashes_local_model_code_before_loading_it():
     script = (PRIME_DIR / "run.sh").read_text(encoding="utf-8")
     dockerfile = (PRIME_DIR / "Dockerfile").read_text(encoding="utf-8")
+    manifest = (PRIME_DIR / "model-code.sha256").read_text(encoding="utf-8")
 
-    assert "trust_remote_code=True" not in script
-    assert script.count("trust_remote_code=False") == 4  # tokenizer + model in both branches
-    assert (
-        "COPY --chown=${RUNNER_UID}:${RUNNER_GID} ./docker/runners/prime/vendor/ /opt/prime_model_code/" in dockerfile
-    )
-    assert "PRIME_VENDOR_DIR" in script
-    assert "sys.path.insert(0, str(code_dir))" in script
-    assert "vendor/README.md" in script
-    assert (PRIME_DIR / "vendor" / "README.md").is_file()
-    assert (PRIME_DIR / "vendor" / "placeholder.txt").is_file()
+    assert script.count("trust_remote_code=True") == 4  # tokenizer + model in both branches
+    assert script.count("local_files_only=True") == 4
+    assert "sha256sum --strict -c" in script
+    assert "model-code.sha256 /opt/prime-model-code.sha256" in dockerfile
+    assert len(manifest.splitlines()) == 8
+    assert all(len(line.split()[0]) == 64 for line in manifest.splitlines())
 
 
 def _write_fake_prime_model(tmp_path, auto_map=True) -> Path:
@@ -754,7 +751,7 @@ def test_manifest_param_escaping_round_trip(tmp_path):
     assert completed.stdout == values["smiles"]
 
 
-def test_prime_runner_fails_closed_without_vendored_model_code(tmp_path):
+def test_prime_runner_fails_closed_without_model_code_manifest(tmp_path):
     model_dir = _write_fake_prime_model(tmp_path)
     input_file = tmp_path / "input.fasta"
     input_file.write_text(">test\nACDEFGHIK\n", encoding="utf-8")
@@ -774,7 +771,7 @@ def test_prime_runner_fails_closed_without_vendored_model_code(tmp_path):
     env["TASK_MANIFEST"] = str(manifest_path)
     env["TASK_CONTEXT_SRC"] = str(SERVER_ROOT / "docker" / "runners" / "common" / "task_context.sh")
     env["PRIME_MODEL_DIR"] = str(model_dir)
-    env["PRIME_VENDOR_DIR"] = str(tmp_path / "vendor")
+    env["PRIME_CODE_MANIFEST"] = str(tmp_path / "missing.sha256")
     completed = subprocess.run(
         ["bash", str(PRIME_DIR / "run.sh"), "ogt", "-i", str(manifest_path), "-o", str(output_dir)],
         env=env,
@@ -784,9 +781,7 @@ def test_prime_runner_fails_closed_without_vendored_model_code(tmp_path):
     )
 
     assert completed.returncode != 0
-    assert "PRIME vendored model code missing" in completed.stderr
-    assert "vendor/README.md" in completed.stderr
-    assert "trust_remote_code" not in completed.stderr
+    assert "Pinned PRIME model-code manifest not found" in completed.stderr
     assert not (output_dir / "task_finished").exists()
 
 
@@ -796,9 +791,8 @@ def test_prime_runner_rejects_weights_manifest_mismatch(tmp_path):
     input_file = tmp_path / "input.fasta"
     input_file.write_text(">test\nACDEFGHIK\n", encoding="utf-8")
     output_dir = tmp_path / "outputs"
-    vendor_dir = tmp_path / "vendor"
-    vendor_dir.mkdir()
-    (vendor_dir / "manifest.sha256").write_text(
+    manifest = tmp_path / "model-code.sha256"
+    manifest.write_text(
         "0" * 64 + "  ProPrime_650M_OGT_Prediction-91490f95c707/weights.bin\n",
         encoding="utf-8",
     )
@@ -817,7 +811,7 @@ def test_prime_runner_rejects_weights_manifest_mismatch(tmp_path):
     env["TASK_MANIFEST"] = str(manifest_path)
     env["TASK_CONTEXT_SRC"] = str(SERVER_ROOT / "docker" / "runners" / "common" / "task_context.sh")
     env["PRIME_MODEL_DIR"] = str(model_dir)
-    env["PRIME_VENDOR_DIR"] = str(vendor_dir)
+    env["PRIME_CODE_MANIFEST"] = str(manifest)
     completed = subprocess.run(
         ["bash", str(PRIME_DIR / "run.sh"), "ogt", "-i", str(manifest_path), "-o", str(output_dir)],
         env=env,
@@ -827,5 +821,5 @@ def test_prime_runner_rejects_weights_manifest_mismatch(tmp_path):
     )
 
     assert completed.returncode != 0
-    assert "weights integrity check FAILED" in completed.stderr
+    assert "model-code integrity check FAILED" in completed.stderr
     assert not (output_dir / "task_finished").exists()
