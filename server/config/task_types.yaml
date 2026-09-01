@@ -174,19 +174,6 @@ task_types:
           title: Review
           options:
             show_paths: true
-    result_workspace:
-      views:
-        - plugin: evidence-bundle
-          id: evolutionary_evidence
-          role: primary
-          title: Evolutionary evidence
-          description: Alignment, position-specific scoring, and co-evolution evidence produced for the submitted sequence.
-          sources:
-            items:
-              - {glob: "gremlin_msa/*.i90c75.a3m", required: true}
-              - {glob: "pssm_msa/*_ascii_mtx_file", required: true}
-              - {glob: "gremlin_res/*_GREMLIN_mtx.png", required: true}
-          mapping: {}
     stage_markers:
       hhblits: "HHblits MSA generation"
       hhfilter: "HHfilter filtering"

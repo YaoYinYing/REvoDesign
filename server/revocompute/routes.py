@@ -116,6 +116,8 @@ from revocompute.task_runtime import (
     run_compute_task,
     task_store,
 )
+from revocompute.result_storyboard import ResultContractError, expected_file_tree, runner_root, storyboard_declaration
+from revocompute.task_types import get as get_task_type
 from revocompute.task_types import iter_capabilities, list_categories, list_types
 from revocompute.workspace_contracts import (
     WorkspaceValidationError,
@@ -1015,7 +1017,73 @@ def get_results(md5sum):
     for artifact in payload.get("artifacts", []):
         encoded_path = quote(artifact["path"], safe="/")
         artifact["url"] = f"/compute/api/results/{md5sum}/artifacts/{encoded_path}"
+    logical_files: dict[str, list[dict[str, Any]]] = {}
+    for file_id, files in payload.get("result", {}).get("files", {}).items():
+        logical_files[file_id] = [
+            {
+                "id": file_id,
+                "name": os.path.basename(artifact["path"]),
+                "media_type": artifact["media_type"],
+                "size": artifact["size"],
+                "viewer": artifact["preview"] or "download",
+                "preview": artifact["preview"],
+                "url": f"/compute/api/results/{md5sum}/files/{file_id}?index={index}",
+            }
+            for index, artifact in enumerate(files)
+        ]
+    payload["result"] = {"files": logical_files}
+    if payload.get("storyboard"):
+        payload["storyboard"]["entrypoint_url"] = f"/compute/api/results/{md5sum}/storyboard/{payload['storyboard']['entrypoint']}"
     return jsonify(payload)
+
+
+@app.route("/compute/api/results/<md5sum>/files/<file_id>", methods=["GET"])
+@login_required
+def get_result_logical_file(md5sum: str, file_id: str):
+    """Serve a single Expected File Tree identity, never a guessed path."""
+    normalized = _normalize_task_id(md5sum)
+    if normalized is None or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", file_id):
+        return jsonify({"error": "Result file not found"}), 404
+    task = task_store.get_task(normalized)
+    if task is None or not _task_access_allowed(task):
+        return jsonify({"error": "Result file not found"}), 404
+    try:
+        with open(_safe_join(task["result_dir"], "manifest.json"), encoding="utf-8") as handle:
+            files = json.load(handle).get("result", {}).get("files", {}).get(file_id, [])
+    except (OSError, json.JSONDecodeError):
+        files = []
+    try:
+        index = int(request.args.get("index", "0"))
+    except ValueError:
+        index = -1
+    if index < 0 or index >= len(files):
+        return jsonify({"error": "Result file not found"}), 404
+    return get_result_artifact(md5sum, files[index]["path"])
+
+
+@app.route("/compute/api/results/<md5sum>/storyboard/<path:asset>", methods=["GET"])
+@login_required
+def get_result_storyboard_asset(md5sum: str, asset: str):
+    """Serve an explicitly declared, deployment-controlled runner asset."""
+    normalized = _normalize_task_id(md5sum)
+    task = task_store.get_task(normalized) if normalized else None
+    if task is None or not _task_access_allowed(task):
+        return jsonify({"error": "Storyboard not found"}), 404
+    try:
+        task_type, _ = get_task_type(task.get("task_type", "gremlin"))
+        declaration = storyboard_declaration(task_type, CONFIG.server_dir, set(expected_file_tree(task_type, CONFIG.server_dir)))
+        root = runner_root(task_type, CONFIG.server_dir) / "storyboard"
+        requested = asset.replace("\\", "/").strip("/")
+        if not declaration or not requested or any(part in {"", ".", ".."} for part in requested.split("/")):
+            abort(404)
+        target = (root / requested).resolve()
+        if not target.is_file() or not target.is_relative_to(root.resolve()) or target.suffix != ".js":
+            abort(404)
+    except (KeyError, ResultContractError):
+        abort(404)
+    response = send_from_directory(root, requested, mimetype="text/javascript")
+    response.headers["Cache-Control"] = "private, no-cache"
+    return response
 
 
 def _result_artifact(task: dict[str, Any], relative_path: str) -> tuple[str, dict[str, Any]] | None:

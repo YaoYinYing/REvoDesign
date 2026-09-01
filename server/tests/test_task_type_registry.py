@@ -55,7 +55,8 @@ def test_scientific_result_views_cover_every_task_with_stable_outputs():
     registry = yaml.safe_load((SERVER_ROOT / "config" / "task_types.yaml").read_text(encoding="utf-8"))
     unmapped = {name for name, task in registry["task_types"].items() if not task.get("result_workspace")}
 
-    assert unmapped == {"esm_extract"}
+    assert unmapped == {"esm_extract", "gremlin"}
+    assert (SERVER_ROOT / "docker" / "runners" / "pssm_gremlin" / "expected_files.yaml").is_file()
     for name, task in registry["task_types"].items():
         views = task.get("result_workspace", {}).get("views", [])
         assert sum(view["role"] == "primary" for view in views) <= 1, name

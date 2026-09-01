@@ -39,6 +39,7 @@ from revocompute.job.runners.docker_runner import DockerJob
 from revocompute.job.runners.slurm_runner import SlurmJob
 from revocompute.manage_db import ManageDatabase  # noqa: E402
 from revocompute.resource_policy import ResolvedResources, ResourceValidationError
+from revocompute.result_storyboard import ResultContractError, expected_file_tree, resolve_expected_files, storyboard_declaration
 from revocompute.task_types import get as _get_task_type
 from revocompute.task_types import get_job_executor as _get_job_executor
 from revocompute.task_types import load_registry as _load_task_registry
@@ -709,9 +710,22 @@ def _finalize_results_manifest(
                 }
             )
     views, checks, problems = _resolve_result_views(task_type, artifacts, result_dir)
+    logical_files: dict[str, list[dict[str, Any]]] = {}
+    storyboard = None
+    if task_type is not None:
+        try:
+            tree = expected_file_tree(task_type, CONFIG.server_dir)
+            logical_files, tree_checks, tree_problems = resolve_expected_files(tree, artifacts)
+            checks.extend(tree_checks)
+            problems.extend(tree_problems)
+            declaration = storyboard_declaration(task_type, CONFIG.server_dir, set(tree))
+            if declaration is not None:
+                storyboard = declaration
+        except ResultContractError as exc:
+            problems.append(f"Result contract is invalid: {exc}")
     if execution_state == "failed":
         output_state = "not_assessed"
-    elif task_type is None or not task_type.result_workspace:
+    elif task_type is None or (not task_type.result_workspace and not logical_files):
         output_state = "not_configured"
     else:
         output_state = "failed" if problems else "passed"
@@ -725,6 +739,8 @@ def _finalize_results_manifest(
         "limitations": list(task_type.considerations) if task_type else [],
         "artifacts": artifacts,
         "views": views,
+        "result": {"files": logical_files},
+        "storyboard": storyboard,
         "total_size": sum(item["size"] for item in artifacts),
     }
     temporary = _safe_join(result_dir, ".manifest.json.tmp")

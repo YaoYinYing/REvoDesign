@@ -1,0 +1,7 @@
+identifier: gremlin-result
+entrypoint: ./index.js
+requires:
+  - alignment
+  - pssm
+  - coupling_matrix
+optional: []
