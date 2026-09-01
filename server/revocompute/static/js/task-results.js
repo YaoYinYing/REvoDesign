@@ -629,16 +629,19 @@
     return response.json();
   }
 
-  async function loadCsv(artifact, signal) {
+  async function loadCsv(artifact, signal, matrix) {
     var rows = [], columns = null, offset = 0;
     do {
-      var response = await A.authFetch(tableUrl(artifact.path, offset).replace("limit=100", "limit=500"), { signal: signal });
+      var url = tableUrl(artifact.path, offset).replace("limit=100", "limit=500") + (matrix ? "&matrix=1" : "");
+      var response = await A.authFetch(url, { signal: signal });
       if (!response.ok) throw new Error("Scientific table could not be loaded.");
       var page = await response.json();
+      if (!Array.isArray(page.rows)) throw new Error("Scientific table returned invalid rows.");
       columns = columns || page.columns;
-      rows = rows.concat(page.rows || []);
+      rows = rows.concat(page.rows);
+      var previousOffset = offset;
       offset += page.rows.length;
-      if (!page.has_more) break;
+      if (!page.has_more || !page.rows.length || offset === previousOffset) break;
     } while (rows.length < 10000);
     return { columns: columns || [], rows: rows, truncated: rows.length >= 10000 };
   }
@@ -682,7 +685,9 @@
       } else {
         var page = await loadCsv(artifact, services.signal);
         var indexes = {}; page.columns.forEach(function (column, index) { indexes[column] = index; });
-        xValues = page.rows.map(function (row, index) { return Number(row[indexes[mapping.x_column]]) || index + 1; });
+        xValues = page.rows.map(function (row, index) {
+          var value = Number(row[indexes[mapping.x_column]]); return Number.isFinite(value) ? value : index + 1;
+        });
         series = mapping.value_columns.map(function (column) {
           return { name: column, values: page.rows.map(function (row) { return Number(row[indexes[column]]); }) };
         });
@@ -698,12 +703,14 @@
       svg.setAttribute("viewBox", "0 0 " + width + " " + height); svg.setAttribute("role", "img");
       svg.setAttribute("aria-label", (mapping.y_label || "Metric") + " by " + (mapping.x_label || "index"));
       var colors = ["#087f8c", "#c44536", "#6a4c93", "#2f7d32", "#b26a00"];
+      var xMin = Math.min.apply(null, xValues), xMax = Math.max.apply(null, xValues);
       series.forEach(function (item, seriesIndex) {
         var path = document.createElementNS(svg.namespaceURI, "path");
         var drawing = false;
         var commands = item.values.map(function (value, index) {
           if (!Number.isFinite(value)) { drawing = false; return null; }
-          var x = pad + (width - 2 * pad) * (index / Math.max(item.values.length - 1, 1));
+          var xValue = Number(xValues[index]);
+          var x = pad + (width - 2 * pad) * ((xValue - xMin) / Math.max(xMax - xMin, 1));
           var y = height - pad - (height - 2 * pad) * ((value - yMin) / (yMax - yMin));
           var command = drawing ? "L" : "M"; drawing = true;
           return command + x.toFixed(1) + " " + y.toFixed(1);
@@ -733,10 +740,10 @@
         xLabels = (values[0] || []).map(function (_value, index) { return String(index + 1); });
         yLabels = values.map(function (_value, index) { return String(index + 1); });
       } else {
-        var page = await loadCsv(artifact, services.signal); var labelIndex = page.columns.indexOf(mapping.row_labels_column);
-        xLabels = page.columns.filter(function (_column, index) { return index !== labelIndex; });
-        yLabels = page.rows.map(function (row) { return row[labelIndex]; });
-        values = page.rows.map(function (row) { return row.filter(function (_value, index) { return index !== labelIndex; }).map(Number); });
+        var page = await loadCsv(artifact, services.signal, true); var labelIndex = page.columns.indexOf(mapping.row_labels_column);
+        xLabels = labelIndex < 0 ? page.columns : page.columns.filter(function (_column, index) { return index !== labelIndex; });
+        yLabels = page.rows.map(function (row, index) { return labelIndex < 0 ? String(index + 1) : row[labelIndex]; });
+        values = page.rows.map(function (row) { return (labelIndex < 0 ? row : row.filter(function (_value, index) { return index !== labelIndex; })).map(Number); });
       }
       if (current !== generation || services.signal.aborted) return;
       if (!Array.isArray(values) || !values.length || !Array.isArray(values[0])) throw new Error("The matrix is empty.");
@@ -883,7 +890,7 @@
         }
       };
       window.addEventListener("message", onMessage);
-      abortHandler = function () { clearTimeout(timeout); stop(); window.removeEventListener("message", onMessage); frame.remove(); };
+      abortHandler = function () { clearTimeout(timeout); stop(); window.removeEventListener("message", onMessage); frame.remove(); resolve(); };
       services.signal.addEventListener("abort", abortHandler, { once: true });
     });
     frame.src = "/compute/viewer-shell"; await ready;

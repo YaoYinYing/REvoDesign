@@ -1426,7 +1426,7 @@ task_types:
           description: Pairwise predicted aligned error for each model; lower values indicate greater confidence in relative residue placement.
           sources:
             matrices:
-              - {glob: "*/pae_*.json", required: true}
+              - {glob: "*/pae_*.json", required: false}
           mapping: {format: json, value_path: "0.predicted_aligned_error", x_label: "Aligned residue", y_label: "Scored residue", unit: "Å", direction: lower, scale: sequential, scale_min: 0, scale_max: 31.75}
     stage_markers:
       msa_searching: "MSA searching"

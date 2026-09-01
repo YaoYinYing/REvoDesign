@@ -666,7 +666,7 @@ def _resolve_result_views(
         for source_name, source_paths in resolved_sources.items():
             role = "evidence" if source_name == "supporting" else artifact_role
             for path in source_paths:
-                if artifact_by_path[path]["role"] not in {"provenance", "diagnostic"}:
+                if artifact_by_path[path]["role"] not in {"provenance", "diagnostic", "primary"} or role == "primary":
                     artifact_by_path[path]["role"] = role
     return views, checks, list(dict.fromkeys(problems))
 

@@ -322,7 +322,7 @@
     if (event.data.type === "structure") queueMount(event.data);
     else if (event.data.type === "trajectory") mountChain = mountChain.then(function () { return mountTrajectory(event.data); });
     else if (event.data.type === "trajectory-control") {
-      mountChain = mountChain.then(function () { return setTrajectoryFrame(event.data.action, event.data.value); });
+      mountChain = mountChain.then(function () { return setTrajectoryFrame(event.data.action, event.data.value); }).catch(function (error) { fail(error.message || String(error)); });
     }
     else if (event.data.type === "theme") applyTheme(event.data.theme);
     else if (event.data.type === "color") updateStructureColor(event.data.mode);
