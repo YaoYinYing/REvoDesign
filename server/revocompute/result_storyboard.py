@@ -8,9 +8,12 @@ from __future__ import annotations
 
 from fnmatch import fnmatchcase
 from pathlib import Path
+import re
 from typing import Any
 
 import yaml
+
+_LOGICAL_FILE_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 
 
 class ResultContractError(ValueError):
@@ -29,6 +32,7 @@ def runner_root(task_type: Any, server_dir: str) -> Path:
 
 
 def _safe_relative(value: Any) -> str:
+    """Validate a runner-controlled relative path."""
     if not isinstance(value, str) or not value or value.startswith("/") or "\\" in value:
         raise ResultContractError("Result paths must be non-empty relative paths")
     if any(part in {"", ".", ".."} for part in value.split("/")):
@@ -37,6 +41,7 @@ def _safe_relative(value: Any) -> str:
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
+    """Load a small runner-owned YAML declaration."""
     try:
         value = yaml.safe_load(path.read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError) as exc:
@@ -59,12 +64,7 @@ def expected_file_tree(task_type: Any, server_dir: str) -> dict[str, dict[str, A
         raise ResultContractError("result.files must be a mapping")
     parsed: dict[str, dict[str, Any]] = {}
     for logical_id, entry in files.items():
-        if (
-            not isinstance(logical_id, str)
-            or not logical_id[:1].isalpha()
-            or not logical_id.replace("_", "").isalnum()
-            or not isinstance(entry, dict)
-        ):
+        if not isinstance(logical_id, str) or not _LOGICAL_FILE_ID.fullmatch(logical_id) or not isinstance(entry, dict):
             raise ResultContractError("Invalid logical result file")
         if set(entry) - {"path", "pattern", "required", "type", "cardinality"}:
             raise ResultContractError(f"Unknown fields for result file {logical_id}")
@@ -88,7 +88,15 @@ def resolve_expected_files(
     problems: list[str] = []
     for logical_id, definition in tree.items():
         selector = definition.get("path") or definition["pattern"]
-        matches = [by_path[path] for path in sorted(by_path) if fnmatchcase(path, selector) and by_path[path]["size"] > 0]
+        matches = [
+            {
+                **by_path[path],
+                "logical_type": definition.get("type") or by_path[path].get("preview"),
+                "cardinality": definition["cardinality"],
+            }
+            for path in sorted(by_path)
+            if fnmatchcase(path, selector) and by_path[path]["size"] > 0
+        ]
         if definition["cardinality"] == "one" and len(matches) > 1:
             problems.append(f"{logical_id}: expected one file, found {len(matches)}")
             matches = matches[:1]
@@ -98,8 +106,14 @@ def resolve_expected_files(
         if definition["required"] and not matches:
             problems.append(f"{logical_id}: required output is missing or empty")
         resolved[logical_id] = matches
-        checks.append({"file_id": logical_id, "required": definition["required"], "matched": len(matches),
-                       "status": "passed" if matches or not definition["required"] else "failed"})
+        checks.append(
+            {
+                "file_id": logical_id,
+                "required": definition["required"],
+                "matched": len(matches),
+                "status": "passed" if matches or not definition["required"] else "failed",
+            }
+        )
     return resolved, checks, problems
 
 
@@ -123,7 +137,9 @@ def storyboard_declaration(task_type: Any, server_dir: str, file_ids: set[str]) 
     if not asset.is_file() or not asset.is_relative_to(path.parent.resolve()) or asset.suffix != ".js":
         raise ResultContractError("Storyboard entrypoint must be a local JavaScript asset")
     requires, optional = raw["requires"], raw["optional"]
-    if not all(isinstance(items, list) and all(isinstance(item, str) for item in items) for items in (requires, optional)):
+    if not all(
+        isinstance(items, list) and all(isinstance(item, str) for item in items) for items in (requires, optional)
+    ):
         raise ResultContractError("Storyboard file references must be lists")
     if set(requires) & set(optional) or not set(requires + optional).issubset(file_ids):
         raise ResultContractError("Storyboard references unknown logical files")

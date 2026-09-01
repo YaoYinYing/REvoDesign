@@ -15,6 +15,7 @@ from unittest.mock import patch
 import pytest
 from revocompute.job import JobState
 from revocompute.job.runners.slurm_runner import SlurmJob, _sanitize_name, _sh_quote
+from revocompute.resource_policy import ResolvedResources
 
 
 def _make_task_type(**kwargs):
@@ -69,6 +70,68 @@ def _make_entities():
             "verified_value": "100",
         },
     ]
+
+
+class _FakeSrunProcess:
+    """A subprocess.Popen-shaped scheduler boundary fake."""
+
+    def __init__(
+        self,
+        *,
+        stdout: str = "",
+        stderr: str = "",
+        returncode: int | None = 0,
+        pid: int = 4217,
+        timeout_once: bool = False,
+    ) -> None:
+        self.stdout = StringIO(stdout)
+        self.stderr = StringIO(stderr)
+        self.returncode = returncode
+        self.pid = pid
+        self.timeout_once = timeout_once
+        self.wait_calls = 0
+        self.terminated = False
+        self.killed = False
+
+    def wait(self, timeout=None):
+        self.wait_calls += 1
+        if self.timeout_once and not self.killed:
+            self.timeout_once = False
+            raise subprocess.TimeoutExpired(["srun"], timeout)
+        if self.returncode is None:
+            self.returncode = 0
+        return self.returncode
+
+    def poll(self):
+        return self.returncode
+
+    def terminate(self) -> None:
+        self.terminated = True
+        self.returncode = -15
+
+    def kill(self) -> None:
+        self.killed = True
+        self.returncode = -9
+
+
+def _policy(**overrides) -> ResolvedResources:
+    defaults = dict(
+        cpus=1,
+        memory="4G",
+        max_runtime_seconds=24 * 60 * 60,
+        partition=None,
+        gres=None,
+        nodes=1,
+        ntasks=1,
+        qos=None,
+        account=None,
+        constraint=None,
+        exclusive=False,
+        requires_gpu=False,
+        sources={},
+    )
+    defaults.update(overrides)
+    return ResolvedResources(**defaults)
 
 
 # -- wrapper script -----------------------------------------------------------
@@ -157,8 +220,6 @@ def test_build_srun_args_gpu_task_uses_configured_gres(tmp_path):
                 requires_gpu=True,
                 sources={"gres": "task:slurm_gres"},
             )
-
-    from revocompute.resource_policy import ResolvedResources
 
     job = SlurmJob(
         "task-1",
@@ -277,23 +338,124 @@ def test_render_apptainer_includes_runner_env(tmp_path):
     assert "export APPTAINERENV_" in script
 
 
-# -- submit / cancel (mocked Popen) -------------------------------------------
+def test_render_apptainer_quotes_paths_and_environment_values(tmp_path):
+    from revocompute.task_types import RunnerMount
+
+    entities = _make_entities()
+    entities[0] = {
+        **entities[0],
+        "snapshot_path": "/srv/workspaces/alice's task/inputs/input file.fasta",
+        "snapshot_root": "/srv/workspaces/alice's task/inputs",
+        "workspace_key": "alice task",
+    }
+    task_type = _make_task_type(
+        runtime=replace(_make_task_type().runtime, slurm_image="/opt/images/gremlin's image.sif")
+    )
+    runner = _make_runner(
+        env={"GREMLIN_DB": "/data/db path/gremlin's db"},
+        mounts=(
+            RunnerMount(
+                host_path="/data/db path/gremlin's db",
+                container_path="/opt/db path/gremlin",
+                mode="ro",
+            ),
+        ),
+    )
+    job = SlurmJob("task-1", task_type, runner, entities, str(tmp_path / "out dir"))
+    script = job._render_wrapper()
+
+    assert _sh_quote("/srv/workspaces/alice's task/inputs/input file.fasta") in script
+    assert _sh_quote("/srv/workspaces/alice's task/inputs") in script
+    assert _sh_quote("/data/db path/gremlin's db") in script
+    assert _sh_quote("/opt/images/gremlin's image.sif") in script
+    assert _sh_quote("/mnt/revocompute/alice task/inputs/task.json") in script
 
 
-def test_submit_launches_srun(tmp_path):
-    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
+# -- submit / poll / cancel (mocked Popen boundary) ---------------------------
 
-    fake_proc = subprocess.Popen(["true"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    fake_proc.pid = 12345
+
+def test_submit_invokes_srun_with_resource_args_and_wrapper(tmp_path):
+    output_dir = tmp_path / "out with spaces"
+    resources = _policy(
+        cpus=8,
+        memory="32G",
+        max_runtime_seconds=90 * 60,
+        partition="gpu",
+        gres="gpu:a100:1",
+        nodes=2,
+        ntasks=1,
+        qos="normal",
+        account="lab",
+        constraint="a100&nvme",
+        exclusive=True,
+        requires_gpu=True,
+    )
+    job = SlurmJob(
+        "abcdef1234567890",
+        _make_task_type(gpus=True),
+        _make_runner(),
+        _make_entities(),
+        str(output_dir),
+        username="alice@example.com",
+        resource_policy=resources,
+    )
+    fake_proc = _FakeSrunProcess(stdout="REVODESIGN_JOB_ID=4217\n", returncode=0, pid=99)
 
     with patch("subprocess.Popen", return_value=fake_proc) as mock_popen:
         jid = job.submit()
-        assert jid == "srun-12345"
-        args = mock_popen.call_args[0][0]
-        assert args[0] == "srun"
-        # Stage markers must reach the worker live, not at job exit: the
-        # wrapper's stdout is a glibc-buffered pipe without this flag.
-        assert "-u" in args
+
+    wrapper = output_dir / "_slurm_wrapper_abcdef12.sh"
+    assert jid == "4217"
+    assert mock_popen.call_args.args[0] == [
+        "srun",
+        "-u",
+        "--partition=gpu",
+        "--cpus-per-task=8",
+        "--gres=gpu:a100:1",
+        "--mem=32G",
+        "--time=01:30:00",
+        "--nodes=2",
+        "--ntasks=1",
+        "--qos=normal",
+        "--account=lab",
+        "--constraint=a100&nvme",
+        "--exclusive",
+        f"--chdir={output_dir}",
+        "--job-name=revocomput_alice_example_com_gremlin_abcdef12",
+        "bash",
+        str(wrapper),
+    ]
+    assert mock_popen.call_args.kwargs == {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "text": True}
+    assert wrapper.is_file()
+
+
+def test_submit_parses_job_id_from_srun_stderr_banner(tmp_path):
+    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
+    fake_proc = _FakeSrunProcess(stderr="srun: job 4217 queued and waiting for resources\n", returncode=0)
+
+    with patch("subprocess.Popen", return_value=fake_proc):
+        assert job.submit() == "4217"
+    assert job.job_id == "4217"
+
+
+def test_submit_returns_empty_handle_when_scheduler_id_is_unparseable(tmp_path):
+    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
+    fake_proc = _FakeSrunProcess(stdout="tool started before SLURM_JOB_ID was exported\n", stderr="unexpected\n")
+
+    with patch("subprocess.Popen", return_value=fake_proc):
+        assert job.submit() == ""
+    assert job.job_id is None
+
+
+def test_submit_propagates_srun_launch_failure_and_removes_wrapper(tmp_path):
+    output_dir = tmp_path / "out"
+    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(output_dir))
+
+    with patch("subprocess.Popen", side_effect=FileNotFoundError("srun not found")):
+        with pytest.raises(FileNotFoundError, match="srun not found"):
+            job.submit()
+
+    assert not list(output_dir.glob("_slurm_wrapper_*.sh"))
 
 
 def test_job_id_capture_emits_first_stage_as_liveness_signal(tmp_path):
@@ -317,31 +479,61 @@ def test_job_id_capture_emits_first_stage_as_liveness_signal(tmp_path):
     assert stdout.closed
 
 
-def test_poll_returns_completed_on_exit_zero(tmp_path):
+def test_submit_poll_lifecycle_maps_exit_zero_with_result_to_completed(tmp_path):
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
-    fake_proc = subprocess.Popen(["true"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    fake_proc.pid = 12345
-    fake_proc.returncode = 0
+    fake_proc = _FakeSrunProcess(stdout="REVODESIGN_JOB_ID=4217\nREVODESIGN_STAGE:gremlin\n", returncode=0)
 
     with patch("subprocess.Popen", return_value=fake_proc):
-        job.submit()
+        assert job.submit() == "4217"
         (tmp_path / "out" / "result.csv").write_text("score\n1.0\n")
-        # process already exited, poll should detect that
         state = job.poll()
         assert state == JobState.COMPLETED
+    assert not list((tmp_path / "out").glob("_slurm_wrapper_*.sh"))
 
 
 def test_poll_returns_failed_on_exit_zero_without_result_artifact(tmp_path):
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
-    fake_proc = subprocess.Popen(["true"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    fake_proc.pid = 12345
-    fake_proc.returncode = 0
+    fake_proc = _FakeSrunProcess(stdout="REVODESIGN_JOB_ID=4217\n", returncode=0)
 
     with patch("subprocess.Popen", return_value=fake_proc):
         job.submit()
         (tmp_path / "out" / "task_finished").touch()
         state = job.poll()
         assert state == JobState.FAILED
+
+
+def test_poll_maps_nonzero_srun_exit_to_failed_and_saves_scheduler_logs(tmp_path):
+    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"), username="bob")
+    fake_proc = _FakeSrunProcess(
+        stdout="REVODESIGN_JOB_ID=4217\n",
+        stderr="slurmstepd: error: task exited with exit code 1\n",
+        returncode=1,
+    )
+
+    with patch("subprocess.Popen", return_value=fake_proc):
+        job.submit()
+        assert job.poll() == JobState.FAILED
+
+    stderr = tmp_path / "out" / "execution" / "slurm-bob-gremlin-task-1.stderr.log"
+    assert stderr.read_text() == "slurmstepd: error: task exited with exit code 1\n"
+
+
+def test_poll_timeout_kills_srun_and_returns_failed(tmp_path):
+    job = SlurmJob(
+        "task-1",
+        _make_task_type(),
+        _make_runner(max_runtime_seconds=1),
+        _make_entities(),
+        str(tmp_path / "out"),
+    )
+    fake_proc = _FakeSrunProcess(stdout="REVODESIGN_JOB_ID=4217\n", returncode=None, timeout_once=True)
+
+    with patch("subprocess.Popen", return_value=fake_proc):
+        job.submit()
+        assert job.poll() == JobState.FAILED
+
+    assert fake_proc.killed is True
+    assert fake_proc.wait_calls == 2
 
 
 def test_slurm_output_is_named_previewable_execution_diagnostics(tmp_path):
@@ -368,16 +560,15 @@ def test_slurm_output_is_named_previewable_execution_diagnostics(tmp_path):
 
 def test_cancel_terminates_process(tmp_path):
     job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
-    job._process = subprocess.Popen(["sleep", "10"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    job._job_id = "srun-99999"
-    try:
-        job.cancel()
-        # After cancel, process should be terminated
-        assert job._process.poll() is not None
-    finally:
-        if job._process.poll() is None:
-            job._process.kill()
-            job._process.wait()
+    fake_proc = _FakeSrunProcess(returncode=None, pid=99999)
+    job._process = fake_proc
+    job._job_id = "4217"
+
+    job.cancel()
+
+    assert fake_proc.terminated is True
+    assert fake_proc.killed is False
+    assert fake_proc.poll() == -15
 
 
 def test_cancel_before_submit_is_noop(tmp_path):

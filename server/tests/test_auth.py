@@ -97,13 +97,12 @@ def test_auth_update_me_requires_bearer_not_cookie(monkeypatch, tmp_path):
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     _test_client_auth(module)  # ensure tester exists
     client = module.app.test_client()
-    db = module.app.config["user_db"]
-    user = db.get_user_by_username("tester")
-    from revocompute.auth import generate_token
-
-    token = generate_token(user["id"])
-    # Set cookie but don't send Bearer header
-    client.set_cookie("auth_token", token)
+    login_resp = client.post(
+        "/compute/api/auth/login",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"username": "tester", "password": "password"}),
+    )
+    assert login_resp.status_code == 200
     payload = {"current_password": "password", "new_password": "newpassword123"}
     resp = client.put(
         "/compute/api/auth/me",

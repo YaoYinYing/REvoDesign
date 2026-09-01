@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import io
 import os
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -116,8 +117,22 @@ def _shimmed_state(monkeypatch, tmp_path: Path, bin_dir: Path, ids: dict[str, st
     return state, log
 
 
+def _docker_config_dir(tmp_path: Path) -> Path:
+    """Return a deployment registry whose effective executor is Docker."""
+    source_root = SERVER_DIR / "config"
+    config_dir = tmp_path / "docker-config"
+    shutil.copytree(source_root / "runners", config_dir / "runners")
+    registry = yaml.safe_load((source_root / "task_types.yaml").read_text(encoding="utf-8"))
+    registry["job_executor"] = "docker"
+    registry["container_runtime"] = "docker"
+    (config_dir / "task_types.yaml").write_text(yaml.safe_dump(registry, sort_keys=False), encoding="utf-8")
+    return config_dir
+
+
 def _deploy_env(tmp_path: Path, config_dir: Path | None = None) -> tuple[Path, Path, Path]:
     """SERVER_DIR + AUTH_DIR + env file, the harness shape."""
+    if config_dir is None:
+        config_dir = _docker_config_dir(tmp_path)
     task_dir = tmp_path / "tasks"
     auth_dir = tmp_path / "auth"
     log_dir = tmp_path / "logs"
@@ -138,8 +153,7 @@ def _deploy_env(tmp_path: Path, config_dir: Path | None = None) -> tuple[Path, P
         "RUNNER_GROUP=revodesign",
         "SERVER_IMAGE=example/revodesign-server:latest",
     ]
-    if config_dir is not None:
-        lines.append(f"CONFIG_DIR={config_dir}")
+    lines.append(f"CONFIG_DIR={config_dir}")
     env_file = tmp_path / "server.env"
     env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return task_dir, auth_dir, env_file

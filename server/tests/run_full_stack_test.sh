@@ -61,6 +61,18 @@ elif [[ "${RUNNER_GID}" == "0" ]]; then
 fi
 export RUNNER_UID RUNNER_GID
 cp -r "${SERVER_ROOT}/config" "${WORK_DIR}/state/server/config"
+python - "${WORK_DIR}/state/server/config/task_types.yaml" <<'PY'
+from pathlib import Path
+import sys
+
+import yaml
+
+path = Path(sys.argv[1])
+registry = yaml.safe_load(path.read_text(encoding="utf-8"))
+registry["job_executor"] = "docker"
+registry["container_runtime"] = "docker"
+path.write_text(yaml.safe_dump(registry, sort_keys=False), encoding="utf-8")
+PY
 sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc30|${WORK_DIR}/state/server/miniuc/uc30|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
 sed -i "s|/Users/yyy/Documents/protein_design/REvoDesign/playground/miniuc/uc90|${WORK_DIR}/state/server/miniuc/uc90|" "${WORK_DIR}/state/server/config/runners/gremlin.yaml"
 cat >>"${ENV_FILE}" <<EOF

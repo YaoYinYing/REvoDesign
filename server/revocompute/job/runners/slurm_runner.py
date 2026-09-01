@@ -29,12 +29,11 @@ _SLURM_JOB_ID_RE = re.compile(r"srun:\s+[Jj]ob\s+(\d+)")
 class SlurmJob(Job):
     """A compute job submitted via SLURM + Apptainer.
 
-    ``submit()`` launches ``srun`` via ``subprocess.Popen`` and returns
-    the real SLURM job id, captured from the allocation wrapper's first
-    stdout line or an ``srun`` stderr banner, and temporarily falls back to
-    a pid-based id if neither arrives during submission. ``poll()`` waits for
-    the process to exit and returns ``COMPLETED`` or ``FAILED`` based on the
-    exit code.
+    ``submit()`` launches ``srun`` via ``subprocess.Popen`` and returns the
+    real SLURM job id only when it is captured from the allocation wrapper's
+    first stdout line or an ``srun`` stderr banner. ``poll()`` waits for the
+    process to exit and returns ``COMPLETED`` or ``FAILED`` based on the exit
+    code.
     """
 
     def __init__(
@@ -79,8 +78,11 @@ class SlurmJob(Job):
         cmd = ["srun", "-u"] + self._build_srun_args() + ["bash", script_path]
         logging.info("srun command: %s", " ".join(cmd))
 
-        self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        self._job_id = f"srun-{self._process.pid}"
+        try:
+            self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        except OSError:
+            self._remove_wrapper_script()
+            raise
 
         # Background threads for live stdout/stderr capture.  The stdout
         # thread also parses REVODESIGN_STAGE: markers.
@@ -97,8 +99,13 @@ class SlurmJob(Job):
         if self._slurm_job_id:
             self._job_id = self._slurm_job_id
 
-        logging.info("SLURM job %s (pid %s) started for task %s", self._job_id, self._process.pid, self.task_id)
-        return self._job_id
+        logging.info(
+            "SLURM job %s (srun pid %s) started for task %s",
+            self._job_id or "unconfirmed",
+            self._process.pid,
+            self.task_id,
+        )
+        return self._job_id or ""
 
     def poll(self) -> JobState:
         if self._process is None:

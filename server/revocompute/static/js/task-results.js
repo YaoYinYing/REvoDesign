@@ -1177,7 +1177,7 @@
     document.getElementById("previewTitle").textContent = artifact.path;
     document.getElementById("previewDescription").textContent = artifact.role + " artifact · " + formatBytes(artifact.size);
     var download = document.getElementById("artifactDownload"); download.hidden = false;
-    download.href = artifact.url + "?download=1"; download.download = "";
+    download.href = artifact.url + (artifact.url.indexOf("?") === -1 ? "?" : "&") + "download=1"; download.download = "";
     document.querySelectorAll(".artifact-row").forEach(function (node) {
       var active = node.dataset.path === artifact.path; node.classList.toggle("active", active);
       node.setAttribute("aria-current", active ? "true" : "false");
@@ -1194,7 +1194,8 @@
     var files = new Map();
     Object.keys((result && result.files) || {}).forEach(function (id) {
       var values = result.files[id] || [];
-      files.set(id, values.length === 1 ? values[0] : values);
+      if (!values.length) files.set(id, null);
+      else files.set(id, values.length === 1 && values[0].cardinality !== "many" ? values[0] : values);
     });
     if (declaration.requires.some(function (id) { return !files.get(id) || (Array.isArray(files.get(id)) && !files.get(id).length); })) {
       throw new Error("The required scientific result files are unavailable.");

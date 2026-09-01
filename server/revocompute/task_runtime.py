@@ -39,7 +39,12 @@ from revocompute.job.runners.docker_runner import DockerJob
 from revocompute.job.runners.slurm_runner import SlurmJob
 from revocompute.manage_db import ManageDatabase  # noqa: E402
 from revocompute.resource_policy import ResolvedResources, ResourceValidationError
-from revocompute.result_storyboard import ResultContractError, expected_file_tree, resolve_expected_files, storyboard_declaration
+from revocompute.result_storyboard import (
+    ResultContractError,
+    expected_file_tree,
+    resolve_expected_files,
+    storyboard_declaration,
+)
 from revocompute.task_types import get as _get_task_type
 from revocompute.task_types import get_job_executor as _get_job_executor
 from revocompute.task_types import load_registry as _load_task_registry
@@ -725,7 +730,7 @@ def _finalize_results_manifest(
             problems.append(f"Result contract is invalid: {exc}")
     if execution_state == "failed":
         output_state = "not_assessed"
-    elif task_type is None or (not task_type.result_workspace and not logical_files):
+    elif task_type is None or (not task_type.result_workspace and not logical_files and not problems):
         output_state = "not_configured"
     else:
         output_state = "failed" if problems else "passed"

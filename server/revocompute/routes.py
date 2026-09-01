@@ -1025,15 +1025,19 @@ def get_results(md5sum):
                 "name": os.path.basename(artifact["path"]),
                 "media_type": artifact["media_type"],
                 "size": artifact["size"],
-                "viewer": artifact["preview"] or "download",
-                "preview": artifact["preview"],
+                "role": artifact["role"],
+                "cardinality": artifact["cardinality"],
+                "viewer": artifact.get("logical_type") or artifact["preview"] or "download",
+                "preview": artifact.get("logical_type") or artifact["preview"],
                 "url": f"/compute/api/results/{md5sum}/files/{file_id}?index={index}",
             }
             for index, artifact in enumerate(files)
         ]
     payload["result"] = {"files": logical_files}
     if payload.get("storyboard"):
-        payload["storyboard"]["entrypoint_url"] = f"/compute/api/results/{md5sum}/storyboard/{payload['storyboard']['entrypoint']}"
+        payload["storyboard"][
+            "entrypoint_url"
+        ] = f"/compute/api/results/{md5sum}/storyboard/{payload['storyboard']['entrypoint']}"
     return jsonify(payload)
 
 
@@ -1071,10 +1075,17 @@ def get_result_storyboard_asset(md5sum: str, asset: str):
         return jsonify({"error": "Storyboard not found"}), 404
     try:
         task_type, _ = get_task_type(task.get("task_type", "gremlin"))
-        declaration = storyboard_declaration(task_type, CONFIG.server_dir, set(expected_file_tree(task_type, CONFIG.server_dir)))
+        declaration = storyboard_declaration(
+            task_type, CONFIG.server_dir, set(expected_file_tree(task_type, CONFIG.server_dir))
+        )
         root = runner_root(task_type, CONFIG.server_dir) / "storyboard"
         requested = asset.replace("\\", "/").strip("/")
-        if not declaration or not requested or any(part in {"", ".", ".."} for part in requested.split("/")):
+        if (
+            not declaration
+            or requested != declaration["entrypoint"]
+            or not requested
+            or any(part in {"", ".", ".."} for part in requested.split("/"))
+        ):
             abort(404)
         target = (root / requested).resolve()
         if not target.is_file() or not target.is_relative_to(root.resolve()) or target.suffix != ".js":
