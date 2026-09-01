@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | Project</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/compute/logo.svg">
+<link rel="mask-icon" href="/compute/logo.svg" color="#0f4f63">
+<link rel="stylesheet" href="/static/css/base.css?v={{ static_version }}">
+<link rel="stylesheet" href="/static/css/projects.css?v={{ static_version }}">
+<script src="/static/js/theme.js?v={{ static_version }}"></script>
+</head>
+<body>
+<main class="page projects-page">
+  <header class="projects-nav">
+    <a class="projects-brand" href="/compute/projects" aria-label="All projects">
+      <img src="/compute/logo.svg" alt="" width="38" height="38">
+      <span>Projects</span>
+    </a>
+    <div class="hero-actions">
+      <a class="btn btn-soft" href="/compute/dashboard">Dashboard</a>
+      <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">&#9680;</span></button>
+    </div>
+  </header>
+
+  <section class="project-identity" id="projectIdentity" aria-live="polite">
+    <div><p class="projects-eyebrow" id="projectScopeLabel">Project scope</p><h1 id="projectTitle">Loading project...</h1><p class="projects-lede" id="projectDescription"></p></div>
+    <div class="project-identity-actions"><span class="visibility-badge" id="projectVisibilityBadge"></span><a class="btn btn-primary" id="newProjectTask" href="/compute/create_task" hidden>New task</a></div>
+  </section>
+
+  <nav class="project-tabs" aria-label="Project sections">
+    <button class="project-tab active" type="button" data-tab="overview">Overview</button>
+    <button class="project-tab" type="button" data-tab="tasks">Tasks</button>
+    <button class="project-tab" type="button" data-tab="members">Members</button>
+    <button class="project-tab" type="button" data-tab="settings">Settings</button>
+  </nav>
+
+  <div class="project-status" id="projectStatus" aria-live="polite"></div>
+
+  <section class="project-tab-panel" id="tab-overview" data-panel="overview">
+    <div class="project-metrics">
+      <div><span>Tasks</span><strong id="projectTaskCount">-</strong></div>
+      <div><span>Members</span><strong id="projectMemberCount">-</strong></div>
+      <div><span>Your role</span><strong id="projectRole">Reader</strong></div>
+    </div>
+    <section class="project-section compact" aria-labelledby="recentTasksTitle"><header class="section-heading"><div><p class="projects-eyebrow">Latest work</p><h2 id="recentTasksTitle">Recent tasks</h2></div><button class="text-button" type="button" data-open-tab="tasks">View all</button></header><div class="project-task-list" id="recentTaskList"></div></section>
+  </section>
+
+  <section class="project-tab-panel" id="tab-tasks" data-panel="tasks" hidden>
+    <header class="section-heading"><div><p class="projects-eyebrow">Project scope</p><h2>Tasks</h2></div></header>
+    <div class="project-task-list" id="projectTaskList"></div>
+    <p class="empty-state" id="projectTasksEmpty" hidden>No tasks in this project.</p>
+  </section>
+
+  <section class="project-tab-panel" id="tab-members" data-panel="members" hidden>
+    <header class="section-heading"><div><p class="projects-eyebrow">Collaboration</p><h2>Members</h2></div></header>
+    <form class="invite-form" id="inviteMemberForm" hidden>
+      <label class="field" for="inviteUserSearch"><span>Existing user</span><input class="search-input" id="inviteUserSearch" type="search" list="inviteUserOptions" placeholder="Search username" autocomplete="off" required><datalist id="inviteUserOptions"></datalist></label>
+      <label class="field" for="inviteRole"><span>Role</span><select class="text-input" id="inviteRole"><option value="viewer">Viewer</option><option value="contributor">Contributor</option><option value="maintainer">Maintainer</option></select></label>
+      <button class="btn btn-primary" type="submit">Send invitation</button>
+    </form>
+    <div class="member-list" id="memberList"></div>
+    <section class="pending-invitations" id="pendingInvitations" hidden aria-labelledby="projectInvitationsTitle"><header class="section-heading"><h3 id="projectInvitationsTitle">Pending invitations</h3></header><div class="invitation-list" id="projectInvitationList"></div></section>
+  </section>
+
+  <section class="project-tab-panel" id="tab-settings" data-panel="settings" hidden>
+    <form id="projectSettingsForm" class="settings-form">
+      <section class="settings-section"><header><p class="projects-eyebrow">General</p><h2>Project details</h2></header><label class="field" for="settingsName"><span>Name</span><input class="text-input" id="settingsName" maxlength="120" required></label><label class="field" for="settingsDescription"><span>Description</span><textarea class="text-input project-textarea" id="settingsDescription" maxlength="2000"></textarea></label></section>
+      <section class="settings-section"><header><p class="projects-eyebrow">Discovery</p><h2>Visibility</h2></header><div class="visibility-options"><label><input type="radio" name="settingsVisibility" value="private"><span><strong>Private</strong><small>Members only</small></span></label><label><input type="radio" name="settingsVisibility" value="internal"><span><strong>Internal</strong><small>Authenticated users can discover and read</small></span></label><label><input type="radio" name="settingsVisibility" value="public"><span><strong>Public</strong><small>Anonymous read-only discovery</small></span></label></div></section>
+      <div class="form-actions"><button class="btn btn-primary" id="saveProjectSettings" type="submit">Save settings</button><p class="form-status" id="settingsStatus" aria-live="polite"></p></div>
+    </form>
+    <section class="danger-zone" id="dangerZone" hidden><div><p class="projects-eyebrow">Danger zone</p><h2>Archive project</h2><p>Archive this scope and prevent new tasks or membership changes.</p></div><button class="btn danger-button" id="archiveProject" type="button">Archive project</button></section>
+  </section>
+</main>
+
+<script type="application/json" id="project-page-data">{{ {"project_id": project_id} | tojson }}</script>
+<script src="/static/js/auth-api.js?v={{ static_version }}"></script>
+<script src="/static/js/project.js?v={{ static_version }}"></script>
+</body>
+</html>

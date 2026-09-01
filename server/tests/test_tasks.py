@@ -19,7 +19,7 @@ from pathlib import Path
 import docker
 import pytest
 import requests
-from conftest import _extract_md5, _load_pssm_module
+from conftest import _extract_md5, _load_pssm_module, _personal_task_scope, _relocate_task_artifacts
 from werkzeug.utils import secure_filename
 
 SERVER_PACKAGE = Path(__file__).resolve().parents[1] / "revocompute"
@@ -412,7 +412,8 @@ def test_submission_manifest_carries_params(monkeypatch, tmp_path):
         )
     assert resp.status_code == 302, resp.get_data(as_text=True)[:300]
     md5sum = resp.headers["Location"].rstrip("/").rsplit("/", 1)[-1]
-    manifest_path = Path(module.task_runtime.CONFIG.workspace_folder) / "tester" / md5sum / "inputs" / "task.json"
+    task = module.task_store.get_task(md5sum)
+    manifest_path = Path(module.app.config["storage_resolver"].get_input_root(task)) / "inputs" / "task.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["params"]["iter"] == 100
     assert manifest["files"][0]["relative_path"] == "2KL8.fasta"
@@ -446,7 +447,7 @@ def test_alphafold_multimer_submission_preserves_selected_preset(monkeypatch, tm
     task_id = response.headers["Location"].rsplit("/", 1)[-1]
     task = module.task_store.get_task(task_id)
     manifest = json.loads(
-        (Path(module.app.config["WORKSPACE_FOLDER"]) / "tester" / task_id / "inputs" / "task.json").read_text()
+        (Path(module.app.config["storage_resolver"].get_input_root(task)) / "inputs" / "task.json").read_text()
     )
     input_form = json.loads(task["input_form"])
     assert manifest["params"]["model_preset"] == "multimer"
@@ -521,8 +522,9 @@ def _insert_pending_task(
     fasta_path = result_dir / filename
     fasta_path.write_bytes(content)
     md5sum = uuid.uuid4().hex
+    scope = _personal_task_scope(module, "tester")
     blob_hash = hashlib.sha256(content).hexdigest()
-    snapshot_root = Path(module.task_runtime.CONFIG.workspace_folder) / "tester" / md5sum / "inputs"
+    snapshot_root = Path(module.app.config["storage_resolver"].get_input_root({"md5sum": md5sum, **scope})) / "inputs"
     snapshot_path = snapshot_root / filename
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     snapshot_path.write_bytes(content)
@@ -534,11 +536,11 @@ def _insert_pending_task(
                 "value": filename,
                 "verified_value": filename,
                 "relative_path": filename,
-                "mounted": f"/mnt/revocompute/tester/inputs/{filename}",
+                "mounted": f"/mnt/revocompute/{scope['storage_key']}/inputs/{filename}",
                 "hash": blob_hash,
                 "snapshot_path": str(snapshot_path),
                 "snapshot_root": str(snapshot_root),
-                "workspace_key": "tester",
+                "workspace_key": scope["storage_key"],
             }
         ]
     # _execute_compute_task verifies the upload file exists at
@@ -546,11 +548,11 @@ def _insert_pending_task(
     upload_file = Path(module.task_runtime.CONFIG.upload_folder) / f"{blob_hash}.upload"
     upload_file.parent.mkdir(parents=True, exist_ok=True)
     upload_file.write_bytes(content)
+    _relocate_task_artifacts(module, md5sum, result_dir, scope)
     module.task_store.upsert_task(
         md5sum,
         filename=filename,
         file_path=str(fasta_path),
-        result_dir=str(result_dir),
         uploaded_at=time.time(),
         status="pending",
         is_binary=0,
@@ -558,6 +560,7 @@ def _insert_pending_task(
         user_agent="pytest",
         username="tester",
         input_form=json.dumps({"user": "tester", "submitted_at": "2026-01-01T00:00:00Z", "entities": entities}),
+        **scope,
     )
     return md5sum
 
@@ -589,7 +592,7 @@ def test_run_compute_task_handles_docker_daemon_error(monkeypatch, tmp_path):
     assert task["error"].startswith("docker:")
     assert "Permission denied" in task["error"]
 
-    result_dir = Path(task["result_dir"])
+    result_dir = Path(module.app.config["storage_resolver"].get_task_root(task))
     assert result_dir.is_dir()
     manifest = json.loads((result_dir / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["schema_version"] == 3
@@ -641,7 +644,7 @@ def test_run_compute_task_finalizes_uncompressed_result_manifest(monkeypatch, tm
     assert task["status"] == "finished"
     assert task["local_user"] == "pytest:staff-1000:20"
     assert task["run_stage"] == "blast"
-    result_dir = Path(task["result_dir"])
+    result_dir = Path(module.app.config["storage_resolver"].get_task_root(task))
     assert result_dir.is_dir()
     manifest = json.loads((result_dir / "manifest.json").read_text(encoding="utf-8"))
     names = {item["path"] for item in manifest["artifacts"]}
@@ -794,7 +797,9 @@ def test_worker_recovery_polls_reconnected_docker_outside_startup(monkeypatch, t
         "status": "running",
         "container_id": "container-1",
         "task_type": "gremlin",
-        "result_dir": str(tmp_path / "result"),
+        "scope_type": "personal",
+        "scope_id": "1",
+        "storage_key": "test-user-abcdef",
     }
     started_threads = []
     poll_calls = []
@@ -882,8 +887,8 @@ def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, 
     form = json.loads(task["input_form"])
     files = [entity for entity in form["entities"] if entity["type"] == "file"]
     assert [entity["relative_path"] for entity in files] == ["structures/model.pdb", "config/settings.json"]
-    assert files[0]["mounted"] == "/mnt/revocompute/tester/inputs/structures/model.pdb"
-    assert form["virtual_root"] == "/mnt/revocompute/tester"
+    assert files[0]["mounted"] == f"/mnt/revocompute/{task['storage_key']}/inputs/structures/model.pdb"
+    assert form["virtual_root"] == f"/mnt/revocompute/{task['storage_key']}"
     assert form["resource_policy"]["cpus"] >= 1
     assert form["resource_policy"]["memory"]
     assert form["resource_policy"]["slurm_time"]
@@ -891,7 +896,7 @@ def test_multi_file_submission_creates_isolated_workspace_snapshot(monkeypatch, 
         snapshot = Path(entity["snapshot_path"])
         assert snapshot.is_file()
         assert snapshot.resolve().is_relative_to(Path(module.app.config["WORKSPACE_FOLDER"]).resolve())
-    assert not any(Path(task["result_dir"]).iterdir())
+    assert not any(Path(module.app.config["storage_resolver"].get_task_root(task)).iterdir())
 
 
 def test_optional_archive_keeps_result_tree(monkeypatch, tmp_path):
@@ -1232,7 +1237,7 @@ def test_rfdiffusion_workspace_normalization_and_structure_free_submission(monke
     assert submitted.status_code == 302, submitted.get_json()
     task = module.task_store.get_task(submitted.headers["Location"].rsplit("/", 1)[-1])
     manifest = json.loads(
-        (Path(module.app.config["WORKSPACE_FOLDER"]) / "tester" / task["md5sum"] / "inputs" / "task.json").read_text(
+        (Path(module.app.config["storage_resolver"].get_input_root(task)) / "inputs" / "task.json").read_text(
             encoding="utf-8"
         )
     )
@@ -1499,6 +1504,7 @@ def test_cleanup_expired_task_artifacts_only_removes_old_terminal_results(monkey
         ("running", old_finished_at, "running", False),
     )
     task_artifacts = []
+    scope = _personal_task_scope(module, "tester")
 
     for status, finished_at, _expected_status, _expired in tasks:
         md5sum = uuid.uuid4().hex
@@ -1507,11 +1513,12 @@ def test_cleanup_expired_task_artifacts_only_removes_old_terminal_results(monkey
         (result_dir / "result.txt").write_text("result\n", encoding="utf-8")
         zip_path = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_results.zip"
         zip_path.write_bytes(b"archive")
+        result_dir = _relocate_task_artifacts(module, md5sum, result_dir, scope)
+        zip_path = Path(module.app.config["storage_resolver"].get_archive_path({"md5sum": md5sum, **scope}))
         module.task_store.upsert_task(
             md5sum,
             filename="input.fasta",
             file_path=str(result_dir / "input.fasta"),
-            result_dir=str(result_dir),
             uploaded_at=finished_at - 60,
             finished_at=finished_at,
             status=status,
@@ -1519,6 +1526,7 @@ def test_cleanup_expired_task_artifacts_only_removes_old_terminal_results(monkey
             source_ip="127.0.0.1",
             user_agent="pytest",
             username="tester",
+            **scope,
         )
         task_artifacts.append((md5sum, result_dir, zip_path))
 
@@ -1558,16 +1566,19 @@ def test_cleanup_skips_task_replaced_before_atomic_claim(monkeypatch, tmp_path):
     result_dir = Path(module.app.config["RESULTS_FOLDER"]) / md5sum
     result_dir.mkdir(parents=True)
     fresh_artifact = result_dir / "fresh-result.txt"
+    scope = _personal_task_scope(module, "tester")
+    result_dir = _relocate_task_artifacts(module, md5sum, result_dir, scope)
+    fresh_artifact = result_dir / "fresh-result.txt"
     module.task_store.upsert_task(
         md5sum,
         filename="input.fasta",
         file_path=str(result_dir / "input.fasta"),
-        result_dir=str(result_dir),
         uploaded_at=now - 32 * 86400,
         finished_at=now - 31 * 86400,
         status="finished",
         is_binary=0,
         username="tester",
+        **scope,
     )
     original_claim = module.task_store.claim_task_cleanup
 
@@ -1700,11 +1711,12 @@ def _upsert_task_for_user(
     status: str = "finished",
     run_stage: str | None = None,
 ) -> None:
+    scope = _personal_task_scope(module, username)
+    _relocate_task_artifacts(module, md5sum, result_dir, scope)
     module.task_store.upsert_task(
         md5sum,
         filename=filename,
         file_path=str(file_path),
-        result_dir=str(result_dir),
         uploaded_at=time.time(),
         started_at=time.time(),
         finished_at=time.time(),
@@ -1715,6 +1727,7 @@ def _upsert_task_for_user(
         user_agent="pytest",
         username=username,
         run_stage=run_stage,
+        **scope,
     )
 
 
@@ -2504,16 +2517,19 @@ def test_nginx_download_offload_returns_internal_redirect(monkeypatch, tmp_path)
 
     response = client.get(f"/compute/api/download/{md5sum}", headers=auth_header)
     head_response = client.head(f"/compute/api/download/{md5sum}", headers=auth_header)
+    task = module.task_store.get_task(md5sum)
+    archive = Path(module.app.config["storage_resolver"].get_archive_path(task))
+    internal_archive = archive.relative_to(Path(module.app.config["RESULTS_FOLDER"])).as_posix()
 
     assert response.status_code == 200
     assert response.data == b""
-    assert response.headers["X-Accel-Redirect"] == f"/_protected_results/{archive.name}"
+    assert response.headers["X-Accel-Redirect"] == f"/_protected_results/{internal_archive}"
     assert response.headers["Content-Type"] == "application/zip"
     assert response.headers["Cache-Control"] == "private, no-store"
     assert response.headers["Content-Disposition"].startswith("attachment;")
     assert head_response.status_code == 200
     assert head_response.data == b""
-    assert head_response.headers["X-Accel-Redirect"] == f"/_protected_results/{archive.name}"
+    assert head_response.headers["X-Accel-Redirect"] == f"/_protected_results/{internal_archive}"
 
 
 def test_download_does_not_pack_missing_archive_in_request(monkeypatch, tmp_path):

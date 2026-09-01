@@ -80,15 +80,23 @@ def test_cleanup_task_workspace_removes_workspace_not_results(rt):
     ws = rt.CONFIG.workspace_folder
     res = rt.CONFIG.results_folder
     md5 = "a" * 32
-    (Path(ws) / "alice" / md5 / "inputs").mkdir(parents=True)
-    (Path(ws) / "alice" / md5 / "inputs" / "query.fasta").write_text(">t\nACDE\n")
-    result_dir = Path(res) / md5
+    task = {
+        "md5sum": md5,
+        "scope_type": "personal",
+        "scope_id": "1",
+        "storage_key": "alice-abcdef",
+    }
+    resolver = rt.StorageResolver(res, ws)
+    input_root = Path(resolver.get_input_root(task))
+    (input_root / "inputs").mkdir(parents=True)
+    (input_root / "inputs" / "query.fasta").write_text(">t\nACDE\n")
+    result_dir = Path(resolver.get_task_root(task))
     result_dir.mkdir(parents=True)
     (result_dir / "manifest.json").write_text("{}")
 
-    rt._cleanup_task_workspace({"username": "alice", "md5sum": md5})
+    rt._cleanup_task_workspace(task)
 
-    assert not (Path(ws) / "alice" / md5).exists()
+    assert not input_root.exists()
     assert result_dir.exists()
     assert (result_dir / "manifest.json").exists()
 

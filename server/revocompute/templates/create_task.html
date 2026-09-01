@@ -21,6 +21,7 @@
     <div class="hero-actions">
       <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">◐</span></button>
       <a class="btn btn-soft" href="/runners">Compare methods</a>
+      <a class="btn btn-soft" href="/compute/projects">Projects</a>
       <a class="btn btn-soft" href="/compute/dashboard">Dashboard</a>
     </div>
   </header>
@@ -62,6 +63,16 @@
       <div class="experiment-form-panel">
         <form id="uploadForm" enctype="multipart/form-data">
           <input type="file" name="file" id="fileInput" class="sr-only">
+          <section class="submission-context" aria-labelledby="submissionContextTitle">
+            <header><p class="eyebrow">Task ownership</p><h2 id="submissionContextTitle">Run in</h2></header>
+            <div class="scope-options" id="scopeOptions">
+              <label class="scope-option"><input type="radio" name="taskScope" value="personal" data-scope-id="" checked><span><strong>Personal</strong><small>Your private task scope</small></span></label>
+            </div>
+            <label class="artifact-reference-field" for="artifactReferences">
+              <span>Artifact references <small>Optional</small></span>
+              <textarea class="text-input" id="artifactReferences" rows="3" spellcheck="false" placeholder="@0123456789abcdef0123456789abcdef/designs/model.pdb"></textarea>
+            </label>
+          </section>
           <div class="input-workspace" id="inputWorkspace"></div>
           <div class="run-actions">
             <button class="btn btn-primary" id="uploadButton" type="submit">Run experiment</button>

@@ -125,14 +125,22 @@ def test_migration_from_old_api_key_hash_schema(tmp_path):
             registration_ip VARCHAR(45),
             registration_country VARCHAR(8),
             token_version INTEGER NOT NULL DEFAULT 0,
-            allow_gpu_use BOOLEAN NOT NULL DEFAULT 0
+            allow_gpu_use BOOLEAN NOT NULL DEFAULT 0,
+            storage_key VARCHAR(128) NOT NULL UNIQUE
         )
         """
     )
     conn.execute(
-        "INSERT INTO users (username, email, password_hash, email_verified, created_at, api_key_hash)"
-        " VALUES (?, ?, ?, 1, ?, ?)",
-        ("legacy", "legacy@example.com", generate_password_hash("password123"), time.time(), old_kdf_hash),
+        "INSERT INTO users (username, email, password_hash, email_verified, created_at, api_key_hash, storage_key)"
+        " VALUES (?, ?, ?, 1, ?, ?, ?)",
+        (
+            "legacy",
+            "legacy@example.com",
+            generate_password_hash("password123"),
+            time.time(),
+            old_kdf_hash,
+            "legacy-abcdef",
+        ),
     )
     conn.commit()
     conn.close()

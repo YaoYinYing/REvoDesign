@@ -12,6 +12,7 @@ import time
 from typing import Any
 
 from sqlalchemy import (
+    CheckConstraint,
     Column,
     Float,
     Index,
@@ -68,7 +69,6 @@ class TaskDatabase:
             Column("md5sum", String(32), primary_key=True),
             Column("filename", String, nullable=False),
             Column("file_path", String, nullable=False),
-            Column("result_dir", String, nullable=False),
             Column("uploaded_at", Float, nullable=False),
             Column("started_at", Float),
             Column("finished_at", Float),
@@ -88,12 +88,19 @@ class TaskDatabase:
             Column("slurm_job_id", String),
             Column("container_id", String),
             Column("workflow_state", Text),
-            Column("scope_type", String, nullable=False, default="personal"),
-            Column("scope_id", String),
-            Column("storage_key", String),
-            Column("artifact_provenance", Text),
+            Column("scope_type", String, nullable=False),
+            Column("scope_id", String, nullable=False),
+            Column("storage_key", String, nullable=False),
+            Column("artifact_provenance", Text, nullable=False, default="[]"),
+            CheckConstraint("scope_type IN ('personal','project')", name="ck_task_scope_type"),
         )
         Index("idx_tasks_uploaded_at", self.tasks_table.c.uploaded_at)
+        Index(
+            "idx_tasks_scope",
+            self.tasks_table.c.scope_type,
+            self.tasks_table.c.scope_id,
+            self.tasks_table.c.uploaded_at,
+        )
         self._initialize()
 
     def _initialize(self) -> None:
@@ -108,10 +115,13 @@ class TaskDatabase:
                 if "already exists" not in str(exc).lower():
                     raise
                 logging.warning("TaskDatabase metadata already present, skipping creation")
-            # create_all does not add columns to existing tables — backfill
-            # ones added after a table first shipped (idempotent).
+            # These established runtime fields predate Project Scope.
             existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(tasks)")}
-            for column, ddl in (("container_id", "VARCHAR"), ("workflow_state", "VARCHAR"), ("scope_type", "VARCHAR NOT NULL DEFAULT 'personal'"), ("scope_id", "VARCHAR"), ("storage_key", "VARCHAR"), ("artifact_provenance", "TEXT")):
+            migrations = (
+                ("container_id", "VARCHAR"),
+                ("workflow_state", "VARCHAR"),
+            )
+            for column, ddl in migrations:
                 if column not in existing:
                     conn.exec_driver_sql(f"ALTER TABLE tasks ADD COLUMN {column} {ddl}")
 
@@ -151,7 +161,13 @@ class TaskDatabase:
     def _is_deleted_status(cls, status: Any) -> bool:
         return str(status or "").strip().lower() in cls.DELETED_STATUSES
 
-    def upsert_task(self, md5sum: str, **fields) -> None:
+    def upsert_task(self, task_id: str | None = None, **fields) -> None:
+        supplied_id = fields.pop("md5sum", None)
+        if task_id is not None and supplied_id is not None and task_id != supplied_id:
+            raise ValueError("Conflicting task ids")
+        md5sum = task_id or supplied_id
+        if not md5sum:
+            raise ValueError("Task id is required")
         if not fields:
             return
         status = fields.get("status")

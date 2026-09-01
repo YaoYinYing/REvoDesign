@@ -254,6 +254,46 @@ def _admin_client_auth(module, username: str = "sysadmin") -> dict[str, str]:
     return {"Authorization": f"Bearer {generate_token(user['id'])}"}
 
 
+def _personal_task_scope(module, username: str) -> dict[str, str]:
+    """Return a complete fresh-schema Personal scope for a test task."""
+    database = module.app.config["user_db"]
+    user = database.get_user_by_username(username)
+    if user is None:
+        user = database.create_user(
+            username=username,
+            email=f"{username}@test.local",
+            password="test_password",
+            registration_status="approved",
+            user_status="active",
+        )
+    return {"scope_type": "personal", "scope_id": str(user["id"]), "storage_key": user["storage_key"]}
+
+
+def _relocate_task_artifacts(module, md5sum: str, source_dir: Path | str, scope: dict[str, str]) -> Path:
+    """Place fixture output at the same resolver-owned path production uses."""
+    source = Path(source_dir)
+    task = {"md5sum": md5sum, **scope}
+    resolver = module.app.config["storage_resolver"]
+    destination = Path(resolver.get_task_root(task))
+    if source.resolve() != destination.resolve():
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if source.exists():
+            shutil.copytree(source, destination, dirs_exist_ok=True)
+            if source.is_symlink():
+                source.unlink()
+            else:
+                shutil.rmtree(source)
+            source.symlink_to(destination, target_is_directory=True)
+        else:
+            destination.mkdir(parents=True, exist_ok=True)
+    old_archive = Path(module.app.config["RESULTS_FOLDER"]) / f"{md5sum}_results.zip"
+    archive = Path(resolver.get_archive_path(task))
+    if old_archive.is_file() and old_archive != archive:
+        archive.parent.mkdir(parents=True, exist_ok=True)
+        old_archive.replace(archive)
+    return destination
+
+
 def _upsert_task_for_user(
     module,
     md5sum: str,
@@ -265,11 +305,12 @@ def _upsert_task_for_user(
     status: str = "finished",
     run_stage: str | None = None,
 ) -> None:
+    scope = _personal_task_scope(module, username)
+    _relocate_task_artifacts(module, md5sum, result_dir, scope)
     module.task_store.upsert_task(
         md5sum,
         filename=filename,
         file_path=str(file_path),
-        result_dir=str(result_dir),
         uploaded_at=time.time(),
         started_at=time.time(),
         finished_at=time.time(),
@@ -280,6 +321,7 @@ def _upsert_task_for_user(
         user_agent="pytest",
         username=username,
         run_stage=run_stage,
+        **scope,
     )
 
 
@@ -288,17 +330,19 @@ def _insert_pending_task(module, result_dir: Path, filename: str = "input.fasta"
     fasta_path = result_dir / filename
     fasta_path.write_text(">test\nACDE\n", encoding="utf-8")
     md5sum = uuid.uuid4().hex
+    scope = _personal_task_scope(module, "tester")
+    _relocate_task_artifacts(module, md5sum, result_dir, scope)
     module.task_store.upsert_task(
         md5sum,
         filename=filename,
         file_path=str(fasta_path),
-        result_dir=str(result_dir),
         uploaded_at=time.time(),
         status="pending",
         is_binary=0,
         source_ip="127.0.0.1",
         user_agent="pytest",
         username="tester",
+        **scope,
     )
     return md5sum
 

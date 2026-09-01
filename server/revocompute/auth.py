@@ -94,8 +94,15 @@ _users_table = sa.Table(
     sa.Column("registration_country", sa.String(8), nullable=True),
     sa.Column("token_version", sa.Integer, nullable=False, default=0),
     sa.Column("allow_gpu_use", sa.Boolean, nullable=False, default=False),
-    sa.Column("storage_key", sa.String(128), nullable=True, unique=True),
+    sa.Column("storage_key", sa.String(128), nullable=False, unique=True),
 )
+
+
+def _new_user_storage_key(username: str) -> str:
+    """Generate a readable storage key whose random suffix is immutable."""
+    prefix = re.sub(r"[^A-Za-z0-9]+", "-", username).strip("-").lower()[:32] or "user"
+    suffix = secrets.token_urlsafe(6).lower().replace("_", "-").replace("=", "")
+    return f"{prefix}-{suffix}"
 
 
 def _get_user_db_path() -> str:
@@ -149,8 +156,6 @@ class UserDatabase:
                 # lookup — same index name SQLAlchemy creates for new DBs
                 # (index=True), so fresh and migrated DBs match.
                 conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_users_api_key_digest ON users(api_key_digest)")
-            if "storage_key" not in columns:
-                conn.exec_driver_sql("ALTER TABLE users ADD COLUMN storage_key VARCHAR(128)")
         try:
             os.chmod(self.path, 0o600)
         except OSError:
@@ -195,7 +200,7 @@ class UserDatabase:
             registration_ip=registration_ip,
             registration_country=registration_country,
             user_status=user_status,
-            storage_key=f"{re.sub(r'[^A-Za-z0-9]+', '-', username).strip('-').lower()[:32] or 'user'}-{secrets.token_urlsafe(6).lower().replace('_','-')}",
+            storage_key=_new_user_storage_key(username),
         )
         with self.engine.begin() as conn:
             result = conn.execute(stmt)

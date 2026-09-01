@@ -17,9 +17,8 @@ from celery.result import AsyncResult
 from flask import Flask, g, jsonify, request
 from revocompute.auth import _SECRET_KEY as _TOKEN_SIGNING_KEY  # noqa: E402
 from revocompute.auth import UserDatabase  # noqa: E402
-from revocompute.collaboration import CollaborationDatabase  # noqa: E402
-from revocompute.storage import StorageResolver  # noqa: E402
 from revocompute.auth import _env_bool  # noqa: E402
+from revocompute.collaboration import CollaborationDatabase  # noqa: E402
 from revocompute.config import ComputeConfig
 from revocompute.config import ensure_directories as _ensure_directories
 from revocompute.config import env_csv as _env_csv
@@ -29,6 +28,7 @@ from revocompute.config import format_runner_identity as _format_runner_identity
 from revocompute.config import resolve_docker_user as _resolve_docker_user
 from revocompute.maintenance.tasks.result_cleanup import delete_task_artifacts as _delete_result_artifacts
 from revocompute.maintenance.tasks.result_cleanup import deleted_status_from_task as _result_deleted_status
+from revocompute.storage import StorageResolver  # noqa: E402
 from revocompute.task_types import list_types as _list_task_types
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
@@ -59,6 +59,8 @@ _ITERATED_STATIC_JS = {
     "input-workspace.js",
     "input-workspace-rfdiffusion.js",
     "create-task.js",
+    "project.js",
+    "projects.js",
     "task-results.js",
 }
 
@@ -348,8 +350,50 @@ def _is_admin_user() -> bool:
 def _task_access_allowed(task: dict[str, Any]) -> bool:
     if _is_admin_user():
         return True
-    current_user = _current_username() or ""
-    return bool(current_user) and task.get("username") == current_user
+    user = g.get("current_user")
+    if not user:
+        return False
+    if task.get("scope_type") == "project":
+        return app.config["collaboration"].can_view_project(int(task["scope_id"]), int(user["id"]), authenticated=True)
+    return task.get("scope_type") == "personal" and str(task["scope_id"]) == str(user["id"])
+
+
+def _task_mutation_allowed(task: dict[str, Any]) -> bool:
+    """Authorize cancellation/deletion independently from read visibility."""
+    if _is_admin_user():
+        return True
+    user = g.get("current_user")
+    if not user:
+        return False
+    if task.get("scope_type") == "project":
+        store = app.config["collaboration"]
+        project_id = int(task["scope_id"])
+        if task.get("username") == user.get("username"):
+            return store.can(project_id, int(user["id"]), "cancel_own_tasks")
+        return store.can(project_id, int(user["id"]), "cancel_project_tasks")
+    return task.get("scope_type") == "personal" and str(task["scope_id"]) == str(user["id"])
+
+
+def _task_full_results_allowed(task: dict[str, Any]) -> bool:
+    """Return whether the caller may read inputs, diagnostics, and archives."""
+    if _is_admin_user():
+        return True
+    user = g.get("current_user")
+    if not user:
+        return False
+    if task.get("scope_type") != "project" or not task.get("scope_id"):
+        return _task_access_allowed(task)
+    membership = app.config["collaboration"].get_membership(int(task["scope_id"]), int(user["id"]))
+    return bool(membership and app.config["collaboration"].can(int(task["scope_id"]), int(user["id"]), "view_results"))
+
+
+def _task_artifact_access_allowed(task: dict[str, Any], artifact: dict[str, Any]) -> bool:
+    """Keep diagnostic/provenance files out of visibility-only surfaces."""
+    if not _task_access_allowed(task):
+        return False
+    if _task_full_results_allowed(task):
+        return True
+    return artifact.get("role") not in {"diagnostic", "provenance"}
 
 
 def _task_access_denied(md5sum: str):

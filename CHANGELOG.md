@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Server:
+  - Project-scoped scientific collaboration with private/internal/public discovery,
+    capability-based memberships and invitations, immutable scope storage,
+    fresh-schema scoped task identity, and authorized manifest-backed
+    cross-task artifact snapshots with persisted provenance.
   - runner-owned result storyboards: GREMLIN now declares logical Expected File
     Tree outputs and a trusted local Storyboard; ResultContext exposes only
     approved logical files while generic FileViewers and Files & diagnostics

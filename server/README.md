@@ -5,6 +5,9 @@ and recovery procedures, see the
 [REvoCompute Deployment Control Guide](DEPLOYMENT_CONTROL_GUIDE.md). For the
 new-task/runtime-family adapter contract, see the
 [REvoCompute Operations and Task Adapter Guide](OPERATIONS_AND_TASK_ADAPTER_GUIDE.md).
+For collaboration authorization, immutable scope identity, scoped storage, and
+cross-task provenance, see
+[Project Scope, Storage, and Artifact References](PROJECT_SCOPE_AND_ARTIFACTS.md).
 
 REvoCompute is a Flask + Celery service for multi-user protein computation.
 It supports Docker execution and production SLURM + Apptainer execution across
@@ -31,8 +34,8 @@ The server loads the registry at startup via `CONFIG_DIR`. `gremlin` is always
 enabled; additional runners are gated by `ENABLED_TASKRUNNERS` in `.env`.
 
 Each runner container follows a standard contract (protocol v2):
-- Sees one immutable task snapshot at `/mnt/revocompute/<username>/inputs/`
-  and task-owned results at `/mnt/revocompute/<username>/outputs/`. Concurrent
+- Sees one immutable task snapshot at `/mnt/revocompute/<scope-storage-key>/inputs/`
+  and task-owned results at `/mnt/revocompute/<scope-storage-key>/outputs/`. Concurrent
   tasks have isolated host snapshots even though their virtual paths match.
 - Emits `REVODESIGN_STAGE:<marker>` on stdout for progress tracking
 - Is invoked as `run.sh -i <inputs>/task.json -o <outputs>`; the snapshot's

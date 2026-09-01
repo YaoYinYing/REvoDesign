@@ -122,9 +122,13 @@ def test_security_auxiliary_uploads_content_validated(monkeypatch, tmp_path):
         "file_path": str(valid_pdb),
         "filename": "struc.pdb",
         "is_binary": 0,
-        "result_dir": str(tmp_path / "results"),
         "uploaded_at": time.time(),
         "username": "tester",
+        "task_type": "rfdiffusion",
+        "scope_type": "personal",
+        "scope_id": "1",
+        "storage_key": "tester-abcdef",
+        "artifact_provenance": "[]",
     }
     saved_inputs = [
         {"blob_path": str(valid_pdb), "relative_path": "struc.pdb"},

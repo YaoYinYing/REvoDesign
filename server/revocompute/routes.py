@@ -58,7 +58,10 @@ from revocompute.app import (
     _revoke_celery_task,
     _task_access_allowed,
     _task_access_denied,
+    _task_artifact_access_allowed,
+    _task_full_results_allowed,
     _task_id_for_upload,
+    _task_mutation_allowed,
     _task_zip_download_name,
     app,
 )
@@ -85,6 +88,7 @@ from revocompute.auth import (
 from revocompute.input_validators import validate_input_file
 from revocompute.ratelimit import rate_limit
 from revocompute.resource_policy import GLOBAL_RESOURCE_KEYS, ResourceValidationError, normalize_resource_value
+from revocompute.result_storyboard import ResultContractError, expected_file_tree, runner_root, storyboard_declaration
 from revocompute.schemas import (
     AdminCreateUserRequest,
     AdminUpdateUserRequest,
@@ -116,7 +120,6 @@ from revocompute.task_runtime import (
     run_compute_task,
     task_store,
 )
-from revocompute.result_storyboard import ResultContractError, expected_file_tree, runner_root, storyboard_declaration
 from revocompute.task_types import get as get_task_type
 from revocompute.task_types import iter_capabilities, list_categories, list_types
 from revocompute.workspace_contracts import (
@@ -124,7 +127,6 @@ from revocompute.workspace_contracts import (
     normalize_capability,
     validate_rfdiffusion_structure,
 )
-from revocompute.collaboration import ROLE_CAPABILITIES
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -133,46 +135,327 @@ from werkzeug.utils import secure_filename
 # Page routes
 # ---------------------------------------------------------------------------
 
-@app.route("/compute/api/projects", methods=["GET", "POST"])
+
+@app.route("/compute/projects", methods=["GET"])
 @login_required
+def projects_page():
+    return render_template("projects.html")
+
+
+@app.route("/compute/projects/<project_id>", methods=["GET"])
+@optional_user
+def project_page(project_id: str):
+    if not _project_access(project_id, "view_project"):
+        abort(404)
+    return render_template("project.html", project_id=project_id)
+
+
+def _authentication_required():
+    return jsonify({"error": "Authentication required"}), 401
+
+
+def _project_access(project_id: str, capability: str):
+    store = current_app.config["collaboration"]
+    user = g.get("current_user")
+    authenticated = user is not None
+    project = store.get_project(project_id)
+    if not project or not store.can(
+        project_id, int(user["id"]) if user else None, capability, authenticated=authenticated
+    ):
+        return None
+    return project
+
+
+@app.route("/compute/api/projects", methods=["GET", "POST"])
+@optional_user
 def projects_api():
     store = current_app.config["collaboration"]
-    uid = int(g.current_user["id"])
     if request.method == "GET":
-        return jsonify({"projects": store.list_projects(uid, authenticated=True)})
+        user = g.get("current_user")
+        uid = int(user["id"]) if user else None
+        projects = store.list_projects(uid, authenticated=user is not None)
+        capability = request.args.get("capability")
+        if capability:
+            projects = [project for project in projects if user and store.can(project["id"], uid, capability)]
+        all_tasks = task_store.list_tasks()
+        projects = [
+            {
+                **project,
+                "membership_role": (
+                    membership["role"] if user and (membership := store.get_membership(project["id"], uid)) else None
+                ),
+                "member_count": len(store.list_members(project["id"])),
+                "task_count": sum(
+                    task.get("scope_type") == "project" and str(task.get("scope_id")) == str(project["id"])
+                    for task in all_tasks
+                ),
+            }
+            for project in projects
+        ]
+        return jsonify({"projects": projects})
+    if not g.get("current_user"):
+        return _authentication_required()
+    if blocked := require_bearer_auth():
+        return blocked
     payload = request.get_json(silent=True) or {}
     try:
-        project = store.create_project(str(payload.get("name", "")), uid, description=str(payload.get("description", "")), visibility=str(payload.get("visibility", "private")))
-    except ValueError as exc:
+        project = store.create_project(
+            int(g.current_user["id"]),
+            str(payload.get("name", "")),
+            description=str(payload.get("description", "")),
+            visibility=str(payload.get("visibility", "private")),
+        )
+    except (IntegrityError, ValueError) as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify(project), 201
 
-@app.route("/compute/api/projects/<project_id>", methods=["GET"])
-@login_required
+
+@app.route("/compute/api/projects/<project_id>", methods=["GET", "PATCH", "DELETE"])
+@optional_user
 def project_api(project_id: str):
     store = current_app.config["collaboration"]
-    project = store.get_project(project_id)
-    uid = int(g.current_user["id"])
-    if not project or not store.can(project_id, uid, "view_project", authenticated=True):
+    if request.method == "GET":
+        project = _project_access(project_id, "view_project")
+        if not project:
+            return jsonify({"error": "Project not found"}), 404
+        user = g.get("current_user")
+        membership = store.get_membership(project_id, int(user["id"])) if user else None
+        task_count = sum(
+            task.get("scope_type") == "project" and str(task.get("scope_id")) == str(project_id)
+            for task in task_store.list_tasks()
+        )
+        return jsonify(
+            {
+                **project,
+                "membership_role": membership.get("role") if membership else None,
+                "member_count": len(store.list_members(project_id)),
+                "task_count": task_count,
+                "capabilities": store.capabilities(
+                    project_id, int(user["id"]) if user else None, authenticated=user is not None
+                ),
+            }
+        )
+    if not g.get("current_user"):
+        return _authentication_required()
+    if blocked := require_bearer_auth():
+        return blocked
+    capability = "delete_project" if request.method == "DELETE" else "change_project_settings"
+    if not _project_access(project_id, capability):
         return jsonify({"error": "Project not found"}), 404
-    return jsonify(project)
+    if request.method == "DELETE":
+        return (
+            (jsonify({"status": "archived"}), 200)
+            if store.archive_project(project_id)
+            else (jsonify({"error": "Project not found"}), 404)
+        )
+    payload = request.get_json(silent=True) or {}
+    try:
+        store.update_project(project_id, **payload)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(store.get_project(project_id))
+
+
+@app.route("/compute/api/projects/<project_id>/members", methods=["GET"])
+@login_required
+def project_members_api(project_id: str):
+    store = current_app.config["collaboration"]
+    if not store.get_membership(project_id, int(g.current_user["id"])):
+        return jsonify({"error": "Project not found"}), 404
+    users = current_app.config["user_db"]
+    payload = []
+    for member in store.list_members(project_id):
+        user = users.get_user(member["user_id"])
+        payload.append({**member, "username": user.get("username") if user else "Deleted user"})
+    return jsonify({"members": payload})
+
+
+@app.route("/compute/api/projects/<project_id>/members/<int:user_id>", methods=["PATCH", "DELETE"])
+@login_required
+def project_member_api(project_id: str, user_id: int):
+    if blocked := require_bearer_auth():
+        return blocked
+    store = current_app.config["collaboration"]
+    if not store.can_manage_members(project_id, int(g.current_user["id"])):
+        return jsonify({"error": "Forbidden"}), 403
+    if request.method == "DELETE":
+        if not store.remove_member(project_id, user_id):
+            return jsonify({"error": "Owner cannot be removed or member was not found"}), 409
+        return "", 204
+    payload = request.get_json(silent=True) or {}
+    try:
+        updated = store.set_member_role(project_id, user_id, str(payload.get("role", "")))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return (
+        (jsonify(store.get_membership(project_id, user_id)), 200)
+        if updated
+        else (jsonify({"error": "Member not found"}), 404)
+    )
+
+
+@app.route("/compute/api/projects/<project_id>/transfer-ownership", methods=["POST"])
+@login_required
+def project_transfer_ownership_api(project_id: str):
+    if blocked := require_bearer_auth():
+        return blocked
+    store = current_app.config["collaboration"]
+    uid = int(g.current_user["id"])
+    if not store.can(project_id, uid, "transfer_ownership"):
+        return jsonify({"error": "Forbidden"}), 403
+    payload = request.get_json(silent=True) or {}
+    try:
+        target = int(payload["user_id"])
+    except (KeyError, TypeError, ValueError):
+        return jsonify({"error": "user_id is required"}), 400
+    if not store.transfer_ownership(project_id, uid, target):
+        return jsonify({"error": "Ownership transfer requires an existing member"}), 409
+    return jsonify({"status": "transferred"})
+
 
 @app.route("/compute/api/projects/<project_id>/invitations", methods=["POST"])
 @login_required
 def project_invite_api(project_id: str):
-    store = current_app.config["collaboration"]; uid = int(g.current_user["id"])
-    if not store.can(project_id, uid, "invite_members"): return jsonify({"error":"Forbidden"}), 403
-    payload=request.get_json(silent=True) or {}
-    try: inv=store.invite(project_id,int(payload["user_id"]),uid,str(payload.get("role","viewer")))
-    except (KeyError, TypeError, ValueError): return jsonify({"error":"Invalid invitation"}),400
-    return jsonify(inv),201
+    if blocked := require_bearer_auth():
+        return blocked
+    store = current_app.config["collaboration"]
+    uid = int(g.current_user["id"])
+    if not store.can(project_id, uid, "invite_members"):
+        return jsonify({"error": "Forbidden"}), 403
+    payload = request.get_json(silent=True) or {}
+    user = None
+    if payload.get("username"):
+        user = current_app.config["user_db"].get_user_by_username(str(payload["username"]))
+    elif payload.get("user_id") is not None:
+        try:
+            user = current_app.config["user_db"].get_user(int(payload["user_id"]))
+        except (TypeError, ValueError):
+            user = None
+    if not user or user.get("deleted"):
+        return jsonify({"error": "Invited user was not found"}), 404
+    try:
+        invitation = store.invite(project_id, int(user["id"]), uid, str(payload.get("role", "viewer")))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(invitation), 201
+
+
+@app.route("/compute/api/projects/<project_id>/invitations", methods=["GET"])
+@login_required
+def project_invitations_api(project_id: str):
+    store = current_app.config["collaboration"]
+    if not store.can_manage_members(project_id, int(g.current_user["id"])):
+        return jsonify({"error": "Forbidden"}), 403
+    users = current_app.config["user_db"]
+    invitations = []
+    for invitation in store.list_project_invitations(project_id):
+        invited = users.get_user(invitation["invited_user_id"])
+        invitations.append({**invitation, "invited_username": invited.get("username") if invited else "Deleted user"})
+    return jsonify({"invitations": invitations})
+
+
+@app.route("/compute/api/projects/<project_id>/invitations/<invitation_id>", methods=["DELETE"])
+@login_required
+def project_invitation_revoke_api(project_id: str, invitation_id: str):
+    if blocked := require_bearer_auth():
+        return blocked
+    store = current_app.config["collaboration"]
+    invitation = store.get_invitation(invitation_id)
+    if (
+        not invitation
+        or str(invitation["project_id"]) != str(project_id)
+        or not store.can_manage_members(project_id, int(g.current_user["id"]))
+    ):
+        return jsonify({"error": "Invitation not found"}), 404
+    return (
+        ("", 204)
+        if store.revoke_invitation(invitation_id)
+        else (jsonify({"error": "Invitation is no longer pending"}), 409)
+    )
+
+
+@app.route("/compute/api/invitations", methods=["GET"])
+@login_required
+def invitations_api():
+    store = current_app.config["collaboration"]
+    invitations = []
+    for invitation in store.list_invitations(int(g.current_user["id"])):
+        project = store.get_project(invitation["project_id"])
+        invitations.append({**invitation, "project_name": project.get("name") if project else "Project"})
+    return jsonify({"invitations": invitations})
+
 
 @app.route("/compute/api/invitations/<invitation_id>", methods=["POST"])
 @login_required
 def invitation_response_api(invitation_id: str):
-    payload=request.get_json(silent=True) or {}; accept=bool(payload.get("accept"))
-    ok=current_app.config["collaboration"].respond_invitation(invitation_id,int(g.current_user["id"]),accept)
-    return (jsonify({"status":"accepted" if accept else "declined"}),200) if ok else (jsonify({"error":"Invalid or expired invitation"}),404)
+    if blocked := require_bearer_auth():
+        return blocked
+    payload = request.get_json(silent=True) or {}
+    action = payload.get("action")
+    if action is None and isinstance(payload.get("accept"), bool):
+        action = "accept" if payload["accept"] else "decline"
+    if action not in {"accept", "decline"}:
+        return jsonify({"error": "action must be accept or decline"}), 400
+    accepted = action == "accept"
+    ok = current_app.config["collaboration"].respond_invitation(invitation_id, int(g.current_user["id"]), accepted)
+    return (
+        (jsonify({"status": "accepted" if accepted else "declined"}), 200)
+        if ok
+        else (jsonify({"error": "Invalid or expired invitation"}), 404)
+    )
+
+
+@app.route("/compute/api/projects/<project_id>/archive", methods=["POST"])
+@login_required
+def project_archive_api(project_id: str):
+    if blocked := require_bearer_auth():
+        return blocked
+    store = current_app.config["collaboration"]
+    if not store.can(project_id, int(g.current_user["id"]), "delete_project"):
+        return jsonify({"error": "Project not found"}), 404
+    return (
+        (jsonify({"status": "archived"}), 200)
+        if store.archive_project(project_id)
+        else (jsonify({"error": "Project not found"}), 404)
+    )
+
+
+@app.route("/compute/api/users/search", methods=["GET"])
+@login_required
+def users_search_api():
+    query = request.args.get("q", "").strip().casefold()
+    if len(query) < 2:
+        return jsonify({"users": []})
+    users = [
+        {
+            "id": user["id"],
+            "username": user["username"],
+            "display_name": user.get("full_name") or user["username"],
+        }
+        for user in current_app.config["user_db"].list_users()
+        if query in str(user.get("username") or "").casefold() or query in str(user.get("full_name") or "").casefold()
+    ][:20]
+    return jsonify({"users": users})
+
+
+@app.route("/compute/api/projects/<project_id>/tasks", methods=["GET"])
+@optional_user
+def project_tasks_api(project_id: str):
+    if not _project_access(project_id, "view_tasks"):
+        return jsonify({"error": "Project not found"}), 404
+    tasks = [
+        {
+            "md5sum": task["md5sum"],
+            "filename": task["filename"],
+            "task_type": task["task_type"],
+            "status": task["status"],
+            "uploaded_at": task["uploaded_at"],
+            "username": task.get("username"),
+        }
+        for task in task_store.list_tasks()
+        if task.get("scope_type") == "project" and str(task.get("scope_id")) == str(project_id)
+    ]
+    return jsonify({"tasks": tasks})
 
 
 @app.route("/", methods=["GET"])
@@ -551,23 +834,24 @@ def _safe_input_relative_path(raw_path: str) -> str | None:
     return "/".join(safe_parts)
 
 
-def _validate_input_uploads(task_type: str = "gremlin"):
+def _validate_input_uploads(task_type: str = "gremlin", artifact_reference_count: int = 0):
     """Return validated uploads with safe relative paths, or an HTTP error."""
     try:
         tt, _ = _get_task_type(task_type)
     except KeyError:
         return None, (jsonify({"error": f"Unknown task type: {task_type}"}), 400)
     if "files" not in request.files and "file" not in request.files:
-        if tt.min_input_files == 0:
+        if artifact_reference_count >= tt.min_input_files:
             return [], None
         return None, (jsonify({"error": "No file part"}), 400)
     uploads = request.files.getlist("files") or request.files.getlist("file")
     uploads = [uploaded for uploaded in uploads if uploaded.filename]
-    if len(uploads) < tt.min_input_files:
+    total_inputs = len(uploads) + artifact_reference_count
+    if total_inputs < tt.min_input_files:
         return None, (jsonify({"error": "No selected file"}), 400)
-    if not tt.allow_multiple_inputs and len(uploads) != 1:
+    if not tt.allow_multiple_inputs and total_inputs != 1:
         return None, (jsonify({"error": f"{tt.display_name} accepts exactly one input file"}), 400)
-    if len(uploads) > tt.max_input_files:
+    if total_inputs > tt.max_input_files:
         return None, (jsonify({"error": f"At most {tt.max_input_files} input files are allowed"}), 400)
     submitted_paths = request.form.getlist("input_paths")
     accepted = tuple(extension.lower() for extension in (tt.input_extensions or (tt.input_extension,)))
@@ -592,7 +876,12 @@ def _validate_input_uploads(task_type: str = "gremlin"):
 
 
 def _save_uploaded_inputs(
-    uploads: list[tuple[Any, str]], task_type: str, params: dict[str, Any]
+    uploads: list[tuple[Any, str]],
+    task_type: str,
+    params: dict[str, Any],
+    *,
+    referenced_inputs: list[dict[str, Any]] | None = None,
+    scope_identity: str,
 ) -> tuple[str, list[dict[str, Any]], dict[str, str]]:
     """Persist content-addressed blobs and derive an owner-scoped task ID."""
     metadata = _request_metadata()
@@ -619,6 +908,7 @@ def _save_uploaded_inputs(
                 "blob_path": blob_path,
             }
         )
+    saved.extend(referenced_inputs or [])
     identity = json.dumps(
         {
             "task_type": task_type,
@@ -629,7 +919,115 @@ def _save_uploaded_inputs(
         sort_keys=True,
     )
     content_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
-    return _task_id_for_upload(content_id, metadata["username"]), saved, metadata
+    return _task_id_for_upload(content_id, scope_identity), saved, metadata
+
+
+_ARTIFACT_REFERENCE_PATTERN = re.compile(r"@([a-fA-F0-9]{32})/(.+)")
+
+
+def _artifact_reference_values() -> list[str]:
+    references: list[str] = []
+    for value in request.form.getlist("artifact_references"):
+        references.extend(line.strip() for line in str(value).splitlines() if line.strip())
+    return references
+
+
+def _resolve_submission_scope(submission: TaskSubmissionRequest) -> dict[str, Any]:
+    user = g.current_user
+    if submission.scope_type == "personal":
+        storage_key = user.get("storage_key")
+        if not storage_key:
+            raise RuntimeError("User storage identity is unavailable")
+        return {"scope_type": "personal", "scope_id": str(user["id"]), "storage_key": storage_key}
+    project = current_app.config["collaboration"].get_project(submission.scope_id)
+    if not project or not current_app.config["collaboration"].can_submit_task(project["id"], user["id"]):
+        raise PermissionError("Project is unavailable or does not accept submissions")
+    return {"scope_type": "project", "scope_id": str(project["id"]), "storage_key": project["storage_key"]}
+
+
+def _can_reuse_source_task(source: dict[str, Any], destination_scope: dict[str, Any]) -> bool:
+    user = g.current_user
+    if source.get("scope_type") == "project":
+        source_project = str(source.get("scope_id") or "")
+        return (
+            destination_scope["scope_type"] == "project"
+            and source_project == destination_scope["scope_id"]
+            and bool(source_project)
+            and current_app.config["collaboration"].can_use_artifact(int(source_project), int(user["id"]))
+        )
+    if destination_scope["scope_type"] != "personal":
+        return False
+    return source.get("scope_type") == "personal" and str(source["scope_id"]) == str(user["id"])
+
+
+def _resolve_artifact_inputs(
+    references: list[str], task_type: Any, destination_scope: dict[str, Any], uploaded_count: int
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    accepted = tuple(extension.lower() for extension in (task_type.input_extensions or (task_type.input_extension,)))
+    primary = tuple(
+        extension.lower() for extension in (task_type.primary_input_extensions or (task_type.input_extension,))
+    )
+    saved: list[dict[str, Any]] = []
+    provenance: list[dict[str, Any]] = []
+    used_paths: set[str] = set()
+    for index, expression in enumerate(references):
+        match = _ARTIFACT_REFERENCE_PATTERN.fullmatch(expression)
+        if not match:
+            raise ValueError("Invalid artifact reference")
+        source_task_id, logical_path = match.groups()
+        source = task_store.get_task(source_task_id.lower())
+        # Authorization intentionally precedes manifest or filesystem access.
+        if (
+            source is None
+            or source.get("status") != "finished"
+            or not _can_reuse_source_task(source, destination_scope)
+        ):
+            raise PermissionError("Artifact reference is unavailable")
+        resolved = current_app.config["storage_resolver"].resolve_artifact(source, logical_path)
+        if resolved is None:
+            raise ValueError("Artifact reference is unavailable")
+        logical_extension = os.path.splitext(logical_path)[1].lower()
+        allowed = primary if uploaded_count == 0 and index == 0 else accepted
+        if logical_extension not in allowed:
+            raise ValueError("Artifact type is incompatible with this task input")
+        blob_path = _safe_join(app.config["UPLOAD_FOLDER"], f"{resolved['sha256']}.upload")
+        if not os.path.exists(blob_path):
+            temporary = _safe_join(app.config["UPLOAD_FOLDER"], f".tmp_artifact_{os.urandom(8).hex()}")
+            shutil.copyfile(resolved["physical_path"], temporary)
+            try:
+                os.replace(temporary, blob_path)
+            finally:
+                if os.path.exists(temporary):
+                    os.unlink(temporary)
+        relative_path = secure_filename(os.path.basename(logical_path))
+        if not relative_path or relative_path in used_paths:
+            relative_path = f"{source_task_id[:8]}-{relative_path or 'artifact'}"
+        if relative_path in used_paths:
+            raise ValueError("Artifact references produce duplicate input paths")
+        used_paths.add(relative_path)
+        saved.append(
+            {
+                "original_name": relative_path,
+                "relative_path": relative_path,
+                "hash": resolved["sha256"],
+                "blob_path": blob_path,
+                "artifact_reference": expression,
+            }
+        )
+        provenance.append(
+            {
+                "input_name": relative_path,
+                "source_task_id": source["md5sum"],
+                "source_artifact_path": resolved["path"],
+                "source_scope_type": source["scope_type"],
+                "source_scope_id": source.get("scope_id"),
+                "sha256": resolved["sha256"],
+                "size": resolved["size"],
+                "media_type": resolved.get("media_type"),
+                "created_at": time.time(),
+            }
+        )
+    return saved, provenance
 
 
 def _existing_upload_response(existing_task: dict[str, Any] | None, md5sum: str):
@@ -655,12 +1053,19 @@ def _prepare_task_record(
     metadata: dict[str, str],
     task_type: str = "gremlin",
     input_form: dict[str, Any] | None = None,
+    task_scope: dict[str, Any] | None = None,
+    artifact_provenance: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    workspace_key = str(metadata["username"])
-    user_storage_key = str(g.get("current_user", {}).get("storage_key") or workspace_key)
-    if not _WORKSPACE_KEY_PATTERN.fullmatch(workspace_key):
-        raise ValueError("Username cannot be represented safely in the workspace path")
-    workspace_dir = _safe_join(app.config["WORKSPACE_FOLDER"], workspace_key, md5sum)
+    if not task_scope:
+        raise ValueError("Task scope is required")
+    task_identity = {
+        "md5sum": md5sum,
+        "scope_type": task_scope["scope_type"],
+        "scope_id": task_scope["scope_id"],
+        "storage_key": task_scope["storage_key"],
+    }
+    resolver = app.config["storage_resolver"]
+    workspace_dir = resolver.get_input_root(task_identity)
     if os.path.exists(workspace_dir):
         shutil.rmtree(workspace_dir)
     snapshot_root = _safe_join(workspace_dir, "inputs")
@@ -671,11 +1076,11 @@ def _prepare_task_record(
         shutil.copyfile(item["blob_path"], destination)
         os.chmod(destination, 0o440)
 
-    result_dir = _safe_join(app.config["RESULTS_FOLDER"], md5sum)
+    result_dir = resolver.get_output_root(task_identity)
     if os.path.exists(result_dir):
         shutil.rmtree(result_dir)
     os.makedirs(result_dir, exist_ok=True)
-    zip_path = _task_zip_path(md5sum)
+    zip_path = resolver.get_archive_path(task_identity)
     if os.path.exists(zip_path):
         os.remove(zip_path)
 
@@ -683,7 +1088,6 @@ def _prepare_task_record(
     return {
         "filename": primary["relative_path"] if primary else "Generated structure",
         "file_path": primary["blob_path"] if primary else "",
-        "result_dir": result_dir,
         "uploaded_at": time.time(),
         "started_at": None,
         "finished_at": None,
@@ -698,9 +1102,8 @@ def _prepare_task_record(
         "run_stage": None,
         "task_type": task_type,
         "input_form": json.dumps(input_form) if input_form else None,
-        "scope_type": "personal",
-        "scope_id": str(g.get("current_user", {}).get("id") or metadata["username"]),
-        "storage_key": user_storage_key,
+        **task_identity,
+        "artifact_provenance": json.dumps(artifact_provenance or [], sort_keys=True),
     }
 
 
@@ -753,6 +1156,8 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
 
     # Parse flat form data ("params[key]=value") into nested dict
     raw_form = request.form.to_dict(flat=True)
+    artifact_references = _artifact_reference_values()
+    raw_form.pop("artifact_references", None)
     form_data: dict[str, Any] = {}
     nested_params: dict[str, Any] = {}
     for key, value in raw_form.items():
@@ -808,6 +1213,13 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
             return jsonify({"error": "Region-owned parameters must be submitted through workspace state"}), 400
         submission.params.update(normalized_regions["params"])
     coerced_params = submission.coerce_params()
+    try:
+        task_scope = _resolve_submission_scope(submission)
+    except PermissionError as exc:
+        return jsonify({"error": str(exc)}), 403
+    except RuntimeError:
+        logging.exception("Authenticated user has no immutable storage identity")
+        return jsonify({"error": "Account storage is not initialized; contact an administrator."}), 503
 
     managedb = current_app.config.get("manage_db")
     if managedb is not None:
@@ -842,10 +1254,29 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
             logging.error("Resource policy rejected submission for %s: %s", task_type, exc)
             return jsonify({"error": "This task type has an invalid resource policy; contact an administrator."}), 503
 
-    uploaded_inputs, upload_error = _validate_input_uploads(task_type)
+    uploaded_inputs, upload_error = _validate_input_uploads(task_type, len(artifact_references))
     if upload_error is not None:
         return upload_error
-    md5sum, saved_inputs, metadata = _save_uploaded_inputs(uploaded_inputs, task_type, coerced_params)
+    try:
+        referenced_inputs, artifact_provenance = _resolve_artifact_inputs(
+            artifact_references, tt, task_scope, len(uploaded_inputs)
+        )
+    except PermissionError as exc:
+        return jsonify({"error": str(exc)}), 403
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    uploaded_paths = {path for _, path in uploaded_inputs}
+    if uploaded_paths & {item["relative_path"] for item in referenced_inputs}:
+        return jsonify({"error": "Uploaded files and artifact references have duplicate input paths"}), 400
+    md5sum, saved_inputs, metadata = _save_uploaded_inputs(
+        uploaded_inputs,
+        task_type,
+        coerced_params,
+        referenced_inputs=referenced_inputs,
+        scope_identity=f"{task_scope['scope_type']}:{task_scope['scope_id']}",
+    )
+    for record in artifact_provenance:
+        record["downstream_task_id"] = md5sum
     if normalized_regions is not None:
         try:
             validate_rfdiffusion_structure(
@@ -854,7 +1285,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
             )
         except WorkspaceValidationError as exc:
             return jsonify({"error": str(exc)}), 400
-    workspace_key = str(metadata["username"])
+    workspace_key = task_scope["storage_key"]
     if not _WORKSPACE_KEY_PATTERN.fullmatch(workspace_key):
         return jsonify({"error": "Username cannot be represented safely in a workspace path"}), 400
 
@@ -880,7 +1311,8 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
     # Build entities — one list for files and params together.
     entities: list[dict[str, Any]] = []
 
-    snapshot_root = _safe_join(app.config["WORKSPACE_FOLDER"], workspace_key, md5sum, "inputs")
+    scoped_task = {"md5sum": md5sum, **task_scope}
+    snapshot_root = _safe_join(app.config["storage_resolver"].get_input_root(scoped_task), "inputs")
     virtual_root = f"/mnt/revocompute/{workspace_key}"
     for index, item in enumerate(saved_inputs):
         entities.append(
@@ -922,6 +1354,8 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         "resource_policy": resource_policy.public_dict() if resource_policy is not None else None,
         "resource_policies": {name: policy.public_dict() for name, policy in resource_policies.items()},
         "workspace": workspace_payload,
+        "scope": {"type": task_scope["scope_type"], "id": task_scope["scope_id"]},
+        "artifact_provenance": artifact_provenance,
     }
 
     # Runner protocol v2: the immutable snapshot carries task.json — the
@@ -948,6 +1382,8 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
         metadata,
         task_type=task_type,
         input_form=input_form,
+        task_scope=task_scope,
+        artifact_provenance=artifact_provenance,
     )
     # The manifest lands inside the snapshot AFTER _prepare_task_record has
     # created it (and copied the input files into it).
@@ -1041,22 +1477,41 @@ def get_results(md5sum):
     if task["status"] not in {"finished", "failed"}:
         return redirect(f"/compute/api/running/{md5sum}", code=302)
 
-    manifest_path = _safe_join(task["result_dir"], "manifest.json")
+    try:
+        manifest_path = current_app.config["storage_resolver"].get_manifest_path(task)
+    except ValueError:
+        return jsonify({"status": "error", "md5sum": md5sum, "message": "result manifest not found"}), 404
     try:
         with open(manifest_path, encoding="utf-8") as handle:
             manifest = json.load(handle)
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError, json.JSONDecodeError):
         return jsonify({"status": "error", "md5sum": md5sum, "message": "result manifest not found"}), 404
 
     archive_ready = os.path.isfile(_task_zip_path(task))
     payload = dict(manifest)
+    full_results = _task_full_results_allowed(task)
+    if not full_results:
+        payload["artifacts"] = [
+            artifact for artifact in payload.get("artifacts", []) if _task_artifact_access_allowed(task, artifact)
+        ]
+        visible_paths = {artifact["path"] for artifact in payload["artifacts"]}
+        payload["views"] = [
+            {
+                **view,
+                "sources": {
+                    name: [path for path in paths if path in visible_paths]
+                    for name, paths in view.get("sources", {}).items()
+                },
+            }
+            for view in payload.get("views", [])
+        ]
     payload.update(
         {
             "status": task["status"],
             "archive": {
-                "ready": archive_ready,
-                "request_url": f"/compute/api/results/{md5sum}/archive",
-                "download_url": f"/compute/api/download/{md5sum}" if archive_ready else None,
+                "ready": archive_ready and full_results,
+                "request_url": f"/compute/api/results/{md5sum}/archive" if full_results else None,
+                "download_url": f"/compute/api/download/{md5sum}" if archive_ready and full_results else None,
             },
         }
     )
@@ -1078,6 +1533,7 @@ def get_results(md5sum):
                 "url": f"/compute/api/results/{md5sum}/files/{file_id}?index={index}",
             }
             for index, artifact in enumerate(files)
+            if full_results or _task_artifact_access_allowed(task, artifact)
         ]
     payload["result"] = {"files": logical_files}
     if payload.get("storyboard"):
@@ -1098,7 +1554,7 @@ def get_result_logical_file(md5sum: str, file_id: str):
     if task is None or not _task_access_allowed(task):
         return jsonify({"error": "Result file not found"}), 404
     try:
-        with open(_safe_join(task["result_dir"], "manifest.json"), encoding="utf-8") as handle:
+        with open(current_app.config["storage_resolver"].get_manifest_path(task), encoding="utf-8") as handle:
             files = json.load(handle).get("result", {}).get("files", {}).get(file_id, [])
     except (OSError, json.JSONDecodeError):
         files = []
@@ -1145,22 +1601,11 @@ def get_result_storyboard_asset(md5sum: str, asset: str):
 
 def _result_artifact(task: dict[str, Any], relative_path: str) -> tuple[str, dict[str, Any]] | None:
     """Resolve only regular files published by the task's finalized manifest."""
-    normalized = relative_path.replace("\\", "/").strip("/")
-    if not normalized or any(part in {"", ".", ".."} for part in normalized.split("/")):
+    resolved = current_app.config["storage_resolver"].resolve_artifact(task, relative_path)
+    if resolved is None:
         return None
-    try:
-        # PTC-W6004: task["result_dir"] is server-owned; the requested path is validated above
-        with open(_safe_join(task["result_dir"], "manifest.json"), encoding="utf-8") as handle:  # skipcq: PTC-W6004
-            manifest = json.load(handle)
-    except (OSError, json.JSONDecodeError):
-        return None
-    artifact = next((item for item in manifest.get("artifacts", []) if item.get("path") == normalized), None)
-    if artifact is None:
-        return None
-    path = _safe_join(task["result_dir"], *normalized.split("/"))
-    if os.path.islink(path) or not os.path.isfile(path):
-        return None
-    return path, artifact
+    path = resolved.pop("physical_path")
+    return path, resolved
 
 
 @app.route("/compute/api/results/<md5sum>/artifacts/<path:relative_path>", methods=["GET"])
@@ -1178,12 +1623,14 @@ def get_result_artifact(md5sum: str, relative_path: str):
     if resolved is None:
         return jsonify({"error": "Artifact not found"}), 404
     path, artifact = resolved
+    if not _task_artifact_access_allowed(task, artifact):
+        return jsonify({"error": "Artifact not found"}), 404
     # Artifacts are untrusted runner output — default to attachment so they
     # are never rendered same-origin.  `?download=1` still forces a download
     # and `?download=0` explicitly opts back into inline rendering.
     as_attachment = request.args.get("download", "1") in {"1", "true", "yes"}
     if app.config["RESULT_DOWNLOAD_MODE"] == "nginx":
-        internal_path = quote(f"{md5sum}/{artifact['path']}", safe="/")
+        internal_path = quote(os.path.relpath(path, app.config["RESULTS_FOLDER"]).replace(os.sep, "/"), safe="/")
         response = Response(status=200, mimetype=artifact.get("media_type") or "application/octet-stream")
         response.headers["X-Accel-Redirect"] = f"/_protected_results/{internal_path}"
         response.headers.set(
@@ -1194,8 +1641,8 @@ def get_result_artifact(md5sum: str, relative_path: str):
         response.headers["Cache-Control"] = "private, no-store"
         return response
     response = send_from_directory(
-        task["result_dir"],
-        artifact["path"],
+        os.path.dirname(path),
+        os.path.basename(path),
         as_attachment=as_attachment,
         download_name=os.path.basename(path),
         mimetype=artifact.get("media_type") or None,
@@ -1223,6 +1670,8 @@ def get_result_table(md5sum: str, relative_path: str):
     if resolved is None:
         return jsonify({"error": "Table artifact not found"}), 404
     path, artifact = resolved
+    if not _task_artifact_access_allowed(task, artifact):
+        return jsonify({"error": "Table artifact not found"}), 404
     if artifact.get("preview") != "table":
         return jsonify({"error": "Artifact is not a table"}), 400
     try:
@@ -1267,7 +1716,7 @@ def request_results_archive(md5sum: str):
     task = task_store.get_task(md5sum)
     if task is None:
         return jsonify({"error": "Task not found"}), 404
-    if not _task_access_allowed(task):
+    if not _task_full_results_allowed(task):
         return _task_access_denied(md5sum)
     if task["status"] not in {"finished", "failed"}:
         return jsonify({"error": "Results are not ready"}), 409
@@ -1286,7 +1735,7 @@ def download_results(md5sum):
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
-    if not _task_access_allowed(task):
+    if not _task_full_results_allowed(task):
         return _task_access_denied(md5sum)
 
     if task["status"] not in {"finished", "failed"}:
@@ -1316,7 +1765,7 @@ def download_results(md5sum):
         )
 
     if app.config["RESULT_DOWNLOAD_MODE"] == "nginx":
-        archive_name = os.path.basename(zip_filename)
+        archive_name = os.path.relpath(zip_filename, app.config["RESULTS_FOLDER"]).replace(os.sep, "/")
         response = Response(status=200, mimetype="application/zip")
         response.headers["X-Accel-Redirect"] = f"/_protected_results/{archive_name}"
         response.headers.set("Content-Disposition", "attachment", filename=_task_zip_download_name(task))
@@ -1324,7 +1773,7 @@ def download_results(md5sum):
         return response
 
     return send_from_directory(
-        app.config["RESULTS_FOLDER"],
+        os.path.dirname(zip_filename),
         os.path.basename(zip_filename),
         as_attachment=True,
         download_name=_task_zip_download_name(task),
@@ -1342,7 +1791,7 @@ def cancel_task(md5sum):
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"error": "Task not found"}), 404
-    if not _task_access_allowed(task):
+    if not _task_mutation_allowed(task):
         return _task_access_denied(md5sum)
 
     if task["status"] not in {"pending", "queued", "running"}:
@@ -1441,8 +1890,7 @@ def _dashboard_task_status(task: dict[str, Any], index: int, current_user: str, 
         "structure_format": structure_format,
         "input_url": f"/compute/api/tasks/{task['md5sum']}/input" if structure_input else None,
         "owner": task.get("username") or "-",
-        "can_delete": (is_admin or task.get("username") == current_user)
-        and task["status"] not in task_store.CLEANUP_CLAIM_STATUSES,
+        "can_delete": _task_mutation_allowed(task) and task["status"] not in task_store.CLEANUP_CLAIM_STATUSES,
         "task_type": task.get("task_type", "gremlin"),
         "running_trace": _build_running_trace(task),
         "error": _sanitize_task_error(task, task.get("error")),
@@ -1455,7 +1903,27 @@ def task_dashboard():  # skipcq: PY-R1000 -- dashboard filtering and response as
     current_user = _current_username() or ""
     is_admin = _is_admin_user()
     all_tasks = task_store.list_tasks()
-    scoped_tasks = all_tasks if is_admin else [task for task in all_tasks if task.get("username") == current_user]
+    if is_admin:
+        scoped_tasks = all_tasks
+    else:
+        user_id = int(g.current_user["id"])
+        store = current_app.config["collaboration"]
+        scoped_tasks = [
+            task
+            for task in all_tasks
+            if (
+                task.get("scope_type") == "project"
+                and task.get("scope_id")
+                and store.get_membership(int(task["scope_id"]), user_id)
+            )
+            or (
+                task.get("scope_type") != "project"
+                and (
+                    str(task.get("scope_id") or "") == str(user_id)
+                    or (not task.get("scope_id") and task.get("username") == current_user)
+                )
+            )
+        ]
     visible_tasks = [task for task in scoped_tasks if not _is_deleted_status(task.get("status"))]
     task_statuses = [
         _dashboard_task_status(task, index, current_user, is_admin) for index, task in enumerate(visible_tasks)
@@ -1480,7 +1948,7 @@ def task_results_page(md5sum):
     task = task_store.get_task(normalized)
     if task is None:
         abort(404)
-    if not _task_access_allowed(task):
+    if not _task_full_results_allowed(task):
         return _task_access_denied(normalized)
     response = make_response(
         render_template(
@@ -1564,7 +2032,7 @@ def delete_task(md5sum):
     task = task_store.get_task(md5sum)
     if not task:
         return jsonify({"status": "not_found", "md5sum": md5sum}), 404
-    if not _task_access_allowed(task):
+    if not _task_mutation_allowed(task):
         return _task_access_denied(md5sum)
     if task["status"] in task_store.CLEANUP_CLAIM_STATUSES:
         return jsonify({"error": "Task cleanup is already in progress", "md5sum": md5sum}), 409
@@ -1606,7 +2074,7 @@ def delete_tasks_batch():  # skipcq: PY-R1000 -- per-task authorization and outc
         if not task:
             not_found.append(md5sum)
             continue
-        if not _task_access_allowed(task):
+        if not _task_mutation_allowed(task):
             forbidden.append(md5sum)
             continue
         if task["status"] in task_store.CLEANUP_CLAIM_STATUSES:
