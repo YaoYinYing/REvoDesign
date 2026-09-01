@@ -256,7 +256,7 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert 'A.authFetch("/compute/api/results/"' in script
     assert "Principal result" in template
     assert "Review shortlist" in template
-    assert "All artifacts and diagnostics" in template
+    assert "Files &amp; diagnostics" in template
     assert '"/compute/viewer-shell"' in script
     assert "shell-ready" in script
     assert "postMessage" in script
