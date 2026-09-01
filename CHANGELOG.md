@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Server:
-  - universal scientific result views: validated task-independent alignment, trajectory, metric-series, matrix, and scalar-summary protocols; server-owned mappings now cover every enabled task with validated scientific output, with explicit download/failure-only records for ESM-2 tensors and the two blocked PRIME runners.
+  - universal scientific result views: validated task-independent alignment, trajectory, metric-series, matrix, and scalar-summary protocols; server-owned mappings now cover every enabled task with validated scientific output, with explicit authenticated-download presentation for ESM-2 tensors and live-validated PRIME result tables.
   - result decision workspaces: scientific manifest v3, server-declared candidate/entity/evidence views, technical output checks, reproducibility records, accessible shortlist export, and the complete artifact/download fallback.
   - public interactive OpenAPI documentation at `/api-docs`, machine-readable schema, and SEO keywords for public pages.
   - authentication: login accepts a validated local `return_to` path and protected browser routes preserve their destination.

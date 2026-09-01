@@ -30,8 +30,8 @@ completion markers are intentionally excluded from scientific views.
 | LigandMPNN | `ca92aba0ffc37840cb0aa64c7a6a0326` / 14 s | designed FASTA plus optional packed/backbone PDBs | candidate order is runner order; supplied ligand context and packing parameters are in the run record | sequence candidates + optional structure evidence |
 | LASErMPNN | `3d41aa296bfffed9e3c601d4cbf726f0` / 23 s | designed PDBs and FASTA | candidate order is artifact order; all-atom/protonation limitation is explicit; no calibrated confidence | candidate collection |
 | ThermoMPNN-D | `bd56663de40119a1314c84e82666a7af` / 20 s | mutation and predicted ddG rows | mutation labels include chain and one-based residue position; kcal/mol; lower is favourable; rows are already threshold-filtered | mutation entity table |
-| Pro-Prime | `7010c9e556100b515e02dbfa0f768588` / failed before inference | no scientific output; pinned custom model-code snapshot absent | OGT units and interpretation cannot be validated until the audited snapshot runs | failure diagnostics only; not counted as validated |
-| PRIME-DMS | `41e4b3aa1a8431b56275530c77979146` / failed before inference | no scientific output; pinned custom model-code snapshot absent | score direction and missing-value rules cannot be validated until the audited snapshot runs | failure diagnostics only; not counted as validated |
+| Pro-Prime | `7010c9e556100b515e02dbfa0f768588` / 30 s | one sequence-level OGT CSV row | OGT is model-estimated degrees Celsius, not a measurement; the table key is the FASTA record ID | sequence entity table |
+| PRIME-DMS | `41e4b3aa1a8431b56275530c77979146` / 45 s | exhaustive single-substitution mutation score table | mutation labels are one-based; score is mutant-vs-wild-type log likelihood ratio; higher is more model-compatible, not measured fitness | mutation entity table |
 | RFdiffusion | `9d1933a281026e10cc9d199380ee52aa` / 562 s | final backbone PDBs plus explicitly stem-associated multi-model PDB trajectories | final designs use artifact order; trajectory frames are diffusion steps, not time; topology association is by declared design stem | candidate collection + trajectory evidence |
 | PLACER | `ebd22f41144e910412280aad96a3c40c` / 100 s | complex PDBs plus per-model FAPE/lDDT/RMSD/pRMSD/pLDDT/PDE table | candidate identity is label + model index; Å for RMSD/pRMSD; reranking direction is method/parameter-defined and is not guessed | candidate collection + metric entity table |
 | BioEmu | `9bc9de660c8d86679635e5a008385267` / 262 s | PDB topology explicitly paired with XTC conformational samples | frames are samples, not physical time; sample order is not a population weight; ensemble limitation is explicit | trajectory |
@@ -40,7 +40,7 @@ completion markers are intentionally excluded from scientific views.
 | AlphaFold2 | `e7dafb3f7be0be7471672c3e46c26e9e` / 1550 s | ranked PDBs, per-model pLDDT, PAE, ranking metadata, MSAs, and model internals | ranked filename order is authoritative; pLDDT 0–100 higher is better; PAE Å lower is better; B factors encode pLDDT; absent pTM/iPTM is not synthesized | candidates + metric series + matrices |
 | ColabFold AF2 | `1ea9e9178737f7fbb7d3498ae05d31c6` / 171 s | ranked PDB, pLDDT series, PAE matrix/images, pTM/max-PAE scalars, and A3M | ranked filename order; pLDDT 0–100 and pTM higher are better; PAE Å lower is better; one-based sequence positions; null means missing | candidates + metric series + matrix + scalar summary + alignment |
 
-The 21 successful task types all resolve their required selectors against the
-stored manifests with a passing output check. Pro-Prime and PRIME-DMS remain
-the only unvalidated enabled types; enabling a friendly result mapping before
-their real outputs exist would invent a scientific contract.
+All 23 enabled task types resolve their required selectors against stored
+schema-3 manifests with passing output checks. The 2026-09-01 canonical
+PRIME and PRIME-DMS runs completed through API, worker, SLURM, and Apptainer;
+their checked local snapshots are now the scientific contract.
