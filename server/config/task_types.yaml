@@ -7,12 +7,10 @@
 # Adding a task to an existing family only requires a task_types entry. Adding
 # a runtime family also requires one runner YAML, Dockerfile, and .def file.
 
-# Global execution backend. Production SLURM deployments set these to
-# "slurm" and "apptainer" in their deployed CONFIG_DIR copy. Every family
-# declares a SIF destination, but Docker execution does not read or validate
-# the file at that path.
-job_executor: "docker"
-container_runtime: "docker"
+# Global execution backend. Development Docker deployments may override these
+# in their deployed CONFIG_DIR copy. Every family declares a SIF destination.
+job_executor: "slurm"
+container_runtime: "apptainer"
 
 runtime_families:
   gremlin:

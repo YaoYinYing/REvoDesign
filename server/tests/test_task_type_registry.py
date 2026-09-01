@@ -86,8 +86,8 @@ def test_shared_tasks_resolve_one_runtime_and_runner_config():
             str(SERVER_ROOT / "config" / "runners"),
             enabled,
         )
-        assert task_types.get_job_executor() == "docker"
-        assert task_types.get_container_runtime() == "docker"
+        assert task_types.get_job_executor() == "slurm"
+        assert task_types.get_container_runtime() == "apptainer"
 
         esm_tasks = [task_types.get(name) for name in ("esm_extract", "esm_1v", "esm_if1")]
         assert {tt.runtime.name for tt, _ in esm_tasks} == {"esm"}
