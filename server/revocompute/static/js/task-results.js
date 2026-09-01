@@ -11,6 +11,7 @@
   var previewRegistry = null;
   var previewHost = null;
   var resultViews = [];
+  var activeStoryboard = null;
   var shortlist = new Map();
   var MAX_SHORTLIST_ITEMS = 200;
   // Warm Mol* viewer: one shell iframe and one plugin instance stay alive
@@ -1172,10 +1173,11 @@
   document.getElementById("artifactPreview").parentNode.appendChild(structureHolder);
 
   async function previewArtifact(artifact) {
+    if (!artifact.path) artifact = Object.assign({}, artifact, { path: artifact.name || artifact.id });
     document.getElementById("previewTitle").textContent = artifact.path;
     document.getElementById("previewDescription").textContent = artifact.role + " artifact · " + formatBytes(artifact.size);
     var download = document.getElementById("artifactDownload"); download.hidden = false;
-    download.href = artifact.url + "?download=1"; download.download = "";
+    download.href = artifact.url + (artifact.url.indexOf("?") === -1 ? "?" : "&") + "download=1"; download.download = "";
     document.querySelectorAll(".artifact-row").forEach(function (node) {
       var active = node.dataset.path === artifact.path; node.classList.toggle("active", active);
       node.setAttribute("aria-current", active ? "true" : "false");
@@ -1183,6 +1185,34 @@
     var stage = document.getElementById("artifactPreview");
     stage.hidden = false; if (structureHolder) structureHolder.hidden = true;
     try { await previewHost.render(artifact); } catch (error) { showPreviewError(error); }
+  }
+
+  async function mountStoryboard(declaration, result) {
+    if (!declaration || !declaration.entrypoint_url) return false;
+    if (activeStoryboard && typeof activeStoryboard.destroy === "function") activeStoryboard.destroy();
+    activeStoryboard = null;
+    var files = new Map();
+    Object.keys((result && result.files) || {}).forEach(function (id) {
+      var values = result.files[id] || [];
+      if (!values.length) files.set(id, null);
+      else files.set(id, values.length === 1 && values[0].cardinality !== "many" ? values[0] : values);
+    });
+    if (declaration.requires.some(function (id) { return !files.get(id) || (Array.isArray(files.get(id)) && !files.get(id).length); })) {
+      throw new Error("The required scientific result files are unavailable.");
+    }
+    var module = await import(declaration.entrypoint_url);
+    var storyboard = module.default;
+    if (!storyboard || typeof storyboard.mount !== "function") throw new Error("Storyboard entrypoint is invalid.");
+    var stage = document.getElementById("artifactPreview");
+    previewHost.destroy();
+    document.getElementById("previewTitle").textContent = "Scientific result";
+    document.getElementById("previewDescription").textContent = "Runner-provided scientific interpretation";
+    document.getElementById("artifactDownload").hidden = true;
+    var context = Object.freeze({ files: Object.freeze({ get: function (id) { return files.get(id) || null; } }),
+      metadata: Object.freeze({ taskType: task.task_type }), services: Object.freeze({ openFile: previewArtifact }) });
+    var instance = storyboard.mount(stage, context);
+    activeStoryboard = instance && typeof instance.then === "function" ? await instance : (instance || storyboard);
+    return true;
   }
 
   async function previewView(view, focusHeading) {
@@ -1284,6 +1314,8 @@
 
   async function loadResults() {
     await disposeActiveViewer(); structureTextCache.clear(); structureTextCacheBytes = 0;
+    if (activeStoryboard && typeof activeStoryboard.destroy === "function") activeStoryboard.destroy();
+    activeStoryboard = null;
     if (structureHolder) structureHolder.hidden = true;
     var response = await A.authFetch("/compute/api/results/" + encodeURIComponent(task.md5));
     var payload = await response.json().catch(function () { return {}; });
@@ -1320,14 +1352,17 @@
       archiveButton.textContent = "Download ZIP"; archiveButton.dataset.downloadUrl = payload.archive.download_url;
       document.getElementById("archiveState").textContent = "The manifest-approved ZIP is ready.";
     }
+    var storyboardLoaded = false;
+    try { storyboardLoaded = await mountStoryboard(payload.storyboard, payload.result); }
+    catch (error) { showToast(error.message || "Scientific result view unavailable; showing files.", "error"); }
     var first = resultViews.find(function (view) { return view.role === "primary"; });
-    if (first) await previewView(first, false);
-    else {
+    if (!storyboardLoaded && first) await previewView(first, false);
+    else if (!storyboardLoaded) {
       document.getElementById("previewTitle").textContent = "No principal result view";
       document.getElementById("previewDescription").textContent = "This method has not yet declared a scientific result composition. All published artifacts remain available below.";
       var stage = document.getElementById("artifactPreview"); stage.replaceChildren();
       var empty = document.createElement("p"); empty.className = "preview-message";
-      empty.textContent = "Open All artifacts to inspect or download this run."; stage.appendChild(empty);
+      empty.textContent = "Open Files & diagnostics to inspect or download this run."; stage.appendChild(empty);
       var artifactsSection = document.querySelector(".artifact-section");
       if (artifactsSection) artifactsSection.open = true;
     }

@@ -90,6 +90,8 @@ def _run_restart_script(
         "RUNNER_GROUP": "revodesign",
         "SERVER_IMAGE": "example/revodesign-server:latest",
     }
+    if config_dir is None:
+        config_dir = _make_deployed_config(tmp_path, executor="docker")
     if config_dir is not None:
         settings["CONFIG_DIR"] = str(config_dir)
     if build_proxy is not None:
@@ -442,6 +444,15 @@ def test_missing_global_slurm_family_image_is_rejected_before_shutdown(tmp_path)
     assert "Missing SIF image" in result.stderr
     assert "esm.sif" in result.stderr
     assert not any(" down" in command or " pull " in command or " up " in command for command in commands)
+
+
+def test_docker_executor_ignores_missing_slurm_sif_paths(tmp_path):
+    config_dir = _make_deployed_config(tmp_path, executor="docker")
+    result, commands = _run_restart_script(tmp_path / "deployment", "up", config_dir=config_dir)
+
+    assert result.returncode == 0, result.stderr
+    assert "Missing SIF image" not in result.stderr
+    assert any("up -d redis web gateway maintenance worker" in command for command in commands)
 
 
 def test_worker_runtime_import_has_no_auth_or_flask_side_effects(tmp_path):

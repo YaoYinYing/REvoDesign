@@ -323,8 +323,9 @@ def test_result_page_opens_principal_view_and_exports_shortlist(page: Page) -> N
 
 def test_result_page_keeps_artifacts_fallback_and_native_space(page: Page) -> None:
     _open_result_page(page)
-    all_artifacts = page.get_by_text("All artifacts and diagnostics")
-    all_artifacts.click()
+    files_diagnostics = page.locator("details.artifact-section > summary")
+    expect(files_diagnostics).to_contain_text("Files & diagnostics")
+    files_diagnostics.click()
     search = page.get_by_label("Filter result artifacts")
     search.fill("stdout")
     search.press("Space")
@@ -356,7 +357,7 @@ def test_result_page_collapses_workspace_at_mobile_width(page: Page) -> None:
 def test_result_page_cancels_delayed_warm_viewer_on_artifact_switch(page: Page) -> None:
     _open_result_page(page, delay_second_viewer=True)
     expect(page.get_by_role("heading", name="Active-site mapping")).to_be_visible()
-    page.get_by_text("All artifacts and diagnostics").evaluate("node => node.parentNode.open = true")
+    page.locator("details.artifact-section").evaluate("node => node.open = true")
     page.locator(".artifact-row", has_text="enzyme_structure.pdb").evaluate("node => node.click()")
     expect(page.locator("iframe.artifact-molstar-preview")).to_have_count(1)
     page.locator(".artifact-row", has_text="execution/slurm-job.stdout.log").evaluate("node => node.click()")

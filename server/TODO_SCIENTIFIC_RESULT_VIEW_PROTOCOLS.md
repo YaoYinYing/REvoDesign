@@ -1,5 +1,8 @@
 # TODO: Universal scientific result-view protocols
 
+> Superseded for task-level meaning. Generic format renderers remain useful, but
+> new scientific result composition belongs to each runner's ResultStoryboard.
+
 Status: next goal after the result-workspace redesign PR. Do not expand the
 current PR with these feature tracks. The current implementation establishes
 schema-v3 manifests, server-declared ordered views, output checks, bounded

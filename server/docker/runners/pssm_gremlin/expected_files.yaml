@@ -1,0 +1,17 @@
+result:
+  files:
+    alignment:
+      pattern: gremlin_msa/*.i90c75.a3m
+      cardinality: one
+      required: true
+      type: alignment
+    pssm:
+      pattern: pssm_msa/*_ascii_mtx_file
+      cardinality: one
+      required: true
+      type: table
+    coupling_matrix:
+      pattern: gremlin_res/*_GREMLIN_mtx.png
+      cardinality: one
+      required: true
+      type: image

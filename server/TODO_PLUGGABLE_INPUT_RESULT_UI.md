@@ -1,5 +1,9 @@
 # TODO: Pluggable Scientific Input and Result Workspaces
 
+> Result-workspace composition is superseded for new work by the runner-owned
+> ResultStoryboard architecture: Expected File Tree → ResultContext →
+> ResultStoryboard, with server-owned FileViewers and Files & diagnostics fallback.
+
 Status: implementation complete for the version-3 input and scientific-result
 workspace contracts, server-normalized RFdiffusion modes, Mol* residue
 selection, candidate/entity/evidence result views, technical output checks,

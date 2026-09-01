@@ -737,6 +737,14 @@ server/docker/runners/<family>/<family>.def
 server/tests/... focused contract tests
 ```
 
+If the runner has task-specific result meaning, also add
+`expected_files.yaml` and `storyboard/{storyboard.yaml,index.js}` beside its
+Dockerfile. Expected File Tree entries give outputs logical IDs; the trusted
+Storyboard receives only those approved IDs through ResultContext and delegates
+format inspection to server FileViewers. Do not place task-specific result code
+in `revocompute/`, and do not put browser assets in compute images or task
+output directories.
+
 The `.def` must use the same Docker image declared by the registry:
 
 ```def

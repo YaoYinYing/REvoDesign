@@ -7,7 +7,9 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import logging
 import os
+import subprocess
 import time
 import uuid
 import zipfile
@@ -15,6 +17,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import docker
+import pytest
 import requests
 from conftest import _extract_md5, _load_pssm_module
 from werkzeug.utils import secure_filename
@@ -256,7 +259,7 @@ def test_dashboard_links_to_dedicated_manifest_first_result_workspace():
     assert 'A.authFetch("/compute/api/results/"' in script
     assert "Principal result" in template
     assert "Review shortlist" in template
-    assert "All artifacts and diagnostics" in template
+    assert "Files &amp; diagnostics" in template
     assert '"/compute/viewer-shell"' in script
     assert "shell-ready" in script
     assert "postMessage" in script
@@ -719,12 +722,61 @@ def test_worker_recovery_cancels_slurm_orphans_and_preserves_unstarted_queue(mon
     monkeypatch.setattr(runtime.shutil, "which", lambda command: f"/usr/bin/{command}")
     monkeypatch.setattr(runtime.subprocess, "run", lambda args, **kwargs: cancellations.append((args, kwargs)))
     monkeypatch.setattr(runtime, "_record_failure", lambda *args: failures.append(args))
+    monkeypatch.setattr(
+        runtime.SlurmJob,
+        "submit",
+        lambda *_args, **_kwargs: pytest.fail("SLURM recovery must not submit a replacement job"),
+    )
 
     assert runtime._recover_orphaned_tasks() == 2
     assert cancellations == [(["/usr/bin/scancel", "4154"], {"timeout": 10, "check": True})]
     assert [failure[0] for failure in failures] == ["a" * 32, "b" * 32]
     assert failures[0][3:] == ("design", "SLURM task lost its worker")
     assert failures[1][3:] == ("", "Compute task lost its worker before recording a resource handle")
+
+
+def test_cancel_compute_resources_issues_scancel_at_process_boundary(monkeypatch, tmp_path):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    runtime = module.task_runtime
+    calls = []
+
+    monkeypatch.setattr(
+        runtime.shutil, "which", lambda command: f"/mock/bin/{command}" if command == "scancel" else None
+    )
+    monkeypatch.setattr(runtime.subprocess, "run", lambda args, **kwargs: calls.append((args, kwargs)))
+
+    runtime.cancel_compute_resources.run(slurm_job_id="4217")
+
+    assert calls == [(["/mock/bin/scancel", "4217"], {"timeout": 10, "check": True})]
+
+
+def test_cancel_compute_resources_logs_scancel_failure(monkeypatch, tmp_path, caplog):
+    module = _load_pssm_module(
+        monkeypatch,
+        tmp_path,
+        extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"},
+    )
+    runtime = module.task_runtime
+    calls = []
+
+    def fail_run(args, **kwargs):
+        calls.append((args, kwargs))
+        raise subprocess.CalledProcessError(1, args, stderr="Invalid job id specified")
+
+    monkeypatch.setattr(
+        runtime.shutil, "which", lambda command: f"/mock/bin/{command}" if command == "scancel" else None
+    )
+    monkeypatch.setattr(runtime.subprocess, "run", fail_run)
+
+    with caplog.at_level(logging.WARNING):
+        runtime.cancel_compute_resources.run(slurm_job_id="4217")
+
+    assert calls == [(["/mock/bin/scancel", "4217"], {"timeout": 10, "check": True})]
+    assert "Failed to scancel SLURM job 4217" in caplog.text
 
 
 def test_worker_recovery_polls_reconnected_docker_outside_startup(monkeypatch, tmp_path):
@@ -932,6 +984,50 @@ def test_result_manifest_allows_only_published_artifacts(monkeypatch, tmp_path):
     assert unpublished.status_code == 404
 
 
+def test_gremlin_logical_file_api_preserves_declared_viewer_and_download(monkeypatch, tmp_path):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    client = module.app.test_client()
+    auth_header = _test_client_auth(module)
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "gremlin_storyboard"
+    (result_dir / "gremlin_msa").mkdir(parents=True)
+    (result_dir / "pssm_msa").mkdir()
+    (result_dir / "gremlin_res").mkdir()
+    (result_dir / "gremlin_msa" / "input.i90c75.a3m").write_text(">query\nACDE\n", encoding="utf-8")
+    (result_dir / "pssm_msa" / "input_ascii_mtx_file").write_text("pssm\n", encoding="utf-8")
+    (result_dir / "gremlin_res" / "input_GREMLIN_mtx.png").write_bytes(b"png")
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="input.fasta",
+        file_path=result_dir / "input.fasta",
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+    module.task_runtime._finalize_results_manifest(
+        module.task_store.get_task(md5sum), execution_state="completed", finished_at=1_700_000_000
+    )
+
+    manifest_response = client.get(f"/compute/api/results/{md5sum}", headers=auth_header)
+    manifest = manifest_response.get_json()
+    pssm = manifest["result"]["files"]["pssm"][0]
+    logical_download = client.get(f"{pssm['url']}&download=1", headers=auth_header)
+    storyboard_asset = client.get(manifest["storyboard"]["entrypoint_url"], headers=auth_header)
+
+    assert manifest_response.status_code == 200
+    assert manifest["output_check"]["state"] == "passed"
+    assert pssm["name"] == "input_ascii_mtx_file"
+    assert pssm["preview"] == "table"
+    assert pssm["viewer"] == "table"
+    assert pssm["cardinality"] == "one"
+    assert "path" not in pssm
+    assert logical_download.status_code == 200
+    assert logical_download.get_data(as_text=True) == "pssm\n"
+    assert storyboard_asset.status_code == 200
+    assert storyboard_asset.content_type.startswith("text/javascript")
+
+
 def test_task_configured_linked_result_and_bounded_table_api(monkeypatch, tmp_path):
     module = _load_pssm_module(
         monkeypatch,
@@ -1038,6 +1134,35 @@ def test_result_output_check_reports_missing_required_artifact(monkeypatch, tmp_
     assert any("structure output is missing or empty" in problem for problem in manifest["output_check"]["problems"])
     assert module.task_store.get_task(md5sum)["status"] == "finished"
     assert next(item for item in manifest["artifacts"] if item["path"] == "active_sites.csv")["role"] == "primary"
+
+
+def test_invalid_expected_file_tree_contract_marks_output_check_failed(monkeypatch, tmp_path):
+    module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
+    md5sum = uuid.uuid4().hex
+    result_dir = tmp_path / "invalid_result_contract"
+    result_dir.mkdir()
+    (result_dir / "output.txt").write_text("result\n", encoding="utf-8")
+    _upsert_task_for_user(
+        module,
+        md5sum,
+        filename="input.fasta",
+        file_path=result_dir / "input.fasta",
+        result_dir=result_dir,
+        username="tester",
+        status="finished",
+    )
+
+    def invalid_contract(_task_type, _server_dir):
+        raise module.task_runtime.ResultContractError("invalid expected_files.yaml")
+
+    monkeypatch.setattr(module.task_runtime, "expected_file_tree", invalid_contract)
+    manifest = module.task_runtime._finalize_results_manifest(
+        module.task_store.get_task(md5sum), execution_state="completed", finished_at=1_700_000_000
+    )
+
+    assert manifest["output_check"]["state"] == "failed"
+    assert manifest["result"] == {"files": {}}
+    assert any("invalid expected_files.yaml" in problem for problem in manifest["output_check"]["problems"])
 
 
 def test_failed_execution_manifest_is_not_assessed(monkeypatch, tmp_path):

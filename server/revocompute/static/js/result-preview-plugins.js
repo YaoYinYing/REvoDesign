@@ -90,6 +90,8 @@
 
   global.REvoComputeResultPreviews = Object.freeze({
     createRegistry: createRegistry,
-    ResultPreviewHost: ResultPreviewHost
+    ResultPreviewHost: ResultPreviewHost,
+    FileViewerRegistry: createRegistry,
+    FileViewerHost: ResultPreviewHost
   });
 })(window);
