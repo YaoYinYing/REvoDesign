@@ -93,19 +93,22 @@ class SlurmJob(Job):
         self._stderr_thread.start()
 
         # Capture the real id from the allocation wrapper's first stdout line
-        # or srun's stderr banner. Fall back to the pid-based id if neither
-        # arrives during submission.
+        # or srun's stderr banner. Without it, the allocation cannot be safely
+        # cancelled or recovered after a server restart.
         self._job_id_event.wait(timeout=5.0)
-        if self._slurm_job_id:
-            self._job_id = self._slurm_job_id
+        if not self._slurm_job_id:
+            self.cancel()
+            self._remove_wrapper_script()
+            raise RuntimeError("SLURM submission did not return a scheduler job ID")
+        self._job_id = self._slurm_job_id
 
         logging.info(
             "SLURM job %s (srun pid %s) started for task %s",
-            self._job_id or "unconfirmed",
+            self._job_id,
             self._process.pid,
             self.task_id,
         )
-        return self._job_id or ""
+        return self._job_id
 
     def poll(self) -> JobState:
         if self._process is None:

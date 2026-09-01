@@ -438,13 +438,19 @@ def test_submit_parses_job_id_from_srun_stderr_banner(tmp_path):
     assert job.job_id == "4217"
 
 
-def test_submit_returns_empty_handle_when_scheduler_id_is_unparseable(tmp_path):
-    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(tmp_path / "out"))
-    fake_proc = _FakeSrunProcess(stdout="tool started before SLURM_JOB_ID was exported\n", stderr="unexpected\n")
+def test_submit_rejects_unparseable_scheduler_id_and_terminates_srun(tmp_path):
+    output_dir = tmp_path / "out"
+    job = SlurmJob("task-1", _make_task_type(), _make_runner(), _make_entities(), str(output_dir))
+    fake_proc = _FakeSrunProcess(
+        stdout="tool started before SLURM_JOB_ID was exported\n", stderr="unexpected\n", returncode=None
+    )
 
     with patch("subprocess.Popen", return_value=fake_proc):
-        assert job.submit() == ""
+        with pytest.raises(RuntimeError, match="did not return a scheduler job ID"):
+            job.submit()
     assert job.job_id is None
+    assert fake_proc.terminated is True
+    assert not list(output_dir.glob("_slurm_wrapper_*.sh"))
 
 
 def test_submit_propagates_srun_launch_failure_and_removes_wrapper(tmp_path):
