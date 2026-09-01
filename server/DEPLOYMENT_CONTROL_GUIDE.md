@@ -122,7 +122,14 @@ deployed SIF path, and matching runner YAML. Unsafe names and paths, incomplete
 families, missing files, stale runner YAMLs, and inconsistent executor/runtime
 pairs fail validation.
 
-### 4.3 Enabled runner selection
+### 4.3 External server source
+
+When `SERVER_DIR` is an external build context, synchronize source files only.
+Never copy checkout SQLite files (`*.sqlite*`, `*.db`) or runtime directories
+such as `results/`, `upload/`, `workspaces/`, `backups/`, `auth/`, or `.env*`;
+they are live deployment state rather than source code.
+
+### 4.4 Enabled runner selection
 
 `ENABLED_TASKRUNNERS` is a comma-separated list of runtime-family names. The
 CLI can override it for one command:
