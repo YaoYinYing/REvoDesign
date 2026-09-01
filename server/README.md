@@ -804,13 +804,16 @@ full ZIP is an optional asynchronous cache created only after an explicit
 archive request. It contains only files published by the manifest and is not
 part of task completion.
 
-The dedicated result page consumes scientific manifest schema version 3. The
+The dedicated result page consumes scientific manifest schema version 3. Runner-owned
+Expected File Trees resolve logical output identities into a scoped ResultContext;
+trusted runner ResultStoryboards provide task-level meaning while server-owned
+FileViewers provide format-level inspection and Files & diagnostics remains the fallback. The
 manifest records safe run provenance, task-owned limitations, explicit artifact
 roles, a technical output check, and resolved local scientific views. The output
 check proves only that configured files are present, non-empty, and structurally
 mappable; it does not establish scientific or experimental validity.
 
-Server-allowlisted view shapes compose current results without task-name logic
+Legacy server-allowlisted view shapes compose unmigrated results without task-name logic
 in JavaScript: candidate collections, entity tables optionally linked to a
 structure, evidence bundles, alignments, trajectories, metric series, matrices,
 and scalar summaries. The first primary view opens as the principal result.
@@ -822,8 +825,8 @@ The living artifact and semantics audit is
 [`SCIENTIFIC_RESULT_VIEW_INVENTORY.md`](SCIENTIFIC_RESULT_VIEW_INVENTORY.md).
 
 All manifest-approved artifacts remain searchable and individually downloadable
-under **All artifacts and diagnostics**. The lifecycle-aware local plugin host
-resolves both scientific views and file previews, aborts stale renders, and
+under **Files & diagnostics**. The lifecycle-aware local file-viewer host
+resolves file previews, aborts stale renders, and
 preserves download as the universal fallback. Images, bounded CSV/TSV tables,
 and text use local preview plugins. PDB/mmCIF files use the pinned Mol\* Viewer
 5.11.0 bundle with subresource-integrity verification; if that asset or WebGL is

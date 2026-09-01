@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Server:
+  - runner-owned result storyboards: GREMLIN now declares logical Expected File
+    Tree outputs and a trusted local Storyboard; ResultContext exposes only
+    approved logical files while generic FileViewers and Files & diagnostics
+    remain the safe fallback.
   - universal scientific result views: validated task-independent alignment, trajectory, metric-series, matrix, and scalar-summary protocols; server-owned mappings now cover every enabled task with validated scientific output, with explicit authenticated-download presentation for ESM-2 tensors and live-validated PRIME result tables.
   - result decision workspaces: scientific manifest v3, server-declared candidate/entity/evidence views, technical output checks, reproducibility records, accessible shortlist export, and the complete artifact/download fallback.
   - public interactive OpenAPI documentation at `/api-docs`, machine-readable schema, and SEO keywords for public pages.
