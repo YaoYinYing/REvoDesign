@@ -124,6 +124,7 @@ from revocompute.workspace_contracts import (
     normalize_capability,
     validate_rfdiffusion_structure,
 )
+from revocompute.collaboration import ROLE_CAPABILITIES
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -131,6 +132,47 @@ from werkzeug.utils import secure_filename
 # ---------------------------------------------------------------------------
 # Page routes
 # ---------------------------------------------------------------------------
+
+@app.route("/compute/api/projects", methods=["GET", "POST"])
+@login_required
+def projects_api():
+    store = current_app.config["collaboration"]
+    uid = int(g.current_user["id"])
+    if request.method == "GET":
+        return jsonify({"projects": store.list_projects(uid, authenticated=True)})
+    payload = request.get_json(silent=True) or {}
+    try:
+        project = store.create_project(str(payload.get("name", "")), uid, description=str(payload.get("description", "")), visibility=str(payload.get("visibility", "private")))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(project), 201
+
+@app.route("/compute/api/projects/<project_id>", methods=["GET"])
+@login_required
+def project_api(project_id: str):
+    store = current_app.config["collaboration"]
+    project = store.get_project(project_id)
+    uid = int(g.current_user["id"])
+    if not project or not store.can(project_id, uid, "view_project", authenticated=True):
+        return jsonify({"error": "Project not found"}), 404
+    return jsonify(project)
+
+@app.route("/compute/api/projects/<project_id>/invitations", methods=["POST"])
+@login_required
+def project_invite_api(project_id: str):
+    store = current_app.config["collaboration"]; uid = int(g.current_user["id"])
+    if not store.can(project_id, uid, "invite_members"): return jsonify({"error":"Forbidden"}), 403
+    payload=request.get_json(silent=True) or {}
+    try: inv=store.invite(project_id,int(payload["user_id"]),uid,str(payload.get("role","viewer")))
+    except (KeyError, TypeError, ValueError): return jsonify({"error":"Invalid invitation"}),400
+    return jsonify(inv),201
+
+@app.route("/compute/api/invitations/<invitation_id>", methods=["POST"])
+@login_required
+def invitation_response_api(invitation_id: str):
+    payload=request.get_json(silent=True) or {}; accept=bool(payload.get("accept"))
+    ok=current_app.config["collaboration"].respond_invitation(invitation_id,int(g.current_user["id"]),accept)
+    return (jsonify({"status":"accepted" if accept else "declined"}),200) if ok else (jsonify({"error":"Invalid or expired invitation"}),404)
 
 
 @app.route("/", methods=["GET"])
@@ -615,6 +657,7 @@ def _prepare_task_record(
     input_form: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     workspace_key = str(metadata["username"])
+    user_storage_key = str(g.get("current_user", {}).get("storage_key") or workspace_key)
     if not _WORKSPACE_KEY_PATTERN.fullmatch(workspace_key):
         raise ValueError("Username cannot be represented safely in the workspace path")
     workspace_dir = _safe_join(app.config["WORKSPACE_FOLDER"], workspace_key, md5sum)
@@ -655,6 +698,9 @@ def _prepare_task_record(
         "run_stage": None,
         "task_type": task_type,
         "input_form": json.dumps(input_form) if input_form else None,
+        "scope_type": "personal",
+        "scope_id": str(g.get("current_user", {}).get("id") or metadata["username"]),
+        "storage_key": user_storage_key,
     }
 
 

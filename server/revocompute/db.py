@@ -88,6 +88,10 @@ class TaskDatabase:
             Column("slurm_job_id", String),
             Column("container_id", String),
             Column("workflow_state", Text),
+            Column("scope_type", String, nullable=False, default="personal"),
+            Column("scope_id", String),
+            Column("storage_key", String),
+            Column("artifact_provenance", Text),
         )
         Index("idx_tasks_uploaded_at", self.tasks_table.c.uploaded_at)
         self._initialize()
@@ -107,9 +111,9 @@ class TaskDatabase:
             # create_all does not add columns to existing tables — backfill
             # ones added after a table first shipped (idempotent).
             existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(tasks)")}
-            for column in ("container_id", "workflow_state"):
+            for column, ddl in (("container_id", "VARCHAR"), ("workflow_state", "VARCHAR"), ("scope_type", "VARCHAR NOT NULL DEFAULT 'personal'"), ("scope_id", "VARCHAR"), ("storage_key", "VARCHAR"), ("artifact_provenance", "TEXT")):
                 if column not in existing:
-                    conn.exec_driver_sql(f"ALTER TABLE tasks ADD COLUMN {column} VARCHAR")
+                    conn.exec_driver_sql(f"ALTER TABLE tasks ADD COLUMN {column} {ddl}")
 
     @staticmethod
     def _safe_apply_pragmas(conn) -> None:

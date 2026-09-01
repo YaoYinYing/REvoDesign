@@ -17,6 +17,8 @@ from celery.result import AsyncResult
 from flask import Flask, g, jsonify, request
 from revocompute.auth import _SECRET_KEY as _TOKEN_SIGNING_KEY  # noqa: E402
 from revocompute.auth import UserDatabase  # noqa: E402
+from revocompute.collaboration import CollaborationDatabase  # noqa: E402
+from revocompute.storage import StorageResolver  # noqa: E402
 from revocompute.auth import _env_bool  # noqa: E402
 from revocompute.config import ComputeConfig
 from revocompute.config import ensure_directories as _ensure_directories
@@ -115,6 +117,7 @@ def _add_security_headers(response):
 # ---------------------------------------------------------------------------
 _user_db = UserDatabase()
 app.config["user_db"] = _user_db
+app.config["collaboration"] = CollaborationDatabase(os.path.join(CONFIG.server_dir, "collaboration.sqlite3"))
 ENABLE_REGISTER = _env_bool("ENABLE_REGISTER", False)
 
 # Force the auth cookie's Secure flag regardless of request.is_secure.
@@ -188,6 +191,7 @@ app.config["RESULTS_FOLDER"] = CONFIG.results_folder
 app.config["RESULT_DOWNLOAD_MODE"] = CONFIG.result_download_mode
 
 _ensure_directories(CONFIG.upload_folder, CONFIG.workspace_folder, CONFIG.results_folder)
+app.config["storage_resolver"] = StorageResolver(CONFIG.results_folder, CONFIG.workspace_folder)
 
 # The authoritative task type registry is loaded by task_runtime's module-level
 # code.  Startup fails if the configured registry is absent or invalid.
