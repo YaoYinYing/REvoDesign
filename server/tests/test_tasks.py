@@ -159,6 +159,8 @@ def test_create_task_supports_task_type_deep_links():
     assert "task.name === requested" in script
     assert "/compute/create_task?task_type={{ task_type.name | urlencode }}" in detail
     assert "unresolvedRequestedScope = true" in script
+    assert 'input[name="taskScope"]' in script
+    assert "input.checked = false" in script
     assert 'selectedScope ? selectedScope.value : "personal"' not in script
 
 

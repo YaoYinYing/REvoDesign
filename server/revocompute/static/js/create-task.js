@@ -59,7 +59,11 @@
       if (requestedType === "project" && requestedId) {
         var requested = Array.from(scopeOptions.querySelectorAll('input[value="project"]')).find(function (input) { return input.dataset.scopeId === requestedId; });
         if (requested) requested.checked = true;
-        else { unresolvedRequestedScope = true; setStatus("The requested Project is unavailable. Select another scope.", "error"); }
+        else {
+          unresolvedRequestedScope = true;
+          scopeOptions.querySelectorAll('input[name="taskScope"]').forEach(function (input) { input.checked = false; });
+          setStatus("The requested Project is unavailable. Select another scope.", "error");
+        }
       }
     } catch (error) {
       var requestedProject = new URLSearchParams(window.location.search).get("scope_type") === "project";
