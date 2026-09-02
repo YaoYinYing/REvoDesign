@@ -16,6 +16,7 @@ import hmac
 import html
 import logging
 import os
+import re
 import secrets
 import smtplib
 import time
@@ -33,6 +34,7 @@ from revocompute.config import env_bool as _env_bool
 from revocompute.config import env_int as _env_int
 from revocompute.config import env_str as _env_str
 from revocompute.redis_util import get_redis
+from revocompute.schema_epoch import require_current_schema
 from werkzeug.security import generate_password_hash
 
 # Pre-computed dummy hash used for constant-time comparison when a login
@@ -93,7 +95,15 @@ _users_table = sa.Table(
     sa.Column("registration_country", sa.String(8), nullable=True),
     sa.Column("token_version", sa.Integer, nullable=False, default=0),
     sa.Column("allow_gpu_use", sa.Boolean, nullable=False, default=False),
+    sa.Column("storage_key", sa.String(128), nullable=False, unique=True),
 )
+
+
+def _new_user_storage_key(username: str) -> str:
+    """Generate a readable storage key whose random suffix is immutable."""
+    prefix = re.sub(r"[^A-Za-z0-9]+", "-", username).strip("-").lower()[:32] or "user"
+    suffix = secrets.token_urlsafe(6).lower().replace("_", "-").replace("=", "")
+    return f"{prefix}-{suffix}"
 
 
 def _get_user_db_path() -> str:
@@ -133,20 +143,12 @@ class UserDatabase:
             conn.exec_driver_sql("PRAGMA busy_timeout=30000;")
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+            require_current_schema(
+                conn,
+                {"users": {column.name for column in _users_table.columns}},
+                database_name="user database",
+            )
             _metadata.create_all(conn, checkfirst=True)
-            # Migration: api_key_hash -> api_key_digest.  The old werkzeug KDF
-            # hashes are one-way and NOT convertible to a digest — every
-            # existing API key becomes invalid by design and must be
-            # re-issued.  The physical api_key_hash column, if present in an
-            # old DB, is left in place (harmless — the model no longer
-            # selects it).
-            columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users)")}
-            if "api_key_digest" not in columns:
-                conn.exec_driver_sql("ALTER TABLE users ADD COLUMN api_key_digest VARCHAR(64)")
-                # Index the migrated column so validation stays a single
-                # lookup — same index name SQLAlchemy creates for new DBs
-                # (index=True), so fresh and migrated DBs match.
-                conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_users_api_key_digest ON users(api_key_digest)")
         try:
             os.chmod(self.path, 0o600)
         except OSError:
@@ -191,6 +193,7 @@ class UserDatabase:
             registration_ip=registration_ip,
             registration_country=registration_country,
             user_status=user_status,
+            storage_key=_new_user_storage_key(username),
         )
         with self.engine.begin() as conn:
             result = conn.execute(stmt)

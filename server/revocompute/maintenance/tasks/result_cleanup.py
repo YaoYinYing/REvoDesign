@@ -18,6 +18,7 @@ from typing import Any
 from revocompute.config import ComputeConfig, env_float
 from revocompute.db import TaskDatabase
 from revocompute.maintenance.model import PeriodicTask
+from revocompute.storage import StorageResolver
 
 _TASK_ID_PATTERN = re.compile(r"[a-fA-F0-9]{32}$")
 _TERMINAL_RESULT_STATUSES = {"finished", "failed", "cancelled"}
@@ -51,9 +52,16 @@ def deleted_status_from_task(task: dict[str, Any]) -> str:
 
 def delete_task_artifacts(task: dict[str, Any], results_folder: str, workspace_folder: str | None = None) -> None:
     """Safely remove one task's result tree, archive cache, and input snapshot."""
-    result_dir = task.get("result_dir")
-    if result_dir:
-        safe_result_dir = os.path.abspath(str(result_dir))
+    resolver = StorageResolver(
+        workspace_dir=workspace_folder or os.path.join(os.path.dirname(results_folder), "workspaces"),
+        results_dir=results_folder,
+    )
+    try:
+        safe_result_dir = resolver.get_task_root(task)
+    except ValueError:
+        logging.warning("Refusing to delete task with invalid storage identity: %s", task.get("md5sum"))
+        return
+    if safe_result_dir:
         if os.path.isdir(safe_result_dir):
             if safe_result_dir in {os.path.abspath(os.sep), os.path.abspath(os.path.expanduser("~"))}:
                 logging.warning("Refusing to delete unsafe root-like directory: %s", safe_result_dir)
@@ -66,13 +74,16 @@ def delete_task_artifacts(task: dict[str, Any], results_folder: str, workspace_f
     if not _TASK_ID_PATTERN.fullmatch(task_id):
         logging.warning("Refusing to delete zip for invalid task id: %s", task.get("md5sum"))
         return
-    zip_path = os.path.abspath(os.path.join(results_folder, f"{task_id}_results.zip"))
+    zip_path = resolver.get_archive_path(task)
     if _path_is_within(results_folder, zip_path) and os.path.exists(zip_path):
         os.remove(zip_path)
 
     if workspace_folder:
-        username = str(task.get("username") or "")
-        workspace_dir = os.path.abspath(os.path.join(workspace_folder, username, task_id))
+        try:
+            workspace_dir = resolver.get_input_root(task)
+        except ValueError:
+            logging.warning("Refusing to delete invalid task input storage: %s", task_id)
+            return
         if _path_is_within(workspace_folder, workspace_dir) and os.path.isdir(workspace_dir):
             shutil.rmtree(workspace_dir, ignore_errors=True)
 

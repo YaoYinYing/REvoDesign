@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import io
 import json
-import time
 import uuid
 
 import pytest
@@ -30,7 +29,7 @@ def test_race_cancel_finished_task_rejected(monkeypatch, tmp_path):
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
-    db = module.task_store
+    module.task_store
 
     # Simulate task that finished while user was about to click cancel
     result_dir = tmp_path / "race_cancel"
@@ -38,17 +37,14 @@ def test_race_cancel_finished_task_rejected(monkeypatch, tmp_path):
     md5sum = uuid.uuid4().hex
     fasta_path = result_dir / "seqs.fasta"
     fasta_path.write_text(">race\nACDE\n", encoding="utf-8")
-    db.upsert_task(
+    _upsert_task_for_user(
+        module,
         md5sum,
         filename="seqs.fasta",
-        file_path=str(fasta_path),
-        result_dir=str(result_dir),
-        uploaded_at=time.time(),
-        status="finished",
-        is_binary=0,
-        source_ip="127.0.0.1",
-        user_agent="pytest",
+        file_path=fasta_path,
+        result_dir=result_dir,
         username="tester",
+        status="finished",
     )
     resp = client.post(f"/compute/api/cancel/{md5sum}", headers=auth_header)
     assert resp.status_code == 400
@@ -86,24 +82,21 @@ def test_race_cancel_already_cancelled_task(monkeypatch, tmp_path):
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
-    db = module.task_store
+    module.task_store
 
     result_dir = tmp_path / "race_recancel"
     result_dir.mkdir(parents=True, exist_ok=True)
     md5sum = uuid.uuid4().hex
     fasta_path = result_dir / "seqs.fasta"
     fasta_path.write_text(">race\nACDE\n", encoding="utf-8")
-    db.upsert_task(
+    _upsert_task_for_user(
+        module,
         md5sum,
         filename="seqs.fasta",
-        file_path=str(fasta_path),
-        result_dir=str(result_dir),
-        uploaded_at=time.time(),
-        status="cancelled",
-        is_binary=0,
-        source_ip="127.0.0.1",
-        user_agent="pytest",
+        file_path=fasta_path,
+        result_dir=result_dir,
         username="tester",
+        status="cancelled",
     )
     resp = client.post(f"/compute/api/cancel/{md5sum}", headers=auth_header)
     assert resp.status_code == 400
@@ -115,24 +108,21 @@ def test_race_delete_already_cancelled_task(monkeypatch, tmp_path):
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
-    db = module.task_store
+    module.task_store
 
     result_dir = tmp_path / "race_del_cancelled"
     result_dir.mkdir(parents=True, exist_ok=True)
     md5sum = uuid.uuid4().hex
     fasta_path = result_dir / "seqs.fasta"
     fasta_path.write_text(">race\nACDE\n", encoding="utf-8")
-    db.upsert_task(
+    _upsert_task_for_user(
+        module,
         md5sum,
         filename="seqs.fasta",
-        file_path=str(fasta_path),
-        result_dir=str(result_dir),
-        uploaded_at=time.time(),
-        status="cancelled",
-        is_binary=0,
-        source_ip="127.0.0.1",
-        user_agent="pytest",
+        file_path=fasta_path,
+        result_dir=result_dir,
         username="tester",
+        status="cancelled",
     )
     resp = client.delete(f"/compute/api/delete/{md5sum}", headers=auth_header)
     assert resp.status_code == 200
@@ -194,7 +184,7 @@ def test_race_status_polling_during_task_transition(monkeypatch, tmp_path):
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
-    db = module.task_store
+    module.task_store
 
     result_dir = tmp_path / "poll_race"
     result_dir.mkdir(parents=True, exist_ok=True)
@@ -205,17 +195,14 @@ def test_race_status_polling_during_task_transition(monkeypatch, tmp_path):
     # Simulate rapid polling across status transitions
     transitions = ["pending", "queued", "running", "finished"]
     for status in transitions:
-        db.upsert_task(
+        _upsert_task_for_user(
+            module,
             md5sum,
             filename="s.fasta",
-            file_path=str(fasta_path),
-            result_dir=str(result_dir),
-            uploaded_at=time.time(),
-            status=status,
-            is_binary=0,
-            source_ip="127.0.0.1",
-            user_agent="pytest",
+            file_path=fasta_path,
+            result_dir=result_dir,
             username="tester",
+            status=status,
         )
         resp = client.get(f"/compute/api/running/{md5sum}", headers=auth_header)
         valid_statuses = {200, 202}
@@ -227,24 +214,21 @@ def test_race_batch_delete_duplicate_ids(monkeypatch, tmp_path):
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
-    db = module.task_store
+    module.task_store
 
     result_dir = tmp_path / "dedup_race"
     result_dir.mkdir(parents=True, exist_ok=True)
     md5sum = uuid.uuid4().hex
     fasta_path = result_dir / "s.fasta"
     fasta_path.write_text(">x\nACDE\n", encoding="utf-8")
-    db.upsert_task(
+    _upsert_task_for_user(
+        module,
         md5sum,
         filename="s.fasta",
-        file_path=str(fasta_path),
-        result_dir=str(result_dir),
-        uploaded_at=time.time(),
-        status="cancelled",
-        is_binary=0,
-        source_ip="127.0.0.1",
-        user_agent="pytest",
+        file_path=fasta_path,
+        result_dir=result_dir,
         username="tester",
+        status="cancelled",
     )
     # Send the same md5sum 3 times
     resp = client.post(
@@ -261,7 +245,7 @@ def test_race_batch_delete_with_nonexistent_and_duplicate(monkeypatch, tmp_path)
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
-    db = module.task_store
+    module.task_store
 
     result_dir = tmp_path / "mixed_race"
     result_dir.mkdir(parents=True, exist_ok=True)
@@ -270,17 +254,14 @@ def test_race_batch_delete_with_nonexistent_and_duplicate(monkeypatch, tmp_path)
     fasta_path = result_dir / "s.fasta"
     fasta_path.write_text(">x\nACDE\n", encoding="utf-8")
     for md5 in (valid_md5, another_md5):
-        db.upsert_task(
+        _upsert_task_for_user(
+            module,
             md5,
             filename="s.fasta",
-            file_path=str(fasta_path),
-            result_dir=str(result_dir),
-            uploaded_at=time.time(),
-            status="cancelled",
-            is_binary=0,
-            source_ip="127.0.0.1",
-            user_agent="pytest",
+            file_path=fasta_path,
+            result_dir=result_dir,
             username="tester",
+            status="cancelled",
         )
 
     nonexistent = "0" * 32
@@ -307,17 +288,14 @@ def test_race_cancel_concurrent_with_worker_completion(monkeypatch, tmp_path):
     md5sum = uuid.uuid4().hex
     fasta_path = result_dir / "s.fasta"
     fasta_path.write_text(">x\nACDE\n", encoding="utf-8")
-    db.upsert_task(
+    _upsert_task_for_user(
+        module,
         md5sum,
         filename="s.fasta",
-        file_path=str(fasta_path),
-        result_dir=str(result_dir),
-        uploaded_at=time.time(),
-        status="cancelled",
-        is_binary=0,
-        source_ip="127.0.0.1",
-        user_agent="pytest",
+        file_path=fasta_path,
+        result_dir=result_dir,
         username="tester",
+        status="cancelled",
     )
     # Simulate worker trying to write "finished" after user cancelled
     db.update_task(md5sum, status="finished", error=None)
@@ -331,7 +309,7 @@ def test_race_status_polling_on_deleted_task(monkeypatch, tmp_path):
     module = _load_pssm_module(monkeypatch, tmp_path, extra_env={"RUNNER_UID": "1234", "RUNNER_GID": "5678"})
     client = module.app.test_client()
     auth_header = _test_client_auth(module)
-    db = module.task_store
+    module.task_store
 
     result_dir = tmp_path / "deleted_poll"
     result_dir.mkdir(parents=True, exist_ok=True)
@@ -340,17 +318,14 @@ def test_race_status_polling_on_deleted_task(monkeypatch, tmp_path):
     for d_status in ("deleted:cancel", "deleted:finshed"):
         fasta_path = result_dir / f"{d_status.replace(':', '_')}.fasta"
         fasta_path.write_text(">x\nACDE\n", encoding="utf-8")
-        db.upsert_task(
+        _upsert_task_for_user(
+            module,
             md5sum,
             filename="s.fasta",
-            file_path=str(fasta_path),
-            result_dir=str(result_dir),
-            uploaded_at=time.time(),
-            status=d_status,
-            is_binary=0,
-            source_ip="127.0.0.1",
-            user_agent="pytest",
+            file_path=fasta_path,
+            result_dir=result_dir,
             username="tester",
+            status=d_status,
         )
         resp = client.get(f"/compute/api/running/{md5sum}", headers=auth_header)
         assert resp.status_code == 200

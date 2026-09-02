@@ -13,7 +13,6 @@ must call ``get_redis.cache_clear()`` first.
 from __future__ import annotations
 
 import hashlib
-import os
 import re
 import shutil
 import socket
@@ -88,15 +87,9 @@ def test_api_key_validation_with_several_users(tmp_path):
     assert "ix_users_api_key_digest" in indexes
 
 
-def test_migration_from_old_api_key_hash_schema(tmp_path):
-    """A DB created with the old api_key_hash schema gains api_key_digest.
-
-    The old werkzeug KDF hashes are one-way — existing keys become invalid
-    by design; the column is added, indexed, and the user data survives.
-    """
+def test_old_api_key_schema_fails_without_mutating_state(tmp_path):
     path = tmp_path / "legacy.sqlite3"
-    old_key = "revodesign_" + os.urandom(32).hex()
-    old_kdf_hash = generate_password_hash(old_key)
+    old_kdf_hash = generate_password_hash("revodesign_old-key")
     conn = sqlite3.connect(path)
     conn.execute(
         """
@@ -125,35 +118,36 @@ def test_migration_from_old_api_key_hash_schema(tmp_path):
             registration_ip VARCHAR(45),
             registration_country VARCHAR(8),
             token_version INTEGER NOT NULL DEFAULT 0,
-            allow_gpu_use BOOLEAN NOT NULL DEFAULT 0
+            allow_gpu_use BOOLEAN NOT NULL DEFAULT 0,
+            storage_key VARCHAR(128) NOT NULL UNIQUE
         )
         """
     )
     conn.execute(
-        "INSERT INTO users (username, email, password_hash, email_verified, created_at, api_key_hash)"
-        " VALUES (?, ?, ?, 1, ?, ?)",
-        ("legacy", "legacy@example.com", generate_password_hash("password123"), time.time(), old_kdf_hash),
+        "INSERT INTO users (username, email, password_hash, email_verified, created_at, api_key_hash, storage_key)"
+        " VALUES (?, ?, ?, 1, ?, ?, ?)",
+        (
+            "legacy",
+            "legacy@example.com",
+            generate_password_hash("password123"),
+            time.time(),
+            old_kdf_hash,
+            "legacy-abcdef",
+        ),
     )
     conn.commit()
     conn.close()
 
-    db = UserDatabase(str(path))  # runs the migration
+    with pytest.raises(RuntimeError, match="predates the Project Scope schema epoch"):
+        UserDatabase(str(path))
 
-    with db.engine.connect() as c:
-        cols = {row[1] for row in c.exec_driver_sql("PRAGMA table_info(users)")}
-        assert "api_key_digest" in cols  # column added
-        assert "api_key_hash" in cols  # old column left in place
-        indexes = {row[1] for row in c.exec_driver_sql("PRAGMA index_list(users)")}
-        assert "ix_users_api_key_digest" in indexes  # migrated column indexed
-
-    user = db.get_user_by_username("legacy")
-    assert user is not None and user["api_key_digest"] is None
-    # the old KDF hash was never a digest — the old key is invalid by design
-    assert db.validate_api_key(old_key) is None
-
-    # the migrated DB is fully functional for new keys
-    new_key = db.generate_api_key(user["id"])
-    assert db.validate_api_key(new_key) is not None
+    conn = sqlite3.connect(path)
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+    row = conn.execute("SELECT username FROM users").fetchone()
+    conn.close()
+    assert "api_key_digest" not in columns
+    assert "api_key_hash" in columns
+    assert row == ("legacy",)
 
 
 # ---------------------------------------------------------------------------

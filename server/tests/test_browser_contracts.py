@@ -64,6 +64,8 @@ def test_js_modules_load_in_correct_order() -> None:
         "viewer-shell.js",
         "task-results.js",
         "create-task.js",
+        "projects.js",
+        "project.js",
     ):
         result = subprocess.run(
             ["node", "--check", str(js_dir / filename)],

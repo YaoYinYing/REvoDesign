@@ -18,6 +18,7 @@ from flask import Flask, g, jsonify, request
 from revocompute.auth import _SECRET_KEY as _TOKEN_SIGNING_KEY  # noqa: E402
 from revocompute.auth import UserDatabase  # noqa: E402
 from revocompute.auth import _env_bool  # noqa: E402
+from revocompute.collaboration import CollaborationDatabase  # noqa: E402
 from revocompute.config import ComputeConfig
 from revocompute.config import ensure_directories as _ensure_directories
 from revocompute.config import env_csv as _env_csv
@@ -27,6 +28,7 @@ from revocompute.config import format_runner_identity as _format_runner_identity
 from revocompute.config import resolve_docker_user as _resolve_docker_user
 from revocompute.maintenance.tasks.result_cleanup import delete_task_artifacts as _delete_result_artifacts
 from revocompute.maintenance.tasks.result_cleanup import deleted_status_from_task as _result_deleted_status
+from revocompute.storage import StorageResolver  # noqa: E402
 from revocompute.task_types import list_types as _list_task_types
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
@@ -57,6 +59,8 @@ _ITERATED_STATIC_JS = {
     "input-workspace.js",
     "input-workspace-rfdiffusion.js",
     "create-task.js",
+    "project.js",
+    "projects.js",
     "task-results.js",
 }
 
@@ -115,6 +119,7 @@ def _add_security_headers(response):
 # ---------------------------------------------------------------------------
 _user_db = UserDatabase()
 app.config["user_db"] = _user_db
+app.config["collaboration"] = CollaborationDatabase(os.path.join(CONFIG.server_dir, "collaboration.sqlite3"))
 ENABLE_REGISTER = _env_bool("ENABLE_REGISTER", False)
 
 # Force the auth cookie's Secure flag regardless of request.is_secure.
@@ -188,6 +193,7 @@ app.config["RESULTS_FOLDER"] = CONFIG.results_folder
 app.config["RESULT_DOWNLOAD_MODE"] = CONFIG.result_download_mode
 
 _ensure_directories(CONFIG.upload_folder, CONFIG.workspace_folder, CONFIG.results_folder)
+app.config["storage_resolver"] = StorageResolver(CONFIG.results_folder, CONFIG.workspace_folder)
 
 # The authoritative task type registry is loaded by task_runtime's module-level
 # code.  Startup fails if the configured registry is absent or invalid.
@@ -344,8 +350,54 @@ def _is_admin_user() -> bool:
 def _task_access_allowed(task: dict[str, Any]) -> bool:
     if _is_admin_user():
         return True
-    current_user = _current_username() or ""
-    return bool(current_user) and task.get("username") == current_user
+    user = g.get("current_user")
+    if task.get("scope_type") == "project":
+        return app.config["collaboration"].can_view_project(
+            int(task["scope_id"]),
+            int(user["id"]) if user else None,
+            authenticated=user is not None,
+        )
+    if not user:
+        return False
+    return task.get("scope_type") == "personal" and str(task["scope_id"]) == str(user["id"])
+
+
+def _task_mutation_allowed(task: dict[str, Any]) -> bool:
+    """Authorize cancellation/deletion independently from read visibility."""
+    if _is_admin_user():
+        return True
+    user = g.get("current_user")
+    if not user:
+        return False
+    if task.get("scope_type") == "project":
+        store = app.config["collaboration"]
+        project_id = int(task["scope_id"])
+        if str(task.get("submitted_by_user_id")) == str(user["id"]):
+            return store.can(project_id, int(user["id"]), "cancel_own_tasks")
+        return store.can(project_id, int(user["id"]), "cancel_project_tasks")
+    return task.get("scope_type") == "personal" and str(task["scope_id"]) == str(user["id"])
+
+
+def _task_full_results_allowed(task: dict[str, Any]) -> bool:
+    """Return whether the caller may read inputs, diagnostics, and archives."""
+    if _is_admin_user():
+        return True
+    user = g.get("current_user")
+    if not user:
+        return False
+    if task.get("scope_type") != "project" or not task.get("scope_id"):
+        return _task_access_allowed(task)
+    membership = app.config["collaboration"].get_membership(int(task["scope_id"]), int(user["id"]))
+    return bool(membership and app.config["collaboration"].can(int(task["scope_id"]), int(user["id"]), "view_results"))
+
+
+def _task_artifact_access_allowed(task: dict[str, Any], artifact: dict[str, Any]) -> bool:
+    """Keep diagnostic/provenance files out of visibility-only surfaces."""
+    if not _task_access_allowed(task):
+        return False
+    if _task_full_results_allowed(task):
+        return True
+    return artifact.get("role") not in {"diagnostic", "provenance"}
 
 
 def _task_access_denied(md5sum: str):
@@ -361,10 +413,9 @@ def _task_access_denied(md5sum: str):
     )
 
 
-def _task_id_for_upload(content_md5: str, username: str | None) -> str:
-    # Keep task IDs owner-scoped so two users uploading the same FASTA never collide.
-    owner = username or "anonymous"
-    scoped_key = f"{owner}:{content_md5}"
+def _task_id_for_upload(content_md5: str, scope_identity: str) -> str:
+    # Keep task IDs scope-specific so identical inputs in different scopes never collide.
+    scoped_key = f"{scope_identity}:{content_md5}"
     return hashlib.md5(scoped_key.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 

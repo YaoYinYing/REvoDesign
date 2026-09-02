@@ -206,6 +206,16 @@ class TaskSubmissionRequest(BaseModel):
 
     task_type: str = Field(default="gremlin")
     params: dict[str, Any] = Field(default_factory=dict)
+    scope_type: Literal["personal", "project"] = "personal"
+    scope_id: int | None = None
+
+    @model_validator(mode="after")
+    def _validate_scope(self) -> TaskSubmissionRequest:
+        if self.scope_type == "project" and self.scope_id is None:
+            raise ValueError("scope_id is required for Project tasks")
+        if self.scope_type == "personal" and self.scope_id is not None:
+            raise ValueError("scope_id must not be supplied for Personal tasks")
+        return self
 
     @field_validator("task_type", mode="before")
     @classmethod

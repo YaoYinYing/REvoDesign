@@ -53,8 +53,14 @@ def rt(monkeypatch, tmp_path):
 
 def _make_task(rt, relative_paths=("query.fasta",)):
     md5 = "a" * 32
-    ws = Path(rt.CONFIG.workspace_folder)
-    snapshot_root = ws / "alice" / md5 / "inputs"
+    identity = {
+        "md5sum": md5,
+        "scope_type": "personal",
+        "scope_id": "1",
+        "storage_key": "alice-abcdef",
+    }
+    resolver = rt.StorageResolver(rt.CONFIG.results_folder, rt.CONFIG.workspace_folder)
+    snapshot_root = Path(resolver.get_input_root(identity)) / "inputs"
     snapshot_root.mkdir(parents=True)
     entities = []
     for index, relative_path in enumerate(relative_paths):
@@ -69,21 +75,21 @@ def _make_task(rt, relative_paths=("query.fasta",)):
                 "value": Path(relative_path).name,
                 "verified_value": relative_path,
                 "relative_path": relative_path,
-                "mounted": f"/mnt/revocompute/alice/inputs/{relative_path}",
+                "mounted": f"/mnt/revocompute/alice-abcdef/inputs/{relative_path}",
                 "hash": hashlib.sha256(content).hexdigest(),
                 "snapshot_path": str(snapshot),
                 "snapshot_root": str(snapshot_root),
-                "workspace_key": "alice",
+                "workspace_key": "alice-abcdef",
             }
         )
     entities.append({"name": "max_iter", "type": "int", "value": 5, "verified_value": 5})
-    result_dir = Path(rt.CONFIG.results_folder) / md5
+    result_dir = Path(resolver.get_task_root(identity))
     result_dir.mkdir(parents=True)
     task = {
         "md5sum": md5,
         "task_type": "gremlin",
         "username": "alice",
-        "result_dir": str(result_dir),
+        **identity,
         "input_form": json.dumps(
             {
                 "user": "alice",
@@ -97,6 +103,14 @@ def _make_task(rt, relative_paths=("query.fasta",)):
         "uploaded_at": 1700000000.0,
     }
     return task, entities
+
+
+def _result_root(rt, task):
+    return Path(rt.StorageResolver(rt.CONFIG.results_folder, rt.CONFIG.workspace_folder).get_task_root(task))
+
+
+def _input_root(rt, task):
+    return Path(rt.StorageResolver(rt.CONFIG.results_folder, rt.CONFIG.workspace_folder).get_input_root(task))
 
 
 class _FakeTaskStore:
@@ -122,7 +136,7 @@ def test_capture_writes_submission_json_and_input_copies(rt, tmp_path):
     task, entities = _make_task(rt)
     rt._capture_debug_submission(task, entities)
 
-    debug_dir = tmp_path / "server" / "results" / task["md5sum"] / "debug"
+    debug_dir = _result_root(rt, task) / "debug"
     assert (debug_dir / "inputs" / "query.fasta").read_bytes() == b">seq0\nACDE\n"
 
     submission = json.loads((debug_dir / "submission.json").read_text(encoding="utf-8"))
@@ -140,7 +154,7 @@ def test_capture_keeps_nested_user_facing_paths(rt):
     task, entities = _make_task(rt, relative_paths=("sub/dir/input.fa",))
     rt._capture_debug_submission(task, entities)
 
-    debug_dir = Path(task["result_dir"]) / "debug"
+    debug_dir = _result_root(rt, task) / "debug"
     assert (debug_dir / "inputs" / "sub" / "dir" / "input.fa").read_bytes() == b">seq0\nACDE\n"
     submission = json.loads((debug_dir / "submission.json").read_text(encoding="utf-8"))
     assert submission["files"][0]["name"] == "sub/dir/input.fa"
@@ -150,7 +164,7 @@ def test_capture_uses_explicit_params_argument(rt):
     task, entities = _make_task(rt)
     rt._capture_debug_submission(task, entities, {"overrides": "raw"})
 
-    debug_dir = Path(task["result_dir"]) / "debug"
+    debug_dir = _result_root(rt, task) / "debug"
     submission = json.loads((debug_dir / "submission.json").read_text(encoding="utf-8"))
     assert submission["params"] == {"overrides": "raw"}
 
@@ -168,7 +182,7 @@ def test_capture_skips_path_traversal(rt):
     )
     rt._capture_debug_submission(task, entities)
 
-    debug_dir = Path(task["result_dir"]) / "debug"
+    debug_dir = _result_root(rt, task) / "debug"
     assert not (debug_dir / "inputs" / "evil.fa").exists()
     submission = json.loads((debug_dir / "submission.json").read_text(encoding="utf-8"))
     assert all(fe["name"] != "../evil.fa" for fe in submission["files"])
@@ -189,7 +203,7 @@ def test_capture_skips_snapshot_outside_workspace(rt, tmp_path):
     )
     rt._capture_debug_submission(task, entities)
 
-    debug_dir = Path(task["result_dir"]) / "debug"
+    debug_dir = _result_root(rt, task) / "debug"
     assert not (debug_dir / "inputs" / "stolen.bin").exists()
 
 
@@ -199,7 +213,7 @@ def test_capture_never_raises_on_missing_snapshot(rt):
     # Must not raise — the job finalization keeps going regardless.
     rt._capture_debug_submission(task, entities)
 
-    debug_dir = Path(task["result_dir"]) / "debug"
+    debug_dir = _result_root(rt, task) / "debug"
     submission = json.loads((debug_dir / "submission.json").read_text(encoding="utf-8"))
     assert submission["files"] == []
 
@@ -216,8 +230,8 @@ def test_record_failure_captures_before_workspace_cleanup(rt, monkeypatch):
 
     assert fake_store.updates[-1]["status"] == "failed"
     # Workspace was cleaned up, so the debug copy proves capture ran first.
-    assert not (Path(rt.CONFIG.workspace_folder) / "alice" / task["md5sum"]).exists()
-    result_dir = Path(task["result_dir"])
+    assert not _input_root(rt, task).exists()
+    result_dir = _result_root(rt, task)
     debug_dir = result_dir / "debug"
     assert (debug_dir / "submission.json").is_file()
     assert (debug_dir / "inputs" / "query.fasta").read_bytes() == b">seq0\nACDE\n"
@@ -234,8 +248,8 @@ def test_finalize_after_poll_publishes_debug_files_in_manifest(rt, monkeypatch):
     rt._finalize_after_poll(task["md5sum"], task, _FakeTaskType(), rt.JobState.COMPLETED)
 
     assert fake_store.updates[-1]["status"] == "finished"
-    assert not (Path(rt.CONFIG.workspace_folder) / "alice" / task["md5sum"]).exists()
-    manifest = json.loads((Path(task["result_dir"]) / "manifest.json").read_text(encoding="utf-8"))
+    assert not _input_root(rt, task).exists()
+    manifest = json.loads((_result_root(rt, task) / "manifest.json").read_text(encoding="utf-8"))
     artifact_paths = {artifact["path"] for artifact in manifest["artifacts"]}
     assert "debug/submission.json" in artifact_paths
     assert "debug/inputs/query.fasta" in artifact_paths

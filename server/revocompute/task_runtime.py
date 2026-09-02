@@ -45,6 +45,7 @@ from revocompute.result_storyboard import (
     resolve_expected_files,
     storyboard_declaration,
 )
+from revocompute.storage import StorageResolver
 from revocompute.task_types import get as _get_task_type
 from revocompute.task_types import get_job_executor as _get_job_executor
 from revocompute.task_types import load_registry as _load_task_registry
@@ -159,11 +160,23 @@ def _local_user_identity() -> str:
 
 
 def _task_zip_path(task: Any) -> str:
-    raw_task_id = task if isinstance(task, str) else task["md5sum"]
-    task_id = _normalize_task_id(raw_task_id)
-    if task_id is None:
-        raise ValueError(f"Invalid task id for result archive: {raw_task_id!r}")
-    return _safe_join(CONFIG.results_folder, f"{task_id}_results.zip")
+    if isinstance(task, str):
+        stored = task_store.get_task(task)
+        if stored is None:
+            raise ValueError(f"Unknown task id for result archive: {task!r}")
+        return _storage().get_archive_path(stored)
+    else:
+        return _storage().get_archive_path(task)
+
+
+def _task_result_dir(task: dict[str, Any]) -> str:
+    """Resolve the authoritative output root from the task scope."""
+    return _storage().get_task_root(task)
+
+
+def _storage() -> StorageResolver:
+    """Build from current config so tests and controlled reloads stay isolated."""
+    return StorageResolver(CONFIG.results_folder, CONFIG.workspace_folder)
 
 
 def _virtual_upload_path(filename: str) -> str:
@@ -221,7 +234,10 @@ def _sanitize_task_error(task: dict[str, Any], error: Any) -> str | None:
         message = message.replace(file_path, _virtual_upload_path(task.get("filename", "unknown.fasta")))
     if CONFIG.server_dir and CONFIG.server_dir in message:
         message = message.replace(CONFIG.server_dir, "<server_dir>")
-    result_dir = str(task.get("result_dir") or "")
+    try:
+        result_dir = _task_result_dir(task)
+    except ValueError:
+        result_dir = ""
     if result_dir and result_dir in message:
         message = message.replace(result_dir, "<result_dir>")
     return message
@@ -686,7 +702,7 @@ def _finalize_results_manifest(
     """Atomically publish the immutable scientific result record for a task."""
     if execution_state not in {"completed", "failed"}:
         raise ValueError("execution_state must be completed or failed")
-    result_dir = os.path.abspath(task["result_dir"])
+    result_dir = _task_result_dir(task)
     os.makedirs(result_dir, exist_ok=True)
     try:
         task_type, _ = _get_task_type(task.get("task_type", "gremlin"))
@@ -762,7 +778,7 @@ def _finalize_results_manifest(
 def _build_results_archive(task: dict) -> str:
     """Build an optional ZIP from the artifacts published in the manifest."""
     zip_filename = _task_zip_path(task)
-    result_dir = os.path.abspath(task["result_dir"])
+    result_dir = _task_result_dir(task)
     manifest_path = _safe_join(result_dir, "manifest.json")
     try:
         with open(manifest_path, encoding="utf-8") as handle:
@@ -790,8 +806,9 @@ def _build_results_archive(task: dict) -> str:
 
 
 def _finalize_failed_results(task: dict, error: Any, *, finished_at: float) -> None:
-    result_dir = task.get("result_dir")
-    if not result_dir:
+    try:
+        result_dir = _task_result_dir(task)
+    except ValueError:
         return
     try:
         os.makedirs(result_dir, exist_ok=True)
@@ -876,17 +893,13 @@ def _cleanup_task_workspace(task: dict[str, Any]) -> None:
     state.  Results live in the separate results folder and are untouched;
     only the immutable input snapshot and staging area are removed, so
     finished tasks no longer hold duplicate input copies on disk."""
-    username = str(task.get("username") or "").strip()
-    md5sum = str(task.get("md5sum") or "")
-    if not username or not md5sum:
-        return
     try:
-        workspace_dir = _safe_join(CONFIG.workspace_folder, username, md5sum)
+        workspace_dir = _storage().get_input_root(task)
     except ValueError:
         return
     if os.path.isdir(workspace_dir):
         shutil.rmtree(workspace_dir, ignore_errors=True)
-        logging.info("Cleaned up workspace %s for finished task %s", workspace_dir, md5sum)
+        logging.info("Cleaned up workspace %s for finished task %s", workspace_dir, task.get("md5sum"))
 
 
 def _entities_from_input_form(task: dict[str, Any]) -> list[dict]:
@@ -910,8 +923,9 @@ def _capture_debug_submission(task: dict[str, Any], entities: list[dict], params
     plus each input snapshot copied to its user-facing path under
     ``debug/inputs/``.  Any failure only logs a warning — debug capture must
     never fail a job finalization."""
-    result_dir = str(task.get("result_dir") or "")
-    if not result_dir:
+    try:
+        result_dir = _task_result_dir(task)
+    except ValueError:
         return
     try:
         debug_dir = _safe_join(result_dir, "debug")
@@ -1018,7 +1032,7 @@ def _execute_compute_task(md5sum: str, task_type: str = "gremlin", params: dict 
         _record_failure(md5sum, task, time.time(), "", f"Unknown task type: {task_type!r}")
         return
 
-    output_dir = task["result_dir"]
+    output_dir = _task_result_dir(task)
 
     # Parse entities from the input_form JSON blob
     raw_form = task.get("input_form")
@@ -1338,7 +1352,7 @@ def _recover_orphaned_tasks() -> int:
             from revocompute.task_types import get as _gt
 
             tt, runner = _gt(task_type)
-            job = DockerJob(md5sum, tt, runner, [], task["result_dir"])
+            job = DockerJob(md5sum, tt, runner, [], _task_result_dir(task))
             if job.reconnect(container_id):
                 logging.info("Recovery: reconnected Docker %s for %s", container_id, md5sum)
                 threading.Thread(

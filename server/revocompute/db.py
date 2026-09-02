@@ -12,6 +12,7 @@ import time
 from typing import Any
 
 from sqlalchemy import (
+    CheckConstraint,
     Column,
     Float,
     Index,
@@ -28,6 +29,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import OperationalError
+
+from revocompute.schema_epoch import require_current_schema
 
 
 class TaskDatabase:
@@ -68,7 +71,6 @@ class TaskDatabase:
             Column("md5sum", String(32), primary_key=True),
             Column("filename", String, nullable=False),
             Column("file_path", String, nullable=False),
-            Column("result_dir", String, nullable=False),
             Column("uploaded_at", Float, nullable=False),
             Column("started_at", Float),
             Column("finished_at", Float),
@@ -88,13 +90,31 @@ class TaskDatabase:
             Column("slurm_job_id", String),
             Column("container_id", String),
             Column("workflow_state", Text),
+            Column("scope_type", String, nullable=False),
+            Column("scope_id", String, nullable=False),
+            Column("storage_key", String, nullable=False),
+            Column("submitted_by_user_id", Integer, nullable=False),
+            Column("artifact_provenance", Text, nullable=False, default="[]"),
+            CheckConstraint("scope_type IN ('personal','project')", name="ck_task_scope_type"),
         )
         Index("idx_tasks_uploaded_at", self.tasks_table.c.uploaded_at)
+        Index(
+            "idx_tasks_scope",
+            self.tasks_table.c.scope_type,
+            self.tasks_table.c.scope_id,
+            self.tasks_table.c.uploaded_at,
+        )
+        Index("idx_tasks_submitter", self.tasks_table.c.submitted_by_user_id, self.tasks_table.c.uploaded_at)
         self._initialize()
 
     def _initialize(self) -> None:
         with self.engine.begin() as conn:
             self._safe_apply_pragmas(conn)
+            require_current_schema(
+                conn,
+                {"tasks": {column.name for column in self.tasks_table.columns}},
+                database_name="task database",
+            )
             try:
                 self.metadata.create_all(conn, checkfirst=True)
             except OperationalError as exc:
@@ -104,12 +124,6 @@ class TaskDatabase:
                 if "already exists" not in str(exc).lower():
                     raise
                 logging.warning("TaskDatabase metadata already present, skipping creation")
-            # create_all does not add columns to existing tables — backfill
-            # ones added after a table first shipped (idempotent).
-            existing = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(tasks)")}
-            for column in ("container_id", "workflow_state"):
-                if column not in existing:
-                    conn.exec_driver_sql(f"ALTER TABLE tasks ADD COLUMN {column} VARCHAR")
 
     @staticmethod
     def _safe_apply_pragmas(conn) -> None:
@@ -147,7 +161,13 @@ class TaskDatabase:
     def _is_deleted_status(cls, status: Any) -> bool:
         return str(status or "").strip().lower() in cls.DELETED_STATUSES
 
-    def upsert_task(self, md5sum: str, **fields) -> None:
+    def upsert_task(self, task_id: str | None = None, **fields) -> None:
+        supplied_id = fields.pop("md5sum", None)
+        if task_id is not None and supplied_id is not None and task_id != supplied_id:
+            raise ValueError("Conflicting task ids")
+        md5sum = task_id or supplied_id
+        if not md5sum:
+            raise ValueError("Task id is required")
         if not fields:
             return
         status = fields.get("status")
@@ -257,13 +277,13 @@ class TaskDatabase:
             rows = conn.execute(stmt).mappings().all()
         return [self._normalize_task_row(row) for row in rows]
 
-    def count_user_active_tasks(self, username: str) -> int:
+    def count_user_active_tasks(self, user_id: int) -> int:
         """Count pending, queued, and running tasks for a user."""
         stmt = (
             select(func.count())
             .select_from(self.tasks_table)
             .where(
-                self.tasks_table.c.username == username,
+                self.tasks_table.c.submitted_by_user_id == user_id,
                 self.tasks_table.c.status.in_(["pending", "queued", "running"]),
             )
         )

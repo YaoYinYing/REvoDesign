@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REvoDesign | Projects</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/compute/logo.svg">
+<link rel="mask-icon" href="/compute/logo.svg" color="#0f4f63">
+<link rel="stylesheet" href="/static/css/base.css?v={{ static_version }}">
+<link rel="stylesheet" href="/static/css/projects.css?v={{ static_version }}">
+<script src="/static/js/theme.js?v={{ static_version }}"></script>
+</head>
+<body>
+<main class="page projects-page">
+  <header class="projects-nav">
+    <a class="projects-brand" href="/" aria-label="REvoDesign home">
+      <img src="/compute/logo.svg" alt="" width="38" height="38">
+      <span>REvoCompute</span>
+    </a>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="/compute/create_task">New task</a>
+      <a class="btn btn-soft" href="/compute/dashboard">Dashboard</a>
+      <button class="btn btn-soft theme-toggle mode-auto" type="button" id="themeToggle" aria-pressed="mixed" title="Cycle theme: Auto, Dark, Light"><span class="theme-icon" aria-hidden="true">&#9680;</span></button>
+    </div>
+  </header>
+
+  <section class="projects-heading">
+    <div>
+      <p class="projects-eyebrow">Scientific collaboration</p>
+      <h1>Projects</h1>
+    </div>
+    <button class="btn btn-primary" id="showCreateProject" type="button">Create project</button>
+  </section>
+
+  <section class="create-project-panel" id="createProjectPanel" hidden aria-labelledby="createProjectTitle">
+    <header class="section-heading">
+      <div><p class="projects-eyebrow">New project</p><h2 id="createProjectTitle">Start a collaboration</h2></div>
+      <button class="icon-button" id="closeCreateProject" type="button" title="Close" aria-label="Close create project form">&times;</button>
+    </header>
+    <form id="createProjectForm" class="project-form">
+      <label class="field field-wide" for="projectName"><span>Name</span><input class="text-input" id="projectName" name="name" maxlength="120" required autocomplete="off"></label>
+      <label class="field" for="projectVisibility"><span>Visibility</span><select class="text-input" id="projectVisibility" name="visibility"><option value="private">Private</option><option value="internal">Internal</option><option value="public">Public</option></select></label>
+      <label class="field field-wide" for="projectDescription"><span>Description</span><textarea class="text-input project-textarea" id="projectDescription" name="description" maxlength="2000"></textarea></label>
+      <div class="form-actions field-wide"><button class="btn btn-primary" type="submit">Create project</button><p class="form-status" id="createProjectStatus" aria-live="polite"></p></div>
+    </form>
+  </section>
+
+  <section class="project-section" aria-labelledby="yourProjectsTitle">
+    <header class="section-heading"><div><p class="projects-eyebrow">Personal and shared scopes</p><h2 id="yourProjectsTitle">Your projects</h2></div><input class="search-input project-search" id="projectSearch" type="search" placeholder="Search projects" autocomplete="off"></header>
+    <div class="project-grid" id="projectGrid" aria-live="polite"></div>
+    <p class="empty-state" id="projectsEmpty" hidden>No projects found.</p>
+  </section>
+
+  <section class="project-section" aria-labelledby="invitationsTitle">
+    <header class="section-heading"><div><p class="projects-eyebrow">Pending action</p><h2 id="invitationsTitle">Invitations</h2></div></header>
+    <div class="invitation-list" id="invitationList" aria-live="polite"></div>
+    <p class="empty-state" id="invitationsEmpty" hidden>No pending invitations.</p>
+  </section>
+</main>
+
+<script src="/static/js/auth-api.js?v={{ static_version }}"></script>
+<script src="/static/js/projects.js?v={{ static_version }}"></script>
+</body>
+</html>
