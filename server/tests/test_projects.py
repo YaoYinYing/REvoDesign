@@ -160,6 +160,22 @@ def test_member_roles_removal_and_ownership_transfer(store):
     assert store.remove_member(project["id"], 1)
 
 
+def test_archival_wins_all_collaboration_mutations(store):
+    project = store.create_project(1, "Frozen")
+    invitation = store.invite(project["id"], 2, 1, "viewer")
+    assert store.archive_project(project["id"])
+    assert not store.archive_project(project["id"])
+    assert not store.set_member_role(project["id"], 1, "maintainer")
+    assert not store.remove_member(project["id"], 1)
+    assert not store.transfer_ownership(project["id"], 1, 2)
+    with pytest.raises(ValueError, match="project does not exist"):
+        store.invite(project["id"], 3, 1)
+    assert not store.respond_invitation(invitation["id"], 2, True)
+    assert store.get_membership(project["id"], 1)["role"] == "owner"
+    assert store.get_membership(project["id"], 2) is None
+    assert store.get_invitation(invitation["id"])["status"] == "revoked"
+
+
 def test_reopen_existing_database_preserves_records(store):
     project = store.create_project(1, "Persistent")
     reopened = CollaborationStore(store.path)

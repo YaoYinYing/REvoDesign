@@ -290,13 +290,17 @@ class CollaborationDatabase:
     def set_member_role(self, project_id: int, user_id: int, role: str) -> bool:
         if role not in PROJECT_ROLES or role == "owner":
             raise ValueError("owner changes require transfer_ownership")
-        if not self._project_is_active(project_id):
-            return False
         with self.engine.begin() as conn:
             return (
                 conn.execute(
                     sa.update(self.members)
                     .where(
+                        sa.exists(
+                            sa.select(self.projects.c.id).where(
+                                self.projects.c.id == self.members.c.project_id,
+                                self.projects.c.archived_at.is_(None),
+                            )
+                        ),
                         self.members.c.project_id == project_id,
                         self.members.c.user_id == user_id,
                         self.members.c.role != "owner",
@@ -307,9 +311,14 @@ class CollaborationDatabase:
             )
 
     def transfer_ownership(self, project_id: int, current_owner_id: int, new_owner_id: int) -> bool:
-        if not self._project_is_active(project_id):
-            return False
         with self.engine.begin() as conn:
+            active = conn.execute(
+                sa.select(self.projects.c.id).where(
+                    self.projects.c.id == project_id, self.projects.c.archived_at.is_(None)
+                )
+            ).scalar_one_or_none()
+            if active is None:
+                return False
             current = conn.execute(
                 sa.select(self.members.c.role).where(
                     self.members.c.project_id == project_id, self.members.c.user_id == current_owner_id
@@ -335,12 +344,16 @@ class CollaborationDatabase:
             return True
 
     def remove_member(self, project_id: int, user_id: int) -> bool:
-        if not self._project_is_active(project_id):
-            return False
         with self.engine.begin() as conn:
             return (
                 conn.execute(
                     sa.delete(self.members).where(
+                        sa.exists(
+                            sa.select(self.projects.c.id).where(
+                                self.projects.c.id == self.members.c.project_id,
+                                self.projects.c.archived_at.is_(None),
+                            )
+                        ),
                         self.members.c.project_id == project_id,
                         self.members.c.user_id == user_id,
                         self.members.c.role != "owner",
@@ -360,15 +373,25 @@ class CollaborationDatabase:
     ) -> dict[str, Any]:
         if role not in PROJECT_ROLES or role == "owner":
             raise ValueError("invalid invitation role")
-        if not self._project_is_active(project_id):
-            raise ValueError("project does not exist")
-        if self.get_membership(project_id, invited_user_id):
-            raise ValueError("user is already a project member")
         now, expiry = time.time(), expires_at or time.time() + 7 * 86400
         if expiry <= now:
             raise ValueError("invitation expiry must be in the future")
         try:
             with self.engine.begin() as conn:
+                active = conn.execute(
+                    sa.select(self.projects.c.id).where(
+                        self.projects.c.id == project_id, self.projects.c.archived_at.is_(None)
+                    )
+                ).scalar_one_or_none()
+                if active is None:
+                    raise ValueError("project does not exist")
+                member = conn.execute(
+                    sa.select(self.members.c.user_id).where(
+                        self.members.c.project_id == project_id, self.members.c.user_id == invited_user_id
+                    )
+                ).first()
+                if member is not None:
+                    raise ValueError("user is already a project member")
                 result = conn.execute(
                     sa.insert(self.invitations).values(
                         project_id=project_id,
