@@ -29,16 +29,16 @@
     <div class="project-identity-actions"><span class="visibility-badge" id="projectVisibilityBadge"></span><a class="btn btn-primary" id="newProjectTask" href="/compute/create_task" hidden>New task</a></div>
   </section>
 
-  <nav class="project-tabs" aria-label="Project sections">
-    <button class="project-tab active" type="button" data-tab="overview">Overview</button>
-    <button class="project-tab" type="button" data-tab="tasks">Tasks</button>
-    <button class="project-tab" type="button" data-tab="members">Members</button>
-    <button class="project-tab" type="button" data-tab="settings">Settings</button>
+  <nav class="project-tabs" aria-label="Project sections" role="tablist">
+    <button class="project-tab active" id="project-tab-overview" type="button" role="tab" aria-selected="true" aria-controls="tab-overview" data-tab="overview">Overview</button>
+    <button class="project-tab" id="project-tab-tasks" type="button" role="tab" aria-selected="false" aria-controls="tab-tasks" data-tab="tasks">Tasks</button>
+    <button class="project-tab" id="project-tab-members" type="button" role="tab" aria-selected="false" aria-controls="tab-members" data-tab="members">Members</button>
+    <button class="project-tab" id="project-tab-settings" type="button" role="tab" aria-selected="false" aria-controls="tab-settings" data-tab="settings">Settings</button>
   </nav>
 
   <div class="project-status" id="projectStatus" aria-live="polite"></div>
 
-  <section class="project-tab-panel" id="tab-overview" data-panel="overview">
+  <section class="project-tab-panel" id="tab-overview" role="tabpanel" aria-labelledby="project-tab-overview" data-panel="overview">
     <div class="project-metrics">
       <div><span>Tasks</span><strong id="projectTaskCount">-</strong></div>
       <div><span>Members</span><strong id="projectMemberCount">-</strong></div>
@@ -47,13 +47,13 @@
     <section class="project-section compact" aria-labelledby="recentTasksTitle"><header class="section-heading"><div><p class="projects-eyebrow">Latest work</p><h2 id="recentTasksTitle">Recent tasks</h2></div><button class="text-button" type="button" data-open-tab="tasks">View all</button></header><div class="project-task-list" id="recentTaskList"></div></section>
   </section>
 
-  <section class="project-tab-panel" id="tab-tasks" data-panel="tasks" hidden>
+  <section class="project-tab-panel" id="tab-tasks" role="tabpanel" aria-labelledby="project-tab-tasks" data-panel="tasks" hidden>
     <header class="section-heading"><div><p class="projects-eyebrow">Project scope</p><h2>Tasks</h2></div></header>
     <div class="project-task-list" id="projectTaskList"></div>
     <p class="empty-state" id="projectTasksEmpty" hidden>No tasks in this project.</p>
   </section>
 
-  <section class="project-tab-panel" id="tab-members" data-panel="members" hidden>
+  <section class="project-tab-panel" id="tab-members" role="tabpanel" aria-labelledby="project-tab-members" data-panel="members" hidden>
     <header class="section-heading"><div><p class="projects-eyebrow">Collaboration</p><h2>Members</h2></div></header>
     <form class="invite-form" id="inviteMemberForm" hidden>
       <label class="field" for="inviteUserSearch"><span>Existing user</span><input class="search-input" id="inviteUserSearch" type="search" list="inviteUserOptions" placeholder="Search username" autocomplete="off" required><datalist id="inviteUserOptions"></datalist></label>
@@ -64,7 +64,7 @@
     <section class="pending-invitations" id="pendingInvitations" hidden aria-labelledby="projectInvitationsTitle"><header class="section-heading"><h3 id="projectInvitationsTitle">Pending invitations</h3></header><div class="invitation-list" id="projectInvitationList"></div></section>
   </section>
 
-  <section class="project-tab-panel" id="tab-settings" data-panel="settings" hidden>
+  <section class="project-tab-panel" id="tab-settings" role="tabpanel" aria-labelledby="project-tab-settings" data-panel="settings" hidden>
     <form id="projectSettingsForm" class="settings-form">
       <section class="settings-section"><header><p class="projects-eyebrow">General</p><h2>Project details</h2></header><label class="field" for="settingsName"><span>Name</span><input class="text-input" id="settingsName" maxlength="120" required></label><label class="field" for="settingsDescription"><span>Description</span><textarea class="text-input project-textarea" id="settingsDescription" maxlength="2000"></textarea></label></section>
       <section class="settings-section"><header><p class="projects-eyebrow">Discovery</p><h2>Visibility</h2></header><div class="visibility-options"><label><input type="radio" name="settingsVisibility" value="private"><span><strong>Private</strong><small>Members only</small></span></label><label><input type="radio" name="settingsVisibility" value="internal"><span><strong>Internal</strong><small>Authenticated users can discover and read</small></span></label><label><input type="radio" name="settingsVisibility" value="public"><span><strong>Public</strong><small>Anonymous read-only discovery</small></span></label></div></section>

@@ -158,6 +158,8 @@ def test_create_task_supports_task_type_deep_links():
     assert 'new URLSearchParams(window.location.search).get("task_type")' in script
     assert "task.name === requested" in script
     assert "/compute/create_task?task_type={{ task_type.name | urlencode }}" in detail
+    assert "unresolvedRequestedScope = true" in script
+    assert 'selectedScope ? selectedScope.value : "personal"' not in script
 
 
 def test_maintenance_page_is_standalone_and_on_mission():

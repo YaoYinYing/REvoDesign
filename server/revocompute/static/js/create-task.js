@@ -13,7 +13,7 @@
   var catalogStatus = document.getElementById("catalogStatus"), protocolTrack = document.getElementById("protocolTrack");
   var validationChecks = document.getElementById("validationChecks"), validationSummary = document.getElementById("validationSummary");
   var scopeOptions = document.getElementById("scopeOptions"), artifactReferencesInput = document.getElementById("artifactReferences");
-  var catalog = { categories: [], task_types: [] }, currentForm = null, loadController = null, loadGeneration = 0, scopeReady = false;
+  var catalog = { categories: [], task_types: [] }, currentForm = null, loadController = null, loadGeneration = 0, scopeReady = false, unresolvedRequestedScope = false;
 
   function setStatus(message, kind) {
     statusNode.className = "status" + (kind ? " " + kind : ""); statusNode.textContent = message;
@@ -59,9 +59,12 @@
       if (requestedType === "project" && requestedId) {
         var requested = Array.from(scopeOptions.querySelectorAll('input[value="project"]')).find(function (input) { return input.dataset.scopeId === requestedId; });
         if (requested) requested.checked = true;
+        else { unresolvedRequestedScope = true; setStatus("The requested Project is unavailable. Select another scope.", "error"); }
       }
     } catch (error) {
-      setStatus("Project scopes are temporarily unavailable. Personal scope remains available.", "error");
+      var requestedProject = new URLSearchParams(window.location.search).get("scope_type") === "project";
+      unresolvedRequestedScope = requestedProject;
+      setStatus(requestedProject ? "The requested Project could not be loaded. Select another scope." : "Project scopes are temporarily unavailable. Personal scope remains available.", "error");
     } finally {
       scopeReady = true; if (currentForm) refreshValidation();
     }
@@ -162,6 +165,7 @@
     var referenceErrors = artifactReferenceErrors(references);
     artifactReferencesInput.setAttribute("aria-invalid", referenceErrors.length ? "true" : "false");
     if (!scopeReady) errors.push("Loading task scopes.");
+    if (unresolvedRequestedScope) errors.push("Select a scope for this task.");
     if (references.length && !referenceErrors.length && !files.length && !sequence) {
       errors = errors.filter(function (error) { return error !== "Choose an input file or provide a sequence."; });
       workspaceRoot.querySelectorAll('[id^="file_error_"]').forEach(function (error) {
@@ -201,7 +205,8 @@
     files.forEach(function (file) { formData.append("files", file); formData.append("input_paths", file.webkitRelativePath || file.name); });
     artifactReferences().forEach(function (reference) { formData.append("artifact_references", reference); });
     var selectedScope = scopeOptions.querySelector('input[name="taskScope"]:checked');
-    formData.append("scope_type", selectedScope ? selectedScope.value : "personal");
+    if (!selectedScope || unresolvedRequestedScope) { setStatus("Select a scope before submitting.", "error"); return; }
+    formData.append("scope_type", selectedScope.value);
     if (selectedScope && selectedScope.value === "project") formData.append("scope_id", selectedScope.dataset.scopeId);
     formData.append("task_type", currentForm.name);
     formData.append("workspace", JSON.stringify({ version: 2, capabilities: capabilities }));
@@ -222,7 +227,7 @@
   document.getElementById("changeMethod").addEventListener("click", function () { showChooser("Choose another method."); });
   methodSearch.addEventListener("input", function () { renderCatalog(methodSearch.value); });
   artifactReferencesInput.addEventListener("input", refreshValidation);
-  scopeOptions.addEventListener("change", refreshValidation);
+  scopeOptions.addEventListener("change", function () { unresolvedRequestedScope = false; refreshValidation(); });
 
   var dropZone = document.querySelector(".experiment-form-panel");
   function dragOver(event) { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; dropZone.classList.add("drop-highlight"); }

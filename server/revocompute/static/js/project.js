@@ -104,7 +104,7 @@
     row.querySelectorAll("button, select").forEach(function (control) { control.disabled = true; });
     try {
       await request(apiRoot + "/transfer-ownership", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: member.user_id }) });
-      state.members = null; await Promise.all([loadProject(), loadMembers(true)]); setStatus("Project ownership transferred.", "ok");
+      state.members = null; await loadProject(); await loadMembers(true); setStatus("Project ownership transferred.", "ok");
     } catch (error) { row.querySelectorAll("button, select").forEach(function (control) { control.disabled = false; }); setStatus(error.message, "error"); }
   }
 
@@ -156,7 +156,9 @@
   });
 
   function openTab(name) {
-    document.querySelectorAll(".project-tab").forEach(function (tab) { tab.classList.toggle("active", tab.dataset.tab === name); });
+    document.querySelectorAll(".project-tab").forEach(function (tab) {
+      var selected = tab.dataset.tab === name; tab.classList.toggle("active", selected); tab.setAttribute("aria-selected", String(selected));
+    });
     document.querySelectorAll(".project-tab-panel").forEach(function (panel) { panel.hidden = panel.dataset.panel !== name; });
     if (name === "tasks") loadTasks().catch(function (error) { setStatus(error.message, "error"); });
     if (name === "members") Promise.all([loadMembers(), has("manage_members") ? loadInvitations() : Promise.resolve([])]).catch(function (error) { setStatus(error.message, "error"); });

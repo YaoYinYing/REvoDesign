@@ -185,7 +185,9 @@ def projects_api():
                 ),
                 "member_count": len(store.list_members(project["id"])),
                 "task_count": sum(
-                    task.get("scope_type") == "project" and str(task.get("scope_id")) == str(project["id"])
+                    task.get("scope_type") == "project"
+                    and str(task.get("scope_id")) == str(project["id"])
+                    and not _is_deleted_status(task.get("status"))
                     for task in all_tasks
                 ),
             }
@@ -220,7 +222,9 @@ def project_api(project_id: str):
         user = g.get("current_user")
         membership = store.get_membership(project_id, int(user["id"])) if user else None
         task_count = sum(
-            task.get("scope_type") == "project" and str(task.get("scope_id")) == str(project_id)
+            task.get("scope_type") == "project"
+            and str(task.get("scope_id")) == str(project_id)
+            and not _is_deleted_status(task.get("status"))
             for task in task_store.list_tasks()
         )
         return jsonify(
@@ -465,6 +469,7 @@ def project_tasks_api(project_id: str):
         }
         for task in task_store.list_tasks()
         if task.get("scope_type") == "project" and str(task.get("scope_id")) == str(project_id)
+        and not _is_deleted_status(task.get("status"))
     ]
     return jsonify({"tasks": tasks})
 
@@ -1301,7 +1306,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
             return jsonify({"error": str(exc)}), 400
     workspace_key = task_scope["storage_key"]
     if not _WORKSPACE_KEY_PATTERN.fullmatch(workspace_key):
-        return jsonify({"error": "Username cannot be represented safely in a workspace path"}), 400
+        return jsonify({"error": "Scope storage identity is invalid"}), 400
 
     existing_task = task_store.get_task(md5sum)
     if existing_response := _existing_upload_response(existing_task, md5sum):
@@ -1436,7 +1441,7 @@ def upload_file():  # skipcq: PY-R1000 -- route validation branches form one tra
 
 
 @app.route("/compute/api/running/<md5sum>", methods=["GET"])
-@login_required
+@optional_user
 def run_gremlin(md5sum):
     md5sum = _normalize_task_id(md5sum)
     if md5sum is None:
@@ -1451,8 +1456,9 @@ def run_gremlin(md5sum):
     if status == "finished":
         return jsonify({"status": "finished", "md5sum": md5sum}), 200
     if status == "failed":
+        error = _sanitize_task_error(task, task.get("error")) if _task_full_results_allowed(task) else "Task failed"
         return (
-            jsonify({"status": "failed", "md5sum": md5sum, "error": _sanitize_task_error(task, task.get("error"))}),
+            jsonify({"status": "failed", "md5sum": md5sum, "error": error}),
             404,
         )
     if status in ("running", "queued"):
@@ -1477,7 +1483,7 @@ def run_gremlin(md5sum):
 
 
 @app.route("/compute/api/results/<md5sum>", methods=["GET"])
-@login_required
+@optional_user
 def get_results(md5sum):
     md5sum = _normalize_task_id(md5sum)
     if md5sum is None:
@@ -1509,16 +1515,15 @@ def get_results(md5sum):
             artifact for artifact in payload.get("artifacts", []) if _task_artifact_access_allowed(task, artifact)
         ]
         visible_paths = {artifact["path"] for artifact in payload["artifacts"]}
-        payload["views"] = [
-            {
-                **view,
-                "sources": {
-                    name: [path for path in paths if path in visible_paths]
-                    for name, paths in view.get("sources", {}).items()
-                },
+        visible_views = []
+        for view in payload.get("views", []):
+            sources = {
+                name: [path for path in paths if path in visible_paths]
+                for name, paths in view.get("sources", {}).items()
             }
-            for view in payload.get("views", [])
-        ]
+            if any(sources.values()):
+                visible_views.append({**view, "sources": sources})
+        payload["views"] = visible_views
     payload.update(
         {
             "status": task["status"],
@@ -1558,7 +1563,7 @@ def get_results(md5sum):
 
 
 @app.route("/compute/api/results/<md5sum>/files/<file_id>", methods=["GET"])
-@login_required
+@optional_user
 def get_result_logical_file(md5sum: str, file_id: str):
     """Serve a single Expected File Tree identity, never a guessed path."""
     normalized = _normalize_task_id(md5sum)
@@ -1582,7 +1587,7 @@ def get_result_logical_file(md5sum: str, file_id: str):
 
 
 @app.route("/compute/api/results/<md5sum>/storyboard/<path:asset>", methods=["GET"])
-@login_required
+@optional_user
 def get_result_storyboard_asset(md5sum: str, asset: str):
     """Serve an explicitly declared, deployment-controlled runner asset."""
     normalized = _normalize_task_id(md5sum)
@@ -1623,7 +1628,7 @@ def _result_artifact(task: dict[str, Any], relative_path: str) -> tuple[str, dic
 
 
 @app.route("/compute/api/results/<md5sum>/artifacts/<path:relative_path>", methods=["GET"])
-@login_required
+@optional_user
 def get_result_artifact(md5sum: str, relative_path: str):
     md5sum = _normalize_task_id(md5sum)
     if md5sum is None:
@@ -1669,7 +1674,7 @@ def get_result_artifact(md5sum: str, relative_path: str):
 
 
 @app.route("/compute/api/results/<md5sum>/tables/<path:relative_path>", methods=["GET"])
-@login_required
+@optional_user
 def get_result_table(md5sum: str, relative_path: str):
     """Return a bounded, correctly parsed page from a manifest table artifact."""
     md5sum = _normalize_task_id(md5sum)
@@ -1911,6 +1916,16 @@ def _dashboard_task_status(task: dict[str, Any], index: int) -> dict[str, Any]:
     }
 
 
+def _readonly_task_result_context(task: dict[str, Any]) -> dict[str, Any]:
+    """Expose only metadata needed to bootstrap the filtered Result Workspace."""
+    return {
+        "md5": task["md5sum"],
+        "status": task["status"],
+        "fasta_fn": task["filename"],
+        "task_type": task.get("task_type", "gremlin"),
+    }
+
+
 @app.route("/compute/dashboard", methods=["GET"])
 @login_required
 def task_dashboard():  # skipcq: PY-R1000 -- dashboard filtering and response assembly share request state.
@@ -1948,7 +1963,7 @@ def task_dashboard():  # skipcq: PY-R1000 -- dashboard filtering and response as
 
 
 @app.route("/compute/results/<md5sum>", methods=["GET"])
-@login_required
+@optional_user
 def task_results_page(md5sum):
     """Render the dedicated manifest-first result workspace for one task."""
     normalized = _normalize_task_id(md5sum)
@@ -1957,12 +1972,15 @@ def task_results_page(md5sum):
     task = task_store.get_task(normalized)
     if task is None:
         abort(404)
-    if not _task_full_results_allowed(task):
+    if not _task_access_allowed(task):
         return _task_access_denied(normalized)
+    task_payload = (
+        _dashboard_task_status(task, 0) if _task_full_results_allowed(task) else _readonly_task_result_context(task)
+    )
     response = make_response(
         render_template(
             "task_results.html",
-            task=_dashboard_task_status(task, 0),
+            task=task_payload,
         )
     )
     response.headers["Cache-Control"] = "no-cache"
@@ -1975,7 +1993,7 @@ def task_input_file(md5sum):
     """Stream a task's uploaded input file (dashboard structure previews).
 
     The path comes from the server-owned task row, not from the request;
-    access is restricted to the task owner (or an admin).
+    access is restricted to full-result readers.
     """
     normalized = _normalize_task_id(md5sum)
     if normalized is None:
@@ -1983,7 +2001,7 @@ def task_input_file(md5sum):
     task = task_store.get_task(normalized)
     if task is None:
         abort(404)
-    if not _task_access_allowed(task):
+    if not _task_full_results_allowed(task):
         return _task_access_denied(normalized)
     file_path = str(task.get("file_path") or "")
     if not file_path or not os.path.isfile(file_path):

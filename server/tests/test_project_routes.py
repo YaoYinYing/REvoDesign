@@ -6,8 +6,11 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
 import uuid
+from pathlib import Path
 
 from conftest import _load_pssm_module, _test_client_auth
 
@@ -42,6 +45,40 @@ def _insert_project_task(module, project, submitter, *, status="pending"):
         storage_key=project["storage_key"],
     )
     return module.task_store.get_task(task_id)
+
+
+def _publish_result_manifest(module, task):
+    root = Path(module.app.config["storage_resolver"].get_task_root(task))
+    root.mkdir(parents=True)
+    artifacts = []
+    for path, role, content in (
+        ("models/model.pdb", "primary", b"ATOM\n"),
+        ("logs/run.log", "diagnostic", b"private diagnostics\n"),
+        ("provenance/source.json", "provenance", b"{}\n"),
+    ):
+        target = root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+        artifacts.append(
+            {
+                "path": path,
+                "role": role,
+                "media_type": "text/plain",
+                "size": len(content),
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "preview": "text",
+                "cardinality": "one",
+            }
+        )
+    manifest = {
+        "artifacts": artifacts,
+        "views": [
+            {"type": "structure", "sources": {"structures": ["models/model.pdb"]}},
+            {"type": "text", "sources": {"logs": ["logs/run.log"]}},
+        ],
+        "result": {"files": {"model": [artifacts[0]], "log": [artifacts[1]]}},
+    }
+    (root / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
 
 def test_project_visibility_discovery_and_private_lookup(monkeypatch, tmp_path):
@@ -188,7 +225,8 @@ def test_project_task_attribution_is_visible_only_to_members_and_admin(monkeypat
     owner = module.app.config["user_db"].get_user_by_username("owner")
     store = module.app.config["collaboration"]
     project = store.create_project(owner["id"], "Published Tasks", visibility="internal")
-    _insert_project_task(module, project, owner)
+    task = _insert_project_task(module, project, owner)
+    _insert_project_task(module, project, owner, status="deleted:cancel")
     client = module.app.test_client()
     endpoint = f"/compute/api/projects/{project['id']}/tasks"
 
@@ -199,6 +237,128 @@ def test_project_task_attribution_is_visible_only_to_members_and_admin(monkeypat
     assert outsider_task["submitted_by"] is None
     assert admin_task["submitted_by"] == "owner"
     assert "username" not in member_task | outsider_task | admin_task
+    assert len(client.get(endpoint, headers=owner_headers).json["tasks"]) == 1
+    assert client.get(f"/compute/api/projects/{project['id']}", headers=owner_headers).json["task_count"] == 1
+
+    assert client.get(f"/compute/api/running/{task['md5sum']}", headers=outsider_headers).status_code == 202
+    assert client.get(f"/compute/results/{task['md5sum']}", headers=outsider_headers).status_code == 200
+    assert client.get(f"/compute/api/tasks/{task['md5sum']}/input", headers=outsider_headers).status_code == 403
 
     store.update_project(project["id"], visibility="public")
     assert client.get(endpoint).json["tasks"][0]["submitted_by"] is None
+    assert client.get(f"/compute/api/running/{task['md5sum']}").status_code == 202
+    assert client.get(f"/compute/results/{task['md5sum']}").status_code == 200
+    assert client.get(f"/compute/api/tasks/{task['md5sum']}/input").status_code == 401
+
+
+def test_public_project_failure_hides_diagnostics_from_non_members(monkeypatch, tmp_path):
+    module = _module(monkeypatch, tmp_path)
+    owner_headers = _test_client_auth(module, "owner")
+    owner = module.app.config["user_db"].get_user_by_username("owner")
+    project = module.app.config["collaboration"].create_project(owner["id"], "Public Failure", visibility="public")
+    task = _insert_project_task(module, project, owner, status="failed")
+    module.task_store.update_task(task["md5sum"], error="private runner path: /srv/results/secret")
+    client = module.app.test_client()
+
+    public_payload = client.get(f"/compute/api/running/{task['md5sum']}").get_json()
+    owner_payload = client.get(f"/compute/api/running/{task['md5sum']}", headers=owner_headers).get_json()
+
+    assert public_payload["error"] == "Task failed"
+    assert "private runner path" not in public_payload["error"]
+    assert owner_payload["error"] != "Task failed"
+
+
+def test_project_visibility_drives_filtered_result_workspace(monkeypatch, tmp_path):
+    module = _module(monkeypatch, tmp_path)
+    owner_headers = _test_client_auth(module, "owner")
+    outsider_headers = _test_client_auth(module, "outsider")
+    owner = module.app.config["user_db"].get_user_by_username("owner")
+    store = module.app.config["collaboration"]
+    client = module.app.test_client()
+
+    projects = {
+        visibility: store.create_project(owner["id"], visibility.title(), visibility=visibility)
+        for visibility in ("private", "internal", "public")
+    }
+    tasks = {
+        visibility: _insert_project_task(module, project, owner, status="finished")
+        for visibility, project in projects.items()
+    }
+    for task in tasks.values():
+        _publish_result_manifest(module, task)
+
+    for visibility, task in tasks.items():
+        page = f"/compute/results/{task['md5sum']}"
+        api = f"/compute/api/results/{task['md5sum']}"
+        assert client.get(page, headers=owner_headers).status_code == 200
+        owner_payload = client.get(api, headers=owner_headers).get_json()
+        assert owner_payload["archive"]["request_url"]
+        assert {artifact["role"] for artifact in owner_payload["artifacts"]} == {
+            "primary",
+            "diagnostic",
+            "provenance",
+        }
+        assert client.get(
+            f"/compute/api/results/{task['md5sum']}/artifacts/logs/run.log", headers=owner_headers
+        ).status_code == 200
+        outsider_status = 403 if visibility == "private" else 200
+        anonymous_status = 200 if visibility == "public" else 403
+        assert client.get(page, headers=outsider_headers).status_code == outsider_status
+        assert client.get(page).status_code == anonymous_status
+        assert client.get(api, headers=outsider_headers).status_code == outsider_status
+        assert client.get(api).status_code == anonymous_status
+
+    for headers in (outsider_headers, None):
+        task = tasks["internal" if headers else "public"]
+        request_headers = headers or {}
+        page = client.get(f"/compute/results/{task['md5sum']}", headers=request_headers)
+        payload = client.get(f"/compute/api/results/{task['md5sum']}", headers=request_headers).get_json()
+        artifact_root = f"/compute/api/results/{task['md5sum']}/artifacts/"
+
+        assert '"owner"' not in page.text
+        assert "/display-only/input.fasta" not in page.text
+        assert {artifact["path"] for artifact in payload["artifacts"]} == {"models/model.pdb"}
+        assert payload["archive"] == {"ready": False, "request_url": None, "download_url": None}
+        assert payload["views"] == [{"type": "structure", "sources": {"structures": ["models/model.pdb"]}}]
+        assert client.get(artifact_root + "models/model.pdb", headers=request_headers).status_code == 200
+        assert client.get(artifact_root + "logs/run.log", headers=request_headers).status_code == 404
+        assert client.get(artifact_root + "provenance/source.json", headers=request_headers).status_code == 404
+        assert client.post(f"/compute/api/results/{task['md5sum']}/archive", headers=request_headers).status_code in {
+            401,
+            403,
+        }
+
+
+def test_personal_result_routes_remain_private(monkeypatch, tmp_path):
+    module = _module(monkeypatch, tmp_path)
+    owner_headers = _test_client_auth(module, "owner")
+    outsider_headers = _test_client_auth(module, "outsider")
+    admin_headers = _test_client_auth(module, "admin-reader")
+    user_db = module.app.config["user_db"]
+    owner = user_db.get_user_by_username("owner")
+    admin = user_db.get_user_by_username("admin-reader")
+    user_db.update_user(admin["id"], role="admin")
+    task_id = uuid.uuid4().hex
+    module.task_store.upsert_task(
+        task_id,
+        filename="personal.fasta",
+        file_path="/display-only/personal.fasta",
+        uploaded_at=time.time(),
+        status="finished",
+        is_binary=0,
+        username=owner["username"],
+        submitted_by_user_id=int(owner["id"]),
+        task_type="gremlin",
+        scope_type="personal",
+        scope_id=str(owner["id"]),
+        storage_key=owner["storage_key"],
+    )
+    task = module.task_store.get_task(task_id)
+    _publish_result_manifest(module, task)
+    client = module.app.test_client()
+
+    for suffix in (f"/compute/results/{task_id}", f"/compute/api/results/{task_id}", f"/compute/api/results/{task_id}/artifacts/models/model.pdb"):
+        assert client.get(suffix, headers=owner_headers).status_code == 200
+        assert client.get(suffix, headers=admin_headers).status_code == 200
+        assert client.get(suffix, headers=outsider_headers).status_code == 403
+        assert client.get(suffix).status_code == 403

@@ -351,10 +351,14 @@ def _task_access_allowed(task: dict[str, Any]) -> bool:
     if _is_admin_user():
         return True
     user = g.get("current_user")
+    if task.get("scope_type") == "project":
+        return app.config["collaboration"].can_view_project(
+            int(task["scope_id"]),
+            int(user["id"]) if user else None,
+            authenticated=user is not None,
+        )
     if not user:
         return False
-    if task.get("scope_type") == "project":
-        return app.config["collaboration"].can_view_project(int(task["scope_id"]), int(user["id"]), authenticated=True)
     return task.get("scope_type") == "personal" and str(task["scope_id"]) == str(user["id"])
 
 
