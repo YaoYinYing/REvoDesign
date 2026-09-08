@@ -1,8 +1,0 @@
-Bootstrap: docker-daemon
-From: revodesign-revocompute-runner-prime:latest
-
-%post
-    echo "Pro-Prime runner containerised"
-
-%runscript
-    exec bash /app/revocompute/run.sh "$@"

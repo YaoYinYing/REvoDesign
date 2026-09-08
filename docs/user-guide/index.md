@@ -49,4 +49,3 @@ REvoDesign's tabbed interface follows the stages of a rational design pipeline:
 | Run RFdiffusion backbone design | [Advanced Design Tools](advanced-design.md) |
 | Generate mutant PDBs for MD/docking | [Programmatic Mutagenesis](programmatic-mutagenesis.md) |
 | Install Rosetta for energy scoring | [Rosetta Integration](../dev-guide/rosetta.md) |
-| Set up the PSSM/GREMLIN server | [PSSM/GREMLIN Server](../dev-guide/server.md) |

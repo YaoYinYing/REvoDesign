@@ -3,8 +3,6 @@ version = 1
 test_patterns = [
   "tests/**",
   "tests/**/**",
-  "server/tests/**",
-  "server/tests/**/**",
 ]
 
 exclude_patterns = [
@@ -19,8 +17,6 @@ exclude_patterns = [
   "tools/**",
   "tests/**",
   "tests/**/**",
-  "server/tests/**",
-  "server/tests/**/**",
 ]
 
 [[analyzers]]

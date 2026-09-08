@@ -1,8 +1,0 @@
-Bootstrap: docker-daemon
-From: revodesign-revocompute-runner-easifa:latest
-
-%post
-    echo "EasIFA runner containerised"
-
-%runscript
-    exec bash /app/revocompute/run.sh "$@"
