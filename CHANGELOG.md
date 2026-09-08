@@ -123,6 +123,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DeepSource return contracts: optional-result helpers return `None` explicitly; UI callbacks side-effect-only; abstract classmethod receiver renamed.
 
 ### Removed
+- REvoCompute server: the entire `server/` codebase (app, runners, Docker/SLURM
+  drivers, config, deployment control, tests), its dev-guide docs
+  (`dev-guide/server.md`, `dev-guide/task-types-design.md`,
+  `dev-guide/result-view-plugins.md`), and the `server-test.yml` /
+  `docker-image.yml` workflows have moved to the standalone REvoCompute
+  repository and are removed from this one.
 - Server:
   - hardcoded GREMLIN frontend logic (trace fallback, label regexes) — registry-driven now.
   - `DB_UNIREF30`/`DB_UNIREF90` from required `.env` (moved to runner YAMLs).
