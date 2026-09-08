@@ -1,8 +1,0 @@
-Bootstrap: docker-daemon
-From: revodesign-revocompute-runner:latest
-
-%post
-    echo "GREMLIN runner containerised"
-
-%runscript
-    exec bash /app/revocompute/run.sh "$@"

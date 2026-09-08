@@ -69,7 +69,6 @@ nav:
       - Concepts: dev-guide/concepts.md
       - Testing: dev-guide/testing.md
       - CI/CD: dev-guide/ci-cd.md
-      - REvoCompute Server: dev-guide/server.md
       - Monaco Editor: dev-guide/editor.md
       - Rosetta Integration: dev-guide/rosetta.md
       - Translation (i18n): dev-guide/translation.md

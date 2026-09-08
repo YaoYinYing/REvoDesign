@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last pruned:** 2026-08-26 (token budget: 3000 tokens / 400 lines)
+**Last pruned:** 2026-09-08 (token budget: 3000 tokens / 400 lines)
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -33,12 +33,6 @@ Use memory/ for session-specific context. Use this file for project-invariant pa
   without checking its documentation and types.
 - Make architectural decisions for the long term. Do not accept a stopgap that
   only works for now and is meant to be replaced later.
-- The server is the single source of truth for all configuration data. Never
-  duplicate task-type definitions, parameter schemas, file-extension rules,
-  resource policies, or scientific constants from YAML/Python into JavaScript.
-  If the JS needs data that the server owns, add an API endpoint. A JS
-  fallback that mocks server config for when the API is unreachable is still
-  duplication — show an error instead.
 - **Never vendor third-party JS/CSS/code into the repo.** CDN-reachable frontend assets (viewer libraries, fonts, frameworks) load from the CDN at runtime with a pinned version and SRI — do not copy them into the repository, and do not fetch-and-bake them into Docker images. If a CDN dependency proves unreliable, remove the dependency, don't fork it into the codebase.
 - **Pin Python packages only after checking the real distribution channels.**
   Before adding a `package==X.Y.Z` to a Dockerfile, verify:
@@ -180,56 +174,3 @@ All Qt imports MUST go through `REvoDesign.Qt` — never import PyQt5 or PyQt6 d
 - Long-lived servers (uvicorn, asyncio): `threading.Thread`
 - Qt-signal-coupled work: `QThread` via `WorkerThread`
 - When joining from main thread: `QApplication.processEvents()` to keep UI responsive
-
-## Adapting a new scientific runner — intake
-
-When asked "adapt \<tool\> to revocompute", follow the **Design-Build-Test-Learn
-(DBTL) cycle** (detailed below) to close the loop and improve future adaptations.
-
-The deliverable is a task-type registry entry + one runner YAML + `Dockerfile`/`run.sh`/`.def`
-+ contract tests + a living SLURM test, following `server/OPERATIONS_AND_TASK_ADAPTER_GUIDE.md`.
-To start a DBTL pass, provide at minimum the sections under **"Tool"** and **"Minimal run"**
-below — missing critical items (weights, hardware constraints, minimal run params) will
-block the build step and should be resolved first.
-
-- **Tool**: name, repo URL, full commit hash to pin, CLI entrypoint, license.
-- **Hardware**: GPU or CPU; CUDA/torch versions it needs; typical per-run memory and walltime.
-- **Inputs**: accepted file extensions; which is the primary input; multiple/nested inputs needed?
-- **Parameters**: the user-facing knobs — name, type, default, min/max/choices, description — and
-  the CLI flag each maps to.
-- **Outputs**: files produced (extensions); the success signal (completion marker, required outputs,
-  exit codes) and how to detect a silently failed run.
-- **Dependencies**: Python/torch/framework versions; model weights (URL, size, license, offline staging
-  path); runtime network or cache needs.
-- **Minimal run**: one working command line on a tiny input, plus a sample input file or a pointer
-  to `tests/data`.
-
-If the minimal run, weights, or hardware constraints are missing, ask for
-them before building anything — the pin and the smoke case are the contract.
-
-## Design-Build-Test-Learn cycle
-
-After adapting a new runner, follow the DBTL cycle to close the loop and
-improve future adaptations:
-
-- **Design**: Document dependency pins, hardware requirements, input/output
-  contracts, and parameter schemas before touching any files. Record why a new
-  runtime family was needed versus sharing an existing one. Capture the
-  minimal run parameters (small input, conservative caps) for smoke testing.
-- **Build**: Construct the Dockerfile, runner YAML, `.def` file, and task type
-  registry entry. Build the candidate image tag (`:candidate`) while production
-  stays up. Validate proxy‑free ENV in the final image layer.
-- **Test**: Run the Docker smoke test (minimum safe parameters through the API
-  with a test account). Before production activation, run an actual
-  server‑to‑worker‑to‑SLURM‑to‑Apptainer smoke: submit a task through the real
-  API, monitor the local SLURM job (`squeue`), and read result logs from the API
-  (status `GET /compute/api/running/<md5>`, manifest
-  `GET /compute/api/results/<md5>`, logs
-  `GET /compute/api/results/<md5>/artifacts/<path>`). Verify served static
-  files contain the change and the page behaves as designed.
-- **Learn**: After the cycle, update this section with what was learned —
-  version gotchas (e.g. jax 0.4.x vs 0.6.x incompatibility), OpenCL ICD
-  registration gotchas for OpenMM relax, conda‑versus‑pip resolution choices,
-  or any parameter that proved unnecessary. Record the effective walltime and
-  resource usage so future adaptations can set conservative defaults. Add any
-  new task‑type patterns to the registry’s `RUNTIME_FAMILIES.md` table.

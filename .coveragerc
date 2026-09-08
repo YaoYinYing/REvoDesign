@@ -2,7 +2,6 @@
 omit =
     */tests/*
     */REvoDesign/UI/*
-    */server/*
     */prompt/*
     */REvoDesign/shortcuts/wrappers/*
     */REvoDesign/clients/*

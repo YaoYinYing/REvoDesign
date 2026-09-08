@@ -7,10 +7,6 @@ TODO
 iprscan5-*
 REvoDesign/UI/REvoDesign-CommentMutant_ui.py
 REvoDesign/library/*
-draws/server_dashboard.tldr
-server/docker-compose.runners.generated.yml
-server/docker/runners/*/Dockerfile.proxy.*
-server/.env.production.*
 prompt/revised.txt
 REvoDesign/clients/UniBroadcaster.py
 REvoDesign/external_designer/ExternalBuilders.py
@@ -110,7 +106,6 @@ git_graph.txt
 pr_summary.csv
 src/REvoDesign/UI/REvoDesign_ui.py
 src/REvoDesign/tools/REvoDesign-manager/UI/REvoDesign_installer.ui
-server/pssm_gremlin/users.txt
 src/REvoDesign/phylogenetics/.ipynb_checkpoints/validate-checkpoint.ipynb
 /notebooks/.ipynb_checkpoints
 mock/
@@ -118,11 +113,8 @@ mock/
 T5aH2-HEM-T31_initial_GREMLIN_mtx_zscore.png
 /tests/data/msa/miniuc
 /tests/data/msa/testminiuc
-server/.env.production
-server/.env
 /playground/miniuc
 /playground/server_test
-server/.env.local
 /presentation_revodesign
 /plan
 src/REvoDesign/UI/preference.py
@@ -136,7 +128,6 @@ cluster_test.zip
 /site
 docs_old/**/*
 docs_old/
-docs/dev-guide/server-plugin-research.md
 test_sc/
 src/REvoDesign/UI/Ui_REvoDesign.py
 # loopkit — keep installable scaffolding, ignore runtime artifacts
@@ -145,8 +136,6 @@ src/REvoDesign/UI/Ui_REvoDesign.py
 .claude/settings.local.json
 users.sqlite3
 testerror.txt
-/server/server_state
-/server/revocompute.egg-info
 /.tmp
 /playground/server_auth
 /dumped_sequences
@@ -154,10 +143,6 @@ playground/config
 4MB8_GREMLIN_mtx_zscore.png
 /mutagenese
 /temperal_pdb
-# security audit working doc (internal, not a deliverable)
-/server/security-audit-tracking.md
-server/manage.sqlite
-server/revocompute.sqlite3
 
 # audit scratch (user-provided structures)
 /tmp/

@@ -9,16 +9,11 @@ solvers, or make changes to the core infrastructure.
 	  profiles, GREMLIN, clusters, and the core software patterns.
 - **[Architecture](architecture.md)** -- Package structure, plugin lifecycle,
   singleton and registry patterns, config system, and extension points.
-- **[Concepts](concepts.md)** -- Key biological and software design concepts:
-  mutant, mutant tree, designers, mutate runners, hotspots, profiles, GREMLIN,
-  clusters, and core software patterns.
 - **[Testing](testing.md)** -- Test framework (pytest + QtBot), test
   classification (fast/serial/slow), conftest harness, test data, and CI
   workflow.
 - **[CI/CD](ci-cd.md)** -- GitHub Actions workflows, matrix configuration,
   environment variables, and required secrets.
-- **[REvoCompute Server](server.md)** -- Backend compute service for
-  PSSM profile generation and GREMLIN co-evolution analysis.
 - **[Monaco Editor](editor.md)** -- Embedded VS Code editor for YAML
   configuration editing with syntax highlighting and file whitelisting.
 - **[Rosetta Integration](rosetta.md)** -- RosettaPy bridge for energy

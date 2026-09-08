@@ -1,5 +1,0 @@
-Bootstrap: docker-daemon
-From: revodesign-revocompute-runner-colabfold_af2:latest
-
-%runscript
-    exec bash /app/revocompute/run.sh "$@"

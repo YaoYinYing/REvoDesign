@@ -168,7 +168,7 @@ jobs:
           else
             conda install ${{ matrix.conda-channel}} '${{ matrix.pymol-version}}' 'pyqt>=6' -n ${{ env.conda_env }} -y
           fi
-          # for server testings on ubuntu (requires blast, hhsuite)
+          # blast + hhsuite are required by the GREMLIN/PSI-BLAST tests
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
             conda install -c conda-forge -c bioconda blast hhsuite -y -n ${{ env.conda_env }}
           fi

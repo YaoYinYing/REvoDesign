@@ -219,7 +219,7 @@ include = [
 ]
 
 [tool.bandit]
-exclude_dirs = ["build","dist","tests","server/tests","scripts"]
+exclude_dirs = ["build","dist","tests","scripts"]
 number = 4
 recursive = true
 targets = "src"

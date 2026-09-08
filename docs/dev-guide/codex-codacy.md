@@ -147,18 +147,12 @@ conda run -n REvoDesignTestFlight make kw-test PYTEST_KW='single keywords'
 conda run -n REvoDesignTestFlight make kw-test PYTEST_KW='"keywordA or keywordB"'
 ```
 
-For server/Docker/auth changes, include integration keywords from
-`tests/server/test_app.py` where applicable.
-
 ## High-Value Fix Patterns
 
 1. Convert unsafe `eval` or fragile pipeline composition to explicit argument-safe execution
 2. Guard deletion by strict base-path validation before filesystem removal
-3. Align Docker/env variable names across compose, runtime, and scripts
-4. Replace brittle browser-auth logout loops with deterministic server/client handoff
-5. Avoid root-like defaults; require explicit non-root identity in runner/server paths
-6. Preserve distinctions in API return values (`[]` vs `None`) where semantics matter
-7. Escape user/version strings before regex-oriented shell tools (e.g., `sed`)
+3. Preserve distinctions in API return values (`[]` vs `None`) where semantics matter
+4. Escape user/version strings before regex-oriented shell tools (e.g., `sed`)
 
 ## CI Drift Handling
 
