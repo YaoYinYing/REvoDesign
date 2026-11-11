@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Documentation:
   - prune always-loaded Claude guidance and move rare PR/release procedures to linked `docs/agents/` references.
+  - restore the archived PSSM/GREMLIN server tree from revision `d167adecd9ff` so the manuscript's service stays deployable and locally reproducible.
+  - `server/README.md` now documents the open-access instance, license, dependency versions, verification tests, example datasets, FAQ, and maintenance plan above the preserved historical deployment guide.
 - Server:
   - Project Scope hardening: immutable task submitter IDs, read-only archived
     scientific records with eligible artifact reuse, capability-scoped user

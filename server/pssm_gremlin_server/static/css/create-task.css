@@ -1,0 +1,212 @@
+/* REvoDesign GREMLIN Server — Create Task page styles */
+/* SPDX-License-Identifier: GPL-3.0-only */
+
+.hero { padding: 1.2rem; }
+
+.card {
+  margin-top: 1rem;
+  padding: 1rem;
+  animation: fadeRise 540ms ease-out;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 0.9rem;
+}
+
+.input-zone {
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fbfdfb;
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.field-label {
+  margin: 0;
+  font-size: 0.79rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.file-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.file-name {
+  font-size: 0.84rem;
+}
+
+/* drag-and-drop highlight */
+.drop-highlight {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--accent) 6%, transparent 94%) !important;
+}
+
+/* ponytail: simple full-width field — matches main branch.
+   No ::file-selector-button styling — let the browser render the
+   native button naturally.  Complex pseudo-element styling on
+   replaced elements is fragile across browsers. */
+.file-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0.58rem;
+  font-size: 0.9rem;
+}
+
+.file-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 58%, white 42%);
+  box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
+}
+
+.text-input {
+  border-radius: 12px;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0.58rem 0.64rem;
+  font-size: 0.92rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.text-input:focus {
+  border-color: color-mix(in srgb, var(--accent) 58%, white 42%);
+  box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
+}
+
+.sequence-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0.58rem 0.64rem;
+  font-size: 0.92rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.35;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.sequence-input:focus {
+  border-color: color-mix(in srgb, var(--accent) 58%, white 42%);
+  box-shadow: 0 0 0 3px rgba(15, 79, 99, 0.15);
+}
+
+.editor-zone {
+  border-radius: 14px;
+  border: 1px solid #d9e3de;
+  background: #f5f9f6;
+  padding: 0.78rem;
+  display: grid;
+  gap: 0.56rem;
+}
+
+.preview {
+  border-radius: 12px;
+  border: 1px solid #cfdad4;
+  background: #f1f5f2;
+  padding: 0.6rem 0.66rem;
+  white-space: pre-wrap;
+  font-size: 0.84rem;
+  color: #2f3f46;
+  line-height: 1.36;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  min-height: 110px;
+}
+
+.status {
+  border-radius: 12px;
+  border: 1px solid #d7e2dc;
+  background: #f4f8f5;
+  min-height: 3rem;
+  padding: 0.62rem 0.72rem;
+  font-size: 0.86rem;
+  color: #2f3f46;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.status.busy  { background: #e8f3fa; border-color: #b8d6e7; color: #17465f; }
+.status.ok    { background: #e8f5eb; border-color: #bedfc6; color: #1a582c; }
+.status.error { background: #fceceb; border-color: #edc0ba; color: #7c2319; }
+
+.info-panel {
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #ffffff 0%, #f3f8f5 100%);
+  padding: 0.85rem;
+}
+
+.info-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.info-list {
+  margin: 0.55rem 0 0;
+  padding-left: 1.05rem;
+  display: grid;
+  gap: 0.35rem;
+  color: #304048;
+  font-size: 0.84rem;
+}
+
+/* dark theme */
+html[data-theme="dark"] .subline,
+html[data-theme="dark"] .field-label,
+html[data-theme="dark"] .info-list { color: #a2b4bc; }
+
+html[data-theme="dark"] .input-zone { border-color: #30444f; background: #132128; }
+
+html[data-theme="dark"] .file-name { color: var(--muted); }
+
+html[data-theme="dark"] .drop-highlight {
+  background: color-mix(in srgb, var(--accent) 10%, transparent 90%) !important;
+}
+
+html[data-theme="dark"] .file-input,
+html[data-theme="dark"] .text-input,
+html[data-theme="dark"] .sequence-input {
+  border-color: #324751;
+  background: #17252c;
+  color: #d8e4e9;
+}
+
+html[data-theme="dark"] .editor-zone { border-color: #30444f; background: #152329; }
+
+html[data-theme="dark"] .preview { border-color: #30444f; background: #132127; color: #c5d5db; }
+
+html[data-theme="dark"] .status { border-color: #30444f; background: #15242b; color: #c0d0d7; }
+html[data-theme="dark"] .status.busy  { background: #163446; border-color: #2e6077; color: #b8deef; }
+html[data-theme="dark"] .status.ok    { background: #173427; border-color: #35634a; color: #b6e1c1; }
+html[data-theme="dark"] .status.error { background: #41241f; border-color: #754239; color: #f2b4ac; }
+
+html[data-theme="dark"] .info-panel {
+  border-color: #30444f;
+  background: linear-gradient(180deg, #1a2930 0%, #152228 100%);
+}
+
+@media (max-width: 820px) {
+  .grid { grid-template-columns: 1fr; }
+  .page { width: calc(100% - 1rem); margin-top: 0.8rem; }
+  .hero, .card { border-radius: 14px; }
+}

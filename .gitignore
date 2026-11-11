@@ -144,5 +144,16 @@ playground/config
 /mutagenese
 /temperal_pdb
 
+# server/ (archived snapshot) — local deployment state and secrets
+server/.env
+server/.env.local
+server/.env.production
+server/.env.production.*
+server/pssm_gremlin/users.txt
+server/pssm_gremlin.sqlite3
+server/manage.sqlite
+
 # audit scratch (user-provided structures)
 /tmp/
+/.levin-harness
+/.levin
